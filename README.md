@@ -4,6 +4,31 @@ Jon ist ein moderner KI-Desktop-Assistent für Windows mit Multi-Provider-Unters
 Streaming, Langzeit-Persistenz und Systemsteuerung. Backend in Python/FastAPI, Frontend in
 Electron + React + TypeScript im Black/Gold-Glassmorphism-Design.
 
+**Website & Download: [getjon.netlify.app](https://getjon.netlify.app)**
+
+## Jon herunterladen
+
+Der einfachste Weg zu Jon führt über die offizielle Website:
+
+1. Öffne **[getjon.netlify.app](https://getjon.netlify.app)**
+2. Klicke auf **Download** — du erhältst die Datei `jon.zip`
+3. Entpacke die Zip-Datei an einen Ort deiner Wahl (z. B. `C:\Jon`)
+4. Folge danach der [Setup-Anleitung](#setup) weiter unten
+5. Nach dem Setup startet ein Doppelklick auf `start-jon.bat` Backend und App zusammen
+
+Alternativ kannst du das Repository direkt klonen:
+
+```bash
+git clone https://github.com/Lightning702/Jon---AI.git
+```
+
+**Voraussetzungen:** Windows 10/11, [Python](https://www.python.org/downloads/) 3.12 oder
+neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
+
+**Ohne Installation:** Die Handy-App läuft direkt im Browser unter
+[getjon.netlify.app/app](https://getjon.netlify.app/app/) — API-Key eintragen und loslegen,
+auf dem Smartphone über „Zum Startbildschirm hinzufügen" installierbar.
+
 ## Funktionen (aktueller Stand)
 
 - Multi-Provider-Chat mit einheitlicher Schnittstelle: NVIDIA, OpenAI, Anthropic, Gemini,
@@ -54,7 +79,7 @@ Beispiel:
 ```
 NVIDIA_API_KEY=nvapi-...
 DEFAULT_PROVIDER=nvidia
-DEFAULT_MODEL=z-ai/glm-5.2
+DEFAULT_MODEL=openai/gpt-oss-120b
 ```
 
 ### 2. Backend
@@ -101,7 +126,7 @@ Produktions-Build und `npm run package` für ein Windows-Installationspaket (ele
 ## Sicherheit
 
 - API-Keys werden ausschließlich aus Umgebungsvariablen geladen.
-- `.env` und `data/*.db` sind über `.gitignore` ausgeschlossen.
+- `.env` und der komplette `data/`-Ordner sind über `.gitignore` ausgeschlossen.
 - Die System-Routen führen Befehle mit den Rechten des angemeldeten Benutzers aus und sind
   nur an `127.0.0.1` gebunden. Für ein öffentliches Deployment ist eine Authentifizierungs-
   schicht erforderlich.
