@@ -2,7 +2,7 @@
 
 Jon ist ein moderner KI-Desktop-Assistent für Windows mit Multi-Provider-Unterstützung,
 Streaming, Langzeit-Persistenz und Systemsteuerung. Backend in Python/FastAPI, Frontend in
-Electron + React + TypeScript im Black/Gold-Glassmorphism-Design.
+Electron + React + TypeScript im Black/Gold-Glassmorphism-Design. (Claude hat es nur veröffentlicht, weil ich nicht wusste wie das geht. Er hat auch bisschen geholfen.)
 
 **Website & Download: [https://getjon.netlify.app](https://getjon.netlify.app)**
 
