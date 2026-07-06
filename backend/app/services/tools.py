@@ -6,6 +6,7 @@ from typing import Any
 
 from app.services.automation_service import AutomationService
 from app.services.memory_service import MemoryService
+from app.services.skill_service import SkillService
 from app.services.system_service import SystemService
 
 _STR = {"type": "string"}
@@ -13,7 +14,16 @@ _NUM = {"type": "number"}
 _INT = {"type": "integer"}
 _BOOL = {"type": "boolean"}
 
-SAFE_TOOLS = {"get_screen_info", "list_windows", "wait", "recall"}
+SAFE_TOOLS = {
+    "get_screen_info",
+    "list_windows",
+    "wait",
+    "recall",
+    "system_info",
+    "list_processes",
+    "list_skills",
+    "read_skill",
+}
 
 
 def _shorten(value: Any, limit: int = 120) -> str:
@@ -76,6 +86,43 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Ruft gespeicherte Erinnerungen ab."
     if name == "forget":
         return f"Löscht Erinnerungen zu: {_shorten(args.get('query', ''))}"
+    if name == "make_dir":
+        return f"Erstellt den Ordner {_shorten(args.get('path', ''))}."
+    if name == "append_file":
+        return f"Hängt Text an die Datei {_shorten(args.get('path', ''))} an."
+    if name == "copy_path":
+        return (
+            f"Kopiert {_shorten(args.get('source', ''))} nach "
+            f"{_shorten(args.get('destination', ''))}."
+        )
+    if name == "search_files":
+        return f"Sucht {_shorten(args.get('pattern', ''))} in {_shorten(args.get('root', ''))}."
+    if name == "zip_paths":
+        return f"Packt eine ZIP-Datei nach {_shorten(args.get('destination', ''))}."
+    if name == "unzip":
+        return f"Entpackt {_shorten(args.get('source', ''))}."
+    if name == "clipboard_get":
+        return "Liest die Zwischenablage."
+    if name == "clipboard_set":
+        return f"Kopiert in die Zwischenablage: {_shorten(args.get('text', ''))}"
+    if name == "screenshot":
+        return "Macht einen Screenshot des Bildschirms."
+    if name == "http_get":
+        return f"Ruft {_shorten(args.get('url', ''))} ab."
+    if name == "download_file":
+        return f"Lädt {_shorten(args.get('url', ''))} herunter."
+    if name == "system_info":
+        return "Fragt Systeminformationen ab."
+    if name == "list_processes":
+        return "Listet laufende Prozesse auf."
+    if name == "lock_screen":
+        return "Sperrt den Bildschirm."
+    if name == "list_skills":
+        return "Listet verfügbare Skills auf."
+    if name == "read_skill":
+        return f"Liest die Skill-Anleitung „{_shorten(args.get('name', ''))}“."
+    if name == "write_skill":
+        return f"Speichert die Skill-Anleitung „{_shorten(args.get('name', ''))}“."
     return f"Führt das Tool {name} aus."
 
 
@@ -100,10 +147,12 @@ class ToolBox:
         service: SystemService | None = None,
         automation: AutomationService | None = None,
         memory: MemoryService | None = None,
+        skills: SkillService | None = None,
     ) -> None:
         self._service = service or SystemService()
         self._automation = automation or AutomationService()
         self._memory = memory or MemoryService()
+        self._skills = skills or SkillService()
 
     def schema(self) -> list[dict]:
         return [
@@ -260,6 +309,118 @@ class ToolBox:
                 ["seconds"],
             ),
             _tool(
+                "make_dir",
+                "Erstellt einen Ordner (inkl. fehlender Elternordner).",
+                {"path": _STR},
+                ["path"],
+            ),
+            _tool(
+                "append_file",
+                "Haengt Text an eine Datei an, ohne sie zu ueberschreiben.",
+                {"path": _STR, "content": _STR},
+                ["path", "content"],
+            ),
+            _tool(
+                "copy_path",
+                "Kopiert eine Datei oder einen Ordner.",
+                {"source": _STR, "destination": _STR},
+                ["source", "destination"],
+            ),
+            _tool(
+                "search_files",
+                "Sucht rekursiv nach Dateien. pattern ist ein Glob wie *.pdf oder "
+                "Rechnung*.docx.",
+                {"root": _STR, "pattern": _STR},
+                ["root", "pattern"],
+            ),
+            _tool(
+                "zip_paths",
+                "Packt Dateien/Ordner in eine ZIP-Datei.",
+                {
+                    "sources": {"type": "array", "items": _STR},
+                    "destination": _STR,
+                },
+                ["sources", "destination"],
+            ),
+            _tool(
+                "unzip",
+                "Entpackt eine ZIP-Datei in einen Zielordner.",
+                {"source": _STR, "destination": _STR},
+                ["source", "destination"],
+            ),
+            _tool(
+                "clipboard_get",
+                "Liest den aktuellen Inhalt der Zwischenablage.",
+                {},
+                [],
+            ),
+            _tool(
+                "clipboard_set",
+                "Setzt den Inhalt der Zwischenablage.",
+                {"text": _STR},
+                ["text"],
+            ),
+            _tool(
+                "screenshot",
+                "Macht einen Screenshot. Mit path wird als Datei gespeichert, sonst als "
+                "Data-URL zurueckgegeben. Nutze das, um zu pruefen, was auf dem Bildschirm "
+                "ist.",
+                {"path": _STR},
+                [],
+            ),
+            _tool(
+                "http_get",
+                "Ruft eine URL per HTTP GET ab und liefert den Text (z.B. fuer Recherche "
+                "oder APIs).",
+                {"url": _STR},
+                ["url"],
+            ),
+            _tool(
+                "download_file",
+                "Laedt eine Datei von einer URL herunter und speichert sie.",
+                {"url": _STR, "destination": _STR},
+                ["url", "destination"],
+            ),
+            _tool(
+                "system_info",
+                "Liefert Betriebssystem, CPU, Speicher, Nutzer und Uhrzeit.",
+                {},
+                [],
+            ),
+            _tool(
+                "list_processes",
+                "Listet die groessten laufenden Prozesse mit Name, PID und Speicher.",
+                {},
+                [],
+            ),
+            _tool(
+                "lock_screen",
+                "Sperrt den Windows-Bildschirm.",
+                {},
+                [],
+            ),
+            _tool(
+                "list_skills",
+                "Listet die verfuegbaren Skill-Anleitungen (z.B. web-design) auf.",
+                {},
+                [],
+            ),
+            _tool(
+                "read_skill",
+                "Liest eine Skill-Anleitung vollstaendig. Rufe das auf, bevor du eine "
+                "passende Aufgabe startest (z.B. read_skill name=web-design vor dem Bau "
+                "einer Website) und folge der Anleitung.",
+                {"name": _STR},
+                ["name"],
+            ),
+            _tool(
+                "write_skill",
+                "Erstellt oder aktualisiert eine Skill-Anleitung (Markdown). Nutze das, "
+                "wenn der Nutzer dir eine neue Arbeitsweise beibringt.",
+                {"name": _STR, "content": _STR},
+                ["name", "content"],
+            ),
+            _tool(
                 "remember",
                 "Speichert dauerhaft eine wichtige Information ueber den Nutzer oder "
                 "eine Vorliebe/Regel, an die du dich in allen kuenftigen Gespraechen "
@@ -398,6 +559,67 @@ class ToolBox:
             )
         if name == "wait":
             return json.dumps(auto.wait(float(args.get("seconds", 1.0))))
+        if name == "make_dir":
+            return json.dumps({"path": svc.make_dir(str(args.get("path", "")))})
+        if name == "append_file":
+            svc.append_file(str(args.get("path", "")), str(args.get("content", "")))
+            return json.dumps({"appended": True})
+        if name == "copy_path":
+            dest = svc.copy_path(
+                str(args.get("source", "")), str(args.get("destination", ""))
+            )
+            return json.dumps({"copied_to": dest})
+        if name == "search_files":
+            return json.dumps(
+                svc.search_files(
+                    str(args.get("root", "")), str(args.get("pattern", "*"))
+                ),
+                ensure_ascii=False,
+            )
+        if name == "zip_paths":
+            sources = [str(s) for s in args.get("sources") or []]
+            dest = svc.zip_paths(sources, str(args.get("destination", "")))
+            return json.dumps({"zip": dest})
+        if name == "unzip":
+            dest = svc.unzip(
+                str(args.get("source", "")), str(args.get("destination", ""))
+            )
+            return json.dumps({"extracted_to": dest})
+        if name == "clipboard_get":
+            return json.dumps({"text": svc.clipboard_get()[:6000]}, ensure_ascii=False)
+        if name == "clipboard_set":
+            return json.dumps({"set": svc.clipboard_set(str(args.get("text", "")))})
+        if name == "screenshot":
+            path = args.get("path")
+            return json.dumps(
+                svc.screenshot(str(path) if path else None), ensure_ascii=False
+            )
+        if name == "http_get":
+            return json.dumps(svc.http_get(str(args.get("url", ""))), ensure_ascii=False)
+        if name == "download_file":
+            dest = svc.download_file(
+                str(args.get("url", "")), str(args.get("destination", ""))
+            )
+            return json.dumps({"saved": dest})
+        if name == "system_info":
+            return json.dumps(svc.system_info(), ensure_ascii=False)
+        if name == "list_processes":
+            return json.dumps(svc.list_processes(), ensure_ascii=False)
+        if name == "lock_screen":
+            return json.dumps({"locked": svc.lock_screen()})
+        skl = self._skills
+        if name == "list_skills":
+            return json.dumps(skl.list(), ensure_ascii=False)
+        if name == "read_skill":
+            try:
+                return json.dumps(skl.read(str(args.get("name", ""))), ensure_ascii=False)
+            except FileNotFoundError:
+                return json.dumps({"error": "Skill nicht gefunden"})
+        if name == "write_skill":
+            return json.dumps(
+                skl.write(str(args.get("name", "")), str(args.get("content", ""))),
+                ensure_ascii=False,
+            )
         mem = self._memory
         if name == "remember":
             return json.dumps(

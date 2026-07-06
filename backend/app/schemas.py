@@ -28,6 +28,20 @@ class ApproveIn(BaseModel):
     approved: bool
 
 
+class SkillWriteIn(BaseModel):
+    content: str
+
+
+class AccountConnectIn(BaseModel):
+    provider: str
+    api_key: str
+    default_model: str | None = None
+
+
+class AccountModelIn(BaseModel):
+    model: str
+
+
 class MessageOut(BaseModel):
     id: str
     role: str

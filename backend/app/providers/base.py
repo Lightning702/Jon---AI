@@ -28,10 +28,12 @@ class ChatRequest:
 @dataclass
 class StreamChunk:
     delta: str = ""
-    kind: Literal["content", "reasoning", "tool", "tool_result"] = "content"
+    kind: Literal["content", "reasoning", "tool", "tool_result", "usage"] = "content"
     name: str | None = None
     ok: bool | None = None
     args: dict[str, Any] | None = None
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
 
 
 @dataclass

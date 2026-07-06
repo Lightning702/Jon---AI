@@ -95,6 +95,7 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 <a href="#install">Installation</a>
 <a href="#app">Handy-App</a>
 <a href="#download">Download</a>
+<a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
 </div>
 </nav>
 
@@ -130,14 +131,17 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 <p class="sub">Nicht nur ein Chat — ein echter Assistent, der handelt.</p>
 <div class="grid">
 <div class="card"><div class="ic">⚡</div><h3>Echtzeit-Streaming</h3><p>Antworten Token für Token über GPT-OSS 120B, inklusive sichtbarem Denkprozess.</p></div>
-<div class="card"><div class="ic">🧠</div><h3>Langzeitgedächtnis</h3><p>Jede Unterhaltung wird lokal in SQLite gespeichert und ist jederzeit abrufbar.</p></div>
-<div class="card"><div class="ic">💻</div><h3>Systemsteuerung</h3><p>PowerShell, CMD, Programme starten und beenden, Explorer und VS Code steuern.</p></div>
-<div class="card"><div class="ic">📁</div><h3>Dateien</h3><p>Dateien lesen, schreiben, verschieben und löschen — direkt per Anweisung.</p></div>
-<div class="card"><div class="ic">🌐</div><h3>Web</h3><p>Webseiten öffnen und mit Jon direkt an Aufgaben im Browser arbeiten.</p></div>
+<div class="card"><div class="ic">🧠</div><h3>Langzeitgedächtnis</h3><p>Jon merkt sich Fakten über alle Unterhaltungen hinweg — lokal in SQLite.</p></div>
+<div class="card"><div class="ic">💻</div><h3>Systemsteuerung</h3><p>PowerShell, CMD, Programme, Explorer, VS Code — plus Systeminfos, Prozesse und Bildschirm sperren.</p></div>
+<div class="card"><div class="ic">📁</div><h3>Dateien &amp; Archive</h3><p>Lesen, schreiben, suchen, kopieren, verschieben, löschen und ZIP packen/entpacken.</p></div>
+<div class="card"><div class="ic">🛡️</div><h3>Erst fragen</h3><p>Jon fragt vor jeder Aktion um Erlaubnis. Jeder Befehl ist aufklappbar sichtbar — oder du erlaubst alles.</p></div>
 <div class="card"><div class="ic">🖱️</div><h3>Maus &amp; Tastatur</h3><p>Jon bewegt die Maus, klickt und tippt selbst — er bedient Apps wie du.</p></div>
 <div class="card"><div class="ic">🎙️</div><h3>Sprachsteuerung</h3><p>Sag einfach „Jon" — er hört zu, führt aus und antwortet dir mit Stimme.</p></div>
-<div class="card"><div class="ic">📱</div><h3>Handy-App</h3><p>Jon für unterwegs als installierbare Web-App — mit deinem eigenen API-Key.</p></div>
-<div class="card"><div class="ic">🎨</div><h3>Premium-Design</h3><p>Apple-inspiriertes Liquid-Glass in Schwarz, Gold und Weiß mit flüssigen Animationen.</p></div>
+<div class="card"><div class="ic">📸</div><h3>Screenshot &amp; Web</h3><p>Jon macht Screenshots, ruft Webseiten ab und lädt Dateien herunter.</p></div>
+<div class="card"><div class="ic">📚</div><h3>Skills</h3><p>Bearbeitbare Anleitungen — z. B. „Web-Design". Bring Jon neue Arbeitsweisen bei, ganz ohne Code.</p></div>
+<div class="card"><div class="ic">🔑</div><h3>Konten &amp; Modelle</h3><p>Verbinde OpenAI, Anthropic &amp; Co. per offiziellem API-Key. Jon erkennt alle Modelle automatisch.</p></div>
+<div class="card"><div class="ic">📊</div><h3>Nutzung /usage</h3><p>Sieh real gemessene Tokens, Anfragen und Antwortzeiten pro Anbieter.</p></div>
+<div class="card"><div class="ic">📱</div><h3>Handy-App</h3><p>Chatten, Apps öffnen, teilen, vorlesen, zuhören und Bilder analysieren — mit eigenem API-Key.</p></div>
 </div>
 </section>
 
@@ -167,6 +171,7 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <div class="step"><div class="n">2</div><div><h4>Zum Startbildschirm hinzufügen</h4><p>Im Browser-Menü „Zum Startbildschirm hinzufügen" wählen — Jon installiert sich wie eine echte App.</p></div></div>
 <div class="step"><div class="n">3</div><div><h4>Provider antippen &amp; Key einfügen</h4><p>Tippe auf NVIDIA, GLM oder einen anderen Provider, füge deinen API-Key ein — fertig. Der Key bleibt lokal auf deinem Handy.</p></div></div>
 </div>
+<p class="sub" style="margin-top:34px">Unterwegs kann Jon Apps öffnen (WhatsApp, YouTube, Maps, Kamera …), über das Teilen-Menü teilen, Antworten vorlesen, dir per Spracheingabe zuhören und angehängte Bilder analysieren. Kontakte, Nachrichten und fremde Dateien bleiben aus Sicherheitsgründen tabu — dafür nutzt Jon die bestmögliche offizielle Alternative.</p>
 <div class="cta" style="margin-top:40px">
 <a class="btn btn-primary" href="app/">📱 Handy-App öffnen</a>
 </div>
@@ -178,6 +183,7 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <div class="cta" style="margin-top:44px">
 <a class="btn btn-primary" href="jon.zip" download>Jon herunterladen (.zip)</a>
 <a class="btn btn-ghost" href="https://build.nvidia.com" target="_blank" rel="noopener">NVIDIA API-Key holen</a>
+<a class="btn btn-ghost" href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">Quellcode auf GitHub</a>
 </div>
 <div class="note">Hinweis: Jon nutzt ausschließlich deinen eigenen NVIDIA-API-Key und standardmäßig das Modell GPT-OSS&nbsp;120B. API-Keys werden niemals im Code gespeichert, sondern ausschließlich lokal in deiner <b>.env</b>-Datei.</div>
 </section>

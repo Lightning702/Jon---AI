@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Jon — Mobile</title>
-<meta name="description" content="Jon für unterwegs. Dein KI-Assistent mit eigenem API-Key." />
+<meta name="description" content="Jon für unterwegs. Dein KI-Assistent mit eigenem API-Key, Apps öffnen, Sprache und Bildanalyse." />
 <meta name="theme-color" content="#050506" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" href="icon-192.png" />
@@ -18,7 +18,10 @@ body{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#f5f5f7;background:
 header{padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:2px}
 .dot{width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 16px rgba(212,175,55,.6)}
-.model-tag{font-size:11px;color:rgba(255,255,255,.4);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-actions{display:flex;align-items:center;gap:8px}
+.model-tag{font-size:11px;color:rgba(255,255,255,.4);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icon-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:10px;width:36px;height:36px;display:grid;place-items:center;font-size:15px;font-family:inherit}
+.icon-btn.on{background:rgba(212,175,55,.16);border-color:rgba(212,175,55,.5);color:var(--gold-light)}
 .new-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:7px 12px;font-size:12px;font-family:inherit}
 .providers{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);scrollbar-width:none}
 .providers::-webkit-scrollbar{display:none}
@@ -34,11 +37,18 @@ main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:
 .msg.u{align-self:flex-end;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));color:#000;border-bottom-right-radius:5px}
 .msg.a{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-bottom-left-radius:5px}
 .msg.err{align-self:flex-start;background:rgba(220,60,60,.12);border:1px solid rgba(220,60,60,.35);color:#f3b8b8}
-.composer{display:flex;gap:10px;padding:12px 16px calc(env(safe-area-inset-bottom) + 14px);border-top:1px solid rgba(255,255,255,.08);background:rgba(5,5,6,.8);backdrop-filter:blur(16px)}
+.msg img{max-width:100%;border-radius:10px;margin-top:6px}
+.tools{align-self:flex-start;display:flex;flex-wrap:wrap;gap:6px;max-width:85%}
+.tool-chip{font-size:11px;padding:5px 9px;border-radius:9px;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.28);color:var(--gold-light)}
+.composer{display:flex;gap:8px;align-items:flex-end;padding:12px 16px calc(env(safe-area-inset-bottom) + 14px);border-top:1px solid rgba(255,255,255,.08);background:rgba(5,5,6,.8);backdrop-filter:blur(16px)}
 .composer textarea{flex:1;resize:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;padding:12px 14px;font-size:15px;font-family:inherit;max-height:120px;outline:none}
 .composer textarea:focus{border-color:rgba(212,175,55,.5)}
+.cbtn{flex:none;width:44px;height:44px;border-radius:13px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-size:17px;display:grid;place-items:center;align-self:flex-end}
+.cbtn.rec{background:rgba(220,60,60,.2);border-color:rgba(220,60,60,.5);color:#f3b8b8;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .send{flex:none;width:46px;height:46px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));color:#000;font-size:19px;display:grid;place-items:center;align-self:flex-end}
 .send:disabled{opacity:.4}
+.thumb{align-self:flex-end;max-width:120px;border-radius:10px;border:2px solid rgba(212,175,55,.5)}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:50}
 .overlay.show{display:flex}
 .sheet{width:100%;max-width:440px;background:rgba(15,15,20,.97);border:1px solid rgba(212,175,55,.3);border-bottom:none;border-radius:22px 22px 0 0;padding:24px 20px calc(env(safe-area-inset-bottom) + 24px);animation:up .25s ease}
@@ -64,8 +74,9 @@ main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:
 <body>
 <header>
 <div class="brand"><div class="dot"></div><span class="gold">JON</span></div>
-<div style="display:flex;align-items:center;gap:10px">
+<div class="hdr-actions">
 <span class="model-tag" id="model-tag"></span>
+<button class="icon-btn" id="speak-toggle" title="Antworten vorlesen">🔊</button>
 <button class="new-btn" id="new-chat">Neu</button>
 </div>
 </header>
@@ -75,13 +86,16 @@ main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:
 <main id="chat">
 <div class="empty" id="empty">
 <h1 class="gold">Jon</h1>
-<p>Wähle oben einen Provider, füge deinen API-Key ein und leg los.<br>Dein Key bleibt auf deinem Handy.</p>
+<p>Wähle oben einen Provider, füge deinen API-Key ein und leg los.<br>Jon kann Apps öffnen, teilen, vorlesen, zuhören und Bilder ansehen.<br>Dein Key bleibt auf deinem Handy.</p>
 </div>
 </main>
 
 <div class="composer">
+<button class="cbtn" id="img-btn" title="Bild senden">🖼️</button>
+<button class="cbtn" id="mic-btn" title="Sprechen">🎤</button>
 <textarea id="input" rows="1" placeholder="Nachricht an Jon …"></textarea>
 <button class="send" id="send">➤</button>
+<input type="file" id="img-input" accept="image/*" capture="environment" style="display:none" />
 </div>
 
 <div class="overlay" id="overlay">
@@ -102,23 +116,41 @@ main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:
 
 <script>
 const PROVIDERS = {
-  nvidia: { label: "NVIDIA", base: "/nvidia/v1", model: "openai/gpt-oss-120b", url: "https://build.nvidia.com" },
-  openai: { label: "OpenAI", base: "https://api.openai.com/v1", model: "gpt-4o-mini", url: "https://platform.openai.com/api-keys" },
-  glm: { label: "GLM", base: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash", url: "https://open.bigmodel.cn" },
-  deepseek: { label: "DeepSeek", base: "https://api.deepseek.com/v1", model: "deepseek-chat", url: "https://platform.deepseek.com" },
-  qwen: { label: "Qwen", base: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", url: "https://modelstudio.console.alibabacloud.com" },
-  mistral: { label: "Mistral", base: "https://api.mistral.ai/v1", model: "mistral-small-latest", url: "https://console.mistral.ai" },
-  gemini: { label: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash", url: "https://aistudio.google.com/apikey" }
+  nvidia: { label: "NVIDIA", base: "/nvidia/v1", model: "openai/gpt-oss-120b", url: "https://build.nvidia.com", tools: true },
+  openai: { label: "OpenAI", base: "https://api.openai.com/v1", model: "gpt-4o-mini", url: "https://platform.openai.com/api-keys", tools: true },
+  glm: { label: "GLM", base: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash", url: "https://open.bigmodel.cn", tools: true },
+  deepseek: { label: "DeepSeek", base: "https://api.deepseek.com/v1", model: "deepseek-chat", url: "https://platform.deepseek.com", tools: true },
+  qwen: { label: "Qwen", base: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", url: "https://modelstudio.console.alibabacloud.com", tools: true },
+  mistral: { label: "Mistral", base: "https://api.mistral.ai/v1", model: "mistral-small-latest", url: "https://console.mistral.ai", tools: true },
+  gemini: { label: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash", url: "https://aistudio.google.com/apikey", tools: false }
 };
 
-const SYSTEM_PROMPT = "Du bist Jon, ein freundlicher, schneller KI-Assistent auf dem Handy des Nutzers. Antworte knapp, praezise und auf Deutsch.";
+const SYSTEM_PROMPT = "Du bist Jon, ein freundlicher, schneller KI-Assistent auf dem Handy des Nutzers. Du kannst echte Aktionen auf dem Handy ausloesen: Apps und Webseiten oeffnen (open_app, open_url), etwas teilen (share), Text vorlesen (speak), Ort abfragen (get_location), Uhrzeit (get_time), im Web nachschlagen (http_get). Nutze die Tools, wenn eine Aktion sinnvoll ist, statt sie nur zu beschreiben. Aus Sicherheitsgruenden erlaubt das Handy-Web keinen Zugriff auf Kontakte, Nachrichten oder Dateien anderer Apps - sage das ehrlich und nutze stattdessen die bestmoegliche offizielle Alternative (z.B. WhatsApp per open_app oeffnen). Antworte knapp, praezise und auf Deutsch.";
+
+const APP_LINKS = {
+  whatsapp: "https://wa.me/", youtube: "https://m.youtube.com/", maps: "https://maps.google.com/",
+  spotify: "https://open.spotify.com/", instagram: "https://instagram.com/", gmail: "https://mail.google.com/",
+  telefon: "tel:", kamera: "camera", einstellungen: "settings"
+};
+
+const TOOLS = [
+  { type:"function", function:{ name:"open_app", description:"Oeffnet eine App oder deren Web-Version auf dem Handy. name z.B. whatsapp, youtube, maps, spotify, instagram, gmail, kamera. query optional (z.B. Suchbegriff oder Telefonnummer bei whatsapp).", parameters:{ type:"object", properties:{ name:{type:"string"}, query:{type:"string"} }, required:["name"] } } },
+  { type:"function", function:{ name:"open_url", description:"Oeffnet eine URL im Browser.", parameters:{ type:"object", properties:{ url:{type:"string"} }, required:["url"] } } },
+  { type:"function", function:{ name:"share", description:"Oeffnet das Teilen-Menue des Handys mit dem gegebenen Text.", parameters:{ type:"object", properties:{ text:{type:"string"}, url:{type:"string"} }, required:["text"] } } },
+  { type:"function", function:{ name:"speak", description:"Liest den Text laut vor.", parameters:{ type:"object", properties:{ text:{type:"string"} }, required:["text"] } } },
+  { type:"function", function:{ name:"get_location", description:"Fragt den aktuellen Standort ab (mit Erlaubnis des Nutzers).", parameters:{ type:"object", properties:{}, required:[] } } },
+  { type:"function", function:{ name:"get_time", description:"Liefert die aktuelle Uhrzeit und das Datum.", parameters:{ type:"object", properties:{}, required:[] } } },
+  { type:"function", function:{ name:"http_get", description:"Ruft eine URL ab und liefert Text (fuer Recherche).", parameters:{ type:"object", properties:{ url:{type:"string"} }, required:["url"] } } }
+];
 
 let keys = load("jon_m_keys", {});
 let models = load("jon_m_models", {});
 let active = localStorage.getItem("jon_m_provider") || "nvidia";
 let history = load("jon_m_chat", []);
+let speakOn = localStorage.getItem("jon_m_speak") === "1";
 let busy = false;
 let sheetProvider = null;
+let pendingImage = null;
 
 function load(k, fallback) {
   try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; }
@@ -151,7 +183,6 @@ function openSheet(id) {
   $("sheet-delete").style.display = keys[id] ? "block" : "none";
   overlayEl.classList.add("show");
 }
-
 function closeSheet() { overlayEl.classList.remove("show"); }
 
 $("sheet-cancel").onclick = closeSheet;
@@ -169,7 +200,6 @@ $("sheet-save").onclick = () => {
   closeSheet();
   renderProviders();
 };
-
 $("sheet-delete").onclick = () => {
   delete keys[sheetProvider];
   save("jon_m_keys", keys);
@@ -186,72 +216,195 @@ function addMsg(cls, text) {
   chatEl.scrollTop = chatEl.scrollHeight;
   return d;
 }
-
+function addToolChip(label) {
+  $("empty")?.remove();
+  const wrap = document.createElement("div");
+  wrap.className = "tools";
+  const c = document.createElement("div");
+  c.className = "tool-chip";
+  c.textContent = label;
+  wrap.appendChild(c);
+  chatEl.appendChild(wrap);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
 function renderHistory() {
-  for (const m of history) addMsg(m.role === "user" ? "u" : "a", m.content);
+  for (const m of history) {
+    if (typeof m.content === "string") addMsg(m.role === "user" ? "u" : "a", m.content);
+  }
 }
 
 $("new-chat").onclick = () => {
   history = [];
   save("jon_m_chat", history);
-  chatEl.innerHTML = '<div class="empty" id="empty"><h1 class="gold">Jon</h1><p>Wähle oben einen Provider, füge deinen API-Key ein und leg los.<br>Dein Key bleibt auf deinem Handy.</p></div>';
+  chatEl.innerHTML = '<div class="empty" id="empty"><h1 class="gold">Jon</h1><p>Wähle oben einen Provider, füge deinen API-Key ein und leg los.<br>Jon kann Apps öffnen, teilen, vorlesen, zuhören und Bilder ansehen.<br>Dein Key bleibt auf deinem Handy.</p></div>';
 };
 
-async function send() {
-  const text = inputEl.value.trim();
-  if (!text || busy) return;
+$("speak-toggle").className = "icon-btn" + (speakOn ? " on" : "");
+$("speak-toggle").onclick = () => {
+  speakOn = !speakOn;
+  localStorage.setItem("jon_m_speak", speakOn ? "1" : "0");
+  $("speak-toggle").className = "icon-btn" + (speakOn ? " on" : "");
+  if (!speakOn) window.speechSynthesis?.cancel();
+};
+
+function speak(text) {
+  if (!("speechSynthesis" in window) || !text) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "de-DE";
+  const v = window.speechSynthesis.getVoices().find(x => /de/i.test(x.lang));
+  if (v) u.voice = v;
+  window.speechSynthesis.speak(u);
+}
+
+async function runTool(name, args) {
+  try {
+    if (name === "open_app") {
+      const key = (args.name || "").toLowerCase();
+      const target = APP_LINKS[key];
+      if (target === "camera") { $("img-input").click(); return "Kamera geoeffnet."; }
+      if (target === "settings") { location.href = "app-settings:"; return "Einstellungen versucht zu oeffnen."; }
+      if (key === "whatsapp" && args.query) { window.open("https://wa.me/" + encodeURIComponent(args.query.replace(/\D/g, "")), "_blank"); return "WhatsApp geoeffnet."; }
+      if (key === "youtube" && args.query) { window.open("https://m.youtube.com/results?search_query=" + encodeURIComponent(args.query), "_blank"); return "YouTube-Suche geoeffnet."; }
+      if (key === "maps" && args.query) { window.open("https://maps.google.com/maps?q=" + encodeURIComponent(args.query), "_blank"); return "Karten geoeffnet."; }
+      if (target) { window.open(target + (args.query ? encodeURIComponent(args.query) : ""), "_blank"); return args.name + " geoeffnet."; }
+      window.open("https://www.google.com/search?q=" + encodeURIComponent(args.name + " app"), "_blank");
+      return "App unbekannt, im Web gesucht.";
+    }
+    if (name === "open_url") { let u = args.url; if (!/^https?:/.test(u)) u = "https://" + u; window.open(u, "_blank"); return "Geoeffnet: " + u; }
+    if (name === "share") {
+      if (navigator.share) { await navigator.share({ text: args.text, url: args.url }); return "Teilen-Menue geoeffnet."; }
+      await navigator.clipboard?.writeText((args.text || "") + (args.url ? " " + args.url : ""));
+      return "Teilen nicht unterstuetzt, Text in Zwischenablage kopiert.";
+    }
+    if (name === "speak") { speak(args.text); return "Vorgelesen."; }
+    if (name === "get_location") {
+      return await new Promise((res) => {
+        if (!navigator.geolocation) return res("Standort nicht verfuegbar.");
+        navigator.geolocation.getCurrentPosition(
+          (p) => res(JSON.stringify({ lat: p.coords.latitude, lon: p.coords.longitude })),
+          () => res("Standort abgelehnt oder nicht verfuegbar."),
+          { timeout: 8000 }
+        );
+      });
+    }
+    if (name === "get_time") { return new Date().toLocaleString("de-DE"); }
+    if (name === "http_get") {
+      let u = args.url; if (!/^https?:/.test(u)) u = "https://" + u;
+      const r = await fetch(u);
+      return (await r.text()).slice(0, 3000);
+    }
+    return "Unbekanntes Tool: " + name;
+  } catch (e) {
+    return "Fehler: " + (e.message || e);
+  }
+}
+
+const TOOL_LABELS = { open_app:"App öffnen", open_url:"Öffnen", share:"Teilen", speak:"Vorlesen", get_location:"Standort", get_time:"Uhrzeit", http_get:"Web abrufen" };
+
+async function callModel(msgs) {
+  const p = PROVIDERS[active];
+  const body = {
+    model: models[active] || p.model,
+    messages: msgs,
+    stream: true
+  };
+  if (p.tools) { body.tools = TOOLS; body.tool_choice = "auto"; }
+  const res = await fetch(p.base + "/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + keys[active] },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error("HTTP " + res.status + (res.status === 401 ? " — API-Key prüfen" : "") + " " + t.slice(0, 200));
+  }
+  return res;
+}
+
+async function send(prefill) {
+  const text = (prefill ?? inputEl.value).trim();
+  if ((!text && !pendingImage) || busy) return;
   const p = PROVIDERS[active];
   if (!keys[active]) { openSheet(active); return; }
   busy = true;
   sendEl.disabled = true;
   inputEl.value = "";
   inputEl.style.height = "auto";
-  addMsg("u", text);
-  history.push({ role: "user", content: text });
+
+  let userContent = text;
+  if (pendingImage) {
+    userContent = [
+      { type: "text", text: text || "Was ist auf diesem Bild?" },
+      { type: "image_url", image_url: { url: pendingImage } }
+    ];
+    const t = document.createElement("img");
+    t.className = "thumb"; t.src = pendingImage;
+    chatEl.appendChild(t);
+  }
+  addMsg("u", text || "🖼️ Bild");
+  history.push({ role: "user", content: userContent });
+  pendingImage = null;
+
   const bubble = addMsg("a", "");
   bubble.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
-  let answer = "";
+
+  let msgs = [{ role: "system", content: SYSTEM_PROMPT }, ...history.slice(-20)];
+  let finalAnswer = "";
+
   try {
-    const res = await fetch(p.base + "/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + keys[active] },
-      body: JSON.stringify({
-        model: models[active] || p.model,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history.slice(-20)],
-        stream: true
-      })
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error("HTTP " + res.status + (res.status === 401 ? " — API-Key prüfen" : "") + " " + body.slice(0, 200));
-    }
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split("\n");
-      buf = lines.pop() ?? "";
-      for (const line of lines) {
-        const t = line.trim();
-        if (!t.startsWith("data:")) continue;
-        const json = t.slice(5).trim();
-        if (!json || json === "[DONE]") continue;
-        try {
-          const delta = JSON.parse(json).choices?.[0]?.delta?.content;
-          if (delta) {
-            answer += delta;
-            bubble.textContent = answer;
-            chatEl.scrollTop = chatEl.scrollHeight;
-          }
-        } catch {}
+    for (let round = 0; round < 6; round++) {
+      const res = await callModel(msgs);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "", answer = "";
+      const calls = {};
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          const tl = line.trim();
+          if (!tl.startsWith("data:")) continue;
+          const json = tl.slice(5).trim();
+          if (!json || json === "[DONE]") continue;
+          try {
+            const delta = JSON.parse(json).choices?.[0]?.delta;
+            if (!delta) continue;
+            if (delta.content) { answer += delta.content; bubble.textContent = answer; chatEl.scrollTop = chatEl.scrollHeight; }
+            for (const tc of delta.tool_calls || []) {
+              const slot = calls[tc.index] ?? (calls[tc.index] = { id: "", name: "", args: "" });
+              if (tc.id) slot.id = tc.id;
+              if (tc.function?.name) slot.name += tc.function.name;
+              if (tc.function?.arguments) slot.args += tc.function.arguments;
+            }
+          } catch {}
+        }
       }
+      const toolCalls = Object.values(calls);
+      if (toolCalls.length === 0) { finalAnswer = answer; break; }
+
+      msgs.push({ role: "assistant", content: answer || null, tool_calls: toolCalls.map((c, i) => ({ id: c.id || "call_" + i, type: "function", function: { name: c.name, arguments: c.args || "{}" } })) });
+      for (let i = 0; i < toolCalls.length; i++) {
+        const c = toolCalls[i];
+        let a = {}; try { a = JSON.parse(c.args || "{}"); } catch {}
+        addToolChip(TOOL_LABELS[c.name] || c.name);
+        const result = await runTool(c.name, a);
+        msgs.push({ role: "tool", tool_call_id: c.id || "call_" + i, content: String(result).slice(0, 3000) });
+      }
+      bubble.textContent = "";
+      bubble.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
     }
-    if (!answer) throw new Error("Leere Antwort vom Provider");
-    history.push({ role: "assistant", content: answer });
-    save("jon_m_chat", history);
+    if (!finalAnswer && bubble.textContent) finalAnswer = bubble.textContent;
+    if (!finalAnswer) { bubble.remove(); }
+    else {
+      bubble.textContent = finalAnswer;
+      history.push({ role: "assistant", content: finalAnswer });
+      save("jon_m_chat", history);
+      if (speakOn) speak(finalAnswer);
+    }
   } catch (err) {
     bubble.className = "msg err";
     const msg = String(err.message || err);
@@ -264,7 +417,7 @@ async function send() {
   sendEl.disabled = false;
 }
 
-sendEl.onclick = send;
+sendEl.onclick = () => send();
 inputEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
 });
@@ -272,6 +425,37 @@ inputEl.addEventListener("input", () => {
   inputEl.style.height = "auto";
   inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
 });
+
+$("img-btn").onclick = () => $("img-input").click();
+$("img-input").onchange = (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { pendingImage = reader.result; inputEl.placeholder = "Bild bereit — Frage eingeben …"; };
+  reader.readAsDataURL(file);
+  e.target.value = "";
+};
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = $("mic-btn");
+if (SR) {
+  const rec = new SR();
+  rec.lang = "de-DE"; rec.interimResults = false; rec.maxAlternatives = 1;
+  let listening = false;
+  micBtn.onclick = () => { if (listening) rec.stop(); else { try { rec.start(); } catch {} } };
+  rec.onstart = () => { listening = true; micBtn.className = "cbtn rec"; };
+  rec.onend = () => { listening = false; micBtn.className = "cbtn"; };
+  rec.onerror = () => { listening = false; micBtn.className = "cbtn"; };
+  rec.onresult = (e) => {
+    const t = e.results[0][0].transcript;
+    inputEl.value = t;
+    send(t);
+  };
+} else {
+  micBtn.style.display = "none";
+}
+
+if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
 
 renderProviders();
 renderHistory();

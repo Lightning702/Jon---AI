@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import AsyncIterator
 
 from app.core.config import get_settings
@@ -10,7 +11,9 @@ from app.providers.registry import get_registry
 from app.schemas import ChatIn
 from app.services.approval_service import ToolDeniedError, get_approval_service
 from app.services.memory_service import MemoryService
+from app.services.skill_service import SkillService
 from app.services.tools import SAFE_TOOLS, ToolBox, describe_tool
+from app.services.usage_service import get_usage_service
 
 SYSTEM_PROMPT = (
     "Du bist Jon, ein blitzschneller KI-Desktop-Assistent auf dem Windows-PC des Nutzers. "
@@ -35,7 +38,15 @@ SYSTEM_PROMPT = (
     "Kontaktnamen, wait 1, keyboard_press down dann enter um den Kontakt zu oeffnen, "
     "dann keyboard_type mit der Nachricht und press_enter=true zum Senden. "
     "Fuer Systeminfos wie Uhrzeit, Prozesse, Laufwerke oder Netzwerk verwende "
-    "run_powershell. Du hast ein dauerhaftes Gedaechtnis: Mit remember speicherst du "
+    "run_powershell oder system_info/list_processes. Du beherrschst auch: Dateien "
+    "suchen (search_files), Ordner anlegen (make_dir), kopieren (copy_path), ZIP "
+    "packen/entpacken (zip_paths/unzip), Zwischenablage lesen/schreiben (clipboard_get/"
+    "clipboard_set), Screenshots (screenshot), Webseiten/APIs abrufen (http_get), "
+    "Dateien herunterladen (download_file) und den Bildschirm sperren (lock_screen). "
+    "Du hast Skills (Anleitungen): Rufe list_skills und read_skill auf, bevor du eine "
+    "passende Aufgabe startest (z.B. read_skill web-design, bevor du eine Website baust), "
+    "und folge der Anleitung. Mit write_skill kannst du dir neue Arbeitsweisen merken. "
+    "Du hast ein dauerhaftes Gedaechtnis: Mit remember speicherst du "
     "wichtige Infos ueber den Nutzer (Name, Kontakte, Vorlieben, wiederkehrende "
     "Aufgaben), mit recall rufst du sie ab, mit forget loeschst du sie. Merke dir "
     "automatisch Merkenswertes, ohne dass der Nutzer explizit darum bittet. Antworte "
@@ -50,11 +61,19 @@ class ChatService:
         self._settings = get_settings()
         self._registry = get_registry()
         self._memory = MemoryService()
-        self._toolbox = ToolBox(memory=self._memory)
+        self._skills = SkillService()
+        self._toolbox = ToolBox(memory=self._memory, skills=self._skills)
+        self._usage = get_usage_service()
 
     def _system_prompt(self) -> str:
+        parts = [SYSTEM_PROMPT]
+        catalog = self._skills.catalog()
+        if catalog:
+            parts.append(catalog)
         block = self._memory.prompt_block()
-        return f"{SYSTEM_PROMPT}\n\n{block}" if block else SYSTEM_PROMPT
+        if block:
+            parts.append(block)
+        return "\n\n".join(parts)
 
     def resolve(self, payload: ChatIn) -> tuple[str, str]:
         provider = payload.provider or self._settings.default_provider
@@ -170,9 +189,16 @@ class ChatService:
 
         content_parts: list[str] = []
         reasoning_parts: list[str] = []
+        prompt_tokens = 0
+        completion_tokens = 0
+        started = time.perf_counter()
         try:
             chunk: StreamChunk
             async for chunk in provider.stream(request, executor):
+                if chunk.kind == "usage":
+                    prompt_tokens += chunk.prompt_tokens
+                    completion_tokens += chunk.completion_tokens
+                    continue
                 if chunk.kind == "reasoning":
                     reasoning_parts.append(chunk.delta)
                     yield {"type": "reasoning", "delta": chunk.delta}
@@ -207,5 +233,14 @@ class ChatService:
         reasoning = "".join(reasoning_parts)
         if payload.persist and conversation_id and content:
             self._store_answer(conversation_id, content, reasoning)
+
+        if content or prompt_tokens or completion_tokens:
+            self._usage.record(
+                provider_name,
+                model,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                latency=time.perf_counter() - started,
+            )
 
         yield {"type": "done", "conversation_id": conversation_id}

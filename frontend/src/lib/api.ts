@@ -106,6 +106,105 @@ export async function approveTool(
   });
 }
 
+export interface Account {
+  provider: string;
+  label: string;
+  auth: string;
+  docs: string;
+  connected: boolean;
+  source: "account" | "env" | null;
+  default_model: string | null;
+  account_name: string;
+  avatar_url: string | null;
+  plan: string;
+  models: string[];
+}
+
+export interface UsageEntry {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  requests: number;
+  total_latency: number;
+  avg_latency: number;
+  last_request: string | null;
+  last_model: string | null;
+}
+
+export interface SkillSummary {
+  name: string;
+  title: string;
+  chars: number;
+}
+
+export async function getAccounts(): Promise<Account[]> {
+  const res = await fetch(`${BASE}/accounts`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function connectAccount(
+  provider: string,
+  apiKey: string,
+  defaultModel?: string
+): Promise<void> {
+  await fetch(`${BASE}/accounts/connect`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      provider,
+      api_key: apiKey,
+      default_model: defaultModel,
+    }),
+  });
+}
+
+export async function setAccountModel(
+  provider: string,
+  model: string
+): Promise<void> {
+  await fetch(`${BASE}/accounts/${provider}/default-model`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model }),
+  });
+}
+
+export async function disconnectAccount(provider: string): Promise<void> {
+  await fetch(`${BASE}/accounts/${provider}`, { method: "DELETE" });
+}
+
+export async function getUsage(): Promise<Record<string, UsageEntry>> {
+  const res = await fetch(`${BASE}/usage`);
+  if (!res.ok) return {};
+  const data = await res.json();
+  return data.usage ?? {};
+}
+
+export async function resetUsage(): Promise<void> {
+  await fetch(`${BASE}/usage`, { method: "DELETE" });
+}
+
+export async function getSkills(): Promise<SkillSummary[]> {
+  const res = await fetch(`${BASE}/skills`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getSkill(name: string): Promise<{ content: string }> {
+  const res = await fetch(`${BASE}/skills/${name}`);
+  if (!res.ok) throw new Error("skill failed");
+  return res.json();
+}
+
+export async function saveSkill(name: string, content: string): Promise<void> {
+  await fetch(`${BASE}/skills/${name}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+}
+
 export async function streamChat(
   body: {
     messages: ChatMessage[];

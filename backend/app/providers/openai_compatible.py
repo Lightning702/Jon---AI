@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import AsyncIterator
+from typing import AsyncIterator, Callable
 
 from openai import (
     APIConnectionError,
@@ -35,30 +35,40 @@ class OpenAICompatibleProvider(LLMProvider):
         self,
         name: str,
         base_url: str,
-        api_key: str | None,
-        default_models: list[str],
+        api_key: str | None = None,
+        default_models: list[str] | None = None,
         timeout: float = 180.0,
+        key_resolver: Callable[[], str | None] | None = None,
     ) -> None:
         self.name = name
         self._base_url = base_url
-        self._api_key = api_key
-        self._default_models = default_models
+        self._static_key = api_key
+        self._key_resolver = key_resolver
+        self._default_models = default_models or []
         self._timeout = timeout
         self._client_cache: AsyncOpenAI | None = None
+        self._cached_key: str | None = None
+
+    def _key(self) -> str | None:
+        if self._key_resolver is not None:
+            return self._key_resolver()
+        return self._static_key
 
     def available(self) -> bool:
-        return bool(self._api_key)
+        return bool(self._key())
 
     def _client(self) -> AsyncOpenAI:
-        if not self._api_key:
+        key = self._key()
+        if not key:
             raise ProviderError(f"{self.name}: API key missing")
-        if self._client_cache is None:
+        if self._client_cache is None or self._cached_key != key:
             self._client_cache = AsyncOpenAI(
                 base_url=self._base_url,
-                api_key=self._api_key,
+                api_key=key,
                 timeout=self._timeout,
                 max_retries=1,
             )
+            self._cached_key = key
         return self._client_cache
 
     async def list_models(self) -> list[str]:
@@ -127,6 +137,7 @@ class OpenAICompatibleProvider(LLMProvider):
             if use_tools:
                 payload["tools"] = tools
                 payload["tool_choice"] = "auto"
+            payload["stream_options"] = {"include_usage": True}
             if request.seed is not None:
                 payload["seed"] = request.seed
             if request.stop:
@@ -140,6 +151,13 @@ class OpenAICompatibleProvider(LLMProvider):
 
             try:
                 async for chunk in completion:
+                    usage = getattr(chunk, "usage", None)
+                    if usage is not None:
+                        yield StreamChunk(
+                            kind="usage",
+                            prompt_tokens=getattr(usage, "prompt_tokens", 0) or 0,
+                            completion_tokens=getattr(usage, "completion_tokens", 0) or 0,
+                        )
                     choices = getattr(chunk, "choices", None)
                     if not choices:
                         continue

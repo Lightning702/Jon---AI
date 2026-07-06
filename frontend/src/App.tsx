@@ -7,6 +7,7 @@ import ModelPicker from "./components/ModelPicker";
 import VoiceIndicator, { VoiceUiState } from "./components/VoiceIndicator";
 import ApprovalDialog, { ApprovalRequest } from "./components/ApprovalDialog";
 import SettingsMenu from "./components/SettingsMenu";
+import AccountsModal from "./components/AccountsModal";
 import { VoiceListener } from "./lib/voice";
 import { initTts, speak, stopSpeaking } from "./lib/tts";
 import {
@@ -44,6 +45,9 @@ export default function App() {
     localStorage.getItem("jon_tool_mode") === "allow" ? "allow" : "ask"
   );
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
+  const [accountsTab, setAccountsTab] = useState<
+    "accounts" | "usage" | "skills" | null
+  >(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const providerRef = useRef(provider);
@@ -263,6 +267,19 @@ export default function App() {
   };
 
   const send = async (text: string) => {
+    const command = text.trim().toLowerCase();
+    if (command === "/usage" || command === "/nutzung") {
+      setAccountsTab("usage");
+      return;
+    }
+    if (command === "/konten" || command === "/accounts" || command === "/login") {
+      setAccountsTab("accounts");
+      return;
+    }
+    if (command === "/skills") {
+      setAccountsTab("skills");
+      return;
+    }
     const userEntry: ChatEntry = { id: nextId(), role: "user", content: text };
     const assistantEntry: ChatEntry = {
       id: nextId(),
@@ -386,6 +403,25 @@ export default function App() {
               }}
             />
             <div className="flex items-center gap-3 text-xs">
+              <button
+                onClick={() => setAccountsTab("accounts")}
+                title="Konten, Nutzung & Skills"
+                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </button>
               <SettingsMenu toolMode={toolMode} onToolModeChange={changeToolMode} />
               <button
                 onClick={toggleVoice}
@@ -455,6 +491,12 @@ export default function App() {
       <VoiceIndicator state={voiceState} detail={voiceDetail} />
       {approval && (
         <ApprovalDialog request={approval} onDecide={decideApproval} />
+      )}
+      {accountsTab && (
+        <AccountsModal
+          initialTab={accountsTab}
+          onClose={() => setAccountsTab(null)}
+        />
       )}
     </div>
   );

@@ -15,6 +15,9 @@ class ProviderRegistry:
         self._providers: dict[str, LLMProvider] = {}
         self._build()
 
+    def _resolver(self, provider: str):
+        return lambda: self._keys.key_for(provider)
+
     def _build(self) -> None:
         s = self._settings
         t = s.request_timeout
@@ -22,7 +25,7 @@ class ProviderRegistry:
         self._providers["nvidia"] = OpenAICompatibleProvider(
             name="nvidia",
             base_url=s.nvidia_base_url,
-            api_key=self._keys.key_for("nvidia"),
+            key_resolver=self._resolver("nvidia"),
             default_models=[
                 "openai/gpt-oss-120b",
                 "z-ai/glm-5.2",
@@ -36,35 +39,35 @@ class ProviderRegistry:
         self._providers["openai"] = OpenAICompatibleProvider(
             name="openai",
             base_url=s.openai_base_url,
-            api_key=self._keys.key_for("openai"),
+            key_resolver=self._resolver("openai"),
             default_models=["gpt-4o", "gpt-4o-mini", "o3-mini"],
             timeout=t,
         )
         self._providers["deepseek"] = OpenAICompatibleProvider(
             name="deepseek",
             base_url=s.deepseek_base_url,
-            api_key=self._keys.key_for("deepseek"),
+            key_resolver=self._resolver("deepseek"),
             default_models=["deepseek-chat", "deepseek-reasoner"],
             timeout=t,
         )
         self._providers["mistral"] = OpenAICompatibleProvider(
             name="mistral",
             base_url=s.mistral_base_url,
-            api_key=self._keys.key_for("mistral"),
+            key_resolver=self._resolver("mistral"),
             default_models=["mistral-large-latest", "mistral-small-latest"],
             timeout=t,
         )
         self._providers["glm"] = OpenAICompatibleProvider(
             name="glm",
             base_url=s.glm_base_url,
-            api_key=self._keys.key_for("glm"),
+            key_resolver=self._resolver("glm"),
             default_models=["glm-4-plus", "glm-4-flash"],
             timeout=t,
         )
         self._providers["qwen"] = OpenAICompatibleProvider(
             name="qwen",
             base_url=s.qwen_base_url,
-            api_key=self._keys.key_for("qwen"),
+            key_resolver=self._resolver("qwen"),
             default_models=["qwen-max", "qwen-plus", "qwen2.5-coder-32b-instruct"],
             timeout=t,
         )
@@ -76,11 +79,11 @@ class ProviderRegistry:
             timeout=t,
         )
         self._providers["anthropic"] = AnthropicProvider(
-            api_key=self._keys.key_for("anthropic"),
+            key_resolver=self._resolver("anthropic"),
             timeout=t,
         )
         self._providers["gemini"] = GeminiProvider(
-            api_key=self._keys.key_for("gemini"),
+            key_resolver=self._resolver("gemini"),
             timeout=t,
         )
 

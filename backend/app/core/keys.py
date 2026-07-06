@@ -28,7 +28,7 @@ class KeyManager:
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
 
-    def key_for(self, provider: str) -> str | None:
+    def env_key_for(self, provider: str) -> str | None:
         mapping = {
             "openai": self._settings.openai_api_key,
             "nvidia": self._settings.nvidia_api_key,
@@ -42,6 +42,14 @@ class KeyManager:
         }
         value = mapping.get(provider)
         return value.strip() if isinstance(value, str) and value.strip() else None
+
+    def key_for(self, provider: str) -> str | None:
+        from app.services.account_service import get_account_service
+
+        runtime = get_account_service().runtime_key(provider)
+        if runtime:
+            return runtime
+        return self.env_key_for(provider)
 
     def env_var_for(self, provider: str) -> str:
         return self._ENV_MAP.get(provider, provider.upper() + "_API_KEY")

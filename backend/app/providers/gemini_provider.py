@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import AsyncIterator
+from typing import AsyncIterator, Callable
 
 from app.providers.base import (
     ChatRequest,
@@ -20,21 +20,33 @@ class GeminiProvider(LLMProvider):
         "gemini-2.0-flash",
     ]
 
-    def __init__(self, api_key: str | None, timeout: float = 180.0) -> None:
-        self._api_key = api_key
+    def __init__(
+        self,
+        api_key: str | None = None,
+        timeout: float = 180.0,
+        key_resolver: Callable[[], str | None] | None = None,
+    ) -> None:
+        self._static_key = api_key
+        self._key_resolver = key_resolver
         self._timeout = timeout
 
+    def _key(self) -> str | None:
+        if self._key_resolver is not None:
+            return self._key_resolver()
+        return self._static_key
+
     def available(self) -> bool:
-        return bool(self._api_key)
+        return bool(self._key())
 
     def _configure(self):
-        if not self._api_key:
+        key = self._key()
+        if not key:
             raise ProviderError("gemini: API key missing")
         try:
             import google.generativeai as genai
         except ImportError as exc:
             raise ProviderError("google-generativeai package not installed") from exc
-        genai.configure(api_key=self._api_key)
+        genai.configure(api_key=key)
         return genai
 
     async def list_models(self) -> list[str]:

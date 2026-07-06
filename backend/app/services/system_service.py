@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import base64
+import json
 import os
+import platform
 import shutil
 import subprocess
+import urllib.request
 import webbrowser
+import zipfile
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 
@@ -116,3 +122,154 @@ class SystemService:
 
     def open_in_vscode(self, path: str) -> int:
         return self.start_program("code", [path])
+
+    def make_dir(self, path: str) -> str:
+        target = Path(path).expanduser()
+        target.mkdir(parents=True, exist_ok=True)
+        return str(target)
+
+    def append_file(self, path: str, content: str) -> None:
+        target = Path(path).expanduser()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8") as handle:
+            handle.write(content)
+
+    def copy_path(self, source: str, destination: str) -> str:
+        src = Path(source).expanduser()
+        dst = Path(destination).expanduser()
+        if not src.exists():
+            raise FileNotFoundError(str(src))
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if src.is_dir():
+            return shutil.copytree(str(src), str(dst), dirs_exist_ok=True)
+        return shutil.copy2(str(src), str(dst))
+
+    def search_files(self, root: str, pattern: str, limit: int = 200) -> list[str]:
+        base = Path(root).expanduser()
+        if not base.is_dir():
+            raise NotADirectoryError(str(base))
+        matches: list[str] = []
+        for item in base.rglob(pattern):
+            matches.append(str(item))
+            if len(matches) >= limit:
+                break
+        return matches
+
+    def zip_paths(self, sources: list[str], destination: str) -> str:
+        dst = Path(destination).expanduser()
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as archive:
+            for source in sources:
+                src = Path(source).expanduser()
+                if src.is_dir():
+                    for file in src.rglob("*"):
+                        if file.is_file():
+                            archive.write(file, file.relative_to(src.parent))
+                elif src.is_file():
+                    archive.write(src, src.name)
+        return str(dst)
+
+    def unzip(self, source: str, destination: str) -> str:
+        src = Path(source).expanduser()
+        dst = Path(destination).expanduser()
+        dst.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(src) as archive:
+            archive.extractall(dst)
+        return str(dst)
+
+    def clipboard_get(self) -> str:
+        try:
+            import pyperclip
+
+            return pyperclip.paste()
+        except Exception:
+            result = self.run_powershell("Get-Clipboard")
+            return result.stdout
+
+    def clipboard_set(self, text: str) -> bool:
+        try:
+            import pyperclip
+
+            pyperclip.copy(text)
+            return True
+        except Exception:
+            self.run_powershell(f"Set-Clipboard -Value @'\n{text}\n'@")
+            return True
+
+    def screenshot(self, path: str | None = None) -> dict:
+        import pyautogui
+
+        image = pyautogui.screenshot()
+        if path:
+            target = Path(path).expanduser()
+            target.parent.mkdir(parents=True, exist_ok=True)
+            image.save(str(target))
+            return {"path": str(target), "width": image.width, "height": image.height}
+        from io import BytesIO
+
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return {"data_url": f"data:image/png;base64,{encoded}"}
+
+    def http_get(self, url: str, max_bytes: int = 200_000) -> dict:
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+        request = urllib.request.Request(url, headers={"User-Agent": "Jon/1.0"})
+        with urllib.request.urlopen(request, timeout=self._timeout) as response:
+            raw = response.read(max_bytes)
+            charset = response.headers.get_content_charset() or "utf-8"
+            return {
+                "status": response.status,
+                "content_type": response.headers.get_content_type(),
+                "body": raw.decode(charset, errors="replace"),
+            }
+
+    def download_file(self, url: str, destination: str) -> str:
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+        dst = Path(destination).expanduser()
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        request = urllib.request.Request(url, headers={"User-Agent": "Jon/1.0"})
+        with urllib.request.urlopen(request, timeout=self._timeout) as response, dst.open(
+            "wb"
+        ) as handle:
+            shutil.copyfileobj(response, handle)
+        return str(dst)
+
+    def system_info(self) -> dict:
+        info = {
+            "platform": platform.platform(),
+            "system": platform.system(),
+            "release": platform.release(),
+            "machine": platform.machine(),
+            "processor": platform.processor(),
+            "hostname": platform.node(),
+            "python": platform.python_version(),
+            "cpu_count": os.cpu_count(),
+            "time": datetime.now().isoformat(timespec="seconds"),
+            "user": os.environ.get("USERNAME") or os.environ.get("USER"),
+        }
+        try:
+            usage = shutil.disk_usage(Path.home().anchor or "C:/")
+            info["disk_total_gb"] = round(usage.total / 1e9, 1)
+            info["disk_free_gb"] = round(usage.free / 1e9, 1)
+        except Exception:
+            pass
+        return info
+
+    def list_processes(self, limit: int = 60) -> list[dict]:
+        result = self.run_powershell(
+            "Get-Process | Sort-Object -Property WS -Descending | "
+            f"Select-Object -First {limit} Name, Id, "
+            "@{N='MB';E={[math]::Round($_.WS/1MB,1)}} | ConvertTo-Json -Compress"
+        )
+        try:
+            data = json.loads(result.stdout or "[]")
+            return data if isinstance(data, list) else [data]
+        except Exception:
+            return []
+
+    def lock_screen(self) -> bool:
+        subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"], check=False)
+        return True
