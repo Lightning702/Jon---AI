@@ -10,7 +10,7 @@ Electron + React + TypeScript im Black/Gold-Glassmorphism-Design.
 
 Der einfachste Weg zu Jon führt über die offizielle Website:
 
-1. Öffne **[getjon.netlify.app](https://getjon.netlify.app)**
+1. Öffne **[https://getjon.netlify.app](https://getjon.netlify.app)**
 2. Klicke auf **Download** — du erhältst die Datei `jon.zip`
 3. Entpacke die Zip-Datei an einen Ort deiner Wahl (z. B. `C:\Jon`)
 4. Folge danach der [Setup-Anleitung](#setup) weiter unten
@@ -26,7 +26,7 @@ git clone https://github.com/Lightning702/Jon---AI.git
 neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
 
 **Ohne Installation:** Die Handy-App läuft direkt im Browser unter
-[getjon.netlify.app/app](https://getjon.netlify.app/app/) — API-Key eintragen und loslegen,
+[https://getjon.netlify.app/app](https://getjon.netlify.app/app/) — API-Key eintragen und loslegen,
 auf dem Smartphone über „Zum Startbildschirm hinzufügen" installierbar.
 
 ## Funktionen (aktueller Stand)
