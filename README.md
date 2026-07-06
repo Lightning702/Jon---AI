@@ -147,7 +147,7 @@ Felder werden nicht erfunden.
 ## Handy-App
 
 Die PWA unter [getjon.netlify.app/app](https://getjon.netlify.app/app/) läuft ohne
-Installation und speichert deinen Key nur lokal. Sie kann:
+Installation und speichert deinen Key nur lokal! Sie kann:
 
 - mit jedem Provider chatten (eigener API-Key)
 - **Apps öffnen** (WhatsApp, YouTube, Maps, Spotify, Kamera … per offiziellen Deep-Links)
