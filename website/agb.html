@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AGB — Jon KI-Desktop-Assistent</title>
+<meta name="description" content="Allgemeine Geschäftsbedingungen für Jon, den KI-Desktop-Assistenten von FelWorks Webentwicklung." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E" />
+<style>
+:root{--gold:#d4af37;--gold-light:#f5d67b;--gold-dark:#9a7b1f;--ink:#050506}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--gold) #050506}
+::-webkit-scrollbar{width:9px;height:9px;background:#050506}
+::-webkit-scrollbar-track{background:#050506}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--gold-light),var(--gold),var(--gold-dark));border-radius:8px;border:2px solid #050506}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ffe9a8,var(--gold-light),var(--gold))}
+::-webkit-scrollbar-corner{background:#050506}
+body{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#f5f5f7;background:radial-gradient(circle at 20% -10%,#15151f 0%,#050506 55%,#000 100%);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.glow{position:fixed;width:600px;height:600px;border-radius:50%;filter:blur(120px);opacity:.16;pointer-events:none;z-index:0}
+.glow.a{background:var(--gold);top:-220px;right:-180px}
+.glow.b{background:#3a2f8f;bottom:-260px;left:-200px;opacity:.13}
+.wrap{position:relative;z-index:1;max-width:820px;margin:0 auto;padding:0 24px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:24px 0}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:2px;text-decoration:none;color:#fff}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 20px rgba(212,175,55,.6)}
+.gold{background:linear-gradient(90deg,var(--gold-light),var(--gold),var(--gold-dark));-webkit-background-clip:text;background-clip:text;color:transparent}
+.back{color:rgba(255,255,255,.55);text-decoration:none;font-size:14px;transition:color .2s}
+.back:hover{color:var(--gold-light)}
+header{padding:60px 0 30px}
+header h1{font-size:clamp(34px,6vw,52px);font-weight:800;letter-spacing:-1px}
+header .meta{margin-top:14px;color:rgba(255,255,255,.4);font-size:14px}
+.card{margin-top:28px;padding:26px 28px;border-radius:20px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px)}
+.card.provider{background:rgba(212,175,55,.07);border-color:rgba(212,175,55,.22)}
+.card h2{font-size:19px;font-weight:700;margin-bottom:12px}
+.card h2 .n{color:var(--gold-light);margin-right:8px}
+.card p{color:rgba(255,255,255,.62);font-size:15px;line-height:1.72;margin-bottom:10px}
+.card p:last-child{margin-bottom:0}
+.card ul{margin:8px 0 10px;padding-left:20px}
+.card li{color:rgba(255,255,255,.62);font-size:15px;line-height:1.7;margin-bottom:6px}
+.card a{color:var(--gold-light);text-decoration:none}
+.card a:hover{text-decoration:underline}
+.card .prov-row{display:flex;flex-direction:column;gap:4px;font-size:15px;color:rgba(255,255,255,.72);line-height:1.7}
+.card .prov-row b{color:#fff;font-weight:600}
+.toc{margin-top:26px;padding:22px 26px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+.toc h3{font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.4);margin-bottom:14px}
+.toc ol{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 20px}
+.toc li{counter-increment:t}
+.toc a{color:rgba(255,255,255,.6);text-decoration:none;font-size:14px;transition:color .2s}
+.toc a::before{content:"§" counter(t) " ";color:var(--gold-light)}
+.toc a:hover{color:#fff}
+.note{margin-top:26px;padding:16px 20px;border-radius:14px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.6}
+footer{margin-top:50px;padding:40px 0;text-align:center;border-top:1px solid rgba(255,255,255,.06)}
+.footer-links{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 22px;margin-bottom:18px}
+.footer-links a{color:rgba(255,255,255,.55);text-decoration:none;font-size:14px;transition:color .2s}
+.footer-links a:hover{color:var(--gold-light)}
+.footer-meta{color:rgba(255,255,255,.3);font-size:12.5px}
+.toc ol{counter-reset:t}
+@media(max-width:560px){.toc ol{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="glow a"></div>
+<div class="glow b"></div>
+<div class="wrap">
+<nav>
+<a class="brand" href="index.html"><span class="dot"></span><span class="gold">JON</span></a>
+<a class="back" href="index.html">← Zurück zur Startseite</a>
+</nav>
+
+<header>
+<h1>Allgemeine <span class="gold">Geschäftsbedingungen</span></h1>
+<div class="meta">Stand: 6. Juli 2026 · Anbieter: FelWorks Webentwicklung</div>
+</header>
+
+<div class="toc">
+<h3>Übersicht</h3>
+<ol>
+<li><a href="#p1">Geltungsbereich &amp; Anbieter</a></li>
+<li><a href="#p2">Leistungsbeschreibung</a></li>
+<li><a href="#p3">Kostenlose Bereitstellung</a></li>
+<li><a href="#p4">API-Keys &amp; Drittanbieter</a></li>
+<li><a href="#p5">Systemsteuerung &amp; Automatisierung</a></li>
+<li><a href="#p6">Pflichten des Nutzers</a></li>
+<li><a href="#p7">Urheberrecht &amp; Lizenz</a></li>
+<li><a href="#p8">Gewährleistung</a></li>
+<li><a href="#p9">Haftung</a></li>
+<li><a href="#p10">Datenschutz</a></li>
+<li><a href="#p11">Änderungen der AGB</a></li>
+<li><a href="#p12">Schlussbestimmungen</a></li>
+</ol>
+</div>
+
+<div class="card provider" id="p1">
+<h2><span class="n">§1</span>Geltungsbereich &amp; Anbieter</h2>
+<p>Diese Allgemeinen Geschäftsbedingungen (AGB) regeln die Nutzung der Software „Jon“ (der „KI-Desktop-Assistent“) sowie dieser Website und der zugehörigen Handy-App. Sie gelten zwischen dem Nutzer und dem Anbieter:</p>
+<div class="prov-row">
+<span><b>FelWorks Webentwicklung</b></span>
+<span>Anita Heinisch — FelWorks</span>
+<span>Grazerstraße 11, 2604 Theresienfeld, Österreich</span>
+<span>E-Mail: <a href="mailto:anita_heinisch@gmx.at">anita_heinisch@gmx.at</a> · Tel.: +43 699 114 91265</span>
+</div>
+<p style="margin-top:12px">Mit dem Herunterladen, Installieren oder Nutzen von Jon erklärt sich der Nutzer mit diesen AGB einverstanden. Abweichenden Bedingungen des Nutzers wird widersprochen.</p>
+</div>
+
+<div class="card" id="p2">
+<h2><span class="n">§2</span>Leistungsbeschreibung</h2>
+<p>Jon ist ein lokal auf dem Windows-Computer des Nutzers laufender KI-Desktop-Assistent. Jon kann mit verschiedenen KI-Anbietern (Multi-Provider) verbunden werden, Antworten in Echtzeit streamen, Unterhaltungen lokal speichern und – auf Anweisung des Nutzers – Funktionen des Computers steuern.</p>
+<p>Der Anbieter stellt die Software zur Verfügung, schuldet jedoch keine ununterbrochene Verfügbarkeit, kein bestimmtes Ergebnis und keine Eignung für einen bestimmten Zweck. Funktionsumfang und Verfügbarkeit können sich jederzeit ändern.</p>
+</div>
+
+<div class="card" id="p3">
+<h2><span class="n">§3</span>Kostenlose Bereitstellung</h2>
+<p>Jon wird kostenlos bereitgestellt. Für die Nutzung der Software selbst fällt kein Entgelt an. Kosten können ausschließlich bei den vom Nutzer selbst gewählten KI-Anbietern (siehe §4) entstehen.</p>
+<p>Ein Anspruch auf Bereitstellung, Wartung, Weiterentwicklung oder Support besteht nicht.</p>
+</div>
+
+<div class="card" id="p4">
+<h2><span class="n">§4</span>API-Keys &amp; Drittanbieter</h2>
+<p>Jon nutzt KI-Modelle von Drittanbietern (z.&nbsp;B. NVIDIA, OpenAI, Google Gemini, DeepSeek, Mistral, GLM, Qwen). Für deren Nutzung benötigt der Nutzer einen eigenen API-Schlüssel und schließt einen eigenen Vertrag mit dem jeweiligen Anbieter ab.</p>
+<ul>
+<li>Der Nutzer ist für seine API-Schlüssel, die dadurch entstehenden Kosten und die Einhaltung der Bedingungen der jeweiligen Anbieter allein verantwortlich.</li>
+<li>API-Schlüssel werden ausschließlich lokal auf dem Gerät des Nutzers gespeichert (in der <b>.env</b>-Datei bzw. im lokalen Speicher der Handy-App) und nicht an den Anbieter dieser Software übermittelt.</li>
+<li>Der Anbieter hat keinen Einfluss auf Inhalte, Verfügbarkeit oder Preise der Drittanbieter und übernimmt hierfür keine Haftung.</li>
+</ul>
+</div>
+
+<div class="card" id="p5">
+<h2><span class="n">§5</span>Systemsteuerung &amp; Automatisierung</h2>
+<p>Jon kann auf ausdrückliche Anweisung des Nutzers weitreichende Aktionen auf dem Computer ausführen, insbesondere: Programme starten und beenden, Dateien lesen, schreiben, verschieben und löschen, PowerShell- und CMD-Befehle ausführen sowie Maus und Tastatur steuern.</p>
+<p>Diese Funktionen können zu Datenverlust oder unerwünschten Aktionen führen. Der Nutzer setzt sie auf eigene Verantwortung und eigenes Risiko ein. Der Nutzer ist verpflichtet, ausgeführte Aktionen zu überwachen und wichtige Daten zuvor zu sichern. Für Schäden, die durch vom Nutzer veranlasste Aktionen entstehen, haftet der Anbieter nach Maßgabe von §9.</p>
+</div>
+
+<div class="card" id="p6">
+<h2><span class="n">§6</span>Pflichten des Nutzers</h2>
+<ul>
+<li>Die Software darf ausschließlich für rechtmäßige Zwecke genutzt werden.</li>
+<li>Untersagt ist jede Nutzung, die gegen geltendes Recht, Rechte Dritter oder die Bedingungen der eingebundenen KI-Anbieter verstößt.</li>
+<li>Der Nutzer ist für die Sicherheit seines Systems, seiner Zugangsdaten und seiner API-Schlüssel selbst verantwortlich.</li>
+<li>Der Nutzer stellt den Anbieter von Ansprüchen Dritter frei, die aus einer rechtswidrigen oder vertragswidrigen Nutzung der Software resultieren.</li>
+</ul>
+</div>
+
+<div class="card" id="p7">
+<h2><span class="n">§7</span>Urheberrecht &amp; Lizenz</h2>
+<p>Sämtliche Inhalte der Software und dieser Website – insbesondere der gesamte Quellcode (Frontend und Backend), das Design, Texte und Grafiken – sind urheberrechtlich geschützt und Eigentum von FelWorks.</p>
+<p>Eine Nutzung, Vervielfältigung, Modifikation, Weitergabe oder Veröffentlichung – auch auszugsweise – ist ohne vorherige schriftliche Genehmigung von FelWorks untersagt. Dem Nutzer wird ein nicht übertragbares, nicht ausschließliches Recht zur privaten Nutzung der Software eingeräumt.</p>
+</div>
+
+<div class="card" id="p8">
+<h2><span class="n">§8</span>Gewährleistung</h2>
+<p>Die Software wird kostenlos und „wie besehen“ (as-is) ohne jegliche Gewährleistung bereitgestellt. Insbesondere wird keine Gewähr für Fehlerfreiheit, Verfügbarkeit, Sicherheit oder Eignung für einen bestimmten Zweck übernommen.</p>
+<p>Gesetzlich zwingende Gewährleistungsrechte, insbesondere gegenüber Verbrauchern, bleiben unberührt.</p>
+</div>
+
+<div class="card" id="p9">
+<h2><span class="n">§9</span>Haftung</h2>
+<p>Der Anbieter haftet unbeschränkt für Schäden aus der Verletzung des Lebens, des Körpers oder der Gesundheit sowie für Schäden, die auf Vorsatz oder grober Fahrlässigkeit beruhen.</p>
+<p>Für leicht fahrlässig verursachte Schäden haftet der Anbieter nur bei Verletzung einer wesentlichen Vertragspflicht und begrenzt auf den vorhersehbaren, vertragstypischen Schaden. Im Übrigen ist die Haftung – soweit gesetzlich zulässig – ausgeschlossen. Dies gilt insbesondere für Schäden, die durch vom Nutzer veranlasste Systemaktionen (§5), durch Drittanbieter (§4) oder durch unsachgemäße Nutzung entstehen. Zwingende gesetzliche Haftungsbestimmungen bleiben unberührt.</p>
+</div>
+
+<div class="card" id="p10">
+<h2><span class="n">§10</span>Datenschutz</h2>
+<p>Jon speichert Unterhaltungen und Einstellungen lokal auf dem Gerät des Nutzers. Bei der Nutzung von KI-Anbietern werden die Eingaben des Nutzers an den jeweiligen Anbieter übermittelt. Einzelheiten regelt die <a href="https://felworks-impressum.netlify.app/datenschutz" target="_blank" rel="noopener">Datenschutzerklärung</a>.</p>
+</div>
+
+<div class="card" id="p11">
+<h2><span class="n">§11</span>Änderungen der AGB</h2>
+<p>Der Anbieter behält sich vor, diese AGB jederzeit zu ändern. Die jeweils aktuelle Fassung ist auf dieser Website abrufbar. Mit der weiteren Nutzung der Software nach einer Änderung gelten die geänderten Bedingungen als angenommen.</p>
+</div>
+
+<div class="card" id="p12">
+<h2><span class="n">§12</span>Schlussbestimmungen</h2>
+<p>Es gilt das Recht der Republik Österreich unter Ausschluss des UN-Kaufrechts. Zwingende Verbraucherschutzbestimmungen des Wohnsitzstaates des Nutzers bleiben unberührt.</p>
+<p>Sollte eine Bestimmung dieser AGB unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt. An die Stelle der unwirksamen Bestimmung tritt die gesetzlich zulässige Regelung, die dem verfolgten Zweck am nächsten kommt.</p>
+<p>Ergänzend gelten das <a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener">Impressum</a> sowie die <a href="https://felworks-impressum.netlify.app/nutzungsbedingungen" target="_blank" rel="noopener">Nutzungsbedingungen</a>.</p>
+</div>
+
+<div class="note">Hinweis: Diese AGB wurden als Vorlage für Jon erstellt und stellen keine Rechtsberatung dar. Vor dem produktiven Einsatz sollten sie von einer rechtskundigen Person geprüft und an die konkreten Gegebenheiten angepasst werden.</div>
+
+<footer>
+<div class="footer-links">
+<a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener">Impressum</a>
+<a href="https://felworks-impressum.netlify.app/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+<a href="https://felworks-impressum.netlify.app/support" target="_blank" rel="noopener">Support</a>
+<a href="https://felworks-impressum.netlify.app/nutzungsbedingungen" target="_blank" rel="noopener">Nutzungsbedingungen</a>
+<a href="agb.html">AGB</a>
+</div>
+<div class="footer-meta">Jon — KI-Desktop-Assistent · © 2026 FelWorks · Alle Rechte vorbehalten</div>
+</footer>
+</div>
+</body>
+</html>

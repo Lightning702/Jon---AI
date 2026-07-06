@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Jon — Mobile</title>
+<meta name="description" content="Jon für unterwegs. Dein KI-Assistent mit eigenem API-Key." />
+<meta name="theme-color" content="#050506" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<style>
+:root{--gold:#d4af37;--gold-light:#f5d67b;--gold-dark:#9a7b1f;--ink:#050506}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#f5f5f7;background:radial-gradient(circle at 20% -10%,#15151f 0%,#050506 55%,#000 100%);display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+.gold{background:linear-gradient(90deg,var(--gold-light),var(--gold),var(--gold-dark));-webkit-background-clip:text;background-clip:text;color:transparent}
+header{padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:2px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 16px rgba(212,175,55,.6)}
+.model-tag{font-size:11px;color:rgba(255,255,255,.4);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.new-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:7px 12px;font-size:12px;font-family:inherit}
+.providers{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);scrollbar-width:none}
+.providers::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);font-size:13px;color:rgba(255,255,255,.75);font-family:inherit}
+.chip.active{background:rgba(212,175,55,.15);border-color:rgba(212,175,55,.5);color:var(--gold-light)}
+.chip .k{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2)}
+.chip.has-key .k{background:var(--gold);box-shadow:0 0 8px rgba(212,175,55,.7)}
+main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.empty{margin:auto;text-align:center;padding:20px}
+.empty h1{font-size:40px;font-weight:800}
+.empty p{color:rgba(255,255,255,.4);font-size:14px;margin-top:10px;line-height:1.6}
+.msg{max-width:85%;padding:12px 15px;border-radius:16px;font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
+.msg.u{align-self:flex-end;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));color:#000;border-bottom-right-radius:5px}
+.msg.a{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-bottom-left-radius:5px}
+.msg.err{align-self:flex-start;background:rgba(220,60,60,.12);border:1px solid rgba(220,60,60,.35);color:#f3b8b8}
+.composer{display:flex;gap:10px;padding:12px 16px calc(env(safe-area-inset-bottom) + 14px);border-top:1px solid rgba(255,255,255,.08);background:rgba(5,5,6,.8);backdrop-filter:blur(16px)}
+.composer textarea{flex:1;resize:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;padding:12px 14px;font-size:15px;font-family:inherit;max-height:120px;outline:none}
+.composer textarea:focus{border-color:rgba(212,175,55,.5)}
+.send{flex:none;width:46px;height:46px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));color:#000;font-size:19px;display:grid;place-items:center;align-self:flex-end}
+.send:disabled{opacity:.4}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.sheet{width:100%;max-width:440px;background:rgba(15,15,20,.97);border:1px solid rgba(212,175,55,.3);border-bottom:none;border-radius:22px 22px 0 0;padding:24px 20px calc(env(safe-area-inset-bottom) + 24px);animation:up .25s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.sheet h3{font-size:18px;margin-bottom:4px}
+.sheet .hint{font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.5;margin-bottom:16px}
+.sheet .hint a{color:var(--gold-light)}
+.sheet label{display:block;font-size:12px;color:rgba(255,255,255,.5);margin:12px 0 6px}
+.sheet input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;color:#fff;padding:12px 14px;font-size:14px;font-family:inherit;outline:none}
+.sheet input:focus{border-color:rgba(212,175,55,.55)}
+.sheet-actions{display:flex;gap:10px;margin-top:20px}
+.btn{flex:1;padding:13px;border-radius:13px;font-size:14.5px;font-weight:600;border:none;font-family:inherit}
+.btn.primary{background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));color:#000}
+.btn.ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff}
+.btn.danger{background:rgba(220,60,60,.12);border:1px solid rgba(220,60,60,.4);color:#f3b8b8;margin-top:10px;width:100%}
+.typing{display:inline-flex;gap:4px;align-items:center}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:blink 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+</style>
+</head>
+<body>
+<header>
+<div class="brand"><div class="dot"></div><span class="gold">JON</span></div>
+<div style="display:flex;align-items:center;gap:10px">
+<span class="model-tag" id="model-tag"></span>
+<button class="new-btn" id="new-chat">Neu</button>
+</div>
+</header>
+
+<div class="providers" id="providers"></div>
+
+<main id="chat">
+<div class="empty" id="empty">
+<h1 class="gold">Jon</h1>
+<p>Wähle oben einen Provider, füge deinen API-Key ein und leg los.<br>Dein Key bleibt auf deinem Handy.</p>
+</div>
+</main>
+
+<div class="composer">
+<textarea id="input" rows="1" placeholder="Nachricht an Jon …"></textarea>
+<button class="send" id="send">➤</button>
+</div>
+
+<div class="overlay" id="overlay">
+<div class="sheet">
+<h3 id="sheet-title"></h3>
+<p class="hint" id="sheet-hint"></p>
+<label>API-Key</label>
+<input id="key-input" type="password" autocomplete="off" spellcheck="false" placeholder="Key hier einfügen" />
+<label>Modell</label>
+<input id="model-input" type="text" autocomplete="off" spellcheck="false" />
+<div class="sheet-actions">
+<button class="btn ghost" id="sheet-cancel">Abbrechen</button>
+<button class="btn primary" id="sheet-save">Speichern</button>
+</div>
+<button class="btn danger" id="sheet-delete" style="display:none">Key löschen</button>
+</div>
+</div>
+
+<script>
+const PROVIDERS = {
+  nvidia: { label: "NVIDIA", base: "/nvidia/v1", model: "openai/gpt-oss-120b", url: "https://build.nvidia.com" },
+  openai: { label: "OpenAI", base: "https://api.openai.com/v1", model: "gpt-4o-mini", url: "https://platform.openai.com/api-keys" },
+  glm: { label: "GLM", base: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash", url: "https://open.bigmodel.cn" },
+  deepseek: { label: "DeepSeek", base: "https://api.deepseek.com/v1", model: "deepseek-chat", url: "https://platform.deepseek.com" },
+  qwen: { label: "Qwen", base: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", url: "https://modelstudio.console.alibabacloud.com" },
+  mistral: { label: "Mistral", base: "https://api.mistral.ai/v1", model: "mistral-small-latest", url: "https://console.mistral.ai" },
+  gemini: { label: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash", url: "https://aistudio.google.com/apikey" }
+};
+
+const SYSTEM_PROMPT = "Du bist Jon, ein freundlicher, schneller KI-Assistent auf dem Handy des Nutzers. Antworte knapp, praezise und auf Deutsch.";
+
+let keys = load("jon_m_keys", {});
+let models = load("jon_m_models", {});
+let active = localStorage.getItem("jon_m_provider") || "nvidia";
+let history = load("jon_m_chat", []);
+let busy = false;
+let sheetProvider = null;
+
+function load(k, fallback) {
+  try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; }
+}
+function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+const $ = (id) => document.getElementById(id);
+const chatEl = $("chat"), inputEl = $("input"), sendEl = $("send"), overlayEl = $("overlay");
+
+function renderProviders() {
+  const row = $("providers");
+  row.innerHTML = "";
+  for (const [id, p] of Object.entries(PROVIDERS)) {
+    const b = document.createElement("button");
+    b.className = "chip" + (id === active ? " active" : "") + (keys[id] ? " has-key" : "");
+    b.innerHTML = '<span class="k"></span>' + p.label;
+    b.onclick = () => openSheet(id);
+    row.appendChild(b);
+  }
+  $("model-tag").textContent = models[active] || PROVIDERS[active].model;
+}
+
+function openSheet(id) {
+  sheetProvider = id;
+  const p = PROVIDERS[id];
+  $("sheet-title").innerHTML = p.label + ' <span class="gold">API-Key</span>';
+  $("sheet-hint").innerHTML = 'Füge deinen ' + p.label + '-Key ein. Er wird nur lokal auf deinem Handy gespeichert. Key holen: <a href="' + p.url + '" target="_blank" rel="noopener">' + p.url.replace("https://", "") + "</a>";
+  $("key-input").value = keys[id] || "";
+  $("model-input").value = models[id] || p.model;
+  $("sheet-delete").style.display = keys[id] ? "block" : "none";
+  overlayEl.classList.add("show");
+}
+
+function closeSheet() { overlayEl.classList.remove("show"); }
+
+$("sheet-cancel").onclick = closeSheet;
+overlayEl.addEventListener("click", (e) => { if (e.target === overlayEl) closeSheet(); });
+
+$("sheet-save").onclick = () => {
+  const key = $("key-input").value.trim();
+  const model = $("model-input").value.trim() || PROVIDERS[sheetProvider].model;
+  if (key) keys[sheetProvider] = key; else delete keys[sheetProvider];
+  models[sheetProvider] = model;
+  active = sheetProvider;
+  save("jon_m_keys", keys);
+  save("jon_m_models", models);
+  localStorage.setItem("jon_m_provider", active);
+  closeSheet();
+  renderProviders();
+};
+
+$("sheet-delete").onclick = () => {
+  delete keys[sheetProvider];
+  save("jon_m_keys", keys);
+  closeSheet();
+  renderProviders();
+};
+
+function addMsg(cls, text) {
+  $("empty")?.remove();
+  const d = document.createElement("div");
+  d.className = "msg " + cls;
+  d.textContent = text;
+  chatEl.appendChild(d);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return d;
+}
+
+function renderHistory() {
+  for (const m of history) addMsg(m.role === "user" ? "u" : "a", m.content);
+}
+
+$("new-chat").onclick = () => {
+  history = [];
+  save("jon_m_chat", history);
+  chatEl.innerHTML = '<div class="empty" id="empty"><h1 class="gold">Jon</h1><p>Wähle oben einen Provider, füge deinen API-Key ein und leg los.<br>Dein Key bleibt auf deinem Handy.</p></div>';
+};
+
+async function send() {
+  const text = inputEl.value.trim();
+  if (!text || busy) return;
+  const p = PROVIDERS[active];
+  if (!keys[active]) { openSheet(active); return; }
+  busy = true;
+  sendEl.disabled = true;
+  inputEl.value = "";
+  inputEl.style.height = "auto";
+  addMsg("u", text);
+  history.push({ role: "user", content: text });
+  const bubble = addMsg("a", "");
+  bubble.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
+  let answer = "";
+  try {
+    const res = await fetch(p.base + "/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + keys[active] },
+      body: JSON.stringify({
+        model: models[active] || p.model,
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history.slice(-20)],
+        stream: true
+      })
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error("HTTP " + res.status + (res.status === 401 ? " — API-Key prüfen" : "") + " " + body.slice(0, 200));
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() ?? "";
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t.startsWith("data:")) continue;
+        const json = t.slice(5).trim();
+        if (!json || json === "[DONE]") continue;
+        try {
+          const delta = JSON.parse(json).choices?.[0]?.delta?.content;
+          if (delta) {
+            answer += delta;
+            bubble.textContent = answer;
+            chatEl.scrollTop = chatEl.scrollHeight;
+          }
+        } catch {}
+      }
+    }
+    if (!answer) throw new Error("Leere Antwort vom Provider");
+    history.push({ role: "assistant", content: answer });
+    save("jon_m_chat", history);
+  } catch (err) {
+    bubble.className = "msg err";
+    const msg = String(err.message || err);
+    bubble.textContent = msg.includes("Failed to fetch")
+      ? "Verbindung fehlgeschlagen. Entweder kein Internet oder dieser Provider blockiert Browser-Zugriffe (CORS). Probiere NVIDIA, OpenAI oder Gemini."
+      : "Fehler: " + msg;
+    history.pop();
+  }
+  busy = false;
+  sendEl.disabled = false;
+}
+
+sendEl.onclick = send;
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+inputEl.addEventListener("input", () => {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+});
+
+renderProviders();
+renderHistory();
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => undefined);
+}
+</script>
+</body>
+</html>

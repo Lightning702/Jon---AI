@@ -1,0 +1,14 @@
+.env
+data/
+.claude/settings.local.json
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+dist/
+dist-electron/
+release/
+.vite/
+*.log
+.DS_Store

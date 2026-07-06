@@ -1,0 +1,14 @@
+fastapi>=0.115
+uvicorn[standard]>=0.34
+pydantic>=2.10
+pydantic-settings>=2.7
+python-dotenv>=1.0
+sqlalchemy>=2.0.36
+openai>=1.59
+anthropic>=0.42
+google-generativeai>=0.8
+httpx>=0.28
+pyautogui>=0.9.54
+pygetwindow>=0.0.9
+pyperclip>=1.8
+SpeechRecognition>=3.17

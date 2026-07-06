@@ -1,0 +1,5 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+export default function TitleBar() {
+    const api = window.jon;
+    return (_jsxs("div", { className: "drag flex items-center justify-between h-10 px-4 select-none", children: [_jsxs("div", { className: "flex items-center gap-2", children: [_jsx("div", { className: "w-3 h-3 rounded-full bg-gold shadow-gold" }), _jsx("span", { className: "text-sm font-semibold tracking-wide gold-text", children: "JON" })] }), api && (_jsxs("div", { className: "no-drag flex items-center gap-1", children: [_jsx("button", { onClick: () => api.minimize(), className: "w-8 h-8 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition", children: "\u2013" }), _jsx("button", { onClick: () => api.maximize(), className: "w-8 h-8 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition", children: "\u25A1" }), _jsx("button", { onClick: () => api.close(), className: "w-8 h-8 rounded-lg hover:bg-red-500/70 text-white/60 hover:text-white transition", children: "\u2715" })] }))] }));
+}
