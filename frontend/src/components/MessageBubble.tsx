@@ -1,10 +1,13 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { toolDetail, toolLabel } from "../lib/toolInfo";
 
 export interface ToolStep {
   name: string;
   done: boolean;
   ok?: boolean;
+  args?: Record<string, unknown>;
+  summary?: string;
 }
 
 export interface ChatEntry {
@@ -16,24 +19,13 @@ export interface ChatEntry {
   tools?: ToolStep[];
 }
 
-const TOOL_LABELS: Record<string, string> = {
-  run_powershell: "PowerShell",
-  run_cmd: "CMD",
-  open_url: "URL öffnen",
-  start_program: "Programm starten",
-  kill_program: "Programm beenden",
-  open_explorer: "Explorer",
-  list_dir: "Ordner lesen",
-  read_file: "Datei lesen",
-  write_file: "Datei schreiben",
-  move_path: "Verschieben",
-  delete_path: "Löschen",
-  open_in_vscode: "VS Code",
-};
-
 export default function MessageBubble({ entry }: { entry: ChatEntry }) {
   const isUser = entry.role === "user";
   const [showReasoning, setShowReasoning] = useState(false);
+  const [openTool, setOpenTool] = useState<number | null>(null);
+
+  const expanded = openTool !== null ? entry.tools?.[openTool] : undefined;
+  const detail = expanded ? toolDetail(expanded.name, expanded.args) : "";
 
   return (
     <motion.div
@@ -51,20 +43,45 @@ export default function MessageBubble({ entry }: { entry: ChatEntry }) {
           }`}
         >
           {entry.tools && entry.tools.length > 0 && !isUser && (
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {entry.tools.map((t, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg bg-gold/10 border border-gold/25 text-gold/90"
-                >
-                  {!t.done ? (
-                    <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-                  ) : (
-                    <span>{t.ok ? "✓" : "✕"}</span>
+            <div className="mb-2">
+              <div className="flex flex-wrap gap-1.5">
+                {entry.tools.map((t, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setOpenTool((v) => (v === i ? null : i))}
+                    title="Klicken für Details"
+                    className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border transition-colors cursor-pointer ${
+                      openTool === i
+                        ? "bg-gold/25 border-gold/50 text-gold"
+                        : "bg-gold/10 border-gold/25 text-gold/90 hover:bg-gold/20"
+                    }`}
+                  >
+                    {!t.done ? (
+                      <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
+                    ) : (
+                      <span>{t.ok ? "✓" : "✕"}</span>
+                    )}
+                    {toolLabel(t.name)}
+                  </button>
+                ))}
+              </div>
+              {expanded && (
+                <div className="mt-2 text-[12px] rounded-lg bg-black/30 border border-gold/20 px-3 py-2 space-y-1.5">
+                  {expanded.summary && (
+                    <div className="text-white/70">{expanded.summary}</div>
                   )}
-                  {TOOL_LABELS[t.name] ?? t.name}
-                </span>
-              ))}
+                  {detail && (
+                    <pre className="text-gold/80 whitespace-pre-wrap break-all font-mono text-[11px] border-l-2 border-gold/30 pl-2">
+                      {detail}
+                    </pre>
+                  )}
+                  {expanded.done && (
+                    <div className="text-white/40">
+                      {expanded.ok ? "Erfolgreich ausgeführt" : "Fehlgeschlagen oder abgelehnt"}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {entry.reasoning && !isUser && (

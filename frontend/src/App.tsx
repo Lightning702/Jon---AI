@@ -5,11 +5,16 @@ import MessageBubble, { ChatEntry } from "./components/MessageBubble";
 import Composer from "./components/Composer";
 import ModelPicker from "./components/ModelPicker";
 import VoiceIndicator, { VoiceUiState } from "./components/VoiceIndicator";
+import ApprovalDialog, { ApprovalRequest } from "./components/ApprovalDialog";
+import SettingsMenu from "./components/SettingsMenu";
 import { VoiceListener } from "./lib/voice";
 import { initTts, speak, stopSpeaking } from "./lib/tts";
 import {
   ConversationSummary,
   ProviderStatus,
+  StreamEvent,
+  ToolMode,
+  approveTool,
   deleteConversation,
   getConversation,
   getConversations,
@@ -35,11 +40,16 @@ export default function App() {
   );
   const [voiceState, setVoiceState] = useState<VoiceUiState>("idle");
   const [voiceDetail, setVoiceDetail] = useState<string | undefined>();
+  const [toolMode, setToolMode] = useState<ToolMode>(() =>
+    localStorage.getItem("jon_tool_mode") === "allow" ? "allow" : "ask"
+  );
+  const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const providerRef = useRef(provider);
   const modelRef = useRef(model);
   const streamingRef = useRef(false);
+  const toolModeRef = useRef(toolMode);
   const listenerRef = useRef<VoiceListener | null>(null);
   const voiceTimerRef = useRef<number | null>(null);
   const voiceHistoryRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
@@ -55,6 +65,32 @@ export default function App() {
   useEffect(() => {
     streamingRef.current = streaming;
   }, [streaming]);
+  useEffect(() => {
+    toolModeRef.current = toolMode;
+  }, [toolMode]);
+
+  const changeToolMode = (mode: ToolMode) => {
+    setToolMode(mode);
+    localStorage.setItem("jon_tool_mode", mode);
+  };
+
+  const handleApprovalEvent = (evt: StreamEvent) => {
+    if (evt.status === "running" && evt.approval_id) {
+      setApproval({
+        id: evt.approval_id,
+        name: evt.name ?? "tool",
+        args: evt.args,
+        summary: evt.summary,
+      });
+    }
+  };
+
+  const decideApproval = async (approved: boolean) => {
+    if (!approval) return;
+    const id = approval.id;
+    setApproval(null);
+    await approveTool(id, approved);
+  };
 
   const refreshConversations = async () => {
     setConversations(await getConversations());
@@ -117,11 +153,13 @@ export default function App() {
           model: modelRef.current,
           conversation_id: null,
           persist: false,
+          tool_mode: toolModeRef.current,
         },
         {
           onContent: (delta) => {
             answer += delta;
           },
+          onTool: handleApprovalEvent,
           onError: (message) => {
             failed = true;
             if (!answer) answer = message;
@@ -131,6 +169,7 @@ export default function App() {
     } catch {
       failed = true;
     }
+    setApproval(null);
     if (!failed && answer) {
       voiceHistoryRef.current = [
         ...outgoing,
@@ -247,7 +286,7 @@ export default function App() {
     let convId = activeId;
 
     await streamChat(
-      { messages, provider, model, conversation_id: activeId },
+      { messages, provider, model, conversation_id: activeId, tool_mode: toolMode },
       {
         onMeta: (e) => {
           if (e.conversation_id) convId = e.conversation_id;
@@ -260,20 +299,27 @@ export default function App() {
                 : e
             )
           ),
-        onTool: (evt) =>
+        onTool: (evt) => {
+          handleApprovalEvent(evt);
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistantEntry.id) return e;
               const tools = [...(e.tools ?? [])];
               if (evt.status === "running") {
-                tools.push({ name: evt.name ?? "tool", done: false });
+                tools.push({
+                  name: evt.name ?? "tool",
+                  done: false,
+                  args: evt.args,
+                  summary: evt.summary,
+                });
               } else {
                 const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
                 if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
               }
               return { ...e, tools };
             })
-          ),
+          );
+        },
         onContent: (delta) =>
           setEntries((prev) =>
             prev.map((e) =>
@@ -282,15 +328,18 @@ export default function App() {
                 : e
             )
           ),
-        onError: (message) =>
+        onError: (message) => {
+          setApproval(null);
           setEntries((prev) =>
             prev.map((e) =>
               e.id === assistantEntry.id
                 ? { ...e, content: e.content + `\n\n[Fehler] ${message}`, streaming: false }
                 : e
             )
-          ),
+          );
+        },
         onDone: async () => {
+          setApproval(null);
           setEntries((prev) =>
             prev.map((e) =>
               e.id === assistantEntry.id ? { ...e, streaming: false } : e
@@ -308,6 +357,7 @@ export default function App() {
   const stop = () => {
     abortRef.current?.abort();
     setStreaming(false);
+    setApproval(null);
     setEntries((prev) =>
       prev.map((e) => (e.streaming ? { ...e, streaming: false } : e))
     );
@@ -336,6 +386,7 @@ export default function App() {
               }}
             />
             <div className="flex items-center gap-3 text-xs">
+              <SettingsMenu toolMode={toolMode} onToolModeChange={changeToolMode} />
               <button
                 onClick={toggleVoice}
                 title={
@@ -402,6 +453,9 @@ export default function App() {
         </main>
       </div>
       <VoiceIndicator state={voiceState} detail={voiceDetail} />
+      {approval && (
+        <ApprovalDialog request={approval} onDecide={decideApproval} />
+      )}
     </div>
   );
 }

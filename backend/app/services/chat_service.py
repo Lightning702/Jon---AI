@@ -8,8 +8,9 @@ from app.db.models import Conversation, Message
 from app.providers.base import ChatMessage, ChatRequest, StreamChunk
 from app.providers.registry import get_registry
 from app.schemas import ChatIn
+from app.services.approval_service import ToolDeniedError, get_approval_service
 from app.services.memory_service import MemoryService
-from app.services.tools import ToolBox
+from app.services.tools import SAFE_TOOLS, ToolBox, describe_tool
 
 SYSTEM_PROMPT = (
     "Du bist Jon, ein blitzschneller KI-Desktop-Assistent auf dem Windows-PC des Nutzers. "
@@ -143,7 +144,29 @@ class ChatService:
             seed=payload.seed,
             tools=self._toolbox.schema() if use_tools else [],
         )
-        executor = self._toolbox.execute if use_tools else None
+
+        ask_mode = payload.tool_mode != "allow"
+        approvals = get_approval_service()
+        pending_approvals: list[str] = []
+
+        def needs_approval(name: str | None) -> bool:
+            return ask_mode and name not in SAFE_TOOLS
+
+        async def gated_executor(name: str, args: dict) -> str:
+            if needs_approval(name):
+                approval_id = (
+                    pending_approvals.pop(0) if pending_approvals else None
+                )
+                approved = (
+                    await approvals.wait(approval_id) if approval_id else False
+                )
+                if not approved:
+                    raise ToolDeniedError(
+                        "Der Nutzer hat die Ausführung dieses Tools abgelehnt."
+                    )
+            return await self._toolbox.execute(name, args)
+
+        executor = gated_executor if use_tools else None
 
         content_parts: list[str] = []
         reasoning_parts: list[str] = []
@@ -154,7 +177,18 @@ class ChatService:
                     reasoning_parts.append(chunk.delta)
                     yield {"type": "reasoning", "delta": chunk.delta}
                 elif chunk.kind == "tool":
-                    yield {"type": "tool", "name": chunk.name, "status": "running"}
+                    event = {
+                        "type": "tool",
+                        "name": chunk.name,
+                        "status": "running",
+                        "args": chunk.args or {},
+                        "summary": describe_tool(chunk.name or "", chunk.args or {}),
+                    }
+                    if needs_approval(chunk.name):
+                        approval_id = approvals.create()
+                        pending_approvals.append(approval_id)
+                        event["approval_id"] = approval_id
+                    yield event
                 elif chunk.kind == "tool_result":
                     yield {
                         "type": "tool",

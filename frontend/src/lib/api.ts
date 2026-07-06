@@ -40,7 +40,12 @@ export interface StreamEvent {
   name?: string;
   status?: "running" | "done";
   ok?: boolean;
+  args?: Record<string, unknown>;
+  summary?: string;
+  approval_id?: string;
 }
+
+export type ToolMode = "ask" | "allow";
 
 export interface StreamHandlers {
   onMeta?: (e: StreamEvent) => void;
@@ -90,6 +95,17 @@ export async function deleteConversation(id: string): Promise<void> {
   await fetch(`${BASE}/conversations/${id}`, { method: "DELETE" });
 }
 
+export async function approveTool(
+  id: string,
+  approved: boolean
+): Promise<void> {
+  await fetch(`${BASE}/chat/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, approved }),
+  });
+}
+
 export async function streamChat(
   body: {
     messages: ChatMessage[];
@@ -98,6 +114,7 @@ export async function streamChat(
     temperature?: number;
     conversation_id?: string | null;
     persist?: boolean;
+    tool_mode?: ToolMode;
   },
   handlers: StreamHandlers,
   signal?: AbortSignal

@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434/v1"
 
     request_timeout: float = 180.0
-    max_tokens: int = 16384
+    max_tokens: int = 32768
     default_temperature: float = 1.0
     default_top_p: float = 1.0
 

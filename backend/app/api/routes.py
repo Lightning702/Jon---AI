@@ -11,12 +11,14 @@ from app.db.database import session_scope
 from app.db.models import Conversation
 from app.providers.registry import get_registry
 from app.schemas import (
+    ApproveIn,
     ChatIn,
     ConversationDetail,
     ConversationOut,
     HealthOut,
     ProviderStatus,
 )
+from app.services.approval_service import get_approval_service
 from app.services.chat_service import ChatService
 
 router = APIRouter(prefix="/api")
@@ -82,6 +84,12 @@ async def chat(payload: ChatIn) -> StreamingResponse:
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post("/chat/approve")
+async def approve_tool(payload: ApproveIn) -> dict:
+    resolved = get_approval_service().resolve(payload.id, payload.approved)
+    return {"status": "ok" if resolved else "unknown"}
 
 
 @router.get("/conversations", response_model=list[ConversationOut])

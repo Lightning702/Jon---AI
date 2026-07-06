@@ -13,6 +13,71 @@ _NUM = {"type": "number"}
 _INT = {"type": "integer"}
 _BOOL = {"type": "boolean"}
 
+SAFE_TOOLS = {"get_screen_info", "list_windows", "wait", "recall"}
+
+
+def _shorten(value: Any, limit: int = 120) -> str:
+    text = str(value).replace("\n", " ").strip()
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def describe_tool(name: str, args: dict[str, Any]) -> str:
+    if name == "run_powershell":
+        return "Führt einen PowerShell-Befehl auf deinem PC aus."
+    if name == "run_cmd":
+        return "Führt einen CMD-Befehl auf deinem PC aus."
+    if name == "open_url":
+        return f"Öffnet {_shorten(args.get('url', 'eine URL'))} im Browser."
+    if name == "start_program":
+        return f"Startet das Programm {_shorten(args.get('path', ''))}."
+    if name == "kill_program":
+        return f"Beendet das Programm {_shorten(args.get('name', ''))}."
+    if name == "open_explorer":
+        return f"Öffnet den Ordner {_shorten(args.get('path', ''))} im Explorer."
+    if name == "list_dir":
+        return f"Listet den Inhalt von {_shorten(args.get('path', ''))} auf."
+    if name == "read_file":
+        return f"Liest die Datei {_shorten(args.get('path', ''))}."
+    if name == "write_file":
+        return f"Schreibt in die Datei {_shorten(args.get('path', ''))}."
+    if name == "move_path":
+        return (
+            f"Verschiebt {_shorten(args.get('source', ''))} nach "
+            f"{_shorten(args.get('destination', ''))}."
+        )
+    if name == "delete_path":
+        return f"Löscht {_shorten(args.get('path', ''))}."
+    if name == "open_in_vscode":
+        return f"Öffnet {_shorten(args.get('path', ''))} in VS Code."
+    if name == "get_screen_info":
+        return "Fragt Bildschirmgröße und Mausposition ab."
+    if name == "mouse_move":
+        return f"Bewegt die Maus zu x={args.get('x')}, y={args.get('y')}."
+    if name == "mouse_click":
+        return "Klickt mit der Maus."
+    if name == "mouse_scroll":
+        return f"Scrollt um {args.get('amount')}."
+    if name == "keyboard_type":
+        return f"Tippt den Text: {_shorten(args.get('text', ''))}"
+    if name == "keyboard_press":
+        return f"Drückt die Taste {_shorten(args.get('key', ''))}."
+    if name == "keyboard_hotkey":
+        keys = "+".join(str(k) for k in args.get("keys") or [])
+        return f"Drückt die Tastenkombination {keys}."
+    if name == "list_windows":
+        return "Listet alle offenen Fenster auf."
+    if name == "focus_window":
+        return f"Holt das Fenster „{_shorten(args.get('title', ''))}“ in den Vordergrund."
+    if name == "wait":
+        return f"Wartet {args.get('seconds')} Sekunden."
+    if name == "remember":
+        return f"Merkt sich: {_shorten(args.get('content', ''))}"
+    if name == "recall":
+        return "Ruft gespeicherte Erinnerungen ab."
+    if name == "forget":
+        return f"Löscht Erinnerungen zu: {_shorten(args.get('query', ''))}"
+    return f"Führt das Tool {name} aus."
+
 
 def _tool(name: str, description: str, properties: dict, required: list[str]) -> dict:
     return {

@@ -49,9 +49,10 @@ class AnthropicProvider(LLMProvider):
             for m in request.messages
             if m.role in ("user", "assistant")
         ]
+        fallback = 8192 if "haiku" in request.model.lower() else 32000
         kwargs = dict(
             model=request.model,
-            max_tokens=request.max_tokens,
+            max_tokens=request.max_tokens or fallback,
             temperature=min(request.temperature, 1.0),
             top_p=request.top_p,
             messages=messages,

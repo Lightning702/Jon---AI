@@ -16,10 +16,16 @@ class ChatIn(BaseModel):
     model: str | None = None
     temperature: float = 1.0
     top_p: float = 1.0
-    max_tokens: int = 16384
+    max_tokens: int | None = None
     seed: int | None = None
     conversation_id: str | None = None
     persist: bool = True
+    tool_mode: str = Field(default="ask", pattern="^(ask|allow)$")
+
+
+class ApproveIn(BaseModel):
+    id: str
+    approved: bool
 
 
 class MessageOut(BaseModel):

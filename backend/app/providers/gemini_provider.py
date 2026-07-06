@@ -64,8 +64,9 @@ class GeminiProvider(LLMProvider):
         generation_config = {
             "temperature": request.temperature,
             "top_p": request.top_p,
-            "max_output_tokens": request.max_tokens,
         }
+        if request.max_tokens:
+            generation_config["max_output_tokens"] = request.max_tokens
         model = genai.GenerativeModel(
             model_name=request.model,
             system_instruction="\n\n".join(system_parts) or None,

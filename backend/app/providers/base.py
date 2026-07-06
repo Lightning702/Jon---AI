@@ -19,7 +19,7 @@ class ChatRequest:
     model: str
     temperature: float = 1.0
     top_p: float = 1.0
-    max_tokens: int = 16384
+    max_tokens: int | None = None
     seed: int | None = None
     stop: list[str] = field(default_factory=list)
     tools: list[dict] = field(default_factory=list)
@@ -31,6 +31,7 @@ class StreamChunk:
     kind: Literal["content", "reasoning", "tool", "tool_result"] = "content"
     name: str | None = None
     ok: bool | None = None
+    args: dict[str, Any] | None = None
 
 
 @dataclass

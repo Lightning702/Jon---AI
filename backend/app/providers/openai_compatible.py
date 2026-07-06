@@ -21,6 +21,8 @@ from app.providers.base import (
 
 MAX_TOOL_ROUNDS = 30
 TRANSIENT_RETRIES = 4
+DEFAULT_MAX_TOKENS = 32768
+MIN_MAX_TOKENS = 4096
 TRANSIENT_ERRORS = (
     InternalServerError,
     APITimeoutError,
@@ -86,6 +88,16 @@ class OpenAICompatibleProvider(LLMProvider):
                     last = exc
                     await asyncio.sleep(0.6 * (attempt + 1))
                     continue
+                tokens = payload.get("max_tokens")
+                if (
+                    status == 400
+                    and tokens
+                    and tokens > MIN_MAX_TOKENS
+                    and "token" in str(exc).lower()
+                ):
+                    payload["max_tokens"] = max(MIN_MAX_TOKENS, tokens // 2)
+                    last = exc
+                    continue
                 raise ProviderError(f"{self.name}: {exc}") from exc
         raise ProviderError(
             f"{self.name}: Server ueberlastet (mehrere Fehlversuche): {last}"
@@ -101,6 +113,7 @@ class OpenAICompatibleProvider(LLMProvider):
         tools = request.tools or None
         use_tools = bool(tools and tool_executor)
         rounds = MAX_TOOL_ROUNDS if use_tools else 1
+        max_tokens = request.max_tokens or DEFAULT_MAX_TOKENS
 
         for _ in range(rounds):
             payload = dict(
@@ -108,7 +121,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 messages=messages,
                 temperature=request.temperature,
                 top_p=request.top_p,
-                max_tokens=request.max_tokens,
+                max_tokens=max_tokens,
                 stream=True,
             )
             if use_tools:
@@ -120,6 +133,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 payload["stop"] = request.stop
 
             completion = await self._create_with_retry(client, payload)
+            max_tokens = payload["max_tokens"]
 
             content_acc: list[str] = []
             calls: dict[int, dict] = {}
@@ -187,7 +201,7 @@ class OpenAICompatibleProvider(LLMProvider):
                     args = json.loads(raw)
                 except Exception:
                     args = {}
-                yield StreamChunk(kind="tool", name=name)
+                yield StreamChunk(kind="tool", name=name, args=args)
                 try:
                     result = await tool_executor(name, args)
                     ok = True
