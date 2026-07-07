@@ -5,6 +5,7 @@ import {
   ProviderStatus,
   listDir,
   openInVscode,
+  pathInfo,
   pickFolderDialog,
   readWorkspaceFile,
   streamChat,
@@ -190,10 +191,9 @@ export default function CodeAgent({
     setDragOver(false);
     const items = Array.from(e.dataTransfer.items || []);
     const files = Array.from(e.dataTransfer.files || []);
-    if (files.length === 0) return;
-    const file = files[0];
-    const entry = items[0]?.webkitGetAsEntry?.();
-    const isDir = entry ? entry.isDirectory : file.type === "" && file.size === 0;
+    const file =
+      files[0] || (items[0]?.kind === "file" ? items[0].getAsFile() : null);
+    if (!file) return;
     const path = jonBridge?.getPathForFile
       ? jonBridge.getPathForFile(file)
       : (file as File & { path?: string }).path || "";
@@ -201,11 +201,14 @@ export default function CodeAgent({
       setShowManual(true);
       return;
     }
-    if (isDir) {
+    const info = await pathInfo(path);
+    if (info.is_dir) {
       setWorkspacePath(path);
-    } else {
-      setWorkspacePath(parentDir(path));
+    } else if (info.exists) {
+      setWorkspacePath(info.parent || parentDir(path));
       await openFile(path);
+    } else {
+      setWorkspacePath(path);
     }
   };
 

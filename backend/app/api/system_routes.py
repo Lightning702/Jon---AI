@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -165,3 +166,13 @@ async def pick_folder() -> dict:
     except Exception as exc:
         raise HTTPException(status_code=501, detail=str(exc))
     return {"path": path}
+
+
+@router.post("/path-info")
+async def path_info(payload: PathIn) -> dict:
+    target = Path(payload.path).expanduser()
+    return {
+        "exists": target.exists(),
+        "is_dir": target.is_dir(),
+        "parent": str(target.parent),
+    }

@@ -322,6 +322,18 @@ export async function pickFolderDialog(): Promise<string | null> {
   return typeof data.path === "string" ? data.path : "";
 }
 
+export async function pathInfo(
+  path: string
+): Promise<{ exists: boolean; is_dir: boolean; parent: string }> {
+  const res = await fetch(`${BASE}/system/path-info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  if (!res.ok) return { exists: false, is_dir: false, parent: "" };
+  return res.json();
+}
+
 export async function streamChat(
   body: {
     messages: ChatMessage[];
