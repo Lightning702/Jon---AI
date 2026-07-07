@@ -234,7 +234,7 @@ Details und Fehlerbehebung: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 ## Sicherheit
 
 - API-Keys werden aus Umgebungsvariablen oder dem lokalen Konten-Speicher (`data/`) geladen,
-  niemals aus dem Quellcode.
+  niemals aus dem Quellcode Sie können auch Ollama benutzen.
 - `.env` und der komplette `data/`-Ordner sind über `.gitignore` ausgeschlossen.
 - Die System- und Tool-Aktionen laufen mit den Rechten des angemeldeten Benutzers. Der
   Standardmodus „Zuerst fragen" verlangt vor jeder Aktion eine Freigabe.
