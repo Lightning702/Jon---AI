@@ -8,6 +8,7 @@ import VoiceIndicator, { VoiceUiState } from "./components/VoiceIndicator";
 import ApprovalDialog, { ApprovalRequest } from "./components/ApprovalDialog";
 import SettingsMenu from "./components/SettingsMenu";
 import AccountsModal from "./components/AccountsModal";
+import CodeAgent from "./components/CodeAgent";
 import { VoiceListener } from "./lib/voice";
 import { initTts, speak, stopSpeaking } from "./lib/tts";
 import {
@@ -49,6 +50,7 @@ export default function App() {
   const [accountsTab, setAccountsTab] = useState<
     "accounts" | "usage" | "skills" | null
   >(null);
+  const [codeOpen, setCodeOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const providerRef = useRef(provider);
@@ -427,6 +429,26 @@ export default function App() {
             />
             <div className="flex items-center gap-3 text-xs">
               <button
+                onClick={() => setCodeOpen(true)}
+                title="Jon Code — Coding-Agent im Editor"
+                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-gold/30 bg-gold/10 text-gold/90 hover:bg-gold/20 transition-colors"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+                <span className="text-[11px] font-medium">Code</span>
+              </button>
+              <button
                 onClick={() => setAccountsTab("accounts")}
                 title="Konten, Nutzung & Skills"
                 className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
@@ -519,6 +541,18 @@ export default function App() {
         <AccountsModal
           initialTab={accountsTab}
           onClose={() => setAccountsTab(null)}
+        />
+      )}
+      {codeOpen && (
+        <CodeAgent
+          providers={providers}
+          provider={provider}
+          model={model}
+          onModelChange={(p, m) => {
+            setProvider(p);
+            setModel(m);
+          }}
+          onClose={() => setCodeOpen(false)}
         />
       )}
     </div>

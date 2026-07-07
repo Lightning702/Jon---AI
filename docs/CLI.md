@@ -1,8 +1,17 @@
-# Jon CLI — Coding-Agent für VS Code
+# Jon Coding-Agent
 
-Jon läuft auch als autonomer Coding-Agent direkt im **Terminal** (z. B. im integrierten
-Terminal von VS Code) — ähnlich wie moderne KI-Coding-Agenten. Jon ist dabei **kein eigener
-Editor**, sondern arbeitet direkt in deinem aktuellen Workspace.
+Jon arbeitet als autonomer Coding-Agent an ganzen Projekten — auf zwei Wegen:
+
+- **In der App („Jon Code"):** Button oben rechts in der Desktop-App. Es öffnet sich eine
+  editorartige Ansicht mit **Dateibaum links**, **Code-Editor in der Mitte** und **Jon als
+  Agent rechts**, der direkt an deinen Dateien arbeitet (lesen, ändern, Tests laufen lassen).
+  „📂 Ordner öffnen" wählt den Projektordner, „VS Code ↗" öffnet ihn zusätzlich extern.
+  Im Chat wechselst du mit `/model` und `/provider` ohne Neustart.
+- **Im Terminal (`jon`):** unten beschrieben — ideal im integrierten Terminal von VS Code.
+
+Jon ist dabei **kein eigener Editor**, sondern arbeitet in deinem aktuellen Workspace.
+
+## Im Terminal
 
 ## Starten
 

@@ -52,8 +52,10 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
 
 ## Funktionen
 
-- **Coding-Agent im Terminal** (`jon`): arbeitet wie ein moderner KI-Coding-Agent direkt
-  im VS-Code-Workspace an ganzen Projekten (siehe [docs/CLI.md](docs/CLI.md))
+- **Coding-Agent** — als **„Jon Code"-Modus in der App** (Button oben rechts: Dateibaum +
+  Editor + Jon-Agent rechts, mit `/model`- und `/provider`-Wechsel) und als **`jon`-Befehl
+  im VS-Code-Terminal**. Jon arbeitet an ganzen Projekten wie ein moderner KI-Coding-Agent
+  (siehe [docs/CLI.md](docs/CLI.md))
 - **Multi-Provider-Chat** mit einheitlicher Schnittstelle: NVIDIA, OpenAI, Anthropic,
   Gemini, **Ollama & LM Studio (lokal, gratis)**, OpenRouter, Groq, Together AI, xAI,
   DeepSeek, GLM, Qwen, Mistral

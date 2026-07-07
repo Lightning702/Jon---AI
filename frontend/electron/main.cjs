@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 
@@ -47,6 +47,26 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
   }
 }
+
+ipcMain.handle("dialog:openFolder", async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory"],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle("shell:openVscode", (_event, folder) => {
+  if (!folder) return false;
+  const cmd = process.platform === "win32" ? "code.cmd" : "code";
+  try {
+    spawn(cmd, [folder], { detached: true, stdio: "ignore", shell: true }).unref();
+    return true;
+  } catch {
+    return false;
+  }
+});
 
 ipcMain.handle("window:minimize", () => mainWindow && mainWindow.minimize());
 ipcMain.handle("window:maximize", () => {

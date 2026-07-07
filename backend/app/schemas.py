@@ -21,6 +21,8 @@ class ChatIn(BaseModel):
     conversation_id: str | None = None
     persist: bool = True
     tool_mode: str = Field(default="ask", pattern="^(ask|allow)$")
+    mode: str = Field(default="chat", pattern="^(chat|coding)$")
+    workspace: str | None = None
 
 
 class ApproveIn(BaseModel):

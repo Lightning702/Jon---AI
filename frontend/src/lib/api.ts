@@ -268,6 +268,53 @@ export async function deleteReminder(id: string): Promise<void> {
   await fetch(`${BASE}/reminders/${id}`, { method: "DELETE" });
 }
 
+export interface FileEntry {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  size: number;
+}
+
+export async function listDir(path: string): Promise<FileEntry[]> {
+  const res = await fetch(`${BASE}/system/files/list`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function readWorkspaceFile(path: string): Promise<string> {
+  const res = await fetch(`${BASE}/system/files/read`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return data.content ?? "";
+}
+
+export async function writeWorkspaceFile(
+  path: string,
+  content: string
+): Promise<void> {
+  await fetch(`${BASE}/system/files/write`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, content }),
+  });
+}
+
+export async function openInVscode(path: string): Promise<void> {
+  await fetch(`${BASE}/system/vscode`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+}
+
 export async function streamChat(
   body: {
     messages: ChatMessage[];
@@ -277,6 +324,8 @@ export async function streamChat(
     conversation_id?: string | null;
     persist?: boolean;
     tool_mode?: ToolMode;
+    mode?: "chat" | "coding";
+    workspace?: string | null;
   },
   handlers: StreamHandlers,
   signal?: AbortSignal

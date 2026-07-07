@@ -10,6 +10,7 @@ from app.providers.base import ChatMessage, ChatRequest, StreamChunk
 from app.providers.registry import get_registry
 from app.schemas import ChatIn
 from app.services.approval_service import ToolDeniedError, get_approval_service
+from app.services.coding import CODING_PROMPT, workspace_summary
 from app.services.memory_service import MemoryService
 from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
@@ -79,15 +80,23 @@ class ChatService:
         self._toolbox = ToolBox(memory=self._memory, skills=self._skills)
         self._usage = get_usage_service()
 
-    def _system_prompt(self) -> str:
-        custom, mode = get_settings_service().custom_prompt()
-        if custom.strip() and mode == "replace":
-            base = custom.strip()
-        elif custom.strip():
-            base = f"{SYSTEM_PROMPT}\n\n{custom.strip()}"
+    def _system_prompt(self, coding: bool = False, workspace: str | None = None) -> str:
+        if coding:
+            from pathlib import Path
+
+            base = CODING_PROMPT
+            parts = [base]
+            if workspace:
+                parts.append(workspace_summary(Path(workspace)))
         else:
-            base = SYSTEM_PROMPT
-        parts = [base]
+            custom, mode = get_settings_service().custom_prompt()
+            if custom.strip() and mode == "replace":
+                base = custom.strip()
+            elif custom.strip():
+                base = f"{SYSTEM_PROMPT}\n\n{custom.strip()}"
+            else:
+                base = SYSTEM_PROMPT
+            parts = [base]
         catalog = self._skills.catalog()
         if catalog:
             parts.append(catalog)
@@ -171,7 +180,14 @@ class ChatService:
         ]
         if not any(m.role == "system" for m in request_messages):
             request_messages.insert(
-                0, ChatMessage(role="system", content=self._system_prompt())
+                0,
+                ChatMessage(
+                    role="system",
+                    content=self._system_prompt(
+                        coding=payload.mode == "coding",
+                        workspace=payload.workspace,
+                    ),
+                ),
             )
 
         use_tools = provider_name in TOOL_PROVIDERS

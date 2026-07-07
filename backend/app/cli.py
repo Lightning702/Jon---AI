@@ -7,6 +7,7 @@ from pathlib import Path
 from app.core.config import get_settings
 from app.providers.base import ChatMessage, ChatRequest, StreamChunk
 from app.providers.registry import get_registry
+from app.services.coding import CODING_PROMPT, workspace_summary
 from app.services.memory_service import MemoryService
 from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
@@ -19,58 +20,6 @@ BOLD = "\033[1m"
 CYAN = "\033[36m"
 RED = "\033[31m"
 RESET = "\033[0m"
-
-CODING_PROMPT = (
-    "Du bist Jon, ein autonomer KI-Coding-Agent im Terminal, vergleichbar mit modernen "
-    "Coding-Agenten. Du arbeitest direkt im aktuellen Workspace des Nutzers. Nutze deine "
-    "Tools, um den Code wirklich zu aendern, statt ihn nur zu beschreiben. "
-    "Arbeitsweise: 1) Verstehe die Aufgabe und den relevanten Projektkontext (search_files, "
-    "read_file, list_dir). 2) Plane kurz. 3) Fuehre Aenderungen aus. Fuer bestehende Dateien "
-    "IMMER edit_file (praeziser Ersatz einer exakten Textstelle), niemals ganze Dateien "
-    "unnoetig ueberschreiben; write_file nur fuer neue Dateien. 4) Starte bei Bedarf Builds "
-    "oder Tests mit run_powershell/run_cmd, lies die Ausgabe, behebe Fehler und wiederhole, "
-    "bis die Aufgabe erledigt ist. 5) Nutze Git ueber run_powershell, wenn der Nutzer es "
-    "will. Unterstuetze viele Sprachen und Frameworks (HTML/CSS/JS/TS, React/Vue/Angular/"
-    "Svelte, Python, Java, Kotlin, C#, C++, Rust, Go, PHP, SQL, Flutter, Electron, Tauri u.a.). "
-    "Antworte knapp auf Deutsch. Erklaere nur das Wichtige, zeig lieber Ergebnisse."
-)
-
-IGNORE_DIRS = {
-    ".git", "node_modules", "__pycache__", ".venv", "venv", "dist",
-    "dist-electron", "build", ".vite", ".next", "target", ".idea",
-}
-PROJECT_MARKERS = {
-    "package.json": "Node/JS",
-    "requirements.txt": "Python",
-    "pyproject.toml": "Python",
-    "Cargo.toml": "Rust",
-    "go.mod": "Go",
-    "pom.xml": "Java (Maven)",
-    "build.gradle": "Java/Kotlin (Gradle)",
-    "composer.json": "PHP",
-    "pubspec.yaml": "Flutter/Dart",
-    "index.html": "Web",
-}
-
-
-def workspace_summary(root: Path, max_entries: int = 40) -> str:
-    markers = [f"{name} → {kind}" for name, kind in PROJECT_MARKERS.items() if (root / name).exists()]
-    lines: list[str] = []
-    count = 0
-    for item in sorted(root.iterdir(), key=lambda p: (p.is_file(), p.name.lower())):
-        if item.name.startswith(".") or item.name in IGNORE_DIRS:
-            continue
-        lines.append(f"{'📁' if item.is_dir() else '📄'} {item.name}")
-        count += 1
-        if count >= max_entries:
-            lines.append("…")
-            break
-    context = f"Workspace: {root}\n"
-    if markers:
-        context += "Projekttyp: " + ", ".join(markers) + "\n"
-    context += "Oberste Ebene:\n" + "\n".join(lines)
-    return context
-
 
 class JonCLI:
     def __init__(self) -> None:
