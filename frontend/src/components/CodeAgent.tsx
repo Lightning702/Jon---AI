@@ -15,8 +15,16 @@ let cid = 0;
 const nid = () => `ca${Date.now()}_${cid++}`;
 
 const jonBridge = (window as unknown as {
-  jon?: { pickFolder?: () => Promise<string | null>; openVscode?: (f: string) => Promise<boolean> };
+  jon?: {
+    pickFolder?: () => Promise<string | null>;
+    openVscode?: (f: string) => Promise<boolean>;
+    getPathForFile?: (f: File) => string;
+  };
 }).jon;
+
+function parentDir(path: string): string {
+  return path.replace(/[\\/][^\\/]*$/, "") || path;
+}
 
 interface Props {
   providers: ProviderStatus[];
@@ -105,6 +113,7 @@ export default function CodeAgent({
   );
   const [showManual, setShowManual] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [picker, setPicker] = useState<"model" | "provider" | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [filePath, setFilePath] = useState<string | null>(null);
@@ -118,6 +127,16 @@ export default function CodeAgent({
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight });
   }, [entries]);
+
+  useEffect(() => {
+    const prevent = (e: DragEvent) => e.preventDefault();
+    window.addEventListener("dragover", prevent);
+    window.addEventListener("drop", prevent);
+    return () => {
+      window.removeEventListener("dragover", prevent);
+      window.removeEventListener("drop", prevent);
+    };
+  }, []);
 
   const pickFolder = async () => {
     if (picking) return;
@@ -164,6 +183,30 @@ export default function CodeAgent({
     if (!filePath) return;
     await writeWorkspaceFile(filePath, fileContent);
     setDirty(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const items = Array.from(e.dataTransfer.items || []);
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length === 0) return;
+    const file = files[0];
+    const entry = items[0]?.webkitGetAsEntry?.();
+    const isDir = entry ? entry.isDirectory : file.type === "" && file.size === 0;
+    const path = jonBridge?.getPathForFile
+      ? jonBridge.getPathForFile(file)
+      : (file as File & { path?: string }).path || "";
+    if (!path) {
+      setShowManual(true);
+      return;
+    }
+    if (isDir) {
+      setWorkspacePath(path);
+    } else {
+      setWorkspacePath(parentDir(path));
+      await openFile(path);
+    }
   };
 
   const sys = (text: string) =>
@@ -360,13 +403,35 @@ export default function CodeAgent({
         </button>
       </div>
 
-      <div className="flex flex-1 min-h-0">
+      <div
+        className="flex flex-1 min-h-0 relative"
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!dragOver) setDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget === e.target) setDragOver(false);
+        }}
+        onDrop={handleDrop}
+      >
+        {dragOver && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 border-2 border-dashed border-gold/50 pointer-events-none">
+            <div className="text-center">
+              <div className="text-3xl mb-2">📂</div>
+              <div className="text-[14px] text-gold">Ordner oder Datei hier ablegen</div>
+            </div>
+          </div>
+        )}
         <div className="w-56 border-r border-white/10 overflow-y-auto py-2 bg-black/20">
           {workspace ? (
             <FileTree path={workspace} depth={0} onOpen={openFile} activePath={filePath} refreshKey={refreshKey} />
           ) : (
-            <div className="text-[12px] text-white/40 px-3 py-2">
+            <div className="text-[12px] text-white/40 px-3 py-4 text-center leading-relaxed">
               Kein Ordner gewählt.
+              <br />
+              <span className="text-white/30">
+                Zieh einen Ordner hierher oder klick oben auf „Ordner öffnen".
+              </span>
             </div>
           )}
         </div>
