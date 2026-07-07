@@ -88,7 +88,9 @@ class OpenAICompatibleProvider(LLMProvider):
             return self._models_cache
         try:
             client = self._client()
-            response = await client.models.list()
+            response = await client.with_options(
+                timeout=4.0, max_retries=0
+            ).models.list()
             remote = sorted({item.id for item in response.data})
             if not remote:
                 result = self._default_models

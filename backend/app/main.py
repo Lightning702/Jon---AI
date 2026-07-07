@@ -1,21 +1,31 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import router
+from app.api.routes import accounts, providers, router
 from app.api.system_routes import router as system_router
 from app.core.config import get_settings
 from app.db.database import init_db
 
 
+async def _warm_caches() -> None:
+    with suppress(Exception):
+        await providers()
+    with suppress(Exception):
+        await accounts()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    warmup = asyncio.create_task(_warm_caches())
     yield
+    warmup.cancel()
 
 
 def create_app() -> FastAPI:

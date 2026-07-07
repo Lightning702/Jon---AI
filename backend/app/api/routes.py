@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -51,6 +52,19 @@ async def health() -> HealthOut:
         default_model=settings.default_model,
         available_providers=registry.available(),
     )
+
+
+_local_probe_cache: dict[str, tuple[float, dict]] = {}
+
+
+async def _local_status(base_url: str) -> dict:
+    now = time.monotonic()
+    hit = _local_probe_cache.get(base_url)
+    if hit and now - hit[0] < 30:
+        return hit[1]
+    probe = await asyncio.to_thread(_system.local_llm_status, base_url)
+    _local_probe_cache[base_url] = (time.monotonic(), probe)
+    return probe
 
 
 async def _models_for(provider, timeout: float) -> list[str]:
@@ -211,9 +225,7 @@ async def accounts() -> list[dict]:
     async def build(name: str) -> dict:
         env_configured = keys.env_key_for(name) is not None
         if name in LOCAL_PROVIDERS:
-            probe = await asyncio.to_thread(
-                _system.local_llm_status, local_urls[name]
-            )
+            probe = await _local_status(local_urls[name])
             status = account.status(name, env_configured, probe["reachable"])
             status["models"] = probe["models"]
         else:

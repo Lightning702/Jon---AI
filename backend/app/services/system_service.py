@@ -391,13 +391,13 @@ class SystemService:
         return result.exit_code == 0
 
     def local_llm_status(self, base_url: str) -> dict:
-        root = base_url.rstrip("/")
+        root = base_url.rstrip("/").replace("://localhost", "://127.0.0.1")
         if root.endswith("/v1"):
             root = root[:-3]
         for suffix, key in (("/api/tags", "models"), ("/v1/models", "data")):
             try:
                 request = urllib.request.Request(root + suffix)
-                with urllib.request.urlopen(request, timeout=1.5) as response:
+                with urllib.request.urlopen(request, timeout=1.0) as response:
                     data = json.loads(response.read())
                     items = data.get(key, [])
                     models = [
