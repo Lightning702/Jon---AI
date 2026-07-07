@@ -99,7 +99,10 @@ export default function CodeAgent({
   const [workspace, setWorkspace] = useState<string>(
     () => localStorage.getItem("jon_workspace") || ""
   );
-  const [manualPath, setManualPath] = useState("");
+  const [manualPath, setManualPath] = useState(
+    () => localStorage.getItem("jon_workspace") || ""
+  );
+  const [picker, setPicker] = useState<"model" | "provider" | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
@@ -122,6 +125,7 @@ export default function CodeAgent({
 
   const setWorkspacePath = (p: string) => {
     setWorkspace(p);
+    setManualPath(p);
     localStorage.setItem("jon_workspace", p);
     setFilePath(null);
     setFileContent("");
@@ -176,35 +180,21 @@ export default function CodeAgent({
       const active = providers.find((p) => p.provider === provider);
       const models = active?.models ?? [];
       if (arg) {
-        const match = models.find((m) => m === arg) || (/^\d+$/.test(arg) ? models[+arg - 1] : undefined);
-        if (match) {
-          onModelChange(provider, match);
-          sys(`Modell gewechselt zu ${match}.`);
-        } else sys(`Unbekanntes Modell. Verfügbar: ${models.join(", ")}`);
+        const match =
+          models.find((m) => m === arg) ||
+          (/^\d+$/.test(arg) ? models[+arg - 1] : undefined);
+        if (match) onModelChange(provider, match);
       } else {
-        sys(
-          `Modelle von ${provider}:\n` +
-            models.map((m, i) => `${i + 1}. ${m}${m === model ? "  ●" : ""}`).join("\n") +
-            "\nWechseln: /model <Nummer oder Name>"
-        );
+        setPicker("model");
       }
       return true;
     }
     if (c === "provider") {
       if (arg) {
         const next = providers.find((p) => p.provider === arg);
-        if (next) {
-          onModelChange(next.provider, next.models[0] ?? "");
-          sys(`Provider gewechselt zu ${next.provider}.`);
-        } else sys(`Unbekannter Provider: ${arg}`);
+        if (next) onModelChange(next.provider, next.models[0] ?? "");
       } else {
-        sys(
-          "Provider:\n" +
-            providers
-              .map((p) => `${p.provider}${p.configured ? "" : " (kein Key)"}${p.provider === provider ? "  ●" : ""}`)
-              .join("\n") +
-            "\nWechseln: /provider <name>"
-        );
+        setPicker("provider");
       }
       return true;
     }
@@ -304,26 +294,34 @@ export default function CodeAgent({
     <div className="fixed inset-0 z-40 flex flex-col bg-ink-900">
       <div className="flex items-center gap-2 h-11 px-3 border-b border-white/10 bg-black/40">
         <span className="text-[13px] font-semibold gold-text mr-1">Jon Code</span>
-        <button
-          onClick={pickFolder}
-          className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
-        >
-          📂 Ordner öffnen
-        </button>
-        {!jonBridge?.pickFolder && (
-          <input
-            value={manualPath}
-            onChange={(e) => setManualPath(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && manualPath.trim() && setWorkspacePath(manualPath.trim())}
-            placeholder="Pfad zum Projekt eingeben"
-            className="text-[12px] px-2 py-1 rounded-lg bg-black/30 border border-white/10 text-white/80 outline-none w-64"
-          />
+        {jonBridge?.pickFolder && (
+          <button
+            onClick={pickFolder}
+            className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 whitespace-nowrap"
+          >
+            📂 Ordner wählen
+          </button>
         )}
-        <span className="text-[11px] text-white/40 truncate flex-1">{workspace}</span>
+        <input
+          value={manualPath}
+          onChange={(e) => setManualPath(e.target.value)}
+          onKeyDown={(e) =>
+            e.key === "Enter" && manualPath.trim() && setWorkspacePath(manualPath.trim())
+          }
+          placeholder="Projektordner-Pfad (z. B. C:\Users\felix\mein-projekt)"
+          className="flex-1 min-w-0 text-[12px] px-2 py-1 rounded-lg bg-black/30 border border-white/10 text-white/80 outline-none focus:border-gold/40"
+        />
+        <button
+          onClick={() => manualPath.trim() && setWorkspacePath(manualPath.trim())}
+          disabled={!manualPath.trim()}
+          className="text-[12px] px-2.5 py-1 rounded-lg bg-gold/80 text-black font-medium disabled:opacity-40 whitespace-nowrap"
+        >
+          Öffnen
+        </button>
         {workspace && (
           <button
             onClick={() => openInVscode(workspace)}
-            className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10"
+            className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 whitespace-nowrap"
             title="Ordner extern in VS Code öffnen"
           >
             VS Code ↗
@@ -331,7 +329,7 @@ export default function CodeAgent({
         )}
         <button
           onClick={onClose}
-          className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10"
+          className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 whitespace-nowrap"
         >
           ✕ Schließen
         </button>
@@ -375,10 +373,79 @@ export default function CodeAgent({
           />
         </div>
 
-        <div className="w-96 flex flex-col min-w-0 bg-black/20">
-          <div className="h-9 px-3 flex items-center border-b border-white/10 text-[12px] text-white/60">
-            Jon · {provider} · {model}
+        <div className="w-96 flex flex-col min-w-0 bg-black/20 relative">
+          <div className="h-9 px-3 flex items-center gap-1.5 border-b border-white/10 text-[12px]">
+            <span className="text-white/40">Jon ·</span>
+            <button
+              onClick={() => setPicker(picker === "provider" ? null : "provider")}
+              className="text-gold/80 hover:text-gold"
+              title="Provider wechseln"
+            >
+              {provider}
+            </button>
+            <span className="text-white/30">·</span>
+            <button
+              onClick={() => setPicker(picker === "model" ? null : "model")}
+              className="text-white/70 hover:text-white truncate"
+              title="Modell wechseln"
+            >
+              {model}
+            </button>
           </div>
+          {picker && (
+            <div className="absolute top-9 left-0 right-0 z-10 max-h-64 overflow-y-auto glass border-b border-white/10 p-2">
+              <div className="flex items-center justify-between px-1 mb-1.5">
+                <span className="text-[11px] text-white/50">
+                  {picker === "model"
+                    ? `Modell wählen (${provider})`
+                    : "Provider wählen"}
+                </span>
+                <button
+                  onClick={() => setPicker(null)}
+                  className="text-white/40 hover:text-white/80 text-sm leading-none"
+                >
+                  ×
+                </button>
+              </div>
+              {picker === "provider"
+                ? providers.map((p) => (
+                    <button
+                      key={p.provider}
+                      disabled={!p.configured}
+                      onClick={() => {
+                        onModelChange(p.provider, p.models[0] ?? "");
+                        setPicker(null);
+                      }}
+                      className={`w-full text-left text-[12px] px-2.5 py-1.5 rounded-lg transition disabled:opacity-40 ${
+                        p.provider === provider
+                          ? "bg-gold/15 text-gold"
+                          : "text-white/75 hover:bg-white/10"
+                      }`}
+                    >
+                      {p.provider}
+                      {p.configured ? "" : " · kein Key"}
+                    </button>
+                  ))
+                : (providers.find((p) => p.provider === provider)?.models ?? []).map(
+                    (m) => (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          onModelChange(provider, m);
+                          setPicker(null);
+                        }}
+                        className={`w-full text-left text-[12px] px-2.5 py-1.5 rounded-lg transition truncate ${
+                          m === model
+                            ? "bg-gold/15 text-gold"
+                            : "text-white/75 hover:bg-white/10"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    )
+                  )}
+            </div>
+          )}
           <div ref={chatRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
             {entries.length === 0 && (
               <div className="text-[12px] text-white/40 leading-relaxed">
