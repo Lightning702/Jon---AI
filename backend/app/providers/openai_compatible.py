@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import AsyncIterator, Callable
 
 from openai import (
@@ -11,6 +12,7 @@ from openai import (
     InternalServerError,
 )
 
+from app.core.config import get_settings
 from app.providers.base import (
     ChatRequest,
     LLMProvider,
@@ -23,6 +25,9 @@ MAX_TOOL_ROUNDS = 30
 TRANSIENT_RETRIES = 4
 DEFAULT_MAX_TOKENS = 32768
 MIN_MAX_TOKENS = 4096
+MODELS_CACHE_TTL = 300.0
+MODELS_FAIL_TTL = 30.0
+REASONING_MODELS = ("gpt-oss",)
 TRANSIENT_ERRORS = (
     InternalServerError,
     APITimeoutError,
@@ -48,6 +53,9 @@ class OpenAICompatibleProvider(LLMProvider):
         self._timeout = timeout
         self._client_cache: AsyncOpenAI | None = None
         self._cached_key: str | None = None
+        self._models_cache: list[str] | None = None
+        self._models_cached_at = 0.0
+        self._models_cache_ttl = 0.0
 
     def _key(self) -> str | None:
         if self._key_resolver is not None:
@@ -72,17 +80,31 @@ class OpenAICompatibleProvider(LLMProvider):
         return self._client_cache
 
     async def list_models(self) -> list[str]:
+        now = time.monotonic()
+        if (
+            self._models_cache is not None
+            and now - self._models_cached_at < self._models_cache_ttl
+        ):
+            return self._models_cache
         try:
             client = self._client()
             response = await client.models.list()
             remote = sorted({item.id for item in response.data})
             if not remote:
-                return self._default_models
-            curated = [m for m in self._default_models if m in remote]
-            rest = [m for m in remote if m not in curated]
-            return curated + rest
+                result = self._default_models
+                ttl = MODELS_FAIL_TTL
+            else:
+                curated = [m for m in self._default_models if m in remote]
+                rest = [m for m in remote if m not in curated]
+                result = curated + rest
+                ttl = MODELS_CACHE_TTL
         except Exception:
-            return self._default_models
+            result = self._default_models
+            ttl = MODELS_FAIL_TTL
+        self._models_cache = result
+        self._models_cached_at = now
+        self._models_cache_ttl = ttl
+        return result
 
     async def _create_with_retry(self, client: AsyncOpenAI, payload: dict):
         last: Exception | None = None
@@ -97,6 +119,14 @@ class OpenAICompatibleProvider(LLMProvider):
                 if status is not None and status >= 500:
                     last = exc
                     await asyncio.sleep(0.6 * (attempt + 1))
+                    continue
+                if (
+                    status == 400
+                    and payload.get("extra_body")
+                    and "reasoning" in str(exc).lower()
+                ):
+                    payload.pop("extra_body", None)
+                    last = exc
                     continue
                 tokens = payload.get("max_tokens")
                 if (
@@ -124,6 +154,13 @@ class OpenAICompatibleProvider(LLMProvider):
         use_tools = bool(tools and tool_executor)
         rounds = MAX_TOOL_ROUNDS if use_tools else 1
         max_tokens = request.max_tokens or DEFAULT_MAX_TOKENS
+        effort = get_settings().reasoning_effort.strip().lower()
+        extra_body = (
+            {"reasoning_effort": effort}
+            if effort in ("low", "medium", "high")
+            and any(marker in request.model.lower() for marker in REASONING_MODELS)
+            else None
+        )
 
         for _ in range(rounds):
             payload = dict(
@@ -137,6 +174,8 @@ class OpenAICompatibleProvider(LLMProvider):
             if use_tools:
                 payload["tools"] = tools
                 payload["tool_choice"] = "auto"
+            if extra_body:
+                payload["extra_body"] = extra_body
             payload["stream_options"] = {"include_usage": True}
             if request.seed is not None:
                 payload["seed"] = request.seed
@@ -145,6 +184,8 @@ class OpenAICompatibleProvider(LLMProvider):
 
             completion = await self._create_with_retry(client, payload)
             max_tokens = payload["max_tokens"]
+            if extra_body and "extra_body" not in payload:
+                extra_body = None
 
             content_acc: list[str] = []
             calls: dict[int, dict] = {}

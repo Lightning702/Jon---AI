@@ -7,11 +7,31 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.services.system_service import SystemService
-from app.services.voice_service import VoiceService
 
 router = APIRouter(prefix="/api/system")
 _service = SystemService()
-_voice = VoiceService()
+_voice = None
+_voice_error: str | None = None
+
+
+def _get_voice():
+    global _voice, _voice_error
+    if _voice is None and _voice_error is None:
+        try:
+            from app.services.voice_service import VoiceService
+
+            _voice = VoiceService()
+        except Exception as exc:
+            _voice_error = str(exc)
+    if _voice is None:
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                "Spracherkennung nicht verfuegbar: "
+                f"{_voice_error}. Installiere: pip install SpeechRecognition audioop-lts"
+            ),
+        )
+    return _voice
 
 
 class CommandIn(BaseModel):
@@ -143,8 +163,9 @@ async def transcribe(request: Request) -> dict:
     data = await request.body()
     if not data:
         raise HTTPException(status_code=400, detail="keine Audiodaten")
+    voice = _get_voice()
     try:
-        text = await asyncio.to_thread(_voice.transcribe_wav, data)
+        text = await asyncio.to_thread(voice.transcribe_wav, data)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
     return {"text": text}

@@ -25,6 +25,7 @@ SAFE_TOOLS = {
     "list_skills",
     "read_skill",
     "list_reminders",
+    "list_alarms",
 }
 
 
@@ -131,6 +132,15 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return f"Erinnerung um {args.get('time', '')}: {_shorten(args.get('text', ''))}"
     if name == "list_reminders":
         return "Listet aktive Erinnerungen auf."
+    if name == "set_alarm":
+        when = args.get("time") or (
+            f"in {args.get('in_minutes')} Minuten" if args.get("in_minutes") else ""
+        )
+        return f"Stellt einen Windows-Wecker ({when}): {_shorten(args.get('label', ''))}"
+    if name == "list_alarms":
+        return "Listet gestellte Wecker auf."
+    if name == "delete_alarm":
+        return f"Löscht den Wecker {_shorten(args.get('name', ''))}."
     return f"Führt das Tool {name} aus."
 
 
@@ -483,6 +493,34 @@ class ToolBox:
                 {},
                 [],
             ),
+            _tool(
+                "set_alarm",
+                "Stellt einen echten Windows-Wecker mit Klingelton und Popup, der "
+                "auch klingelt, wenn Jon geschlossen ist. Nutze das bei 'Stelle einen "
+                "Wecker fuer 07:00' (time='07:00') oder 'Timer 10 Minuten' "
+                "(in_minutes=10). Liegt die Uhrzeit heute in der Vergangenheit, "
+                "klingelt der Wecker morgen.",
+                {
+                    "label": _STR,
+                    "time": {"type": "string", "description": "HH:MM (24h)"},
+                    "in_minutes": _NUM,
+                },
+                ["label"],
+            ),
+            _tool(
+                "list_alarms",
+                "Listet alle gestellten Windows-Wecker mit Name, Beschriftung und "
+                "Klingelzeit auf.",
+                {},
+                [],
+            ),
+            _tool(
+                "delete_alarm",
+                "Loescht einen gestellten Windows-Wecker anhand seines Namens "
+                "(JonWecker_...). Rufe vorher list_alarms auf.",
+                {"name": _STR},
+                ["name"],
+            ),
         ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> str:
@@ -656,6 +694,26 @@ class ToolBox:
             return json.dumps(svc.list_processes(), ensure_ascii=False)
         if name == "lock_screen":
             return json.dumps({"locked": svc.lock_screen()})
+        if name == "set_alarm":
+            try:
+                minutes = args.get("in_minutes")
+                return json.dumps(
+                    svc.set_alarm(
+                        str(args.get("label", "") or args.get("text", "")),
+                        str(args.get("time", "") or ""),
+                        float(minutes) if minutes is not None else None,
+                    ),
+                    ensure_ascii=False,
+                )
+            except (ValueError, RuntimeError) as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "list_alarms":
+            return json.dumps(svc.list_alarms(), ensure_ascii=False)
+        if name == "delete_alarm":
+            try:
+                return json.dumps({"deleted": svc.delete_alarm(str(args.get("name", "")))})
+            except ValueError as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
         skl = self._skills
         if name == "list_skills":
             return json.dumps(skl.list(), ensure_ascii=False)

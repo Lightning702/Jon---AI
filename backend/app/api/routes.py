@@ -53,25 +53,36 @@ async def health() -> HealthOut:
     )
 
 
+async def _models_for(provider, timeout: float) -> list[str]:
+    if provider is None or not provider.available():
+        return []
+    try:
+        return await asyncio.wait_for(provider.list_models(), timeout=timeout)
+    except Exception:
+        return []
+
+
 @router.get("/providers", response_model=list[ProviderStatus])
 async def providers() -> list[ProviderStatus]:
     registry = get_registry()
     keys = KeyManager()
-    result: list[ProviderStatus] = []
-    for status in keys.status():
-        provider = registry.all().get(status.provider)
-        models: list[str] = []
-        if provider is not None and provider.available():
-            models = await provider.list_models()
-        result.append(
-            ProviderStatus(
-                provider=status.provider,
-                configured=status.configured,
-                env_var=status.env_var,
-                models=models,
-            )
+    timeout = get_settings().models_timeout
+    statuses = keys.status()
+    model_lists = await asyncio.gather(
+        *(
+            _models_for(registry.all().get(status.provider), timeout)
+            for status in statuses
         )
-    return result
+    )
+    return [
+        ProviderStatus(
+            provider=status.provider,
+            configured=status.configured,
+            env_var=status.env_var,
+            models=models,
+        )
+        for status, models in zip(statuses, model_lists)
+    ]
 
 
 @router.get("/providers/{name}/models", response_model=list[str])
@@ -191,12 +202,13 @@ async def accounts() -> list[dict]:
     keys = KeyManager()
     account = get_account_service()
     settings = get_settings()
+    timeout = settings.models_timeout
     local_urls = {
         "ollama": settings.ollama_base_url,
         "lmstudio": settings.lmstudio_base_url,
     }
-    result: list[dict] = []
-    for name in SUPPORTED:
+
+    async def build(name: str) -> dict:
         env_configured = keys.env_key_for(name) is not None
         if name in LOCAL_PROVIDERS:
             probe = await asyncio.to_thread(
@@ -206,16 +218,10 @@ async def accounts() -> list[dict]:
             status["models"] = probe["models"]
         else:
             status = account.status(name, env_configured)
-            provider = registry.all().get(name)
-            if provider is not None and provider.available():
-                try:
-                    status["models"] = await provider.list_models()
-                except Exception:
-                    status["models"] = []
-            else:
-                status["models"] = []
-        result.append(status)
-    return result
+            status["models"] = await _models_for(registry.all().get(name), timeout)
+        return status
+
+    return list(await asyncio.gather(*(build(name) for name in SUPPORTED)))
 
 
 @router.post("/accounts/connect")

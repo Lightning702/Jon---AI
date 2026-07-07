@@ -4,18 +4,35 @@ import ctypes
 import os
 import time
 
-import pyautogui
-import pygetwindow
-import pyperclip
+try:
+    import pyautogui
+    import pygetwindow
+    import pyperclip
 
-pyautogui.FAILSAFE = True
-pyautogui.PAUSE = 0.05
+    AUTOMATION_ERROR = ""
+except Exception as _exc:
+    pyautogui = None
+    pygetwindow = None
+    pyperclip = None
+    AUTOMATION_ERROR = str(_exc)
+
+if pyautogui is not None:
+    pyautogui.FAILSAFE = True
+    pyautogui.PAUSE = 0.05
 
 if os.name == "nt":
     try:
         ctypes.windll.user32.SetProcessDPIAware()
     except Exception:
         pass
+
+
+def _require_automation() -> None:
+    if pyautogui is None:
+        raise RuntimeError(
+            "Maus-/Tastatursteuerung nicht verfuegbar "
+            f"({AUTOMATION_ERROR}). Installiere: pip install pyautogui pygetwindow pyperclip"
+        )
 
 
 def _virtual_bounds() -> tuple[int, int, int, int]:
@@ -33,6 +50,7 @@ def _virtual_bounds() -> tuple[int, int, int, int]:
 
 class AutomationService:
     def screen_info(self) -> dict:
+        _require_automation()
         size = pyautogui.size()
         pos = pyautogui.position()
         left, top, width, height = _virtual_bounds()
@@ -57,6 +75,7 @@ class AutomationService:
         return px, py
 
     def mouse_move(self, x: float, y: float, duration: float = 0.3) -> dict:
+        _require_automation()
         px, py = self._resolve(x, y)
         pyautogui.moveTo(px, py, duration=min(max(duration, 0.0), 3.0))
         return {"moved_to": [px, py]}
@@ -68,6 +87,7 @@ class AutomationService:
         button: str = "left",
         clicks: int = 1,
     ) -> dict:
+        _require_automation()
         if button not in ("left", "right", "middle"):
             button = "left"
         clicks = min(max(int(clicks), 1), 3)
@@ -79,10 +99,12 @@ class AutomationService:
         return {"clicked_at": [pos.x, pos.y], "button": button, "clicks": clicks}
 
     def mouse_scroll(self, amount: int) -> dict:
+        _require_automation()
         pyautogui.scroll(min(max(int(amount), -5000), 5000))
         return {"scrolled": amount}
 
     def keyboard_type(self, text: str, press_enter: bool = False) -> dict:
+        _require_automation()
         if text:
             if text.isascii():
                 pyautogui.write(text, interval=0.02)
@@ -103,6 +125,7 @@ class AutomationService:
         return {"typed": text, "enter": press_enter}
 
     def keyboard_press(self, key: str, presses: int = 1) -> dict:
+        _require_automation()
         key = key.strip().lower()
         if key not in pyautogui.KEYBOARD_KEYS:
             return {"error": f"unbekannte Taste: {key}"}
@@ -111,6 +134,7 @@ class AutomationService:
         return {"pressed": key, "presses": presses}
 
     def keyboard_hotkey(self, keys: list[str]) -> dict:
+        _require_automation()
         cleaned = [k.strip().lower() for k in keys if k and k.strip()]
         if not cleaned:
             return {"error": "keine Tasten angegeben"}
@@ -121,6 +145,7 @@ class AutomationService:
         return {"hotkey": "+".join(cleaned)}
 
     def list_windows(self) -> list[dict]:
+        _require_automation()
         windows = []
         for w in pygetwindow.getAllWindows():
             if not w.title.strip():
@@ -135,6 +160,7 @@ class AutomationService:
         return windows
 
     def focus_window(self, title: str) -> dict:
+        _require_automation()
         needle = title.strip().lower()
         for w in pygetwindow.getAllWindows():
             if needle in w.title.lower():

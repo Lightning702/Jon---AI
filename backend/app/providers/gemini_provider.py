@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import time
 from typing import AsyncIterator, Callable
 
 from app.providers.base import (
@@ -29,6 +31,8 @@ class GeminiProvider(LLMProvider):
         self._static_key = api_key
         self._key_resolver = key_resolver
         self._timeout = timeout
+        self._models_cache: list[str] | None = None
+        self._models_cached_at = 0.0
 
     def _key(self) -> str | None:
         if self._key_resolver is not None:
@@ -50,7 +54,11 @@ class GeminiProvider(LLMProvider):
         return genai
 
     async def list_models(self) -> list[str]:
-        try:
+        now = time.monotonic()
+        if self._models_cache is not None and now - self._models_cached_at < 300:
+            return self._models_cache
+
+        def fetch() -> list[str]:
             genai = self._configure()
             names = [
                 m.name.split("/")[-1]
@@ -58,8 +66,14 @@ class GeminiProvider(LLMProvider):
                 if "generateContent" in getattr(m, "supported_generation_methods", [])
             ]
             return sorted(set(names)) or self._DEFAULT_MODELS
+
+        try:
+            result = await asyncio.to_thread(fetch)
         except Exception:
-            return self._DEFAULT_MODELS
+            result = self._DEFAULT_MODELS
+        self._models_cache = result
+        self._models_cached_at = now
+        return result
 
     async def stream(
         self, request: ChatRequest, tool_executor: ToolExecutor | None = None

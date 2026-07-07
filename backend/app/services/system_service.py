@@ -7,11 +7,17 @@ import platform
 import shutil
 import subprocess
 import urllib.request
+import uuid
 import webbrowser
 import zipfile
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+
+from app.core.config import DATA_DIR
+
+ALARM_PREFIX = "JonWecker_"
+ALARM_DIR = DATA_DIR / "alarms"
 
 
 @dataclass
@@ -304,6 +310,85 @@ class SystemService:
             timeout=600,
         )
         return (completed.stdout or "").strip()
+
+    def set_alarm(
+        self, label: str, time_str: str = "", in_minutes: float | None = None
+    ) -> dict:
+        if os.name != "nt":
+            raise RuntimeError("Wecker sind nur unter Windows verfuegbar")
+        now = datetime.now()
+        if in_minutes is not None and float(in_minutes) > 0:
+            target = now + timedelta(minutes=float(in_minutes))
+        elif time_str.strip():
+            try:
+                hour, minute = [int(x) for x in time_str.strip().split(":")[:2]]
+            except Exception:
+                raise ValueError("time muss das Format HH:MM haben")
+            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if target <= now:
+                target += timedelta(days=1)
+        else:
+            raise ValueError("time (HH:MM) oder in_minutes angeben")
+        target = target.replace(microsecond=0)
+        task_name = f"{ALARM_PREFIX}{uuid.uuid4().hex[:8]}"
+        ALARM_DIR.mkdir(parents=True, exist_ok=True)
+        script = ALARM_DIR / f"{task_name}.ps1"
+        text = (label.strip() or "Wecker").replace("'", "''")
+        script.write_text(
+            f"$player = New-Object System.Media.SoundPlayer \"$env:WINDIR\\Media\\Alarm01.wav\"\n"
+            "try { $player.PlayLooping() } catch { }\n"
+            "$shell = New-Object -ComObject WScript.Shell\n"
+            f"$null = $shell.Popup('{text}', 0, 'Jon Wecker', 0x1040)\n"
+            "try { $player.Stop() } catch { }\n"
+            f"Unregister-ScheduledTask -TaskName '{task_name}' -Confirm:$false "
+            "-ErrorAction SilentlyContinue\n"
+            "Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force "
+            "-ErrorAction SilentlyContinue\n",
+            encoding="utf-8-sig",
+        )
+        at = target.strftime("%Y-%m-%dT%H:%M:%S")
+        command = (
+            "$action = New-ScheduledTaskAction -Execute 'powershell.exe' "
+            f"-Argument '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{script}\"'; "
+            f"$trigger = New-ScheduledTaskTrigger -Once -At ([datetime]'{at}'); "
+            f"Register-ScheduledTask -TaskName '{task_name}' -Description '{text}' "
+            "-Action $action -Trigger $trigger -Force | Out-Null"
+        )
+        result = self.run_powershell(command)
+        if result.exit_code != 0:
+            script.unlink(missing_ok=True)
+            raise RuntimeError(
+                result.stderr.strip() or "Wecker konnte nicht angelegt werden"
+            )
+        return {"task": task_name, "label": label.strip() or "Wecker", "rings_at": at}
+
+    def list_alarms(self) -> list[dict]:
+        command = (
+            f"Get-ScheduledTask -TaskName '{ALARM_PREFIX}*' -ErrorAction SilentlyContinue "
+            "| ForEach-Object { $info = $_ | Get-ScheduledTaskInfo; [pscustomobject]@{ "
+            "name = $_.TaskName; label = $_.Description; "
+            "rings_at = if ($info.NextRunTime) { $info.NextRunTime.ToString('yyyy-MM-ddTHH:mm:ss') } else { $null } "
+            "} } | ConvertTo-Json -Compress"
+        )
+        result = self.run_powershell(command)
+        raw = (result.stdout or "").strip()
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw)
+        except Exception:
+            return []
+        return data if isinstance(data, list) else [data]
+
+    def delete_alarm(self, name: str) -> bool:
+        name = name.strip()
+        if not name.startswith(ALARM_PREFIX):
+            raise ValueError(f"Weckername muss mit {ALARM_PREFIX} beginnen")
+        result = self.run_powershell(
+            f"Unregister-ScheduledTask -TaskName '{name}' -Confirm:$false"
+        )
+        (ALARM_DIR / f"{name}.ps1").unlink(missing_ok=True)
+        return result.exit_code == 0
 
     def local_llm_status(self, base_url: str) -> dict:
         root = base_url.rstrip("/")

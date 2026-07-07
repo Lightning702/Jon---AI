@@ -51,8 +51,19 @@ SYSTEM_PROMPT = (
     "Du hast ein dauerhaftes Gedaechtnis: Mit remember speicherst du "
     "wichtige Infos ueber den Nutzer (Name, Kontakte, Vorlieben, wiederkehrende "
     "Aufgaben), mit recall rufst du sie ab, mit forget loeschst du sie. Merke dir "
-    "automatisch Merkenswertes, ohne dass der Nutzer explizit darum bittet. Antworte "
-    "knapp, praezise und auf Deutsch."
+    "automatisch Merkenswertes, ohne dass der Nutzer explizit darum bittet. "
+    "Wecker und Timer: Nutze set_alarm fuer 'Stelle einen Wecker fuer 07:00' "
+    "(time='07:00') oder 'Timer 10 Minuten' (in_minutes=10). Das ist ein echter "
+    "Windows-Wecker mit Klingelton und Popup, er funktioniert auch, wenn Jon "
+    "geschlossen ist. Mit list_alarms und delete_alarm verwaltest du Wecker. "
+    "set_reminder ist nur fuer wiederkehrende Erinnerungen in der App. "
+    "Windows-Einstellungen oeffnest du mit open_url und ms-settings: "
+    "(z.B. ms-settings:display, ms-settings:sound, ms-settings:bluetooth). "
+    "SEHR WICHTIG: Der Gespraechsverlauf enthaelt bereits erledigte Aktionen. "
+    "Fuehre Tools ausschliesslich dann aus, wenn die LETZTE Nachricht des Nutzers "
+    "eine neue Aktion verlangt. Wiederhole niemals eine Aktion aus einer frueheren "
+    "Nachricht. Auf Danke, Lob, Bestaetigungen oder Rueckfragen antwortest du nur "
+    "mit Text und rufst keine Tools auf. Antworte knapp, praezise und auf Deutsch."
 )
 
 TOOL_PROVIDERS = {
@@ -226,6 +237,7 @@ class ChatService:
 
         content_parts: list[str] = []
         reasoning_parts: list[str] = []
+        tools_used: list[str] = []
         prompt_tokens = 0
         completion_tokens = 0
         started = time.perf_counter()
@@ -253,6 +265,8 @@ class ChatService:
                         event["approval_id"] = approval_id
                     yield event
                 elif chunk.kind == "tool_result":
+                    if chunk.ok and chunk.name:
+                        tools_used.append(chunk.name)
                     yield {
                         "type": "tool",
                         "name": chunk.name,
@@ -267,6 +281,9 @@ class ChatService:
             return
 
         content = "".join(content_parts)
+        if not content.strip() and tools_used:
+            content = "Erledigt ✅ (" + ", ".join(dict.fromkeys(tools_used)) + ")"
+            yield {"type": "content", "delta": content}
         reasoning = "".join(reasoning_parts)
         if payload.persist and conversation_id and content:
             self._store_answer(conversation_id, content, reasoning)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import AsyncIterator, Callable
 
 from app.providers.base import (
@@ -29,6 +30,8 @@ class AnthropicProvider(LLMProvider):
         self._static_key = api_key
         self._key_resolver = key_resolver
         self._timeout = timeout
+        self._models_cache: list[str] | None = None
+        self._models_cached_at = 0.0
 
     def _key(self) -> str | None:
         if self._key_resolver is not None:
@@ -49,13 +52,19 @@ class AnthropicProvider(LLMProvider):
         return AsyncAnthropic(api_key=key, timeout=self._timeout)
 
     async def list_models(self) -> list[str]:
+        now = time.monotonic()
+        if self._models_cache is not None and now - self._models_cached_at < 300:
+            return self._models_cache
         try:
             client = self._client()
             response = await client.models.list(limit=100)
             ids = [m.id for m in getattr(response, "data", [])]
-            return ids or self._DEFAULT_MODELS
+            result = ids or self._DEFAULT_MODELS
         except Exception:
-            return self._DEFAULT_MODELS
+            result = self._DEFAULT_MODELS
+        self._models_cache = result
+        self._models_cached_at = now
+        return result
 
     async def stream(
         self, request: ChatRequest, tool_executor: ToolExecutor | None = None

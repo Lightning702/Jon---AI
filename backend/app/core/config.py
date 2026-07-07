@@ -57,7 +57,9 @@ class Settings(BaseSettings):
     xai_base_url: str = "https://api.x.ai/v1"
 
     request_timeout: float = 180.0
+    models_timeout: float = 6.0
     max_tokens: int = 32768
+    reasoning_effort: str = "low"
     default_temperature: float = 1.0
     default_top_p: float = 1.0
 

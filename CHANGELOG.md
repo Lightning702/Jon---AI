@@ -2,6 +2,38 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.4.0] — 2026-07-07
+
+### Neu
+- **Echter Windows-Wecker:** `set_alarm` legt eine geplante Windows-Aufgabe an, die zur
+  Uhrzeit (`time='07:00'`) oder nach Ablauf (`in_minutes=10`) mit Klingelton und Popup
+  klingelt — auch wenn Jon geschlossen ist. Dazu `list_alarms` und `delete_alarm`.
+- **`REASONING_EFFORT` in `.env`:** steuert, wie lange gpt-oss-Modelle „nachdenken"
+  (`low`/`medium`/`high`). Standard `low` — Antworten kommen dadurch um ein Vielfaches
+  schneller (gemessen ~0,7s statt ~4s bis zum ersten Token).
+
+### Geändert
+- **Konten & Modelle laden deutlich schneller:** `/api/providers` und `/api/accounts`
+  fragen alle Anbieter parallel statt nacheinander ab, Modell-Listen werden 5 Minuten
+  gecacht und hängende Anbieter nach 6s (`MODELS_TIMEOUT`) übersprungen. Gemini blockiert
+  den Server dabei nicht mehr.
+- `.env` enthält jetzt alle unterstützten Anbieter (OpenRouter, Groq, Together, xAI,
+  Ollama, LM Studio, …) zum direkten Eintragen.
+- System-Prompt kennt Wecker/Timer, `ms-settings:`-Deep-Links und die Regel, bereits
+  erledigte Aktionen nie zu wiederholen.
+
+### Behoben
+- **Backend startete auf neuen Geräten nicht:** `audioop-lts` fehlte in den
+  Requirements (Pflicht ab Python 3.13), und ein Fehler beim Import von
+  Sprachpaket/PyAutoGUI riss den ganzen Server mit. Beides ist jetzt abgesichert —
+  Sprach- und Maussteuerung melden sich sauber ab, statt den Start zu verhindern.
+- **`start-jon.bat` deutlich robuster:** erkennt den Windows-Store-Python-Platzhalter,
+  nutzt den `py`-Launcher, prüft alle Abhängigkeiten, installiert notfalls mit `--user`,
+  schreibt `data\backend.log` und zeigt bei Startfehlern die letzten Log-Zeilen an.
+- **Jon wiederholt keine erledigten Aktionen mehr** (z.B. YouTube nach einem „Danke"
+  erneut öffnen): Tool-Antworten ohne Text erscheinen im Verlauf jetzt als
+  „[Bereits erledigt: …]" bzw. „Erledigt ✅", und der Prompt verbietet Wiederholungen.
+
 ## [1.3.0] — 2026-07-07
 
 ### Neu

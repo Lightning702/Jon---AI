@@ -320,10 +320,17 @@ export default function App() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    const messages = history.map((e) => ({
-      role: e.role,
-      content: e.content,
-    }));
+    const messages = history
+      .filter((e) => e.content.trim() !== "" || (e.tools?.length ?? 0) > 0)
+      .map((e) => ({
+        role: e.role,
+        content:
+          e.content.trim() !== ""
+            ? e.content
+            : `[Bereits erledigt: ${(e.tools ?? [])
+                .map((t) => t.summary ?? t.name)
+                .join("; ")}]`,
+      }));
 
     let convId = activeId;
 
