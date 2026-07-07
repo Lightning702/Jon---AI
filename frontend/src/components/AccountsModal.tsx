@@ -23,15 +23,31 @@ import {
   setAccountModel,
 } from "../lib/api";
 
-type Tab = "accounts" | "usage" | "skills" | "prompt" | "reminders";
+type Tab =
+  | "commands"
+  | "accounts"
+  | "usage"
+  | "skills"
+  | "prompt"
+  | "reminders";
 
 const TAB_LABELS: Record<Tab, string> = {
+  commands: "Befehle",
   accounts: "Konten",
   usage: "Nutzung",
   skills: "Skills",
   prompt: "Prompt",
   reminders: "Erinnerungen",
 };
+
+const TAB_ORDER: Tab[] = [
+  "commands",
+  "accounts",
+  "usage",
+  "skills",
+  "prompt",
+  "reminders",
+];
 
 export default function AccountsModal({
   onClose,
@@ -52,21 +68,19 @@ export default function AccountsModal({
       >
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10">
           <div className="flex gap-1 flex-wrap">
-            {(["accounts", "usage", "skills", "prompt", "reminders"] as Tab[]).map(
-              (t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`px-3 py-1.5 rounded-lg text-[13px] transition ${
-                    tab === t
-                      ? "bg-gold/15 text-gold"
-                      : "text-white/50 hover:text-white/80"
-                  }`}
-                >
-                  {TAB_LABELS[t]}
-                </button>
-              )
-            )}
+            {TAB_ORDER.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-3 py-1.5 rounded-lg text-[13px] transition ${
+                  tab === t
+                    ? "bg-gold/15 text-gold"
+                    : "text-white/50 hover:text-white/80"
+                }`}
+              >
+                {TAB_LABELS[t]}
+              </button>
+            ))}
           </div>
           <button
             onClick={onClose}
@@ -76,6 +90,7 @@ export default function AccountsModal({
           </button>
         </div>
         <div className="overflow-y-auto px-5 py-4">
+          {tab === "commands" && <CommandsTab />}
           {tab === "accounts" && <AccountsTab />}
           {tab === "usage" && <UsageTab />}
           {tab === "skills" && <SkillsTab />}
@@ -83,6 +98,115 @@ export default function AccountsModal({
           {tab === "reminders" && <RemindersTab />}
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+const SLASH_COMMANDS: { cmd: string; desc: string }[] = [
+  { cmd: "/briefing", desc: "Tagesbriefing: Datum, Wetter, Erinnerungen, Wecker." },
+  { cmd: "/team <Thema>", desc: "Dein KI-Team (Entwickler, Design, Marketing, Jurist, CEO) diskutiert und gibt eine Empfehlung." },
+  { cmd: "/simulate <Was wäre wenn …>", desc: "Jon spielt mehrere Szenarien mit Wahrscheinlichkeiten und Fazit durch." },
+  { cmd: "/snapshot <Name>", desc: "Zeitreise: aktuellen Stand als Snapshot sichern." },
+  { cmd: "/snapshots", desc: "Alle gespeicherten Zeitreise-Snapshots anzeigen." },
+  { cmd: "/dream <Aufgabe>", desc: "Aufgabe anlegen, die Jon im Hintergrund ausarbeitet." },
+  { cmd: "/dreams", desc: "Offene Dream-Aufgaben jetzt ausführen und Ergebnisse zeigen." },
+  { cmd: "/export", desc: "Die aktuelle Unterhaltung als Markdown-Datei speichern." },
+  { cmd: "/konten", desc: "Konten & API-Keys verwalten (auch /login, /accounts)." },
+  { cmd: "/usage", desc: "Token-Nutzung pro Anbieter (auch /nutzung)." },
+  { cmd: "/skills", desc: "Skills (Anleitungen) ansehen und bearbeiten." },
+];
+
+const SHORTCUTS: { keys: string; desc: string }[] = [
+  { keys: "Strg + Alt + J", desc: "Jon-Fenster von überall öffnen oder verstecken." },
+  { keys: "Strg + Alt + K", desc: "Kleiner Jon (Desktop-Begleiter) ein- oder ausblenden." },
+  { keys: "Enter", desc: "Nachricht senden." },
+];
+
+const ABILITIES: { icon: string; title: string; example: string }[] = [
+  { icon: "🖥️", title: "PC steuern", example: "„Öffne YouTube und suche nach Lofi.“" },
+  { icon: "⏰", title: "Wecker & Timer", example: "„Stell einen Wecker für 7:00.“" },
+  { icon: "🔔", title: "Erinnerungen", example: "„Erinnere mich täglich um 13 Uhr ans Trinken.“" },
+  { icon: "🔍", title: "Web-Suche", example: "„Such die aktuellen Nachrichten zu …“" },
+  { icon: "🌤️", title: "Wetter", example: "„Wie wird das Wetter morgen in Wien?“" },
+  { icon: "📄", title: "PDF lesen", example: "„Fass mir diese PDF zusammen: C:\\…“" },
+  { icon: "🖱️", title: "Maus & Tastatur", example: "„Schreib das in WhatsApp an Mama.“" },
+  { icon: "📸", title: "Screenshot & Bildschirm", example: "„Mach einen Screenshot und schau, was falsch ist.“" },
+  { icon: "🧠", title: "Gedächtnis", example: "„Merk dir, dass ich Rechtsanwalt bin.“" },
+  { icon: "🗂️", title: "Dateien", example: "„Räum meinen Download-Ordner auf.“" },
+  { icon: "💻", title: "Programmieren (Jon Code)", example: "Über den „Code“-Knopf oben." },
+  { icon: "🙂", title: "Kleiner Jon", example: "Klick ihn an und rede direkt mit ihm." },
+];
+
+function CommandsTab() {
+  return (
+    <div className="space-y-5">
+      <p className="text-[12px] text-white/45">
+        Alles, was du mit Jon machen kannst. Slash-Befehle tippst du direkt ins
+        Nachrichtenfeld. Für den Rest sag Jon einfach in normalen Worten, was du
+        willst.
+      </p>
+
+      <div>
+        <h3 className="text-[13px] font-semibold text-gold mb-2">Slash-Befehle</h3>
+        <div className="space-y-1.5">
+          {SLASH_COMMANDS.map((c) => (
+            <div
+              key={c.cmd}
+              className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10"
+            >
+              <code className="text-[12.5px] text-gold/90">{c.cmd}</code>
+              <span className="text-[12px] text-white/60">{c.desc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-[13px] font-semibold text-gold mb-2">Tastenkürzel</h3>
+        <div className="space-y-1.5">
+          {SHORTCUTS.map((s) => (
+            <div
+              key={s.keys}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10"
+            >
+              <span className="text-[12px] font-semibold text-white/85 whitespace-nowrap">
+                {s.keys}
+              </span>
+              <span className="text-[12px] text-white/60">{s.desc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-[13px] font-semibold text-gold mb-2">
+          Das kannst du Jon einfach sagen
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {ABILITIES.map((a) => (
+            <div
+              key={a.title}
+              className="flex gap-2.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10"
+            >
+              <span className="text-[16px] leading-none mt-0.5">{a.icon}</span>
+              <div className="min-w-0">
+                <div className="text-[12.5px] text-white/85">{a.title}</div>
+                <div className="text-[11.5px] text-white/45 italic truncate">
+                  {a.example}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-[13px] font-semibold text-gold mb-2">Sprachsteuerung</h3>
+        <p className="text-[12px] text-white/60 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
+          Aktiviere das Mikrofon oben rechts und sag „Jon“, gefolgt von deinem
+          Auftrag. Jon antwortet dir dann laut vorgelesen.
+        </p>
+      </div>
     </div>
   );
 }

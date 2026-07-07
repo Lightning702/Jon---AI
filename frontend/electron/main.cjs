@@ -148,6 +148,11 @@ ipcMain.handle("window:close", () => mainWindow && mainWindow.close());
 
 ipcMain.handle("pet:toggle", () => togglePet());
 ipcMain.handle("pet:hide", () => petWindow && petWindow.hide());
+ipcMain.handle("pet:moveBy", (_event, dx, dy) => {
+  if (!petWindow) return;
+  const [x, y] = petWindow.getPosition();
+  petWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
+});
 ipcMain.handle("app:show", () => {
   if (!mainWindow) createWindow();
   else {

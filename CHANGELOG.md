@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.6.1] — 2026-07-08
+
+### Behoben
+- **Kleiner Jon reagierte nicht und sprach nicht:** Der ganze Kreis war als
+  Fenster-Ziehbereich markiert, wodurch Electron alle Klicks verschluckte — das
+  Eingabefeld ging nie auf. Ziehen läuft jetzt manuell (Kreis mit gedrückter Maus
+  verschieben), einfacher Klick öffnet das Eingabefeld, Doppelklick die große App.
+  Sprachausgabe nutzt jetzt dieselbe (funktionierende) Technik wie die App und wird
+  bei der ersten Interaktion freigeschaltet, sodass Jon zuverlässig spricht und sein
+  Mund mitgeht.
+
+### Neu
+- **Befehls-Übersicht:** Neuer Tab „Befehle" im Nutzer-Menü (Personen-Symbol) mit allen
+  Slash-Befehlen, Tastenkürzeln, Beispielen für normale Aufträge und der Sprachsteuerung.
+
 ## [1.6.0] — 2026-07-08
 
 ### Jon wird eine Person

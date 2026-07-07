@@ -89,7 +89,7 @@
         width: 120px;
         height: 120px;
         cursor: pointer;
-        -webkit-app-region: drag;
+        -webkit-app-region: no-drag;
         animation: bob 4.5s ease-in-out infinite;
         filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.55));
       }
@@ -220,7 +220,6 @@
       let mouthTimer = null;
 
       function setState(cls) {
-        jon.parentElement;
         stage.classList.remove("listening", "thinking");
         jon.classList.remove("thinking");
         if (cls === "thinking") jon.classList.add("thinking");
@@ -249,25 +248,50 @@
       }
 
       let voice = null;
+      const MALE = /stefan|klaus|conrad|bernd|jonas|paul|markus|male|mann/i;
       function pickVoice() {
         const voices = window.speechSynthesis.getVoices();
-        voice =
-          voices.find((v) => /de[-_]/i.test(v.lang) && /male|mann|stefan|conrad/i.test(v.name)) ||
-          voices.find((v) => /de[-_]/i.test(v.lang)) ||
-          voices[0] ||
-          null;
+        const german = voices.filter((v) => v.lang.toLowerCase().startsWith("de"));
+        voice = german.find((v) => MALE.test(v.name)) || german[0] || voices[0] || null;
       }
       pickVoice();
       window.speechSynthesis.onvoiceschanged = pickVoice;
 
-      function speak(text) {
+      let primed = false;
+      function primeSpeech() {
+        if (primed) return;
+        primed = true;
         try {
-          window.speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(text.slice(0, 600));
+          window.speechSynthesis.resume();
+          const u = new SpeechSynthesisUtterance(" ");
+          u.volume = 0;
+          window.speechSynthesis.speak(u);
+        } catch (e) {}
+      }
+
+      function cleanForSpeech(text) {
+        return text
+          .replace(/```[\s\S]*?```/g, " Codeblock. ")
+          .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+          .replace(/https?:\/\/\S+/g, " Link ")
+          .replace(/[*_#`>|]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function speak(text) {
+        const synth = window.speechSynthesis;
+        if (!synth) return;
+        try {
+          synth.cancel();
+          if (!voice) pickVoice();
+          const clean = cleanForSpeech(text).slice(0, 600);
+          if (!clean) return;
+          const u = new SpeechSynthesisUtterance(clean);
           if (voice) u.voice = voice;
           u.lang = "de-DE";
-          u.rate = 1.03;
-          u.pitch = 0.85;
+          u.rate = 1.05;
+          u.pitch = voice && MALE.test(voice.name) ? 1 : 0.7;
           u.onstart = () => {
             if (mouthTimer) clearInterval(mouthTimer);
             mouthTimer = setInterval(() => openMouth(0.25 + Math.random() * 0.75), 95);
@@ -275,7 +299,8 @@
           u.onboundary = () => openMouth(0.85);
           u.onend = stopMouth;
           u.onerror = stopMouth;
-          window.speechSynthesis.speak(u);
+          synth.resume();
+          synth.speak(u);
         } catch (e) {
           stopMouth();
         }
@@ -377,21 +402,47 @@
         speak(line);
       }
 
+      let dragging = false;
+      let moved = 0;
+      let lastX = 0;
+      let lastY = 0;
       let clickTimer = null;
-      jon.addEventListener("click", () => {
-        if (clickTimer) return;
+
+      function tap() {
+        primeSpeech();
+        if (clickTimer) {
+          clearTimeout(clickTimer);
+          clickTimer = null;
+          window.jonpet && window.jonpet.showApp();
+          return;
+        }
         clickTimer = setTimeout(() => {
           clickTimer = null;
           inputRow.classList.toggle("show");
           if (inputRow.classList.contains("show")) field.focus();
-        }, 220);
+        }, 240);
+      }
+
+      jon.addEventListener("mousedown", (e) => {
+        dragging = true;
+        moved = 0;
+        lastX = e.screenX;
+        lastY = e.screenY;
+        e.preventDefault();
       });
-      jon.addEventListener("dblclick", () => {
-        if (clickTimer) {
-          clearTimeout(clickTimer);
-          clickTimer = null;
-        }
-        window.jonpet && window.jonpet.showApp();
+      window.addEventListener("mousemove", (e) => {
+        if (!dragging) return;
+        const dx = e.screenX - lastX;
+        const dy = e.screenY - lastY;
+        lastX = e.screenX;
+        lastY = e.screenY;
+        moved += Math.abs(dx) + Math.abs(dy);
+        if ((dx || dy) && window.jonpet) window.jonpet.moveBy(dx, dy);
+      });
+      window.addEventListener("mouseup", () => {
+        if (!dragging) return;
+        dragging = false;
+        if (moved < 6) tap();
       });
 
       field.addEventListener("keydown", (e) => {
@@ -406,7 +457,7 @@
 
       closeBtn.addEventListener("click", () => window.jonpet && window.jonpet.hide());
 
-      setTimeout(startupGreeting, 900);
+      setTimeout(startupGreeting, 1200);
     </script>
   </body>
 </html>
