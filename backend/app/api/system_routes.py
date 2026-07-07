@@ -158,23 +158,10 @@ async def open_vscode(payload: PathIn) -> dict:
     return {"pid": pid}
 
 
-def _choose_folder() -> str:
-    import tkinter as tk
-    from tkinter import filedialog
-
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    root.update()
-    path = filedialog.askdirectory(title="Projektordner für Jon wählen")
-    root.destroy()
-    return path or ""
-
-
 @router.post("/pick-folder")
 async def pick_folder() -> dict:
     try:
-        path = await asyncio.to_thread(_choose_folder)
+        path = await asyncio.to_thread(_service.choose_folder)
     except Exception as exc:
         raise HTTPException(status_code=501, detail=str(exc))
     return {"path": path}

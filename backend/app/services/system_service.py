@@ -284,6 +284,27 @@ class SystemService:
         subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"], check=False)
         return True
 
+    def choose_folder(self) -> str:
+        script = (
+            "Add-Type -AssemblyName System.Windows.Forms | Out-Null; "
+            "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog; "
+            "$dialog.Description = 'Projektordner fuer Jon waehlen'; "
+            "$dialog.ShowNewFolderButton = $true; "
+            "$anchor = New-Object System.Windows.Forms.Form; "
+            "$anchor.TopMost = $true; $anchor.ShowInTaskbar = $false; "
+            "$anchor.Opacity = 0; $anchor.Show(); $anchor.Activate(); "
+            "$result = $dialog.ShowDialog($anchor); $anchor.Close(); "
+            "if ($result -eq [System.Windows.Forms.DialogResult]::OK) "
+            "{ [Console]::Out.Write($dialog.SelectedPath) }"
+        )
+        completed = subprocess.run(
+            ["powershell", "-STA", "-NoProfile", "-Command", script],
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+        return (completed.stdout or "").strip()
+
     def local_llm_status(self, base_url: str) -> dict:
         root = base_url.rstrip("/")
         if root.endswith("/v1"):
