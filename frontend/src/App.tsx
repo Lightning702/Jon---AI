@@ -26,7 +26,9 @@ import {
   getDueReminders,
   getHealth,
   getProviders,
+  getUserSettings,
   listSnapshots,
+  saveUserSettings,
   runDreams,
   runSimulation,
   runTeam,
@@ -100,6 +102,12 @@ export default function App() {
     localStorage.setItem("jon_tool_mode", mode);
   };
 
+  const changeModel = (p: string, m: string) => {
+    setProvider(p);
+    setModel(m);
+    void saveUserSettings({ provider: p, model: m });
+  };
+
   const handleApprovalEvent = (evt: StreamEvent) => {
     if (evt.status === "running" && evt.approval_id) {
       setApproval({
@@ -131,18 +139,27 @@ export default function App() {
         setModel(health.default_model);
         const provs = await getProviders();
         setProviders(provs);
-        const preferred = provs.find(
-          (p) => p.provider === health.default_provider && p.configured
+        const saved = await getUserSettings();
+        const savedProv = provs.find(
+          (p) => p.provider === saved.provider && p.configured
         );
-        const chosen = preferred ?? provs.find((p) => p.configured);
-        if (chosen) {
-          setProvider(chosen.provider);
-          const model =
-            chosen.provider === health.default_provider &&
-            chosen.models.includes(health.default_model)
-              ? health.default_model
-              : chosen.models[0] ?? health.default_model;
-          setModel(model);
+        if (saved.provider && saved.model && savedProv) {
+          setProvider(saved.provider);
+          setModel(saved.model);
+        } else {
+          const preferred = provs.find(
+            (p) => p.provider === health.default_provider && p.configured
+          );
+          const chosen = preferred ?? provs.find((p) => p.configured);
+          if (chosen) {
+            setProvider(chosen.provider);
+            const model =
+              chosen.provider === health.default_provider &&
+              chosen.models.includes(health.default_model)
+                ? health.default_model
+                : chosen.models[0] ?? health.default_model;
+            setModel(model);
+          }
         }
         await refreshConversations();
         const today = new Date().toISOString().slice(0, 10);
@@ -667,10 +684,7 @@ export default function App() {
               providers={providers}
               provider={provider}
               model={model}
-              onChange={(p, m) => {
-                setProvider(p);
-                setModel(m);
-              }}
+              onChange={changeModel}
             />
             <div className="flex items-center gap-3 text-xs">
               {jonDesktop?.togglePet && (
@@ -803,10 +817,7 @@ export default function App() {
           providers={providers}
           provider={provider}
           model={model}
-          onModelChange={(p, m) => {
-            setProvider(p);
-            setModel(m);
-          }}
+          onModelChange={changeModel}
           onClose={() => setCodeOpen(false)}
         />
       )}

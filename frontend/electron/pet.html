@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Jon</title>
+    <title>Jon Jr</title>
     <style>
       * {
         margin: 0;
@@ -46,7 +46,6 @@
         max-height: 210px;
         overflow-y: auto;
         white-space: pre-wrap;
-        -webkit-app-region: no-drag;
       }
       #bubble.show {
         opacity: 1;
@@ -66,7 +65,6 @@
         gap: 6px;
         margin-bottom: 10px;
         width: 288px;
-        -webkit-app-region: no-drag;
       }
       #inputRow.show {
         display: flex;
@@ -84,12 +82,15 @@
       #field::placeholder {
         color: rgba(244, 240, 230, 0.4);
       }
-      #jon {
+      #jonWrap {
         position: relative;
         width: 120px;
         height: 120px;
+      }
+      #jon {
+        width: 120px;
+        height: 120px;
         cursor: pointer;
-        -webkit-app-region: no-drag;
         animation: bob 4.5s ease-in-out infinite;
         filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.55));
       }
@@ -105,12 +106,12 @@
           transform: translateY(-6px);
         }
       }
-      .listening #ring {
-        stroke: #8fe3a0;
-      }
       .thinking #ring {
         animation: spin 1.4s linear infinite;
         stroke-dasharray: 40 260;
+      }
+      .listening #ring {
+        stroke: #8fe3a0;
       }
       @keyframes spin {
         to {
@@ -120,23 +121,42 @@
       #ring {
         transform-origin: 60px 60px;
       }
+      #mic {
+        position: absolute;
+        top: 4px;
+        left: 2px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid rgba(212, 175, 55, 0.5);
+        background: rgba(20, 20, 24, 0.85);
+        color: #d4af37;
+        font-size: 11px;
+        cursor: pointer;
+        display: none;
+        z-index: 6;
+      }
+      #mic.off {
+        color: rgba(244, 240, 230, 0.35);
+        border-color: rgba(255, 255, 255, 0.15);
+      }
       #close {
         position: absolute;
-        top: 2px;
-        right: 6px;
-        width: 20px;
-        height: 20px;
+        top: 4px;
+        right: 2px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         border: none;
-        background: rgba(20, 20, 24, 0.8);
+        background: rgba(20, 20, 24, 0.85);
         color: rgba(244, 240, 230, 0.6);
         font-size: 12px;
         cursor: pointer;
         display: none;
-        -webkit-app-region: no-drag;
-        z-index: 5;
+        z-index: 6;
       }
-      #stage:hover #close {
+      #jonWrap:hover #mic,
+      #jonWrap:hover #close {
         display: block;
       }
       #close:hover {
@@ -146,65 +166,69 @@
   </head>
   <body>
     <div id="stage">
-      <button id="close" title="Kleiner Jon ausblenden (Strg+Alt+K holt ihn zurück)">
-        ✕
-      </button>
       <div id="bubble"></div>
       <div id="inputRow">
-        <input id="field" placeholder="Sag Jon etwas …" autocomplete="off" />
+        <input id="field" placeholder="Sag Jon Jr etwas …" autocomplete="off" />
       </div>
-      <div id="jon">
-        <svg width="120" height="120" viewBox="0 0 120 120">
-          <defs>
-            <radialGradient id="face" cx="50%" cy="42%" r="65%">
-              <stop offset="0%" stop-color="#1c1c26" />
-              <stop offset="100%" stop-color="#0a0a0e" />
-            </radialGradient>
-            <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#f5d67b" />
-              <stop offset="55%" stop-color="#d4af37" />
-              <stop offset="100%" stop-color="#9a7b1f" />
-            </linearGradient>
-          </defs>
-          <circle cx="60" cy="60" r="52" fill="url(#face)" />
-          <circle
-            id="ring"
-            cx="60"
-            cy="60"
-            r="52"
-            fill="none"
-            stroke="url(#gold)"
-            stroke-width="4"
-            stroke-linecap="round"
-          />
-          <g id="eyes" fill="url(#gold)">
-            <circle id="eyeL" cx="43" cy="52" r="6.5" />
-            <circle id="eyeR" cx="77" cy="52" r="6.5" />
-          </g>
-          <path
-            id="smile"
-            d="M42 74 Q60 90 78 74"
-            fill="none"
-            stroke="url(#gold)"
-            stroke-width="5"
-            stroke-linecap="round"
-          />
-          <ellipse
-            id="mouth"
-            cx="60"
-            cy="78"
-            rx="14"
-            ry="0"
-            fill="url(#gold)"
-            style="display: none"
-          />
-        </svg>
+      <div id="jonWrap">
+        <button id="mic" title="Zuhören an/aus – sag „Jon“ oder „Mini Jon“">🎙</button>
+        <button id="close" title="Jon Jr ausblenden (Strg+Alt+K holt ihn zurück)">
+          ✕
+        </button>
+        <div id="jon">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <defs>
+              <radialGradient id="face" cx="50%" cy="42%" r="65%">
+                <stop offset="0%" stop-color="#1c1c26" />
+                <stop offset="100%" stop-color="#0a0a0e" />
+              </radialGradient>
+              <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#f5d67b" />
+                <stop offset="55%" stop-color="#d4af37" />
+                <stop offset="100%" stop-color="#9a7b1f" />
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="52" fill="url(#face)" />
+            <circle
+              id="ring"
+              cx="60"
+              cy="60"
+              r="52"
+              fill="none"
+              stroke="url(#gold)"
+              stroke-width="4"
+              stroke-linecap="round"
+            />
+            <g id="eyes" fill="url(#gold)">
+              <circle id="eyeL" cx="43" cy="52" r="6.5" />
+              <circle id="eyeR" cx="77" cy="52" r="6.5" />
+            </g>
+            <path
+              id="smile"
+              d="M42 74 Q60 90 78 74"
+              fill="none"
+              stroke="url(#gold)"
+              stroke-width="5"
+              stroke-linecap="round"
+            />
+            <ellipse
+              id="mouth"
+              cx="60"
+              cy="78"
+              rx="14"
+              ry="0"
+              fill="url(#gold)"
+              style="display: none"
+            />
+          </svg>
+        </div>
       </div>
     </div>
 
     <script>
       const BASE = "http://127.0.0.1:8756/api";
       const jon = document.getElementById("jon");
+      const jonWrap = document.getElementById("jonWrap");
       const stage = document.getElementById("stage");
       const bubble = document.getElementById("bubble");
       const inputRow = document.getElementById("inputRow");
@@ -214,6 +238,7 @@
       const eyeL = document.getElementById("eyeL");
       const eyeR = document.getElementById("eyeR");
       const closeBtn = document.getElementById("close");
+      const micBtn = document.getElementById("mic");
 
       let bubbleTimer = null;
       let busy = false;
@@ -221,8 +246,8 @@
 
       function setState(cls) {
         stage.classList.remove("listening", "thinking");
-        jon.classList.remove("thinking");
-        if (cls === "thinking") jon.classList.add("thinking");
+        jon.classList.remove("thinking", "listening");
+        if (cls) jon.classList.add(cls);
       }
 
       function say(text, keep) {
@@ -230,9 +255,7 @@
         bubble.textContent = text;
         bubble.classList.add("show");
         if (bubbleTimer) clearTimeout(bubbleTimer);
-        if (!keep) {
-          bubbleTimer = setTimeout(() => bubble.classList.remove("show"), 9000);
-        }
+        if (!keep) bubbleTimer = setTimeout(() => bubble.classList.remove("show"), 9000);
       }
 
       function openMouth(amount) {
@@ -240,7 +263,6 @@
         mouth.style.display = amount > 0.05 ? "block" : "none";
         mouth.setAttribute("ry", (2 + amount * 9).toFixed(1));
       }
-
       function stopMouth() {
         if (mouthTimer) clearInterval(mouthTimer);
         mouthTimer = null;
@@ -279,30 +301,43 @@
           .trim();
       }
 
-      function speak(text) {
+      function speak(text, done) {
         const synth = window.speechSynthesis;
-        if (!synth) return;
+        if (!synth) {
+          if (done) done();
+          return;
+        }
         try {
           synth.cancel();
           if (!voice) pickVoice();
           const clean = cleanForSpeech(text).slice(0, 600);
-          if (!clean) return;
+          if (!clean) {
+            if (done) done();
+            return;
+          }
           const u = new SpeechSynthesisUtterance(clean);
           if (voice) u.voice = voice;
           u.lang = "de-DE";
-          u.rate = 1.05;
-          u.pitch = voice && MALE.test(voice.name) ? 1 : 0.7;
+          u.rate = 1.06;
+          u.pitch = voice && MALE.test(voice.name) ? 1.15 : 1.3;
           u.onstart = () => {
             if (mouthTimer) clearInterval(mouthTimer);
             mouthTimer = setInterval(() => openMouth(0.25 + Math.random() * 0.75), 95);
           };
           u.onboundary = () => openMouth(0.85);
-          u.onend = stopMouth;
-          u.onerror = stopMouth;
+          u.onend = () => {
+            stopMouth();
+            if (done) done();
+          };
+          u.onerror = () => {
+            stopMouth();
+            if (done) done();
+          };
           synth.resume();
           synth.speak(u);
         } catch (e) {
           stopMouth();
+          if (done) done();
         }
       }
 
@@ -318,11 +353,22 @@
         if (Math.random() < 0.7) blink();
       }, 3600);
 
+      async function currentSelection() {
+        try {
+          const s = await (await fetch(`${BASE}/settings`)).json();
+          return { provider: s.provider || undefined, model: s.model || undefined };
+        } catch (e) {
+          return {};
+        }
+      }
+
       async function ask(text) {
         if (busy || !text.trim()) return;
         busy = true;
+        listener && listener.setBusy(true);
         setState("thinking");
         say("…", true);
+        const sel = await currentSelection();
         let answer = "";
         try {
           const res = await fetch(`${BASE}/chat`, {
@@ -332,6 +378,9 @@
               messages: [{ role: "user", content: text }],
               persist: false,
               tool_mode: "allow",
+              persona: "junior",
+              provider: sel.provider,
+              model: sel.model,
             }),
           });
           const reader = res.body.getReader();
@@ -360,11 +409,13 @@
         } catch (e) {
           answer = "Ich erreiche mein Backend gerade nicht.";
         }
-        setState("");
+        setState(listener && listening ? "listening" : "");
         answer = answer.trim() || "…";
         say(answer);
-        speak(answer.replace(/[*_#`>]/g, ""));
-        busy = false;
+        speak(answer, () => {
+          busy = false;
+          listener && listener.setBusy(false);
+        });
       }
 
       function greetingByHour() {
@@ -377,7 +428,6 @@
       }
 
       async function startupGreeting() {
-        let name = "";
         let days = 0;
         try {
           const p = await (await fetch(`${BASE}/persona`)).json();
@@ -394,13 +444,227 @@
           if (Array.isArray(reports) && reports.length)
             extras.push(`${reports.length} Ergebnis(se) aus dem Dream Mode`);
         } catch (e) {}
-        let line = `${greetingByHour()}! Ich bin da.`;
-        if (days > 0) line += ` Wir kennen uns seit ${days} Tagen.`;
-        if (extras.length) line += " Ich habe " + extras.join(" und ") + " für dich.";
-        else line += " Klick mich an, wenn du was brauchst.";
+        let line = `${greetingByHour()}! Ich bin Jon Jr, dein kleiner Jon.`;
+        if (extras.length) line += " Ich hab " + extras.join(" und ") + " für dich.";
+        else line += " Sag „Jon“ oder klick mich an.";
         say(line);
-        speak(line);
       }
+
+      const WAKE = new Set(["jon", "john", "jonny", "johnny", "jonh", "junior"]);
+      const SPEECH_THRESHOLD = 0.015;
+      const SILENCE_END_MS = 1100;
+      const MIN_SPEECH_MS = 350;
+      const MAX_UTTERANCE_MS = 15000;
+      const PREROLL = 5;
+      const ARM_MS = 12000;
+      let listening = false;
+
+      function downsample(chunks, rate) {
+        let total = 0;
+        for (const c of chunks) total += c.length;
+        const merged = new Float32Array(total);
+        let o = 0;
+        for (const c of chunks) {
+          merged.set(c, o);
+          o += c.length;
+        }
+        const ratio = rate / 16000;
+        const outLen = Math.floor(merged.length / ratio);
+        const out = new Int16Array(outLen);
+        for (let i = 0; i < outLen; i++) {
+          const start = Math.floor(i * ratio);
+          const end = Math.min(Math.floor((i + 1) * ratio), merged.length);
+          let sum = 0;
+          for (let j = start; j < end; j++) sum += merged[j];
+          const s = sum / Math.max(end - start, 1);
+          out[i] = Math.max(-1, Math.min(1, s)) * 0x7fff;
+        }
+        return out;
+      }
+      function encodeWav(samples) {
+        const buffer = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(buffer);
+        const ws = (p, s) => {
+          for (let i = 0; i < s.length; i++) view.setUint8(p + i, s.charCodeAt(i));
+        };
+        ws(0, "RIFF");
+        view.setUint32(4, 36 + samples.length * 2, true);
+        ws(8, "WAVE");
+        ws(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, 16000, true);
+        view.setUint32(28, 32000, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        ws(36, "data");
+        view.setUint32(40, samples.length * 2, true);
+        for (let i = 0; i < samples.length; i++)
+          view.setInt16(44 + i * 2, samples[i], true);
+        return new Blob([buffer], { type: "audio/wav" });
+      }
+
+      class Listener {
+        constructor() {
+          this.preroll = [];
+          this.utt = [];
+          this.inUtt = false;
+          this.speechMs = 0;
+          this.silenceMs = 0;
+          this.uttMs = 0;
+          this.armed = false;
+          this.armTimer = null;
+          this.running = false;
+          this.busy = false;
+        }
+        setBusy(b) {
+          this.busy = b;
+        }
+        async start() {
+          if (this.running) return;
+          this.stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+          this.ctx = new AudioContext();
+          await this.ctx.resume().catch(() => {});
+          this.src = this.ctx.createMediaStreamSource(this.stream);
+          this.proc = this.ctx.createScriptProcessor(4096, 1, 1);
+          this.proc.onaudioprocess = (e) => this.onChunk(e);
+          this.src.connect(this.proc);
+          this.proc.connect(this.ctx.destination);
+          this.running = true;
+          listening = true;
+          setState("listening");
+        }
+        stop() {
+          this.running = false;
+          listening = false;
+          try {
+            this.proc && this.proc.disconnect();
+            this.src && this.src.disconnect();
+            this.stream && this.stream.getTracks().forEach((t) => t.stop());
+            this.ctx && this.ctx.close();
+          } catch (e) {}
+          this.disarm();
+          setState("");
+        }
+        disarm() {
+          this.armed = false;
+          if (this.armTimer) clearTimeout(this.armTimer);
+          this.armTimer = null;
+        }
+        arm() {
+          this.disarm();
+          this.armed = true;
+          primeSpeech();
+          say("Ja?");
+          speak("Ja?");
+          this.armTimer = setTimeout(() => {
+            this.armed = false;
+          }, ARM_MS);
+        }
+        onChunk(e) {
+          if (!this.running) return;
+          const input = e.inputBuffer.getChannelData(0);
+          const chunk = new Float32Array(input);
+          const chunkMs = (chunk.length / this.ctx.sampleRate) * 1000;
+          let sum = 0;
+          for (let i = 0; i < chunk.length; i++) sum += chunk[i] * chunk[i];
+          const rms = Math.sqrt(sum / chunk.length);
+          const voiced = rms > SPEECH_THRESHOLD;
+          if (this.busy) {
+            this.inUtt = false;
+            this.utt = [];
+            return;
+          }
+          if (!this.inUtt) {
+            this.preroll.push(chunk);
+            if (this.preroll.length > PREROLL) this.preroll.shift();
+            if (voiced) {
+              this.inUtt = true;
+              this.utt = [...this.preroll];
+              this.speechMs = chunkMs;
+              this.silenceMs = 0;
+              this.uttMs = chunkMs;
+            }
+            return;
+          }
+          this.utt.push(chunk);
+          this.uttMs += chunkMs;
+          if (voiced) {
+            this.speechMs += chunkMs;
+            this.silenceMs = 0;
+          } else {
+            this.silenceMs += chunkMs;
+          }
+          if (this.silenceMs >= SILENCE_END_MS || this.uttMs >= MAX_UTTERANCE_MS) {
+            const chunks = this.utt;
+            const speechMs = this.speechMs;
+            this.inUtt = false;
+            this.utt = [];
+            this.preroll = [];
+            if (speechMs >= MIN_SPEECH_MS) this.finish(chunks, this.ctx.sampleRate);
+          }
+        }
+        async finish(chunks, rate) {
+          let text = "";
+          try {
+            const wav = encodeWav(downsample(chunks, rate));
+            const res = await fetch(`${BASE}/system/transcribe`, {
+              method: "POST",
+              body: wav,
+            });
+            const data = await res.json();
+            text = (data.text || "").trim();
+          } catch (e) {}
+          if (!this.running || this.busy) return;
+          this.handle(text);
+        }
+        handle(text) {
+          if (!text) return;
+          const words = text
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N} ]/gu, " ")
+            .split(/\s+/)
+            .filter(Boolean);
+          if (this.armed) {
+            this.disarm();
+            ask(text);
+            return;
+          }
+          const idx = words.findIndex((w) => WAKE.has(w));
+          if (idx < 0) return;
+          const command = words.slice(idx + 1).join(" ").trim();
+          if (command.length >= 3) ask(command);
+          else this.arm();
+        }
+      }
+
+      let listener = null;
+      function setMic(on) {
+        localStorage.setItem("jonjr_voice", on ? "1" : "0");
+        micBtn.classList.toggle("off", !on);
+        if (on) {
+          if (!listener) listener = new Listener();
+          listener.start().catch(() => {
+            micBtn.classList.add("off");
+            localStorage.setItem("jonjr_voice", "0");
+          });
+        } else if (listener) {
+          listener.stop();
+          listener = null;
+        }
+      }
+      micBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        primeSpeech();
+        setMic(localStorage.getItem("jonjr_voice") === "0");
+      });
 
       let dragging = false;
       let moved = 0;
@@ -431,19 +695,33 @@
         e.preventDefault();
       });
       window.addEventListener("mousemove", (e) => {
-        if (!dragging) return;
-        const dx = e.screenX - lastX;
-        const dy = e.screenY - lastY;
-        lastX = e.screenX;
-        lastY = e.screenY;
-        moved += Math.abs(dx) + Math.abs(dy);
-        if ((dx || dy) && window.jonpet) window.jonpet.moveBy(dx, dy);
+        if (dragging) {
+          const dx = e.screenX - lastX;
+          const dy = e.screenY - lastY;
+          lastX = e.screenX;
+          lastY = e.screenY;
+          moved += Math.abs(dx) + Math.abs(dy);
+          if ((dx || dy) && window.jonpet) window.jonpet.moveBy(dx, dy);
+          applyIgnore(false);
+          return;
+        }
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const interactive =
+          el && el.closest("#jon, #mic, #close, #bubble.show, #inputRow.show");
+        applyIgnore(!interactive);
       });
       window.addEventListener("mouseup", () => {
         if (!dragging) return;
         dragging = false;
         if (moved < 6) tap();
       });
+
+      let ignoring = null;
+      function applyIgnore(next) {
+        if (next === ignoring) return;
+        ignoring = next;
+        window.jonpet && window.jonpet.setIgnore(next);
+      }
 
       field.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
@@ -455,8 +733,14 @@
         if (e.key === "Escape") inputRow.classList.remove("show");
       });
 
-      closeBtn.addEventListener("click", () => window.jonpet && window.jonpet.hide());
+      closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        window.jonpet && window.jonpet.hide();
+      });
 
+      applyIgnore(true);
+      if (localStorage.getItem("jonjr_voice") !== "0") setTimeout(() => setMic(true), 1500);
+      else micBtn.classList.add("off");
       setTimeout(startupGreeting, 1200);
     </script>
   </body>

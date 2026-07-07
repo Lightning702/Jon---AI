@@ -2,6 +2,30 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.7.0] — 2026-07-08
+
+### Jon Jr lebt
+- **Der kleine Jon heißt jetzt Jon Jr** und ist eine eigene Persönlichkeit: der
+  neugierige, herzliche „Sohn" vom großen Jon, mit eigener Stimme und eigenem Wesen.
+- **Sprich mit ihm:** Sag „Jon" oder „Mini Jon" — er antwortet mit „Ja?", damit du
+  weißt, dass er zuhört, dann redest du einfach weiter und er führt es aus. Mikrofon
+  am kleinen Jon an-/ausschaltbar.
+- **Klick-Fix & exakte Hitbox:** Nur der Kreis selbst reagiert auf Klicks, alles
+  drumherum ist durchklickbar (du kommst an dein Desktop dahinter). Antippen öffnet
+  das Eingabefeld, Doppelklick die App, Ziehen verschiebt ihn.
+- **Familie & Lebensgeschichte:** Fragst du Jon (oder Jon Jr) nach seiner Vergangenheit,
+  erzählt er von seiner Frau Lena und den Kindern Emil und Mia — jeder Jon hat sein
+  eigenes Leben.
+- **Jon Jr nutzt immer dasselbe Modell und denselben Anbieter wie der große Jon.**
+
+### Modellwahl bleibt gespeichert
+- Wenn du Anbieter oder Modell wechselst, wird das jetzt gespeichert und ist beim
+  nächsten Start wieder da — für jeden Anbieter.
+
+### Stabiler auf neuen Geräten
+- `pypdf` wird beim Ersteinrichten mit installiert (war in der Abhängigkeitsprüfung
+  vergessen), damit die PDF-Funktion auf einem frischen Gerät sofort geht.
+
 ## [1.6.1] — 2026-07-08
 
 ### Behoben

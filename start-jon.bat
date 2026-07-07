@@ -45,7 +45,7 @@ if not exist "data" mkdir "data"
 
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8756 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }" >nul 2>nul
 
-%PY% -c "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip" >nul 2>nul
+%PY% -c "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf" >nul 2>nul
 if errorlevel 1 (
     echo Installiere Backend-Abhaengigkeiten...
     %PY% -m pip install --disable-pip-version-check -r "%~dp0backend\requirements.txt"

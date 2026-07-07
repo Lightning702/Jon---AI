@@ -22,6 +22,7 @@ class ChatIn(BaseModel):
     persist: bool = True
     tool_mode: str = Field(default="ask", pattern="^(ask|allow)$")
     mode: str = Field(default="chat", pattern="^(chat|coding)$")
+    persona: str = Field(default="papa", pattern="^(papa|junior)$")
     workspace: str | None = None
 
 
@@ -49,6 +50,8 @@ class SettingsIn(BaseModel):
     prompt_mode: str | None = None
     tool_mode: str | None = None
     personality: bool | None = None
+    provider: str | None = None
+    model: str | None = None
 
 
 class ReminderIn(BaseModel):

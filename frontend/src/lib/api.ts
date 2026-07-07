@@ -214,6 +214,8 @@ export interface UserSettings {
   prompt_mode: string;
   tool_mode: string;
   personality: boolean;
+  provider: string;
+  model: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -224,6 +226,8 @@ export async function getUserSettings(): Promise<UserSettings> {
       prompt_mode: "append",
       tool_mode: "ask",
       personality: true,
+      provider: "",
+      model: "",
     };
   return res.json();
 }

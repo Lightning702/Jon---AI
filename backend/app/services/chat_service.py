@@ -103,7 +103,12 @@ class ChatService:
         self._toolbox = ToolBox(memory=self._memory, skills=self._skills)
         self._usage = get_usage_service()
 
-    def _system_prompt(self, coding: bool = False, workspace: str | None = None) -> str:
+    def _system_prompt(
+        self,
+        coding: bool = False,
+        workspace: str | None = None,
+        persona: str = "papa",
+    ) -> str:
         if coding:
             from pathlib import Path
 
@@ -121,7 +126,10 @@ class ChatService:
             else:
                 base = SYSTEM_PROMPT
             if settings_service.personality():
-                parts = [get_persona_service().persona_block(), base]
+                parts = [
+                    get_persona_service().persona_block(variant=persona),
+                    base,
+                ]
             else:
                 parts = [base]
         catalog = self._skills.catalog()
@@ -133,8 +141,9 @@ class ChatService:
         return "\n\n".join(parts)
 
     def resolve(self, payload: ChatIn) -> tuple[str, str]:
-        provider = payload.provider or self._settings.default_provider
-        model = payload.model or self._settings.default_model
+        saved_provider, saved_model = get_settings_service().selection()
+        provider = payload.provider or saved_provider or self._settings.default_provider
+        model = payload.model or saved_model or self._settings.default_model
         return provider, model
 
     def _ensure_conversation(self, payload: ChatIn, provider: str, model: str) -> str:
@@ -216,6 +225,7 @@ class ChatService:
                     content=self._system_prompt(
                         coding=payload.mode == "coding",
                         workspace=payload.workspace,
+                        persona=payload.persona,
                     ),
                 ),
             )

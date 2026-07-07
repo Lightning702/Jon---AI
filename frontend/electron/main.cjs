@@ -8,6 +8,7 @@ const {
   Tray,
   Menu,
   screen,
+  session,
 } = require("electron");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
@@ -47,6 +48,7 @@ function createPet() {
   });
   petWindow.setAlwaysOnTop(true, "screen-saver");
   petWindow.setVisibleOnAllWorkspaces(true);
+  petWindow.setIgnoreMouseEvents(true, { forward: true });
   petWindow.loadFile(path.join(__dirname, "pet.html"));
   petWindow.on("closed", () => {
     petWindow = null;
@@ -153,6 +155,9 @@ ipcMain.handle("pet:moveBy", (_event, dx, dy) => {
   const [x, y] = petWindow.getPosition();
   petWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
 });
+ipcMain.handle("pet:setIgnore", (_event, ignore) => {
+  if (petWindow) petWindow.setIgnoreMouseEvents(!!ignore, { forward: true });
+});
 ipcMain.handle("app:show", () => {
   if (!mainWindow) createWindow();
   else {
@@ -168,6 +173,7 @@ ipcMain.handle("startup:set", (_event, enabled) => {
 });
 
 app.whenReady().then(() => {
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, cb) => cb(true));
   if (app.isPackaged) {
     app.setLoginItemSettings({ openAtLogin: true });
   }
