@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jon</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        user-select: none;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+      }
+      #stage {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        padding-bottom: 8px;
+      }
+      #bubble {
+        max-width: 288px;
+        margin-bottom: 10px;
+        padding: 12px 15px;
+        border-radius: 16px 16px 16px 4px;
+        background: rgba(14, 14, 18, 0.92);
+        border: 1px solid rgba(212, 175, 55, 0.4);
+        color: #f4f0e6;
+        font-size: 13.5px;
+        line-height: 1.45;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.25s, transform 0.25s;
+        pointer-events: none;
+        max-height: 210px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        -webkit-app-region: no-drag;
+      }
+      #bubble.show {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      #bubble::-webkit-scrollbar {
+        width: 5px;
+      }
+      #bubble::-webkit-scrollbar-thumb {
+        background: rgba(212, 175, 55, 0.4);
+        border-radius: 5px;
+      }
+      #inputRow {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 10px;
+        width: 288px;
+        -webkit-app-region: no-drag;
+      }
+      #inputRow.show {
+        display: flex;
+      }
+      #field {
+        flex: 1;
+        padding: 9px 13px;
+        border-radius: 999px;
+        border: 1px solid rgba(212, 175, 55, 0.45);
+        background: rgba(10, 10, 14, 0.95);
+        color: #f4f0e6;
+        font-size: 13px;
+        outline: none;
+      }
+      #field::placeholder {
+        color: rgba(244, 240, 230, 0.4);
+      }
+      #jon {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        cursor: pointer;
+        -webkit-app-region: drag;
+        animation: bob 4.5s ease-in-out infinite;
+        filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.55));
+      }
+      #jon:active {
+        cursor: grabbing;
+      }
+      @keyframes bob {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      .listening #ring {
+        stroke: #8fe3a0;
+      }
+      .thinking #ring {
+        animation: spin 1.4s linear infinite;
+        stroke-dasharray: 40 260;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #ring {
+        transform-origin: 60px 60px;
+      }
+      #close {
+        position: absolute;
+        top: 2px;
+        right: 6px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(20, 20, 24, 0.8);
+        color: rgba(244, 240, 230, 0.6);
+        font-size: 12px;
+        cursor: pointer;
+        display: none;
+        -webkit-app-region: no-drag;
+        z-index: 5;
+      }
+      #stage:hover #close {
+        display: block;
+      }
+      #close:hover {
+        color: #ff8080;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <button id="close" title="Kleiner Jon ausblenden (Strg+Alt+K holt ihn zurück)">
+        ✕
+      </button>
+      <div id="bubble"></div>
+      <div id="inputRow">
+        <input id="field" placeholder="Sag Jon etwas …" autocomplete="off" />
+      </div>
+      <div id="jon">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <defs>
+            <radialGradient id="face" cx="50%" cy="42%" r="65%">
+              <stop offset="0%" stop-color="#1c1c26" />
+              <stop offset="100%" stop-color="#0a0a0e" />
+            </radialGradient>
+            <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f5d67b" />
+              <stop offset="55%" stop-color="#d4af37" />
+              <stop offset="100%" stop-color="#9a7b1f" />
+            </linearGradient>
+          </defs>
+          <circle cx="60" cy="60" r="52" fill="url(#face)" />
+          <circle
+            id="ring"
+            cx="60"
+            cy="60"
+            r="52"
+            fill="none"
+            stroke="url(#gold)"
+            stroke-width="4"
+            stroke-linecap="round"
+          />
+          <g id="eyes" fill="url(#gold)">
+            <circle id="eyeL" cx="43" cy="52" r="6.5" />
+            <circle id="eyeR" cx="77" cy="52" r="6.5" />
+          </g>
+          <path
+            id="smile"
+            d="M42 74 Q60 90 78 74"
+            fill="none"
+            stroke="url(#gold)"
+            stroke-width="5"
+            stroke-linecap="round"
+          />
+          <ellipse
+            id="mouth"
+            cx="60"
+            cy="78"
+            rx="14"
+            ry="0"
+            fill="url(#gold)"
+            style="display: none"
+          />
+        </svg>
+      </div>
+    </div>
+
+    <script>
+      const BASE = "http://127.0.0.1:8756/api";
+      const jon = document.getElementById("jon");
+      const stage = document.getElementById("stage");
+      const bubble = document.getElementById("bubble");
+      const inputRow = document.getElementById("inputRow");
+      const field = document.getElementById("field");
+      const smile = document.getElementById("smile");
+      const mouth = document.getElementById("mouth");
+      const eyeL = document.getElementById("eyeL");
+      const eyeR = document.getElementById("eyeR");
+      const closeBtn = document.getElementById("close");
+
+      let bubbleTimer = null;
+      let busy = false;
+      let mouthTimer = null;
+
+      function setState(cls) {
+        jon.parentElement;
+        stage.classList.remove("listening", "thinking");
+        jon.classList.remove("thinking");
+        if (cls === "thinking") jon.classList.add("thinking");
+      }
+
+      function say(text, keep) {
+        if (!text) return;
+        bubble.textContent = text;
+        bubble.classList.add("show");
+        if (bubbleTimer) clearTimeout(bubbleTimer);
+        if (!keep) {
+          bubbleTimer = setTimeout(() => bubble.classList.remove("show"), 9000);
+        }
+      }
+
+      function openMouth(amount) {
+        smile.style.display = amount > 0.05 ? "none" : "block";
+        mouth.style.display = amount > 0.05 ? "block" : "none";
+        mouth.setAttribute("ry", (2 + amount * 9).toFixed(1));
+      }
+
+      function stopMouth() {
+        if (mouthTimer) clearInterval(mouthTimer);
+        mouthTimer = null;
+        openMouth(0);
+      }
+
+      let voice = null;
+      function pickVoice() {
+        const voices = window.speechSynthesis.getVoices();
+        voice =
+          voices.find((v) => /de[-_]/i.test(v.lang) && /male|mann|stefan|conrad/i.test(v.name)) ||
+          voices.find((v) => /de[-_]/i.test(v.lang)) ||
+          voices[0] ||
+          null;
+      }
+      pickVoice();
+      window.speechSynthesis.onvoiceschanged = pickVoice;
+
+      function speak(text) {
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text.slice(0, 600));
+          if (voice) u.voice = voice;
+          u.lang = "de-DE";
+          u.rate = 1.03;
+          u.pitch = 0.85;
+          u.onstart = () => {
+            if (mouthTimer) clearInterval(mouthTimer);
+            mouthTimer = setInterval(() => openMouth(0.25 + Math.random() * 0.75), 95);
+          };
+          u.onboundary = () => openMouth(0.85);
+          u.onend = stopMouth;
+          u.onerror = stopMouth;
+          window.speechSynthesis.speak(u);
+        } catch (e) {
+          stopMouth();
+        }
+      }
+
+      function blink() {
+        eyeL.setAttribute("ry", 0.8);
+        eyeR.setAttribute("ry", 0.8);
+        setTimeout(() => {
+          eyeL.removeAttribute("ry");
+          eyeR.removeAttribute("ry");
+        }, 130);
+      }
+      setInterval(() => {
+        if (Math.random() < 0.7) blink();
+      }, 3600);
+
+      async function ask(text) {
+        if (busy || !text.trim()) return;
+        busy = true;
+        setState("thinking");
+        say("…", true);
+        let answer = "";
+        try {
+          const res = await fetch(`${BASE}/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [{ role: "user", content: text }],
+              persist: false,
+              tool_mode: "allow",
+            }),
+          });
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buf = "";
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split("\n\n");
+            buf = lines.pop() || "";
+            for (const line of lines) {
+              const m = line.trim();
+              if (!m.startsWith("data:")) continue;
+              try {
+                const evt = JSON.parse(m.slice(5).trim());
+                if (evt.type === "content") {
+                  answer += evt.delta;
+                  say(answer, true);
+                } else if (evt.type === "error") {
+                  answer = "Ups: " + evt.message;
+                }
+              } catch (e) {}
+            }
+          }
+        } catch (e) {
+          answer = "Ich erreiche mein Backend gerade nicht.";
+        }
+        setState("");
+        answer = answer.trim() || "…";
+        say(answer);
+        speak(answer.replace(/[*_#`>]/g, ""));
+        busy = false;
+      }
+
+      function greetingByHour() {
+        const h = new Date().getHours();
+        if (h < 5) return "Noch wach?";
+        if (h < 11) return "Guten Morgen";
+        if (h < 17) return "Hallo";
+        if (h < 22) return "Guten Abend";
+        return "Späte Stunde";
+      }
+
+      async function startupGreeting() {
+        let name = "";
+        let days = 0;
+        try {
+          const p = await (await fetch(`${BASE}/persona`)).json();
+          days = p.days_together || 0;
+        } catch (e) {}
+        let extras = [];
+        try {
+          const due = await (await fetch(`${BASE}/reminders/due`)).json();
+          if (Array.isArray(due) && due.length)
+            extras.push(`${due.length} fällige Erinnerung(en)`);
+        } catch (e) {}
+        try {
+          const reports = await (await fetch(`${BASE}/dreams/reports`)).json();
+          if (Array.isArray(reports) && reports.length)
+            extras.push(`${reports.length} Ergebnis(se) aus dem Dream Mode`);
+        } catch (e) {}
+        let line = `${greetingByHour()}! Ich bin da.`;
+        if (days > 0) line += ` Wir kennen uns seit ${days} Tagen.`;
+        if (extras.length) line += " Ich habe " + extras.join(" und ") + " für dich.";
+        else line += " Klick mich an, wenn du was brauchst.";
+        say(line);
+        speak(line);
+      }
+
+      let clickTimer = null;
+      jon.addEventListener("click", () => {
+        if (clickTimer) return;
+        clickTimer = setTimeout(() => {
+          clickTimer = null;
+          inputRow.classList.toggle("show");
+          if (inputRow.classList.contains("show")) field.focus();
+        }, 220);
+      });
+      jon.addEventListener("dblclick", () => {
+        if (clickTimer) {
+          clearTimeout(clickTimer);
+          clickTimer = null;
+        }
+        window.jonpet && window.jonpet.showApp();
+      });
+
+      field.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const t = field.value;
+          field.value = "";
+          inputRow.classList.remove("show");
+          ask(t);
+        }
+        if (e.key === "Escape") inputRow.classList.remove("show");
+      });
+
+      closeBtn.addEventListener("click", () => window.jonpet && window.jonpet.hide());
+
+      setTimeout(startupGreeting, 900);
+    </script>
+  </body>
+</html>

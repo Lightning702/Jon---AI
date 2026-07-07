@@ -213,12 +213,148 @@ export interface UserSettings {
   custom_prompt: string;
   prompt_mode: string;
   tool_mode: string;
+  personality: boolean;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
   const res = await fetch(`${BASE}/settings`);
-  if (!res.ok) return { custom_prompt: "", prompt_mode: "append", tool_mode: "ask" };
+  if (!res.ok)
+    return {
+      custom_prompt: "",
+      prompt_mode: "append",
+      tool_mode: "ask",
+      personality: true,
+    };
   return res.json();
+}
+
+export interface TeamVoice {
+  key: string;
+  name: string;
+  role: string;
+  emoji: string;
+  text: string;
+}
+
+export async function runTeam(
+  topic: string,
+  provider?: string,
+  model?: string
+): Promise<{ voices: TeamVoice[]; recommendation: string }> {
+  const res = await fetch(`${BASE}/team`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ topic, provider, model }),
+  });
+  if (!res.ok) throw new Error("Team-Anfrage fehlgeschlagen");
+  return res.json();
+}
+
+export async function runSimulation(
+  scenario: string,
+  provider?: string,
+  model?: string
+): Promise<{ result: string }> {
+  const res = await fetch(`${BASE}/simulate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scenario, provider, model }),
+  });
+  if (!res.ok) throw new Error("Simulation fehlgeschlagen");
+  return res.json();
+}
+
+export interface Snapshot {
+  id: string;
+  label: string;
+  note: string;
+  kind: string;
+  workspace: string;
+  created_at: string;
+  files: number;
+  archive: string | null;
+}
+
+export async function listSnapshots(): Promise<Snapshot[]> {
+  const res = await fetch(`${BASE}/snapshots`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function createSnapshot(
+  label: string,
+  workspace?: string,
+  note = ""
+): Promise<Snapshot> {
+  const res = await fetch(`${BASE}/snapshots`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label, workspace, note }),
+  });
+  return res.json();
+}
+
+export async function restoreSnapshot(id: string): Promise<{ restored: boolean }> {
+  const res = await fetch(`${BASE}/snapshots/${id}/restore`, { method: "POST" });
+  return res.json();
+}
+
+export interface DreamTask {
+  id: string;
+  task: string;
+  status: string;
+  result: string | null;
+  created_at: string;
+  done_at: string | null;
+}
+
+export async function listDreams(): Promise<DreamTask[]> {
+  const res = await fetch(`${BASE}/dreams`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function addDream(task: string): Promise<DreamTask> {
+  const res = await fetch(`${BASE}/dreams`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ task }),
+  });
+  return res.json();
+}
+
+export async function runDreams(): Promise<{ started: boolean; completed?: number }> {
+  const res = await fetch(`${BASE}/dreams/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ task: "" }),
+  });
+  return res.json();
+}
+
+export async function getDreamReports(): Promise<DreamTask[]> {
+  const res = await fetch(`${BASE}/dreams/reports`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export interface PersonaState {
+  mood: string;
+  mood_label: string;
+  days_together: number;
+  interactions: number;
+  energy: number;
+  warmth: number;
+}
+
+export async function getPersona(): Promise<PersonaState | null> {
+  try {
+    const res = await fetch(`${BASE}/persona`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function saveUserSettings(

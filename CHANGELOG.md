@@ -2,6 +2,36 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.6.0] — 2026-07-08
+
+### Jon wird eine Person
+- **Persönlichkeit, Gefühle & Lebensgeschichte:** Jon ist kein neutraler Bot mehr. Er
+  hat einen Charakter (warm, neugierig, trockener Humor), eine kleine Innenwelt mit
+  Stimmungen, eine „Herkunftsgeschichte" (er ist am 6. Juli 2026 zum ersten Mal
+  aufgewacht) und kann Geschichten erzählen. Abschaltbar in den Einstellungen.
+- **Eigenes Gedächtnis (MEMORY.md):** Jon führt eine eigene Datei im Projektordner, in
+  die er selbst schreibt — Gedanken, Erlebnisse und feste Fakten über dich. Tools
+  `journal`, `read_journal`, `remember_about_user`, `set_mood`.
+- **Kleiner Jon (Desktop-Begleiter):** Ein kleiner Kreis mit süßem, minimalistischem
+  Gesicht lebt auf dem Bildschirm — immer im Vordergrund, verschiebbar. Beim Hochfahren
+  ist er schon da und begrüßt dich mit Updates (Erinnerungen, Dream-Ergebnisse). Klick
+  ihn an, um wie in der App mit ihm zu reden; er spricht, und sein **Mund bewegt sich
+  passend zum Gesprochenen** (Lippen-Sync). Doppelklick öffnet die große App.
+  Strg+Alt+K blendet ihn ein/aus, Autostart mit Windows aktivierbar.
+
+### Neue Denk-Fähigkeiten
+- **KI-Team (`/team <Thema>`):** Mehrere Persönlichkeiten (Entwickler, Designerin,
+  Marketing, Jurist, CEO) diskutieren dein Thema und liefern eine gemeinsame Empfehlung.
+- **Simulationen (`/simulate <Was wäre wenn …>`):** Jon spielt mehrere Zukunfts-Szenarien
+  mit Wahrscheinlichkeiten und Fazit durch, statt nur allgemein zu antworten.
+- **Zeitreise (`/snapshots`, `/snapshot <Name>`):** Jon speichert Projektstände inkl.
+  Notizen/Entscheidungen und kann sie wiederherstellen (Tools `snapshot`,
+  `list_snapshots`, `restore_snapshot`; vor dem Zurückspielen wird automatisch gesichert).
+- **Dream Mode (`/dream <Aufgabe>`, `/dreams`):** Aufgaben, die Jon eigenständig
+  ausarbeitet, während du weg bist — das Ergebnis präsentiert er dir danach.
+- Jetzt 58 Tools. Neue Endpunkte unter `/api/team`, `/api/simulate`, `/api/snapshots`,
+  `/api/dreams`, `/api/persona`.
+
 ## [1.5.0] — 2026-07-07
 
 ### Neu

@@ -19,19 +19,28 @@ from app.schemas import (
     ChatIn,
     ConversationDetail,
     ConversationOut,
+    DreamIn,
     HealthOut,
     ProviderStatus,
     ReminderIn,
     SettingsIn,
+    SimulateIn,
     SkillWriteIn,
+    SnapshotIn,
+    TeamIn,
 )
 from app.services.account_service import LOCAL_PROVIDERS, SUPPORTED, get_account_service
 from app.services.approval_service import get_approval_service
 from app.services.chat_service import ChatService
+from app.services.dream_service import get_dream_service
+from app.services.persona_service import get_persona_service
 from app.services.reminder_service import get_reminder_service
 from app.services.settings_service import get_settings_service
+from app.services.simulation_service import get_simulation_service
 from app.services.skill_service import SkillService
 from app.services.system_service import SystemService
+from app.services.team_service import TEAM, get_team_service
+from app.services.timetravel_service import get_timetravel_service
 from app.services.usage_service import get_usage_service
 
 router = APIRouter(prefix="/api")
@@ -286,3 +295,87 @@ async def due_reminders() -> list[dict]:
 @router.delete("/reminders/{reminder_id}")
 async def delete_reminder(reminder_id: str) -> dict:
     return {"deleted": get_reminder_service().delete(reminder_id)}
+
+
+@router.get("/persona")
+async def persona() -> dict:
+    return get_persona_service().state()
+
+
+@router.get("/persona/memory")
+async def persona_memory() -> dict:
+    return {"memory": get_persona_service().read_memory_file(max_chars=20000)}
+
+
+@router.get("/team/roster")
+async def team_roster() -> list[dict]:
+    return [
+        {"key": k, "name": v["name"], "role": v["role"], "emoji": v["emoji"]}
+        for k, v in TEAM.items()
+    ]
+
+
+@router.post("/team")
+async def team(payload: TeamIn) -> dict:
+    return await get_team_service().discuss(
+        payload.topic, payload.members, payload.provider, payload.model
+    )
+
+
+@router.post("/simulate")
+async def simulate(payload: SimulateIn) -> dict:
+    return await get_simulation_service().simulate(
+        payload.scenario, payload.context, payload.provider, payload.model
+    )
+
+
+@router.get("/snapshots")
+async def list_snapshots() -> list[dict]:
+    return get_timetravel_service().list()
+
+
+@router.post("/snapshots")
+async def create_snapshot(payload: SnapshotIn) -> dict:
+    return get_timetravel_service().snapshot(
+        payload.label, payload.workspace, payload.note, kind="manual"
+    )
+
+
+@router.post("/snapshots/{snapshot_id}/restore")
+async def restore_snapshot(snapshot_id: str) -> dict:
+    try:
+        return get_timetravel_service().restore(snapshot_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.delete("/snapshots/{snapshot_id}")
+async def delete_snapshot(snapshot_id: str) -> dict:
+    return {"deleted": get_timetravel_service().delete(snapshot_id)}
+
+
+@router.get("/dreams")
+async def list_dreams() -> list[dict]:
+    return get_dream_service().list()
+
+
+@router.post("/dreams")
+async def add_dream(payload: DreamIn) -> dict:
+    return get_dream_service().add(payload.task)
+
+
+@router.post("/dreams/run")
+async def run_dreams(payload: DreamIn | None = None) -> dict:
+    provider = payload.provider if payload else None
+    model = payload.model if payload else None
+    return await get_dream_service().run_pending(provider, model)
+
+
+@router.get("/dreams/reports")
+async def dream_reports() -> list[dict]:
+    return get_dream_service().unseen_reports()
+
+
+@router.delete("/dreams/{task_id}")
+async def delete_dream(task_id: str) -> dict:
+    return {"deleted": get_dream_service().delete(task_id)}

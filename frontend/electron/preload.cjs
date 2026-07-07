@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld("jon", {
   close: () => ipcRenderer.invoke("window:close"),
   pickFolder: () => ipcRenderer.invoke("dialog:openFolder"),
   openVscode: (folder) => ipcRenderer.invoke("shell:openVscode", folder),
+  togglePet: () => ipcRenderer.invoke("pet:toggle"),
+  getStartup: () => ipcRenderer.invoke("startup:get"),
+  setStartup: (enabled) => ipcRenderer.invoke("startup:set", enabled),
   getPathForFile: (file) => {
     try {
       return webUtils.getPathForFile(file);

@@ -12,6 +12,7 @@ from app.schemas import ChatIn
 from app.services.approval_service import ToolDeniedError, get_approval_service
 from app.services.coding import CODING_PROMPT, workspace_summary
 from app.services.memory_service import MemoryService
+from app.services.persona_service import get_persona_service
 from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
 from app.services.tools import SAFE_TOOLS, ToolBox, describe_tool
@@ -62,8 +63,14 @@ SYSTEM_PROMPT = (
     "Fuer aktuelle Infos aus dem Internet (News, Preise, Fakten, "
     "Oeffnungszeiten) nutze web_search und oeffne bei Bedarf einen Treffer mit "
     "http_get. Wetter und Vorhersage holst du mit get_weather (Stadt noetig - "
-    "merke dir die Stadt des Nutzers mit remember, wenn er sie nennt). "
+    "merke dir die Stadt des Nutzers mit remember_about_user, wenn er sie nennt). "
     "PDF-Dateien liest und analysierst du mit read_pdf. "
+    "Du hast ein eigenes, persoenliches Gedaechtnis (MEMORY.md): mit journal "
+    "schreibst du Gedanken und Erlebnisse hinein, mit read_journal liest du sie, "
+    "mit remember_about_user haeltst du feste Fakten ueber den Nutzer fest. "
+    "Deine Stimmung aenderst du mit set_mood. Wichtige Projektstaende oder "
+    "Entscheidungen sicherst du mit snapshot (Zeitreise), zurueck geht es mit "
+    "list_snapshots und restore_snapshot. "
     "SEHR WICHTIG: Der Gespraechsverlauf enthaelt bereits erledigte Aktionen. "
     "Fuehre Tools ausschliesslich dann aus, wenn die LETZTE Nachricht des Nutzers "
     "eine neue Aktion verlangt. Wiederhole niemals eine Aktion aus einer frueheren "
@@ -105,14 +112,18 @@ class ChatService:
             if workspace:
                 parts.append(workspace_summary(Path(workspace)))
         else:
-            custom, mode = get_settings_service().custom_prompt()
+            settings_service = get_settings_service()
+            custom, mode = settings_service.custom_prompt()
             if custom.strip() and mode == "replace":
                 base = custom.strip()
             elif custom.strip():
                 base = f"{SYSTEM_PROMPT}\n\n{custom.strip()}"
             else:
                 base = SYSTEM_PROMPT
-            parts = [base]
+            if settings_service.personality():
+                parts = [get_persona_service().persona_block(), base]
+            else:
+                parts = [base]
         catalog = self._skills.catalog()
         if catalog:
             parts.append(catalog)
@@ -179,6 +190,9 @@ class ChatService:
     async def stream(self, payload: ChatIn) -> AsyncIterator[dict]:
         provider_name, model = self.resolve(payload)
         provider = self._registry.get(provider_name)
+
+        if payload.mode != "coding" and get_settings_service().personality():
+            get_persona_service().touch()
 
         conversation_id = payload.conversation_id
         if payload.persist:

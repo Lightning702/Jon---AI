@@ -11,6 +11,7 @@ DEFAULTS = {
     "custom_prompt": "",
     "prompt_mode": "append",
     "tool_mode": "ask",
+    "personality": True,
 }
 
 
@@ -53,6 +54,10 @@ class SettingsService:
             return self._data.get("custom_prompt", ""), self._data.get(
                 "prompt_mode", "append"
             )
+
+    def personality(self) -> bool:
+        with self._lock:
+            return bool(self._data.get("personality", True))
 
 
 _service: SettingsService | None = None

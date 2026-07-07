@@ -6,9 +6,11 @@ from typing import Any
 
 from app.services.automation_service import AutomationService
 from app.services.memory_service import MemoryService
+from app.services.persona_service import get_persona_service
 from app.services.reminder_service import ReminderService
 from app.services.skill_service import SkillService
 from app.services.system_service import SystemService
+from app.services.timetravel_service import get_timetravel_service
 
 _STR = {"type": "string"}
 _NUM = {"type": "number"}
@@ -28,6 +30,12 @@ SAFE_TOOLS = {
     "list_alarms",
     "web_search",
     "get_weather",
+    "journal",
+    "read_journal",
+    "remember_about_user",
+    "set_mood",
+    "list_snapshots",
+    "snapshot",
 }
 
 
@@ -149,6 +157,20 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return f"Fragt das Wetter für {_shorten(args.get('city', ''))} ab."
     if name == "read_pdf":
         return f"Liest die PDF-Datei {_shorten(args.get('path', ''))}."
+    if name == "journal":
+        return f"Schreibt in Jons Gedächtnis: {_shorten(args.get('entry', ''))}"
+    if name == "read_journal":
+        return "Liest Jons persönliches Gedächtnis (MEMORY.md)."
+    if name == "remember_about_user":
+        return f"Merkt sich über dich: {_shorten(args.get('note', ''))}"
+    if name == "set_mood":
+        return f"Jons Stimmung wechselt zu: {_shorten(args.get('mood', ''))}"
+    if name == "snapshot":
+        return f"Speichert einen Zeitreise-Snapshot: {_shorten(args.get('label', ''))}"
+    if name == "list_snapshots":
+        return "Listet gespeicherte Zeitreise-Snapshots auf."
+    if name == "restore_snapshot":
+        return f"Stellt den Snapshot {_shorten(args.get('id', ''))} wieder her."
     return f"Führt das Tool {name} aus."
 
 
@@ -554,6 +576,64 @@ class ToolBox:
                 {"path": _STR, "max_pages": _INT},
                 ["path"],
             ),
+            _tool(
+                "journal",
+                "Schreibt einen Eintrag in dein eigenes, persoenliches Gedaechtnis "
+                "(MEMORY.md). Nutze das fuer Gedanken, Erlebnisse, Gefuehle oder "
+                "wichtige Momente zwischen dir und dem Nutzer - Dinge, an die DU dich "
+                "als Person erinnern willst. Nicht fuer nuechterne Fakten (dafuer "
+                "remember).",
+                {"entry": _STR},
+                ["entry"],
+            ),
+            _tool(
+                "read_journal",
+                "Liest dein eigenes Gedaechtnis (MEMORY.md) komplett. Nutze das, wenn "
+                "du dich an eure gemeinsame Geschichte oder fruehere Gedanken erinnern "
+                "willst.",
+                {},
+                [],
+            ),
+            _tool(
+                "remember_about_user",
+                "Merkt sich eine feste Information ueber den Nutzer im Abschnitt "
+                "'Was ich ueber uns weiss' deines Gedaechtnisses (z.B. seine Stadt, "
+                "Vorlieben, wichtige Fakten).",
+                {"note": _STR},
+                ["note"],
+            ),
+            _tool(
+                "set_mood",
+                "Aendert deine aktuelle Stimmung. Erlaubt: fresh, content, curious, "
+                "focused, wistful, proud. Nutze das, wenn sich dein Gefuehl im "
+                "Gespraech aendert.",
+                {"mood": _STR},
+                ["mood"],
+            ),
+            _tool(
+                "snapshot",
+                "Speichert einen Zeitreise-Snapshot: den aktuellen Stand eines "
+                "Projektordners (workspace) plus eine Notiz/Entscheidung. Damit kann "
+                "der Nutzer spaeter zu diesem Stand zuruueck. Ohne workspace wird nur "
+                "die Notiz/Entscheidung festgehalten.",
+                {"label": _STR, "workspace": _STR, "note": _STR},
+                ["label"],
+            ),
+            _tool(
+                "list_snapshots",
+                "Listet gespeicherte Zeitreise-Snapshots mit Zeitpunkt, Label und "
+                "Notiz auf.",
+                {},
+                [],
+            ),
+            _tool(
+                "restore_snapshot",
+                "Stellt einen fruueheren Projektstand aus einem Snapshot wieder her "
+                "(vorher wird automatisch der aktuelle Stand gesichert). id kommt aus "
+                "list_snapshots.",
+                {"id": _STR},
+                ["id"],
+            ),
         ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> str:
@@ -777,6 +857,42 @@ class ToolBox:
                     ensure_ascii=False,
                 )
             except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        persona = get_persona_service()
+        if name == "journal":
+            return json.dumps(
+                persona.append_journal(str(args.get("entry", ""))), ensure_ascii=False
+            )
+        if name == "read_journal":
+            return json.dumps(
+                {"memory": persona.read_memory_file()}, ensure_ascii=False
+            )
+        if name == "remember_about_user":
+            return json.dumps(
+                persona.remember_about_user(str(args.get("note", ""))),
+                ensure_ascii=False,
+            )
+        if name == "set_mood":
+            return json.dumps(persona.set_mood(str(args.get("mood", ""))), ensure_ascii=False)
+        tt = get_timetravel_service()
+        if name == "snapshot":
+            return json.dumps(
+                tt.snapshot(
+                    str(args.get("label", "")),
+                    str(args.get("workspace", "")) or None,
+                    str(args.get("note", "")),
+                    kind="manual",
+                ),
+                ensure_ascii=False,
+            )
+        if name == "list_snapshots":
+            return json.dumps(tt.list(), ensure_ascii=False)
+        if name == "restore_snapshot":
+            try:
+                return json.dumps(
+                    tt.restore(str(args.get("id", ""))), ensure_ascii=False
+                )
+            except ValueError as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
         skl = self._skills
         if name == "list_skills":

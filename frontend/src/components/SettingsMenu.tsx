@@ -1,7 +1,14 @@
-import { useState } from "react";
-import { ToolMode } from "../lib/api";
+import { useEffect, useState } from "react";
+import { ToolMode, getUserSettings, saveUserSettings } from "../lib/api";
 
 type Theme = "dark" | "light";
+
+const jonBridge = (window as unknown as {
+  jon?: {
+    getStartup?: () => Promise<boolean>;
+    setStartup?: (enabled: boolean) => Promise<boolean>;
+  };
+}).jon;
 
 export default function SettingsMenu({
   toolMode,
@@ -14,6 +21,27 @@ export default function SettingsMenu({
   const [theme, setTheme] = useState<Theme>(() =>
     localStorage.getItem("jon_theme") === "light" ? "light" : "dark"
   );
+  const [personality, setPersonality] = useState(true);
+  const [startup, setStartup] = useState(false);
+
+  useEffect(() => {
+    void getUserSettings().then((s) => setPersonality(s.personality !== false));
+    if (jonBridge?.getStartup) {
+      void jonBridge.getStartup().then(setStartup);
+    }
+  }, []);
+
+  const togglePersonality = () => {
+    const next = !personality;
+    setPersonality(next);
+    void saveUserSettings({ personality: next });
+  };
+
+  const toggleStartup = () => {
+    const next = !startup;
+    setStartup(next);
+    void jonBridge?.setStartup?.(next);
+  };
 
   const changeTheme = (next: Theme) => {
     setTheme(next);
@@ -127,6 +155,55 @@ export default function SettingsMenu({
                 </button>
               ))}
             </div>
+            <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
+              Jon als Person
+            </div>
+            <button
+              onClick={togglePersonality}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-[12px] text-white/90">Persönlichkeit</div>
+                <div className="text-[11px] text-white/45">
+                  Jon mit Charakter, Gefühlen & Gedächtnis.
+                </div>
+              </div>
+              <span
+                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                  personality ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    personality ? "translate-x-4" : ""
+                  }`}
+                />
+              </span>
+            </button>
+            {jonBridge?.setStartup && (
+              <button
+                onClick={toggleStartup}
+                className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <div className="text-left">
+                  <div className="text-[12px] text-white/90">Mit Windows starten</div>
+                  <div className="text-[11px] text-white/45">
+                    Jon ist beim Hochfahren schon da.
+                  </div>
+                </div>
+                <span
+                  className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                    startup ? "bg-gold/70" : "bg-white/15"
+                  }`}
+                >
+                  <span
+                    className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                      startup ? "translate-x-4" : ""
+                    }`}
+                  />
+                </span>
+              </button>
+            )}
           </div>
         </>
       )}

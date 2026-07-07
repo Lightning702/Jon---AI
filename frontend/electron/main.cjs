@@ -7,15 +7,56 @@ const {
   globalShortcut,
   Tray,
   Menu,
+  screen,
 } = require("electron");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
+let petWindow = null;
 let backendProcess = null;
 let tray = null;
 let quitting = false;
+
+function createPet() {
+  if (petWindow) {
+    petWindow.show();
+    return;
+  }
+  const area = screen.getPrimaryDisplay().workAreaSize;
+  const w = 320;
+  const h = 360;
+  petWindow = new BrowserWindow({
+    width: w,
+    height: h,
+    x: area.width - w - 24,
+    y: area.height - h - 12,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    hasShadow: false,
+    focusable: true,
+    webPreferences: {
+      preload: path.join(__dirname, "petPreload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  petWindow.setAlwaysOnTop(true, "screen-saver");
+  petWindow.setVisibleOnAllWorkspaces(true);
+  petWindow.loadFile(path.join(__dirname, "pet.html"));
+  petWindow.on("closed", () => {
+    petWindow = null;
+  });
+}
+
+function togglePet() {
+  if (petWindow && petWindow.isVisible()) petWindow.hide();
+  else createPet();
+}
 
 function toggleWindow() {
   if (!mainWindow) return;
@@ -105,15 +146,37 @@ ipcMain.handle("window:maximize", () => {
 });
 ipcMain.handle("window:close", () => mainWindow && mainWindow.close());
 
+ipcMain.handle("pet:toggle", () => togglePet());
+ipcMain.handle("pet:hide", () => petWindow && petWindow.hide());
+ipcMain.handle("app:show", () => {
+  if (!mainWindow) createWindow();
+  else {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+ipcMain.handle("startup:get", () => app.getLoginItemSettings().openAtLogin);
+ipcMain.handle("startup:set", (_event, enabled) => {
+  app.setLoginItemSettings({ openAtLogin: !!enabled });
+  return !!enabled;
+});
+
 app.whenReady().then(() => {
+  if (app.isPackaged) {
+    app.setLoginItemSettings({ openAtLogin: true });
+  }
   startBackend();
   createWindow();
+  createPet();
   globalShortcut.register("Control+Alt+J", toggleWindow);
+  globalShortcut.register("Control+Alt+K", togglePet);
   tray = new Tray(path.join(__dirname, "tray.png"));
   tray.setToolTip("Jon — Strg+Alt+J");
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Jon öffnen/verstecken", click: toggleWindow },
+      { label: "Kleiner Jon ein/aus", click: togglePet },
       { type: "separator" },
       {
         label: "Beenden",

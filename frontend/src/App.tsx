@@ -16,15 +16,26 @@ import {
   ProviderStatus,
   StreamEvent,
   ToolMode,
+  addDream,
   approveTool,
+  createSnapshot,
   deleteConversation,
   getConversation,
   getConversations,
+  getDreamReports,
   getDueReminders,
   getHealth,
   getProviders,
+  listSnapshots,
+  runDreams,
+  runSimulation,
+  runTeam,
   streamChat,
 } from "./lib/api";
+
+const jonDesktop = (window as unknown as {
+  jon?: { togglePet?: () => void };
+}).jon;
 
 let idc = 0;
 const nextId = () => `m${Date.now()}_${idc++}`;
@@ -389,6 +400,40 @@ export default function App() {
     );
   };
 
+  const runSlashJob = async (
+    commandText: string,
+    placeholder: string,
+    job: () => Promise<string>
+  ) => {
+    const userEntry: ChatEntry = {
+      id: nextId(),
+      role: "user",
+      content: commandText,
+    };
+    const assistantEntry: ChatEntry = {
+      id: nextId(),
+      role: "assistant",
+      content: placeholder,
+      streaming: true,
+    };
+    setEntries((prev) => [...prev, userEntry, assistantEntry]);
+    setStreaming(true);
+    let result = "";
+    try {
+      result = await job();
+    } catch (e) {
+      result = `[Fehler] ${e instanceof Error ? e.message : String(e)}`;
+    }
+    setEntries((prev) =>
+      prev.map((en) =>
+        en.id === assistantEntry.id
+          ? { ...en, content: result, streaming: false }
+          : en
+      )
+    );
+    setStreaming(false);
+  };
+
   const exportChat = () => {
     if (entries.length === 0) return;
     const md = entries
@@ -425,6 +470,77 @@ export default function App() {
     }
     if (command === "/export") {
       exportChat();
+      return;
+    }
+    const arg = text.trim().slice(text.trim().indexOf(" ") + 1).trim();
+    if (command.startsWith("/team")) {
+      void runSlashJob(text, "🧑‍🤝‍🧑 KI-Team berät …", async () => {
+        if (!arg || command === "/team") return "Nutzung: /team <Frage oder Thema>";
+        const r = await runTeam(arg, providerRef.current, modelRef.current);
+        const voices = r.voices
+          .map((v) => `${v.emoji} **${v.role} (${v.name}):** ${v.text}`)
+          .join("\n\n");
+        return `${voices}\n\n---\n\n**🧭 Jons Empfehlung:**\n\n${r.recommendation}`;
+      });
+      return;
+    }
+    if (command.startsWith("/simulate") || command.startsWith("/simuliere")) {
+      void runSlashJob(text, "🔮 Jon simuliert …", async () => {
+        if (!arg || command === "/simulate" || command === "/simuliere")
+          return "Nutzung: /simulate <Was wäre wenn …>";
+        const r = await runSimulation(arg, providerRef.current, modelRef.current);
+        return r.result;
+      });
+      return;
+    }
+    if (command === "/snapshots" || command === "/zeitreise") {
+      void runSlashJob(text, "⏳ Lade Snapshots …", async () => {
+        const snaps = await listSnapshots();
+        if (!snaps.length)
+          return "Noch keine Snapshots. Erstelle einen mit `/snapshot <Name>` oder bitte Jon darum.";
+        return (
+          "**⏳ Deine Zeitreise-Snapshots:**\n\n" +
+          snaps
+            .map(
+              (s) =>
+                `- **${s.label}** · ${new Date(s.created_at).toLocaleString(
+                  "de-DE"
+                )}${s.files ? ` · ${s.files} Dateien` : ""}${
+                  s.note ? `\n  ${s.note}` : ""
+                }`
+            )
+            .join("\n")
+        );
+      });
+      return;
+    }
+    if (command.startsWith("/snapshot")) {
+      void runSlashJob(text, "⏳ Speichere Snapshot …", async () => {
+        const label = arg || `Snapshot ${new Date().toLocaleString("de-DE")}`;
+        const s = await createSnapshot(label);
+        return `⏳ Snapshot **${s.label}** gespeichert. Mit \`/snapshots\` siehst du alle.`;
+      });
+      return;
+    }
+    if (command === "/dreams" || command === "/traeume") {
+      void runSlashJob(text, "🌙 Jon arbeitet an deinen Dream-Aufgaben …", async () => {
+        const r = await runDreams();
+        if (!r.started) return "Es gibt gerade keine offenen Dream-Aufgaben.";
+        const reports = await getDreamReports();
+        if (!reports.length) return "Fertig, aber es gab nichts zu berichten.";
+        return (
+          "**🌙 Ergebnisse aus dem Dream Mode:**\n\n" +
+          reports.map((t) => `**${t.task}**\n\n${t.result}`).join("\n\n---\n\n")
+        );
+      });
+      return;
+    }
+    if (command.startsWith("/dream") || command.startsWith("/traum")) {
+      void runSlashJob(text, "🌙 Lege Dream-Aufgabe an …", async () => {
+        if (!arg) return "Nutzung: /dream <Aufgabe, die Jon im Hintergrund erledigen soll>";
+        await addDream(arg);
+        return `🌙 Notiert. Ich arbeite daran, wenn du weg bist – oder starte es sofort mit \`/dreams\`.`;
+      });
       return;
     }
     const userEntry: ChatEntry = { id: nextId(), role: "user", content: text };
@@ -557,6 +673,16 @@ export default function App() {
               }}
             />
             <div className="flex items-center gap-3 text-xs">
+              {jonDesktop?.togglePet && (
+                <button
+                  onClick={() => jonDesktop.togglePet?.()}
+                  title="Kleiner Jon auf dem Bildschirm ein/aus (Strg+Alt+K)"
+                  className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-gold/30 bg-gold/10 text-gold/90 hover:bg-gold/20 transition-colors"
+                >
+                  <span className="text-[13px] leading-none">🙂</span>
+                  <span className="text-[11px] font-medium">Kleiner Jon</span>
+                </button>
+              )}
               <button
                 onClick={() => setCodeOpen(true)}
                 title="Jon Code — Coding-Agent im Editor"

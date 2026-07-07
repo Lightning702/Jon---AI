@@ -48,6 +48,7 @@ class SettingsIn(BaseModel):
     custom_prompt: str | None = None
     prompt_mode: str | None = None
     tool_mode: str | None = None
+    personality: bool | None = None
 
 
 class ReminderIn(BaseModel):
@@ -55,6 +56,32 @@ class ReminderIn(BaseModel):
     time: str = ""
     repeat: str = "daily"
     phone: str = ""
+
+
+class TeamIn(BaseModel):
+    topic: str
+    members: list[str] | None = None
+    provider: str | None = None
+    model: str | None = None
+
+
+class SimulateIn(BaseModel):
+    scenario: str
+    context: str = ""
+    provider: str | None = None
+    model: str | None = None
+
+
+class SnapshotIn(BaseModel):
+    label: str
+    workspace: str | None = None
+    note: str = ""
+
+
+class DreamIn(BaseModel):
+    task: str
+    provider: str | None = None
+    model: str | None = None
 
 
 class MessageOut(BaseModel):
