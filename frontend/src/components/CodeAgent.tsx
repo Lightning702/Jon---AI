@@ -5,6 +5,7 @@ import {
   ProviderStatus,
   listDir,
   openInVscode,
+  pickFolderDialog,
   readWorkspaceFile,
   streamChat,
   writeWorkspaceFile,
@@ -102,6 +103,8 @@ export default function CodeAgent({
   const [manualPath, setManualPath] = useState(
     () => localStorage.getItem("jon_workspace") || ""
   );
+  const [showManual, setShowManual] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [picker, setPicker] = useState<"model" | "provider" | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [filePath, setFilePath] = useState<string | null>(null);
@@ -117,9 +120,22 @@ export default function CodeAgent({
   }, [entries]);
 
   const pickFolder = async () => {
-    if (jonBridge?.pickFolder) {
-      const folder = await jonBridge.pickFolder();
+    if (picking) return;
+    setPicking(true);
+    try {
+      if (jonBridge?.pickFolder) {
+        const folder = await jonBridge.pickFolder();
+        if (folder) setWorkspacePath(folder);
+        return;
+      }
+      const folder = await pickFolderDialog();
+      if (folder === null) {
+        setShowManual(true);
+        return;
+      }
       if (folder) setWorkspacePath(folder);
+    } finally {
+      setPicking(false);
     }
   };
 
@@ -294,30 +310,39 @@ export default function CodeAgent({
     <div className="fixed inset-0 z-40 flex flex-col bg-ink-900">
       <div className="flex items-center gap-2 h-11 px-3 border-b border-white/10 bg-black/40">
         <span className="text-[13px] font-semibold gold-text mr-1">Jon Code</span>
-        {jonBridge?.pickFolder && (
-          <button
-            onClick={pickFolder}
-            className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 whitespace-nowrap"
-          >
-            📂 Ordner wählen
-          </button>
-        )}
-        <input
-          value={manualPath}
-          onChange={(e) => setManualPath(e.target.value)}
-          onKeyDown={(e) =>
-            e.key === "Enter" && manualPath.trim() && setWorkspacePath(manualPath.trim())
-          }
-          placeholder="Projektordner-Pfad (z. B. C:\Users\felix\mein-projekt)"
-          className="flex-1 min-w-0 text-[12px] px-2 py-1 rounded-lg bg-black/30 border border-white/10 text-white/80 outline-none focus:border-gold/40"
-        />
         <button
-          onClick={() => manualPath.trim() && setWorkspacePath(manualPath.trim())}
-          disabled={!manualPath.trim()}
-          className="text-[12px] px-2.5 py-1 rounded-lg bg-gold/80 text-black font-medium disabled:opacity-40 whitespace-nowrap"
+          onClick={pickFolder}
+          disabled={picking}
+          className="text-[12px] px-3 py-1 rounded-lg bg-gold/80 text-black font-medium hover:bg-gold disabled:opacity-50 whitespace-nowrap"
         >
-          Öffnen
+          {picking ? "Öffne …" : "📂 Ordner öffnen"}
         </button>
+        {showManual ? (
+          <>
+            <input
+              value={manualPath}
+              onChange={(e) => setManualPath(e.target.value)}
+              onKeyDown={(e) =>
+                e.key === "Enter" &&
+                manualPath.trim() &&
+                setWorkspacePath(manualPath.trim())
+              }
+              placeholder="Pfad zum Ordner eingeben"
+              className="flex-1 min-w-0 text-[12px] px-2 py-1 rounded-lg bg-black/30 border border-white/10 text-white/80 outline-none focus:border-gold/40"
+            />
+            <button
+              onClick={() => manualPath.trim() && setWorkspacePath(manualPath.trim())}
+              disabled={!manualPath.trim()}
+              className="text-[12px] px-2.5 py-1 rounded-lg bg-white/10 border border-white/10 text-white/80 disabled:opacity-40 whitespace-nowrap"
+            >
+              OK
+            </button>
+          </>
+        ) : (
+          <span className="flex-1 min-w-0 text-[11px] text-white/45 truncate">
+            {workspace || "Kein Ordner gewählt"}
+          </span>
+        )}
         {workspace && (
           <button
             onClick={() => openInVscode(workspace)}

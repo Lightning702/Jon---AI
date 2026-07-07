@@ -315,6 +315,13 @@ export async function openInVscode(path: string): Promise<void> {
   });
 }
 
+export async function pickFolderDialog(): Promise<string | null> {
+  const res = await fetch(`${BASE}/system/pick-folder`, { method: "POST" });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return typeof data.path === "string" ? data.path : "";
+}
+
 export async function streamChat(
   body: {
     messages: ChatMessage[];
