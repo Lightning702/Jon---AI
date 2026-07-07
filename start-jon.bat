@@ -62,7 +62,7 @@ if errorlevel 1 (
 
 echo Starte Jon-Backend...
 del "%~dp0data\backend.log" >nul 2>nul
-start "Jon Backend" /min cmd /c "cd /d "%~dp0backend" && %PY% -m app.main >> "%~dp0data\backend.log" 2>&1"
+start "Jon Backend" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$host.UI.RawUI.WindowTitle = 'Jon Backend'; Set-Location '%~dp0backend'; & %PY% -m app.main 2>&1 | ForEach-Object ToString | Tee-Object -FilePath '%~dp0data\backend.log'"
 
 echo Warte auf Backend...
 set BACKEND_OK=

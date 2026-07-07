@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import type { ConversationSummary } from "../lib/api";
 
@@ -16,9 +17,15 @@ export default function Sidebar({
   onNew,
   onDelete,
 }: Props) {
+  const [query, setQuery] = useState("");
+  const filtered = query.trim()
+    ? conversations.filter((c) =>
+        c.title.toLowerCase().includes(query.trim().toLowerCase())
+      )
+    : conversations;
   return (
     <aside className="glass-strong w-72 flex flex-col h-full border-r border-white/10">
-      <div className="p-4">
+      <div className="p-4 pb-2">
         <button
           onClick={onNew}
           className="no-drag w-full py-3 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold shadow-gold hover:brightness-110 transition"
@@ -26,8 +33,16 @@ export default function Sidebar({
           + Neue Unterhaltung
         </button>
       </div>
+      <div className="px-4 pb-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Verlauf durchsuchen …"
+          className="no-drag w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] text-white/80 placeholder-white/30 outline-none focus:border-gold/40"
+        />
+      </div>
       <div className="flex-1 overflow-y-auto px-2 space-y-1">
-        {conversations.map((c) => (
+        {filtered.map((c) => (
           <motion.div
             key={c.id}
             initial={{ opacity: 0, x: -8 }}
@@ -56,9 +71,9 @@ export default function Sidebar({
             </button>
           </motion.div>
         ))}
-        {conversations.length === 0 && (
+        {filtered.length === 0 && (
           <p className="text-center text-white/30 text-sm mt-8">
-            Noch keine Unterhaltungen
+            {query.trim() ? "Keine Treffer" : "Noch keine Unterhaltungen"}
           </p>
         )}
       </div>

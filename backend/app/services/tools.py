@@ -26,6 +26,8 @@ SAFE_TOOLS = {
     "read_skill",
     "list_reminders",
     "list_alarms",
+    "web_search",
+    "get_weather",
 }
 
 
@@ -141,6 +143,12 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Listet gestellte Wecker auf."
     if name == "delete_alarm":
         return f"Löscht den Wecker {_shorten(args.get('name', ''))}."
+    if name == "web_search":
+        return f"Sucht im Web nach: {_shorten(args.get('query', ''))}"
+    if name == "get_weather":
+        return f"Fragt das Wetter für {_shorten(args.get('city', ''))} ab."
+    if name == "read_pdf":
+        return f"Liest die PDF-Datei {_shorten(args.get('path', ''))}."
     return f"Führt das Tool {name} aus."
 
 
@@ -521,6 +529,31 @@ class ToolBox:
                 {"name": _STR},
                 ["name"],
             ),
+            _tool(
+                "web_search",
+                "Sucht im Internet (DuckDuckGo) und liefert Titel, URL und "
+                "Beschreibung der Treffer. Nutze das fuer aktuelle Infos wie News, "
+                "Preise, Oeffnungszeiten oder Fakten, die du nicht sicher weisst. "
+                "Oeffne bei Bedarf einen Treffer mit http_get fuer Details.",
+                {"query": _STR, "max_results": _INT},
+                ["query"],
+            ),
+            _tool(
+                "get_weather",
+                "Liefert aktuelles Wetter und Vorhersage (bis 7 Tage) fuer eine "
+                "Stadt: Temperatur, gefuehlt, Wind, Regenwahrscheinlichkeit, "
+                "Beschreibung auf Deutsch. Kostenlos ueber Open-Meteo.",
+                {"city": _STR, "days": _INT},
+                ["city"],
+            ),
+            _tool(
+                "read_pdf",
+                "Liest den Text aus einer PDF-Datei (Standard: bis 40 Seiten). "
+                "Nutze das, wenn der Nutzer eine PDF analysieren oder "
+                "zusammenfassen will.",
+                {"path": _STR, "max_pages": _INT},
+                ["path"],
+            ),
         ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> str:
@@ -713,6 +746,37 @@ class ToolBox:
             try:
                 return json.dumps({"deleted": svc.delete_alarm(str(args.get("name", "")))})
             except ValueError as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "web_search":
+            try:
+                return json.dumps(
+                    svc.web_search(
+                        str(args.get("query", "")),
+                        int(args.get("max_results", 6)),
+                    ),
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "get_weather":
+            try:
+                return json.dumps(
+                    svc.get_weather(
+                        str(args.get("city", "")), int(args.get("days", 3))
+                    ),
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "read_pdf":
+            try:
+                return json.dumps(
+                    svc.read_pdf(
+                        str(args.get("path", "")), int(args.get("max_pages", 40))
+                    ),
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
         skl = self._skills
         if name == "list_skills":

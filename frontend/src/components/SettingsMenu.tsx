@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ToolMode } from "../lib/api";
 
+type Theme = "dark" | "light";
+
 export default function SettingsMenu({
   toolMode,
   onToolModeChange,
@@ -9,6 +11,15 @@ export default function SettingsMenu({
   onToolModeChange: (mode: ToolMode) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useState<Theme>(() =>
+    localStorage.getItem("jon_theme") === "light" ? "light" : "dark"
+  );
+
+  const changeTheme = (next: Theme) => {
+    setTheme(next);
+    localStorage.setItem("jon_theme", next);
+    document.documentElement.classList.toggle("light", next === "light");
+  };
 
   const options: { value: ToolMode; label: string; hint: string }[] = [
     {
@@ -21,6 +32,11 @@ export default function SettingsMenu({
       label: "Alles erlauben",
       hint: "Jon führt PC-Aktionen sofort ohne Nachfrage aus.",
     },
+  ];
+
+  const themes: { value: Theme; label: string; hint: string }[] = [
+    { value: "dark", label: "Dunkel", hint: "Schwarz-Gold (Standard)." },
+    { value: "light", label: "Hell", hint: "Weißer Modus mit Gold-Akzenten." },
   ];
 
   return (
@@ -79,6 +95,34 @@ export default function SettingsMenu({
                   </div>
                   <div className="text-[11px] text-white/45 mt-0.5 pl-4">
                     {o.hint}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
+              Design
+            </div>
+            <div className="space-y-1.5">
+              {themes.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => changeTheme(t.value)}
+                  className={`w-full text-left px-3 py-2 rounded-xl border transition-colors ${
+                    theme === t.value
+                      ? "border-gold/40 bg-gold/10"
+                      : "border-white/10 bg-white/5 hover:bg-white/10"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-[12px] text-white/90">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        theme === t.value ? "bg-gold" : "bg-white/20"
+                      }`}
+                    />
+                    {t.label}
+                  </div>
+                  <div className="text-[11px] text-white/45 mt-0.5 pl-4">
+                    {t.hint}
                   </div>
                 </button>
               ))}

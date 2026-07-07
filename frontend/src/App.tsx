@@ -29,6 +29,14 @@ import {
 let idc = 0;
 const nextId = () => `m${Date.now()}_${idc++}`;
 
+const BRIEFING_PROMPT =
+  "Erstelle ein kurzes Tagesbriefing: Begrüße den Nutzer passend zur Tageszeit, " +
+  "nenne Wochentag und Datum (system_info). Hole das Wetter für die Stadt des " +
+  "Nutzers (recall nach der Stadt; ist keine gespeichert, lass das Wetter weg und " +
+  "bitte ihn freundlich, dir einmal seine Stadt zu nennen). Nenne fällige " +
+  "Erinnerungen (list_reminders) und gestellte Wecker (list_alarms), falls " +
+  "vorhanden. Maximal 8 kurze Zeilen.";
+
 export default function App() {
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
   const [provider, setProvider] = useState("nvidia");
@@ -126,6 +134,11 @@ export default function App() {
           setModel(model);
         }
         await refreshConversations();
+        const today = new Date().toISOString().slice(0, 10);
+        if (localStorage.getItem("jon_briefing") !== today) {
+          localStorage.setItem("jon_briefing", today);
+          void runBriefing();
+        }
       } catch {
         setOnline(false);
       }
@@ -303,6 +316,95 @@ export default function App() {
     await refreshConversations();
   };
 
+  const runBriefing = async () => {
+    if (streamingRef.current) return;
+    const assistantEntry: ChatEntry = {
+      id: nextId(),
+      role: "assistant",
+      content: "",
+      streaming: true,
+      tools: [],
+    };
+    setEntries((prev) => [...prev, assistantEntry]);
+    setStreaming(true);
+    await streamChat(
+      {
+        messages: [{ role: "user", content: BRIEFING_PROMPT }],
+        provider: providerRef.current,
+        model: modelRef.current,
+        conversation_id: null,
+        persist: false,
+        tool_mode: toolModeRef.current,
+      },
+      {
+        onTool: (evt) => {
+          handleApprovalEvent(evt);
+          setEntries((prev) =>
+            prev.map((e) => {
+              if (e.id !== assistantEntry.id) return e;
+              const tools = [...(e.tools ?? [])];
+              if (evt.status === "running") {
+                tools.push({
+                  name: evt.name ?? "tool",
+                  done: false,
+                  args: evt.args,
+                  summary: evt.summary,
+                });
+              } else {
+                const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
+                if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
+              }
+              return { ...e, tools };
+            })
+          );
+        },
+        onContent: (delta) =>
+          setEntries((prev) =>
+            prev.map((e) =>
+              e.id === assistantEntry.id
+                ? { ...e, content: e.content + delta }
+                : e
+            )
+          ),
+        onError: (message) => {
+          setApproval(null);
+          setEntries((prev) =>
+            prev.map((e) =>
+              e.id === assistantEntry.id
+                ? { ...e, content: e.content + `\n\n[Fehler] ${message}`, streaming: false }
+                : e
+            )
+          );
+        },
+        onDone: () => {
+          setApproval(null);
+          setEntries((prev) =>
+            prev.map((e) =>
+              e.id === assistantEntry.id ? { ...e, streaming: false } : e
+            )
+          );
+          setStreaming(false);
+        },
+      }
+    );
+  };
+
+  const exportChat = () => {
+    if (entries.length === 0) return;
+    const md = entries
+      .filter((e) => e.content.trim() !== "")
+      .map((e) => `**${e.role === "user" ? "Du" : "Jon"}:**\n\n${e.content.trim()}`)
+      .join("\n\n---\n\n");
+    const blob = new Blob([`# Jon — Unterhaltung\n\n${md}\n`], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `jon-chat-${new Date().toISOString().slice(0, 10)}.md`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   const send = async (text: string) => {
     const command = text.trim().toLowerCase();
     if (command === "/usage" || command === "/nutzung") {
@@ -315,6 +417,14 @@ export default function App() {
     }
     if (command === "/skills") {
       setAccountsTab("skills");
+      return;
+    }
+    if (command === "/briefing") {
+      void runBriefing();
+      return;
+    }
+    if (command === "/export") {
+      exportChat();
       return;
     }
     const userEntry: ChatEntry = { id: nextId(), role: "user", content: text };

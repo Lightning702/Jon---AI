@@ -1,10 +1,32 @@
-const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  shell,
+  dialog,
+  globalShortcut,
+  Tray,
+  Menu,
+} = require("electron");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
 let backendProcess = null;
+let tray = null;
+let quitting = false;
+
+function toggleWindow() {
+  if (!mainWindow) return;
+  if (mainWindow.isVisible() && !mainWindow.isMinimized() && mainWindow.isFocused()) {
+    mainWindow.hide();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
 
 function startBackend() {
   if (!app.isPackaged) return;
@@ -35,6 +57,13 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => mainWindow.show());
+
+  mainWindow.on("close", (event) => {
+    if (!quitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -79,9 +108,31 @@ ipcMain.handle("window:close", () => mainWindow && mainWindow.close());
 app.whenReady().then(() => {
   startBackend();
   createWindow();
+  globalShortcut.register("Control+Alt+J", toggleWindow);
+  tray = new Tray(path.join(__dirname, "tray.png"));
+  tray.setToolTip("Jon — Strg+Alt+J");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Jon öffnen/verstecken", click: toggleWindow },
+      { type: "separator" },
+      {
+        label: "Beenden",
+        click: () => {
+          quitting = true;
+          app.quit();
+        },
+      },
+    ])
+  );
+  tray.on("click", toggleWindow);
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on("before-quit", () => {
+  quitting = true;
+  globalShortcut.unregisterAll();
 });
 
 app.on("window-all-closed", () => {

@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.5.0] — 2026-07-07
+
+### Neu
+- **Web-Suche:** `web_search`-Tool über DuckDuckGo — kostenlos, ohne API-Key. Jon kann
+  jetzt aktuelle News, Preise, Öffnungszeiten und Fakten nachschlagen und Treffer bei
+  Bedarf mit `http_get` öffnen.
+- **Wetter:** `get_weather`-Tool über Open-Meteo (kostenlos, kein Key) — aktuelles
+  Wetter plus Vorhersage bis 7 Tage, auf Deutsch.
+- **Tagesbriefing:** Jon begrüßt einmal täglich beim Start mit Datum, Wetter,
+  Erinnerungen und Weckern; jederzeit manuell mit `/briefing` abrufbar.
+- **PDF-Analyse:** `read_pdf`-Tool liest den Text aus PDF-Dateien (jetzt 51 Tools).
+- **Heller Modus:** Umschaltbar in den Einstellungen (Dunkel/Hell), wird gespeichert.
+- **Globaler Hotkey + Tray:** Strg+Alt+J öffnet/versteckt Jon von überall. Das
+  Schließen-X minimiert in den Infobereich neben der Uhr (Beenden über das Tray-Menü).
+- **Chat-Export:** `/export` speichert die aktuelle Unterhaltung als Markdown-Datei.
+- **Verlauf-Suche:** Suchfeld in der Seitenleiste filtert die Unterhaltungen.
+- Das „Jon Backend"-Fenster zeigt die Server-Ausgabe wieder live an und schreibt sie
+  gleichzeitig nach `data\backend.log`.
+
 ## [1.4.1] — 2026-07-07
 
 ### Behoben

@@ -52,3 +52,119 @@ body {
     -webkit-app-region: drag;
   }
 }
+
+html.light {
+  color-scheme: light;
+}
+
+html.light body {
+  background: radial-gradient(circle at 20% 0%, #ffffff 0%, #f3f1ea 55%, #e9e6dc 100%);
+  color: #17171c;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(154, 123, 31, 0.45);
+}
+
+html.light .glass {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+html.light .glass-strong {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+html.light .gold-text {
+  background: linear-gradient(90deg, #b8901f, #9a7b1f, #7a611a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+html.light .text-white,
+html.light .text-white\/90 {
+  color: rgba(15, 15, 20, 0.92);
+}
+html.light .text-white\/85 {
+  color: rgba(15, 15, 20, 0.87);
+}
+html.light .text-white\/80 {
+  color: rgba(15, 15, 20, 0.82);
+}
+html.light .text-white\/75 {
+  color: rgba(15, 15, 20, 0.77);
+}
+html.light .text-white\/70 {
+  color: rgba(15, 15, 20, 0.72);
+}
+html.light .text-white\/60 {
+  color: rgba(15, 15, 20, 0.62);
+}
+html.light .text-white\/50 {
+  color: rgba(15, 15, 20, 0.55);
+}
+html.light .text-white\/45 {
+  color: rgba(15, 15, 20, 0.5);
+}
+html.light .text-white\/40 {
+  color: rgba(15, 15, 20, 0.48);
+}
+html.light .text-white\/35 {
+  color: rgba(15, 15, 20, 0.42);
+}
+html.light .text-white\/30 {
+  color: rgba(15, 15, 20, 0.38);
+}
+html.light .hover\:text-white\/70:hover {
+  color: rgba(15, 15, 20, 0.72);
+}
+html.light .placeholder-white\/30::placeholder {
+  color: rgba(15, 15, 20, 0.35);
+}
+
+html.light .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.045);
+}
+html.light .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+html.light .bg-white\/20 {
+  background-color: rgba(0, 0, 0, 0.16);
+}
+html.light .bg-white\/25 {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+html.light .bg-white\/40 {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+html.light .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.045);
+}
+html.light .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+html.light .bg-black\/20 {
+  background-color: rgba(255, 255, 255, 0.55);
+}
+html.light .bg-black\/30 {
+  background-color: rgba(255, 255, 255, 0.65);
+}
+html.light .bg-black\/40 {
+  background-color: rgba(255, 255, 255, 0.75);
+}
+html.light .bg-black\/60 {
+  background-color: rgba(240, 238, 230, 0.85);
+}
+html.light .bg-black\/70 {
+  background-color: rgba(240, 238, 230, 0.92);
+}
+
+html.light .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+html.light .border-white\/15 {
+  border-color: rgba(0, 0, 0, 0.14);
+}

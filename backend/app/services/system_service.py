@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import base64
+import html
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
+import urllib.parse
 import urllib.request
 import uuid
 import webbrowser
@@ -18,6 +21,37 @@ from app.core.config import DATA_DIR
 
 ALARM_PREFIX = "JonWecker_"
 ALARM_DIR = DATA_DIR / "alarms"
+
+WEATHER_CODES = {
+    0: "klar",
+    1: "überwiegend klar",
+    2: "teils bewölkt",
+    3: "bedeckt",
+    45: "Nebel",
+    48: "Reifnebel",
+    51: "leichter Nieselregen",
+    53: "Nieselregen",
+    55: "starker Nieselregen",
+    56: "gefrierender Nieselregen",
+    57: "starker gefrierender Nieselregen",
+    61: "leichter Regen",
+    63: "Regen",
+    65: "starker Regen",
+    66: "gefrierender Regen",
+    67: "starker gefrierender Regen",
+    71: "leichter Schneefall",
+    73: "Schneefall",
+    75: "starker Schneefall",
+    77: "Schneegriesel",
+    80: "leichte Regenschauer",
+    81: "Regenschauer",
+    82: "heftige Regenschauer",
+    85: "Schneeschauer",
+    86: "starke Schneeschauer",
+    95: "Gewitter",
+    96: "Gewitter mit Hagel",
+    99: "schweres Gewitter mit Hagel",
+}
 
 
 @dataclass
@@ -389,6 +423,139 @@ class SystemService:
         )
         (ALARM_DIR / f"{name}.ps1").unlink(missing_ok=True)
         return result.exit_code == 0
+
+    def _fetch(self, url: str, timeout: float = 8.0) -> str:
+        request = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 "
+                "Safari/537.36"
+            },
+        )
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read().decode("utf-8", errors="replace")
+
+    @staticmethod
+    def _strip_tags(fragment: str) -> str:
+        return html.unescape(re.sub(r"<[^>]+>", "", fragment)).strip()
+
+    def web_search(self, query: str, max_results: int = 6) -> list[dict]:
+        query = query.strip()
+        if not query:
+            return []
+        page = self._fetch(
+            "https://html.duckduckgo.com/html/?"
+            + urllib.parse.urlencode({"q": query})
+        )
+        snippets = re.findall(
+            r'class="result__snippet"[^>]*>(.*?)</a>', page, re.S
+        )
+        results: list[dict] = []
+        for i, match in enumerate(
+            re.finditer(
+                r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
+                page,
+                re.S,
+            )
+        ):
+            href = match.group(1)
+            url = href
+            if "uddg=" in href:
+                params = urllib.parse.parse_qs(urllib.parse.urlparse(href).query)
+                url = params.get("uddg", [href])[0]
+            snippet = self._strip_tags(snippets[i]) if i < len(snippets) else ""
+            results.append(
+                {
+                    "title": self._strip_tags(match.group(2)),
+                    "url": url,
+                    "snippet": snippet[:300],
+                }
+            )
+            if len(results) >= max(1, min(int(max_results), 10)):
+                break
+        return results
+
+    def get_weather(self, city: str, days: int = 3) -> dict:
+        city = city.strip()
+        if not city:
+            raise ValueError("Stadt angeben")
+        geo = json.loads(
+            self._fetch(
+                "https://geocoding-api.open-meteo.com/v1/search?"
+                + urllib.parse.urlencode({"name": city, "count": 1, "language": "de"})
+            )
+        )
+        places = geo.get("results") or []
+        if not places:
+            raise ValueError(f"Ort nicht gefunden: {city}")
+        place = places[0]
+        days = max(1, min(int(days), 7))
+        data = json.loads(
+            self._fetch(
+                "https://api.open-meteo.com/v1/forecast?"
+                + urllib.parse.urlencode(
+                    {
+                        "latitude": place["latitude"],
+                        "longitude": place["longitude"],
+                        "current": "temperature_2m,apparent_temperature,"
+                        "relative_humidity_2m,precipitation,weather_code,"
+                        "wind_speed_10m",
+                        "daily": "weather_code,temperature_2m_max,"
+                        "temperature_2m_min,precipitation_probability_max",
+                        "timezone": "auto",
+                        "forecast_days": days,
+                    }
+                )
+            )
+        )
+        current = data.get("current", {})
+        daily = data.get("daily", {})
+        forecast = []
+        for i, date in enumerate(daily.get("time", [])):
+            forecast.append(
+                {
+                    "date": date,
+                    "min": daily.get("temperature_2m_min", [None] * 7)[i],
+                    "max": daily.get("temperature_2m_max", [None] * 7)[i],
+                    "regen_prozent": daily.get(
+                        "precipitation_probability_max", [None] * 7
+                    )[i],
+                    "wetter": WEATHER_CODES.get(
+                        daily.get("weather_code", [None] * 7)[i], "unbekannt"
+                    ),
+                }
+            )
+        return {
+            "ort": f"{place.get('name')}, {place.get('country', '')}".strip(", "),
+            "jetzt": {
+                "temperatur": current.get("temperature_2m"),
+                "gefuehlt": current.get("apparent_temperature"),
+                "luftfeuchte": current.get("relative_humidity_2m"),
+                "niederschlag": current.get("precipitation"),
+                "wind_kmh": current.get("wind_speed_10m"),
+                "wetter": WEATHER_CODES.get(current.get("weather_code"), "unbekannt"),
+            },
+            "vorhersage": forecast,
+        }
+
+    def read_pdf(self, path: str, max_pages: int = 40) -> dict:
+        from pypdf import PdfReader
+
+        target = Path(path).expanduser()
+        if not target.exists():
+            raise FileNotFoundError(f"Datei nicht gefunden: {path}")
+        reader = PdfReader(str(target))
+        total = len(reader.pages)
+        limit = max(1, min(int(max_pages), total))
+        text = "\n\n".join(
+            reader.pages[i].extract_text() or "" for i in range(limit)
+        )
+        return {
+            "seiten_gesamt": total,
+            "seiten_gelesen": limit,
+            "text": text[:20000],
+        }
 
     def local_llm_status(self, base_url: str) -> dict:
         root = base_url.rstrip("/").replace("://localhost", "://127.0.0.1")
