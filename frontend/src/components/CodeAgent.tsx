@@ -149,11 +149,10 @@ export default function CodeAgent({
         return;
       }
       const folder = await pickFolderDialog();
-      if (folder === null) {
-        setShowManual(true);
-        return;
-      }
       if (folder) setWorkspacePath(folder);
+      else if (folder === null) setShowManual(true);
+    } catch {
+      setShowManual(true);
     } finally {
       setPicking(false);
     }

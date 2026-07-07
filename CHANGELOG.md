@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.4.1] — 2026-07-07
+
+### Behoben
+- **Backend stürzte beim Neustart immer ab („Port 8756 bereits verwendet"):**
+  `start-jon.bat` filterte die Portbelegung nach dem englischen Wort „LISTENING" —
+  auf deutschem Windows heißt es „ABHÖREN", der alte Prozess wurde also nie beendet.
+  Der Port-Kill läuft jetzt sprachunabhängig über PowerShell, und das Backend räumt
+  beim Start zusätzlich selbst einen belegten Port frei (alte Instanz wird beendet,
+  neue übernimmt).
+- Ordner-Dialog in Jon Code: Fehler werden nicht mehr stillschweigend verschluckt —
+  wenn kein Dialog erscheinen kann, öffnet sich das manuelle Pfad-Feld.
+- Der „Verbunden"-Punkt prüft das Backend jetzt alle 15 Sekunden statt nur beim
+  App-Start.
+
 ## [1.4.0] — 2026-07-07
 
 ### Neu

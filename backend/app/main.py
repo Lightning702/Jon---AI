@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import socket
+import subprocess
+import time
 from contextlib import asynccontextmanager, suppress
 
 import uvicorn
@@ -50,8 +54,47 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
+def _port_in_use(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(1.0)
+        return probe.connect_ex((host, port)) == 0
+
+
+def _free_port(host: str, port: int) -> None:
+    if not _port_in_use(host, port):
+        return
+    if os.name == "nt":
+        subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                f"Get-NetTCPConnection -LocalPort {port} -State Listen "
+                "-ErrorAction SilentlyContinue | "
+                "Select-Object -ExpandProperty OwningProcess -Unique | "
+                f"Where-Object {{ $_ -ne {os.getpid()} }} | "
+                "ForEach-Object { Stop-Process -Id $_ -Force "
+                "-ErrorAction SilentlyContinue }",
+            ],
+            capture_output=True,
+            timeout=20,
+        )
+    else:
+        subprocess.run(
+            ["sh", "-c", f"lsof -ti tcp:{port} | xargs -r kill -9"],
+            capture_output=True,
+            timeout=20,
+        )
+    for _ in range(20):
+        if not _port_in_use(host, port):
+            return
+        time.sleep(0.25)
+
+
 def main() -> None:
     settings = get_settings()
+    _free_port(settings.host, settings.port)
     uvicorn.run(
         "app.main:app",
         host=settings.host,

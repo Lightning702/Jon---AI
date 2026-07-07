@@ -140,6 +140,18 @@ export default function App() {
   }, [entries]);
 
   useEffect(() => {
+    const timer = window.setInterval(async () => {
+      try {
+        await getHealth();
+        setOnline(true);
+      } catch {
+        setOnline(false);
+      }
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     if (!online) return;
     if ("Notification" in window && Notification.permission === "default") {
       void Notification.requestPermission();
