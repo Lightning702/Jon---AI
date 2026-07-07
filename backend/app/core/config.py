@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     mistral_api_key: str | None = None
     glm_api_key: str | None = None
     qwen_api_key: str | None = None
+    openrouter_api_key: str | None = None
+    groq_api_key: str | None = None
+    together_api_key: str | None = None
+    xai_api_key: str | None = None
 
     openai_base_url: str = "https://api.openai.com/v1"
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
@@ -46,6 +50,11 @@ class Settings(BaseSettings):
     glm_base_url: str = "https://open.bigmodel.cn/api/paas/v4"
     qwen_base_url: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
     ollama_base_url: str = "http://localhost:11434/v1"
+    lmstudio_base_url: str = "http://localhost:1234/v1"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    together_base_url: str = "https://api.together.xyz/v1"
+    xai_base_url: str = "https://api.x.ai/v1"
 
     request_timeout: float = 180.0
     max_tokens: int = 32768

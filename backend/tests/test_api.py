@@ -67,10 +67,48 @@ def test_accounts_list():
     providers = {a["provider"] for a in body}
     assert {"openai", "anthropic"} <= providers
     for account in body:
-        assert account["plan"] == "Über die offizielle API nicht verfügbar"
+        if account["auth"] == "api_key":
+            assert account["plan"] == "Über die offizielle API nicht verfügbar"
 
 
 def test_approve_unknown():
     res = client.post("/api/chat/approve", json={"id": "nope", "approved": True})
     assert res.status_code == 200
     assert res.json()["status"] == "unknown"
+
+
+def test_settings_roundtrip():
+    res = client.put(
+        "/api/settings", json={"custom_prompt": "Sei knapp.", "prompt_mode": "append"}
+    )
+    assert res.status_code == 200
+    assert res.json()["custom_prompt"] == "Sei knapp."
+    client.put("/api/settings", json={"custom_prompt": ""})
+
+
+def test_reminders_flow():
+    created = client.post(
+        "/api/reminders", json={"text": "Trinken", "time": "13:00", "repeat": "daily"}
+    ).json()
+    assert created["id"]
+    assert any(r["id"] == created["id"] for r in client.get("/api/reminders").json())
+    assert client.delete(f"/api/reminders/{created['id']}").json()["deleted"] is True
+
+
+def test_accounts_include_local_and_new():
+    providers = {a["provider"]: a for a in client.get("/api/accounts").json()}
+    assert {"openrouter", "groq", "together", "xai", "ollama", "lmstudio"} <= set(providers)
+    assert providers["ollama"]["auth"] == "local"
+
+
+def test_game_skill_present():
+    res = client.get("/api/skills/game-design")
+    assert res.status_code == 200
+    assert "requestAnimationFrame" in res.json()["content"]
+
+
+def test_edit_and_game_tools_registered():
+    from app.services.tools import ToolBox
+
+    names = {t["function"]["name"] for t in ToolBox().schema()}
+    assert {"edit_file", "set_reminder", "list_reminders"} <= names

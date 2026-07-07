@@ -78,6 +78,53 @@ class ProviderRegistry:
             default_models=["llama3.2", "qwen2.5", "mistral"],
             timeout=t,
         )
+        self._providers["lmstudio"] = OpenAICompatibleProvider(
+            name="lmstudio",
+            base_url=s.lmstudio_base_url,
+            api_key="lmstudio",
+            default_models=[],
+            timeout=t,
+        )
+        self._providers["openrouter"] = OpenAICompatibleProvider(
+            name="openrouter",
+            base_url=s.openrouter_base_url,
+            key_resolver=self._resolver("openrouter"),
+            default_models=[
+                "openai/gpt-4o-mini",
+                "anthropic/claude-3.5-sonnet",
+                "google/gemini-2.0-flash-exp",
+                "meta-llama/llama-3.3-70b-instruct",
+            ],
+            timeout=t,
+        )
+        self._providers["groq"] = OpenAICompatibleProvider(
+            name="groq",
+            base_url=s.groq_base_url,
+            key_resolver=self._resolver("groq"),
+            default_models=[
+                "llama-3.3-70b-versatile",
+                "llama-3.1-8b-instant",
+                "mixtral-8x7b-32768",
+            ],
+            timeout=t,
+        )
+        self._providers["together"] = OpenAICompatibleProvider(
+            name="together",
+            base_url=s.together_base_url,
+            key_resolver=self._resolver("together"),
+            default_models=[
+                "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+                "Qwen/Qwen2.5-72B-Instruct-Turbo",
+            ],
+            timeout=t,
+        )
+        self._providers["xai"] = OpenAICompatibleProvider(
+            name="xai",
+            base_url=s.xai_base_url,
+            key_resolver=self._resolver("xai"),
+            default_models=["grok-2-latest", "grok-2-vision-latest"],
+            timeout=t,
+        )
         self._providers["anthropic"] = AnthropicProvider(
             key_resolver=self._resolver("anthropic"),
             timeout=t,

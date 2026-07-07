@@ -6,6 +6,7 @@ from typing import Any
 
 from app.services.automation_service import AutomationService
 from app.services.memory_service import MemoryService
+from app.services.reminder_service import ReminderService
 from app.services.skill_service import SkillService
 from app.services.system_service import SystemService
 
@@ -23,6 +24,7 @@ SAFE_TOOLS = {
     "list_processes",
     "list_skills",
     "read_skill",
+    "list_reminders",
 }
 
 
@@ -50,6 +52,8 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return f"Liest die Datei {_shorten(args.get('path', ''))}."
     if name == "write_file":
         return f"Schreibt in die Datei {_shorten(args.get('path', ''))}."
+    if name == "edit_file":
+        return f"Ändert gezielt die Datei {_shorten(args.get('path', ''))}."
     if name == "move_path":
         return (
             f"Verschiebt {_shorten(args.get('source', ''))} nach "
@@ -123,6 +127,10 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return f"Liest die Skill-Anleitung „{_shorten(args.get('name', ''))}“."
     if name == "write_skill":
         return f"Speichert die Skill-Anleitung „{_shorten(args.get('name', ''))}“."
+    if name == "set_reminder":
+        return f"Erinnerung um {args.get('time', '')}: {_shorten(args.get('text', ''))}"
+    if name == "list_reminders":
+        return "Listet aktive Erinnerungen auf."
     return f"Führt das Tool {name} aus."
 
 
@@ -148,11 +156,13 @@ class ToolBox:
         automation: AutomationService | None = None,
         memory: MemoryService | None = None,
         skills: SkillService | None = None,
+        reminders: ReminderService | None = None,
     ) -> None:
         self._service = service or SystemService()
         self._automation = automation or AutomationService()
         self._memory = memory or MemoryService()
         self._skills = skills or SkillService()
+        self._reminders = reminders or ReminderService()
 
     def schema(self) -> list[dict]:
         return [
@@ -211,9 +221,18 @@ class ToolBox:
             ),
             _tool(
                 "write_file",
-                "Schreibt Text in eine Datei und ueberschreibt vorhandenen Inhalt.",
+                "Schreibt Text in eine Datei und ueberschreibt vorhandenen Inhalt. Fuer "
+                "Aenderungen an vorhandenen Dateien bevorzuge edit_file.",
                 {"path": _STR, "content": _STR},
                 ["path", "content"],
+            ),
+            _tool(
+                "edit_file",
+                "Aendert eine Datei praezise: ersetzt den exakten Text 'old' durch 'new', "
+                "ohne den Rest zu ueberschreiben. old muss eindeutig sein. Nutze das fuer "
+                "gezielte Code-Aenderungen.",
+                {"path": _STR, "old": _STR, "new": _STR},
+                ["path", "old", "new"],
             ),
             _tool(
                 "move_path",
@@ -444,6 +463,26 @@ class ToolBox:
                 {"query": _STR},
                 ["query"],
             ),
+            _tool(
+                "set_reminder",
+                "Legt eine zeitgebundene Erinnerung an. text = woran erinnert wird, "
+                "time = Uhrzeit HH:MM (24h), repeat = daily (taeglich) oder once (einmal). "
+                "Nutze das bei Wuenschen wie 'erinnere mich jeden Tag um 13 Uhr ans "
+                "Trinken'. Jon zeigt die Erinnerung, sobald sie faellig ist und die App "
+                "offen ist.",
+                {
+                    "text": _STR,
+                    "time": {"type": "string", "description": "HH:MM"},
+                    "repeat": {"type": "string", "enum": ["daily", "once"]},
+                },
+                ["text", "time"],
+            ),
+            _tool(
+                "list_reminders",
+                "Listet alle aktiven Erinnerungen auf.",
+                {},
+                [],
+            ),
         ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> str:
@@ -497,6 +536,16 @@ class ToolBox:
         if name == "write_file":
             svc.write_file(str(args.get("path", "")), str(args.get("content", "")))
             return json.dumps({"written": True})
+        if name == "edit_file":
+            try:
+                result = svc.edit_file(
+                    str(args.get("path", "")),
+                    str(args.get("old", "")),
+                    str(args.get("new", "")),
+                )
+                return json.dumps(result, ensure_ascii=False)
+            except (ValueError, FileNotFoundError) as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
         if name == "move_path":
             dest = svc.move_path(
                 str(args.get("source", "")), str(args.get("destination", ""))
@@ -635,4 +684,17 @@ class ToolBox:
                 {"removed": mem.forget(str(args.get("query", "")))},
                 ensure_ascii=False,
             )
+        rem = self._reminders
+        if name == "set_reminder":
+            return json.dumps(
+                rem.add(
+                    str(args.get("text", "")),
+                    str(args.get("time", "")),
+                    str(args.get("repeat", "daily")),
+                    str(args.get("phone", "")),
+                ),
+                ensure_ascii=False,
+            )
+        if name == "list_reminders":
+            return json.dumps(rem.list(), ensure_ascii=False)
         return json.dumps({"error": f"unbekanntes Tool: {name}"})

@@ -56,7 +56,45 @@ SUPPORTED = {
         "auth": "api_key",
         "docs": "https://dashscope.console.aliyun.com",
     },
+    "openrouter": {
+        "label": "OpenRouter",
+        "env_var": "OPENROUTER_API_KEY",
+        "auth": "api_key",
+        "docs": "https://openrouter.ai/keys",
+    },
+    "groq": {
+        "label": "Groq",
+        "env_var": "GROQ_API_KEY",
+        "auth": "api_key",
+        "docs": "https://console.groq.com/keys",
+    },
+    "together": {
+        "label": "Together AI",
+        "env_var": "TOGETHER_API_KEY",
+        "auth": "api_key",
+        "docs": "https://api.together.xyz/settings/api-keys",
+    },
+    "xai": {
+        "label": "xAI (Grok)",
+        "env_var": "XAI_API_KEY",
+        "auth": "api_key",
+        "docs": "https://console.x.ai",
+    },
+    "ollama": {
+        "label": "Ollama (lokal)",
+        "env_var": "OLLAMA_BASE_URL",
+        "auth": "local",
+        "docs": "https://ollama.com/download",
+    },
+    "lmstudio": {
+        "label": "LM Studio (lokal)",
+        "env_var": "LMSTUDIO_BASE_URL",
+        "auth": "local",
+        "docs": "https://lmstudio.ai",
+    },
 }
+
+LOCAL_PROVIDERS = {"ollama", "lmstudio"}
 
 UNAVAILABLE = "Über die offizielle API nicht verfügbar"
 
@@ -119,21 +157,29 @@ class AccountService:
             self._save()
             return existed
 
-    def status(self, provider: str, env_configured: bool) -> dict:
+    def status(
+        self, provider: str, env_configured: bool, local_reachable: bool | None = None
+    ) -> dict:
         meta = SUPPORTED[provider]
         entry = self._data.get(provider, {})
-        connected = bool(entry.get("api_key")) or env_configured
+        is_local = meta["auth"] == "local"
+        if is_local:
+            connected = bool(local_reachable)
+            source = "local" if connected else None
+        else:
+            connected = bool(entry.get("api_key")) or env_configured
+            source = "account" if entry.get("api_key") else ("env" if env_configured else None)
         return {
             "provider": provider,
             "label": meta["label"],
             "auth": meta["auth"],
             "docs": meta["docs"],
             "connected": connected,
-            "source": "account" if entry.get("api_key") else ("env" if env_configured else None),
+            "source": source,
             "default_model": entry.get("default_model"),
-            "account_name": UNAVAILABLE,
+            "account_name": "Lokal auf deinem Gerät" if is_local else UNAVAILABLE,
             "avatar_url": None,
-            "plan": UNAVAILABLE,
+            "plan": "Kostenlos (lokal)" if is_local else UNAVAILABLE,
         }
 
 

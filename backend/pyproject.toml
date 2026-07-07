@@ -1,0 +1,28 @@
+[project]
+name = "jon-assistant"
+version = "1.3.0"
+description = "Jon — KI-Desktop-Assistent und Coding-Agent"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "python-dotenv>=1.0",
+    "sqlalchemy>=2.0.36",
+    "openai>=1.59",
+    "anthropic>=0.42",
+    "google-generativeai>=0.8",
+    "httpx>=0.28",
+]
+
+[project.scripts]
+jon = "app.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]

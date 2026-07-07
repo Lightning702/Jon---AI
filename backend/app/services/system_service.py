@@ -103,6 +103,16 @@ class SystemService:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
 
+    def edit_file(self, path: str, old: str, new: str, count: int = 1) -> dict:
+        target = Path(path).expanduser()
+        text = target.read_text(encoding="utf-8")
+        occurrences = text.count(old)
+        if occurrences == 0:
+            raise ValueError("Textstelle nicht gefunden")
+        replaced = text.replace(old, new) if count < 0 else text.replace(old, new, count)
+        target.write_text(replaced, encoding="utf-8")
+        return {"path": str(target), "replacements": occurrences if count < 0 else min(count, occurrences)}
+
     def move_path(self, source: str, destination: str) -> str:
         src = Path(source).expanduser()
         dst = Path(destination).expanduser()
@@ -273,3 +283,23 @@ class SystemService:
     def lock_screen(self) -> bool:
         subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"], check=False)
         return True
+
+    def local_llm_status(self, base_url: str) -> dict:
+        root = base_url.rstrip("/")
+        if root.endswith("/v1"):
+            root = root[:-3]
+        for suffix, key in (("/api/tags", "models"), ("/v1/models", "data")):
+            try:
+                request = urllib.request.Request(root + suffix)
+                with urllib.request.urlopen(request, timeout=1.5) as response:
+                    data = json.loads(response.read())
+                    items = data.get(key, [])
+                    models = [
+                        item.get("name") or item.get("id")
+                        for item in items
+                        if isinstance(item, dict)
+                    ]
+                    return {"reachable": True, "models": [m for m in models if m]}
+            except Exception:
+                continue
+        return {"reachable": False, "models": []}

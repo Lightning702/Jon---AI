@@ -2,6 +2,30 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.3.0] — 2026-07-07
+
+### Neu
+- **Coding-Agent im Terminal (`jon`):** autonomer KI-Coding-Agent für das VS-Code-Terminal
+  mit Workspace-Analyse, präzisen Multi-Datei-Änderungen, Build/Test-Schleife und
+  vollständigem Slash-Command-System (`/help /clear /status /usage /model /provider
+  /agents /tools /memory /plugins /settings`). `/model` und `/provider` wechseln ohne
+  Neustart. Installierbar über `pip install -e .` (Konsolen-Befehl `jon`) oder `jon.bat`.
+- **Neue Provider:** OpenRouter, Groq, Together AI, xAI (Grok), LM Studio — plus Ollama als
+  vollwertige lokale Gratis-Option mit Erreichbarkeits- und Modell-Erkennung.
+- **`edit_file`-Tool:** präzise Textersetzung statt ganze Dateien zu überschreiben.
+- **Eigenes System-Prompt:** in der App unter Konten → Prompt (ergänzen oder ersetzen).
+- **Eigene Skills anlegen/löschen** direkt in der App; neuer **game-design**-Skill
+  (2D-Canvas- und 3D-Three.js-Gerüste).
+- **Erinnerungen/Loops:** `set_reminder`-Tool und Konten → Erinnerungen. Jon meldet fällige
+  Erinnerungen, sobald die App offen ist, per Chat-Nachricht und Browser-Benachrichtigung.
+
+### Hinweis
+- Eine Anmeldung mit ChatGPT-/Claude-**Abo** (statt API-Key) bleibt bewusst außen vor: Die
+  Anbieter stellen dafür keine offizielle Schnittstelle bereit. Für „gratis" sind Ollama und
+  LM Studio (lokal) sowie Free-Tiers (NVIDIA, Gemini, Groq) vorgesehen.
+- SMS-Benachrichtigung an eine Telefonnummer ist nicht enthalten (bräuchte einen
+  kostenpflichtigen SMS-Dienst); stattdessen offizielle Browser-Benachrichtigungen.
+
 ## [1.2.0] — 2026-07-07
 
 ### Neu

@@ -11,6 +11,7 @@ from app.providers.registry import get_registry
 from app.schemas import ChatIn
 from app.services.approval_service import ToolDeniedError, get_approval_service
 from app.services.memory_service import MemoryService
+from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
 from app.services.tools import SAFE_TOOLS, ToolBox, describe_tool
 from app.services.usage_service import get_usage_service
@@ -53,7 +54,20 @@ SYSTEM_PROMPT = (
     "knapp, praezise und auf Deutsch."
 )
 
-TOOL_PROVIDERS = {"nvidia", "openai", "deepseek", "mistral", "glm", "qwen", "ollama"}
+TOOL_PROVIDERS = {
+    "nvidia",
+    "openai",
+    "deepseek",
+    "mistral",
+    "glm",
+    "qwen",
+    "ollama",
+    "lmstudio",
+    "openrouter",
+    "groq",
+    "together",
+    "xai",
+}
 
 
 class ChatService:
@@ -66,7 +80,14 @@ class ChatService:
         self._usage = get_usage_service()
 
     def _system_prompt(self) -> str:
-        parts = [SYSTEM_PROMPT]
+        custom, mode = get_settings_service().custom_prompt()
+        if custom.strip() and mode == "replace":
+            base = custom.strip()
+        elif custom.strip():
+            base = f"{SYSTEM_PROMPT}\n\n{custom.strip()}"
+        else:
+            base = SYSTEM_PROMPT
+        parts = [base]
         catalog = self._skills.catalog()
         if catalog:
             parts.append(catalog)

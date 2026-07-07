@@ -112,7 +112,7 @@ export interface Account {
   auth: string;
   docs: string;
   connected: boolean;
-  source: "account" | "env" | null;
+  source: "account" | "env" | "local" | null;
   default_model: string | null;
   account_name: string;
   avatar_url: string | null;
@@ -203,6 +203,69 @@ export async function saveSkill(name: string, content: string): Promise<void> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content }),
   });
+}
+
+export async function deleteSkill(name: string): Promise<void> {
+  await fetch(`${BASE}/skills/${name}`, { method: "DELETE" });
+}
+
+export interface UserSettings {
+  custom_prompt: string;
+  prompt_mode: string;
+  tool_mode: string;
+}
+
+export async function getUserSettings(): Promise<UserSettings> {
+  const res = await fetch(`${BASE}/settings`);
+  if (!res.ok) return { custom_prompt: "", prompt_mode: "append", tool_mode: "ask" };
+  return res.json();
+}
+
+export async function saveUserSettings(
+  values: Partial<UserSettings>
+): Promise<void> {
+  await fetch(`${BASE}/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+}
+
+export interface Reminder {
+  id: string;
+  text: string;
+  time: string;
+  repeat: string;
+  phone: string;
+  active: boolean;
+}
+
+export async function getReminders(): Promise<Reminder[]> {
+  const res = await fetch(`${BASE}/reminders`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function addReminder(
+  text: string,
+  time: string,
+  repeat: string
+): Promise<void> {
+  await fetch(`${BASE}/reminders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, time, repeat }),
+  });
+}
+
+export async function getDueReminders(): Promise<Reminder[]> {
+  const res = await fetch(`${BASE}/reminders/due`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function deleteReminder(id: string): Promise<void> {
+  await fetch(`${BASE}/reminders/${id}`, { method: "DELETE" });
 }
 
 export async function streamChat(

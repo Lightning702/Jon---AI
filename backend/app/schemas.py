@@ -42,6 +42,19 @@ class AccountModelIn(BaseModel):
     model: str
 
 
+class SettingsIn(BaseModel):
+    custom_prompt: str | None = None
+    prompt_mode: str | None = None
+    tool_mode: str | None = None
+
+
+class ReminderIn(BaseModel):
+    text: str
+    time: str = ""
+    repeat: str = "daily"
+    phone: str = ""
+
+
 class MessageOut(BaseModel):
     id: str
     role: str

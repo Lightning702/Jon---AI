@@ -19,6 +19,7 @@ import {
   deleteConversation,
   getConversation,
   getConversations,
+  getDueReminders,
   getHealth,
   getProviders,
   streamChat,
@@ -135,6 +136,28 @@ export default function App() {
       behavior: "smooth",
     });
   }, [entries]);
+
+  useEffect(() => {
+    if (!online) return;
+    if ("Notification" in window && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+    const fire = async () => {
+      const due = await getDueReminders();
+      for (const r of due) {
+        setEntries((prev) => [
+          ...prev,
+          { id: nextId(), role: "assistant", content: `🔔 Erinnerung: ${r.text}` },
+        ]);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Jon — Erinnerung", { body: r.text });
+        }
+      }
+    };
+    void fire();
+    const timer = window.setInterval(() => void fire(), 60000);
+    return () => window.clearInterval(timer);
+  }, [online]);
 
   const runVoiceCommand = async (text: string) => {
     if (streamingRef.current) return;

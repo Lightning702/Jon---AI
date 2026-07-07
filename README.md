@@ -52,8 +52,14 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
 
 ## Funktionen
 
+- **Coding-Agent im Terminal** (`jon`): arbeitet wie ein moderner KI-Coding-Agent direkt
+  im VS-Code-Workspace an ganzen Projekten (siehe [docs/CLI.md](docs/CLI.md))
 - **Multi-Provider-Chat** mit einheitlicher Schnittstelle: NVIDIA, OpenAI, Anthropic,
-  Gemini, Ollama, DeepSeek, GLM, Qwen, Mistral
+  Gemini, **Ollama & LM Studio (lokal, gratis)**, OpenRouter, Groq, Together AI, xAI,
+  DeepSeek, GLM, Qwen, Mistral
+- **Erinnerungen/Loops**: „Erinnere mich jeden Tag um 13 Uhr ans Trinken" — Jon meldet sich,
+  sobald die App offen ist, mit Chat-Nachricht und Browser-Benachrichtigung
+- **Eigenes Prompt & eigene Skills** direkt in der App (Konten → Prompt / Skills)
 - **Echtes Token-Streaming** (Server-Sent Events), inklusive separatem Denkprozess
   (`reasoning_content`)
 - **Modell- und Providerwechsel** zur Laufzeit; automatische Modell-Erkennung pro Anbieter
@@ -210,6 +216,7 @@ Details und Fehlerbehebung: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 | Dokument | Inhalt |
 |----------|--------|
 | [docs/FEATURES.md](docs/FEATURES.md) | Vollständige Funktionsliste |
+| [docs/CLI.md](docs/CLI.md) | `jon` Coding-Agent im Terminal |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architekturübersicht |
 | [docs/API.md](docs/API.md) | Komplette API- und Tool-Referenz |
 | [docs/SKILLS.md](docs/SKILLS.md) | Skill-/Plugin-Dokumentation |

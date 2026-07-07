@@ -22,7 +22,12 @@ class KeyManager:
         "mistral": "MISTRAL_API_KEY",
         "glm": "GLM_API_KEY",
         "qwen": "QWEN_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
+        "groq": "GROQ_API_KEY",
+        "together": "TOGETHER_API_KEY",
+        "xai": "XAI_API_KEY",
         "ollama": "OLLAMA_BASE_URL",
+        "lmstudio": "LMSTUDIO_BASE_URL",
     }
 
     def __init__(self, settings: Settings | None = None) -> None:
@@ -38,7 +43,12 @@ class KeyManager:
             "mistral": self._settings.mistral_api_key,
             "glm": self._settings.glm_api_key,
             "qwen": self._settings.qwen_api_key,
+            "openrouter": self._settings.openrouter_api_key,
+            "groq": self._settings.groq_api_key,
+            "together": self._settings.together_api_key,
+            "xai": self._settings.xai_api_key,
             "ollama": "ollama",
+            "lmstudio": "lmstudio",
         }
         value = mapping.get(provider)
         return value.strip() if isinstance(value, str) and value.strip() else None

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 
 from fastapi import APIRouter, HTTPException
@@ -19,17 +20,23 @@ from app.schemas import (
     ConversationOut,
     HealthOut,
     ProviderStatus,
+    ReminderIn,
+    SettingsIn,
     SkillWriteIn,
 )
-from app.services.account_service import SUPPORTED, get_account_service
+from app.services.account_service import LOCAL_PROVIDERS, SUPPORTED, get_account_service
 from app.services.approval_service import get_approval_service
 from app.services.chat_service import ChatService
+from app.services.reminder_service import get_reminder_service
+from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
+from app.services.system_service import SystemService
 from app.services.usage_service import get_usage_service
 
 router = APIRouter(prefix="/api")
 _chat_service = ChatService()
 _skills = SkillService()
+_system = SystemService()
 
 
 @router.get("/health", response_model=HealthOut)
@@ -183,18 +190,30 @@ async def accounts() -> list[dict]:
     registry = get_registry()
     keys = KeyManager()
     account = get_account_service()
+    settings = get_settings()
+    local_urls = {
+        "ollama": settings.ollama_base_url,
+        "lmstudio": settings.lmstudio_base_url,
+    }
     result: list[dict] = []
     for name in SUPPORTED:
         env_configured = keys.env_key_for(name) is not None
-        status = account.status(name, env_configured)
-        provider = registry.all().get(name)
-        if provider is not None and provider.available():
-            try:
-                status["models"] = await provider.list_models()
-            except Exception:
-                status["models"] = []
+        if name in LOCAL_PROVIDERS:
+            probe = await asyncio.to_thread(
+                _system.local_llm_status, local_urls[name]
+            )
+            status = account.status(name, env_configured, probe["reachable"])
+            status["models"] = probe["models"]
         else:
-            status["models"] = []
+            status = account.status(name, env_configured)
+            provider = registry.all().get(name)
+            if provider is not None and provider.available():
+                try:
+                    status["models"] = await provider.list_models()
+                except Exception:
+                    status["models"] = []
+            else:
+                status["models"] = []
         result.append(status)
     return result
 
@@ -217,3 +236,35 @@ async def set_account_model(provider: str, payload: AccountModelIn) -> dict:
 @router.delete("/accounts/{provider}")
 async def disconnect_account(provider: str) -> dict:
     return {"disconnected": get_account_service().disconnect(provider)}
+
+
+@router.get("/settings")
+async def get_user_settings() -> dict:
+    return get_settings_service().get()
+
+
+@router.put("/settings")
+async def update_user_settings(payload: SettingsIn) -> dict:
+    return get_settings_service().update(payload.model_dump(exclude_none=True))
+
+
+@router.get("/reminders")
+async def list_reminders() -> list[dict]:
+    return get_reminder_service().list()
+
+
+@router.post("/reminders")
+async def add_reminder(payload: ReminderIn) -> dict:
+    return get_reminder_service().add(
+        payload.text, payload.time, payload.repeat, payload.phone
+    )
+
+
+@router.get("/reminders/due")
+async def due_reminders() -> list[dict]:
+    return get_reminder_service().due()
+
+
+@router.delete("/reminders/{reminder_id}")
+async def delete_reminder(reminder_id: str) -> dict:
+    return {"deleted": get_reminder_service().delete(reminder_id)}
