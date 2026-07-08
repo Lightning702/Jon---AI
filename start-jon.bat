@@ -41,8 +41,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "data" mkdir "data"
-
 set "LOGDIR=%LOCALAPPDATA%\Jon"
 if not exist "%LOGDIR%" mkdir "%LOGDIR%"
 set "LOGFILE=%LOGDIR%\backend.log"

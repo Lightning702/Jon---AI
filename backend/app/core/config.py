@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import shutil
 from functools import lru_cache
 from pathlib import Path
 
@@ -7,8 +9,34 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 ENV_FILE = ROOT_DIR / ".env"
-DATA_DIR = ROOT_DIR / "data"
+
+
+def _resolve_data_dir() -> Path:
+    override = os.environ.get("JON_DATA_DIR")
+    if override:
+        return Path(override)
+    base = os.environ.get("LOCALAPPDATA")
+    if base:
+        return Path(base) / "Jon" / "data"
+    return Path.home() / ".jon" / "data"
+
+
+DATA_DIR = _resolve_data_dir()
+_OLD_DATA_DIR = ROOT_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+if _OLD_DATA_DIR.exists() and _OLD_DATA_DIR.resolve() != DATA_DIR.resolve():
+    for _item in _OLD_DATA_DIR.iterdir():
+        _target = DATA_DIR / _item.name
+        if _target.exists():
+            continue
+        try:
+            if _item.is_dir():
+                shutil.copytree(_item, _target)
+            else:
+                shutil.copy2(_item, _target)
+        except Exception:
+            pass
 
 
 class Settings(BaseSettings):

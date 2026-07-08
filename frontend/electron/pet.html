@@ -417,10 +417,13 @@
       }
       function cleanForSpeech(t) {
         return t
-          .replace(/```[\s\S]*?```/g, " Codeblock. ")
+          .replace(/```[\s\S]*?```/g, " ")
+          .replace(/`[^`]*`/g, " ")
           .replace(/\[(.*?)\]\(.*?\)/g, "$1")
           .replace(/https?:\/\/\S+/g, " Link ")
-          .replace(/[*_#`>|]+/g, " ")
+          .replace(/^\s*[-*+]\s+/gm, " ")
+          .replace(/-{2,}/g, " ")
+          .replace(/[*_#>`|]+/g, " ")
           .replace(/\s+/g, " ")
           .trim();
       }

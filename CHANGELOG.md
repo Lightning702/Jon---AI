@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.9.5] — 2026-07-08
+
+### Behoben
+- **Mini Jons Stimme klang bei Tabellen verzerrt:** Mini Jon schreibt jetzt ausschließlich
+  einfachen Fließtext (normale Wörter, Zahlen, Emojis) — keine Tabellen, `|`, `**`, `#` oder
+  Code-Blöcke mehr. Dadurch klingt das Vorlesen sauber. Die Sprach-Bereinigung im kleinen
+  Jon wurde zusätzlich robuster.
+- **Netlify-Fehler „Unable to read file usage.json" (und ähnliche):** Alle Laufzeitdaten
+  (Unterhaltungen, Konten, Nutzung, Erinnerungen …) liegen jetzt außerhalb des
+  Projektordners unter `%LOCALAPPDATA%\Jon\data`. Vorhandene Daten werden beim ersten Start
+  automatisch dorthin übernommen. Der Projektordner enthält damit keine gesperrten
+  Datendateien mehr, die den Upload stören. Empfehlung bleibt: für Netlify nur `website/`
+  hochladen.
+
 ## [1.9.4] — 2026-07-08
 
 ### Behoben
