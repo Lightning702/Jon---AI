@@ -159,7 +159,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-white/80">Rosige Wangen</span>
+              <span className="text-[13px] text-white/80">Wangenrot (rosa)</span>
               <button
                 onClick={() => update({ pet_cheeks: !cfg.pet_cheeks })}
                 className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
