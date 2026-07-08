@@ -1,4 +1,10 @@
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { motion } from "framer-motion";
 import {
   Account,
@@ -52,6 +58,25 @@ const TAB_ORDER: Tab[] = [
   "reminders",
 ];
 
+type Saver = () => Promise<void>;
+
+const SaveCtx = createContext<{
+  register: (key: string, fn: Saver) => void;
+  unregister: (key: string) => void;
+}>({ register: () => {}, unregister: () => {} });
+
+function useSaver(key: string, commit: () => Promise<void> | void) {
+  const ref = useRef(commit);
+  ref.current = commit;
+  const ctx = useContext(SaveCtx);
+  useEffect(() => {
+    ctx.register(key, async () => {
+      await ref.current();
+    });
+    return () => ctx.unregister(key);
+  }, [key]);
+}
+
 export default function AccountsModal({
   onClose,
   initialTab = "accounts",
@@ -60,6 +85,28 @@ export default function AccountsModal({
   initialTab?: Tab;
 }) {
   const [tab, setTab] = useState<Tab>(initialTab);
+  const savers = useRef<Map<string, Saver>>(new Map());
+  const ctxValue = useRef({
+    register: (key: string, fn: Saver) => savers.current.set(key, fn),
+    unregister: (key: string) => savers.current.delete(key),
+  }).current;
+  const [saving, setSaving] = useState(false);
+  const [savedAll, setSavedAll] = useState(false);
+
+  const saveAll = async () => {
+    setSaving(true);
+    setSavedAll(false);
+    for (const fn of savers.current.values()) {
+      try {
+        await fn();
+      } catch {
+        /* weiter mit dem naechsten */
+      }
+    }
+    setSaving(false);
+    setSavedAll(true);
+    window.setTimeout(() => setSavedAll(false), 2500);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -92,14 +139,28 @@ export default function AccountsModal({
             ×
           </button>
         </div>
-        <div className="overflow-y-auto px-5 py-4">
-          {tab === "commands" && <CommandsTab />}
-          {tab === "automation" && <AutomationTab />}
-          {tab === "accounts" && <AccountsTab />}
-          {tab === "usage" && <UsageTab />}
-          {tab === "skills" && <SkillsTab />}
-          {tab === "prompt" && <PromptTab />}
-          {tab === "reminders" && <RemindersTab />}
+        <SaveCtx.Provider value={ctxValue}>
+          <div className="overflow-y-auto px-5 py-4 flex-1">
+            {tab === "commands" && <CommandsTab />}
+            {tab === "automation" && <AutomationTab />}
+            {tab === "accounts" && <AccountsTab />}
+            {tab === "usage" && <UsageTab />}
+            {tab === "skills" && <SkillsTab />}
+            {tab === "prompt" && <PromptTab />}
+            {tab === "reminders" && <RemindersTab />}
+          </div>
+        </SaveCtx.Provider>
+        <div className="flex items-center justify-end gap-3 px-5 h-14 border-t border-white/10">
+          {savedAll && (
+            <span className="text-[12px] text-emerald-400">Alles gespeichert ✓</span>
+          )}
+          <button
+            onClick={saveAll}
+            disabled={saving}
+            className="px-5 py-1.5 rounded-lg bg-gold/85 hover:bg-gold text-black text-[13px] font-semibold disabled:opacity-60 transition"
+          >
+            {saving ? "Speichere …" : "Speichern"}
+          </button>
         </div>
       </motion.div>
     </div>
@@ -248,11 +309,19 @@ function AutomationTab() {
     void getUserSettings().then(setS);
   }, []);
 
+  useSaver("automation", async () => {
+    if (!s) return;
+    await saveUserSettings({
+      dream_auto: s.dream_auto,
+      dream_idle_minutes: s.dream_idle_minutes,
+      vision_model: s.vision_model,
+    });
+  });
+
   if (!s) return <div className="text-white/40 text-sm">Lade …</div>;
 
   const update = (patch: Partial<UserSettings>) => {
     setS({ ...s, ...patch });
-    void saveUserSettings(patch);
   };
 
   const knownVision = VISION_OPTIONS.some((o) => o.value === s.vision_model);
@@ -354,6 +423,20 @@ function AccountsTab() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  useSaver("accounts", async () => {
+    let changed = false;
+    for (const [provider, key] of Object.entries(keys)) {
+      if (key && key.trim()) {
+        await connectAccount(provider, key.trim());
+        changed = true;
+      }
+    }
+    if (changed) {
+      setKeys({});
+      await refresh();
+    }
+  });
 
   if (loading) return <div className="text-white/40 text-sm">Lade …</div>;
 
@@ -571,6 +654,14 @@ function SkillsTab() {
     void refresh();
   }, []);
 
+  useSaver("skills", async () => {
+    if (active && content) {
+      await saveSkill(active, content);
+      setSaved(true);
+      await refresh();
+    }
+  });
+
   const open = async (name: string) => {
     setActive(name);
     setSaved(false);
@@ -677,6 +768,14 @@ function PromptTab() {
   useEffect(() => {
     void getUserSettings().then(setSettings);
   }, []);
+
+  useSaver("prompt", async () => {
+    if (!settings) return;
+    await saveUserSettings({
+      custom_prompt: settings.custom_prompt,
+      prompt_mode: settings.prompt_mode,
+    });
+  });
 
   if (!settings) return <div className="text-white/40 text-sm">Lade …</div>;
 

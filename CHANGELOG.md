@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.9.1] — 2026-07-08
+
+### Neu
+- **Ein „Speichern"-Knopf** in der Fußzeile des Nutzer-Menüs (Konten, Nutzung & Skills …):
+  Ein Klick speichert alles auf einmal — dein Prompt, die Automatik-Einstellungen, einen
+  gerade bearbeiteten Skill und alle neu eingegebenen API-Schlüssel. Kurze Bestätigung
+  „Alles gespeichert ✓". Die einzelnen Speichern-Knöpfe der Tabs bleiben erhalten.
+
 ## [1.9.0] — 2026-07-08
 
 ### Neu
