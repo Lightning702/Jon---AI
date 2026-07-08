@@ -166,6 +166,15 @@ ipcMain.handle("window:maximize", () => {
   else mainWindow.maximize();
 });
 ipcMain.handle("window:close", () => mainWindow && mainWindow.close());
+ipcMain.handle("window:moveBy", (_event, dx, dy) => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+    return;
+  }
+  const [x, y] = mainWindow.getPosition();
+  mainWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
+});
 
 ipcMain.handle("pet:toggle", () => togglePet());
 ipcMain.handle("pet:hide", () => petWindow && petWindow.hide());
