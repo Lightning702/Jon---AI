@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.9.4] — 2026-07-08
+
+### Behoben
+- **Die App öffnete sich nach „Backend laeuft" nicht mehr, sondern blieb bei „Drücken Sie
+  eine beliebige Taste" stehen:** Eine im letzten Fix ergänzte Log-Hinweiszeile enthielt
+  Klammern (`echo (Vollstaendiges Log: …)`), die den `else`-Block der .bat vorzeitig
+  schlossen — dadurch liefen `pause` und `exit` immer, noch bevor die App gestartet wurde.
+  Klammern entfernt; die App startet wieder normal.
+
 ## [1.9.3] — 2026-07-08
 
 ### Behoben

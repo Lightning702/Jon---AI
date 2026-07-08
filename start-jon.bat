@@ -86,7 +86,7 @@ if defined BACKEND_OK (
     echo ------------------------------------------------------------------
     powershell -NoProfile -Command "if(Test-Path '%LOGFILE%'){Get-Content '%LOGFILE%' -Tail 25}else{Write-Host 'Keine Log-Datei gefunden.'}"
     echo ------------------------------------------------------------------
-    echo (Vollstaendiges Log: %LOGFILE%)
+    echo Vollstaendiges Log: %LOGFILE%
     pause
     exit /b 1
 )
