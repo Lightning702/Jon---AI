@@ -92,6 +92,21 @@ export default function AccountsModal({
   }).current;
   const [saving, setSaving] = useState(false);
   const [savedAll, setSavedAll] = useState(false);
+  const [visited, setVisited] = useState<Set<Tab>>(() => new Set([initialTab]));
+
+  useEffect(() => {
+    setVisited((v) => (v.has(tab) ? v : new Set(v).add(tab)));
+  }, [tab]);
+
+  const renderTab = (t: Tab) => {
+    if (t === "commands") return <CommandsTab />;
+    if (t === "automation") return <AutomationTab />;
+    if (t === "accounts") return <AccountsTab />;
+    if (t === "usage") return <UsageTab />;
+    if (t === "skills") return <SkillsTab />;
+    if (t === "prompt") return <PromptTab />;
+    return <RemindersTab />;
+  };
 
   const saveAll = async () => {
     setSaving(true);
@@ -141,13 +156,11 @@ export default function AccountsModal({
         </div>
         <SaveCtx.Provider value={ctxValue}>
           <div className="overflow-y-auto px-5 py-4 flex-1">
-            {tab === "commands" && <CommandsTab />}
-            {tab === "automation" && <AutomationTab />}
-            {tab === "accounts" && <AccountsTab />}
-            {tab === "usage" && <UsageTab />}
-            {tab === "skills" && <SkillsTab />}
-            {tab === "prompt" && <PromptTab />}
-            {tab === "reminders" && <RemindersTab />}
+            {TAB_ORDER.filter((t) => visited.has(t)).map((t) => (
+              <div key={t} style={{ display: tab === t ? "block" : "none" }}>
+                {renderTab(t)}
+              </div>
+            ))}
           </div>
         </SaveCtx.Provider>
         <div className="flex items-center justify-end gap-3 px-5 h-14 border-t border-white/10">
@@ -322,6 +335,7 @@ function AutomationTab() {
 
   const update = (patch: Partial<UserSettings>) => {
     setS({ ...s, ...patch });
+    void saveUserSettings(patch);
   };
 
   const knownVision = VISION_OPTIONS.some((o) => o.value === s.vision_model);
