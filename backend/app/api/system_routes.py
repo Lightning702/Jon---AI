@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import mimetypes
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -138,6 +140,30 @@ async def read_file(payload: PathIn) -> dict:
 async def write_file(payload: WriteIn) -> dict:
     _service.write_file(payload.path, payload.content)
     return {"written": True}
+
+
+@router.post("/files/mkdir")
+async def make_dir(payload: PathIn) -> dict:
+    try:
+        created = _service.make_dir(payload.path)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"created": created}
+
+
+@router.post("/files/read-base64")
+async def read_file_base64(payload: PathIn) -> dict:
+    target = Path(payload.path).expanduser()
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail=str(target))
+    try:
+        data = target.read_bytes()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if len(data) > 25_000_000:
+        raise HTTPException(status_code=413, detail="Datei zu gross")
+    mime = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+    return {"data": base64.b64encode(data).decode("ascii"), "mime": mime}
 
 
 @router.post("/files/move")

@@ -12,7 +12,7 @@ const {
 } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
@@ -72,7 +72,39 @@ function toggleWindow() {
   mainWindow.focus();
 }
 
-function startBackend() {
+function resolvePython() {
+  if (process.env.JON_PYTHON) return process.env.JON_PYTHON.trim().split(/\s+/);
+  const candidates =
+    process.platform === "win32"
+      ? [["py", "-3"], ["python"], ["python3"]]
+      : [["python3"], ["python"]];
+  for (const parts of candidates) {
+    try {
+      const probe = spawnSync(parts[0], [...parts.slice(1), "-c", "import sys"], {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+      if (probe.status === 0) return parts;
+    } catch (e) {}
+  }
+  return process.platform === "win32" ? ["python"] : ["python3"];
+}
+
+function runProcess(cmd, args, opts) {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn(cmd, args, opts);
+    } catch (e) {
+      resolve(1);
+      return;
+    }
+    child.on("error", () => resolve(1));
+    child.on("close", (code) => resolve(code == null ? 1 : code));
+  });
+}
+
+async function startBackend() {
   if (!app.isPackaged) return;
   const backendDir = path.join(process.resourcesPath, "backend");
   if (!fs.existsSync(backendDir)) return;
@@ -82,15 +114,29 @@ function startBackend() {
     fs.mkdirSync(logDir, { recursive: true });
     out = fs.openSync(path.join(logDir, "backend.log"), "a");
   } catch (e) {}
-  const pyEnv =
-    process.env.JON_PYTHON || (process.platform === "win32" ? "python" : "python3");
-  const parts = pyEnv.trim().split(/\s+/);
-  const cmd = parts[0];
-  const preArgs = parts.slice(1);
+  const py = resolvePython();
+  const cmd = py[0];
+  const pre = py.slice(1);
   const env = { ...process.env };
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.NODE_OPTIONS;
-  backendProcess = spawn(cmd, [...preArgs, "-m", "app.main"], {
+  const depCheck =
+    "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf";
+  const ok = await runProcess(cmd, [...pre, "-c", depCheck], {
+    cwd: backendDir,
+    env,
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  if (ok !== 0) {
+    const req = path.join(backendDir, "requirements.txt");
+    await runProcess(
+      cmd,
+      [...pre, "-m", "pip", "install", "--user", "--disable-pip-version-check", "-r", req],
+      { cwd: backendDir, env, stdio: ["ignore", out, out], windowsHide: true }
+    );
+  }
+  backendProcess = spawn(cmd, [...pre, "-m", "app.main"], {
     cwd: backendDir,
     env,
     stdio: ["ignore", out, out],
@@ -203,9 +249,9 @@ app.whenReady().then(() => {
   if (app.isPackaged) {
     app.setLoginItemSettings({ openAtLogin: true });
   }
-  startBackend();
   createWindow();
   createPet();
+  void startBackend();
   globalShortcut.register("Control+Alt+J", toggleWindow);
   globalShortcut.register("Control+Alt+K", togglePet);
   tray = new Tray(path.join(__dirname, "tray.png"));

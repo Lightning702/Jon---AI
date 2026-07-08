@@ -4,9 +4,11 @@ import {
   FileEntry,
   ProviderStatus,
   listDir,
+  makeDir,
   openInVscode,
   pathInfo,
   pickFolderDialog,
+  readFileBase64,
   readWorkspaceFile,
   streamChat,
   writeWorkspaceFile,
@@ -14,6 +16,10 @@ import {
 
 let cid = 0;
 const nid = () => `ca${Date.now()}_${cid++}`;
+
+const IMAGE_RE = /\.(png|jpe?g|gif|webp|bmp|svg|ico|avif)$/i;
+const isImagePath = (p: string) => IMAGE_RE.test(p);
+const isHtmlPath = (p: string) => /\.html?$/i.test(p);
 
 const jonBridge = (window as unknown as {
   jon?: {
@@ -25,6 +31,10 @@ const jonBridge = (window as unknown as {
 
 function parentDir(path: string): string {
   return path.replace(/[\\/][^\\/]*$/, "") || path;
+}
+
+function joinPath(base: string, name: string): string {
+  return base.replace(/[\\/]+$/, "") + "/" + name.replace(/^[\\/]+/, "");
 }
 
 interface Props {
@@ -118,16 +128,40 @@ export default function CodeAgent({
   const [picker, setPicker] = useState<"model" | "provider" | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [filePath, setFilePath] = useState<string | null>(null);
+  const [fileKind, setFileKind] = useState<"text" | "image">("text");
   const [fileContent, setFileContent] = useState("");
+  const [imageSrc, setImageSrc] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [creating, setCreating] = useState<null | "file" | "folder">(null);
+  const [newName, setNewName] = useState("");
+  const [view, setView] = useState<"editor" | "preview">("editor");
+  const [previewUrl, setPreviewUrl] = useState("http://localhost:3000");
+  const [previewSrc, setPreviewSrc] = useState("");
+  const [previewMode, setPreviewMode] = useState<"url" | "file">("url");
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const undoRef = useRef<{ stack: string[]; last: number }>({ stack: [], last: 0 });
+  const contentRef = useRef("");
+  const filePathRef = useRef<string | null>(null);
+  const fileKindRef = useRef<"text" | "image">("text");
+  const dirtyRef = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  contentRef.current = fileContent;
+  filePathRef.current = filePath;
+  fileKindRef.current = fileKind;
+  dirtyRef.current = dirty;
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight });
   }, [entries]);
+
+  useEffect(() => {
+    if (creating) nameInputRef.current?.focus();
+  }, [creating]);
 
   useEffect(() => {
     const prevent = (e: DragEvent) => e.preventDefault();
@@ -137,6 +171,44 @@ export default function CodeAgent({
       window.removeEventListener("dragover", prevent);
       window.removeEventListener("drop", prevent);
     };
+  }, []);
+
+  const pushUndo = (prev: string) => {
+    const u = undoRef.current;
+    const now = Date.now();
+    if (u.stack.length === 0 || now - u.last > 400) {
+      u.stack.push(prev);
+      if (u.stack.length > 200) u.stack.shift();
+    }
+    u.last = now;
+  };
+
+  const undo = () => {
+    const u = undoRef.current;
+    if (!u.stack.length) return;
+    const prev = u.stack.pop() as string;
+    setFileContent(prev);
+    setDirty(true);
+    u.last = 0;
+  };
+
+  const saveFile = async () => {
+    if (!filePathRef.current || fileKindRef.current !== "text") return;
+    await writeWorkspaceFile(filePathRef.current, contentRef.current);
+    setDirty(false);
+  };
+  const saveRef = useRef(saveFile);
+  saveRef.current = saveFile;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (dirtyRef.current) void saveRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const pickFolder = async () => {
@@ -164,25 +236,89 @@ export default function CodeAgent({
     localStorage.setItem("jon_workspace", p);
     setFilePath(null);
     setFileContent("");
+    setImageSrc("");
+    setFileKind("text");
     setRefreshKey((k) => k + 1);
   };
 
   const openFile = async (p: string) => {
+    undoRef.current = { stack: [], last: 0 };
+    if (isImagePath(p)) {
+      try {
+        const { data, mime } = await readFileBase64(p);
+        setFilePath(p);
+        setFileKind("image");
+        setImageSrc(`data:${mime};base64,${data}`);
+        setFileContent("");
+        setDirty(false);
+        return;
+      } catch {
+        /* fall through to text */
+      }
+    }
     try {
       const content = await readWorkspaceFile(p);
       setFilePath(p);
+      setFileKind("text");
+      setImageSrc("");
       setFileContent(content);
       setDirty(false);
     } catch {
       setFilePath(p);
+      setFileKind("text");
+      setImageSrc("");
       setFileContent("[Datei konnte nicht gelesen werden]");
     }
   };
 
-  const saveFile = async () => {
-    if (!filePath) return;
-    await writeWorkspaceFile(filePath, fileContent);
-    setDirty(false);
+  const createEntry = async () => {
+    const name = newName.trim();
+    if (!name || !workspace) {
+      setCreating(null);
+      setNewName("");
+      return;
+    }
+    const target = joinPath(workspace, name);
+    try {
+      if (creating === "folder") {
+        await makeDir(target);
+      } else {
+        await writeWorkspaceFile(target, "");
+      }
+    } catch {
+      /* ignore */
+    }
+    const kind = creating;
+    setCreating(null);
+    setNewName("");
+    setRefreshKey((k) => k + 1);
+    if (kind === "file") await openFile(target);
+  };
+
+  const loadPreview = () => {
+    let u = previewUrl.trim();
+    if (!u) return;
+    if (!/^https?:\/\//i.test(u)) u = "http://" + u;
+    setPreviewMode("url");
+    setPreviewSrc(u);
+    setView("preview");
+  };
+
+  const reloadPreview = () => {
+    if (iframeRef.current && previewMode === "url") {
+      const s = previewSrc;
+      iframeRef.current.src = "about:blank";
+      window.setTimeout(() => {
+        if (iframeRef.current) iframeRef.current.src = s;
+      }, 30);
+    }
+  };
+
+  const openExternal = () => {
+    let u = previewUrl.trim();
+    if (!u) return;
+    if (!/^https?:\/\//i.test(u)) u = "http://" + u;
+    window.open(u, "_blank");
   };
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -338,17 +474,39 @@ export default function CodeAgent({
           );
           setStreaming(false);
           setRefreshKey((k) => k + 1);
-          if (filePath) {
+          if (filePathRef.current && fileKindRef.current === "text") {
             try {
-              setFileContent(await readWorkspaceFile(filePath));
-              setDirty(false);
+              const next = await readWorkspaceFile(filePathRef.current);
+              if (next !== contentRef.current) {
+                pushUndo(contentRef.current);
+                setFileContent(next);
+                setDirty(false);
+              }
             } catch {
               /* file may have been deleted */
             }
           }
+          if (view === "preview" && previewMode === "url") reloadPreview();
         },
       }
     );
+  };
+
+  const editorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (dirty) void saveFile();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "x" || e.key.toLowerCase() === "z")) {
+      e.preventDefault();
+      undo();
+    }
+  };
+
+  const showFilePreview = () => {
+    setPreviewMode("file");
+    setView("preview");
   };
 
   return (
@@ -424,45 +582,213 @@ export default function CodeAgent({
             </div>
           </div>
         )}
-        <div className="w-56 border-r border-white/10 overflow-y-auto py-2 bg-black/20">
-          {workspace ? (
-            <FileTree path={workspace} depth={0} onOpen={openFile} activePath={filePath} refreshKey={refreshKey} />
-          ) : (
-            <div className="text-[12px] text-white/40 px-3 py-4 text-center leading-relaxed">
-              Kein Ordner gewählt.
-              <br />
-              <span className="text-white/30">
-                Zieh einen Ordner hierher oder klick oben auf „Ordner öffnen".
-              </span>
+        <div className="w-56 border-r border-white/10 flex flex-col bg-black/20">
+          <div className="flex items-center gap-1 px-2 py-2 border-b border-white/10">
+            <button
+              onClick={() => {
+                setCreating("file");
+                setNewName("");
+              }}
+              disabled={!workspace}
+              className="flex-1 text-[11px] px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 disabled:opacity-40"
+              title="Neue Datei"
+            >
+              ＋ Datei
+            </button>
+            <button
+              onClick={() => {
+                setCreating("folder");
+                setNewName("");
+              }}
+              disabled={!workspace}
+              className="flex-1 text-[11px] px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 disabled:opacity-40"
+              title="Neuer Ordner"
+            >
+              ＋ Ordner
+            </button>
+          </div>
+          {creating && (
+            <div className="px-2 py-2 border-b border-white/10">
+              <input
+                ref={nameInputRef}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void createEntry();
+                  if (e.key === "Escape") {
+                    setCreating(null);
+                    setNewName("");
+                  }
+                }}
+                placeholder={creating === "folder" ? "Ordnername" : "Dateiname (z.B. app.tsx)"}
+                className="w-full text-[12px] px-2 py-1 rounded-lg bg-black/40 border border-gold/30 text-white/85 outline-none focus:border-gold/60"
+              />
+              <div className="flex gap-1 mt-1">
+                <button
+                  onClick={() => void createEntry()}
+                  className="flex-1 text-[11px] px-2 py-1 rounded bg-gold/80 text-black font-medium"
+                >
+                  Anlegen
+                </button>
+                <button
+                  onClick={() => {
+                    setCreating(null);
+                    setNewName("");
+                  }}
+                  className="text-[11px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/60"
+                >
+                  Abbrechen
+                </button>
+              </div>
             </div>
           )}
+          <div className="flex-1 overflow-y-auto py-2">
+            {workspace ? (
+              <FileTree path={workspace} depth={0} onOpen={openFile} activePath={filePath} refreshKey={refreshKey} />
+            ) : (
+              <div className="text-[12px] text-white/40 px-3 py-4 text-center leading-relaxed">
+                Kein Ordner gewählt.
+                <br />
+                <span className="text-white/30">
+                  Zieh einen Ordner hierher oder klick oben auf „Ordner öffnen".
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 flex flex-col min-w-0 border-r border-white/10">
-          <div className="flex items-center justify-between h-9 px-3 border-b border-white/10 bg-black/20">
-            <span className="text-[12px] text-white/60 truncate">
+          <div className="flex items-center justify-between h-9 px-3 border-b border-white/10 bg-black/20 gap-2">
+            <span className="text-[12px] text-white/60 truncate min-w-0">
               {filePath || "Keine Datei geöffnet"} {dirty ? "●" : ""}
             </span>
-            {filePath && (
-              <button
-                onClick={saveFile}
-                disabled={!dirty}
-                className="text-[11px] px-2.5 py-1 rounded bg-gold/80 text-black font-medium disabled:opacity-40"
-              >
-                Speichern
-              </button>
-            )}
+            <div className="flex items-center gap-1 flex-none">
+              <div className="flex rounded-lg overflow-hidden border border-white/10">
+                <button
+                  onClick={() => setView("editor")}
+                  className={`text-[11px] px-2.5 py-1 ${
+                    view === "editor" ? "bg-gold/20 text-gold" : "text-white/60 hover:bg-white/10"
+                  }`}
+                >
+                  Editor
+                </button>
+                <button
+                  onClick={() => setView("preview")}
+                  className={`text-[11px] px-2.5 py-1 border-l border-white/10 ${
+                    view === "preview" ? "bg-gold/20 text-gold" : "text-white/60 hover:bg-white/10"
+                  }`}
+                >
+                  Vorschau
+                </button>
+              </div>
+              {filePath && isHtmlPath(filePath) && (
+                <button
+                  onClick={showFilePreview}
+                  className="text-[11px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/60 hover:bg-white/10"
+                  title="Diese HTML-Datei rendern"
+                >
+                  ▶ Datei
+                </button>
+              )}
+              {view === "editor" && fileKind === "text" && filePath && (
+                <button
+                  onClick={() => void saveFile()}
+                  disabled={!dirty}
+                  className="text-[11px] px-2.5 py-1 rounded bg-gold/80 text-black font-medium disabled:opacity-40"
+                  title="Speichern (Strg+S)"
+                >
+                  Speichern
+                </button>
+              )}
+            </div>
           </div>
-          <textarea
-            value={fileContent}
-            onChange={(e) => {
-              setFileContent(e.target.value);
-              setDirty(true);
-            }}
-            spellCheck={false}
-            placeholder="Wähle links eine Datei oder lass Jon rechts eine erstellen."
-            className="flex-1 bg-ink-900 text-white/85 font-mono text-[12.5px] leading-relaxed p-3 outline-none resize-none"
-          />
+
+          {view === "editor" ? (
+            fileKind === "image" ? (
+              <div className="flex-1 overflow-auto bg-ink-900 flex items-center justify-center p-4">
+                {imageSrc ? (
+                  <img
+                    src={imageSrc}
+                    alt={filePath || ""}
+                    className="max-w-full max-h-full object-contain"
+                    style={{ imageRendering: "auto" }}
+                  />
+                ) : (
+                  <span className="text-white/40 text-[12px]">Bild wird geladen …</span>
+                )}
+              </div>
+            ) : (
+              <textarea
+                value={fileContent}
+                onChange={(e) => {
+                  pushUndo(fileContent);
+                  setFileContent(e.target.value);
+                  setDirty(true);
+                }}
+                onKeyDown={editorKeyDown}
+                spellCheck={false}
+                placeholder="Wähle links eine Datei, leg eine neue an oder lass Jon rechts eine erstellen."
+                className="flex-1 bg-ink-900 text-white/85 font-mono text-[12.5px] leading-relaxed p-3 outline-none resize-none"
+              />
+            )
+          ) : (
+            <div className="flex-1 flex flex-col min-h-0 bg-white">
+              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-black/30 border-b border-white/10">
+                <input
+                  value={previewUrl}
+                  onChange={(e) => setPreviewUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && loadPreview()}
+                  placeholder="http://localhost:3000"
+                  className="flex-1 min-w-0 text-[12px] px-2 py-1 rounded bg-black/40 border border-white/10 text-white/85 outline-none focus:border-gold/40"
+                />
+                <button
+                  onClick={loadPreview}
+                  className="text-[11px] px-2.5 py-1 rounded bg-gold/80 text-black font-medium whitespace-nowrap"
+                >
+                  Laden
+                </button>
+                <button
+                  onClick={reloadPreview}
+                  className="text-[12px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/70 hover:bg-white/10"
+                  title="Neu laden"
+                >
+                  ↻
+                </button>
+                <button
+                  onClick={openExternal}
+                  className="text-[11px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 whitespace-nowrap"
+                  title="Im Browser öffnen"
+                >
+                  ↗
+                </button>
+              </div>
+              {previewMode === "file" && filePath && isHtmlPath(filePath) ? (
+                <iframe
+                  title="Datei-Vorschau"
+                  srcDoc={fileContent}
+                  className="flex-1 w-full bg-white"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                />
+              ) : previewSrc ? (
+                <iframe
+                  ref={iframeRef}
+                  title="Vorschau"
+                  src={previewSrc}
+                  className="flex-1 w-full bg-white"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-center p-6 bg-ink-900">
+                  <div className="text-[12px] text-white/40 leading-relaxed">
+                    Gib oben eine Adresse ein (z. B. <b className="text-white/60">http://localhost:3000</b>)
+                    und klick „Laden", um deine laufende App zu sehen.
+                    <br />
+                    HTML-Dateien kannst du mit „▶ Datei" direkt rendern.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="w-96 flex flex-col min-w-0 bg-black/20 relative">

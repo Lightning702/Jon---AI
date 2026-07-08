@@ -8,6 +8,7 @@ import VoiceIndicator, { VoiceUiState } from "./components/VoiceIndicator";
 import ApprovalDialog, { ApprovalRequest } from "./components/ApprovalDialog";
 import SettingsMenu from "./components/SettingsMenu";
 import AccountsModal from "./components/AccountsModal";
+import CodeAgent from "./components/CodeAgent";
 import PetConfig from "./components/PetConfig";
 import { VoiceListener } from "./lib/voice";
 import { initTts, speak, stopSpeaking } from "./lib/tts";
@@ -72,7 +73,7 @@ export default function App() {
   const [accountsTab, setAccountsTab] = useState<
     "accounts" | "usage" | "skills" | null
   >(null);
-  const [codeDevOpen, setCodeDevOpen] = useState(false);
+  const [codeOpen, setCodeOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
   const [screenOn, setScreenOn] = useState(
     () => localStorage.getItem("jon_screen") === "1"
@@ -775,9 +776,9 @@ export default function App() {
                 </div>
               )}
               <button
-                onClick={() => setCodeDevOpen(true)}
-                title="Jon Code — befindet sich in Entwicklung"
-                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+                onClick={() => setCodeOpen(true)}
+                title="Jon Code — Coding-Agent im Editor"
+                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-gold/30 bg-gold/10 text-gold/90 hover:bg-gold/20 transition-colors"
               >
                 <svg
                   width="13"
@@ -917,29 +918,14 @@ export default function App() {
           onClose={() => setAccountsTab(null)}
         />
       )}
-      {codeDevOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setCodeDevOpen(false)}
-        >
-          <div
-            className="glass-strong max-w-sm mx-4 rounded-2xl border border-gold/30 p-7 text-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-4xl mb-3">🚧</div>
-            <h2 className="text-lg font-semibold gold-text mb-2">Jon Code</h2>
-            <p className="text-white/60 text-sm leading-relaxed">
-              Der Code-Bereich befindet sich noch in Entwicklung und ist bald
-              verfügbar.
-            </p>
-            <button
-              onClick={() => setCodeDevOpen(false)}
-              className="mt-5 px-5 py-2 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black text-sm font-semibold hover:brightness-110 transition"
-            >
-              Verstanden
-            </button>
-          </div>
-        </div>
+      {codeOpen && (
+        <CodeAgent
+          providers={providers}
+          provider={provider}
+          model={model}
+          onModelChange={changeModel}
+          onClose={() => setCodeOpen(false)}
+        />
       )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
     </div>

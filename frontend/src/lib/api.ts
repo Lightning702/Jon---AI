@@ -478,6 +478,27 @@ export async function writeWorkspaceFile(
   });
 }
 
+export async function makeDir(path: string): Promise<boolean> {
+  const res = await fetch(`${BASE}/system/files/mkdir`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  return res.ok;
+}
+
+export async function readFileBase64(
+  path: string
+): Promise<{ data: string; mime: string }> {
+  const res = await fetch(`${BASE}/system/files/read-base64`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function openInVscode(path: string): Promise<void> {
   await fetch(`${BASE}/system/vscode`, {
     method: "POST",
