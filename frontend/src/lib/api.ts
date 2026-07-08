@@ -216,6 +216,12 @@ export interface UserSettings {
   personality: boolean;
   provider: string;
   model: string;
+  theme: string;
+  pet_accent: string;
+  pet_face: string;
+  pet_cheeks: boolean;
+  pet_scale: number;
+  pet_eyes: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -228,6 +234,12 @@ export async function getUserSettings(): Promise<UserSettings> {
       personality: true,
       provider: "",
       model: "",
+      theme: "dark",
+      pet_accent: "#d4af37",
+      pet_face: "#0a0a0e",
+      pet_cheeks: true,
+      pet_scale: 1.0,
+      pet_eyes: "round",
     };
   return res.json();
 }

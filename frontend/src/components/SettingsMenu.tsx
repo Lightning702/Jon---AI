@@ -47,6 +47,7 @@ export default function SettingsMenu({
     setTheme(next);
     localStorage.setItem("jon_theme", next);
     document.documentElement.classList.toggle("light", next === "light");
+    void saveUserSettings({ theme: next });
   };
 
   const options: { value: ToolMode; label: string; hint: string }[] = [

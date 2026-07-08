@@ -9,6 +9,7 @@ import ApprovalDialog, { ApprovalRequest } from "./components/ApprovalDialog";
 import SettingsMenu from "./components/SettingsMenu";
 import AccountsModal from "./components/AccountsModal";
 import CodeAgent from "./components/CodeAgent";
+import PetConfig from "./components/PetConfig";
 import { VoiceListener } from "./lib/voice";
 import { initTts, speak, stopSpeaking } from "./lib/tts";
 import {
@@ -72,6 +73,7 @@ export default function App() {
     "accounts" | "usage" | "skills" | null
   >(null);
   const [codeOpen, setCodeOpen] = useState(false);
+  const [petConfigOpen, setPetConfigOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const providerRef = useRef(provider);
@@ -140,6 +142,10 @@ export default function App() {
         const provs = await getProviders();
         setProviders(provs);
         const saved = await getUserSettings();
+        if (saved.theme) {
+          localStorage.setItem("jon_theme", saved.theme);
+          document.documentElement.classList.toggle("light", saved.theme === "light");
+        }
         const savedProv = provs.find(
           (p) => p.provider === saved.provider && p.configured
         );
@@ -188,7 +194,7 @@ export default function App() {
       } catch {
         setOnline(false);
       }
-    }, 15000);
+    }, 4000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -688,14 +694,23 @@ export default function App() {
             />
             <div className="flex items-center gap-3 text-xs">
               {jonDesktop?.togglePet && (
-                <button
-                  onClick={() => jonDesktop.togglePet?.()}
-                  title="Kleiner Jon auf dem Bildschirm ein/aus (Strg+Alt+K)"
-                  className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-gold/30 bg-gold/10 text-gold/90 hover:bg-gold/20 transition-colors"
-                >
-                  <span className="text-[13px] leading-none">🙂</span>
-                  <span className="text-[11px] font-medium">Kleiner Jon</span>
-                </button>
+                <div className="flex items-center rounded-full border border-gold/30 bg-gold/10 text-gold/90 overflow-hidden">
+                  <button
+                    onClick={() => jonDesktop.togglePet?.()}
+                    title="Kleiner Jon auf dem Bildschirm ein/aus (Strg+Alt+K)"
+                    className="flex items-center gap-1.5 pl-2.5 pr-2 h-7 hover:bg-gold/20 transition-colors"
+                  >
+                    <span className="text-[13px] leading-none">🙂</span>
+                    <span className="text-[11px] font-medium">Mini Jon</span>
+                  </button>
+                  <button
+                    onClick={() => setPetConfigOpen(true)}
+                    title="Mini Jon anpassen"
+                    className="flex items-center justify-center w-7 h-7 border-l border-gold/30 hover:bg-gold/20 transition-colors"
+                  >
+                    <span className="text-[12px] leading-none">🎨</span>
+                  </button>
+                </div>
               )}
               <button
                 onClick={() => setCodeOpen(true)}
@@ -821,6 +836,7 @@ export default function App() {
           onClose={() => setCodeOpen(false)}
         />
       )}
+      {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
     </div>
   );
 }

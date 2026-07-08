@@ -2,6 +2,27 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.8.0] — 2026-07-08
+
+### Mini Jon wird lebendiger
+- **Dauergespräch:** Bei aktivem Mikrofon sagst du nur einmal „Jon" — danach hört Mini
+  Jon durchgehend zu und du redest einfach weiter, bis du das Mikrofon wieder ausschaltest.
+- **Nachrichten bleiben stehen,** bis Mini Jon zu Ende gesprochen hat.
+- **Abbrechen:** Ein Klick auf Mini Jon (oder den ⏹-Knopf) stoppt Antwort und Stimme sofort.
+- **Süßeres Gesicht:** rundere Glanzaugen, Blinzeln und rosige Wangen.
+- **Konfigurator (🎨):** Farbe, Hintergrund, Augen-Stil, Wangen und Größe frei einstellbar,
+  mit Live-Vorschau — die Änderungen erscheinen sofort bei Mini Jon.
+- **Heller Modus färbt Mini Jon mit:** Schaltest du den weißen Modus ein, wird auch er weiß.
+- **Mini Jon kann jetzt alles, was der große Jon kann** (Web-Suche, Dateien erstellen,
+  PC-Steuerung …) — er erledigt Aufgaben selbst.
+
+### Weniger Fenster, stabiler Start
+- **Das Backend läuft jetzt direkt in der App** — kein separates „Jon Backend"-Fenster mehr.
+  Schließt du Jon, wird auch das Backend beendet. `start-jon.bat` ist entsprechend schlanker.
+
+### Vorgestellt
+- Mini Jon ist jetzt auf der Website und im README vorgestellt.
+
 ## [1.7.0] — 2026-07-08
 
 ### Jon Jr lebt

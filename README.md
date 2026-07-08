@@ -52,6 +52,18 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
 
 ## Funktionen
 
+- **🙂 Mini Jon (Jon Jr)** — Jons kleiner Sohn lebt als niedlicher, minimalistischer Kreis
+  direkt auf deinem Desktop: immer im Vordergrund, verschiebbar, beim Windows-Start schon da.
+  Er begrüßt dich mit Updates, **hört durchgehend zu** (sag einmal „Jon", dann redest du
+  einfach weiter), **spricht mit lippensynchronem Mund**, und **kann alles, was der große Jon
+  kann** (Web-Suche, Dateien, PC-Steuerung …). Sein Gesicht, seine Farben, Augen und Größe
+  sind frei anpassbar (🎨-Knopf), und im hellen Modus wird auch er weiß. Er hat — wie der
+  große Jon — seine eigene Persönlichkeit und Familiengeschichte. Ein-/Ausblenden mit
+  `Strg+Alt+K`
+- **Persönlichkeit & eigenes Gedächtnis** — Jon ist kein neutraler Bot: eigener Charakter,
+  Stimmungen, Lebensgeschichte und eine eigene `MEMORY.md`, in die er selbst schreibt
+- **KI-Team, Simulationen, Zeitreise & Dream Mode** — `/team`, `/simulate`, `/snapshot(s)`,
+  `/dream(s)` (siehe Befehle-Tab im Nutzer-Menü)
 - **Coding-Agent** — als **„Jon Code"-Modus in der App** (Button oben rechts: Dateibaum +
   Editor + Jon-Agent rechts, mit `/model`- und `/provider`-Wechsel) und als **`jon`-Befehl
   im VS-Code-Terminal**. Jon arbeitet an ganzen Projekten wie ein moderner KI-Coding-Agent

@@ -52,6 +52,12 @@ class SettingsIn(BaseModel):
     personality: bool | None = None
     provider: str | None = None
     model: str | None = None
+    theme: str | None = None
+    pet_accent: str | None = None
+    pet_face: str | None = None
+    pet_cheeks: bool | None = None
+    pet_scale: float | None = None
+    pet_eyes: str | None = None
 
 
 class ReminderIn(BaseModel):

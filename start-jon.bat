@@ -60,31 +60,8 @@ if errorlevel 1 (
     )
 )
 
-echo Starte Jon-Backend...
 del "%~dp0data\backend.log" >nul 2>nul
-start "Jon Backend" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$host.UI.RawUI.WindowTitle = 'Jon Backend'; Set-Location '%~dp0backend'; & %PY% -m app.main 2>&1 | ForEach-Object ToString | Tee-Object -FilePath '%~dp0data\backend.log'"
-
-echo Warte auf Backend...
-set BACKEND_OK=
-for /l %%i in (1,1,40) do (
-    if not defined BACKEND_OK (
-        powershell -NoProfile -Command "try{$null=Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://127.0.0.1:8756/api/health;exit 0}catch{exit 1}" >nul 2>nul
-        if not errorlevel 1 set BACKEND_OK=1
-        if not defined BACKEND_OK ping -n 2 127.0.0.1 >nul
-    )
-)
-if defined BACKEND_OK (
-    echo Backend laeuft auf http://127.0.0.1:8756
-) else (
-    echo.
-    echo Das Backend ist nicht gestartet. Letzte Zeilen aus data\backend.log:
-    echo ------------------------------------------------------------------
-    powershell -NoProfile -Command "if(Test-Path '%~dp0data\backend.log'){Get-Content '%~dp0data\backend.log' -Tail 25}else{Write-Host 'Keine Log-Datei gefunden.'}"
-    echo ------------------------------------------------------------------
-    echo Tipp: Fehlende Pakete mit  %PY% -m pip install -r backend\requirements.txt  nachinstallieren.
-    pause
-    exit /b 1
-)
+set JON_PYTHON=%PY%
 
 cd /d "%~dp0frontend"
 if not exist "node_modules" (
@@ -97,7 +74,7 @@ if not exist "node_modules" (
     )
 )
 
-echo Starte Jon-App...
+echo Starte Jon ... (Backend laeuft jetzt direkt in der App, kein eigenes Fenster)
 call npm run dev
 
 endlocal

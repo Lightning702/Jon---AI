@@ -11,6 +11,7 @@ const {
   session,
 } = require("electron");
 const path = require("node:path");
+const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 
 const isDev = !app.isPackaged;
@@ -72,14 +73,33 @@ function toggleWindow() {
 }
 
 function startBackend() {
-  if (!app.isPackaged) return;
-  const root = path.join(process.resourcesPath, "backend");
-  const python = process.platform === "win32" ? "python" : "python3";
-  backendProcess = spawn(python, ["-m", "app.main"], {
-    cwd: root,
-    env: { ...process.env },
-    stdio: "ignore",
+  const backendDir = app.isPackaged
+    ? path.join(process.resourcesPath, "backend")
+    : path.join(__dirname, "..", "..", "backend");
+  if (!fs.existsSync(backendDir)) return;
+  const dataDir = path.join(backendDir, "..", "data");
+  try {
+    fs.mkdirSync(dataDir, { recursive: true });
+  } catch (e) {}
+  let out = "ignore";
+  try {
+    out = fs.openSync(path.join(dataDir, "backend.log"), "a");
+  } catch (e) {}
+  const pyEnv =
+    process.env.JON_PYTHON || (process.platform === "win32" ? "python" : "python3");
+  const parts = pyEnv.trim().split(/\s+/);
+  const cmd = parts[0];
+  const preArgs = parts.slice(1);
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  delete env.NODE_OPTIONS;
+  backendProcess = spawn(cmd, [...preArgs, "-m", "app.main"], {
+    cwd: backendDir,
+    env,
+    stdio: ["ignore", out, out],
+    windowsHide: true,
   });
+  backendProcess.on("error", () => {});
 }
 
 function createWindow() {

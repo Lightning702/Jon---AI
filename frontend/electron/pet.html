@@ -26,7 +26,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: flex-end;
-        padding-bottom: 8px;
+        padding-bottom: 10px;
       }
       #bubble {
         max-width: 288px;
@@ -43,7 +43,7 @@
         transform: translateY(8px);
         transition: opacity 0.25s, transform 0.25s;
         pointer-events: none;
-        max-height: 210px;
+        max-height: 220px;
         overflow-y: auto;
         white-space: pre-wrap;
       }
@@ -86,6 +86,7 @@
         position: relative;
         width: 120px;
         height: 120px;
+        transform-origin: center bottom;
       }
       #jon {
         width: 120px;
@@ -106,6 +107,11 @@
           transform: translateY(-6px);
         }
       }
+      #eyes {
+        transform-box: fill-box;
+        transform-origin: center;
+        transition: transform 0.08s;
+      }
       .thinking #ring {
         animation: spin 1.4s linear infinite;
         stroke-dasharray: 40 260;
@@ -121,10 +127,8 @@
       #ring {
         transform-origin: 60px 60px;
       }
-      #mic {
+      .petBtn {
         position: absolute;
-        top: 4px;
-        left: 2px;
         width: 22px;
         height: 22px;
         border-radius: 50%;
@@ -135,25 +139,28 @@
         cursor: pointer;
         display: none;
         z-index: 6;
+        line-height: 1;
+      }
+      #mic {
+        top: 2px;
+        left: 0;
+      }
+      #stopBtn {
+        top: 2px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #ff8a8a;
+        border-color: rgba(255, 120, 120, 0.5);
+      }
+      #close {
+        top: 2px;
+        right: 0;
+        color: rgba(244, 240, 230, 0.6);
+        border: none;
       }
       #mic.off {
         color: rgba(244, 240, 230, 0.35);
         border-color: rgba(255, 255, 255, 0.15);
-      }
-      #close {
-        position: absolute;
-        top: 4px;
-        right: 2px;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        border: none;
-        background: rgba(20, 20, 24, 0.85);
-        color: rgba(244, 240, 230, 0.6);
-        font-size: 12px;
-        cursor: pointer;
-        display: none;
-        z-index: 6;
       }
       #jonWrap:hover #mic,
       #jonWrap:hover #close {
@@ -161,6 +168,25 @@
       }
       #close:hover {
         color: #ff8080;
+      }
+      body.busy #jonWrap #stopBtn {
+        display: block;
+      }
+      body.light #bubble {
+        background: rgba(255, 255, 255, 0.96);
+        border-color: rgba(0, 0, 0, 0.12);
+        color: #17171c;
+      }
+      body.light #field {
+        background: rgba(255, 255, 255, 0.96);
+        border-color: rgba(0, 0, 0, 0.15);
+        color: #17171c;
+      }
+      body.light #field::placeholder {
+        color: rgba(0, 0, 0, 0.4);
+      }
+      body.light .petBtn {
+        background: rgba(255, 255, 255, 0.9);
       }
     </style>
   </head>
@@ -171,24 +197,19 @@
         <input id="field" placeholder="Sag Jon Jr etwas …" autocomplete="off" />
       </div>
       <div id="jonWrap">
-        <button id="mic" title="Zuhören an/aus – sag „Jon“ oder „Mini Jon“">🎙</button>
-        <button id="close" title="Jon Jr ausblenden (Strg+Alt+K holt ihn zurück)">
-          ✕
-        </button>
+        <button id="mic" class="petBtn" title="Zuhören an/aus – sag „Jon“">🎙</button>
+        <button id="stopBtn" class="petBtn" title="Stopp">⏹</button>
+        <button id="close" class="petBtn" title="Jon Jr ausblenden (Strg+Alt+K)">✕</button>
         <div id="jon">
           <svg width="120" height="120" viewBox="0 0 120 120">
             <defs>
-              <radialGradient id="face" cx="50%" cy="42%" r="65%">
-                <stop offset="0%" stop-color="#1c1c26" />
-                <stop offset="100%" stop-color="#0a0a0e" />
-              </radialGradient>
               <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stop-color="#f5d67b" />
                 <stop offset="55%" stop-color="#d4af37" />
                 <stop offset="100%" stop-color="#9a7b1f" />
               </linearGradient>
             </defs>
-            <circle cx="60" cy="60" r="52" fill="url(#face)" />
+            <circle id="faceCircle" cx="60" cy="60" r="52" fill="#0a0a0e" />
             <circle
               id="ring"
               cx="60"
@@ -199,13 +220,14 @@
               stroke-width="4"
               stroke-linecap="round"
             />
-            <g id="eyes" fill="url(#gold)">
-              <circle id="eyeL" cx="43" cy="52" r="6.5" />
-              <circle id="eyeR" cx="77" cy="52" r="6.5" />
+            <g id="cheeks">
+              <ellipse cx="38" cy="70" rx="8" ry="5" fill="#ff9bb0" opacity="0.5" />
+              <ellipse cx="82" cy="70" rx="8" ry="5" fill="#ff9bb0" opacity="0.5" />
             </g>
+            <g id="eyes"></g>
             <path
               id="smile"
-              d="M42 74 Q60 90 78 74"
+              d="M44 76 Q60 90 76 76"
               fill="none"
               stroke="url(#gold)"
               stroke-width="5"
@@ -214,8 +236,8 @@
             <ellipse
               id="mouth"
               cx="60"
-              cy="78"
-              rx="14"
+              cy="80"
+              rx="13"
               ry="0"
               fill="url(#gold)"
               style="display: none"
@@ -229,39 +251,142 @@
       const BASE = "http://127.0.0.1:8756/api";
       const jon = document.getElementById("jon");
       const jonWrap = document.getElementById("jonWrap");
-      const stage = document.getElementById("stage");
       const bubble = document.getElementById("bubble");
       const inputRow = document.getElementById("inputRow");
       const field = document.getElementById("field");
       const smile = document.getElementById("smile");
       const mouth = document.getElementById("mouth");
-      const eyeL = document.getElementById("eyeL");
-      const eyeR = document.getElementById("eyeR");
+      const eyesG = document.getElementById("eyes");
+      const cheeks = document.getElementById("cheeks");
+      const faceCircle = document.getElementById("faceCircle");
+      const grad = document.getElementById("gold");
       const closeBtn = document.getElementById("close");
       const micBtn = document.getElementById("mic");
+      const stopBtn = document.getElementById("stopBtn");
 
+      let cfg = {
+        theme: "dark",
+        pet_accent: "#d4af37",
+        pet_face: "#0a0a0e",
+        pet_cheeks: true,
+        pet_scale: 1,
+        pet_eyes: "round",
+        provider: "",
+        model: "",
+      };
       let bubbleTimer = null;
       let busy = false;
       let mouthTimer = null;
+      let currentAbort = null;
+      let canceled = false;
+
+      function clamp(v) {
+        return Math.max(0, Math.min(255, Math.round(v)));
+      }
+      function hexToRgb(h) {
+        h = h.replace("#", "");
+        if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+        return [
+          parseInt(h.slice(0, 2), 16),
+          parseInt(h.slice(2, 4), 16),
+          parseInt(h.slice(4, 6), 16),
+        ];
+      }
+      function toHex(r, g, b) {
+        return (
+          "#" +
+          [r, g, b].map((x) => clamp(x).toString(16).padStart(2, "0")).join("")
+        );
+      }
+      function shade(hex, amt) {
+        try {
+          const [r, g, b] = hexToRgb(hex);
+          if (amt >= 0)
+            return toHex(r + (255 - r) * amt, g + (255 - g) * amt, b + (255 - b) * amt);
+          const f = 1 + amt;
+          return toHex(r * f, g * f, b * f);
+        } catch (e) {
+          return hex;
+        }
+      }
+
+      function renderEyes(style) {
+        const c = "url(#gold)";
+        if (style === "happy") {
+          eyesG.innerHTML =
+            '<path d="M35 55 Q43 46 51 55" fill="none" stroke="' +
+            c +
+            '" stroke-width="5" stroke-linecap="round"/>' +
+            '<path d="M69 55 Q77 46 85 55" fill="none" stroke="' +
+            c +
+            '" stroke-width="5" stroke-linecap="round"/>';
+        } else if (style === "sleepy") {
+          eyesG.innerHTML =
+            '<path d="M36 53 h13" stroke="' +
+            c +
+            '" stroke-width="5" stroke-linecap="round"/>' +
+            '<path d="M71 53 h13" stroke="' +
+            c +
+            '" stroke-width="5" stroke-linecap="round"/>';
+        } else {
+          eyesG.innerHTML =
+            '<circle cx="43" cy="53" r="8" fill="' +
+            c +
+            '"/><circle cx="77" cy="53" r="8" fill="' +
+            c +
+            '"/>' +
+            '<circle cx="45.5" cy="50.5" r="2.5" fill="#fff"/>' +
+            '<circle cx="79.5" cy="50.5" r="2.5" fill="#fff"/>';
+        }
+      }
+
+      let lastCfgJson = "";
+      function applyConfig(s) {
+        const next = { ...cfg, ...s };
+        const json = JSON.stringify(next);
+        if (json === lastCfgJson) return;
+        lastCfgJson = json;
+        cfg = next;
+        const accent = cfg.pet_accent || "#d4af37";
+        const light = cfg.theme === "light";
+        document.body.classList.toggle("light", light);
+        const stops = grad.children;
+        if (light) {
+          stops[0].setAttribute("stop-color", accent);
+          stops[1].setAttribute("stop-color", shade(accent, -0.2));
+          stops[2].setAttribute("stop-color", shade(accent, -0.42));
+        } else {
+          stops[0].setAttribute("stop-color", shade(accent, 0.35));
+          stops[1].setAttribute("stop-color", accent);
+          stops[2].setAttribute("stop-color", shade(accent, -0.3));
+        }
+        faceCircle.setAttribute("fill", light ? "#ffffff" : cfg.pet_face || "#0a0a0e");
+        cheeks.style.display = cfg.pet_cheeks ? "block" : "none";
+        renderEyes(cfg.pet_eyes || "round");
+        jonWrap.style.transform = "scale(" + (cfg.pet_scale || 1) + ")";
+      }
 
       function setState(cls) {
-        stage.classList.remove("listening", "thinking");
         jon.classList.remove("thinking", "listening");
         if (cls) jon.classList.add(cls);
       }
 
+      function scheduleHide(ms) {
+        if (bubbleTimer) clearTimeout(bubbleTimer);
+        bubbleTimer = setTimeout(() => bubble.classList.remove("show"), ms);
+      }
       function say(text, keep) {
         if (!text) return;
         bubble.textContent = text;
         bubble.classList.add("show");
         if (bubbleTimer) clearTimeout(bubbleTimer);
-        if (!keep) bubbleTimer = setTimeout(() => bubble.classList.remove("show"), 9000);
+        if (!keep) scheduleHide(9000);
       }
 
-      function openMouth(amount) {
-        smile.style.display = amount > 0.05 ? "none" : "block";
-        mouth.style.display = amount > 0.05 ? "block" : "none";
-        mouth.setAttribute("ry", (2 + amount * 9).toFixed(1));
+      function openMouth(a) {
+        smile.style.display = a > 0.05 ? "none" : "block";
+        mouth.style.display = a > 0.05 ? "block" : "none";
+        mouth.setAttribute("ry", (2 + a * 9).toFixed(1));
       }
       function stopMouth() {
         if (mouthTimer) clearInterval(mouthTimer);
@@ -290,9 +415,8 @@
           window.speechSynthesis.speak(u);
         } catch (e) {}
       }
-
-      function cleanForSpeech(text) {
-        return text
+      function cleanForSpeech(t) {
+        return t
           .replace(/```[\s\S]*?```/g, " Codeblock. ")
           .replace(/\[(.*?)\]\(.*?\)/g, "$1")
           .replace(/https?:\/\/\S+/g, " Link ")
@@ -300,7 +424,6 @@
           .replace(/\s+/g, " ")
           .trim();
       }
-
       function speak(text, done) {
         const synth = window.speechSynthesis;
         if (!synth) {
@@ -342,45 +465,54 @@
       }
 
       function blink() {
-        eyeL.setAttribute("ry", 0.8);
-        eyeR.setAttribute("ry", 0.8);
-        setTimeout(() => {
-          eyeL.removeAttribute("ry");
-          eyeR.removeAttribute("ry");
-        }, 130);
+        eyesG.style.transform = "scaleY(0.12)";
+        setTimeout(() => (eyesG.style.transform = "scaleY(1)"), 130);
       }
       setInterval(() => {
-        if (Math.random() < 0.7) blink();
+        if (Math.random() < 0.7 && (cfg.pet_eyes || "round") === "round") blink();
       }, 3600);
 
-      async function currentSelection() {
-        try {
-          const s = await (await fetch(`${BASE}/settings`)).json();
-          return { provider: s.provider || undefined, model: s.model || undefined };
-        } catch (e) {
-          return {};
+      function cancel() {
+        canceled = true;
+        if (currentAbort) {
+          try {
+            currentAbort.abort();
+          } catch (e) {}
+          currentAbort = null;
         }
+        try {
+          window.speechSynthesis.cancel();
+        } catch (e) {}
+        stopMouth();
+        busy = false;
+        document.body.classList.remove("busy");
+        listener && listener.setBusy(false);
+        setState(listening ? "listening" : "");
+        scheduleHide(1500);
       }
 
       async function ask(text) {
         if (busy || !text.trim()) return;
         busy = true;
+        canceled = false;
+        document.body.classList.add("busy");
         listener && listener.setBusy(true);
         setState("thinking");
         say("…", true);
-        const sel = await currentSelection();
+        currentAbort = new AbortController();
         let answer = "";
         try {
           const res = await fetch(`${BASE}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal: currentAbort.signal,
             body: JSON.stringify({
               messages: [{ role: "user", content: text }],
               persist: false,
               tool_mode: "allow",
               persona: "junior",
-              provider: sel.provider,
-              model: sel.model,
+              provider: cfg.provider || undefined,
+              model: cfg.model || undefined,
             }),
           });
           const reader = res.body.getReader();
@@ -407,14 +539,20 @@
             }
           }
         } catch (e) {
+          if (canceled) return;
           answer = "Ich erreiche mein Backend gerade nicht.";
         }
-        setState(listener && listening ? "listening" : "");
+        currentAbort = null;
+        if (canceled) return;
         answer = answer.trim() || "…";
-        say(answer);
+        say(answer, true);
+        setState("");
         speak(answer, () => {
           busy = false;
+          document.body.classList.remove("busy");
           listener && listener.setBusy(false);
+          setState(listening ? "listening" : "");
+          scheduleHide(3500);
         });
       }
 
@@ -426,13 +564,7 @@
         if (h < 22) return "Guten Abend";
         return "Späte Stunde";
       }
-
       async function startupGreeting() {
-        let days = 0;
-        try {
-          const p = await (await fetch(`${BASE}/persona`)).json();
-          days = p.days_together || 0;
-        } catch (e) {}
         let extras = [];
         try {
           const due = await (await fetch(`${BASE}/reminders/due`)).json();
@@ -456,7 +588,6 @@
       const MIN_SPEECH_MS = 350;
       const MAX_UTTERANCE_MS = 15000;
       const PREROLL = 5;
-      const ARM_MS = 12000;
       let listening = false;
 
       function downsample(chunks, rate) {
@@ -513,8 +644,7 @@
           this.speechMs = 0;
           this.silenceMs = 0;
           this.uttMs = 0;
-          this.armed = false;
-          this.armTimer = null;
+          this.engaged = false;
           this.running = false;
           this.busy = false;
         }
@@ -538,11 +668,13 @@
           this.src.connect(this.proc);
           this.proc.connect(this.ctx.destination);
           this.running = true;
+          this.engaged = false;
           listening = true;
           setState("listening");
         }
         stop() {
           this.running = false;
+          this.engaged = false;
           listening = false;
           try {
             this.proc && this.proc.disconnect();
@@ -550,38 +682,21 @@
             this.stream && this.stream.getTracks().forEach((t) => t.stop());
             this.ctx && this.ctx.close();
           } catch (e) {}
-          this.disarm();
           setState("");
-        }
-        disarm() {
-          this.armed = false;
-          if (this.armTimer) clearTimeout(this.armTimer);
-          this.armTimer = null;
-        }
-        arm() {
-          this.disarm();
-          this.armed = true;
-          primeSpeech();
-          say("Ja?");
-          speak("Ja?");
-          this.armTimer = setTimeout(() => {
-            this.armed = false;
-          }, ARM_MS);
         }
         onChunk(e) {
           if (!this.running) return;
           const input = e.inputBuffer.getChannelData(0);
           const chunk = new Float32Array(input);
           const chunkMs = (chunk.length / this.ctx.sampleRate) * 1000;
-          let sum = 0;
-          for (let i = 0; i < chunk.length; i++) sum += chunk[i] * chunk[i];
-          const rms = Math.sqrt(sum / chunk.length);
-          const voiced = rms > SPEECH_THRESHOLD;
           if (this.busy) {
             this.inUtt = false;
             this.utt = [];
             return;
           }
+          let sum = 0;
+          for (let i = 0; i < chunk.length; i++) sum += chunk[i] * chunk[i];
+          const voiced = Math.sqrt(sum / chunk.length) > SPEECH_THRESHOLD;
           if (!this.inUtt) {
             this.preroll.push(chunk);
             if (this.preroll.length > PREROLL) this.preroll.shift();
@@ -599,9 +714,7 @@
           if (voiced) {
             this.speechMs += chunkMs;
             this.silenceMs = 0;
-          } else {
-            this.silenceMs += chunkMs;
-          }
+          } else this.silenceMs += chunkMs;
           if (this.silenceMs >= SILENCE_END_MS || this.uttMs >= MAX_UTTERANCE_MS) {
             const chunks = this.utt;
             const speechMs = this.speechMs;
@@ -619,8 +732,7 @@
               method: "POST",
               body: wav,
             });
-            const data = await res.json();
-            text = (data.text || "").trim();
+            text = ((await res.json()).text || "").trim();
           } catch (e) {}
           if (!this.running || this.busy) return;
           this.handle(text);
@@ -632,16 +744,20 @@
             .replace(/[^\p{L}\p{N} ]/gu, " ")
             .split(/\s+/)
             .filter(Boolean);
-          if (this.armed) {
-            this.disarm();
+          if (this.engaged) {
             ask(text);
             return;
           }
           const idx = words.findIndex((w) => WAKE.has(w));
           if (idx < 0) return;
+          this.engaged = true;
           const command = words.slice(idx + 1).join(" ").trim();
           if (command.length >= 3) ask(command);
-          else this.arm();
+          else {
+            primeSpeech();
+            say("Ja?", true);
+            speak("Ja?", () => scheduleHide(2500));
+          }
         }
       }
 
@@ -665,15 +781,22 @@
         primeSpeech();
         setMic(localStorage.getItem("jonjr_voice") === "0");
       });
+      stopBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        cancel();
+      });
 
       let dragging = false;
       let moved = 0;
       let lastX = 0;
       let lastY = 0;
       let clickTimer = null;
-
       function tap() {
         primeSpeech();
+        if (busy) {
+          cancel();
+          return;
+        }
         if (clickTimer) {
           clearTimeout(clickTimer);
           clickTimer = null;
@@ -686,7 +809,6 @@
           if (inputRow.classList.contains("show")) field.focus();
         }, 240);
       }
-
       jon.addEventListener("mousedown", (e) => {
         dragging = true;
         moved = 0;
@@ -707,7 +829,10 @@
         }
         const el = document.elementFromPoint(e.clientX, e.clientY);
         const interactive =
-          el && el.closest("#jon, #mic, #close, #bubble.show, #inputRow.show");
+          el &&
+          el.closest(
+            "#jon, #mic, #close, #stopBtn, #bubble.show, #inputRow.show"
+          );
         applyIgnore(!interactive);
       });
       window.addEventListener("mouseup", () => {
@@ -732,13 +857,22 @@
         }
         if (e.key === "Escape") inputRow.classList.remove("show");
       });
-
       closeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         window.jonpet && window.jonpet.hide();
       });
 
+      async function loadConfig() {
+        try {
+          const s = await (await fetch(`${BASE}/settings`)).json();
+          applyConfig(s);
+        } catch (e) {}
+      }
+
+      renderEyes("round");
       applyIgnore(true);
+      loadConfig();
+      setInterval(loadConfig, 1500);
       if (localStorage.getItem("jonjr_voice") !== "0") setTimeout(() => setMic(true), 1500);
       else micBtn.classList.add("off");
       setTimeout(startupGreeting, 1200);
