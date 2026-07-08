@@ -29,7 +29,8 @@ type Tab =
   | "usage"
   | "skills"
   | "prompt"
-  | "reminders";
+  | "reminders"
+  | "automation";
 
 const TAB_LABELS: Record<Tab, string> = {
   commands: "Befehle",
@@ -38,10 +39,12 @@ const TAB_LABELS: Record<Tab, string> = {
   skills: "Skills",
   prompt: "Prompt",
   reminders: "Erinnerungen",
+  automation: "Automatik",
 };
 
 const TAB_ORDER: Tab[] = [
   "commands",
+  "automation",
   "accounts",
   "usage",
   "skills",
@@ -91,6 +94,7 @@ export default function AccountsModal({
         </div>
         <div className="overflow-y-auto px-5 py-4">
           {tab === "commands" && <CommandsTab />}
+          {tab === "automation" && <AutomationTab />}
           {tab === "accounts" && <AccountsTab />}
           {tab === "usage" && <UsageTab />}
           {tab === "skills" && <SkillsTab />}
@@ -206,6 +210,133 @@ function CommandsTab() {
           Aktiviere das Mikrofon oben rechts und sag „Jon“, gefolgt von deinem
           Auftrag. Jon antwortet dir dann laut vorgelesen.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+        on ? "bg-gold/70" : "bg-white/15"
+      }`}
+    >
+      <span
+        className={`w-4 h-4 rounded-full bg-white transition-transform ${
+          on ? "translate-x-4" : ""
+        }`}
+      />
+    </button>
+  );
+}
+
+const VISION_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Standard (automatisch je Anbieter)" },
+  { value: "meta/llama-3.2-11b-vision-instruct", label: "NVIDIA · Llama 3.2 Vision 11B" },
+  { value: "meta/llama-3.2-90b-vision-instruct", label: "NVIDIA · Llama 3.2 Vision 90B" },
+  { value: "gpt-4o-mini", label: "OpenAI · GPT-4o mini" },
+  { value: "gpt-4o", label: "OpenAI · GPT-4o" },
+  { value: "openai/gpt-4o-mini", label: "OpenRouter · GPT-4o mini" },
+];
+
+function AutomationTab() {
+  const [s, setS] = useState<UserSettings | null>(null);
+
+  useEffect(() => {
+    void getUserSettings().then(setS);
+  }, []);
+
+  if (!s) return <div className="text-white/40 text-sm">Lade …</div>;
+
+  const update = (patch: Partial<UserSettings>) => {
+    setS({ ...s, ...patch });
+    void saveUserSettings(patch);
+  };
+
+  const knownVision = VISION_OPTIONS.some((o) => o.value === s.vision_model);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h3 className="text-[13px] font-semibold text-gold mb-2">🌙 Dream Mode</h3>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
+            <div className="min-w-0 pr-3">
+              <div className="text-[13px] text-white/90">Automatisch bei Leerlauf</div>
+              <div className="text-[11.5px] text-white/45">
+                Jon arbeitet deine Dream-Aufgaben ab, während du weg bist.
+              </div>
+            </div>
+            <Toggle on={s.dream_auto} onClick={() => update({ dream_auto: !s.dream_auto })} />
+          </div>
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
+            <div className="min-w-0 pr-3">
+              <div className="text-[13px] text-white/90">Startet nach … Minuten Leerlauf</div>
+              <div className="text-[11.5px] text-white/45">
+                So lange muss der PC ungenutzt sein.
+              </div>
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={120}
+              value={s.dream_idle_minutes}
+              onChange={(e) =>
+                update({
+                  dream_idle_minutes: Math.max(
+                    1,
+                    Math.min(120, parseInt(e.target.value || "5", 10))
+                  ),
+                })
+              }
+              className="w-16 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[13px] text-white/90 outline-none focus:border-gold/40 text-center"
+            />
+          </div>
+          <p className="text-[11.5px] text-white/40 px-1">
+            Neue Aufgabe anlegen: <code className="text-gold/80">/dream &lt;Aufgabe&gt;</code>{" "}
+            im Chat. Sofort starten mit <code className="text-gold/80">/dreams</code>.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-[13px] font-semibold text-gold mb-2">👁️ Live Screen</h3>
+        <div className="space-y-2">
+          <div className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
+            <div className="text-[13px] text-white/90 mb-1">Modell zum Mitschauen</div>
+            <select
+              value={knownVision ? s.vision_model : "__custom"}
+              onChange={(e) => {
+                if (e.target.value !== "__custom")
+                  update({ vision_model: e.target.value });
+              }}
+              className="w-full px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/10 text-[13px] text-white/90 outline-none focus:border-gold/40"
+            >
+              {VISION_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value} className="bg-ink-800">
+                  {o.label}
+                </option>
+              ))}
+              {!knownVision && (
+                <option value="__custom" className="bg-ink-800">
+                  Eigenes: {s.vision_model}
+                </option>
+              )}
+            </select>
+            <input
+              value={s.vision_model}
+              onChange={(e) => update({ vision_model: e.target.value })}
+              placeholder="oder eigenes Modell eintragen …"
+              className="w-full mt-2 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[12.5px] text-white/80 placeholder-white/30 outline-none focus:border-gold/40"
+            />
+          </div>
+          <p className="text-[11.5px] text-white/40 px-1">
+            Ein-/Ausschalten über den Augen-Knopf 👁️ oben. Jon schaut alle ~30 Sekunden
+            mit und meldet sich nur bei etwas Hilfreichem. Braucht ein bildfähiges Modell.
+          </p>
+        </div>
       </div>
     </div>
   );
