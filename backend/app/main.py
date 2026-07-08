@@ -24,12 +24,41 @@ async def _warm_caches() -> None:
         await accounts()
 
 
+async def _dream_watcher() -> None:
+    from app.services.dream_service import get_dream_service
+    from app.services.settings_service import get_settings_service
+    from app.services.system_service import SystemService
+
+    syssvc = SystemService()
+    while True:
+        await asyncio.sleep(60)
+        try:
+            data = get_settings_service().get()
+            if not data.get("dream_auto", True):
+                continue
+            idle_minutes = float(data.get("dream_idle_minutes", 5) or 5)
+            idle = await asyncio.to_thread(syssvc.idle_seconds)
+            if idle < idle_minutes * 60:
+                continue
+            dreams = get_dream_service()
+            if not any(t["status"] == "pending" for t in dreams.list()):
+                continue
+            settings = get_settings()
+            provider = data.get("provider") or settings.default_provider
+            model = data.get("model") or settings.default_model
+            await dreams.run_pending(provider, model)
+        except Exception:
+            continue
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     warmup = asyncio.create_task(_warm_caches())
+    dream_task = asyncio.create_task(_dream_watcher())
     yield
     warmup.cancel()
+    dream_task.cancel()
 
 
 def create_app() -> FastAPI:

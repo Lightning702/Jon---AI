@@ -189,6 +189,11 @@ async def pick_folder() -> dict:
     return {"path": path}
 
 
+@router.get("/idle")
+async def idle() -> dict:
+    return {"seconds": _service.idle_seconds()}
+
+
 @router.post("/path-info")
 async def path_info(payload: PathIn) -> dict:
     target = Path(payload.path).expanduser()

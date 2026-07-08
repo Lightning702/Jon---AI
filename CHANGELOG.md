@@ -2,6 +2,22 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.9.0] — 2026-07-08
+
+### Neu
+- **👁️ Live Screen:** Über den Augen-Knopf oben schaut Jon durchgehend mit (alle ~30 s)
+  und meldet sich nur, wenn er etwas wirklich Hilfreiches sieht — einen Fehler, ein
+  Problem oder einen konkreten Verbesserungsvorschlag. Kein Dauergeplapper. Standardmäßig
+  aus. Braucht ein bildfähiges Modell (z. B. NVIDIA-Vision, OpenAI, OpenRouter); optional
+  über `vision_model` einstellbar.
+- **🌙 Dream Mode automatisch:** Wenn dein PC ein paar Minuten ungenutzt ist, arbeitet Jon
+  von selbst deine Dream-Aufgaben ab und zeigt dir die Ergebnisse, sobald du zurück bist.
+  Einstellbar über `dream_auto` und `dream_idle_minutes` (Standard 5 Minuten). Aufgaben
+  legst du wie gehabt mit `/dream <Aufgabe>` an.
+- **Mini Jon fühlt sich lebendiger an:** Er schaut sich zufällig um, blinzelt
+  abwechslungsreicher (auch mal doppelt), macht im Leerlauf kleine Mundregungen und
+  blickt dich an, wenn er spricht.
+
 ## [1.8.1] — 2026-07-08
 
 ### Behoben

@@ -108,6 +108,31 @@ class OpenAICompatibleProvider(LLMProvider):
         self._models_cache_ttl = ttl
         return result
 
+    async def describe_image(
+        self, model: str, data_url: str, prompt: str, max_tokens: int = 300
+    ) -> str:
+        client = self._client()
+        completion = await client.with_options(
+            timeout=45.0, max_retries=0
+        ).chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                    ],
+                }
+            ],
+            max_tokens=max_tokens,
+            temperature=0.2,
+        )
+        choices = getattr(completion, "choices", None)
+        if not choices:
+            return ""
+        return (choices[0].message.content or "").strip()
+
     async def _create_with_retry(self, client: AsyncOpenAI, payload: dict):
         last: Exception | None = None
         for attempt in range(TRANSIENT_RETRIES):

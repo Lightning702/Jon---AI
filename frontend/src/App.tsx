@@ -29,6 +29,7 @@ import {
   getProviders,
   getUserSettings,
   listSnapshots,
+  observeScreen,
   saveUserSettings,
   runDreams,
   runSimulation,
@@ -74,6 +75,10 @@ export default function App() {
   >(null);
   const [codeOpen, setCodeOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
+  const [screenOn, setScreenOn] = useState(
+    () => localStorage.getItem("jon_screen") === "1"
+  );
+  const lastScreenRef = useRef("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const providerRef = useRef(provider);
@@ -108,6 +113,14 @@ export default function App() {
     setProvider(p);
     setModel(m);
     void saveUserSettings({ provider: p, model: m });
+  };
+
+  const toggleScreen = () => {
+    setScreenOn((v) => {
+      const next = !v;
+      localStorage.setItem("jon_screen", next ? "1" : "0");
+      return next;
+    });
   };
 
   const handleApprovalEvent = (evt: StreamEvent) => {
@@ -226,11 +239,49 @@ export default function App() {
           new Notification("Jon — Erinnerung", { body: r.text });
         }
       }
+      const reports = await getDreamReports();
+      for (const t of reports) {
+        setEntries((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: "assistant",
+            content: `🌙 Dream Mode — „${t.task}"\n\n${t.result ?? ""}`,
+          },
+        ]);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Jon — Dream Mode fertig", { body: t.task });
+        }
+      }
     };
     void fire();
     const timer = window.setInterval(() => void fire(), 60000);
     return () => window.clearInterval(timer);
   }, [online]);
+
+  useEffect(() => {
+    if (!online || !screenOn) return;
+    let stopped = false;
+    const tick = async () => {
+      if (stopped || streamingRef.current) return;
+      const r = await observeScreen(providerRef.current, modelRef.current);
+      if (stopped) return;
+      const obs = (r.observation || "").trim();
+      if (obs && obs !== lastScreenRef.current) {
+        lastScreenRef.current = obs;
+        setEntries((prev) => [
+          ...prev,
+          { id: nextId(), role: "assistant", content: `👁️ ${obs}` },
+        ]);
+      }
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 30000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [online, screenOn]);
 
   const runVoiceCommand = async (text: string) => {
     if (streamingRef.current) return;
@@ -761,6 +812,34 @@ export default function App() {
                 >
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
+                </svg>
+              </button>
+              <button
+                onClick={toggleScreen}
+                title={
+                  screenOn
+                    ? "Live Screen an — Jon schaut mit und meldet sich, wenn er etwas Hilfreiches sieht"
+                    : "Live Screen aus"
+                }
+                className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
+                  screenOn
+                    ? "border-sky-400/40 bg-sky-400/10 text-sky-300"
+                    : "border-white/10 bg-white/5 text-white/30"
+                }`}
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                  {!screenOn && <line x1="3" y1="3" x2="21" y2="21" />}
                 </svg>
               </button>
               <SettingsMenu toolMode={toolMode} onToolModeChange={changeToolMode} />

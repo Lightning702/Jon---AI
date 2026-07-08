@@ -262,6 +262,36 @@ class SystemService:
         encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
         return {"data_url": f"data:image/png;base64,{encoded}"}
 
+    def screenshot_data_url(self, max_width: int = 1024, quality: int = 65) -> str:
+        import pyautogui
+        from io import BytesIO
+
+        image = pyautogui.screenshot()
+        if image.width > max_width:
+            ratio = max_width / image.width
+            image = image.resize((max_width, max(1, int(image.height * ratio))))
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        buffer = BytesIO()
+        image.save(buffer, format="JPEG", quality=quality)
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return f"data:image/jpeg;base64,{encoded}"
+
+    def idle_seconds(self) -> float:
+        if os.name != "nt":
+            return 0.0
+        import ctypes
+
+        class LASTINPUTINFO(ctypes.Structure):
+            _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+
+        info = LASTINPUTINFO()
+        info.cbSize = ctypes.sizeof(info)
+        if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info)):
+            return 0.0
+        millis = ctypes.windll.kernel32.GetTickCount() - info.dwTime
+        return max(0.0, millis / 1000.0)
+
     def http_get(self, url: str, max_bytes: int = 200_000) -> dict:
         if not url.startswith(("http://", "https://")):
             url = "https://" + url

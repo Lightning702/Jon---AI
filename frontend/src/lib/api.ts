@@ -222,6 +222,9 @@ export interface UserSettings {
   pet_cheeks: boolean;
   pet_scale: number;
   pet_eyes: string;
+  dream_auto: boolean;
+  dream_idle_minutes: number;
+  vision_model: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -240,7 +243,23 @@ export async function getUserSettings(): Promise<UserSettings> {
       pet_cheeks: false,
       pet_scale: 1.0,
       pet_eyes: "round",
+      dream_auto: true,
+      dream_idle_minutes: 5,
+      vision_model: "",
     };
+  return res.json();
+}
+
+export async function observeScreen(
+  provider?: string,
+  model?: string
+): Promise<{ observation: string; error?: string }> {
+  const res = await fetch(`${BASE}/screen/observe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider, model }),
+  });
+  if (!res.ok) return { observation: "" };
   return res.json();
 }
 

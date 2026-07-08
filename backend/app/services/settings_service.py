@@ -20,6 +20,9 @@ DEFAULTS = {
     "pet_cheeks": False,
     "pet_scale": 1.0,
     "pet_eyes": "round",
+    "dream_auto": True,
+    "dream_idle_minutes": 5,
+    "vision_model": "",
 }
 
 

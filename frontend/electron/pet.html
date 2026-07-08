@@ -444,6 +444,9 @@
           u.rate = 1.06;
           u.pitch = voice && MALE.test(voice.name) ? 1.15 : 1.3;
           u.onstart = () => {
+            lookX = 0;
+            lookY = 0;
+            eyeTransform(1);
             if (mouthTimer) clearInterval(mouthTimer);
             mouthTimer = setInterval(() => openMouth(0.25 + Math.random() * 0.75), 95);
           };
@@ -464,13 +467,44 @@
         }
       }
 
+      let lookX = 0;
+      let lookY = 0;
+      function eyeTransform(scaleY) {
+        const s = scaleY == null ? 1 : scaleY;
+        eyesG.style.transform = `translate(${lookX}px, ${lookY}px) scaleY(${s})`;
+      }
       function blink() {
-        eyesG.style.transform = "scaleY(0.12)";
-        setTimeout(() => (eyesG.style.transform = "scaleY(1)"), 130);
+        eyeTransform(0.12);
+        setTimeout(() => eyeTransform(1), 130);
+      }
+      function doubleBlink() {
+        blink();
+        setTimeout(blink, 230);
+      }
+      function lookAround() {
+        lookX = Math.round((Math.random() * 2 - 1) * 7);
+        lookY = Math.round((Math.random() * 2 - 1) * 4);
+        eyeTransform(1);
+        setTimeout(() => {
+          lookX = 0;
+          lookY = 0;
+          eyeTransform(1);
+        }, 900 + Math.random() * 900);
       }
       setInterval(() => {
-        if (Math.random() < 0.7 && (cfg.pet_eyes || "round") === "round") blink();
+        const r = Math.random();
+        if (r < 0.12) doubleBlink();
+        else if (r < 0.75) blink();
       }, 3600);
+      setInterval(() => {
+        if (!busy && Math.random() < 0.6) lookAround();
+      }, 2600);
+      setInterval(() => {
+        if (!busy && !mouthTimer && Math.random() < 0.16) {
+          openMouth(0.4);
+          setTimeout(() => openMouth(0), 260);
+        }
+      }, 5000);
 
       function cancel() {
         canceled = true;

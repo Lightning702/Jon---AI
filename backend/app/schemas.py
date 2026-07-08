@@ -58,6 +58,14 @@ class SettingsIn(BaseModel):
     pet_cheeks: bool | None = None
     pet_scale: float | None = None
     pet_eyes: str | None = None
+    dream_auto: bool | None = None
+    dream_idle_minutes: int | None = None
+    vision_model: str | None = None
+
+
+class ScreenObserveIn(BaseModel):
+    provider: str | None = None
+    model: str | None = None
 
 
 class ReminderIn(BaseModel):

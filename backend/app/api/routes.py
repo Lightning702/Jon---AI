@@ -23,6 +23,7 @@ from app.schemas import (
     HealthOut,
     ProviderStatus,
     ReminderIn,
+    ScreenObserveIn,
     SettingsIn,
     SimulateIn,
     SkillWriteIn,
@@ -35,6 +36,7 @@ from app.services.chat_service import ChatService
 from app.services.dream_service import get_dream_service
 from app.services.persona_service import get_persona_service
 from app.services.reminder_service import get_reminder_service
+from app.services.screen_service import get_screen_service
 from app.services.settings_service import get_settings_service
 from app.services.simulation_service import get_simulation_service
 from app.services.skill_service import SkillService
@@ -374,6 +376,11 @@ async def run_dreams(payload: DreamIn | None = None) -> dict:
 @router.get("/dreams/reports")
 async def dream_reports() -> list[dict]:
     return get_dream_service().unseen_reports()
+
+
+@router.post("/screen/observe")
+async def screen_observe(payload: ScreenObserveIn) -> dict:
+    return await get_screen_service().observe(payload.provider, payload.model)
 
 
 @router.delete("/dreams/{task_id}")
