@@ -196,7 +196,7 @@ const SLASH_COMMANDS: { cmd: string; desc: string }[] = [
 
 const SHORTCUTS: { keys: string; desc: string }[] = [
   { keys: "Strg + Alt + J", desc: "Jon-Fenster von überall öffnen oder verstecken." },
-  { keys: "Strg + Alt + K", desc: "Kleiner Jon (Desktop-Begleiter) ein- oder ausblenden." },
+  { keys: "Strg + Alt + K", desc: "Mini Jon (Desktop-Begleiter) ein- oder ausblenden." },
   { keys: "Enter", desc: "Nachricht senden." },
 ];
 
@@ -211,8 +211,8 @@ const ABILITIES: { icon: string; title: string; example: string }[] = [
   { icon: "📸", title: "Screenshot & Bildschirm", example: "„Mach einen Screenshot und schau, was falsch ist.“" },
   { icon: "🧠", title: "Gedächtnis", example: "„Merk dir, dass ich Rechtsanwalt bin.“" },
   { icon: "🗂️", title: "Dateien", example: "„Räum meinen Download-Ordner auf.“" },
-  { icon: "💻", title: "Programmieren (Jon Code)", example: "Über den „Code“-Knopf oben." },
-  { icon: "🙂", title: "Kleiner Jon", example: "Klick ihn an und rede direkt mit ihm." },
+  { icon: "💻", title: "Programmieren (Jon Code)", example: "Befindet sich noch in Entwicklung." },
+  { icon: "🙂", title: "Mini Jon", example: "Sag „Emil“ oder klick ihn an und rede mit ihm." },
 ];
 
 function CommandsTab() {

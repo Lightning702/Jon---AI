@@ -64,9 +64,12 @@ h2{text-align:center;font-size:clamp(28px,5vw,42px);font-weight:800;letter-spaci
 .step p{color:rgba(255,255,255,.5);font-size:14px;margin-top:4px}
 .req{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:40px}
 .chip{padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:13px;color:rgba(255,255,255,.7)}
+.video-wrap{position:relative;max-width:900px;margin:44px auto 0;border-radius:20px;overflow:hidden;border:2px solid rgba(212,175,55,.25);box-shadow:0 0 50px rgba(212,175,55,.12),0 20px 60px rgba(0,0,0,.5);background:#000}
+.video-wrap::before{content:"";display:block;padding-top:56.25%}
+.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-size:13px;border-top:1px solid rgba(255,255,255,.06);margin-top:40px}
 .note{max-width:720px;margin:30px auto 0;padding:16px 20px;border-radius:14px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);font-size:13px;color:rgba(255,255,255,.65);text-align:center}
-@media(max-width:640px){.mock-body{grid-template-columns:1fr}.mock-side{display:none}nav a{display:none}}
+@media(max-width:640px){.mock-body{grid-template-columns:1fr}.mock-side{display:none}nav a{display:none}.video-wrap{border-radius:14px}}
 #cookie-banner{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100;width:min(680px,calc(100vw - 32px));padding:20px 24px;border-radius:18px;background:rgba(11,11,15,.92);border:1px solid rgba(212,175,55,.3);backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.6);display:none}
 #cookie-banner.show{display:block;animation:cookieIn .35s ease}
 @keyframes cookieIn{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -130,8 +133,8 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 <h2>Was Jon <span class="gold">kann</span></h2>
 <p class="sub">Nicht nur ein Chat — ein echter Assistent, der handelt.</p>
 <div class="grid">
-<div class="card"><div class="ic">🙂</div><h3>Mini Jon</h3><p>Jons kleiner Sohn <b>Jon Jr</b> lebt als niedlicher Kreis auf deinem Bildschirm — immer da, beim Hochfahren schon wach. Sag „Jon", er hört durchgehend zu, redet mit dir (mit lippensynchronem Mund) und kann alles, was Jon kann. Farben und Gesicht frei anpassbar.</p></div>
-<div class="card"><div class="ic">👨‍💻</div><h3>Jon Code</h3><p>Ein Coding-Agent wie in einem Editor: Dateibaum, Code-Editor und Jon, der an deinen Dateien arbeitet — in der App und als <code>jon</code> im VS-Code-Terminal.</p></div>
+<div class="card"><div class="ic">🙂</div><h3>Mini Jon</h3><p>Jons kleiner Sohn <b>Emil</b> lebt als niedlicher Kreis auf deinem Bildschirm — immer da, beim Hochfahren schon wach. Sag „Emil" oder „Mini Jon", er hört durchgehend zu, redet mit dir (mit lippensynchronem Mund), merkt sich euer Gespräch und kann alles, was Jon kann. Auch fürs Handy verfügbar. Farben und Gesicht frei anpassbar.</p></div>
+<div class="card"><div class="ic">👨‍💻</div><h3>Jon Code</h3><p>Ein Coding-Agent wie in einem Editor: Dateibaum, Code-Editor und Jon, der an deinen Dateien arbeitet. <b>Befindet sich noch in Entwicklung.</b></p></div>
 <div class="card"><div class="ic">🆓</div><h3>Lokal &amp; gratis</h3><p>Ollama und LM Studio als lokale Modelle — ganz ohne API-Key und ohne Kosten. Plus Free-Tiers von NVIDIA, Gemini und Groq.</p></div>
 <div class="card"><div class="ic">⏰</div><h3>Erinnerungen</h3><p>„Erinnere mich jeden Tag um 13 Uhr ans Trinken." Jon meldet sich mit Nachricht und Benachrichtigung.</p></div>
 <div class="card"><div class="ic">⚡</div><h3>Echtzeit-Streaming</h3><p>Antworten Token für Token, inklusive sichtbarem Denkprozess — mit großem Antwortlimit.</p></div>
@@ -158,6 +161,9 @@ DEFAULT_MODEL=openai/gpt-oss-120b</code></div></div>
 cd frontend &amp;&amp; npm install</code></div></div>
 <div class="step"><div class="n">3</div><div><h4>Jon starten</h4><p>Ein Doppelklick genügt:</p><code>start-jon.bat</code></div></div>
 </div>
+<div class="video-wrap">
+<iframe src="https://www.youtube.com/embed/tjVsXAmi750" title="Jon Installieren" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
+</div>
 <div class="req">
 <div class="chip">Windows 10 / 11</div>
 <div class="chip">Python 3.12+</div>
@@ -175,8 +181,10 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <div class="step"><div class="n">3</div><div><h4>Provider antippen &amp; Key einfügen</h4><p>Tippe auf NVIDIA, GLM oder einen anderen Provider, füge deinen API-Key ein — fertig. Der Key bleibt lokal auf deinem Handy.</p></div></div>
 </div>
 <p class="sub" style="margin-top:34px">Unterwegs kann Jon Apps öffnen (WhatsApp, YouTube, Maps, Kamera …), über das Teilen-Menü teilen, Antworten vorlesen, dir per Spracheingabe zuhören und angehängte Bilder analysieren. Kontakte, Nachrichten und fremde Dateien bleiben aus Sicherheitsgründen tabu — dafür nutzt Jon die bestmögliche offizielle Alternative.</p>
+<p class="sub" style="margin-top:16px">Lieber mit dem Kleinen reden? <b>Mini Jon (Emil)</b> gibt es jetzt auch fürs Handy — genauso klein und direkt wie am PC: antippen oder „Emil" sagen, er antwortet mit Stimme und merkt sich euer Gespräch.</p>
 <div class="cta" style="margin-top:40px">
 <a class="btn btn-primary" href="app/">📱 Handy-App öffnen</a>
+<a class="btn btn-ghost" href="app/mini.html">🙂 Mini Jon öffnen</a>
 </div>
 </section>
 
@@ -201,7 +209,7 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <a href="agb.html">AGB</a>
 <button class="cookie-link" onclick="jonShowCookieBanner()">Cookie-Einstellungen</button>
 </div>
-<div class="footer-meta">Jon — KI-Desktop-Assistent · v1.0.0 · Läuft lokal auf deinem Rechner</div>
+<div class="footer-meta">Jon — KI-Desktop-Assistent · v2.4.0 · Läuft lokal auf deinem Rechner</div>
 </footer>
 
 <div id="cookie-banner" role="dialog" aria-label="Cookie-Hinweis">

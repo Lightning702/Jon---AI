@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Jon Jr</title>
+    <title>Mini Jon</title>
     <style>
       * {
         margin: 0;
@@ -194,12 +194,12 @@
     <div id="stage">
       <div id="bubble"></div>
       <div id="inputRow">
-        <input id="field" placeholder="Sag Jon Jr etwas …" autocomplete="off" />
+        <input id="field" placeholder="Sag Emil etwas …" autocomplete="off" />
       </div>
       <div id="jonWrap">
-        <button id="mic" class="petBtn" title="Zuhören an/aus – sag „Jon“">🎙</button>
+        <button id="mic" class="petBtn" title="Zuhören an/aus – sag „Emil“">🎙</button>
         <button id="stopBtn" class="petBtn" title="Stopp">⏹</button>
-        <button id="close" class="petBtn" title="Jon Jr ausblenden (Strg+Alt+K)">✕</button>
+        <button id="close" class="petBtn" title="Mini Jon ausblenden (Strg+Alt+K)">✕</button>
         <div id="jon">
           <svg width="120" height="120" viewBox="0 0 120 120">
             <defs>
@@ -279,6 +279,24 @@
       let mouthTimer = null;
       let currentAbort = null;
       let canceled = false;
+
+      const MEM_KEY = "emil_memory";
+      const MEM_MAX = 16;
+      const MEM_SEND = 8;
+      let convo = [];
+      try {
+        convo = JSON.parse(localStorage.getItem(MEM_KEY)) || [];
+      } catch (e) {
+        convo = [];
+      }
+      function rememberTurn(userText, botText) {
+        convo.push({ role: "user", content: userText });
+        convo.push({ role: "assistant", content: botText });
+        convo = convo.slice(-MEM_MAX);
+        try {
+          localStorage.setItem(MEM_KEY, JSON.stringify(convo));
+        } catch (e) {}
+      }
 
       function clamp(v) {
         return Math.max(0, Math.min(255, Math.round(v)));
@@ -538,13 +556,14 @@
         say("…", true);
         currentAbort = new AbortController();
         let answer = "";
+        let replied = false;
         try {
           const res = await fetch(`${BASE}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             signal: currentAbort.signal,
             body: JSON.stringify({
-              messages: [{ role: "user", content: text }],
+              messages: [...convo.slice(-MEM_SEND), { role: "user", content: text }],
               persist: false,
               tool_mode: "allow",
               persona: "junior",
@@ -568,6 +587,7 @@
                 const evt = JSON.parse(m.slice(5).trim());
                 if (evt.type === "content") {
                   answer += evt.delta;
+                  replied = true;
                   say(answer, true);
                 } else if (evt.type === "error") {
                   answer = "Ups: " + evt.message;
@@ -582,6 +602,7 @@
         currentAbort = null;
         if (canceled) return;
         answer = answer.trim() || "…";
+        if (replied) rememberTurn(text, answer);
         say(answer, true);
         setState("");
         speak(answer, () => {
@@ -602,6 +623,7 @@
         return "Späte Stunde";
       }
       async function startupGreeting() {
+        const firstTime = localStorage.getItem("emil_intro") !== "1";
         let extras = [];
         try {
           const due = await (await fetch(`${BASE}/reminders/due`)).json();
@@ -613,13 +635,25 @@
           if (Array.isArray(reports) && reports.length)
             extras.push(`${reports.length} Ergebnis(se) aus dem Dream Mode`);
         } catch (e) {}
-        let line = `${greetingByHour()}! Ich bin Jon Jr, dein kleiner Jon.`;
+        if (firstTime) {
+          localStorage.setItem("emil_intro", "1");
+          let intro =
+            `${greetingByHour()}! Ich bin Emil, dein Mini Jon. Sag einfach „Emil“ ` +
+            `oder „Mini Jon“, dann höre ich dir zu – oder klick mich an und tipp mir ` +
+            `etwas. Ich kann fast alles, was mein Papa Jon kann.`;
+          if (extras.length)
+            intro += " Ich hab übrigens schon " + extras.join(" und ") + " für dich.";
+          say(intro, true);
+          scheduleHide(16000);
+          return;
+        }
+        let line = `${greetingByHour()}! Ich bin Emil, dein Mini Jon.`;
         if (extras.length) line += " Ich hab " + extras.join(" und ") + " für dich.";
-        else line += " Sag „Jon“ oder klick mich an.";
+        else line += " Sag „Emil“ oder klick mich an.";
         say(line);
       }
 
-      const WAKE = new Set(["jon", "john", "jonny", "johnny", "jonh", "junior"]);
+      const WAKE = new Set(["emil", "emile", "emilio", "emmi", "email", "mini"]);
       const SPEECH_THRESHOLD = 0.015;
       const SILENCE_END_MS = 1100;
       const MIN_SPEECH_MS = 350;
@@ -788,7 +822,10 @@
           const idx = words.findIndex((w) => WAKE.has(w));
           if (idx < 0) return;
           this.engaged = true;
-          const command = words.slice(idx + 1).join(" ").trim();
+          let start = idx + 1;
+          if (words[idx] === "mini" && (words[start] === "jon" || words[start] === "john"))
+            start += 1;
+          const command = words.slice(start).join(" ").trim();
           if (command.length >= 3) ask(command);
           else {
             primeSpeech();

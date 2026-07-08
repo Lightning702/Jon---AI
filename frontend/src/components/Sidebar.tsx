@@ -78,7 +78,7 @@ export default function Sidebar({
         )}
       </div>
       <div className="p-4 text-[11px] text-white/30 border-t border-white/10">
-        Jon Desktop v1.0.0
+        Jon Desktop v2.4.0
       </div>
     </aside>
   );

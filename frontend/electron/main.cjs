@@ -213,7 +213,7 @@ app.whenReady().then(() => {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Jon öffnen/verstecken", click: toggleWindow },
-      { label: "Kleiner Jon ein/aus", click: togglePet },
+      { label: "Mini Jon ein/aus", click: togglePet },
       { type: "separator" },
       {
         label: "Beenden",

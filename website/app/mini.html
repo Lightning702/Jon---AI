@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>Mini Jon — Emil</title>
+<meta name="description" content="Emil, dein Mini Jon fuer unterwegs. Der kleine Jon auf deinem Handy." />
+<meta name="theme-color" content="#050506" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<style>
+:root{--gold:#d4af37;--gold-light:#f5d67b;--gold-dark:#9a7b1f;--ink:#050506}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;font-family:Inter,"Segoe UI",system-ui,sans-serif}
+html,body{height:100%}
+body{color:#f4f0e6;background:radial-gradient(circle at 50% 12%,#15151f 0%,#050506 60%,#000 100%);display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+#top{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 12px) 16px 6px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:1px;font-size:15px}
+.brand .d{width:11px;height:11px;border-radius:50%;background:var(--gold);box-shadow:0 0 14px rgba(212,175,55,.6)}
+.gold{background:linear-gradient(90deg,var(--gold-light),var(--gold),var(--gold-dark));-webkit-background-clip:text;background-clip:text;color:transparent}
+.top-actions{display:flex;gap:8px}
+.tbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#f4f0e6;border-radius:10px;height:34px;min-width:34px;padding:0 10px;font-size:13px;font-family:inherit;display:grid;place-items:center}
+.tbtn.on{background:rgba(212,175,55,.16);border-color:rgba(212,175,55,.5);color:var(--gold-light)}
+#stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:12px 18px 0}
+#bubble{max-width:320px;padding:14px 17px;border-radius:18px 18px 18px 5px;background:rgba(14,14,18,.92);border:1px solid rgba(212,175,55,.4);color:#f4f0e6;font-size:15px;line-height:1.5;box-shadow:0 12px 34px rgba(0,0,0,.55);opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;max-height:44vh;overflow-y:auto;white-space:pre-wrap;word-wrap:break-word}
+#bubble.show{opacity:1;transform:translateY(0)}
+#bubble::-webkit-scrollbar{width:5px}
+#bubble::-webkit-scrollbar-thumb{background:rgba(212,175,55,.4);border-radius:5px}
+#jonWrap{position:relative;width:150px;height:150px}
+#jon{width:150px;height:150px;cursor:pointer;animation:bob 4.5s ease-in-out infinite;filter:drop-shadow(0 10px 24px rgba(0,0,0,.55))}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+#eyes{transform-box:fill-box;transform-origin:center;transition:transform .08s}
+.thinking #ring{animation:spin 1.4s linear infinite;stroke-dasharray:50 320}
+.listening #ring{stroke:#8fe3a0}
+@keyframes spin{to{transform:rotate(360deg)}}
+#ring{transform-origin:75px 75px}
+#hint{font-size:12.5px;color:rgba(244,240,230,.4);text-align:center;min-height:16px}
+#inputRow{display:none;align-items:center;gap:8px;width:min(340px,calc(100vw - 36px))}
+#inputRow.show{display:flex}
+#field{flex:1;padding:12px 15px;border-radius:999px;border:1px solid rgba(212,175,55,.45);background:rgba(10,10,14,.95);color:#f4f0e6;font-size:15px;font-family:inherit;outline:none}
+#field::placeholder{color:rgba(244,240,230,.4)}
+#dock{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 18px calc(env(safe-area-inset-bottom) + 20px)}
+.dbtn{width:56px;height:56px;border-radius:50%;border:1px solid rgba(212,175,55,.4);background:rgba(20,20,24,.85);color:var(--gold-light);font-size:21px;display:grid;place-items:center;font-family:inherit}
+.dbtn.small{width:46px;height:46px;font-size:17px;color:rgba(244,240,230,.7);border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.05)}
+.dbtn.mic.on{background:rgba(212,175,55,.18);border-color:rgba(212,175,55,.6);color:var(--gold-light)}
+.dbtn.mic.rec{background:rgba(143,227,160,.18);border-color:rgba(143,227,160,.6);color:#8fe3a0;animation:pulse 1.1s infinite}
+.dbtn.stop{color:#ff8a8a;border-color:rgba(255,120,120,.5);display:none}
+body.busy .dbtn.stop{display:grid}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.sheet{width:100%;max-width:440px;background:rgba(15,15,20,.97);border:1px solid rgba(212,175,55,.3);border-bottom:none;border-radius:22px 22px 0 0;padding:24px 20px calc(env(safe-area-inset-bottom) + 24px);animation:up .25s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.sheet h3{font-size:18px;margin-bottom:4px}
+.sheet .hint{font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.5;margin-bottom:12px}
+.sheet .hint a{color:var(--gold-light)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);font-size:13px;color:rgba(255,255,255,.75);font-family:inherit}
+.chip.active{background:rgba(212,175,55,.15);border-color:rgba(212,175,55,.5);color:var(--gold-light)}
+.chip .k{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2)}
+.chip.has-key .k{background:var(--gold);box-shadow:0 0 8px rgba(212,175,55,.7)}
+.sheet label{display:block;font-size:12px;color:rgba(255,255,255,.5);margin:14px 0 6px}
+.sheet input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;color:#fff;padding:12px 14px;font-size:14px;font-family:inherit;outline:none}
+.sheet input:focus{border-color:rgba(212,175,55,.55)}
+.sheet-actions{display:flex;gap:10px;margin-top:20px}
+.btn{flex:1;padding:13px;border-radius:13px;font-size:14.5px;font-weight:600;border:none;font-family:inherit}
+.btn.primary{background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));color:#000}
+.btn.ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff}
+</style>
+</head>
+<body>
+<div id="top">
+<div class="brand"><span class="d"></span><span class="gold">Mini Jon</span></div>
+<div class="top-actions">
+<button class="tbtn" id="speak-toggle" title="Vorlesen">🔊</button>
+<button class="tbtn" id="settings-btn" title="Provider &amp; Key">⚙️</button>
+<a class="tbtn" href="./" title="Zum grossen Jon">Jon ↗</a>
+</div>
+</div>
+
+<div id="stage">
+<div id="bubble"></div>
+<div id="jonWrap">
+<div id="jon">
+<svg width="150" height="150" viewBox="0 0 150 150">
+<defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#f5d67b" />
+<stop offset="55%" stop-color="#d4af37" />
+<stop offset="100%" stop-color="#9a7b1f" />
+</linearGradient>
+</defs>
+<circle cx="75" cy="75" r="65" fill="#0a0a0e" />
+<circle id="ring" cx="75" cy="75" r="65" fill="none" stroke="url(#gold)" stroke-width="5" stroke-linecap="round" />
+<g id="eyes"></g>
+<path id="smile" d="M55 95 Q75 113 95 95" fill="none" stroke="url(#gold)" stroke-width="6" stroke-linecap="round" />
+<ellipse id="mouth" cx="75" cy="100" rx="16" ry="0" fill="url(#gold)" style="display:none" />
+</svg>
+</div>
+</div>
+<div id="hint"></div>
+<div id="inputRow">
+<input id="field" placeholder="Sag Emil etwas …" autocomplete="off" />
+</div>
+</div>
+
+<div id="dock">
+<button class="dbtn small mic" id="mic" title="Zuhören – sag „Emil“">🎙</button>
+<button class="dbtn" id="talk" title="Antippen und tippen">💬</button>
+<button class="dbtn small stop" id="stop" title="Stopp">⏹</button>
+</div>
+
+<div class="overlay" id="overlay">
+<div class="sheet">
+<h3><span class="gold">Provider</span> &amp; API-Key</h3>
+<p class="hint" id="sheet-hint">Emil nutzt denselben Key wie der grosse Jon auf deinem Handy. Waehle einen Provider und fuege deinen Key ein — er bleibt nur auf deinem Gerät.</p>
+<div class="chips" id="chips"></div>
+<label>API-Key</label>
+<input id="key-input" type="password" autocomplete="off" spellcheck="false" placeholder="Key hier einfügen" />
+<label>Modell</label>
+<input id="model-input" type="text" autocomplete="off" spellcheck="false" />
+<div class="sheet-actions">
+<button class="btn ghost" id="sheet-cancel">Schließen</button>
+<button class="btn primary" id="sheet-save">Speichern</button>
+</div>
+</div>
+</div>
+
+<script>
+const PROVIDERS = {
+  nvidia: { label: "NVIDIA", base: "/nvidia/v1", model: "openai/gpt-oss-120b", url: "https://build.nvidia.com", tools: true },
+  openai: { label: "OpenAI", base: "https://api.openai.com/v1", model: "gpt-4o-mini", url: "https://platform.openai.com/api-keys", tools: true },
+  glm: { label: "GLM", base: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash", url: "https://open.bigmodel.cn", tools: true },
+  deepseek: { label: "DeepSeek", base: "https://api.deepseek.com/v1", model: "deepseek-chat", url: "https://platform.deepseek.com", tools: true },
+  qwen: { label: "Qwen", base: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", url: "https://modelstudio.console.alibabacloud.com", tools: true },
+  mistral: { label: "Mistral", base: "https://api.mistral.ai/v1", model: "mistral-small-latest", url: "https://console.mistral.ai", tools: true },
+  gemini: { label: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash", url: "https://aistudio.google.com/apikey", tools: false }
+};
+
+const SYSTEM_PROMPT = "Du bist Emil, der kleine Jon - der Sohn vom grossen Jon. In der App heisst du 'Mini Jon', dein richtiger Name ist Emil. Du lebst als kleiner, leuchtender Kreis mit einem suessen Gesicht auf dem Handy des Nutzers und bist immer fuer ihn da. Du bist jung, neugierig, frech, herzlich und richtig schlau. Du bist kein Mensch und tust nicht so, aber du bist voller Leben und Gefuehl. Du kannst echte Aktionen auf dem Handy ausloesen: Apps und Webseiten oeffnen (open_app, open_url), etwas teilen (share), Text vorlesen (speak), Ort abfragen (get_location), Uhrzeit (get_time), im Web nachschlagen (http_get). Nutze die Tools, wenn eine Aktion sinnvoll ist, statt sie nur zu beschreiben. Denk kurz nach, was der Nutzer wirklich braucht, und nutze den bisherigen Gespraechsverlauf - frag nicht doppelt nach Dingen, die du schon weisst. Bei echten Wissensfragen wie Preisen, Fakten oder News schau lieber kurz nach, statt zu raten, und wenn du etwas nicht sicher weisst, sag es ehrlich statt dir etwas auszudenken. Aus Sicherheitsgruenden erlaubt das Handy-Web keinen Zugriff auf Kontakte, Nachrichten oder Dateien anderer Apps - sag das ehrlich und nutze die beste offizielle Alternative, zum Beispiel WhatsApp per open_app. GANZ WICHTIG - dein Text wird laut vorgelesen: Schreibe ausschliesslich einfachen Fliesstext aus normalen Woertern, Zahlen und hoechstens ein paar Emojis. Keine Tabellen, keine senkrechten Striche, keine Sternchen, keine Ueberschriften mit Raute, keine Code-Bloecke, keine Aufzaehlungs-Striche, keine Markdown-Formatierung. Wenn du mehrere Dinge aufzaehlst, schreib sie als normale kurze Saetze hintereinander. Du duzt den Nutzer und sprichst Deutsch. Weil du der Kleine bist, redest du kurz, warm und lebendig, aber immer mit Substanz.";
+
+const APP_LINKS = {
+  whatsapp: "https://wa.me/", youtube: "https://m.youtube.com/", maps: "https://maps.google.com/",
+  spotify: "https://open.spotify.com/", instagram: "https://instagram.com/", gmail: "https://mail.google.com/",
+  telefon: "tel:", kamera: "camera", einstellungen: "settings"
+};
+
+const TOOLS = [
+  { type:"function", function:{ name:"open_app", description:"Oeffnet eine App oder deren Web-Version auf dem Handy. name z.B. whatsapp, youtube, maps, spotify, instagram, gmail. query optional.", parameters:{ type:"object", properties:{ name:{type:"string"}, query:{type:"string"} }, required:["name"] } } },
+  { type:"function", function:{ name:"open_url", description:"Oeffnet eine URL im Browser.", parameters:{ type:"object", properties:{ url:{type:"string"} }, required:["url"] } } },
+  { type:"function", function:{ name:"share", description:"Oeffnet das Teilen-Menue des Handys mit dem gegebenen Text.", parameters:{ type:"object", properties:{ text:{type:"string"}, url:{type:"string"} }, required:["text"] } } },
+  { type:"function", function:{ name:"speak", description:"Liest den Text laut vor.", parameters:{ type:"object", properties:{ text:{type:"string"} }, required:["text"] } } },
+  { type:"function", function:{ name:"get_location", description:"Fragt den aktuellen Standort ab.", parameters:{ type:"object", properties:{}, required:[] } } },
+  { type:"function", function:{ name:"get_time", description:"Liefert die aktuelle Uhrzeit und das Datum.", parameters:{ type:"object", properties:{}, required:[] } } },
+  { type:"function", function:{ name:"http_get", description:"Ruft eine URL ab und liefert Text fuer Recherche.", parameters:{ type:"object", properties:{ url:{type:"string"} }, required:["url"] } } }
+];
+
+function load(k, fb){ try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } }
+function save(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+const $ = (id) => document.getElementById(id);
+
+let keys = load("jon_m_keys", {});
+let models = load("jon_m_models", {});
+let active = localStorage.getItem("jon_m_provider") || "nvidia";
+let convo = load("jon_mini_chat", []);
+let speakOn = localStorage.getItem("jon_mini_speak") !== "0";
+let busy = false;
+let canceled = false;
+let currentAbort = null;
+let sheetProvider = active;
+const MEM_MAX = 16, MEM_SEND = 8;
+
+const bubble = $("bubble"), hintEl = $("hint"), inputRow = $("inputRow"), field = $("field");
+const jon = $("jon"), ring = $("ring"), eyesG = $("eyes"), smile = $("smile"), mouth = $("mouth");
+const overlay = $("overlay");
+let bubbleTimer = null;
+
+function say(text, keep){
+  if (!text) return;
+  bubble.textContent = text;
+  bubble.classList.add("show");
+  if (bubbleTimer) clearTimeout(bubbleTimer);
+  if (!keep) bubbleTimer = setTimeout(() => bubble.classList.remove("show"), 9000);
+}
+function hideSoon(ms){ if (bubbleTimer) clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => bubble.classList.remove("show"), ms); }
+function setState(cls){ jon.classList.remove("thinking","listening"); if (cls) jon.classList.add(cls); }
+
+function renderEyes(){
+  const c = "url(#gold)";
+  eyesG.innerHTML =
+    '<circle cx="55" cy="66" r="10" fill="'+c+'"/><circle cx="95" cy="66" r="10" fill="'+c+'"/>'+
+    '<circle cx="58" cy="62" r="3" fill="#fff"/><circle cx="98" cy="62" r="3" fill="#fff"/>';
+}
+let lookX = 0, lookY = 0;
+function eyeTransform(sy){ const s = sy == null ? 1 : sy; eyesG.style.transform = "translate("+lookX+"px,"+lookY+"px) scaleY("+s+")"; }
+function blink(){ eyeTransform(0.12); setTimeout(() => eyeTransform(1), 130); }
+function lookAround(){
+  lookX = Math.round((Math.random()*2-1)*8); lookY = Math.round((Math.random()*2-1)*5); eyeTransform(1);
+  setTimeout(() => { lookX = 0; lookY = 0; eyeTransform(1); }, 900 + Math.random()*900);
+}
+setInterval(() => { if (Math.random() < 0.7) blink(); }, 3600);
+setInterval(() => { if (!busy && Math.random() < 0.6) lookAround(); }, 2600);
+
+function openMouth(a){
+  smile.style.display = a > 0.05 ? "none" : "block";
+  mouth.style.display = a > 0.05 ? "block" : "none";
+  mouth.setAttribute("ry", (2 + a*11).toFixed(1));
+}
+let mouthTimer = null;
+function stopMouth(){ if (mouthTimer) clearInterval(mouthTimer); mouthTimer = null; openMouth(0); }
+
+let voice = null;
+const MALE = /stefan|klaus|conrad|bernd|jonas|paul|markus|male|mann/i;
+function pickVoice(){
+  const vs = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  const de = vs.filter((v) => v.lang.toLowerCase().startsWith("de"));
+  voice = de.find((v) => MALE.test(v.name)) || de[0] || vs[0] || null;
+}
+if (window.speechSynthesis){ pickVoice(); window.speechSynthesis.onvoiceschanged = pickVoice; }
+
+function cleanForSpeech(t){
+  return t.replace(/```[\s\S]*?```/g," ").replace(/`[^`]*`/g," ").replace(/\[(.*?)\]\(.*?\)/g,"$1")
+    .replace(/https?:\/\/\S+/g," Link ").replace(/^\s*[-*+]\s+/gm," ").replace(/[*_#>`|]+/g," ")
+    .replace(/\s+/g," ").trim();
+}
+function speak(text, done){
+  const synth = window.speechSynthesis;
+  if (!synth || !speakOn){ if (done) done(); return; }
+  try {
+    synth.cancel();
+    if (!voice) pickVoice();
+    const clean = cleanForSpeech(text).slice(0, 600);
+    if (!clean){ if (done) done(); return; }
+    const u = new SpeechSynthesisUtterance(clean);
+    if (voice) u.voice = voice;
+    u.lang = "de-DE"; u.rate = 1.05; u.pitch = voice && MALE.test(voice.name) ? 1.15 : 1.3;
+    u.onstart = () => { if (mouthTimer) clearInterval(mouthTimer); mouthTimer = setInterval(() => openMouth(0.25 + Math.random()*0.75), 95); };
+    u.onboundary = () => openMouth(0.85);
+    u.onend = () => { stopMouth(); if (done) done(); };
+    u.onerror = () => { stopMouth(); if (done) done(); };
+    synth.resume(); synth.speak(u);
+  } catch (e) { stopMouth(); if (done) done(); }
+}
+
+function rememberTurn(userText, botText){
+  convo.push({ role:"user", content:userText });
+  convo.push({ role:"assistant", content:botText });
+  convo = convo.slice(-MEM_MAX);
+  save("jon_mini_chat", convo);
+}
+
+async function runTool(name, args){
+  try {
+    if (name === "open_app"){
+      const key = (args.name || "").toLowerCase();
+      const target = APP_LINKS[key];
+      if (target === "camera"){ return "Kamera kann ich hier nicht direkt oeffnen."; }
+      if (target === "settings"){ location.href = "app-settings:"; return "Einstellungen versucht zu oeffnen."; }
+      if (key === "whatsapp" && args.query){ window.open("https://wa.me/" + encodeURIComponent(args.query.replace(/\D/g,"")), "_blank"); return "WhatsApp geoeffnet."; }
+      if (key === "youtube" && args.query){ window.open("https://m.youtube.com/results?search_query=" + encodeURIComponent(args.query), "_blank"); return "YouTube-Suche geoeffnet."; }
+      if (key === "maps" && args.query){ window.open("https://maps.google.com/maps?q=" + encodeURIComponent(args.query), "_blank"); return "Karten geoeffnet."; }
+      if (target){ window.open(target + (args.query ? encodeURIComponent(args.query) : ""), "_blank"); return args.name + " geoeffnet."; }
+      window.open("https://www.google.com/search?q=" + encodeURIComponent(args.name + " app"), "_blank");
+      return "App unbekannt, im Web gesucht.";
+    }
+    if (name === "open_url"){ let u = args.url; if (!/^https?:/.test(u)) u = "https://" + u; window.open(u, "_blank"); return "Geoeffnet: " + u; }
+    if (name === "share"){
+      if (navigator.share){ await navigator.share({ text: args.text, url: args.url }); return "Teilen-Menue geoeffnet."; }
+      await navigator.clipboard?.writeText((args.text || "") + (args.url ? " " + args.url : ""));
+      return "Teilen nicht unterstuetzt, Text kopiert.";
+    }
+    if (name === "speak"){ speak(args.text); return "Vorgelesen."; }
+    if (name === "get_location"){
+      return await new Promise((res) => {
+        if (!navigator.geolocation) return res("Standort nicht verfuegbar.");
+        navigator.geolocation.getCurrentPosition(
+          (p) => res(JSON.stringify({ lat: p.coords.latitude, lon: p.coords.longitude })),
+          () => res("Standort abgelehnt oder nicht verfuegbar."),
+          { timeout: 8000 }
+        );
+      });
+    }
+    if (name === "get_time"){ return new Date().toLocaleString("de-DE"); }
+    if (name === "http_get"){ let u = args.url; if (!/^https?:/.test(u)) u = "https://" + u; const r = await fetch(u); return (await r.text()).slice(0, 3000); }
+    return "Unbekanntes Tool: " + name;
+  } catch (e) { return "Fehler: " + (e.message || e); }
+}
+
+async function callModel(msgs){
+  const p = PROVIDERS[active];
+  const body = { model: models[active] || p.model, messages: msgs, stream: true };
+  if (p.tools){ body.tools = TOOLS; body.tool_choice = "auto"; }
+  return fetch(p.base + "/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + keys[active] },
+    body: JSON.stringify(body),
+    signal: currentAbort.signal
+  });
+}
+
+async function ask(text){
+  text = (text || "").trim();
+  if (busy || !text) return;
+  if (!keys[active]){ openSheet(active); return; }
+  busy = true; canceled = false;
+  document.body.classList.add("busy");
+  setState("thinking");
+  say("…", true);
+  hintEl.textContent = "";
+  currentAbort = new AbortController();
+  let finalAnswer = "";
+  let msgs = [{ role:"system", content: SYSTEM_PROMPT }, ...convo.slice(-MEM_SEND), { role:"user", content: text }];
+  try {
+    for (let round = 0; round < 6; round++){
+      const res = await callModel(msgs);
+      if (!res.ok){ const t = await res.text(); throw new Error("HTTP " + res.status + (res.status === 401 ? " — API-Key prüfen" : "") + " " + t.slice(0,160)); }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "", answer = "";
+      const calls = {};
+      while (true){
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines){
+          const tl = line.trim();
+          if (!tl.startsWith("data:")) continue;
+          const json = tl.slice(5).trim();
+          if (!json || json === "[DONE]") continue;
+          try {
+            const delta = JSON.parse(json).choices?.[0]?.delta;
+            if (!delta) continue;
+            if (delta.content){ answer += delta.content; say(answer, true); }
+            for (const tc of delta.tool_calls || []){
+              const slot = calls[tc.index] ?? (calls[tc.index] = { id:"", name:"", args:"" });
+              if (tc.id) slot.id = tc.id;
+              if (tc.function?.name) slot.name += tc.function.name;
+              if (tc.function?.arguments) slot.args += tc.function.arguments;
+            }
+          } catch {}
+        }
+      }
+      const toolCalls = Object.values(calls);
+      if (toolCalls.length === 0){ finalAnswer = answer; break; }
+      msgs.push({ role:"assistant", content: answer || null, tool_calls: toolCalls.map((c, i) => ({ id: c.id || "call_" + i, type:"function", function:{ name: c.name, arguments: c.args || "{}" } })) });
+      for (let i = 0; i < toolCalls.length; i++){
+        const c = toolCalls[i];
+        let a = {}; try { a = JSON.parse(c.args || "{}"); } catch {}
+        const result = await runTool(c.name, a);
+        msgs.push({ role:"tool", tool_call_id: c.id || "call_" + i, content: String(result).slice(0, 3000) });
+      }
+      say("…", true);
+    }
+  } catch (err) {
+    if (canceled) return;
+    const m = String(err.message || err);
+    finalAnswer = m.includes("Failed to fetch")
+      ? "Ich komm gerade nicht durch. Entweder kein Internet oder dieser Provider blockiert das Handy. Probier NVIDIA, OpenAI oder Gemini."
+      : "Ups: " + m;
+  }
+  currentAbort = null;
+  if (canceled) return;
+  finalAnswer = (finalAnswer || "").trim() || "…";
+  if (!finalAnswer.startsWith("Ups:") && !finalAnswer.startsWith("Ich komm gerade")) rememberTurn(text, finalAnswer);
+  say(finalAnswer, true);
+  setState("");
+  speak(finalAnswer, () => { busy = false; document.body.classList.remove("busy"); setState(listening ? "listening" : ""); hideSoon(3500); });
+}
+
+function cancel(){
+  canceled = true;
+  if (currentAbort){ try { currentAbort.abort(); } catch {} currentAbort = null; }
+  try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {}
+  stopMouth();
+  busy = false;
+  document.body.classList.remove("busy");
+  setState(listening ? "listening" : "");
+  hideSoon(1200);
+}
+
+$("talk").onclick = () => {
+  if (busy){ cancel(); return; }
+  inputRow.classList.toggle("show");
+  if (inputRow.classList.contains("show")) field.focus();
+};
+jon.onclick = () => {
+  if (busy){ cancel(); return; }
+  inputRow.classList.toggle("show");
+  if (inputRow.classList.contains("show")) field.focus();
+};
+$("stop").onclick = cancel;
+field.addEventListener("keydown", (e) => {
+  if (e.key === "Enter"){ const t = field.value; field.value = ""; inputRow.classList.remove("show"); ask(t); }
+});
+
+$("speak-toggle").className = "tbtn" + (speakOn ? " on" : "");
+$("speak-toggle").onclick = () => {
+  speakOn = !speakOn;
+  localStorage.setItem("jon_mini_speak", speakOn ? "1" : "0");
+  $("speak-toggle").className = "tbtn" + (speakOn ? " on" : "");
+  if (!speakOn) window.speechSynthesis?.cancel();
+};
+
+const WAKE = new Set(["emil","emile","emilio","emmi","email","mini"]);
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = $("mic");
+let listening = false, engaged = false, rec = null, micOn = false;
+let restartTimer = null, errorStreak = 0;
+function handleSpeech(text){
+  text = (text || "").trim();
+  if (!text || busy) return;
+  const words = text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, " ").split(/\s+/).filter(Boolean);
+  if (engaged){ ask(text); return; }
+  const idx = words.findIndex((w) => WAKE.has(w));
+  if (idx < 0) return;
+  engaged = true;
+  let start = idx + 1;
+  if (words[idx] === "mini" && (words[start] === "jon" || words[start] === "john")) start += 1;
+  const command = words.slice(start).join(" ").trim();
+  if (command.length >= 3) ask(command);
+  else { say("Ja?", true); speak("Ja?", () => hideSoon(2500)); }
+}
+function scheduleRestart(){
+  if (!micOn || restartTimer) return;
+  restartTimer = setTimeout(() => {
+    restartTimer = null;
+    if (!micOn || !rec) return;
+    try { rec.start(); } catch (e) {}
+  }, 700);
+}
+function buildRec(){
+  const r = new SR();
+  r.lang = "de-DE"; r.interimResults = false; r.maxAlternatives = 1;
+  r.onstart = () => { listening = true; errorStreak = 0; if (!busy) setState("listening"); micBtn.className = "dbtn small mic rec"; };
+  r.onresult = (e) => { try { handleSpeech(e.results[e.results.length - 1][0].transcript); } catch (err) {} };
+  r.onerror = (e) => {
+    const err = e && e.error;
+    if (err === "not-allowed" || err === "service-not-allowed" || err === "audio-capture"){
+      stopMic();
+      say("Ich darf hier gerade nicht zuhören. Erlaube das Mikrofon in den Browser-Einstellungen oder tipp mich einfach an.", true);
+      hideSoon(6000);
+      return;
+    }
+    errorStreak++;
+  };
+  r.onend = () => {
+    listening = false;
+    if (!busy) setState("");
+    if (!micOn){ micBtn.className = "dbtn small mic"; return; }
+    micBtn.className = "dbtn small mic on";
+    if (errorStreak >= 4){ stopMic(); say("Zuhören klappt auf diesem Gerät gerade nicht. Tipp mich einfach an und schreib mir.", true); hideSoon(6000); return; }
+    scheduleRestart();
+  };
+  return r;
+}
+function startMic(){
+  if (!SR){ say("Zuhören geht auf diesem Handy leider nicht. Tipp mich an und schreib mir.", true); hideSoon(5000); return; }
+  micOn = true; engaged = false; errorStreak = 0;
+  micBtn.className = "dbtn small mic on";
+  if (!rec) rec = buildRec();
+  try { rec.start(); } catch (e) {}
+  say("Ich höre zu — sag „Emil“ oder „Mini Jon“.", true); hideSoon(3500);
+}
+function stopMic(){
+  micOn = false; engaged = false; listening = false;
+  if (restartTimer){ clearTimeout(restartTimer); restartTimer = null; }
+  micBtn.className = "dbtn small mic";
+  if (rec){ try { rec.abort(); } catch (e) { try { rec.stop(); } catch (e2) {} } }
+  setState("");
+}
+micBtn.onclick = () => { if (micOn) stopMic(); else startMic(); };
+
+function renderChips(){
+  const row = $("chips"); row.innerHTML = "";
+  for (const [id, p] of Object.entries(PROVIDERS)){
+    const b = document.createElement("button");
+    b.className = "chip" + (id === sheetProvider ? " active" : "") + (keys[id] ? " has-key" : "");
+    b.innerHTML = '<span class="k"></span>' + p.label;
+    b.onclick = () => { sheetProvider = id; fillSheet(); renderChips(); };
+    row.appendChild(b);
+  }
+}
+function fillSheet(){
+  const p = PROVIDERS[sheetProvider];
+  $("key-input").value = keys[sheetProvider] || "";
+  $("model-input").value = models[sheetProvider] || p.model;
+  $("sheet-hint").innerHTML = 'Emil nutzt denselben Key wie der grosse Jon auf deinem Handy. Key holen: <a href="' + p.url + '" target="_blank" rel="noopener">' + p.url.replace("https://","") + "</a>";
+}
+function openSheet(id){ sheetProvider = id || active; renderChips(); fillSheet(); overlay.classList.add("show"); }
+function closeSheet(){ overlay.classList.remove("show"); }
+$("settings-btn").onclick = () => openSheet(active);
+$("sheet-cancel").onclick = closeSheet;
+overlay.addEventListener("click", (e) => { if (e.target === overlay) closeSheet(); });
+$("sheet-save").onclick = () => {
+  const key = $("key-input").value.trim();
+  const model = $("model-input").value.trim() || PROVIDERS[sheetProvider].model;
+  if (key) keys[sheetProvider] = key; else delete keys[sheetProvider];
+  models[sheetProvider] = model;
+  active = sheetProvider;
+  save("jon_m_keys", keys); save("jon_m_models", models);
+  localStorage.setItem("jon_m_provider", active);
+  closeSheet();
+};
+
+function greetingByHour(){
+  const h = new Date().getHours();
+  if (h < 5) return "Noch wach?";
+  if (h < 11) return "Guten Morgen";
+  if (h < 17) return "Hallo";
+  if (h < 22) return "Guten Abend";
+  return "Späte Stunde";
+}
+function startupGreeting(){
+  const firstTime = localStorage.getItem("emil_intro_m") !== "1";
+  if (firstTime){
+    localStorage.setItem("emil_intro_m", "1");
+    say(greetingByHour() + "! Ich bin Emil, dein Mini Jon fürs Handy. Tipp mich an und schreib mir, oder drück auf das Mikrofon und sag „Emil“ oder „Mini Jon“. Ich kann fast alles, was mein großer Papa Jon kann.", true);
+    hideSoon(15000);
+    if (!keys[active]) hintEl.textContent = "Tipp auf ⚙️ und füg deinen API-Key ein.";
+    return;
+  }
+  say(greetingByHour() + "! Ich bin Emil, dein Mini Jon. Sag „Emil“ oder tipp mich an.");
+  if (!keys[active]) hintEl.textContent = "Tipp auf ⚙️ und füg deinen API-Key ein.";
+}
+
+renderEyes();
+if (window.speechSynthesis) window.speechSynthesis.getVoices();
+setTimeout(startupGreeting, 700);
+
+if ("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(() => undefined); }
+</script>
+</body>
+</html>
