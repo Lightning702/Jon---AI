@@ -76,13 +76,11 @@ function startBackend() {
   if (!app.isPackaged) return;
   const backendDir = path.join(process.resourcesPath, "backend");
   if (!fs.existsSync(backendDir)) return;
-  const dataDir = path.join(backendDir, "..", "data");
-  try {
-    fs.mkdirSync(dataDir, { recursive: true });
-  } catch (e) {}
+  const logDir = app.getPath("userData");
   let out = "ignore";
   try {
-    out = fs.openSync(path.join(dataDir, "backend.log"), "a");
+    fs.mkdirSync(logDir, { recursive: true });
+    out = fs.openSync(path.join(logDir, "backend.log"), "a");
   } catch (e) {}
   const pyEnv =
     process.env.JON_PYTHON || (process.platform === "win32" ? "python" : "python3");

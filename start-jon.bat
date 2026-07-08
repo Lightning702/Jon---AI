@@ -43,6 +43,11 @@ if errorlevel 1 (
 
 if not exist "data" mkdir "data"
 
+set "LOGDIR=%LOCALAPPDATA%\Jon"
+if not exist "%LOGDIR%" mkdir "%LOGDIR%"
+set "LOGFILE=%LOGDIR%\backend.log"
+del "%~dp0data\backend.log" >nul 2>nul
+
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8756 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }" >nul 2>nul
 
 %PY% -c "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf" >nul 2>nul
@@ -61,8 +66,8 @@ if errorlevel 1 (
 )
 
 echo Starte Jon-Backend...
-del "%~dp0data\backend.log" >nul 2>nul
-start "Jon Backend" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$host.UI.RawUI.WindowTitle = 'Jon Backend'; Set-Location '%~dp0backend'; & %PY% -m app.main 2>&1 | ForEach-Object ToString | Tee-Object -FilePath '%~dp0data\backend.log'"
+del "%LOGFILE%" >nul 2>nul
+start "Jon Backend" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$host.UI.RawUI.WindowTitle = 'Jon Backend'; Set-Location '%~dp0backend'; & %PY% -m app.main 2>&1 | ForEach-Object ToString | Tee-Object -FilePath '%LOGFILE%'"
 
 echo Warte auf Backend...
 set BACKEND_OK=
@@ -77,10 +82,11 @@ if defined BACKEND_OK (
     echo Backend laeuft auf http://127.0.0.1:8756
 ) else (
     echo.
-    echo Das Backend ist nicht gestartet. Letzte Zeilen aus data\backend.log:
+    echo Das Backend ist nicht gestartet. Letzte Zeilen aus dem Log:
     echo ------------------------------------------------------------------
-    powershell -NoProfile -Command "if(Test-Path '%~dp0data\backend.log'){Get-Content '%~dp0data\backend.log' -Tail 25}else{Write-Host 'Keine Log-Datei gefunden.'}"
+    powershell -NoProfile -Command "if(Test-Path '%LOGFILE%'){Get-Content '%LOGFILE%' -Tail 25}else{Write-Host 'Keine Log-Datei gefunden.'}"
     echo ------------------------------------------------------------------
+    echo (Vollstaendiges Log: %LOGFILE%)
     pause
     exit /b 1
 )

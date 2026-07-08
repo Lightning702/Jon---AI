@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.9.2] — 2026-07-08
+
+### Behoben
+- **Netlify-Fehler „Unable to read file backend.log":** Das Backend-Log liegt jetzt außerhalb
+  des Projektordners (unter `%LOCALAPPDATA%\Jon\backend.log`) statt in `data/`. Dadurch kann
+  beim Hochladen keine gesperrte Log-Datei mehr stören. Empfehlung bleibt: für Netlify nur
+  den Ordner `website/` hochladen.
+
 ## [1.9.1] — 2026-07-08
 
 ### Neu
