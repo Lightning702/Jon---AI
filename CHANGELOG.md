@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.9.3] — 2026-07-08
+
+### Behoben
+- **Jon und Mini Jon starteten teils nicht mehr über die .bat:** Wenn in der Umgebung
+  `ELECTRON_RUN_AS_NODE` gesetzt war, lief Electron als reines Node und stürzte sofort ab
+  (`Cannot read properties of undefined (reading 'isPackaged')`). Ein neuer Start-Launcher
+  (`electron/launch.cjs`) startet Electron jetzt garantiert im richtigen Modus, unabhängig
+  von der Umgebung. Getestet: App startet jetzt auch mit gesetzter Variable.
+
 ## [1.9.2] — 2026-07-08
 
 ### Behoben

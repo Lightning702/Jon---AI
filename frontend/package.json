@@ -7,10 +7,10 @@
   "main": "electron/main.cjs",
   "scripts": {
     "dev:vite": "vite",
-    "dev:electron": "electron .",
+    "dev:electron": "node electron/launch.cjs",
     "dev": "concurrently -k \"npm run dev:vite\" \"wait-on tcp:127.0.0.1:5173 && npm run dev:electron\"",
     "build": "tsc -b && vite build",
-    "start": "electron .",
+    "start": "node electron/launch.cjs",
     "package": "npm run build && electron-builder"
   },
   "dependencies": {
