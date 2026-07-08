@@ -15,7 +15,7 @@ interface Cfg {
 const DEFAULT: Cfg = {
   pet_accent: "#d4af37",
   pet_face: "#0a0a0e",
-  pet_cheeks: true,
+  pet_cheeks: false,
   pet_scale: 1,
   pet_eyes: "round",
 };

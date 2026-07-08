@@ -17,7 +17,7 @@ DEFAULTS = {
     "theme": "dark",
     "pet_accent": "#d4af37",
     "pet_face": "#0a0a0e",
-    "pet_cheeks": True,
+    "pet_cheeks": False,
     "pet_scale": 1.0,
     "pet_eyes": "round",
 }

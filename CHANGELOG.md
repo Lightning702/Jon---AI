@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [1.8.1] — 2026-07-08
+
+### Behoben
+- **Provider/Modell ließen sich nicht mehr wechseln:** In 1.8.0 startete das Backend erst
+  mit der App, wodurch die Modell-Liste beim Start leer blieb. Das Backend startet jetzt
+  wieder wie vorher (über `start-jon.bat`), und die App versucht die Verbindung beim Start
+  automatisch so lange, bis die Anbieter-Liste geladen ist — Wechseln geht wieder zuverlässig.
+- **Rosige Wangen entfernt:** Mini Jons Gesicht ist jetzt klar ohne Wangenrot (im
+  Konfigurator bei Bedarf wieder zuschaltbar).
+
+### Bestätigt
+- Mini Jon nutzt nachweislich alle Werkzeuge (Web-Suche, Wetter, Dateien erstellen,
+  PC-Steuerung …) — genau wie der große Jon.
+
 ## [1.8.0] — 2026-07-08
 
 ### Mini Jon wird lebendiger

@@ -133,50 +133,62 @@ export default function App() {
   };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const health = await getHealth();
-        setOnline(true);
-        setProvider(health.default_provider);
-        setModel(health.default_model);
-        const provs = await getProviders();
-        setProviders(provs);
-        const saved = await getUserSettings();
-        if (saved.theme) {
-          localStorage.setItem("jon_theme", saved.theme);
-          document.documentElement.classList.toggle("light", saved.theme === "light");
-        }
-        const savedProv = provs.find(
-          (p) => p.provider === saved.provider && p.configured
+    let cancelled = false;
+    const connect = async () => {
+      const health = await getHealth();
+      setOnline(true);
+      setProvider(health.default_provider);
+      setModel(health.default_model);
+      const provs = await getProviders();
+      if (!provs.length) throw new Error("keine Provider");
+      setProviders(provs);
+      const saved = await getUserSettings();
+      if (saved.theme) {
+        localStorage.setItem("jon_theme", saved.theme);
+        document.documentElement.classList.toggle("light", saved.theme === "light");
+      }
+      const savedProv = provs.find(
+        (p) => p.provider === saved.provider && p.configured
+      );
+      if (saved.provider && saved.model && savedProv) {
+        setProvider(saved.provider);
+        setModel(saved.model);
+      } else {
+        const preferred = provs.find(
+          (p) => p.provider === health.default_provider && p.configured
         );
-        if (saved.provider && saved.model && savedProv) {
-          setProvider(saved.provider);
-          setModel(saved.model);
-        } else {
-          const preferred = provs.find(
-            (p) => p.provider === health.default_provider && p.configured
-          );
-          const chosen = preferred ?? provs.find((p) => p.configured);
-          if (chosen) {
-            setProvider(chosen.provider);
-            const model =
-              chosen.provider === health.default_provider &&
-              chosen.models.includes(health.default_model)
-                ? health.default_model
-                : chosen.models[0] ?? health.default_model;
-            setModel(model);
-          }
+        const chosen = preferred ?? provs.find((p) => p.configured);
+        if (chosen) {
+          setProvider(chosen.provider);
+          const model =
+            chosen.provider === health.default_provider &&
+            chosen.models.includes(health.default_model)
+              ? health.default_model
+              : chosen.models[0] ?? health.default_model;
+          setModel(model);
         }
-        await refreshConversations();
-        const today = new Date().toISOString().slice(0, 10);
-        if (localStorage.getItem("jon_briefing") !== today) {
-          localStorage.setItem("jon_briefing", today);
-          void runBriefing();
+      }
+      await refreshConversations();
+      const today = new Date().toISOString().slice(0, 10);
+      if (localStorage.getItem("jon_briefing") !== today) {
+        localStorage.setItem("jon_briefing", today);
+        void runBriefing();
+      }
+    };
+    (async () => {
+      while (!cancelled) {
+        try {
+          await connect();
+          return;
+        } catch {
+          setOnline(false);
+          await new Promise((r) => setTimeout(r, 2000));
         }
-      } catch {
-        setOnline(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

@@ -73,9 +73,8 @@ function toggleWindow() {
 }
 
 function startBackend() {
-  const backendDir = app.isPackaged
-    ? path.join(process.resourcesPath, "backend")
-    : path.join(__dirname, "..", "..", "backend");
+  if (!app.isPackaged) return;
+  const backendDir = path.join(process.resourcesPath, "backend");
   if (!fs.existsSync(backendDir)) return;
   const dataDir = path.join(backendDir, "..", "data");
   try {

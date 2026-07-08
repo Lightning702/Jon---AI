@@ -237,7 +237,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       theme: "dark",
       pet_accent: "#d4af37",
       pet_face: "#0a0a0e",
-      pet_cheeks: true,
+      pet_cheeks: false,
       pet_scale: 1.0,
       pet_eyes: "round",
     };
