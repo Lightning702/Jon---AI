@@ -1,5 +1,6 @@
 .env
 data/
+/MEMORY.md
 .claude/settings.local.json
 __pycache__/
 *.py[cod]

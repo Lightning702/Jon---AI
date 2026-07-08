@@ -4,10 +4,10 @@ import json
 import threading
 from datetime import datetime, date
 
-from app.core.config import DATA_DIR, ROOT_DIR
+from app.core.config import DATA_DIR
 
 PERSONA_FILE = DATA_DIR / "persona.json"
-MEMORY_FILE = ROOT_DIR / "MEMORY.md"
+MEMORY_FILE = DATA_DIR / "MEMORY.md"
 BIRTH = date(2026, 7, 6)
 
 JON_PERSONA = (
