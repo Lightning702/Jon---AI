@@ -93,6 +93,11 @@ async def typing(payload: TypingIn) -> dict:
     return {"ok": True}
 
 
+@router.get("/typing")
+async def typing_status() -> dict:
+    return {"typing": get_p2p_service().typing_peers()}
+
+
 @router.get("/messages/{peer_id}")
 async def messages(peer_id: str) -> list[dict]:
     service = get_p2p_service()
@@ -124,8 +129,15 @@ def create_chat_app() -> FastAPI:
 
     @app.get("/ping")
     async def ping() -> dict:
+        from app.services.p2p_service import CHAT_PORT
+
         me = get_p2p_service().identity()
-        return {"id": me["id"], "name": me["name"], "avatar": me["avatar"]}
+        return {
+            "id": me["id"],
+            "name": me["name"],
+            "avatar": me["avatar"],
+            "port": CHAT_PORT,
+        }
 
     @app.post("/typing")
     async def peer_typing(request: Request) -> dict:

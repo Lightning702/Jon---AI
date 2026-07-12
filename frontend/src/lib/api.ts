@@ -873,6 +873,17 @@ export async function getChatNotifications(): Promise<P2PNotification[]> {
   return res.json();
 }
 
+export async function getTypingPeers(): Promise<string[]> {
+  try {
+    const res = await fetch(`${BASE}/p2p/typing`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.typing) ? data.typing : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function sendTyping(peerId: string): Promise<void> {
   try {
     await fetch(`${BASE}/p2p/typing`, {

@@ -4,6 +4,7 @@ import asyncio
 import base64
 import json
 import mimetypes
+import os
 import socket
 import threading
 import time
@@ -18,8 +19,8 @@ from app.db.database import session_scope
 from app.db.models import P2PMessage
 from app.services.settings_service import get_settings_service
 
-DISCOVERY_PORT = 8757
-CHAT_PORT = 8758
+DISCOVERY_PORT = int(os.environ.get("JON_DISCOVERY_PORT", "8757"))
+CHAT_PORT = int(os.environ.get("JON_CHAT_PORT", "8758"))
 PEERS_FILE = DATA_DIR / "peers.json"
 MEDIA_DIR = DATA_DIR / "p2p_media"
 MAX_MEDIA = 60_000_000
@@ -141,6 +142,7 @@ class P2PService:
                     "id": me["id"],
                     "name": me["name"],
                     "avatar": me["avatar"],
+                    "port": CHAT_PORT,
                 }
             )
             return
@@ -151,6 +153,7 @@ class P2PService:
             str(payload.get("name", "")),
             str(payload.get("avatar", "")),
             sender_ip,
+            int(payload.get("port") or 0),
         )
 
     def _query_name(self, name: str) -> None:
@@ -234,7 +237,8 @@ class P2PService:
                     "name": peer.get("name", "Unbekannt"),
                     "avatar": peer.get("avatar", "🙂"),
                     "ip": peer.get("ip", ""),
-                    "online": online,
+                    "port": self._peer_port(peer),
+                    "online": online or self.is_typing(peer_id),
                     "typing": self.is_typing(peer_id),
                     "last_seen": peer.get("last_seen", ""),
                     "unread": self.unread_count(peer_id),
@@ -243,7 +247,9 @@ class P2PService:
         result.sort(key=lambda p: (not p["online"], p["name"].lower()))
         return result
 
-    def _remember_peer(self, peer_id: str, name: str, avatar: str, ip: str) -> None:
+    def _remember_peer(
+        self, peer_id: str, name: str, avatar: str, ip: str, port: int = 0
+    ) -> None:
         if peer_id == self.identity()["id"]:
             return
         with self._lock:
@@ -253,10 +259,18 @@ class P2PService:
                     "name": name or peer.get("name", "Unbekannt"),
                     "avatar": avatar or peer.get("avatar", "🙂"),
                     "ip": ip or peer.get("ip", ""),
+                    "port": port or peer.get("port") or CHAT_PORT,
                     "last_seen": _now_iso(),
                 }
             )
             self._save()
+
+    @staticmethod
+    def _peer_port(peer: dict) -> int:
+        try:
+            return int(peer.get("port") or CHAT_PORT)
+        except Exception:
+            return CHAT_PORT
 
     def forget_peer(self, peer_id: str) -> bool:
         with self._lock:
@@ -276,19 +290,32 @@ class P2PService:
         ip = ip.strip()
         if not ip:
             return {"error": "IP-Adresse angeben"}
+        port = CHAT_PORT
+        if ":" in ip:
+            ip, _, raw_port = ip.partition(":")
+            try:
+                port = int(raw_port)
+            except Exception:
+                port = CHAT_PORT
         try:
             async with httpx.AsyncClient(timeout=6) as client:
-                response = await client.get(f"http://{ip}:{CHAT_PORT}/ping")
+                response = await client.get(f"http://{ip}:{port}/ping")
                 data = response.json()
         except Exception:
             return {
                 "error": f"Unter {ip} antwortet kein Jon. Läuft Jon dort und seid "
                 "ihr im selben WLAN?"
             }
+        if str(data.get("id", "")) == self.identity()["id"]:
+            return {"error": "Das bist du selbst. 🙂"}
         if not data.get("id"):
             return {"error": "Ungültige Antwort"}
         self._remember_peer(
-            str(data["id"]), str(data.get("name", "")), str(data.get("avatar", "")), ip
+            str(data["id"]),
+            str(data.get("name", "")),
+            str(data.get("avatar", "")),
+            ip,
+            int(data.get("port") or port),
         )
         return {"id": data["id"], "name": data.get("name"), "ip": ip}
 
@@ -354,10 +381,13 @@ class P2PService:
 
     def is_typing(self, peer_id: str) -> bool:
         stamp = self._typing.get(peer_id, 0.0)
-        return (time.time() - stamp) < 5.0
+        return (time.time() - stamp) < 4.0
 
     def note_typing(self, peer_id: str) -> None:
         self._typing[peer_id] = time.time()
+
+    def typing_peers(self) -> list[str]:
+        return [pid for pid in list(self._typing) if self.is_typing(pid)]
 
     async def send_typing(self, peer_id: str) -> None:
         with self._lock:
@@ -368,7 +398,7 @@ class P2PService:
         try:
             async with httpx.AsyncClient(timeout=4) as client:
                 await client.post(
-                    f"http://{peer['ip']}:{CHAT_PORT}/typing",
+                    f"http://{peer['ip']}:{self._peer_port(peer)}/typing",
                     json={"from_id": me["id"]},
                 )
         except Exception:
@@ -405,13 +435,15 @@ class P2PService:
             "from_id": me["id"],
             "from_name": me["name"] or "Jon-Nutzer",
             "from_avatar": me["avatar"],
+            "from_port": CHAT_PORT,
             "text": text,
             "media": media or None,
         }
         try:
             async with httpx.AsyncClient(timeout=120) as client:
                 response = await client.post(
-                    f"http://{peer.get('ip')}:{CHAT_PORT}/inbox", json=payload
+                    f"http://{peer.get('ip')}:{self._peer_port(peer)}/inbox",
+                    json=payload,
                 )
                 if response.status_code != 200:
                     return {"error": f"Empfänger antwortete mit {response.status_code}"}
@@ -436,6 +468,7 @@ class P2PService:
             str(payload.get("from_name", "")),
             str(payload.get("from_avatar", "")),
             sender_ip,
+            int(payload.get("from_port") or 0),
         )
         media = payload.get("media") if isinstance(payload.get("media"), dict) else None
         message = self._store(
@@ -499,6 +532,7 @@ class P2PService:
                             "id": me["id"],
                             "name": me["name"],
                             "avatar": me["avatar"],
+                            "port": CHAT_PORT,
                         }
                     )
             except Exception:

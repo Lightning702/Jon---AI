@@ -7,6 +7,7 @@ import {
   deletePeer,
   getP2PMessages,
   getPeers,
+  getTypingPeers,
   mediaUrl,
   sendP2PMessage,
   sendTyping,
@@ -38,6 +39,7 @@ export default function FriendsChat({
   onClose,
 }: Props) {
   const [peers, setPeers] = useState<P2PPeer[]>([]);
+  const [typing, setTyping] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<P2PMessage[]>([]);
   const [text, setText] = useState("");
@@ -62,7 +64,13 @@ export default function FriendsChat({
     };
     void tick();
     const timer = window.setInterval(() => void tick(), 2000);
-    return () => window.clearInterval(timer);
+    const typingTimer = window.setInterval(async () => {
+      setTyping(await getTypingPeers());
+    }, 400);
+    return () => {
+      window.clearInterval(timer);
+      window.clearInterval(typingTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -70,7 +78,7 @@ export default function FriendsChat({
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
     });
-  }, [messages, activeId]);
+  }, [messages, activeId, typing]);
 
   const openPeer = async (peerId: string) => {
     setActiveId(peerId);
@@ -135,7 +143,11 @@ export default function FriendsChat({
     setPeers(await getPeers());
   };
 
-  const active = peers.find((p) => p.id === activeId) ?? null;
+  const isTyping = (peerId: string) => typing.includes(peerId);
+  const found = peers.find((p) => p.id === activeId) ?? null;
+  const active = found
+    ? { ...found, typing: found.typing || isTyping(found.id) }
+    : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
@@ -188,7 +200,7 @@ export default function FriendsChat({
                     {p.name}
                   </span>
                   <span className="block text-[10px] text-white/35">
-                    {p.typing ? (
+                    {p.typing || isTyping(p.id) ? (
                       <span className="text-gold/80">tippt …</span>
                     ) : p.online ? (
                       "online"
@@ -391,7 +403,7 @@ export default function FriendsChat({
                   onChange={(e) => {
                     setText(e.target.value);
                     const now = Date.now();
-                    if (e.target.value && now - typingSentRef.current > 2500) {
+                    if (e.target.value && now - typingSentRef.current > 1200) {
                       typingSentRef.current = now;
                       void sendTyping(active.id);
                     }

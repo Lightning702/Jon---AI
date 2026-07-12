@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [2.8.1] — 2026-07-12
+
+### Behoben
+- **Die Tipp-Animation erschien nicht.** Drei Ursachen, alle behoben:
+  1. Die Freundesliste wurde nur alle 2 Sekunden abgefragt, das Tippen aber beim Absenden
+     sofort gelöscht — bei kurzen Nachrichten war die Animation nie zu sehen. Der
+     Tipp-Status hat jetzt eine eigene, sehr leichte Abfrage **alle 0,4 Sekunden**.
+  2. Das Signal wurde erst nach 2,5 Sekunden Tippen verschickt; jetzt schon nach 1,2 s.
+  3. Freunde mit einem abweichenden Chat-Port wurden nicht erreicht — Jon merkt sich den
+     Port des Freundes jetzt aus Suchruf und Handshake, statt ihn zu erraten.
+- **Sich selbst als Freund hinzufügen** (per eigener IP) wird jetzt sauber abgelehnt.
+- Freunde lassen sich mit `IP:Port` hinzufügen, falls jemand einen eigenen Chat-Port nutzt
+  (`JON_CHAT_PORT`, `JON_DISCOVERY_PORT`).
+
 ## [2.8.0] — 2026-07-12
 
 ### Neu
