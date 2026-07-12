@@ -16,11 +16,15 @@ from app.schemas import (
     AccountConnectIn,
     AccountModelIn,
     ApproveIn,
+    AttachmentIn,
+    CapsuleIn,
     ChatIn,
     ConversationDetail,
     ConversationOut,
     DreamIn,
     HealthOut,
+    KnowledgeLearnIn,
+    KnowledgeSearchIn,
     ProviderStatus,
     ReminderIn,
     ScreenObserveIn,
@@ -28,12 +32,20 @@ from app.schemas import (
     SimulateIn,
     SkillWriteIn,
     SnapshotIn,
+    TaskIn,
     TeamIn,
+    WatcherIn,
+    WebcamIn,
 )
 from app.services.account_service import LOCAL_PROVIDERS, SUPPORTED, get_account_service
 from app.services.approval_service import get_approval_service
+from app.services.attachment_service import get_attachment_service
+from app.services.briefing_service import get_briefing_service
+from app.services.capsule_service import get_capsule_service
 from app.services.chat_service import ChatService
+from app.services.clipboard_service import get_clipboard_service
 from app.services.dream_service import get_dream_service
+from app.services.knowledge_service import get_knowledge_service
 from app.services.persona_service import get_persona_service
 from app.services.reminder_service import get_reminder_service
 from app.services.screen_service import get_screen_service
@@ -41,6 +53,7 @@ from app.services.settings_service import get_settings_service
 from app.services.simulation_service import get_simulation_service
 from app.services.skill_service import SkillService
 from app.services.system_service import SystemService
+from app.services.task_service import get_task_service
 from app.services.team_service import TEAM, get_team_service
 from app.services.timetravel_service import get_timetravel_service
 from app.services.usage_service import get_usage_service
@@ -383,6 +396,165 @@ async def screen_observe(payload: ScreenObserveIn) -> dict:
     return await get_screen_service().observe(payload.provider, payload.model)
 
 
+@router.post("/webcam/observe")
+async def webcam_observe(payload: WebcamIn | None = None) -> dict:
+    from app.services.webcam_service import get_webcam_service
+
+    return await get_webcam_service().describe(payload.question if payload else "")
+
+
 @router.delete("/dreams/{task_id}")
 async def delete_dream(task_id: str) -> dict:
     return {"deleted": get_dream_service().delete(task_id)}
+
+
+@router.get("/briefing")
+async def briefing() -> dict:
+    return await asyncio.to_thread(get_briefing_service().build)
+
+
+@router.get("/knowledge")
+async def knowledge_docs() -> list[dict]:
+    return get_knowledge_service().list()
+
+
+@router.post("/knowledge/learn")
+async def knowledge_learn(payload: KnowledgeLearnIn) -> dict:
+    svc = get_knowledge_service()
+    if payload.path.strip():
+        return await asyncio.to_thread(svc.learn_path, payload.path)
+    if payload.text.strip():
+        return await asyncio.to_thread(svc.learn_text, payload.text, payload.title)
+    raise HTTPException(status_code=400, detail="path oder text angeben")
+
+
+@router.post("/knowledge/search")
+async def knowledge_search(payload: KnowledgeSearchIn) -> list[dict]:
+    return await asyncio.to_thread(
+        get_knowledge_service().search, payload.query, payload.max_results
+    )
+
+
+@router.delete("/knowledge/{ref}")
+async def knowledge_forget(ref: str) -> dict:
+    return {"removed": get_knowledge_service().forget(ref)}
+
+
+@router.get("/clipboard")
+async def clipboard_history(query: str = "") -> list[dict]:
+    return get_clipboard_service().list(query)
+
+
+@router.post("/clipboard/{entry_id}/restore")
+async def clipboard_restore(entry_id: str) -> dict:
+    return {"restored": get_clipboard_service().restore(entry_id)}
+
+
+@router.delete("/clipboard/{entry_id}")
+async def clipboard_delete(entry_id: str) -> dict:
+    return {"deleted": get_clipboard_service().delete(entry_id)}
+
+
+@router.delete("/clipboard")
+async def clipboard_clear() -> dict:
+    return {"cleared": get_clipboard_service().clear()}
+
+
+@router.get("/tasks")
+async def list_tasks() -> list[dict]:
+    return get_task_service().list()
+
+
+@router.post("/tasks")
+async def add_task(payload: TaskIn) -> dict:
+    result = get_task_service().add(payload.task, payload.time, payload.repeat)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/tasks/reports")
+async def task_reports() -> list[dict]:
+    return get_task_service().unseen_reports()
+
+
+@router.post("/tasks/{task_id}/run")
+async def run_task(task_id: str) -> dict:
+    result = await get_task_service().run_now(task_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@router.delete("/tasks/{task_id}")
+async def delete_task(task_id: str) -> dict:
+    return {"deleted": get_task_service().delete(task_id)}
+
+
+@router.get("/capsules")
+async def list_capsules() -> list[dict]:
+    return get_capsule_service().list()
+
+
+@router.post("/capsules")
+async def add_capsule(payload: CapsuleIn) -> dict:
+    result = get_capsule_service().add(payload.text, payload.date)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/capsules/due")
+async def due_capsules() -> list[dict]:
+    return get_capsule_service().due()
+
+
+@router.delete("/capsules/{capsule_id}")
+async def delete_capsule(capsule_id: str) -> dict:
+    return {"deleted": get_capsule_service().delete(capsule_id)}
+
+
+@router.post("/attachments/extract")
+async def extract_attachment(payload: AttachmentIn) -> dict:
+    result = await get_attachment_service().extract(
+        payload.name, payload.mime, payload.data, payload.provider
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/weekly")
+async def weekly() -> dict:
+    return await asyncio.to_thread(get_briefing_service().weekly_data)
+
+
+@router.get("/watchers")
+async def list_watchers() -> list[dict]:
+    from app.services.watcher_service import get_watcher_service
+
+    return get_watcher_service().list()
+
+
+@router.post("/watchers")
+async def add_watcher(payload: WatcherIn) -> dict:
+    from app.services.watcher_service import get_watcher_service
+
+    result = get_watcher_service().add(payload.path, payload.task)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/watchers/reports")
+async def watcher_reports() -> list[dict]:
+    from app.services.watcher_service import get_watcher_service
+
+    return get_watcher_service().unseen_reports()
+
+
+@router.delete("/watchers/{watcher_id}")
+async def delete_watcher(watcher_id: str) -> dict:
+    from app.services.watcher_service import get_watcher_service
+
+    return {"deleted": get_watcher_service().delete(watcher_id)}

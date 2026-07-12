@@ -1,4 +1,8 @@
-const BASE = "http://127.0.0.1:8756/api";
+const BASE =
+  window.location.protocol.startsWith("http") &&
+  window.location.port === "8756"
+    ? `${window.location.origin}/api`
+    : "http://127.0.0.1:8756/api";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -225,6 +229,22 @@ export interface UserSettings {
   dream_auto: boolean;
   dream_idle_minutes: number;
   vision_model: string;
+  briefing_city: string;
+  clipboard_history: boolean;
+  webcam_enabled: boolean;
+  mail_imap_host: string;
+  mail_imap_user: string;
+  mail_imap_password: string;
+  mail_smtp_host: string;
+  mail_smtp_port: number;
+  calendar_ics_url: string;
+  telegram_bot_token: string;
+  telegram_chat_id: string;
+  ha_url: string;
+  ha_token: string;
+  natural_voice: boolean;
+  spotify_client_id: string;
+  spotify_client_secret: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -246,8 +266,71 @@ export async function getUserSettings(): Promise<UserSettings> {
       dream_auto: true,
       dream_idle_minutes: 5,
       vision_model: "",
+      briefing_city: "",
+      clipboard_history: true,
+      webcam_enabled: false,
+      mail_imap_host: "",
+      mail_imap_user: "",
+      mail_imap_password: "",
+      mail_smtp_host: "",
+      mail_smtp_port: 587,
+      calendar_ics_url: "",
+      telegram_bot_token: "",
+      telegram_chat_id: "",
+      ha_url: "",
+      ha_token: "",
+      natural_voice: true,
+      spotify_client_id: "",
+      spotify_client_secret: "",
     };
   return res.json();
+}
+
+export async function getWeekly(): Promise<Record<string, unknown>> {
+  const res = await fetch(`${BASE}/weekly`);
+  if (!res.ok) throw new Error("weekly failed");
+  return res.json();
+}
+
+export async function getHealthCheck(): Promise<Record<string, unknown>> {
+  const res = await fetch(`${BASE}/system/health-check`);
+  if (!res.ok) throw new Error("health-check failed");
+  return res.json();
+}
+
+export interface Watcher {
+  id: string;
+  path: string;
+  task: string;
+  active: boolean;
+  last_result: string | null;
+  last_run_at: string | null;
+}
+
+export async function getWatchers(): Promise<Watcher[]> {
+  const res = await fetch(`${BASE}/watchers`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getWatcherReports(): Promise<Watcher[]> {
+  const res = await fetch(`${BASE}/watchers/reports`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function speakServer(text: string): Promise<Blob | null> {
+  try {
+    const res = await fetch(`${BASE}/system/tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) return null;
+    return await res.blob();
+  } catch {
+    return null;
+  }
 }
 
 export async function observeScreen(
@@ -524,6 +607,274 @@ export async function pathInfo(
   });
   if (!res.ok) return { exists: false, is_dir: false, parent: "" };
   return res.json();
+}
+
+export async function getBriefing(): Promise<Record<string, unknown>> {
+  const res = await fetch(`${BASE}/briefing`);
+  if (!res.ok) throw new Error("briefing failed");
+  return res.json();
+}
+
+export interface ClipboardEntry {
+  id: string;
+  text: string;
+  created_at: string;
+}
+
+export async function getClipboardHistory(
+  query = ""
+): Promise<ClipboardEntry[]> {
+  const res = await fetch(
+    `${BASE}/clipboard${query ? `?query=${encodeURIComponent(query)}` : ""}`
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function restoreClipboardEntry(id: string): Promise<boolean> {
+  const res = await fetch(`${BASE}/clipboard/${id}/restore`, { method: "POST" });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.restored === true;
+}
+
+export async function deleteClipboardEntry(id: string): Promise<void> {
+  await fetch(`${BASE}/clipboard/${id}`, { method: "DELETE" });
+}
+
+export async function clearClipboardHistory(): Promise<void> {
+  await fetch(`${BASE}/clipboard`, { method: "DELETE" });
+}
+
+export interface AutomationTask {
+  id: string;
+  task: string;
+  time: string;
+  repeat: string;
+  active: boolean;
+  last_run_at: string | null;
+  last_result: string | null;
+}
+
+export async function getTasks(): Promise<AutomationTask[]> {
+  const res = await fetch(`${BASE}/tasks`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await fetch(`${BASE}/tasks/${id}`, { method: "DELETE" });
+}
+
+export async function getTaskReports(): Promise<AutomationTask[]> {
+  const res = await fetch(`${BASE}/tasks/reports`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export interface Capsule {
+  id: string;
+  text?: string;
+  preview?: string;
+  deliver_date: string;
+  created_at: string;
+  mood?: string;
+  delivered: boolean;
+}
+
+export async function getCapsules(): Promise<Capsule[]> {
+  const res = await fetch(`${BASE}/capsules`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getDueCapsules(): Promise<Capsule[]> {
+  const res = await fetch(`${BASE}/capsules/due`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export interface KnowledgeDoc {
+  id: string;
+  title: string;
+  source: string;
+  kind: string;
+  chunks: number;
+  chars: number;
+  created_at: string;
+}
+
+export async function getKnowledgeDocs(): Promise<KnowledgeDoc[]> {
+  const res = await fetch(`${BASE}/knowledge`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export interface ExtractedAttachment {
+  kind: string;
+  name: string;
+  content: string;
+  pages?: number;
+}
+
+export async function extractAttachment(
+  name: string,
+  mime: string,
+  dataBase64: string
+): Promise<ExtractedAttachment> {
+  const res = await fetch(`${BASE}/attachments/extract`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, mime, data: dataBase64 }),
+  });
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data.detail) detail = String(data.detail);
+    } catch {
+      /* leer */
+    }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+export async function observeWebcam(
+  question = ""
+): Promise<{ beschreibung?: string; error?: string }> {
+  const res = await fetch(`${BASE}/webcam/observe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
+  if (!res.ok) return { error: `HTTP ${res.status}` };
+  return res.json();
+}
+
+export interface P2PIdentity {
+  id: string;
+  name: string;
+  avatar: string;
+  enabled: boolean;
+}
+
+export interface P2PPeer {
+  id: string;
+  name: string;
+  avatar: string;
+  ip: string;
+  online: boolean;
+  last_seen: string;
+  unread: number;
+}
+
+export interface P2PMessage {
+  id: string;
+  peer_id: string;
+  direction: "in" | "out";
+  sender_name: string;
+  text: string;
+  media_kind: "image" | "video" | "file" | null;
+  media_name: string | null;
+  media_mime: string | null;
+  has_media: boolean;
+  created_at: string;
+}
+
+export const mediaUrl = (messageId: string) => `${BASE}/p2p/media/${messageId}`;
+
+export async function getIdentity(): Promise<P2PIdentity> {
+  const res = await fetch(`${BASE}/p2p/me`);
+  if (!res.ok) throw new Error("identity failed");
+  return res.json();
+}
+
+export async function saveIdentity(
+  name: string,
+  avatar: string
+): Promise<P2PIdentity> {
+  const res = await fetch(`${BASE}/p2p/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, avatar }),
+  });
+  if (!res.ok) throw new Error("Name konnte nicht gespeichert werden");
+  return res.json();
+}
+
+export async function getP2PInfo(): Promise<{ ip: string; unread: number }> {
+  const res = await fetch(`${BASE}/p2p/info`);
+  if (!res.ok) return { ip: "", unread: 0 };
+  return res.json();
+}
+
+export async function getPeers(): Promise<P2PPeer[]> {
+  const res = await fetch(`${BASE}/p2p/peers`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function addPeer(name: string): Promise<void> {
+  const res = await fetch(`${BASE}/p2p/peers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function deletePeer(peerId: string): Promise<void> {
+  await fetch(`${BASE}/p2p/peers/${peerId}`, { method: "DELETE" });
+}
+
+export async function getP2PMessages(peerId: string): Promise<P2PMessage[]> {
+  const res = await fetch(`${BASE}/p2p/messages/${peerId}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function sendP2PMessage(
+  peerId: string,
+  text: string,
+  media?: { name: string; mime: string; data: string }
+): Promise<void> {
+  const res = await fetch(`${BASE}/p2p/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ peer_id: peerId, text, media: media ?? null }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function getAutostart(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/system/autostart`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function setAutostart(enabled: boolean): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/system/autostart`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function streamChat(

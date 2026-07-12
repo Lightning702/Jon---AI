@@ -17,10 +17,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from app.core.config import DATA_DIR
+from app.core.config import DATA_DIR, ROOT_DIR
 
 ALARM_PREFIX = "JonWecker_"
 ALARM_DIR = DATA_DIR / "alarms"
+AUTOSTART_NAME = "Jon-Autostart.vbs"
 
 WEATHER_CODES = {
     0: "klar",
@@ -275,6 +276,53 @@ class SystemService:
         buffer = BytesIO()
         image.save(buffer, format="JPEG", quality=quality)
         encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return f"data:image/jpeg;base64,{encoded}"
+
+    def webcam_snapshot_data_url(
+        self, camera: int = 0, max_width: int = 1024, quality: int = 80
+    ) -> str:
+        try:
+            import cv2
+        except Exception:
+            raise RuntimeError(
+                "Webcam braucht OpenCV. Installiere: pip install opencv-python"
+            )
+        backends = (
+            [cv2.CAP_DSHOW, cv2.CAP_MSMF, cv2.CAP_ANY]
+            if os.name == "nt"
+            else [cv2.CAP_ANY]
+        )
+        indices = [camera, 1, 2] if camera == 0 else [camera]
+        frame = None
+        for index in indices:
+            for backend in backends:
+                cap = cv2.VideoCapture(index, backend)
+                try:
+                    if not cap.isOpened():
+                        continue
+                    for _ in range(6):
+                        ok, grabbed = cap.read()
+                        if ok and grabbed is not None:
+                            frame = grabbed
+                finally:
+                    cap.release()
+                if frame is not None:
+                    break
+            if frame is not None:
+                break
+        if frame is None:
+            raise RuntimeError(
+                "Keine Webcam gefunden oder sie wird gerade von einer anderen "
+                "App benutzt"
+            )
+        height, width = frame.shape[:2]
+        if width > max_width:
+            ratio = max_width / width
+            frame = cv2.resize(frame, (max_width, max(1, int(height * ratio))))
+        ok, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, quality])
+        if not ok:
+            raise RuntimeError("Webcam-Bild konnte nicht kodiert werden")
+        encoded = base64.b64encode(buffer.tobytes()).decode("ascii")
         return f"data:image/jpeg;base64,{encoded}"
 
     def idle_seconds(self) -> float:
@@ -586,6 +634,216 @@ class SystemService:
             "seiten_gelesen": limit,
             "text": text[:20000],
         }
+
+    def media_control(self, action: str, times: int = 1) -> dict:
+        if os.name != "nt":
+            raise RuntimeError("Medien-Steuerung ist nur unter Windows verfuegbar")
+        import ctypes
+
+        keys = {
+            "play_pause": 0xB3,
+            "play": 0xB3,
+            "pause": 0xB3,
+            "next": 0xB0,
+            "previous": 0xB1,
+            "stop": 0xB2,
+            "volume_up": 0xAF,
+            "volume_down": 0xAE,
+            "mute": 0xAD,
+        }
+        code = keys.get(action.strip().lower())
+        if code is None:
+            raise ValueError(f"Unbekannte Aktion. Erlaubt: {', '.join(sorted(set(keys)))}")
+        count = max(1, min(int(times), 50))
+        for _ in range(count):
+            ctypes.windll.user32.keybd_event(code, 0, 0, 0)
+            ctypes.windll.user32.keybd_event(code, 0, 2, 0)
+        return {"action": action, "times": count}
+
+    def scan_network(self) -> list[dict]:
+        import socket as sock
+        from concurrent.futures import ThreadPoolExecutor
+
+        result = self.run_cmd("arp -a")
+        found: list[dict] = []
+        for line in (result.stdout or "").splitlines():
+            m = re.match(
+                r"\s*(\d+\.\d+\.\d+\.\d+)\s+([0-9a-fA-F]{2}(?:-[0-9a-fA-F]{2}){5})\s+(\S+)",
+                line,
+            )
+            if not m:
+                continue
+            ip, mac, kind = m.groups()
+            if (
+                ip.endswith(".255")
+                or ip.startswith(("224.", "239.", "255."))
+                or mac.lower() == "ff-ff-ff-ff-ff-ff"
+                or mac.lower().startswith("01-00-5e")
+            ):
+                continue
+            found.append({"ip": ip, "mac": mac, "typ": kind, "name": ""})
+
+        def resolve(device: dict) -> None:
+            try:
+                device["name"] = sock.gethostbyaddr(device["ip"])[0]
+            except Exception:
+                pass
+
+        with ThreadPoolExecutor(max_workers=12) as pool:
+            list(pool.map(resolve, found))
+        return found
+
+    def wake_on_lan(self, mac: str) -> dict:
+        import socket as sock
+
+        clean = re.sub(r"[^0-9a-fA-F]", "", mac)
+        if len(clean) != 12:
+            raise ValueError("MAC-Adresse ungueltig (Format AA-BB-CC-DD-EE-FF)")
+        packet = b"\xff" * 6 + bytes.fromhex(clean) * 16
+        with sock.socket(sock.AF_INET, sock.SOCK_DGRAM) as s:
+            s.setsockopt(sock.SOL_SOCKET, sock.SO_BROADCAST, 1)
+            s.sendto(packet, ("255.255.255.255", 9))
+        return {"sent": True, "mac": mac}
+
+    def list_printers(self) -> list[dict]:
+        result = self.run_powershell(
+            "Get-Printer | Select-Object Name, PrinterStatus, Default "
+            "| ConvertTo-Json -Compress"
+        )
+        raw = (result.stdout or "").strip()
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw)
+        except Exception:
+            return []
+        items = data if isinstance(data, list) else [data]
+        return [
+            {
+                "name": p.get("Name"),
+                "status": str(p.get("PrinterStatus", "")),
+                "standard": bool(p.get("Default")),
+            }
+            for p in items
+        ]
+
+    def print_file(self, path: str, printer: str = "") -> dict:
+        target = Path(path).expanduser()
+        if not target.exists():
+            raise FileNotFoundError(f"Datei nicht gefunden: {path}")
+        if printer.strip():
+            safe = printer.strip().replace("'", "''")
+            command = (
+                f"Start-Process -FilePath '{target}' -Verb PrintTo "
+                f"-ArgumentList '\"{safe}\"'"
+            )
+        else:
+            command = f"Start-Process -FilePath '{target}' -Verb Print"
+        result = self.run_powershell(command)
+        if result.exit_code != 0:
+            raise RuntimeError(
+                result.stderr.strip()
+                or "Drucken fehlgeschlagen (unterstuetzt der Dateityp Drucken?)"
+            )
+        return {"printing": True, "file": str(target), "printer": printer or "Standard"}
+
+    def health_check(self) -> dict:
+        report: dict = {}
+        try:
+            usage = shutil.disk_usage(Path.home().anchor or "C:/")
+            report["festplatte"] = {
+                "gesamt_gb": round(usage.total / 1e9, 1),
+                "frei_gb": round(usage.free / 1e9, 1),
+                "belegt_prozent": round(100 * (1 - usage.free / usage.total)),
+            }
+        except Exception:
+            pass
+        report["ram_top"] = self.list_processes(10)
+        result = self.run_powershell(
+            "Get-CimInstance Win32_StartupCommand | "
+            "Select-Object Name, Command, Location | ConvertTo-Json -Compress"
+        )
+        try:
+            data = json.loads((result.stdout or "").strip() or "[]")
+            items = data if isinstance(data, list) else [data]
+            report["autostart"] = [
+                {"name": i.get("Name"), "befehl": str(i.get("Command", ""))[:120]}
+                for i in items
+            ][:25]
+        except Exception:
+            report["autostart"] = []
+        try:
+            import ctypes
+
+            report["laufzeit_stunden"] = round(
+                ctypes.windll.kernel32.GetTickCount64() / 3_600_000, 1
+            )
+        except Exception:
+            pass
+        try:
+            temp = Path(os.environ.get("TEMP", ""))
+            total = 0
+            count = 0
+            for item in temp.rglob("*"):
+                if count > 20000:
+                    break
+                if item.is_file():
+                    total += item.stat().st_size
+                    count += 1
+            report["temp_ordner_mb"] = round(total / 1e6)
+        except Exception:
+            pass
+        try:
+            mem = self.run_powershell(
+                "Get-CimInstance Win32_OperatingSystem | Select-Object "
+                "TotalVisibleMemorySize, FreePhysicalMemory | ConvertTo-Json -Compress"
+            )
+            data = json.loads((mem.stdout or "").strip())
+            total_gb = round(data["TotalVisibleMemorySize"] / 1e6, 1)
+            free_gb = round(data["FreePhysicalMemory"] / 1e6, 1)
+            report["arbeitsspeicher"] = {
+                "gesamt_gb": total_gb,
+                "frei_gb": free_gb,
+                "belegt_prozent": round(100 * (1 - free_gb / total_gb)),
+            }
+        except Exception:
+            pass
+        return report
+
+    def _autostart_launcher(self) -> Path:
+        base = os.environ.get("APPDATA")
+        if not base:
+            raise RuntimeError("APPDATA nicht gefunden")
+        startup = (
+            Path(base) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+        )
+        return startup / AUTOSTART_NAME
+
+    def autostart_status(self) -> bool:
+        if os.name != "nt":
+            return False
+        try:
+            return self._autostart_launcher().exists()
+        except Exception:
+            return False
+
+    def set_autostart(self, enabled: bool) -> bool:
+        if os.name != "nt":
+            raise RuntimeError("Autostart ist nur unter Windows verfuegbar")
+        launcher = self._autostart_launcher()
+        if not enabled:
+            launcher.unlink(missing_ok=True)
+            return False
+        bat = ROOT_DIR / "start-jon.bat"
+        if not bat.exists():
+            raise FileNotFoundError(f"start-jon.bat nicht gefunden: {bat}")
+        launcher.parent.mkdir(parents=True, exist_ok=True)
+        launcher.write_text(
+            'Set sh = CreateObject("WScript.Shell")\n'
+            f'sh.Run Chr(34) & "{bat}" & Chr(34), 7, False\n',
+            encoding="utf-8",
+        )
+        return True
 
     def local_llm_status(self, base_url: str) -> dict:
         root = base_url.rstrip("/").replace("://localhost", "://127.0.0.1")

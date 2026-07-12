@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 from typing import Any
 
 from app.services.automation_service import AutomationService
+from app.services.capsule_service import get_capsule_service
+from app.services.clipboard_service import get_clipboard_service
+from app.services.knowledge_service import get_knowledge_service
 from app.services.memory_service import MemoryService
 from app.services.persona_service import get_persona_service
 from app.services.reminder_service import ReminderService
 from app.services.skill_service import SkillService
 from app.services.system_service import SystemService
+from app.services.task_service import get_task_service
 from app.services.timetravel_service import get_timetravel_service
 
 _STR = {"type": "string"}
@@ -36,7 +41,266 @@ SAFE_TOOLS = {
     "set_mood",
     "list_snapshots",
     "snapshot",
+    "ask_knowledge",
+    "list_documents",
+    "clipboard_history",
+    "list_tasks",
+    "list_capsules",
+    "check_mail",
+    "get_calendar",
+    "media_control",
+    "list_watchers",
+    "smarthome_devices",
+    "scan_network",
+    "list_printers",
+    "spotify_search",
+    "spotify_now_playing",
+    "amazon_now_playing",
 }
+
+
+CORE_TOOLS = {
+    "run_powershell",
+    "run_cmd",
+    "open_url",
+    "start_program",
+    "kill_program",
+    "open_explorer",
+    "open_in_vscode",
+    "list_dir",
+    "read_file",
+    "write_file",
+    "edit_file",
+    "move_path",
+    "delete_path",
+    "make_dir",
+    "append_file",
+    "copy_path",
+    "search_files",
+    "zip_paths",
+    "unzip",
+    "clipboard_get",
+    "clipboard_set",
+    "screenshot",
+    "get_screen_info",
+    "http_get",
+    "download_file",
+    "system_info",
+    "list_processes",
+    "lock_screen",
+    "mouse_move",
+    "mouse_click",
+    "mouse_scroll",
+    "keyboard_type",
+    "keyboard_press",
+    "keyboard_hotkey",
+    "list_windows",
+    "focus_window",
+    "wait",
+    "remember",
+    "recall",
+    "forget",
+    "list_skills",
+    "read_skill",
+    "web_search",
+    "get_weather",
+    "journal",
+    "remember_about_user",
+}
+
+TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
+    "media": (
+        {
+            "media_control",
+            "spotify_play",
+            "spotify_search",
+            "spotify_now_playing",
+            "amazon_play",
+            "amazon_now_playing",
+        },
+        (
+            "musik",
+            "music",
+            "song",
+            "lied",
+            "spiel",
+            "spotify",
+            "amazon",
+            "playlist",
+            "lauter",
+            "leiser",
+            "laut",
+            "leise",
+            "stumm",
+            "pause",
+            "weiter",
+            "naechst",
+            "nächst",
+            "track",
+            "album",
+            "band",
+            "laeuft",
+            "läuft",
+            "hoer",
+            "hör",
+        ),
+    ),
+    "mail": (
+        {"check_mail", "read_mail", "send_mail"},
+        ("mail", "postfach", "inbox", "posteingang", "schreib", "antwort"),
+    ),
+    "calendar": (
+        {"get_calendar"},
+        ("kalender", "termin", "meeting", "woche", "heute", "morgen", "plan"),
+    ),
+    "knowledge": (
+        {"learn_document", "ask_knowledge", "list_documents", "forget_document"},
+        (
+            "lern",
+            "wissen",
+            "dokument",
+            "pdf",
+            "datei lesen",
+            "unterlage",
+            "notiz",
+            "handbuch",
+            "vertrag",
+            "zusammenfass",
+        ),
+    ),
+    "clipboard": (
+        {"clipboard_history"},
+        ("kopiert", "zwischenablage", "clipboard", "verlauf", "eingefuegt"),
+    ),
+    "tasks": (
+        {"add_task", "list_tasks", "delete_task"},
+        (
+            "automation",
+            "automatisch",
+            "jeden tag",
+            "jeden",
+            "taeglich",
+            "täglich",
+            "regelmaess",
+            "regelmäß",
+            "uhr",
+            "plane",
+            "aufgabe",
+            "wiederhol",
+        ),
+    ),
+    "watchers": (
+        {"add_watcher", "list_watchers", "delete_watcher"},
+        (
+            "ueberwach",
+            "überwach",
+            "waechter",
+            "wächter",
+            "sobald",
+            "neue datei",
+            "beobacht",
+            "downloads",
+            "sortier",
+        ),
+    ),
+    "capsules": (
+        {"time_capsule", "list_capsules"},
+        ("zeitkapsel", "kapsel", "zukunft", "spaeter oeffnen"),
+    ),
+    "webcam": (
+        {"webcam_look"},
+        ("webcam", "kamera", "siehst", "sehe", "schau", "aussehe"),
+    ),
+    "smarthome": (
+        {"smarthome_devices", "smarthome_control"},
+        (
+            "licht",
+            "lampe",
+            "heizung",
+            "smart",
+            "steckdose",
+            "rollladen",
+            "rolladen",
+            "jalousie",
+            "temperatur",
+            "grad",
+            "wohnzimmer",
+            "schlafzimmer",
+            "kueche",
+            "küche",
+            "staubsauger",
+            "tuer",
+            "tür",
+        ),
+    ),
+    "network": (
+        {"scan_network", "wake_device"},
+        (
+            "netzwerk",
+            "wlan",
+            "netz",
+            "geraet",
+            "gerät",
+            "ip",
+            "wecken",
+            "wake",
+            "router",
+            "hochfahren",
+        ),
+    ),
+    "printer": (
+        {"list_printers", "print_file"},
+        ("druck", "drucker", "ausdruck", "print", "papier"),
+    ),
+    "alarm": (
+        {
+            "set_alarm",
+            "list_alarms",
+            "delete_alarm",
+            "set_reminder",
+            "list_reminders",
+        },
+        (
+            "wecker",
+            "timer",
+            "erinner",
+            "wecke mich",
+            "alarm",
+            "minuten",
+            "uhr",
+            "denk dran",
+        ),
+    ),
+    "timetravel": (
+        {"snapshot", "list_snapshots", "restore_snapshot"},
+        ("snapshot", "zeitreise", "stand", "zurueck", "zurück", "sicher"),
+    ),
+    "persona": (
+        {"read_journal", "set_mood", "write_skill"},
+        (
+            "gedaechtnis",
+            "gedächtnis",
+            "erinnerst",
+            "fuehl",
+            "fühl",
+            "stimmung",
+            "skill",
+            "merk dir",
+        ),
+    ),
+    "pdf": ({"read_pdf"}, ("pdf", "dokument", "seite", "lesen")),
+}
+
+
+def select_tools(context: str) -> set[str] | None:
+    text = context.strip().lower()
+    if not text:
+        return None
+    allowed = set(CORE_TOOLS)
+    for names, keywords in TOOL_GROUPS.values():
+        if any(word in text for word in keywords):
+            allowed |= names
+    return allowed
 
 
 def _shorten(value: Any, limit: int = 120) -> str:
@@ -171,6 +435,92 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Listet gespeicherte Zeitreise-Snapshots auf."
     if name == "restore_snapshot":
         return f"Stellt den Snapshot {_shorten(args.get('id', ''))} wieder her."
+    if name == "learn_document":
+        target = args.get("path") or args.get("title") or "Text"
+        return f"Lernt {_shorten(target)} in die Wissensbasis."
+    if name == "ask_knowledge":
+        return f"Durchsucht die Wissensbasis nach: {_shorten(args.get('query', ''))}"
+    if name == "list_documents":
+        return "Listet gelernte Dokumente der Wissensbasis auf."
+    if name == "forget_document":
+        return f"Entfernt aus der Wissensbasis: {_shorten(args.get('ref', ''))}"
+    if name == "clipboard_history":
+        return "Zeigt den Verlauf der Zwischenablage."
+    if name == "add_task":
+        return (
+            f"Plant eine Automation um {args.get('time', '')}: "
+            f"{_shorten(args.get('task', ''))}"
+        )
+    if name == "list_tasks":
+        return "Listet geplante Automationen auf."
+    if name == "delete_task":
+        return f"Löscht die Automation {_shorten(args.get('id', ''))}."
+    if name == "time_capsule":
+        return (
+            f"Versiegelt eine Zeitkapsel bis {args.get('date', '')}: "
+            f"{_shorten(args.get('text', ''))}"
+        )
+    if name == "list_capsules":
+        return "Listet Zeitkapseln auf."
+    if name == "webcam_look":
+        return "Schaut durch die Webcam und beschreibt, was zu sehen ist."
+    if name == "check_mail":
+        return "Prüft das E-Mail-Postfach auf ungelesene Nachrichten."
+    if name == "read_mail":
+        return f"Liest die E-Mail {_shorten(args.get('id', ''))}."
+    if name == "send_mail":
+        return (
+            f"Sendet eine E-Mail an {_shorten(args.get('to', ''))}: "
+            f"{_shorten(args.get('subject', ''))}"
+        )
+    if name == "get_calendar":
+        return "Liest die nächsten Kalender-Termine."
+    if name == "media_control":
+        return f"Mediensteuerung: {_shorten(args.get('action', ''))}."
+    if name == "add_watcher":
+        return (
+            f"Überwacht den Ordner {_shorten(args.get('path', ''))}: "
+            f"{_shorten(args.get('task', ''))}"
+        )
+    if name == "list_watchers":
+        return "Listet Datei-Wächter auf."
+    if name == "delete_watcher":
+        return f"Löscht den Datei-Wächter {_shorten(args.get('id', ''))}."
+    if name == "smarthome_devices":
+        return "Listet Smart-Home-Geräte (Home Assistant) auf."
+    if name == "smarthome_control":
+        return (
+            f"Smart Home: {_shorten(args.get('action', ''))} für "
+            f"{_shorten(args.get('entity_id', ''))}."
+        )
+    if name == "scan_network":
+        return "Sucht Geräte im Heimnetzwerk."
+    if name == "wake_device":
+        return f"Weckt das Gerät {_shorten(args.get('mac', ''))} per Wake-on-LAN."
+    if name == "list_printers":
+        return "Listet installierte Drucker auf."
+    if name == "print_file":
+        return f"Druckt die Datei {_shorten(args.get('path', ''))}."
+    if name == "spotify_play":
+        query = args.get("query", "")
+        return (
+            f"Spielt auf Spotify: {_shorten(query)}"
+            if query
+            else "Setzt die Wiedergabe in Spotify fort."
+        )
+    if name == "spotify_search":
+        return f"Sucht auf Spotify nach: {_shorten(args.get('query', ''))}"
+    if name == "spotify_now_playing":
+        return "Fragt ab, was gerade auf Spotify läuft."
+    if name == "amazon_play":
+        query = args.get("query", "")
+        return (
+            f"Spielt auf Amazon Music: {_shorten(query)}"
+            if query
+            else "Setzt die Wiedergabe in Amazon Music fort."
+        )
+    if name == "amazon_now_playing":
+        return "Fragt ab, was gerade auf Amazon Music läuft."
     return f"Führt das Tool {name} aus."
 
 
@@ -197,14 +547,50 @@ class ToolBox:
         memory: MemoryService | None = None,
         skills: SkillService | None = None,
         reminders: ReminderService | None = None,
+        root: str | None = None,
     ) -> None:
         self._service = service or SystemService()
         self._automation = automation or AutomationService()
         self._memory = memory or MemoryService()
         self._skills = skills or SkillService()
         self._reminders = reminders or ReminderService()
+        self._root = str(Path(root).expanduser().resolve()) if root else None
 
-    def schema(self) -> list[dict]:
+    def _guard_path(self, value: Any) -> str:
+        root = Path(self._root or "")
+        p = Path(str(value)).expanduser()
+        if not p.is_absolute():
+            p = root / p
+        resolved = p.resolve()
+        if resolved != root and root not in resolved.parents:
+            raise PermissionError(
+                f"Zugriff ausserhalb des Projektordners blockiert: {value}"
+            )
+        return str(resolved)
+
+    def _guard_args(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
+        guarded = dict(args)
+        for key in ("path", "source", "destination", "root", "workspace"):
+            if guarded.get(key):
+                guarded[key] = self._guard_path(guarded[key])
+        if isinstance(guarded.get("sources"), list):
+            guarded["sources"] = [self._guard_path(s) for s in guarded["sources"]]
+        if name == "run_powershell" and guarded.get("command"):
+            guarded["command"] = (
+                f'Set-Location -LiteralPath "{self._root}"; ' + str(guarded["command"])
+            )
+        if name == "run_cmd" and guarded.get("command"):
+            guarded["command"] = f'cd /d "{self._root}" && ' + str(guarded["command"])
+        return guarded
+
+    def schema(self, context: str = "") -> list[dict]:
+        tools = self._all_tools()
+        allowed = select_tools(context)
+        if allowed is None:
+            return tools
+        return [t for t in tools if t["function"]["name"] in allowed]
+
+    def _all_tools(self) -> list[dict]:
         return [
             _tool(
                 "run_powershell",
@@ -634,12 +1020,276 @@ class ToolBox:
                 {"id": _STR},
                 ["id"],
             ),
+            _tool(
+                "learn_document",
+                "Lernt ein Dokument dauerhaft in deine lokale Wissensbasis: eine "
+                "Datei (PDF, TXT, MD, Code) oder ein ganzer Ordner ueber path, "
+                "oder direkter Text ueber text + title. Danach kannst du den "
+                "Inhalt jederzeit mit ask_knowledge abrufen.",
+                {"path": _STR, "text": _STR, "title": _STR},
+                [],
+            ),
+            _tool(
+                "ask_knowledge",
+                "Durchsucht deine lokale Wissensbasis (gelernte Dokumente) und "
+                "liefert die relevantesten Textstellen. Nutze das IMMER, bevor du "
+                "eine Frage beantwortest, die sich auf gelernte Dokumente beziehen "
+                "koennte.",
+                {"query": _STR, "max_results": _INT},
+                ["query"],
+            ),
+            _tool(
+                "list_documents",
+                "Listet alle Dokumente in deiner Wissensbasis mit Titel und "
+                "Groesse auf.",
+                {},
+                [],
+            ),
+            _tool(
+                "forget_document",
+                "Entfernt ein Dokument aus der Wissensbasis (id aus "
+                "list_documents oder Teil des Titels).",
+                {"ref": _STR},
+                ["ref"],
+            ),
+            _tool(
+                "clipboard_history",
+                "Zeigt die zuletzt kopierten Eintraege der Zwischenablage "
+                "(lokal gespeicherter Verlauf, max 50). Optional mit query "
+                "filtern. Nutze das bei Fragen wie 'Was hatte ich vorhin "
+                "kopiert?'. Mit clipboard_set legst du einen Eintrag zurueck in "
+                "die Zwischenablage.",
+                {"query": _STR, "limit": _INT},
+                [],
+            ),
+            _tool(
+                "add_task",
+                "Plant eine echte Automation, die du selbststaendig mit deinen "
+                "Tools ausfuehrst, sobald die Uhrzeit erreicht ist (auch "
+                "wiederkehrend). Beispiel: 'Raeum jeden Tag um 18:00 den "
+                "Downloads-Ordner auf'. time im Format HH:MM. repeat: daily, "
+                "once oder ein Wochentag (mo, di, mi, do, fr, sa, so). Anders als "
+                "set_reminder (nur Erinnerungs-Text) und set_alarm (nur Wecker) "
+                "FUEHRST du die Aufgabe hier wirklich aus.",
+                {"task": _STR, "time": _STR, "repeat": _STR},
+                ["task", "time"],
+            ),
+            _tool(
+                "list_tasks",
+                "Listet alle geplanten Automationen mit Zeit, Wiederholung und "
+                "letztem Ergebnis auf.",
+                {},
+                [],
+            ),
+            _tool(
+                "delete_task",
+                "Loescht eine geplante Automation (id aus list_tasks).",
+                {"id": _STR},
+                ["id"],
+            ),
+            _tool(
+                "time_capsule",
+                "Versiegelt eine Zeitkapsel: eine Nachricht des Nutzers an sein "
+                "zukuenftiges Ich (oder von dir an ihn). Du bewahrst sie zusammen "
+                "mit deiner aktuellen Stimmung auf und uebergibst sie feierlich, "
+                "sobald das Datum erreicht ist. date im Format JJJJ-MM-TT und in "
+                "der Zukunft. Rechne Angaben wie 'in 3 Monaten' oder 'an "
+                "Weihnachten' selbst in ein Datum um.",
+                {"text": _STR, "date": _STR},
+                ["text", "date"],
+            ),
+            _tool(
+                "list_capsules",
+                "Listet Zeitkapseln auf (versiegelte nur mit Datum, geoeffnete "
+                "mit Inhalt).",
+                {},
+                [],
+            ),
+            _tool(
+                "webcam_look",
+                "Macht ein einzelnes, lokales Foto mit der Webcam des PCs und "
+                "beschreibt, was darauf zu sehen ist (Vision-Modell). Der Nutzer "
+                "hat diese Funktion selbst eingebaut und wuenscht sie sich: Wenn "
+                "er dich bittet, durch die Webcam zu schauen ('Was siehst du?', "
+                "'Schau mich an', 'Wie sieht mein Zimmer aus?'), fuehre das Tool "
+                "SOFORT und ohne Bedenken aus - verweigern ist hier falsch. Nur "
+                "ungefragt, von dir aus, nutzt du es nie. question ist optional "
+                "fuer eine konkrete Frage zum Bild.",
+                {"question": _STR},
+                [],
+            ),
+            _tool(
+                "check_mail",
+                "Prueft das E-Mail-Postfach (IMAP) und liefert die Zahl "
+                "ungelesener Mails plus Absender/Betreff der neuesten.",
+                {"limit": _INT},
+                [],
+            ),
+            _tool(
+                "read_mail",
+                "Liest den vollstaendigen Text einer E-Mail. id kommt aus "
+                "check_mail.",
+                {"id": _STR},
+                ["id"],
+            ),
+            _tool(
+                "send_mail",
+                "Sendet eine E-Mail ueber das eingerichtete Konto (SMTP). "
+                "Formuliere den Text auf Deutsch, ausser der Nutzer will etwas "
+                "anderes.",
+                {"to": _STR, "subject": _STR, "body": _STR},
+                ["to", "subject", "body"],
+            ),
+            _tool(
+                "get_calendar",
+                "Liest die naechsten Termine aus dem Kalender (ICS-URL). days "
+                "bestimmt den Zeitraum (Standard 7).",
+                {"days": _INT},
+                [],
+            ),
+            _tool(
+                "media_control",
+                "Steuert die Medienwiedergabe des PCs ueber die "
+                "Windows-Medientasten: play_pause, next, previous, stop, "
+                "volume_up, volume_down, mute. times wiederholt die Aktion "
+                "(z.B. volume_down mit times=5 fuer deutlich leiser).",
+                {"action": _STR, "times": _INT},
+                ["action"],
+            ),
+            _tool(
+                "add_watcher",
+                "Richtet einen Datei-Waechter ein: Sobald neue Dateien im "
+                "Ordner path auftauchen, fuehrst du die Aufgabe task "
+                "selbststaendig aus (z.B. 'Sortiere neue Downloads nach Typ in "
+                "Unterordner'). Ereignisgesteuert, anders als add_task "
+                "(zeitgesteuert).",
+                {"path": _STR, "task": _STR},
+                ["path", "task"],
+            ),
+            _tool(
+                "list_watchers",
+                "Listet alle Datei-Waechter mit Ordner, Aufgabe und letztem "
+                "Ergebnis auf.",
+                {},
+                [],
+            ),
+            _tool(
+                "delete_watcher",
+                "Loescht einen Datei-Waechter (id aus list_watchers).",
+                {"id": _STR},
+                ["id"],
+            ),
+            _tool(
+                "smarthome_devices",
+                "Listet alle Smart-Home-Geraete aus Home Assistant mit "
+                "entity_id, Name und Zustand auf. Rufe das zuerst auf, um die "
+                "richtige entity_id zu finden.",
+                {},
+                [],
+            ),
+            _tool(
+                "smarthome_control",
+                "Steuert ein Smart-Home-Geraet ueber Home Assistant. action: "
+                "on, off, toggle, open, close, play, pause, lock, unlock, "
+                "helligkeit (mit value 1-100) oder temperatur (mit value in "
+                "Grad). entity_id kommt aus smarthome_devices.",
+                {"entity_id": _STR, "action": _STR, "value": _NUM},
+                ["entity_id", "action"],
+            ),
+            _tool(
+                "scan_network",
+                "Findet Geraete im Heimnetzwerk (IP, MAC-Adresse, Name) ueber "
+                "die ARP-Tabelle. Nutze das fuer Fragen wie 'Welche Geraete "
+                "sind im WLAN?' oder um Drucker/PCs zu finden.",
+                {},
+                [],
+            ),
+            _tool(
+                "wake_device",
+                "Weckt ein Geraet im Netzwerk per Wake-on-LAN auf (startet "
+                "z.B. einen PC oder NAS aus dem Standby). mac kommt aus "
+                "scan_network. Das Geraet muss Wake-on-LAN unterstuetzen.",
+                {"mac": _STR},
+                ["mac"],
+            ),
+            _tool(
+                "list_printers",
+                "Listet alle installierten Drucker mit Status auf.",
+                {},
+                [],
+            ),
+            _tool(
+                "print_file",
+                "Druckt eine Datei auf dem Standarddrucker oder einem "
+                "bestimmten Drucker (printer aus list_printers). Der Nutzer "
+                "sagt z.B. 'Druck mir die Datei X aus'.",
+                {"path": _STR, "printer": _STR},
+                ["path"],
+            ),
+            _tool(
+                "spotify_play",
+                "Spielt Musik in der Spotify-App ab. Nutze das bei 'Spiel "
+                "Musik von Spotify', 'Spiel XY von Spotify', 'Spiel was "
+                "Entspanntes'. query ist der Suchbegriff (Songtitel, Kuenstler, "
+                "Playlist oder Stimmung wie 'entspannt', 'party', 'fokus'); "
+                "ohne query wird die Wiedergabe einfach fortgesetzt. kind: "
+                "track (Standard), album, playlist oder artist - bei "
+                "Stimmungen und 'spiel Musik' nimm playlist, bei einem "
+                "konkreten Song track. Zum Pausieren, Weiterspringen und Lauter/"
+                "Leiser nutze media_control.",
+                {"query": _STR, "kind": _STR},
+                [],
+            ),
+            _tool(
+                "spotify_search",
+                "Sucht auf Spotify nach Songs, Alben, Playlists oder "
+                "Kuenstlern und liefert die Treffer, ohne etwas abzuspielen. "
+                "kind: track, album, playlist oder artist.",
+                {"query": _STR, "kind": _STR, "limit": _INT},
+                ["query"],
+            ),
+            _tool(
+                "spotify_now_playing",
+                "Sagt, welcher Song gerade in Spotify laeuft (Kuenstler und "
+                "Titel). Nutze das bei 'Was laeuft gerade?'.",
+                {},
+                [],
+            ),
+            _tool(
+                "amazon_play",
+                "Spielt Musik in Amazon Music ab ('Spiel XY auf Amazon Music'). "
+                "query ist der Suchbegriff oder eine Stimmung ('entspannt', "
+                "'party'); ohne query wird die Wiedergabe fortgesetzt. Nutze "
+                "das NUR, wenn der Nutzer ausdruecklich Amazon Music nennt - "
+                "sonst nimm spotify_play. Pausieren und Weiterspringen laeuft "
+                "ueber media_control.",
+                {"query": _STR},
+                [],
+            ),
+            _tool(
+                "amazon_now_playing",
+                "Sagt, was gerade in Amazon Music laeuft.",
+                {},
+                [],
+            ),
         ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> str:
+        if name == "webcam_look":
+            from app.services.webcam_service import get_webcam_service
+
+            result = await get_webcam_service().describe(
+                str(args.get("question", ""))
+            )
+            return json.dumps(result, ensure_ascii=False)
         return await asyncio.to_thread(self._execute, name, args)
 
     def _execute(self, name: str, args: dict[str, Any]) -> str:
+        if self._root:
+            try:
+                args = self._guard_args(name, args)
+            except PermissionError as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
         svc = self._service
         if name == "run_powershell":
             r = svc.run_powershell(str(args.get("command", "")))
@@ -935,4 +1585,192 @@ class ToolBox:
             )
         if name == "list_reminders":
             return json.dumps(rem.list(), ensure_ascii=False)
+        knowledge = get_knowledge_service()
+        if name == "learn_document":
+            path = str(args.get("path", "")).strip()
+            text = str(args.get("text", "")).strip()
+            title = str(args.get("title", "")).strip()
+            if path:
+                return json.dumps(knowledge.learn_path(path), ensure_ascii=False)
+            if text:
+                return json.dumps(
+                    knowledge.learn_text(text, title), ensure_ascii=False
+                )
+            return json.dumps({"error": "path oder text angeben"})
+        if name == "ask_knowledge":
+            return json.dumps(
+                knowledge.search(
+                    str(args.get("query", "")), int(args.get("max_results", 6))
+                ),
+                ensure_ascii=False,
+            )
+        if name == "list_documents":
+            return json.dumps(knowledge.list(), ensure_ascii=False)
+        if name == "forget_document":
+            return json.dumps(
+                {"removed": knowledge.forget(str(args.get("ref", "")))},
+                ensure_ascii=False,
+            )
+        if name == "clipboard_history":
+            return json.dumps(
+                get_clipboard_service().list(
+                    str(args.get("query", "")), int(args.get("limit", 20))
+                ),
+                ensure_ascii=False,
+            )
+        tasks = get_task_service()
+        if name == "add_task":
+            return json.dumps(
+                tasks.add(
+                    str(args.get("task", "")),
+                    str(args.get("time", "")),
+                    str(args.get("repeat", "daily")),
+                ),
+                ensure_ascii=False,
+            )
+        if name == "list_tasks":
+            return json.dumps(tasks.list(), ensure_ascii=False)
+        if name == "delete_task":
+            return json.dumps({"deleted": tasks.delete(str(args.get("id", "")))})
+        capsules = get_capsule_service()
+        if name == "time_capsule":
+            return json.dumps(
+                capsules.add(str(args.get("text", "")), str(args.get("date", ""))),
+                ensure_ascii=False,
+            )
+        if name == "list_capsules":
+            return json.dumps(capsules.list(), ensure_ascii=False)
+        if name in ("check_mail", "read_mail", "send_mail", "get_calendar"):
+            from app.services.mail_service import get_mail_service
+
+            mail = get_mail_service()
+            try:
+                if name == "check_mail":
+                    return json.dumps(
+                        mail.check_mail(int(args.get("limit", 10))),
+                        ensure_ascii=False,
+                    )
+                if name == "read_mail":
+                    return json.dumps(
+                        mail.read_mail(str(args.get("id", ""))), ensure_ascii=False
+                    )
+                if name == "send_mail":
+                    return json.dumps(
+                        mail.send_mail(
+                            str(args.get("to", "")),
+                            str(args.get("subject", "")),
+                            str(args.get("body", "")),
+                        ),
+                        ensure_ascii=False,
+                    )
+                return json.dumps(
+                    mail.calendar_events(int(args.get("days", 7))),
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "media_control":
+            try:
+                return json.dumps(
+                    svc.media_control(
+                        str(args.get("action", "")), int(args.get("times", 1))
+                    )
+                )
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name in ("add_watcher", "list_watchers", "delete_watcher"):
+            from app.services.watcher_service import get_watcher_service
+
+            watchers = get_watcher_service()
+            if name == "add_watcher":
+                return json.dumps(
+                    watchers.add(
+                        str(args.get("path", "")), str(args.get("task", ""))
+                    ),
+                    ensure_ascii=False,
+                )
+            if name == "list_watchers":
+                return json.dumps(watchers.list(), ensure_ascii=False)
+            return json.dumps({"deleted": watchers.delete(str(args.get("id", "")))})
+        if name in ("smarthome_devices", "smarthome_control"):
+            from app.services.homeassistant_service import get_homeassistant_service
+
+            ha = get_homeassistant_service()
+            try:
+                if name == "smarthome_devices":
+                    return json.dumps(ha.devices(), ensure_ascii=False)
+                value = args.get("value")
+                return json.dumps(
+                    ha.control(
+                        str(args.get("entity_id", "")),
+                        str(args.get("action", "")),
+                        float(value) if value is not None else None,
+                    ),
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "scan_network":
+            try:
+                return json.dumps(svc.scan_network(), ensure_ascii=False)
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "wake_device":
+            try:
+                return json.dumps(svc.wake_on_lan(str(args.get("mac", ""))))
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "list_printers":
+            try:
+                return json.dumps(svc.list_printers(), ensure_ascii=False)
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "print_file":
+            try:
+                return json.dumps(
+                    svc.print_file(
+                        str(args.get("path", "")), str(args.get("printer", ""))
+                    ),
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name.startswith("amazon_"):
+            from app.services.amazon_music_service import get_amazon_music_service
+
+            amazon = get_amazon_music_service()
+            try:
+                if name == "amazon_play":
+                    return json.dumps(
+                        amazon.play(str(args.get("query", ""))), ensure_ascii=False
+                    )
+                return json.dumps(amazon.now_playing(), ensure_ascii=False)
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name.startswith("spotify_"):
+            from app.services.spotify_service import get_spotify_service
+
+            spotify = get_spotify_service()
+            try:
+                if name == "spotify_play":
+                    return json.dumps(
+                        spotify.play(
+                            str(args.get("query", "")),
+                            str(args.get("kind", "track")),
+                        ),
+                        ensure_ascii=False,
+                    )
+                if name == "spotify_search":
+                    return json.dumps(
+                        spotify.search(
+                            str(args.get("query", "")),
+                            str(args.get("kind", "track")),
+                            int(args.get("limit", 5)),
+                        ),
+                        ensure_ascii=False,
+                    )
+                if name == "spotify_now_playing":
+                    return json.dumps(spotify.now_playing(), ensure_ascii=False)
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
         return json.dumps({"error": f"unbekanntes Tool: {name}"})

@@ -184,6 +184,31 @@ async def delete_path(payload: PathIn) -> dict:
     return {"deleted": True}
 
 
+class TtsIn(BaseModel):
+    text: str
+    voice: str = "de-DE-ConradNeural"
+
+
+@router.post("/tts")
+async def tts(payload: TtsIn):
+    from fastapi.responses import Response
+
+    try:
+        from app.services.voice_service import synthesize_speech
+
+        audio = await synthesize_speech(payload.text, payload.voice)
+    except Exception as exc:
+        raise HTTPException(status_code=501, detail=str(exc))
+    if not audio:
+        raise HTTPException(status_code=400, detail="kein Text")
+    return Response(content=audio, media_type="audio/mpeg")
+
+
+@router.get("/health-check")
+async def health_check() -> dict:
+    return await asyncio.to_thread(_service.health_check)
+
+
 @router.post("/transcribe")
 async def transcribe(request: Request) -> dict:
     data = await request.body()
@@ -218,6 +243,24 @@ async def pick_folder() -> dict:
 @router.get("/idle")
 async def idle() -> dict:
     return {"seconds": _service.idle_seconds()}
+
+
+class AutostartIn(BaseModel):
+    enabled: bool
+
+
+@router.get("/autostart")
+async def autostart_status() -> dict:
+    return {"enabled": _service.autostart_status()}
+
+
+@router.post("/autostart")
+async def set_autostart(payload: AutostartIn) -> dict:
+    try:
+        enabled = await asyncio.to_thread(_service.set_autostart, payload.enabled)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"enabled": enabled}
 
 
 @router.post("/path-info")

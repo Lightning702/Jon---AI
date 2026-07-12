@@ -48,15 +48,16 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "2.4.0"
+    app_version: str = "2.7.1"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = "*"
+    jon_lan: bool = False
 
     database_url: str = f"sqlite:///{(DATA_DIR / 'jon.db').as_posix()}"
 
     default_provider: str = "nvidia"
-    default_model: str = "openai/gpt-oss-120b"
+    default_model: str = "openai/gpt-oss-20b"
 
     openai_api_key: str | None = None
     nvidia_api_key: str | None = None
@@ -84,7 +85,8 @@ class Settings(BaseSettings):
     together_base_url: str = "https://api.together.xyz/v1"
     xai_base_url: str = "https://api.x.ai/v1"
 
-    request_timeout: float = 180.0
+    request_timeout: float = 90.0
+    first_token_timeout: float = 30.0
     models_timeout: float = 6.0
     max_tokens: int = 32768
     reasoning_effort: str = "low"

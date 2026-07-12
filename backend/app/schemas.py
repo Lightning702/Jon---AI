@@ -61,11 +61,36 @@ class SettingsIn(BaseModel):
     dream_auto: bool | None = None
     dream_idle_minutes: int | None = None
     vision_model: str | None = None
+    briefing_city: str | None = None
+    clipboard_history: bool | None = None
+    webcam_enabled: bool | None = None
+    mail_imap_host: str | None = None
+    mail_imap_user: str | None = None
+    mail_imap_password: str | None = None
+    mail_smtp_host: str | None = None
+    mail_smtp_port: int | None = None
+    calendar_ics_url: str | None = None
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
+    ha_url: str | None = None
+    ha_token: str | None = None
+    natural_voice: bool | None = None
+    spotify_client_id: str | None = None
+    spotify_client_secret: str | None = None
+
+
+class WatcherIn(BaseModel):
+    path: str
+    task: str
 
 
 class ScreenObserveIn(BaseModel):
     provider: str | None = None
     model: str | None = None
+
+
+class WebcamIn(BaseModel):
+    question: str = ""
 
 
 class ReminderIn(BaseModel):
@@ -99,6 +124,35 @@ class DreamIn(BaseModel):
     task: str
     provider: str | None = None
     model: str | None = None
+
+
+class KnowledgeLearnIn(BaseModel):
+    path: str = ""
+    text: str = ""
+    title: str = ""
+
+
+class KnowledgeSearchIn(BaseModel):
+    query: str
+    max_results: int = 6
+
+
+class TaskIn(BaseModel):
+    task: str
+    time: str
+    repeat: str = "daily"
+
+
+class CapsuleIn(BaseModel):
+    text: str
+    date: str
+
+
+class AttachmentIn(BaseModel):
+    name: str
+    mime: str = ""
+    data: str
+    provider: str | None = None
 
 
 class MessageOut(BaseModel):

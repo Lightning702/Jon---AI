@@ -14,3 +14,5 @@ pyperclip>=1.8
 SpeechRecognition>=3.17
 audioop-lts>=0.2; python_version >= "3.13"
 pypdf>=5.0
+opencv-python>=4.10
+edge-tts>=6.1

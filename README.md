@@ -64,10 +64,51 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   Stimmungen, Lebensgeschichte und eine eigene `MEMORY.md`, in die er selbst schreibt
 - **KI-Team, Simulationen, Zeitreise & Dream Mode** — `/team`, `/simulate`, `/snapshot(s)`,
   `/dream(s)` (siehe Befehle-Tab im Nutzer-Menü)
+- **📚 Wissensbasis (RAG)** — „Jon, lern dieses PDF/diesen Ordner": lokale, durchsuchbare
+  Wissensbasis (komplett offline), aus der Jon beim Antworten zitiert
+- **🌅 Tagesbriefing** — täglich beim ersten Start und per `/briefing`: Wetter (Stadt im
+  Zahnrad-Menü), Erinnerungen, Wecker und geplante Automationen
+- **⚡ Schnellfrage-Overlay** — `Strg+Alt+Leertaste` öffnet überall ein kleines
+  Spotlight-Fenster: Frage tippen, Antwort erscheint sofort, `Esc` schließt
+- **📋 Clipboard-Historie** — die letzten 50 kopierten Einträge, lokal gespeichert,
+  durchsuchbar über den 📋-Knopf oder `/clipboard`, mit einem Klick wieder kopiert
+- **🤖 Echte Automationen** — „Räum jeden Tag um 18 Uhr meinen Downloads-Ordner auf":
+  Jon führt geplante Aufgaben zur Uhrzeit wirklich aus und berichtet (`/tasks`)
+- **📎 Datei-Anhänge im Chat** — PDFs, Bilder und Textdateien per Drag & Drop oder
+  Büroklammer: PDFs werden gelesen, Bilder vom Vision-Modell beschrieben
+- **🎁 Zeitkapseln** — Nachrichten an dein zukünftiges Ich: Jon versiegelt sie mit seiner
+  aktuellen Stimmung und übergibt sie feierlich am Zieltag
+- **📷 Webcam-Blick** — „Jon, was siehst du über meine Webcam?": Jon macht ein Webcam-Foto
+  und antwortet garantiert mit einer Beschreibung — ausschließlich auf deine Bitte und nur,
+  wenn du im Zahnrad-Menü „Webcam erlauben" aktiviert hast (Standard: aus)
+- **💬 Immer im Gespräch** — Jon und Mini Jon beenden jede Antwort mit einer kurzen
+  Rückfrage oder einem nächsten Vorschlag (abschaltbar: einfach sagen)
+- **📧 E-Mail & Kalender** — IMAP-Postfach und ICS-Kalender: ungelesene Mails im
+  Tagesbriefing, Mails vorlesen und beantworten, Termine abfragen
+- **📲 Telegram-Fernbedienung** — Schreib Jon von unterwegs: Er steuert deinen PC und
+  antwortet aufs Handy — weltweit, ohne VPN, gratis
+- **👀 Datei-Wächter** — „Sortiere neue Downloads automatisch": Jon reagiert, sobald neue
+  Dateien in einem Ordner auftauchen
+- **🎵 Medien-Steuerung** — „leiser", „nächster Song", „Pause" über die Windows-Medientasten
+  (funktioniert mit Spotify, YouTube, allem)
+- **🗣️ Natürliche Stimme** — echte Neural-Stimme statt Roboterstimme (gratis), optional
+  Offline-Spracherkennung mit Whisper
+- **📊 Wochenrückblick** — jeden Sonntag ein persönlicher Rückblick von Jon (`/woche`)
+- **🩺 PC-Gesundheitscheck** — `/check`: Speicherplatz, RAM-Fresser, Autostart, Temp-Müll —
+  mit Aufräum-Vorschlägen, die Jon direkt umsetzt
+- **🏠 Smart Home** — Home Assistant: „Jon, mach das Licht aus"
+- **🌐 Netzwerk & Drucker** — Geräte im WLAN finden, per Wake-on-LAN aufwecken, Dateien
+  ausdrucken („Druck mir das aus")
+- **👤 Profil** — beim ersten Start fragt Jon nach deinem Namen und spricht dich fortan
+  damit an; jederzeit änderbar
+- **💬 Freunde-Chat (Peer-to-Peer)** — schreibe anderen Jon-Nutzern Nachrichten, Bilder und
+  Videos. Direkt von PC zu PC, ohne Cloud, ohne Konto, ohne Kosten — gespeichert wird nur
+  auf den beiden beteiligten Geräten
 - **Coding-Agent** — als **„Jon Code"-Modus in der App** (Button oben rechts: Dateibaum +
   Editor + Jon-Agent rechts, mit `/model`- und `/provider`-Wechsel) und als **`jon`-Befehl
   im VS-Code-Terminal**. Jon arbeitet an ganzen Projekten wie ein moderner KI-Coding-Agent
-  (siehe [docs/CLI.md](docs/CLI.md))
+  und bleibt dabei technisch auf den gewählten Projektordner begrenzt — Zugriffe außerhalb
+  werden blockiert (siehe [docs/CLI.md](docs/CLI.md))
 - **Multi-Provider-Chat** mit einheitlicher Schnittstelle: NVIDIA, OpenAI, Anthropic,
   Gemini, **Ollama & LM Studio (lokal, gratis)**, OpenRouter, Groq, Together AI, xAI,
   DeepSeek, GLM, Qwen, Mistral
@@ -105,8 +146,17 @@ auf Klick aufklappbar (Befehl + Erklärung + Ergebnis).
 | Dateien | `list_dir`, `read_file`, `write_file`, `append_file`, `move_path`, `copy_path`, `delete_path`, `make_dir`, `search_files` |
 | Archive | `zip_paths`, `unzip` |
 | System | `system_info`, `list_processes`, `lock_screen`, `open_explorer` |
-| Zwischenablage | `clipboard_get`, `clipboard_set` |
+| Zwischenablage | `clipboard_get`, `clipboard_set`, `clipboard_history` |
+| E-Mail & Kalender | `check_mail`, `read_mail`, `send_mail`, `get_calendar` |
+| Musik & Medien | `media_control`, `spotify_play`, `spotify_search`, `spotify_now_playing`, `amazon_play`, `amazon_now_playing` |
+| Datei-Wächter | `add_watcher`, `list_watchers`, `delete_watcher` |
+| Smart Home | `smarthome_devices`, `smarthome_control` |
+| Netzwerk & Drucker | `scan_network`, `wake_device`, `list_printers`, `print_file` |
+| Wissensbasis | `learn_document`, `ask_knowledge`, `list_documents`, `forget_document` |
+| Automationen | `add_task`, `list_tasks`, `delete_task` |
+| Zeitkapseln | `time_capsule`, `list_capsules` |
 | Bildschirm | `screenshot`, `get_screen_info` |
+| Webcam | `webcam_look` |
 | Web | `http_get`, `download_file` |
 | Maus/Tastatur | `mouse_move`, `mouse_click`, `mouse_scroll`, `keyboard_type`, `keyboard_press`, `keyboard_hotkey` |
 | Fenster | `list_windows`, `focus_window`, `wait` |
@@ -132,6 +182,80 @@ Mitgeliefert:
 - **research** — sauberes Nachschlagen und Zusammenfassen
 
 Mehr dazu in [docs/SKILLS.md](docs/SKILLS.md).
+
+---
+
+## Verbindungen einrichten
+
+Alle Verbindungen sind **kostenlos** — du zahlst nur für deine LLM-API (oder gar nichts,
+wenn du Ollama nutzt). Öffne dazu **Zahnrad-Menü → 🔌 Verbindungen**. Alles wird nur lokal
+auf deinem PC gespeichert.
+
+| Verbindung | Was du brauchst | Wo du es herbekommst |
+|---|---|---|
+| 📧 **E-Mail** | IMAP-Server, Adresse, App-Passwort | Gmail: `imap.gmail.com` + [App-Passwort](https://myaccount.google.com/apppasswords) (nicht dein normales Passwort!). GMX/Web.de: IMAP zuerst in den Konto-Einstellungen freischalten |
+| 📅 **Kalender** | ICS-URL | Google Kalender → Einstellungen → *Geheime Adresse im iCal-Format*. Geht auch mit Outlook, Apple, Nextcloud |
+| 📲 **Telegram** | Bot-Token | In Telegram `@BotFather` anschreiben → `/newbot` → Namen wählen → Token kopieren. Danach **deinem eigenen Bot** `/start` schreiben — der erste Chat wird automatisch mit deinem PC verknüpft, alle anderen werden abgewiesen |
+| 🎧 **Spotify** | Client-ID + Secret | [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → *Create app* → beliebiger Name, Redirect-URI `http://localhost` → ID und Secret kopieren. **Kein Premium nötig** |
+| 🏠 **Smart Home** | Home-Assistant-URL + Token | Home Assistant → Profil (unten links) → Sicherheit → *Langlebiges Zugriffstoken* |
+
+**So benutzt du sie:**
+
+- **Mails:** „Hab ich neue Mails?" · „Lies mir die von Anna vor" · „Antworte ihr, dass ich
+  morgen Zeit habe" — ungelesene Mails und heutige Termine stehen automatisch im
+  Tagesbriefing
+- **Telegram:** Schreib deinem Bot von unterwegs „Öffne YouTube auf meinem PC", „Fahr den
+  PC in 10 Minuten runter" oder „Was steht heute an?" — Jon führt es aus und antwortet dir.
+  Er darf dabei alle Tools ohne Rückfrage nutzen (du bist ja nicht am PC), zeigt jede
+  Aktion sofort als ⚙️-Meldung an und tippt sichtbar, während er arbeitet. `/reset` löscht
+  den Gesprächsverlauf
+- **Datei-Wächter:** „Überwach meinen Downloads-Ordner und sortiere neue Dateien nach Typ
+  in Unterordner" — Jon prüft alle 12 Sekunden und meldet sich im Chat, wenn er was getan hat
+- **Medien:** „Mach leiser" · „Nächster Song" · „Pause" — funktioniert mit Spotify, YouTube
+  und allem anderen, weil Jon die echten Windows-Medientasten drückt
+- **Spotify:** „Spiel Musik von Spotify" · „Spiel Bohemian Rhapsody von Spotify" · „Spiel
+  was Entspanntes" · „Was läuft gerade?" — Jon sucht den Song und startet ihn in deiner
+  Spotify-App. Ist die App nicht installiert, öffnet er den Web Player und drückt Play.
+  Funktioniert auch mit einem **kostenlosen Spotify-Konto** (mit Werbung, wie üblich)
+- **Amazon Music:** „Spiel XY auf Amazon Music" — Jon öffnet die Suche im Amazon-Music-
+  Player und drückt Play. Amazon bietet (anders als Spotify) **keine offene Wiedergabe-
+  Schnittstelle** an, deshalb muss dort eventuell einmal auf den ersten Treffer geklickt
+  werden; danach steuert Jon Pause/Weiter/Lautstärke wieder selbst. Für vollautomatisches
+  Abspielen ist Spotify der zuverlässigere Weg
+- **Smart Home:** „Welche Geräte hast du?" · „Mach das Wohnzimmerlicht aus" · „Stell die
+  Heizung auf 21 Grad"
+- **Netzwerk & Drucker:** „Welche Geräte sind in meinem WLAN?" · „Weck meinen anderen PC
+  auf" (Wake-on-LAN) · „Druck mir den Lebenslauf aus"
+- **PC-Check:** `/check` — Jon analysiert Speicherplatz, RAM-Fresser, Autostart-Programme
+  und Temp-Müll und schlägt konkrete Aufräum-Aktionen vor, die er direkt ausführen kann
+- **Wochenrückblick:** `/woche` — oder automatisch jeden Sonntag beim ersten Start
+
+---
+
+## Freunde-Chat (💬)
+
+Jon-Nutzer können sich **direkt gegenseitig schreiben** — Text, Bilder, Videos und Dateien
+(bis 60 MB). Ohne Server, ohne Konto, ohne Kosten.
+
+**So funktioniert es:**
+
+1. Beim ersten Start legst du deinen **Namen** fest (später über 💬 → Profil änderbar).
+   Jeder Name gibt es im Netzwerk **nur einmal** — ist er vergeben, sagt Jon das sofort
+2. Klick auf **💬** in der Kopfzeile
+3. Wer Jon im selben Netzwerk offen hat, **erscheint automatisch** in deiner Freundesliste.
+   Sonst tippst du unten einfach den **Namen deines Freundes** ein — Jon ruft den Namen ins
+   Netzwerk, der passende Jon meldet sich, und der Kontakt ist da. Keine IP-Adressen nötig
+4. Freund anklicken, schreiben. Mit 📎 sendest du Bilder, Videos oder Dateien
+
+**Wo liegen die Daten?** Ausschließlich auf **euren beiden PCs**: Nachrichten in der lokalen
+Datenbank, Bilder und Videos im Ordner `p2p_media`. Es gibt keinen Server dazwischen, der
+etwas mitliest oder speichert. Löschst du einen Kontakt, verschwinden Verlauf und Dateien mit.
+
+**Ist das sicher?** Der Chat läuft auf einem **eigenen, abgeschotteten Port (8758)**, der
+ausschließlich Nachrichten annimmt. Die Jon-API mit der PC-Steuerung bleibt weiterhin nur
+lokal auf `127.0.0.1` erreichbar — niemand im WLAN kann darüber deinen PC steuern. Beim
+ersten Start fragt die Windows-Firewall nach Erlaubnis für den Chat-Port; die musst du
+einmal bestätigen.
 
 ---
 
@@ -180,6 +304,17 @@ Android schränkt aus Sicherheitsgründen den Zugriff auf Kontakte, Nachrichten 
 Dateien im Browser ein. Jon nutzt dann die bestmögliche offizielle Alternative (z. B. die
 App per Deep-Link öffnen) und sagt ehrlich, was nicht geht. Details in
 [docs/ANDROID.md](docs/ANDROID.md).
+
+### Handy = PC-App (1:1)
+
+Wenn dein Handy im selben WLAN ist, kannst du die **komplette PC-App** am Handy nutzen —
+mit allen Tools, Wissensbasis, Automationen und PC-Steuerung, weil dein PC die Arbeit macht:
+
+1. In der `.env` auf dem PC `JON_LAN=1` setzen und Jon neu starten
+2. Am Handy `http://<PC-IP>:8756/app` öffnen (PC-IP z. B. per `ipconfig`)
+
+> ⚠️ Damit ist Jon für alle Geräte in deinem WLAN erreichbar — nur in vertrauenswürdigen
+> Netzwerken aktivieren.
 
 ---
 

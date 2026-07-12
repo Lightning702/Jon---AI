@@ -2,6 +2,178 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [2.7.1] — 2026-07-12
+
+### Neu
+- **Freunde per Namen statt IP-Adresse:** Du tippst einfach den Namen deines Freundes ein.
+  Jon ruft den Namen ins Netzwerk, der passende Jon meldet sich und der Kontakt ist da —
+  Groß-/Kleinschreibung egal, IP-Adressen sind nicht mehr nötig.
+- **Namen sind eindeutig:** Jeder Name existiert im Netzwerk nur einmal. Ist er schon
+  vergeben, sagt Jon das direkt beim Anlegen oder Ändern des Profils.
+
+### Behoben
+- **Freunde-Erkennung fand niemanden bei mehreren Netzwerkadaptern:** Der Suchruf ging nur
+  an `255.255.255.255` und wurde von Windows über einen beliebigen Adapter geschickt (z. B.
+  einen VirtualBox- oder VPN-Adapter) — im echten WLAN kam er dann nie an. Jon sendet ihn
+  jetzt gleichzeitig an alle Netzwerke, in denen dein PC hängt.
+- **Zwei Jons auf einem PC:** Der Suchdienst belegt den Port jetzt mit `SO_REUSEADDR` und
+  scheitert nicht mehr stumm, wenn er schon belegt ist.
+
+## [2.7.0] — 2026-07-12
+
+### Neu
+- **👤 Profil:** Beim ersten Start fragt Jon nach deinem Namen (und einem Avatar). Er spricht
+  dich fortan damit an; unter diesem Namen sehen dich auch deine Freunde. Jederzeit änderbar
+  über das Profil im Freunde-Chat.
+- **💬 Freunde-Chat (Peer-to-Peer):** Chatte mit anderen Jon-Nutzern — Text, **Bilder,
+  Videos und Dateien** (bis 60 MB). Ohne Cloud, ohne Konto, ohne laufende Kosten:
+  - **Automatische Erkennung:** Wer Jon im selben WLAN offen hat, erscheint automatisch in
+    deiner Freundesliste (UDP-Suchruf auf Port 8757). Manuell geht auch — einfach die IP
+    des Freundes eintragen.
+  - **Direkt von PC zu PC:** Nachrichten gehen unmittelbar vom Backend des einen an das des
+    anderen. **Gespeichert wird ausschließlich auf den beiden beteiligten Geräten** —
+    Nachrichten in der lokalen Datenbank, Bilder und Videos in `p2p_media/`. Löschst du
+    einen Kontakt, verschwinden Verlauf und Mediendateien mit.
+  - **Sicherheit:** Der Chat läuft auf einem **eigenen, abgeschotteten Port (8758)**, der nur
+    Nachrichten annimmt. Die Jon-API mit der PC-Steuerung bleibt weiterhin auf `127.0.0.1`
+    und ist von außen nicht erreichbar.
+  - Online-Status, Ungelesen-Zähler und ein 💬-Knopf mit Badge in der Kopfzeile.
+
+## [2.6.2] — 2026-07-12
+
+### Behoben
+- **Antworten dauerten 2–12 Minuten — jetzt 2 Sekunden.** Ursache war weder Jon noch das
+  Handy, sondern das bisherige Standardmodell **`openai/gpt-oss-120b`**: Es ist auf NVIDIAs
+  kostenloser API dauerhaft überlastet und antwortete im Test **überhaupt nicht** (Timeout
+  nach 90 s), woraufhin Jon es mehrfach neu versuchte. Gemessen: `gpt-oss-120b` ❌ Timeout ·
+  `gpt-oss-20b` ⚡ 1,0 s · `llama-3.1-8b` ⚡ 0,5 s · `llama-3.3-70b` 🐢 45 s.
+  - Neues Standardmodell: **`openai/gpt-oss-20b`** (schnell und weiterhin tool-fähig).
+  - **Wächter gegen hängende Modelle:** Kommt nach 30 s kein einziges Token, bricht Jon ab
+    statt minutenlang zu warten (`FIRST_TOKEN_TIMEOUT`). Timeout 180 s → 90 s, Wiederholungen
+    4 → 2.
+  - **Automatischer Modellwechsel:** Antwortet das gewählte Modell gar nicht, wechselt Jon
+    selbstständig auf ein funktionierendes, sagt es dir im Chat und merkt sich die Wahl.
+  - Ergebnis im Test: „Hallo" **2,4 s**, „Öffne example.com auf meinem PC" inklusive
+    Tool-Ausführung **5,4 s**.
+
+## [2.6.1] — 2026-07-12
+
+### Behoben
+- **Telegram brauchte bis zu 4 Minuten für eine Antwort:** Zwei Ursachen, beide behoben.
+  1. Bei **jeder** Anfrage wurden alle 88 Tool-Definitionen mitgeschickt (~7.000 Tokens) —
+     und bei jedem Tool-Aufruf noch einmal. Jon wählt jetzt vorab die passenden Tools zur
+     Frage aus (Kern-Tools immer, Spezialgruppen nur bei Bedarf): **rund 50 % weniger Daten
+     pro Anfrage**, spürbar schneller — auch in der Desktop-App und bei Ollama.
+  2. Telegram wartete stumm auf die komplette Antwort. Jetzt zeigt Jon sofort „tippt …",
+     meldet jede Aktion direkt als ⚙️-Nachricht (z. B. „⚙️ Öffnet youtube.com im Browser")
+     und schickt die Antwort, sobald sie fertig ist. Mehrere Nachrichten werden parallel
+     bearbeitet, nach 3 Minuten bricht er mit einer klaren Meldung ab.
+- **Telegram-Befehle:** `/start` zeigt jetzt eine Hilfe, `/reset` löscht den Gesprächsverlauf.
+
+### Neu
+- **🎧 Amazon Music:** „Spiel XY auf Amazon Music" (`amazon_play`, `amazon_now_playing`).
+  Amazon bietet keine offene Wiedergabe-Schnittstelle an, deshalb öffnet Jon die Suche im
+  Amazon-Music-Player und drückt Play; eventuell muss dort einmal auf den ersten Treffer
+  geklickt werden. Danach steuert Jon Pause/Weiter/Lautstärke wieder selbst. Kostenlos,
+  ohne API-Schlüssel — für vollautomatisches Abspielen bleibt Spotify der bessere Weg.
+
+## [2.6.0] — 2026-07-12
+
+Alle neuen Verbindungen sind **kostenlos** — bezahlt wird weiterhin nur die LLM-API.
+Einrichtung im Zahnrad-Menü unter **🔌 Verbindungen**.
+
+### Neu
+- **📧 E-Mail & Kalender:** IMAP-Postfach (`check_mail`, `read_mail`, `send_mail`) und
+  ICS-Kalender (`get_calendar`). Ungelesene Mails und heutige Termine erscheinen
+  automatisch im Tagesbriefing. Jon liest Mails vor und beantwortet sie auf Zuruf.
+- **📲 Telegram-Fernbedienung:** Eigener Bot als Fernsteuerung — schreib Jon von unterwegs,
+  er führt Aufgaben auf deinem PC aus und antwortet aufs Handy. Weltweit, ohne VPN, ohne
+  offenen Port. Der erste Chat wird fest verknüpft, alle anderen abgewiesen.
+- **👀 Datei-Wächter:** `add_watcher` überwacht Ordner und führt bei neuen Dateien
+  automatisch eine Aufgabe aus („Sortiere neue Downloads nach Typ"). Ereignisgesteuert,
+  anders als die zeitgesteuerten Automationen.
+- **🎵 Medien-Steuerung:** `media_control` drückt die echten Windows-Medientasten —
+  „leiser", „nächster Song", „Pause" funktioniert mit Spotify, YouTube und allem anderen.
+- **🎧 Spotify:** „Spiel Musik von Spotify", „Spiel XY von Spotify", „Spiel was
+  Entspanntes", „Was läuft gerade?" — Jon sucht den Song über die Spotify-Suche und startet
+  ihn in der Spotify-App (`spotify_play`, `spotify_search`, `spotify_now_playing`). Ist die
+  App nicht installiert, öffnet er automatisch den Web Player und drückt Play. **Ohne
+  Premium nutzbar** — die offizielle Playback-API würde Premium verlangen, der Weg über
+  Suche + `spotify:`-Link nicht.
+- **🗣️ Natürliche Stimme:** Jon spricht mit einer echten Neural-Stimme (edge-tts, gratis)
+  statt der Roboterstimme des Browsers; abschaltbar im Zahnrad-Menü. Ist zusätzlich
+  `faster-whisper` installiert, läuft auch die Spracherkennung offline.
+- **📊 Wochenrückblick:** `/woche` — oder automatisch jeden Sonntag: Jon schreibt einen
+  persönlichen Rückblick aus seinem Gedächtnis, den Unterhaltungen, Automationen und Dreams.
+- **🩺 PC-Gesundheitscheck:** `/check` — Speicherplatz, Arbeitsspeicher, größte RAM-Fresser,
+  Autostart-Programme, Laufzeit und Temp-Müll, mit konkreten Aufräum-Vorschlägen, die Jon
+  direkt umsetzen kann.
+- **🏠 Smart Home:** Home-Assistant-Anbindung (`smarthome_devices`, `smarthome_control`) —
+  „Jon, mach das Licht aus", Helligkeit und Heizungstemperatur inklusive.
+- **🌐 Netzwerk & Drucker:** `scan_network` findet alle Geräte im WLAN (IP, MAC, Name),
+  `wake_device` startet sie per Wake-on-LAN, `list_printers`/`print_file` drucken Dateien
+  („Druck mir das aus").
+
+## [2.5.3] — 2026-07-11
+
+### Neu
+- **📚 Wissensbasis (RAG):** „Jon, lern dieses PDF / diese Datei / diesen Ordner" — Jon
+  speichert Dokumente in einer lokalen, durchsuchbaren Wissensbasis (SQLite, komplett
+  offline) und zieht beim Antworten automatisch passende Stellen heran. Neue Tools:
+  `learn_document`, `ask_knowledge`, `list_documents`, `forget_document`.
+- **🌅 Tagesbriefing 2.0:** Das Briefing holt Wetter (Stadt im Zahnrad-Menü einstellbar),
+  Erinnerungen, Wecker und geplante Automationen jetzt direkt aus dem Backend — schneller
+  und zuverlässiger. Weiterhin täglich beim ersten Start und per `/briefing`.
+- **⚡ Schnellfrage-Overlay:** `Strg+Alt+Leertaste` öffnet überall ein kleines
+  Spotlight-Fenster — Frage tippen, Antwort streamt direkt hinein, inklusive
+  Tool-Freigaben. `Esc` schließt, „In Jon öffnen" wechselt zur App.
+- **📋 Clipboard-Historie:** Jon merkt sich lokal die letzten 50 kopierten Einträge.
+  Über den 📋-Knopf (oder `/clipboard`) durchsuchbar und mit einem Klick wieder in der
+  Zwischenablage. Jon selbst beantwortet „Was hatte ich vorhin kopiert?" per
+  `clipboard_history`. Abschaltbar im Zahnrad-Menü.
+- **🤖 Echte Automationen:** „Räum jeden Tag um 18 Uhr meinen Downloads-Ordner auf" —
+  Jon führt geplante Aufgaben zur Uhrzeit wirklich mit seinen Tools aus (nicht nur
+  Erinnerungs-Text) und berichtet im Chat. Tools: `add_task`, `list_tasks`,
+  `delete_task`; Übersicht per `/tasks`.
+- **📎 Datei-Anhänge im Desktop-Chat:** PDFs, Bilder und Textdateien per Drag & Drop,
+  Büroklammer-Knopf oder Einfügen direkt in den Chat. PDFs werden als Text extrahiert,
+  Bilder vom Vision-Modell beschrieben.
+- **🎁 Zeitkapseln:** Gib Jon eine Nachricht an dein zukünftiges Ich — er versiegelt sie
+  mit seiner aktuellen Stimmung und übergibt sie feierlich, sobald der Tag gekommen ist
+  („Jon, Zeitkapsel für Weihnachten: …"). Das hat kein anderer Assistent.
+- **🔒 Jon Code bleibt im Projektordner:** Im Coding-Modus sind alle Datei-Tools technisch
+  auf den gewählten Workspace begrenzt, Zugriffe außerhalb werden blockiert und
+  Shell-Befehle starten immer im Projektordner.
+- **📷 Webcam-Blick:** „Jon, was siehst du über meine Webcam?" — Jon macht ein Webcam-Foto
+  und antwortet **garantiert** mit einer Beschreibung: Fragt der Nutzer erkennbar nach der
+  Webcam, übernimmt das Backend die Aufnahme und Bildanalyse selbst und streamt die Antwort
+  direkt — kein Modell kann mehr „Das kann ich nicht" sagen. Aus Datenschutzgründen muss
+  die Webcam zuerst im Zahnrad-Menü über **„Webcam erlauben"** aktiviert werden (Standard:
+  aus). Auch direkt per **`/webcam`** (optional mit Frage: `/webcam was trage ich?`).
+  Braucht `opencv-python` (wird automatisch installiert), Tool: `webcam_look`.
+- **💬 Immer im Gespräch:** Jon und Mini Jon beenden jede Antwort mit einer kurzen
+  Rückfrage oder einem konkreten nächsten Vorschlag — sag einfach Bescheid, wenn du das
+  nicht willst.
+
+- **📱 Handy = PC-App (1:1):** Mit `JON_LAN=1` in der `.env` liefert das Backend die
+  komplette PC-Oberfläche im WLAN aus — am Handy einfach `http://<PC-IP>:8756/app`
+  öffnen. Alle Funktionen (Tools, Wissensbasis, Automationen, PC-Steuerung) laufen dann
+  1:1 auch vom Handy, weil der PC die Arbeit macht.
+- **🖼️ Eigenes App-Icon:** Jon hat jetzt ein eigenes Gesicht als Icon (Schwarz/Gold,
+  wie Mini Jon) — im Fenster, im Tray und im Installer. Kein Electron-Atom mehr.
+
+### Behoben
+- **Ollama zeigte rohes Tool-JSON statt zu antworten:** Kleine lokale Modelle schreiben
+  Tool-Aufrufe oft als JSON-Text in die Antwort. Jon erkennt das jetzt, führt das Tool
+  wirklich aus (inklusive Freigabe-Dialog) und antwortet danach in normalem Text — das
+  JSON erscheint nie mehr im Chat.
+- **Das zuletzt gewählte Modell wird beim App-Start wieder geladen:** Bei lokalen
+  Anbietern (Ollama, LM Studio) wurde die gespeicherte Auswahl verworfen, weil sie keinen
+  API-Key haben und als „nicht konfiguriert" galten.
+- **„Mit Windows starten" funktioniert jetzt wirklich:** Der Schalter legt einen echten
+  Autostart-Eintrag an, der `start-jon.bat` beim Hochfahren startet (Backend + App).
+  Vorher wurde in der unverpackten Version nichts gestartet.
+
 ## [1.9.5] — 2026-07-08
 
 ### Behoben

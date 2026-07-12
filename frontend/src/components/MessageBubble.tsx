@@ -10,6 +10,11 @@ export interface ToolStep {
   summary?: string;
 }
 
+export interface AttachmentChip {
+  name: string;
+  kind: string;
+}
+
 export interface ChatEntry {
   id: string;
   role: "user" | "assistant";
@@ -17,6 +22,8 @@ export interface ChatEntry {
   reasoning?: string;
   streaming?: boolean;
   tools?: ToolStep[];
+  attachments?: AttachmentChip[];
+  attachmentText?: string;
 }
 
 export default function MessageBubble({ entry }: { entry: ChatEntry }) {
@@ -82,6 +89,25 @@ export default function MessageBubble({ entry }: { entry: ChatEntry }) {
                   )}
                 </div>
               )}
+            </div>
+          )}
+          {entry.attachments && entry.attachments.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {entry.attachments.map((a, i) => (
+                <span
+                  key={i}
+                  className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border ${
+                    isUser
+                      ? "border-black/20 bg-black/10 text-black/80"
+                      : "border-gold/25 bg-gold/10 text-gold/90"
+                  }`}
+                >
+                  <span>
+                    {a.kind === "image" ? "🖼️" : a.kind === "pdf" ? "📄" : "📎"}
+                  </span>
+                  <span className="max-w-[180px] truncate">{a.name}</span>
+                </span>
+              ))}
             </div>
           )}
           {entry.reasoning && !isUser && (

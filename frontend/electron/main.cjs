@@ -17,9 +17,54 @@ const { spawn, spawnSync } = require("node:child_process");
 const isDev = !app.isPackaged;
 let mainWindow = null;
 let petWindow = null;
+let quickWindow = null;
 let backendProcess = null;
 let tray = null;
 let quitting = false;
+
+function createQuickAsk() {
+  const area = screen.getPrimaryDisplay().workArea;
+  const w = 680;
+  const h = 520;
+  quickWindow = new BrowserWindow({
+    width: w,
+    height: h,
+    x: area.x + Math.round((area.width - w) / 2),
+    y: area.y + 120,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    hasShadow: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "quickaskPreload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  quickWindow.setAlwaysOnTop(true, "screen-saver");
+  quickWindow.setVisibleOnAllWorkspaces(true);
+  quickWindow.loadFile(path.join(__dirname, "quickask.html"));
+  quickWindow.on("blur", () => {
+    if (quickWindow && quickWindow.isVisible()) quickWindow.hide();
+  });
+  quickWindow.on("closed", () => {
+    quickWindow = null;
+  });
+}
+
+function toggleQuickAsk() {
+  if (!quickWindow) createQuickAsk();
+  if (quickWindow.isVisible()) {
+    quickWindow.hide();
+    return;
+  }
+  quickWindow.show();
+  quickWindow.focus();
+  quickWindow.webContents.send("quickask:focus");
+}
 
 function createPet() {
   if (petWindow) {
@@ -121,7 +166,7 @@ async function startBackend() {
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.NODE_OPTIONS;
   const depCheck =
-    "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf";
+    "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf,cv2,edge_tts";
   const ok = await runProcess(cmd, [...pre, "-c", depCheck], {
     cwd: backendDir,
     env,
@@ -155,6 +200,7 @@ function createWindow() {
     show: false,
     frame: false,
     titleBarStyle: "hidden",
+    icon: path.join(__dirname, "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -220,6 +266,7 @@ ipcMain.handle("window:moveBy", (_event, dx, dy) => {
   mainWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
 });
 
+ipcMain.handle("quickask:hide", () => quickWindow && quickWindow.hide());
 ipcMain.handle("pet:toggle", () => togglePet());
 ipcMain.handle("pet:hide", () => petWindow && petWindow.hide());
 ipcMain.handle("pet:moveBy", (_event, dx, dy) => {
@@ -254,11 +301,13 @@ app.whenReady().then(() => {
   void startBackend();
   globalShortcut.register("Control+Alt+J", toggleWindow);
   globalShortcut.register("Control+Alt+K", togglePet);
+  globalShortcut.register("Control+Alt+Space", toggleQuickAsk);
   tray = new Tray(path.join(__dirname, "tray.png"));
   tray.setToolTip("Jon — Strg+Alt+J");
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Jon öffnen/verstecken", click: toggleWindow },
+      { label: "Schnellfrage (Strg+Alt+Leer)", click: toggleQuickAsk },
       { label: "Mini Jon ein/aus", click: togglePet },
       { type: "separator" },
       {

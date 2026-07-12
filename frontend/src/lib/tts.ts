@@ -1,6 +1,14 @@
+import { speakServer } from "./api";
+
 let cachedVoice: SpeechSynthesisVoice | null = null;
+let naturalVoice = true;
+let audio: HTMLAudioElement | null = null;
 
 const MALE_PATTERN = /stefan|klaus|conrad|bernd|jonas|paul|markus|male|mann/i;
+
+export function setNaturalVoice(enabled: boolean): void {
+  naturalVoice = enabled;
+}
 
 function pickVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis?.getVoices() ?? [];
@@ -28,7 +36,33 @@ function cleanForSpeech(text: string): string {
     .trim();
 }
 
-export function speak(text: string): Promise<void> {
+export async function speak(text: string): Promise<void> {
+  if (naturalVoice) {
+    const clean = cleanForSpeech(text).slice(0, 1200);
+    if (!clean) return;
+    const blob = await speakServer(clean);
+    if (blob) {
+      stopSpeaking();
+      const url = URL.createObjectURL(blob);
+      const player = new Audio(url);
+      audio = player;
+      await new Promise<void>((resolve) => {
+        const finish = () => {
+          URL.revokeObjectURL(url);
+          if (audio === player) audio = null;
+          resolve();
+        };
+        player.onended = finish;
+        player.onerror = finish;
+        void player.play().catch(finish);
+      });
+      return;
+    }
+  }
+  return speakBrowser(text);
+}
+
+function speakBrowser(text: string): Promise<void> {
   return new Promise((resolve) => {
     const synth = window.speechSynthesis;
     if (!synth) {
@@ -64,4 +98,8 @@ export function speak(text: string): Promise<void> {
 
 export function stopSpeaking(): void {
   window.speechSynthesis?.cancel();
+  if (audio) {
+    audio.pause();
+    audio = null;
+  }
 }

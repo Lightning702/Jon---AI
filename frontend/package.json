@@ -1,6 +1,6 @@
 {
   "name": "jon-desktop",
-  "version": "2.4.0",
+  "version": "2.7.1",
   "description": "Jon - Der moderne KI-Desktop-Assistent",
   "author": "Jon",
   "license": "MIT",
@@ -54,7 +54,7 @@
     "directories": { "output": "release" },
     "win": {
       "target": "nsis",
-      "icon": "../website/app/icon-512.png"
+      "icon": "electron/icon.ico"
     },
     "nsis": {
       "oneClick": false,

@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { ToolMode, getUserSettings, saveUserSettings } from "../lib/api";
+import {
+  ToolMode,
+  UserSettings,
+  getAutostart,
+  getUserSettings,
+  saveUserSettings,
+  setAutostart,
+} from "../lib/api";
+import { setNaturalVoice } from "../lib/tts";
+import ConnectionsModal from "./ConnectionsModal";
 
 type Theme = "dark" | "light";
 
@@ -23,12 +32,28 @@ export default function SettingsMenu({
   );
   const [personality, setPersonality] = useState(true);
   const [startup, setStartup] = useState(false);
+  const [city, setCity] = useState("");
+  const [clipboard, setClipboard] = useState(true);
+  const [webcam, setWebcam] = useState(false);
+  const [voice, setVoice] = useState(true);
+  const [connections, setConnections] = useState<UserSettings | null>(null);
 
   useEffect(() => {
-    void getUserSettings().then((s) => setPersonality(s.personality !== false));
-    if (jonBridge?.getStartup) {
-      void jonBridge.getStartup().then(setStartup);
-    }
+    void getUserSettings().then((s) => {
+      setPersonality(s.personality !== false);
+      setCity(s.briefing_city ?? "");
+      setClipboard(s.clipboard_history !== false);
+      setWebcam(s.webcam_enabled === true);
+      setVoice(s.natural_voice !== false);
+    });
+    void (async () => {
+      const backend = await getAutostart();
+      if (backend) {
+        setStartup(true);
+        return;
+      }
+      if (jonBridge?.getStartup) setStartup(await jonBridge.getStartup());
+    })();
   }, []);
 
   const togglePersonality = () => {
@@ -37,10 +62,40 @@ export default function SettingsMenu({
     void saveUserSettings({ personality: next });
   };
 
-  const toggleStartup = () => {
+  const toggleStartup = async () => {
     const next = !startup;
     setStartup(next);
-    void jonBridge?.setStartup?.(next);
+    const ok = await setAutostart(next);
+    if (!ok && jonBridge?.setStartup) await jonBridge.setStartup(next);
+  };
+
+  const toggleClipboard = () => {
+    const next = !clipboard;
+    setClipboard(next);
+    void saveUserSettings({ clipboard_history: next });
+  };
+
+  const toggleWebcam = () => {
+    const next = !webcam;
+    setWebcam(next);
+    void saveUserSettings({ webcam_enabled: next });
+  };
+
+  const toggleVoice = () => {
+    const next = !voice;
+    setVoice(next);
+    setNaturalVoice(next);
+    void saveUserSettings({ natural_voice: next });
+  };
+
+  const openConnections = async () => {
+    setConnections(await getUserSettings());
+    setOpen(false);
+  };
+
+  const saveCity = (value: string) => {
+    setCity(value);
+    void saveUserSettings({ briefing_city: value.trim() });
   };
 
   const changeTheme = (next: Theme) => {
@@ -181,32 +236,123 @@ export default function SettingsMenu({
                 />
               </span>
             </button>
-            {jonBridge?.setStartup && (
-              <button
-                onClick={toggleStartup}
-                className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-              >
-                <div className="text-left">
-                  <div className="text-[12px] text-white/90">Mit Windows starten</div>
-                  <div className="text-[11px] text-white/45">
-                    Jon ist beim Hochfahren schon da.
-                  </div>
+            <button
+              onClick={() => void toggleStartup()}
+              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-[12px] text-white/90">Mit Windows starten</div>
+                <div className="text-[11px] text-white/45">
+                  Backend & App starten beim Hochfahren automatisch.
                 </div>
+              </div>
+              <span
+                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                  startup ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
                 <span
-                  className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
-                    startup ? "bg-gold/70" : "bg-white/15"
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    startup ? "translate-x-4" : ""
                   }`}
-                >
-                  <span
-                    className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                      startup ? "translate-x-4" : ""
-                    }`}
-                  />
-                </span>
-              </button>
-            )}
+                />
+              </span>
+            </button>
+            <button
+              onClick={toggleClipboard}
+              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-[12px] text-white/90">Clipboard-Historie</div>
+                <div className="text-[11px] text-white/45">
+                  Jon merkt sich lokal, was du kopierst (📋-Knopf).
+                </div>
+              </div>
+              <span
+                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                  clipboard ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    clipboard ? "translate-x-4" : ""
+                  }`}
+                />
+              </span>
+            </button>
+            <button
+              onClick={toggleWebcam}
+              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-[12px] text-white/90">Webcam erlauben</div>
+                <div className="text-[11px] text-white/45">
+                  Jon darf auf Nachfrage durch die Webcam schauen.
+                </div>
+              </div>
+              <span
+                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                  webcam ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    webcam ? "translate-x-4" : ""
+                  }`}
+                />
+              </span>
+            </button>
+            <button
+              onClick={toggleVoice}
+              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-[12px] text-white/90">Natürliche Stimme</div>
+                <div className="text-[11px] text-white/45">
+                  Echte Neural-Stimme statt Roboterstimme (gratis).
+                </div>
+              </div>
+              <span
+                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                  voice ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    voice ? "translate-x-4" : ""
+                  }`}
+                />
+              </span>
+            </button>
+            <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
+              Tagesbriefing
+            </div>
+            <input
+              value={city}
+              onChange={(e) => saveCity(e.target.value)}
+              placeholder="Deine Stadt (für das Wetter)"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
+            />
+            <button
+              onClick={() => void openConnections()}
+              className="w-full flex items-center justify-between px-3 py-2 mt-3 rounded-xl border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-[12px] text-gold/90">🔌 Verbindungen …</div>
+                <div className="text-[11px] text-white/45">
+                  E-Mail, Kalender, Telegram, Smart Home
+                </div>
+              </div>
+              <span className="text-gold/70 text-[13px]">›</span>
+            </button>
           </div>
         </>
+      )}
+      {connections && (
+        <ConnectionsModal
+          settings={connections}
+          onClose={() => setConnections(null)}
+        />
       )}
     </div>
   );

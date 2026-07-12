@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
 import MessageBubble, { ChatEntry } from "./components/MessageBubble";
-import Composer from "./components/Composer";
+import Composer, { PendingAttachment } from "./components/Composer";
+import ClipboardPanel from "./components/ClipboardPanel";
 import ModelPicker from "./components/ModelPicker";
 import VoiceIndicator, { VoiceUiState } from "./components/VoiceIndicator";
 import ApprovalDialog, { ApprovalRequest } from "./components/ApprovalDialog";
@@ -10,26 +11,39 @@ import SettingsMenu from "./components/SettingsMenu";
 import AccountsModal from "./components/AccountsModal";
 import CodeAgent from "./components/CodeAgent";
 import PetConfig from "./components/PetConfig";
+import ProfileModal from "./components/ProfileModal";
+import FriendsChat from "./components/FriendsChat";
 import { VoiceListener } from "./lib/voice";
-import { initTts, speak, stopSpeaking } from "./lib/tts";
+import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import {
   ConversationSummary,
+  P2PIdentity,
   ProviderStatus,
   StreamEvent,
   ToolMode,
   addDream,
+  getIdentity,
+  getP2PInfo,
   approveTool,
   createSnapshot,
   deleteConversation,
+  getBriefing,
   getConversation,
   getConversations,
   getDreamReports,
+  getDueCapsules,
   getDueReminders,
   getHealth,
+  getHealthCheck,
   getProviders,
+  getTaskReports,
+  getTasks,
   getUserSettings,
+  getWatcherReports,
+  getWeekly,
   listSnapshots,
   observeScreen,
+  observeWebcam,
   saveUserSettings,
   runDreams,
   runSimulation,
@@ -51,6 +65,33 @@ const BRIEFING_PROMPT =
   "bitte ihn freundlich, dir einmal seine Stadt zu nennen). Nenne fällige " +
   "Erinnerungen (list_reminders) und gestellte Wecker (list_alarms), falls " +
   "vorhanden. Maximal 8 kurze Zeilen.";
+
+const CHECK_PROMPT = (data: Record<string, unknown>) =>
+  "Hier ist der frische PC-Gesundheitscheck:\n" +
+  JSON.stringify(data) +
+  "\n\nErkläre dem Nutzer auf Deutsch kurz und verständlich, wie es seinem PC " +
+  "geht: Speicherplatz, Arbeitsspeicher, größte RAM-Fresser, Autostart-" +
+  "Programme, Laufzeit, Größe des Temp-Ordners. Nenne dann 2-4 konkrete " +
+  "Aufräum-Vorschläge und biete an, sie direkt umzusetzen. Rufe KEINE Tools " +
+  "auf, alle Daten stehen oben. Maximal 12 Zeilen.";
+
+const WEEKLY_PROMPT = (data: Record<string, unknown>) =>
+  "Hier sind die Daten deiner gemeinsamen Woche mit dem Nutzer:\n" +
+  JSON.stringify(data) +
+  "\n\nSchreibe ihm einen persönlichen, warmen Wochenrückblick auf Deutsch: " +
+  "Woran ihr gearbeitet habt, was geschafft wurde, was noch offen ist, und " +
+  "ein Ausblick auf die neue Woche. Sprich als Jon, der die Woche miterlebt " +
+  "hat. Rufe KEINE Tools auf. Maximal 12 Zeilen.";
+
+const briefingPrompt = (data: Record<string, unknown>) =>
+  "Hier sind die frisch gesammelten Daten für dein Tagesbriefing:\n" +
+  JSON.stringify(data) +
+  "\n\nErstelle daraus ein kurzes, persönliches Tagesbriefing auf Deutsch: " +
+  "Begrüßung passend zur Uhrzeit, Wochentag und Datum, das Wetter (falls " +
+  "vorhanden, sonst erwähne kurz, dass die Stadt im Zahnrad-Menü eingetragen " +
+  "werden kann), heutige Erinnerungen, Wecker und geplante Automationen (nur " +
+  "falls vorhanden). Rufe KEINE Tools auf, alle Daten stehen oben. Maximal 8 " +
+  "kurze Zeilen.";
 
 export default function App() {
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
@@ -75,6 +116,12 @@ export default function App() {
   >(null);
   const [codeOpen, setCodeOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
+  const [clipboardOpen, setClipboardOpen] = useState(false);
+  const [identity, setIdentity] = useState<P2PIdentity | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [firstRun, setFirstRun] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
   const [screenOn, setScreenOn] = useState(
     () => localStorage.getItem("jon_screen") === "1"
   );
@@ -161,7 +208,12 @@ export default function App() {
         document.documentElement.classList.toggle("light", saved.theme === "light");
       }
       const savedProv = provs.find(
-        (p) => p.provider === saved.provider && p.configured
+        (p) =>
+          p.provider === saved.provider &&
+          (p.configured ||
+            p.models.length > 0 ||
+            p.provider === "ollama" ||
+            p.provider === "lmstudio")
       );
       if (saved.provider && saved.model && savedProv) {
         setProvider(saved.provider);
@@ -181,12 +233,20 @@ export default function App() {
           setModel(model);
         }
       }
+      setNaturalVoice(saved.natural_voice !== false);
       await refreshConversations();
-      const today = new Date().toISOString().slice(0, 10);
-      if (localStorage.getItem("jon_briefing") !== today) {
-        localStorage.setItem("jon_briefing", today);
-        void runBriefing();
-      }
+      const now = new Date();
+      const today = now.toISOString().slice(0, 10);
+      void (async () => {
+        if (localStorage.getItem("jon_briefing") !== today) {
+          localStorage.setItem("jon_briefing", today);
+          await runBriefing();
+        }
+        if (now.getDay() === 0 && localStorage.getItem("jon_weekly") !== today) {
+          localStorage.setItem("jon_weekly", today);
+          await runDataPrompt(async () => WEEKLY_PROMPT(await getWeekly()));
+        }
+      })();
     };
     (async () => {
       while (!cancelled) {
@@ -203,6 +263,32 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const me = await getIdentity();
+        setIdentity(me);
+        if (!me.name.trim()) {
+          setFirstRun(true);
+          setProfileOpen(true);
+        }
+      } catch {
+        /* Backend noch nicht bereit */
+      }
+    })();
+  }, [online]);
+
+  useEffect(() => {
+    if (!online || !identity?.name || friendsOpen) {
+      if (friendsOpen) setUnread(0);
+      return;
+    }
+    const tick = async () => setUnread((await getP2PInfo()).unread);
+    void tick();
+    const timer = window.setInterval(() => void tick(), 4000);
+    return () => window.clearInterval(timer);
+  }, [online, identity, friendsOpen]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -251,6 +337,55 @@ export default function App() {
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("Jon — Dream Mode fertig", { body: t.task });
+        }
+      }
+      const taskReports = await getTaskReports();
+      for (const t of taskReports) {
+        setEntries((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: "assistant",
+            content: `🤖 Automation erledigt — „${t.task}"\n\n${t.last_result ?? ""}`,
+          },
+        ]);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Jon — Automation erledigt", { body: t.task });
+        }
+      }
+      const watchers = await getWatcherReports();
+      for (const w of watchers) {
+        setEntries((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: "assistant",
+            content: `👀 Datei-Wächter (${w.path})\n\n${w.last_result ?? ""}`,
+          },
+        ]);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Jon — Datei-Wächter", { body: w.task });
+        }
+      }
+      const capsules = await getDueCapsules();
+      for (const c of capsules) {
+        const written = new Date(c.created_at).toLocaleDateString("de-DE");
+        const mood = c.mood ? `\n\n_(Jon damals: ${c.mood})_` : "";
+        setEntries((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: "assistant",
+            content:
+              `🎁 Eine Zeitkapsel ist angekommen!\n\nDu hast sie am ${written} ` +
+              `versiegelt, und ich habe sie seitdem gehütet. Hier ist sie:\n\n` +
+              `„${c.text ?? ""}"${mood}`,
+          },
+        ]);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Jon — Zeitkapsel geöffnet 🎁", {
+            body: `Deine Nachricht vom ${written} ist da.`,
+          });
         }
       }
     };
@@ -413,7 +548,10 @@ export default function App() {
     await refreshConversations();
   };
 
-  const runBriefing = async () => {
+  const runDataPrompt = async (
+    build: () => Promise<string>,
+    userLabel?: string
+  ) => {
     if (streamingRef.current) return;
     const assistantEntry: ChatEntry = {
       id: nextId(),
@@ -422,11 +560,37 @@ export default function App() {
       streaming: true,
       tools: [],
     };
-    setEntries((prev) => [...prev, assistantEntry]);
+    setEntries((prev) =>
+      userLabel
+        ? [
+            ...prev,
+            { id: nextId(), role: "user", content: userLabel },
+            assistantEntry,
+          ]
+        : [...prev, assistantEntry]
+    );
     setStreaming(true);
+    let prompt: string;
+    try {
+      prompt = await build();
+    } catch (e) {
+      setEntries((prev) =>
+        prev.map((en) =>
+          en.id === assistantEntry.id
+            ? {
+                ...en,
+                content: `[Fehler] ${e instanceof Error ? e.message : String(e)}`,
+                streaming: false,
+              }
+            : en
+        )
+      );
+      setStreaming(false);
+      return;
+    }
     await streamChat(
       {
-        messages: [{ role: "user", content: BRIEFING_PROMPT }],
+        messages: [{ role: "user", content: prompt }],
         provider: providerRef.current,
         model: modelRef.current,
         conversation_id: null,
@@ -486,6 +650,15 @@ export default function App() {
     );
   };
 
+  const runBriefing = () =>
+    runDataPrompt(async () => {
+      try {
+        return briefingPrompt(await getBriefing());
+      } catch {
+        return BRIEFING_PROMPT;
+      }
+    });
+
   const runSlashJob = async (
     commandText: string,
     placeholder: string,
@@ -536,10 +709,44 @@ export default function App() {
     URL.revokeObjectURL(link.href);
   };
 
-  const send = async (text: string) => {
+  const send = async (text: string, attachments: PendingAttachment[] = []) => {
     const command = text.trim().toLowerCase();
     if (command === "/usage" || command === "/nutzung") {
       setAccountsTab("usage");
+      return;
+    }
+    if (command === "/clipboard" || command === "/zwischenablage") {
+      setClipboardOpen(true);
+      return;
+    }
+    if (command === "/check" || command === "/pc") {
+      void runDataPrompt(
+        async () => CHECK_PROMPT(await getHealthCheck()),
+        text
+      );
+      return;
+    }
+    if (command === "/woche" || command === "/weekly") {
+      void runDataPrompt(async () => WEEKLY_PROMPT(await getWeekly()), text);
+      return;
+    }
+    if (command === "/tasks" || command === "/automationen") {
+      void runSlashJob(text, "🤖 Lade Automationen …", async () => {
+        const tasks = await getTasks();
+        if (!tasks.length)
+          return "Keine Automationen geplant. Sag mir einfach: „Räum jeden Tag um 18 Uhr meinen Downloads-Ordner auf“ — ich erledige das dann wirklich.";
+        return (
+          "**🤖 Deine Automationen:**\n\n" +
+          tasks
+            .map(
+              (t) =>
+                `- **${t.time}** · ${t.repeat} · ${t.task}${
+                  t.active ? "" : " _(inaktiv)_"
+                }${t.last_run_at ? `\n  Zuletzt: ${new Date(t.last_run_at).toLocaleString("de-DE")}` : ""}`
+            )
+            .join("\n")
+        );
+      });
       return;
     }
     if (command === "/konten" || command === "/accounts" || command === "/login") {
@@ -559,6 +766,16 @@ export default function App() {
       return;
     }
     const arg = text.trim().slice(text.trim().indexOf(" ") + 1).trim();
+    if (command.startsWith("/webcam") || command.startsWith("/kamera")) {
+      void runSlashJob(text, "📷 Jon schaut durch die Webcam …", async () => {
+        const question =
+          command === "/webcam" || command === "/kamera" ? "" : arg;
+        const r = await observeWebcam(question);
+        if (r.error) return `Das hat nicht geklappt: ${r.error}`;
+        return `📷 ${r.beschreibung ?? ""}`;
+      });
+      return;
+    }
     if (command.startsWith("/team")) {
       void runSlashJob(text, "🧑‍🤝‍🧑 KI-Team berät …", async () => {
         if (!arg || command === "/team") return "Nutzung: /team <Frage oder Thema>";
@@ -629,7 +846,21 @@ export default function App() {
       });
       return;
     }
-    const userEntry: ChatEntry = { id: nextId(), role: "user", content: text };
+    const attachmentText = attachments.length
+      ? attachments
+          .map(
+            (a) =>
+              `[Anhang „${a.name}" (${a.kind === "image" ? "Bildbeschreibung" : a.kind})]\n${a.content ?? ""}`
+          )
+          .join("\n\n")
+      : undefined;
+    const userEntry: ChatEntry = {
+      id: nextId(),
+      role: "user",
+      content: text,
+      attachments: attachments.map((a) => ({ name: a.name, kind: a.kind })),
+      attachmentText,
+    };
     const assistantEntry: ChatEntry = {
       id: nextId(),
       role: "assistant",
@@ -645,16 +876,27 @@ export default function App() {
     abortRef.current = controller;
 
     const messages = history
-      .filter((e) => e.content.trim() !== "" || (e.tools?.length ?? 0) > 0)
-      .map((e) => ({
-        role: e.role,
-        content:
+      .filter(
+        (e) =>
+          e.content.trim() !== "" ||
+          (e.tools?.length ?? 0) > 0 ||
+          !!e.attachmentText
+      )
+      .map((e) => {
+        let content =
           e.content.trim() !== ""
             ? e.content
-            : `[Bereits erledigt: ${(e.tools ?? [])
-                .map((t) => t.summary ?? t.name)
-                .join("; ")}]`,
-      }));
+            : (e.tools?.length ?? 0) > 0
+              ? `[Bereits erledigt: ${(e.tools ?? [])
+                  .map((t) => t.summary ?? t.name)
+                  .join("; ")}]`
+              : "";
+        if (e.attachmentText)
+          content = content
+            ? `${content}\n\n${e.attachmentText}`
+            : e.attachmentText;
+        return { role: e.role, content };
+      });
 
     let convId = activeId;
 
@@ -796,6 +1038,48 @@ export default function App() {
                 <span className="text-[11px] font-medium">Code</span>
               </button>
               <button
+                onClick={() => setFriendsOpen(true)}
+                title="Freunde-Chat — direkt von PC zu PC, ohne Server"
+                className="relative flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-gold text-black text-[9px] font-bold flex items-center justify-center">
+                    {unread}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setClipboardOpen(true)}
+                title="Clipboard-Historie — was du zuletzt kopiert hast"
+                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                </svg>
+              </button>
+              <button
                 onClick={() => setAccountsTab("accounts")}
                 title="Konten, Nutzung & Skills"
                 className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
@@ -928,6 +1212,26 @@ export default function App() {
         />
       )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
+      {clipboardOpen && <ClipboardPanel onClose={() => setClipboardOpen(false)} />}
+      {friendsOpen && identity && (
+        <FriendsChat
+          identity={identity}
+          onEditProfile={() => setProfileOpen(true)}
+          onClose={() => setFriendsOpen(false)}
+        />
+      )}
+      {profileOpen && identity && (
+        <ProfileModal
+          identity={identity}
+          firstRun={firstRun}
+          onSaved={(next) => {
+            setIdentity(next);
+            setProfileOpen(false);
+            setFirstRun(false);
+          }}
+          onClose={() => setProfileOpen(false)}
+        />
+      )}
     </div>
   );
 }

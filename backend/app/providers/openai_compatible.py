@@ -22,7 +22,7 @@ from app.providers.base import (
 )
 
 MAX_TOOL_ROUNDS = 30
-TRANSIENT_RETRIES = 4
+TRANSIENT_RETRIES = 2
 DEFAULT_MAX_TOKENS = 32768
 MIN_MAX_TOKENS = 4096
 MODELS_CACHE_TTL = 300.0
@@ -216,9 +216,29 @@ class OpenAICompatibleProvider(LLMProvider):
 
             content_acc: list[str] = []
             calls: dict[int, dict] = {}
+            watchdog = get_settings().first_token_timeout
+            iterator = completion.__aiter__()
+            first_chunk = True
 
             try:
-                async for chunk in completion:
+                while True:
+                    try:
+                        if first_chunk and watchdog > 0:
+                            chunk = await asyncio.wait_for(
+                                iterator.__anext__(), timeout=watchdog
+                            )
+                        else:
+                            chunk = await iterator.__anext__()
+                    except StopAsyncIteration:
+                        break
+                    except asyncio.TimeoutError as exc:
+                        raise ProviderError(
+                            f"Das Modell {request.model} antwortet nicht "
+                            f"(keine Reaktion nach {watchdog:.0f} Sekunden). "
+                            "Der Anbieter ist wahrscheinlich ueberlastet - waehle "
+                            "oben ein anderes Modell."
+                        ) from exc
+                    first_chunk = False
                     usage = getattr(chunk, "usage", None)
                     if usage is not None:
                         yield StreamChunk(

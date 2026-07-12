@@ -10,10 +10,13 @@ from contextlib import asynccontextmanager, suppress
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from app.api.p2p_routes import create_chat_app
+from app.api.p2p_routes import router as p2p_router
 from app.api.routes import accounts, providers, router
 from app.api.system_routes import router as system_router
-from app.core.config import get_settings
+from app.core.config import ROOT_DIR, get_settings
 from app.db.database import init_db
 
 
@@ -51,14 +54,109 @@ async def _dream_watcher() -> None:
             continue
 
 
+async def _clipboard_watcher() -> None:
+    from app.services.clipboard_service import get_clipboard_service
+    from app.services.settings_service import get_settings_service
+
+    svc = get_clipboard_service()
+    while True:
+        await asyncio.sleep(2)
+        try:
+            if not get_settings_service().get().get("clipboard_history", True):
+                continue
+            await asyncio.to_thread(svc.capture)
+        except Exception:
+            continue
+
+
+async def _task_watcher() -> None:
+    from app.services.settings_service import get_settings_service
+    from app.services.task_service import get_task_service
+
+    while True:
+        await asyncio.sleep(30)
+        try:
+            tasks = get_task_service()
+            if not tasks._due():
+                continue
+            data = get_settings_service().get()
+            settings = get_settings()
+            provider = data.get("provider") or settings.default_provider
+            model = data.get("model") or settings.default_model
+            await tasks.run_due(provider, model)
+        except Exception:
+            continue
+
+
+async def _telegram_watcher() -> None:
+    from app.services.telegram_service import get_telegram_service
+
+    service = get_telegram_service()
+    while True:
+        try:
+            await service.poll_once()
+        except Exception:
+            await asyncio.sleep(10)
+
+
+async def _file_watcher() -> None:
+    from app.services.settings_service import get_settings_service
+    from app.services.watcher_service import get_watcher_service
+
+    while True:
+        await asyncio.sleep(12)
+        try:
+            data = get_settings_service().get()
+            settings = get_settings()
+            provider = data.get("provider") or settings.default_provider
+            model = data.get("model") or settings.default_model
+            await get_watcher_service().tick(provider, model)
+        except Exception:
+            continue
+
+
+async def _chat_server() -> None:
+    from app.services.p2p_service import CHAT_PORT
+
+    config = uvicorn.Config(
+        create_chat_app(),
+        host="0.0.0.0",
+        port=CHAT_PORT,
+        log_level="warning",
+        access_log=False,
+    )
+    server = uvicorn.Server(config)
+    try:
+        await server.serve()
+    except Exception:
+        return
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    from app.services.p2p_service import get_p2p_service
+
+    p2p = get_p2p_service()
     warmup = asyncio.create_task(_warm_caches())
     dream_task = asyncio.create_task(_dream_watcher())
+    clipboard_task = asyncio.create_task(_clipboard_watcher())
+    automation_task = asyncio.create_task(_task_watcher())
+    telegram_task = asyncio.create_task(_telegram_watcher())
+    files_task = asyncio.create_task(_file_watcher())
+    chat_task = asyncio.create_task(_chat_server())
+    announce_task = asyncio.create_task(p2p.announce_loop())
+    listen_task = asyncio.create_task(p2p.listen_loop())
     yield
     warmup.cancel()
     dream_task.cancel()
+    clipboard_task.cancel()
+    automation_task.cancel()
+    telegram_task.cancel()
+    files_task.cancel()
+    chat_task.cancel()
+    announce_task.cancel()
+    listen_task.cancel()
 
 
 def create_app() -> FastAPI:
@@ -77,6 +175,10 @@ def create_app() -> FastAPI:
     )
     app.include_router(router)
     app.include_router(system_router)
+    app.include_router(p2p_router)
+    dist = ROOT_DIR / "frontend" / "dist"
+    if dist.is_dir():
+        app.mount("/app", StaticFiles(directory=str(dist), html=True), name="app")
     return app
 
 
@@ -123,10 +225,11 @@ def _free_port(host: str, port: int) -> None:
 
 def main() -> None:
     settings = get_settings()
+    host = "0.0.0.0" if settings.jon_lan else settings.host
     _free_port(settings.host, settings.port)
     uvicorn.run(
         "app.main:app",
-        host=settings.host,
+        host=host,
         port=settings.port,
         reload=False,
     )
