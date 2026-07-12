@@ -22,6 +22,7 @@ import {
   StreamEvent,
   ToolMode,
   addDream,
+  getChatNotifications,
   getIdentity,
   getP2PInfo,
   approveTool,
@@ -52,8 +53,35 @@ import {
 } from "./lib/api";
 
 const jonDesktop = (window as unknown as {
-  jon?: { togglePet?: () => void };
+  jon?: {
+    togglePet?: () => void;
+    flashWindow?: () => void;
+    focusWindow?: () => void;
+  };
 }).jon;
+
+function chatPing() {
+  try {
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+    gain.connect(ctx.destination);
+    [880, 1320].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now + i * 0.12);
+      osc.connect(gain);
+      osc.start(now + i * 0.12);
+      osc.stop(now + i * 0.12 + 0.3);
+    });
+    window.setTimeout(() => void ctx.close(), 800);
+  } catch {
+    /* kein Ton möglich */
+  }
+}
 
 let idc = 0;
 const nextId = () => `m${Date.now()}_${idc++}`;
@@ -274,7 +302,6 @@ export default function App() {
           setProfileOpen(true);
         }
       } catch {
-        /* Backend noch nicht bereit */
       }
     })();
   }, [online]);
@@ -284,9 +311,38 @@ export default function App() {
       if (friendsOpen) setUnread(0);
       return;
     }
-    const tick = async () => setUnread((await getP2PInfo()).unread);
+    if ("Notification" in window && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+    const tick = async () => {
+      setUnread((await getP2PInfo()).unread);
+      const news = await getChatNotifications();
+      if (news.length === 0) return;
+      chatPing();
+      jonDesktop?.flashWindow?.();
+      for (const n of news) {
+        const preview =
+          n.text.trim() ||
+          (n.media_kind === "image"
+            ? "📷 Foto"
+            : n.media_kind === "video"
+              ? "🎬 Video"
+              : "📎 Datei");
+        if ("Notification" in window && Notification.permission === "granted") {
+          const note = new Notification(`${n.avatar} ${n.sender_name}`, {
+            body: preview.slice(0, 140),
+            tag: n.peer_id,
+          });
+          note.onclick = () => {
+            jonDesktop?.focusWindow?.();
+            setFriendsOpen(true);
+            note.close();
+          };
+        }
+      }
+    };
     void tick();
-    const timer = window.setInterval(() => void tick(), 4000);
+    const timer = window.setInterval(() => void tick(), 3000);
     return () => window.clearInterval(timer);
   }, [online, identity, friendsOpen]);
 

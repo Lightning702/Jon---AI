@@ -33,6 +33,10 @@ class SendIn(BaseModel):
     media: MediaIn | None = None
 
 
+class TypingIn(BaseModel):
+    peer_id: str
+
+
 @router.get("/me")
 async def me() -> dict:
     return get_p2p_service().identity()
@@ -78,6 +82,17 @@ async def delete_peer(peer_id: str) -> dict:
     return {"deleted": get_p2p_service().forget_peer(peer_id)}
 
 
+@router.get("/notifications")
+async def notifications() -> list[dict]:
+    return get_p2p_service().pending_notifications()
+
+
+@router.post("/typing")
+async def typing(payload: TypingIn) -> dict:
+    await get_p2p_service().send_typing(payload.peer_id)
+    return {"ok": True}
+
+
 @router.get("/messages/{peer_id}")
 async def messages(peer_id: str) -> list[dict]:
     service = get_p2p_service()
@@ -111,6 +126,17 @@ def create_chat_app() -> FastAPI:
     async def ping() -> dict:
         me = get_p2p_service().identity()
         return {"id": me["id"], "name": me["name"], "avatar": me["avatar"]}
+
+    @app.post("/typing")
+    async def peer_typing(request: Request) -> dict:
+        service = get_p2p_service()
+        if not service.identity()["enabled"]:
+            raise HTTPException(status_code=403, detail="Chat ist deaktiviert")
+        payload = await request.json()
+        peer_id = str(payload.get("from_id", "")).strip()
+        if peer_id:
+            service.note_typing(peer_id)
+        return {"ok": True}
 
     @app.post("/inbox")
     async def inbox(request: Request) -> dict:

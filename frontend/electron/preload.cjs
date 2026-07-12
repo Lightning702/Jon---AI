@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("jon", {
   pickFolder: () => ipcRenderer.invoke("dialog:openFolder"),
   openVscode: (folder) => ipcRenderer.invoke("shell:openVscode", folder),
   togglePet: () => ipcRenderer.invoke("pet:toggle"),
+  flashWindow: () => ipcRenderer.invoke("app:flash"),
+  focusWindow: () => ipcRenderer.invoke("app:focus"),
   getStartup: () => ipcRenderer.invoke("startup:get"),
   setStartup: (enabled) => ipcRenderer.invoke("startup:set", enabled),
   getPathForFile: (file) => {

@@ -285,6 +285,20 @@ ipcMain.handle("app:show", () => {
     mainWindow.focus();
   }
 });
+ipcMain.handle("app:flash", () => {
+  if (!mainWindow) return;
+  if (!mainWindow.isFocused()) {
+    mainWindow.flashFrame(true);
+    if (!mainWindow.isVisible()) mainWindow.show();
+  }
+});
+ipcMain.handle("app:focus", () => {
+  if (!mainWindow) return;
+  mainWindow.flashFrame(false);
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+});
 ipcMain.handle("startup:get", () => app.getLoginItemSettings().openAtLogin);
 ipcMain.handle("startup:set", (_event, enabled) => {
   app.setLoginItemSettings({ openAtLogin: !!enabled });

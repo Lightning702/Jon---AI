@@ -769,8 +769,18 @@ export interface P2PPeer {
   avatar: string;
   ip: string;
   online: boolean;
+  typing: boolean;
   last_seen: string;
   unread: number;
+}
+
+export interface P2PNotification {
+  id: string;
+  peer_id: string;
+  sender_name: string;
+  avatar: string;
+  text: string;
+  media_kind: "image" | "video" | "file" | null;
 }
 
 export interface P2PMessage {
@@ -854,6 +864,24 @@ export async function sendP2PMessage(
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.detail ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function getChatNotifications(): Promise<P2PNotification[]> {
+  const res = await fetch(`${BASE}/p2p/notifications`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function sendTyping(peerId: string): Promise<void> {
+  try {
+    await fetch(`${BASE}/p2p/typing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ peer_id: peerId }),
+    });
+  } catch {
+    /* egal */
   }
 }
 

@@ -6,6 +6,7 @@ import json
 import mimetypes
 import socket
 import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,6 +37,8 @@ class P2PService:
         self._lock = threading.Lock()
         self._peers: dict[str, dict] = self._load()
         self._transport: asyncio.DatagramTransport | None = None
+        self._typing: dict[str, float] = {}
+        self._notified: set[str] = set()
         MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
     def _load(self) -> dict:
@@ -232,6 +235,7 @@ class P2PService:
                     "avatar": peer.get("avatar", "🙂"),
                     "ip": peer.get("ip", ""),
                     "online": online,
+                    "typing": self.is_typing(peer_id),
                     "last_seen": peer.get("last_seen", ""),
                     "unread": self.unread_count(peer_id),
                 }
@@ -348,6 +352,47 @@ class P2PService:
             "created_at": message.created_at.isoformat(),
         }
 
+    def is_typing(self, peer_id: str) -> bool:
+        stamp = self._typing.get(peer_id, 0.0)
+        return (time.time() - stamp) < 5.0
+
+    def note_typing(self, peer_id: str) -> None:
+        self._typing[peer_id] = time.time()
+
+    async def send_typing(self, peer_id: str) -> None:
+        with self._lock:
+            peer = dict(self._peers.get(peer_id) or {})
+        if not peer.get("ip"):
+            return
+        me = self.identity()
+        try:
+            async with httpx.AsyncClient(timeout=4) as client:
+                await client.post(
+                    f"http://{peer['ip']}:{CHAT_PORT}/typing",
+                    json={"from_id": me["id"]},
+                )
+        except Exception:
+            pass
+
+    def pending_notifications(self) -> list[dict]:
+        with session_scope() as session:
+            rows = (
+                session.query(P2PMessage)
+                .filter(P2PMessage.direction == "in", P2PMessage.seen == 0)
+                .order_by(P2PMessage.created_at.asc())
+                .limit(20)
+                .all()
+            )
+            fresh = [self._as_dict(r) for r in rows if r.id not in self._notified]
+        for item in fresh:
+            self._notified.add(item["id"])
+            with self._lock:
+                peer = self._peers.get(item["peer_id"]) or {}
+            item["avatar"] = peer.get("avatar", "🙂")
+        if len(self._notified) > 500:
+            self._notified = set(list(self._notified)[-200:])
+        return fresh
+
     async def send(self, peer_id: str, text: str, media: dict | None = None) -> dict:
         with self._lock:
             peer = dict(self._peers.get(peer_id) or {})
@@ -400,6 +445,7 @@ class P2PService:
             str(payload.get("text", "")),
             media,
         )
+        self._typing.pop(peer_id, None)
         return {"ok": True, "id": message["id"]}
 
     def messages(self, peer_id: str, limit: int = 200) -> list[dict]:

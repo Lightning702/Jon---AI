@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [2.8.0] — 2026-07-12
+
+### Neu
+- **✍️ Tipp-Animation:** Wenn dein Freund gerade schreibt, siehst du es sofort — animierte
+  Punkte im Chatverlauf und „tippt …" in der Freundesliste. Das Signal geht direkt von PC
+  zu PC und verschwindet automatisch, sobald die Nachricht da ist (oder nach 5 Sekunden).
+- **🔔 Benachrichtigungen wie bei WhatsApp:** Schreibt dir jemand, während der Chat
+  geschlossen ist, bekommst du eine Windows-Benachrichtigung mit Name, Avatar und
+  Textvorschau (bei Medien „📷 Foto", „🎬 Video", „📎 Datei"), dazu einen kurzen Ton und
+  ein Blinken in der Taskleiste. Ein Klick auf die Benachrichtigung holt Jon nach vorne
+  und öffnet den Chat. Jede Nachricht meldet sich nur einmal.
+
 ## [2.7.2] — 2026-07-12
 
 ### Neu

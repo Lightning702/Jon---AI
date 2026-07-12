@@ -9,7 +9,22 @@ import {
   getPeers,
   mediaUrl,
   sendP2PMessage,
+  sendTyping,
 } from "../lib/api";
+
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="w-1.5 h-1.5 rounded-full bg-gold/80 animate-bounce"
+          style={{ animationDelay: `${i * 0.15}s`, animationDuration: "0.9s" }}
+        />
+      ))}
+    </span>
+  );
+}
 
 interface Props {
   identity: P2PIdentity;
@@ -33,6 +48,7 @@ export default function FriendsChat({
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const activeRef = useRef<string | null>(null);
+  const typingSentRef = useRef(0);
 
   useEffect(() => {
     activeRef.current = activeId;
@@ -172,7 +188,13 @@ export default function FriendsChat({
                     {p.name}
                   </span>
                   <span className="block text-[10px] text-white/35">
-                    {p.online ? "online" : "offline"}
+                    {p.typing ? (
+                      <span className="text-gold/80">tippt …</span>
+                    ) : p.online ? (
+                      "online"
+                    ) : (
+                      "offline"
+                    )}
                   </span>
                 </span>
                 {p.unread > 0 && (
@@ -226,13 +248,19 @@ export default function FriendsChat({
                 <span className="flex items-center gap-2">
                   <span className="text-xl">{active.avatar}</span>
                   {active.name}
-                  <span
-                    className={`text-[11px] ${
-                      active.online ? "text-emerald-400" : "text-white/30"
-                    }`}
-                  >
-                    {active.online ? "online" : "offline"}
-                  </span>
+                  {active.typing ? (
+                    <span className="text-[11px] text-gold/90 flex items-center gap-1.5">
+                      <TypingDots /> tippt …
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-[11px] ${
+                        active.online ? "text-emerald-400" : "text-white/30"
+                      }`}
+                    >
+                      {active.online ? "online" : "offline"}
+                    </span>
+                  )}
                 </span>
               ) : (
                 <span className="text-white/40">💬 Freunde-Chat</span>
@@ -321,6 +349,13 @@ export default function FriendsChat({
                 </div>
               );
             })}
+            {active?.typing && (
+              <div className="flex justify-start">
+                <div className="bg-white/8 border border-white/10 rounded-2xl rounded-bl-md px-4 py-3">
+                  <TypingDots />
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -353,7 +388,14 @@ export default function FriendsChat({
                 </button>
                 <textarea
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    const now = Date.now();
+                    if (e.target.value && now - typingSentRef.current > 2500) {
+                      typingSentRef.current = now;
+                      void sendTyping(active.id);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();

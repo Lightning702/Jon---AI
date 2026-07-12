@@ -247,6 +247,10 @@ Jon-Nutzer können sich **direkt gegenseitig schreiben** — Text, Bilder, Video
    Netzwerk, der passende Jon meldet sich, und der Kontakt ist da. Keine IP-Adressen nötig
 4. Freund anklicken, schreiben. Mit 📎 sendest du Bilder, Videos oder Dateien
 
+Wie bei WhatsApp siehst du eine **Tipp-Animation**, während dein Freund schreibt, und
+bekommst eine **Windows-Benachrichtigung** mit Ton, wenn dir jemand schreibt und der Chat
+gerade zu ist — ein Klick darauf öffnet den Chat.
+
 **Wo liegen die Daten?** Ausschließlich auf **euren beiden PCs**: Nachrichten in der lokalen
 Datenbank, Bilder und Videos im Ordner `p2p_media`. Es gibt keinen Server dazwischen, der
 etwas mitliest oder speichert. Löschst du einen Kontakt, verschwinden Verlauf und Dateien mit.
