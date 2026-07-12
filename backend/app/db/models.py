@@ -31,6 +31,7 @@ class P2PMessage(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     peer_id: Mapped[str] = mapped_column(String(32), index=True)
+    group_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     direction: Mapped[str] = mapped_column(String(8), default="in")
     sender_name: Mapped[str] = mapped_column(String(64), default="")
     text: Mapped[str] = mapped_column(Text, default="")
@@ -38,6 +39,7 @@ class P2PMessage(Base):
     media_kind: Mapped[str | None] = mapped_column(String(16), nullable=True)
     media_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     media_mime: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
     seen: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 

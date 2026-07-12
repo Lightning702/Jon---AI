@@ -16,3 +16,5 @@ audioop-lts>=0.2; python_version >= "3.13"
 pypdf>=5.0
 opencv-python>=4.10
 edge-tts>=6.1
+cryptography>=43.0
+paho-mqtt>=2.0

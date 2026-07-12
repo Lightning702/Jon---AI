@@ -24,10 +24,12 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
     ha_token: settings.ha_token ?? "",
     spotify_client_id: settings.spotify_client_id ?? "",
     spotify_client_secret: settings.spotify_client_secret ?? "",
+    relay_enabled: settings.relay_enabled ?? false,
+    relay_broker: settings.relay_broker ?? "broker.hivemq.com",
   });
   const [saved, setSaved] = useState(false);
 
-  const set = (key: keyof typeof form, value: string | number) => {
+  const set = (key: keyof typeof form, value: string | number | boolean) => {
     setForm((f) => ({ ...f, [key]: value }));
     setSaved(false);
   };
@@ -160,6 +162,42 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
               placeholder="openai/gpt-oss-20b"
               value={form.telegram_model}
               onChange={(e) => set("telegram_model", e.target.value)}
+            />
+          </section>
+
+          <section className="space-y-2">
+            <div className="text-[11px] uppercase tracking-wide text-gold/70">
+              🌍 Freunde-Chat übers Internet
+            </div>
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              Ohne Relay erreichst du nur Freunde im selben WLAN. Mit Relay
+              kannst du auch Freunden in einer anderen Stadt schreiben — sie
+              tragen deinen <span className="text-gold/70">Jon-Code</span> ein
+              (steht im Chat oben links). Kostenlos, und weil alles Ende-zu-Ende
+              verschlüsselt ist, sieht der Relay-Server nur unlesbaren Datensalat.
+            </p>
+            <button
+              onClick={() => set("relay_enabled", !form.relay_enabled)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <span className="text-[12px] text-white/90">Relay verwenden</span>
+              <span
+                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                  form.relay_enabled ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    form.relay_enabled ? "translate-x-4" : ""
+                  }`}
+                />
+              </span>
+            </button>
+            <input
+              className={field}
+              placeholder="broker.hivemq.com"
+              value={form.relay_broker}
+              onChange={(e) => set("relay_broker", e.target.value)}
             />
           </section>
 

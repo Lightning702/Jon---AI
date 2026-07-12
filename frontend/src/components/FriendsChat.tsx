@@ -1,17 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  P2PGroup,
   P2PIdentity,
   P2PMessage,
   P2PPeer,
+  P2PRequest,
   addPeer,
+  answerRequest,
+  createGroup,
+  deleteGroup,
   deletePeer,
+  getGroups,
   getP2PMessages,
   getPeers,
+  getRequests,
   getTypingPeers,
   mediaUrl,
   sendP2PMessage,
   sendTyping,
+  transcribeMessage,
 } from "../lib/api";
+import { VoiceRecorder } from "../lib/recorder";
+
+interface Props {
+  identity: P2PIdentity;
+  onEditProfile: () => void;
+  onClose: () => void;
+}
 
 function TypingDots() {
   return (
@@ -27,30 +42,34 @@ function TypingDots() {
   );
 }
 
-interface Props {
-  identity: P2PIdentity;
-  onEditProfile: () => void;
-  onClose: () => void;
-}
-
 export default function FriendsChat({
   identity,
   onEditProfile,
   onClose,
 }: Props) {
   const [peers, setPeers] = useState<P2PPeer[]>([]);
+  const [groups, setGroups] = useState<P2PGroup[]>([]);
+  const [requests, setRequests] = useState<P2PRequest[]>([]);
   const [typing, setTyping] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<P2PMessage[]>([]);
   const [text, setText] = useState("");
-  const [friendName, setFriendName] = useState("");
+  const [friendInput, setFriendInput] = useState("");
+  const [addMode, setAddMode] = useState<"name" | "code">("name");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcripts, setTranscripts] = useState<Record<string, string>>({});
+  const [groupMode, setGroupMode] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupMembers, setGroupMembers] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const activeRef = useRef<string | null>(null);
   const typingSentRef = useRef(0);
+  const recorderRef = useRef<VoiceRecorder | null>(null);
 
   useEffect(() => {
     activeRef.current = activeId;
@@ -59,6 +78,8 @@ export default function FriendsChat({
   useEffect(() => {
     const tick = async () => {
       setPeers(await getPeers());
+      setGroups(await getGroups());
+      setRequests(await getRequests());
       const current = activeRef.current;
       if (current) setMessages(await getP2PMessages(current));
     };
@@ -80,23 +101,29 @@ export default function FriendsChat({
     });
   }, [messages, activeId, typing]);
 
-  const openPeer = async (peerId: string) => {
-    setActiveId(peerId);
+  const isTyping = (peerId: string) => typing.includes(peerId);
+  const group = groups.find((g) => g.id === activeId) ?? null;
+  const peer = peers.find((p) => p.id === activeId) ?? null;
+  const activeName = group?.name ?? peer?.name ?? "";
+
+  const openChat = async (id: string) => {
+    setActiveId(id);
     setError("");
-    setMessages(await getP2PMessages(peerId));
+    setMessages(await getP2PMessages(id));
   };
 
-  const submit = async (media?: {
-    name: string;
-    mime: string;
-    data: string;
-  }) => {
+  const submit = async (media?: { name: string; mime: string; data: string }) => {
     if (!activeId || busy) return;
     if (!text.trim() && !media) return;
     setBusy(true);
     setError("");
     try {
-      await sendP2PMessage(activeId, text.trim(), media);
+      await sendP2PMessage(
+        group ? "" : activeId,
+        text.trim(),
+        media,
+        group ? activeId : ""
+      );
       setText("");
       setMessages(await getP2PMessages(activeId));
     } catch (e) {
@@ -119,13 +146,54 @@ export default function FriendsChat({
     reader.readAsDataURL(file);
   };
 
+  const toggleRecording = async () => {
+    if (recording) {
+      const blob = await recorderRef.current?.stop();
+      recorderRef.current = null;
+      setRecording(false);
+      if (!blob) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result ?? "");
+        void submit({
+          name: `sprachnachricht-${Date.now()}.wav`,
+          mime: "audio/wav",
+          data: result.slice(result.indexOf(",") + 1),
+        });
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
+    try {
+      const rec = new VoiceRecorder();
+      await rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+    } catch {
+      setError("Kein Mikrofon-Zugriff.");
+    }
+  };
+
+  const transcribe = async (messageId: string) => {
+    setTranscripts((prev) => ({ ...prev, [messageId]: "…" }));
+    try {
+      const result = await transcribeMessage(messageId);
+      setTranscripts((prev) => ({ ...prev, [messageId]: result }));
+    } catch (e) {
+      setTranscripts((prev) => ({
+        ...prev,
+        [messageId]: e instanceof Error ? e.message : String(e),
+      }));
+    }
+  };
+
   const connect = async () => {
-    if (!friendName.trim()) return;
+    if (!friendInput.trim()) return;
     setAdding(true);
     setError("");
     try {
-      await addPeer(friendName.trim());
-      setFriendName("");
+      await addPeer(friendInput.trim(), addMode);
+      setFriendInput("");
       setPeers(await getPeers());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -134,25 +202,46 @@ export default function FriendsChat({
     }
   };
 
-  const remove = async (peerId: string) => {
-    await deletePeer(peerId);
-    if (peerId === activeId) {
+  const decide = async (peerId: string, action: "accept" | "reject" | "block") => {
+    await answerRequest(peerId, action);
+    setRequests(await getRequests());
+    setPeers(await getPeers());
+  };
+
+  const saveGroup = async () => {
+    setError("");
+    try {
+      await createGroup(groupName.trim(), groupMembers);
+      setGroupMode(false);
+      setGroupName("");
+      setGroupMembers([]);
+      setGroups(await getGroups());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const remove = async (id: string, isGroup: boolean) => {
+    if (isGroup) await deleteGroup(id);
+    else await deletePeer(id);
+    if (id === activeId) {
       setActiveId(null);
       setMessages([]);
     }
     setPeers(await getPeers());
+    setGroups(await getGroups());
   };
 
-  const isTyping = (peerId: string) => typing.includes(peerId);
-  const found = peers.find((p) => p.id === activeId) ?? null;
-  const active = found
-    ? { ...found, typing: found.typing || isTyping(found.id) }
-    : null;
+  const copyCode = () => {
+    void navigator.clipboard.writeText(identity.code);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="glass rounded-2xl border border-white/15 w-[900px] max-w-[95vw] h-[640px] max-h-[90vh] flex overflow-hidden">
-        <div className="w-64 border-r border-white/10 flex flex-col">
+      <div className="glass rounded-2xl border border-white/15 w-[940px] max-w-[95vw] h-[660px] max-h-[92vh] flex overflow-hidden">
+        <div className="w-72 border-r border-white/10 flex flex-col">
           <div className="px-4 py-3 border-b border-white/10">
             <button
               onClick={onEditProfile}
@@ -164,28 +253,117 @@ export default function FriendsChat({
                   {identity.name}
                 </span>
                 <span className="block text-[10px] text-white/35">
-                  Dein Name · Profil ändern
+                  Profil ändern
                 </span>
               </span>
             </button>
+            <button
+              onClick={copyCode}
+              title="Dein Jon-Code — den kann dir ein Freund aus dem Internet eintragen"
+              className="mt-2 w-full text-left text-[10px] text-white/40 hover:text-gold transition font-mono border border-white/10 rounded-lg px-2 py-1"
+            >
+              {copied ? "✓ kopiert" : `Jon-Code: ${identity.code}`}
+            </button>
           </div>
 
+          {requests.length > 0 && (
+            <div className="p-2 border-b border-white/10 space-y-1.5">
+              <div className="text-[10px] uppercase tracking-wide text-gold/70 px-1">
+                Freundschaftsanfragen
+              </div>
+              {requests.map((r) => (
+                <div
+                  key={r.id}
+                  className="rounded-xl border border-gold/30 bg-gold/10 px-2.5 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{r.avatar}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[12px] text-white/90 truncate">
+                        {r.name}
+                      </span>
+                      <span className="block text-[10px] text-white/40">
+                        möchte mit dir schreiben
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex gap-1 mt-1.5">
+                    <button
+                      onClick={() => void decide(r.id, "accept")}
+                      className="flex-1 text-[11px] py-1 rounded-lg bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold"
+                    >
+                      Annehmen
+                    </button>
+                    <button
+                      onClick={() => void decide(r.id, "reject")}
+                      className="flex-1 text-[11px] py-1 rounded-lg border border-white/15 text-white/60 hover:bg-white/10"
+                    >
+                      Ablehnen
+                    </button>
+                    <button
+                      onClick={() => void decide(r.id, "block")}
+                      title="Blockieren"
+                      className="px-2 text-[11px] py-1 rounded-lg border border-red-400/30 text-red-300/80 hover:bg-red-400/10"
+                    >
+                      🚫
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {peers.length === 0 && (
+            {peers.length === 0 && groups.length === 0 && (
               <div className="text-[12px] text-white/35 px-2 py-6 text-center leading-relaxed">
                 Noch keine Freunde. Wer Jon im selben Netzwerk offen hat,
-                erscheint hier automatisch — oder gib unten seinen Namen ein.
+                erscheint hier automatisch — sonst gib unten seinen Namen ein.
               </div>
             )}
+            {groups.map((g) => (
+              <div
+                key={g.id}
+                onClick={() => void openChat(g.id)}
+                className={`group flex items-center gap-2 px-2 py-2 rounded-xl cursor-pointer transition-colors ${
+                  g.id === activeId
+                    ? "bg-gold/15 border border-gold/30"
+                    : "hover:bg-white/5 border border-transparent"
+                }`}
+              >
+                <span className="text-xl">👥</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[13px] text-white/85 truncate">
+                    {g.name}
+                  </span>
+                  <span className="block text-[10px] text-white/35 truncate">
+                    {g.member_names.join(", ") || "keine Mitglieder"}
+                  </span>
+                </span>
+                {g.unread > 0 && (
+                  <span className="text-[10px] font-semibold bg-gold text-black rounded-full px-1.5 py-0.5">
+                    {g.unread}
+                  </span>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void remove(g.id, true);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-300 text-[12px] transition"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
             {peers.map((p) => (
               <div
                 key={p.id}
+                onClick={() => void openChat(p.id)}
                 className={`group flex items-center gap-2 px-2 py-2 rounded-xl cursor-pointer transition-colors ${
                   p.id === activeId
                     ? "bg-gold/15 border border-gold/30"
                     : "hover:bg-white/5 border border-transparent"
                 }`}
-                onClick={() => void openPeer(p.id)}
               >
                 <span className="relative text-xl">
                   {p.avatar}
@@ -197,11 +375,13 @@ export default function FriendsChat({
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13px] text-white/85 truncate">
-                    {p.name}
+                    {p.name} {p.encrypted && <span title="Ende-zu-Ende verschlüsselt">🔒</span>}
                   </span>
                   <span className="block text-[10px] text-white/35">
                     {p.typing || isTyping(p.id) ? (
                       <span className="text-gold/80">tippt …</span>
+                    ) : p.waiting ? (
+                      "Anfrage gesendet"
                     ) : p.online ? (
                       "online"
                     ) : (
@@ -217,7 +397,7 @@ export default function FriendsChat({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    void remove(p.id);
+                    void remove(p.id, false);
                   }}
                   className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-300 text-[12px] transition"
                 >
@@ -227,50 +407,133 @@ export default function FriendsChat({
             ))}
           </div>
 
-          <div className="p-2 border-t border-white/10 space-y-1.5">
-            <div className="flex gap-1.5">
+          {groupMode ? (
+            <div className="p-2 border-t border-white/10 space-y-1.5">
               <input
-                value={friendName}
-                onChange={(e) => setFriendName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void connect();
-                }}
-                placeholder="Name des Freundes"
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="Gruppenname"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
               />
+              <div className="max-h-24 overflow-y-auto space-y-0.5">
+                {peers.map((p) => (
+                  <label
+                    key={p.id}
+                    className="flex items-center gap-2 text-[12px] text-white/70 px-1 py-0.5 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={groupMembers.includes(p.id)}
+                      onChange={(e) =>
+                        setGroupMembers((prev) =>
+                          e.target.checked
+                            ? [...prev, p.id]
+                            : prev.filter((id) => id !== p.id)
+                        )
+                      }
+                      className="accent-gold"
+                    />
+                    {p.avatar} {p.name}
+                  </label>
+                ))}
+              </div>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => void saveGroup()}
+                  className="flex-1 text-[12px] py-1.5 rounded-lg bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold"
+                >
+                  Erstellen
+                </button>
+                <button
+                  onClick={() => setGroupMode(false)}
+                  className="px-3 text-[12px] py-1.5 rounded-lg border border-white/15 text-white/60"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-2 border-t border-white/10 space-y-1.5">
+              <div className="flex gap-1">
+                {(["name", "code"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setAddMode(m)}
+                    className={`flex-1 text-[10px] py-1 rounded-lg border transition ${
+                      addMode === m
+                        ? "border-gold/40 bg-gold/15 text-gold"
+                        : "border-white/10 text-white/40 hover:bg-white/5"
+                    }`}
+                  >
+                    {m === "name" ? "Name (WLAN)" : "Jon-Code (Internet)"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1.5">
+                <input
+                  value={friendInput}
+                  onChange={(e) => setFriendInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void connect();
+                  }}
+                  placeholder={
+                    addMode === "name" ? "Name des Freundes" : "Jon-Code"
+                  }
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
+                />
+                <button
+                  onClick={() => void connect()}
+                  disabled={adding}
+                  className="px-2.5 rounded-lg bg-gold/20 border border-gold/40 text-gold text-[12px] hover:bg-gold/30 disabled:opacity-50 transition"
+                >
+                  {adding ? "…" : "+"}
+                </button>
+              </div>
               <button
-                onClick={() => void connect()}
-                disabled={adding}
-                title="Freund per Name suchen"
-                className="px-2.5 rounded-lg bg-gold/20 border border-gold/40 text-gold text-[12px] hover:bg-gold/30 disabled:opacity-50 transition"
+                onClick={() => setGroupMode(true)}
+                disabled={peers.length === 0}
+                className="w-full text-[11px] py-1.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 disabled:opacity-40 transition"
               >
-                {adding ? "…" : "+"}
+                👥 Gruppe erstellen
               </button>
             </div>
-            <div className="text-[10px] text-white/30 leading-snug">
-              Einfach den Namen eintippen — Jon findet ihn im Netzwerk.
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex items-center justify-between px-5 h-14 border-b border-white/10">
             <div className="text-[14px] text-white/90">
-              {active ? (
+              {group ? (
                 <span className="flex items-center gap-2">
-                  <span className="text-xl">{active.avatar}</span>
-                  {active.name}
-                  {active.typing ? (
+                  <span className="text-xl">👥</span>
+                  {group.name}
+                  <span className="text-[11px] text-white/35">
+                    {group.member_names.join(", ")}
+                  </span>
+                </span>
+              ) : peer ? (
+                <span className="flex items-center gap-2">
+                  <span className="text-xl">{peer.avatar}</span>
+                  {peer.name}
+                  {peer.typing || isTyping(peer.id) ? (
                     <span className="text-[11px] text-gold/90 flex items-center gap-1.5">
                       <TypingDots /> tippt …
                     </span>
                   ) : (
                     <span
                       className={`text-[11px] ${
-                        active.online ? "text-emerald-400" : "text-white/30"
+                        peer.online ? "text-emerald-400" : "text-white/30"
                       }`}
                     >
-                      {active.online ? "online" : "offline"}
+                      {peer.online ? "online" : "offline"}
+                    </span>
+                  )}
+                  {peer.encrypted && (
+                    <span
+                      title="Ende-zu-Ende verschlüsselt"
+                      className="text-[11px] text-emerald-400/70"
+                    >
+                      🔒
                     </span>
                   )}
                 </span>
@@ -287,24 +550,25 @@ export default function FriendsChat({
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-            {!active && (
+            {!activeId && (
               <div className="h-full flex flex-col items-center justify-center text-center text-white/35 text-[13px] leading-relaxed px-10">
                 <div className="text-4xl mb-3">💬</div>
-                Wähle links einen Freund aus.
+                Wähle links einen Freund oder eine Gruppe.
                 <br />
-                Nachrichten, Bilder und Videos werden{" "}
-                <span className="text-gold/70">direkt</span> zwischen euren PCs
-                verschickt — ohne Server, ohne Cloud.
+                Nachrichten, Bilder, Videos und Sprachnachrichten gehen{" "}
+                <span className="text-gold/70">direkt</span> und{" "}
+                <span className="text-emerald-400/80">verschlüsselt</span>{" "}
+                zwischen euren PCs — ohne Server.
               </div>
             )}
-            {active &&
-              messages.length === 0 && (
-                <div className="text-center text-white/30 text-[12px] py-10">
-                  Noch keine Nachrichten. Schreib {active.name} etwas!
-                </div>
-              )}
+            {activeId && messages.length === 0 && (
+              <div className="text-center text-white/30 text-[12px] py-10">
+                Noch keine Nachrichten. Schreib {activeName} etwas!
+              </div>
+            )}
             {messages.map((m) => {
               const mine = m.direction === "out";
+              const shown = transcripts[m.id] ?? m.transcript;
               return (
                 <div
                   key={m.id}
@@ -317,6 +581,11 @@ export default function FriendsChat({
                         : "bg-white/8 border border-white/10 text-white/90 rounded-bl-md"
                     }`}
                   >
+                    {group && !mine && (
+                      <div className="text-[10px] font-semibold text-gold/80 mb-0.5">
+                        {m.sender_name}
+                      </div>
+                    )}
                     {m.media_kind === "image" && (
                       <img
                         src={mediaUrl(m.id)}
@@ -330,6 +599,30 @@ export default function FriendsChat({
                         controls
                         className="rounded-lg mb-1 max-h-72"
                       />
+                    )}
+                    {m.media_kind === "audio" && (
+                      <div className="mb-1">
+                        <audio src={mediaUrl(m.id)} controls className="h-9 w-56" />
+                        {!shown && (
+                          <button
+                            onClick={() => void transcribe(m.id)}
+                            className={`block mt-1 text-[11px] underline ${
+                              mine ? "text-black/70" : "text-gold/80 hover:text-gold"
+                            }`}
+                          >
+                            📝 Text anzeigen (nicht anhören)
+                          </button>
+                        )}
+                        {shown && (
+                          <div
+                            className={`mt-1 text-[12px] italic ${
+                              mine ? "text-black/70" : "text-white/70"
+                            }`}
+                          >
+                            „{shown}"
+                          </div>
+                        )}
+                      </div>
                     )}
                     {m.media_kind === "file" && (
                       <a
@@ -361,7 +654,7 @@ export default function FriendsChat({
                 </div>
               );
             })}
-            {active?.typing && (
+            {peer && (peer.typing || isTyping(peer.id)) && (
               <div className="flex justify-start">
                 <div className="bg-white/8 border border-white/10 rounded-2xl rounded-bl-md px-4 py-3">
                   <TypingDots />
@@ -376,13 +669,13 @@ export default function FriendsChat({
             </div>
           )}
 
-          {active && (
+          {activeId && (
             <div className="p-3 border-t border-white/10">
               <div className="flex items-end gap-2">
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="image/*,video/*,.pdf,.txt,.zip"
+                  accept="image/*,video/*,audio/*,.pdf,.txt,.zip"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -392,20 +685,36 @@ export default function FriendsChat({
                 />
                 <button
                   onClick={() => fileRef.current?.click()}
-                  disabled={busy}
+                  disabled={busy || recording}
                   title="Bild, Video oder Datei senden"
                   className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-white/40 hover:text-gold hover:border-gold/40 disabled:opacity-40 transition"
                 >
                   📎
+                </button>
+                <button
+                  onClick={() => void toggleRecording()}
+                  disabled={busy}
+                  title={recording ? "Aufnahme beenden und senden" : "Sprachnachricht aufnehmen"}
+                  className={`w-9 h-9 rounded-xl border transition ${
+                    recording
+                      ? "border-red-400/60 bg-red-500/20 text-red-300 animate-pulse"
+                      : "border-white/10 bg-white/5 text-white/40 hover:text-gold hover:border-gold/40"
+                  } disabled:opacity-40`}
+                >
+                  {recording ? "⏹" : "🎙"}
                 </button>
                 <textarea
                   value={text}
                   onChange={(e) => {
                     setText(e.target.value);
                     const now = Date.now();
-                    if (e.target.value && now - typingSentRef.current > 1200) {
+                    if (
+                      !group &&
+                      e.target.value &&
+                      now - typingSentRef.current > 1200
+                    ) {
                       typingSentRef.current = now;
-                      void sendTyping(active.id);
+                      void sendTyping(activeId);
                     }
                   }}
                   onKeyDown={(e) => {
@@ -415,7 +724,11 @@ export default function FriendsChat({
                     }
                   }}
                   rows={1}
-                  placeholder={`Nachricht an ${active.name} …`}
+                  placeholder={
+                    recording
+                      ? "Nimmt auf … zum Senden auf ⏹ drücken"
+                      : `Nachricht an ${activeName} …`
+                  }
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[13.5px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50 resize-none max-h-32"
                 />
                 <button

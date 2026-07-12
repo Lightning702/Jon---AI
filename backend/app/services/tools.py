@@ -56,6 +56,8 @@ SAFE_TOOLS = {
     "spotify_search",
     "spotify_now_playing",
     "amazon_now_playing",
+    "list_friends",
+    "read_friend_messages",
 }
 
 
@@ -289,6 +291,21 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
         ),
     ),
     "pdf": ({"read_pdf"}, ("pdf", "dokument", "seite", "lesen")),
+    "friends": (
+        {"list_friends", "send_friend_message", "read_friend_messages"},
+        (
+            "freund",
+            "schreib",
+            "sag ",
+            "nachricht",
+            "chat",
+            "gruppe",
+            "geschrieben",
+            "antworte",
+            "melde",
+            "richte",
+        ),
+    ),
 }
 
 
@@ -521,6 +538,15 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         )
     if name == "amazon_now_playing":
         return "Fragt ab, was gerade auf Amazon Music läuft."
+    if name == "list_friends":
+        return "Listet deine Chat-Freunde auf."
+    if name == "send_friend_message":
+        return (
+            f"Schreibt {_shorten(args.get('friend', ''))}: "
+            f"{_shorten(args.get('text', ''))}"
+        )
+    if name == "read_friend_messages":
+        return f"Liest den Chat mit {_shorten(args.get('friend', ''))}."
     return f"Führt das Tool {name} aus."
 
 
@@ -1272,6 +1298,31 @@ class ToolBox:
                 {},
                 [],
             ),
+            _tool(
+                "list_friends",
+                "Listet die Chat-Freunde des Nutzers auf (Name, online, "
+                "ungelesene Nachrichten) sowie seine Gruppen.",
+                {},
+                [],
+            ),
+            _tool(
+                "send_friend_message",
+                "Schreibt einem Freund oder einer Gruppe im Jon-Chat eine "
+                "Nachricht ('Sag Anna, dass ich spaeter komme'). friend ist der "
+                "Name des Freundes oder der Gruppe (aus list_friends). "
+                "Formuliere die Nachricht so, wie der Nutzer sie meint - "
+                "freundlich, in seinem Namen.",
+                {"friend": _STR, "text": _STR},
+                ["friend", "text"],
+            ),
+            _tool(
+                "read_friend_messages",
+                "Liest die letzten Nachrichten aus dem Chat mit einem Freund "
+                "oder einer Gruppe ('Was hat Anna geschrieben?'). limit "
+                "begrenzt die Anzahl (Standard 10).",
+                {"friend": _STR, "limit": _INT},
+                ["friend"],
+            ),
         ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> str:
@@ -1282,7 +1333,95 @@ class ToolBox:
                 str(args.get("question", ""))
             )
             return json.dumps(result, ensure_ascii=False)
+        if name in ("list_friends", "send_friend_message", "read_friend_messages"):
+            return await self._friends(name, args)
         return await asyncio.to_thread(self._execute, name, args)
+
+    async def _friends(self, name: str, args: dict[str, Any]) -> str:
+        from app.services.p2p_service import get_p2p_service
+
+        service = get_p2p_service()
+        if name == "list_friends":
+            return json.dumps(
+                {
+                    "freunde": [
+                        {
+                            "name": p["name"],
+                            "online": p["online"],
+                            "ungelesen": p["unread"],
+                            "wartet_auf_bestaetigung": p["waiting"],
+                        }
+                        for p in service.peers()
+                    ],
+                    "gruppen": [
+                        {"name": g["name"], "mitglieder": g["member_names"]}
+                        for g in service.groups()
+                    ],
+                    "offene_anfragen": [r["name"] for r in service.requests()],
+                },
+                ensure_ascii=False,
+            )
+
+        wanted = str(args.get("friend", "")).strip().lower()
+        if not wanted:
+            return json.dumps({"error": "Namen des Freundes angeben"})
+        peer = next(
+            (p for p in service.peers() if p["name"].strip().lower() == wanted), None
+        )
+        group = next(
+            (g for g in service.groups() if g["name"].strip().lower() == wanted), None
+        )
+        if peer is None and group is None:
+            names = [p["name"] for p in service.peers()] + [
+                g["name"] for g in service.groups()
+            ]
+            return json.dumps(
+                {
+                    "error": f"Kein Freund namens '{args.get('friend')}'. "
+                    f"Bekannt sind: {', '.join(names) if names else 'noch niemand'}"
+                },
+                ensure_ascii=False,
+            )
+
+        if name == "send_friend_message":
+            text = str(args.get("text", "")).strip()
+            if not text:
+                return json.dumps({"error": "Nachrichtentext fehlt"})
+            if group is not None:
+                result = await service.send_group(group["id"], text)
+            else:
+                result = await service.send(peer["id"], text)
+            if "error" in result:
+                return json.dumps(result, ensure_ascii=False)
+            return json.dumps(
+                {
+                    "gesendet": True,
+                    "an": (group or peer)["name"],
+                    "text": text,
+                },
+                ensure_ascii=False,
+            )
+
+        limit = max(1, min(int(args.get("limit", 10)), 50))
+        target = (group or peer)["id"]
+        messages = service.messages(target)[-limit:]
+        service.mark_seen(target)
+        return json.dumps(
+            {
+                "chat_mit": (group or peer)["name"],
+                "nachrichten": [
+                    {
+                        "von": "du" if m["direction"] == "out" else m["sender_name"],
+                        "text": m["text"]
+                        or m.get("transcript")
+                        or (f"[{m['media_kind']}]" if m["media_kind"] else ""),
+                        "zeit": m["created_at"],
+                    }
+                    for m in messages
+                ],
+            },
+            ensure_ascii=False,
+        )
 
     def _execute(self, name: str, args: dict[str, Any]) -> str:
         if self._root:

@@ -2,6 +2,45 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [2.9.0] — 2026-07-13
+
+### Neu — Chat
+- **🤝 Freundschaftsanfragen statt offener Tür:** Ein Unbekannter kann dir nicht mehr
+  einfach schreiben. Er landet erst in einer Anfrage-Liste („Anna möchte mit dir
+  schreiben") — mit **Annehmen / Ablehnen / Blockieren**. Bis zur Annahme kommt keine
+  einzige Nachricht und keine Datei auf deine Platte. Blockierte Kontakte werden dauerhaft
+  abgewiesen, ihr Verlauf gelöscht.
+- **🔒 Ende-zu-Ende-Verschlüsselung:** Alle Nachrichten, Bilder und Videos werden mit
+  X25519-Schlüsseltausch und AES-GCM verschlüsselt. Die Schlüssel entstehen lokal auf euren
+  PCs und verlassen sie nie. Ein 🔒 im Chat zeigt, dass es aktiv ist.
+- **🌍 Freunde im Internet:** Mit dem **Relay** (Zahnrad → Verbindungen) erreichst du auch
+  Freunde in einer anderen Stadt. Dein Freund trägt einfach deinen **Jon-Code** ein. Der
+  Relay-Server sieht dabei nur verschlüsselten Datensalat — er kann nichts mitlesen.
+  Kostenlos, kein Konto.
+- **🎙️ Sprachnachrichten:** Aufnehmen und senden — und wer nicht zuhören will oder kann,
+  klickt auf **„📝 Text anzeigen"** und liest die Nachricht als Text.
+- **👥 Gruppenchats:** Mehrere Freunde in einer Gruppe, mit Absendernamen an jeder Nachricht.
+- **🤖 Jon schreibt für dich:** „Sag Anna, dass ich später komme" · „Was hat Anna
+  geschrieben?" · „Wer sind meine Freunde?" (`send_friend_message`, `read_friend_messages`,
+  `list_friends`).
+
+### Neu — Mini Jon
+- **Sein Gesicht zeigt seine Stimmung:** müde Augen, wenn er müde ist, ein Lächeln, wenn er
+  zufrieden ist.
+- **Er ist dein Bote:** Schreibt dir ein Freund, sagt Mini Jon dir Bescheid und liest die
+  Nachricht auf Wunsch vor.
+- **Er merkt, wenn du weg warst** und begrüßt dich, wenn du zurückkommst.
+
+### Neu — Substanz
+- **🚀 Setup-Assistent:** Beim ersten Start führt Jon durch die Einrichtung — Anbieter
+  wählen, Schlüssel eintragen, Modell testen. Kein Bearbeiten der `.env` mehr nötig.
+- **🔔 Update-Prüfung:** Jon sagt Bescheid, wenn eine neue Version auf GitHub liegt.
+- **💾 Backup:** Gedächtnis, Wissensbasis, Skills und Einstellungen exportieren und auf einem
+  anderen PC wieder einspielen (Zahnrad-Menü). API-Schlüssel bleiben absichtlich draußen.
+- **✅ Automatische Tests:** 25 Tests für Tools, Verschlüsselung, Freundschaftsanfragen,
+  Wissensbasis, Automationen und die API, dazu eine GitHub-Action, die sie bei jedem Push
+  ausführt.
+
 ## [2.8.2] — 2026-07-12
 
 ### Behoben

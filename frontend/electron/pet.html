@@ -656,6 +656,78 @@
         say(line);
       }
 
+      const MOOD_FACE = {
+        fresh: { eyes: "round", mouth: "smile" },
+        content: { eyes: "happy", mouth: "smile" },
+        curious: { eyes: "round", mouth: "small" },
+        focused: { eyes: "round", mouth: "flat" },
+        wistful: { eyes: "sleepy", mouth: "flat" },
+        proud: { eyes: "happy", mouth: "smile" },
+        tired: { eyes: "sleepy", mouth: "flat" },
+      };
+      let currentMood = "";
+      function applyMood(mood) {
+        if (!mood || mood === currentMood) return;
+        currentMood = mood;
+        const face = MOOD_FACE[mood];
+        if (!face) return;
+        renderEyes(face.eyes);
+        if (face.mouth === "smile") smile.setAttribute("d", "M44 76 Q60 90 76 76");
+        else if (face.mouth === "small") smile.setAttribute("d", "M50 78 Q60 86 70 78");
+        else smile.setAttribute("d", "M46 80 H74");
+      }
+      async function pollMood() {
+        try {
+          const p = await (await fetch(`${BASE}/persona`)).json();
+          if (p && p.mood) applyMood(String(p.mood));
+        } catch (e) {}
+      }
+      setInterval(pollMood, 45000);
+      setTimeout(pollMood, 3000);
+
+      async function pollFriends() {
+        try {
+          const news = await (
+            await fetch(`${BASE}/p2p/notifications?channel=pet`)
+          ).json();
+          if (!Array.isArray(news) || !news.length) return;
+          for (const n of news) {
+            const preview =
+              n.text ||
+              (n.media_kind === "image"
+                ? "ein Foto"
+                : n.media_kind === "video"
+                  ? "ein Video"
+                  : n.media_kind === "audio"
+                    ? "eine Sprachnachricht"
+                    : "eine Datei");
+            const line = `${n.avatar || "💬"} ${n.sender_name} schreibt: ${preview}`;
+            say(line, true);
+            scheduleHide(12000);
+            speak(`${n.sender_name} schreibt dir: ${preview}`);
+          }
+        } catch (e) {}
+      }
+      setInterval(pollFriends, 5000);
+
+      let wasAway = false;
+      async function pollPresence() {
+        try {
+          const r = await (await fetch(`${BASE}/system/idle`)).json();
+          const idle = Number(r.seconds || 0);
+          if (idle > 600) {
+            wasAway = true;
+          } else if (wasAway && idle < 5) {
+            wasAway = false;
+            if (!busy) {
+              say("Da bist du ja wieder! 😊 Was machen wir jetzt?");
+              speak("Da bist du ja wieder! Was machen wir jetzt?");
+            }
+          }
+        } catch (e) {}
+      }
+      setInterval(pollPresence, 20000);
+
       const WAKE = new Set(["emil", "emile", "emilio", "emmi", "email", "mini"]);
       const SPEECH_THRESHOLD = 0.015;
       const SILENCE_END_MS = 1100;

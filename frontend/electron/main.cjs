@@ -166,7 +166,7 @@ async function startBackend() {
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.NODE_OPTIONS;
   const depCheck =
-    "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf,cv2,edge_tts";
+    "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf,cv2,edge_tts,cryptography,paho.mqtt.client";
   const ok = await runProcess(cmd, [...pre, "-c", depCheck], {
     cwd: backendDir,
     env,

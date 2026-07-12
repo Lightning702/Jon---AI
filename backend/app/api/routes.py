@@ -4,7 +4,7 @@ import asyncio
 import json
 import time
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.core.config import get_settings
@@ -527,6 +527,43 @@ async def extract_attachment(payload: AttachmentIn) -> dict:
 @router.get("/weekly")
 async def weekly() -> dict:
     return await asyncio.to_thread(get_briefing_service().weekly_data)
+
+
+@router.get("/update")
+async def update_check() -> dict:
+    from app.services.update_service import check_update
+
+    return await asyncio.to_thread(check_update)
+
+
+@router.get("/backup/export")
+async def backup_export(include_keys: bool = False):
+    from fastapi.responses import Response
+
+    from app.services.backup_service import export_backup
+
+    raw = await asyncio.to_thread(export_backup, include_keys)
+    stamp = time.strftime("%Y-%m-%d")
+    return Response(
+        content=raw,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="jon-backup-{stamp}.zip"'
+        },
+    )
+
+
+@router.post("/backup/import")
+async def backup_import(request: Request) -> dict:
+    from app.services.backup_service import import_backup
+
+    raw = await request.body()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Keine Datei")
+    result = await asyncio.to_thread(import_backup, raw)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
 
 
 @router.get("/watchers")

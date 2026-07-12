@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ToolMode,
   UserSettings,
+  backupUrl,
   getAutostart,
   getUserSettings,
+  importBackup,
   saveUserSettings,
   setAutostart,
 } from "../lib/api";
@@ -35,6 +37,8 @@ export default function SettingsMenu({
   const [city, setCity] = useState("");
   const [clipboard, setClipboard] = useState(true);
   const [webcam, setWebcam] = useState(false);
+  const [backupInfo, setBackupInfo] = useState("");
+  const backupRef = useRef<HTMLInputElement>(null);
   const [voice, setVoice] = useState(true);
   const [connections, setConnections] = useState<UserSettings | null>(null);
 
@@ -324,6 +328,49 @@ export default function SettingsMenu({
                 />
               </span>
             </button>
+            <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
+              Backup
+            </div>
+            <div className="flex gap-1.5">
+              <a
+                href={backupUrl()}
+                download
+                className="flex-1 text-center text-[12px] py-2 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition"
+              >
+                Exportieren
+              </a>
+              <input
+                ref={backupRef}
+                type="file"
+                accept=".zip"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setBackupInfo("Stelle wieder her …");
+                  try {
+                    setBackupInfo(await importBackup(file));
+                  } catch (err) {
+                    setBackupInfo(
+                      err instanceof Error ? err.message : String(err)
+                    );
+                  }
+                }}
+              />
+              <button
+                onClick={() => backupRef.current?.click()}
+                className="flex-1 text-[12px] py-2 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition"
+              >
+                Importieren
+              </button>
+            </div>
+            {backupInfo && (
+              <div className="text-[11px] text-gold/70 mt-1.5">{backupInfo}</div>
+            )}
+            <div className="text-[11px] text-white/35 mt-1 leading-snug">
+              Gedächtnis, Wissensbasis, Skills und Einstellungen — ohne API-Schlüssel.
+            </div>
             <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
               Tagesbriefing
             </div>

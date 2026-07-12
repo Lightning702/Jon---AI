@@ -24,10 +24,33 @@ _engine = create_engine(
 SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False)
 
 
+def _migrate_columns() -> None:
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(_engine)
+    tables = set(inspector.get_table_names())
+    for table in Base.metadata.sorted_tables:
+        if table.name not in tables:
+            continue
+        existing = {c["name"] for c in inspector.get_columns(table.name)}
+        for column in table.columns:
+            if column.name in existing:
+                continue
+            kind = column.type.compile(dialect=_engine.dialect)
+            with _engine.begin() as conn:
+                conn.execute(
+                    text(f"ALTER TABLE {table.name} ADD COLUMN {column.name} {kind}")
+                )
+
+
 def init_db() -> None:
     from app.db import models  # noqa: F401
 
     Base.metadata.create_all(bind=_engine)
+    try:
+        _migrate_columns()
+    except Exception:
+        pass
 
 
 @contextmanager

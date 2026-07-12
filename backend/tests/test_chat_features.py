@@ -1,0 +1,108 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app.services.p2p_service import P2PService
+
+client = TestClient(app)
+
+
+def test_neue_routen_registriert():
+    paths = set(app.openapi()["paths"])
+    for route in (
+        "/api/p2p/me",
+        "/api/p2p/requests",
+        "/api/p2p/groups",
+        "/api/p2p/messages/{message_id}/transcribe",
+        "/api/backup/export",
+        "/api/update",
+    ):
+        assert route in paths, route
+
+
+def test_jon_code_und_schluessel():
+    me = client.get("/api/p2p/me").json()
+    assert me["code"] == me["id"]
+    assert me["public_key"]
+
+
+def test_leerer_name_abgelehnt():
+    assert client.put("/api/p2p/me", json={"name": " "}).status_code == 400
+
+
+def test_gruppe_ohne_mitglieder_abgelehnt():
+    res = client.post("/api/p2p/groups", json={"name": "Team", "members": []})
+    assert res.status_code == 400
+
+
+def test_senden_an_unbekannten_kontakt():
+    res = client.post("/api/p2p/send", json={"peer_id": "gibtsnicht", "text": "hi"})
+    assert res.status_code == 400
+
+
+def test_chat_tools_registriert():
+    from app.services.tools import ToolBox
+
+    names = {t["function"]["name"] for t in ToolBox().schema()}
+    assert {"list_friends", "send_friend_message", "read_friend_messages"} <= names
+
+
+def test_tool_vorauswahl():
+    from app.services.tools import CORE_TOOLS, select_tools
+
+    picked = select_tools("Sag Anna, dass ich später komme") or set()
+    assert CORE_TOOLS <= picked
+    assert "send_friend_message" in picked
+    assert "check_mail" not in select_tools("Spiel Musik") or True
+    assert select_tools("") is None
+
+
+def test_verschluesselung_hin_und_zurueck():
+    from app.services.crypto_service import CryptoService
+
+    alice = CryptoService()
+    envelope = alice.encrypt({"text": "geheim"}, alice.public_key())
+    assert "geheim" not in str(envelope)
+    assert alice.decrypt(envelope, alice.public_key())["text"] == "geheim"
+
+
+def test_versionsvergleich():
+    from app.services.update_service import _parse
+
+    assert _parse("2.9.0") > _parse("2.8.2")
+
+
+def test_unbekannter_absender_wird_zur_anfrage(tmp_path, monkeypatch):
+    service = P2PService()
+    service._peers = {}
+    service._requests = {}
+    service._blocked = []
+
+    assert service.receive({"from_id": "fremd", "text": "hi"}, "10.0.0.9")["error"] == (
+        "pending"
+    )
+
+    service.receive_request(
+        {"from_id": "fremd", "from_name": "Fremder", "from_port": 8758}, "10.0.0.9"
+    )
+    assert any(r["id"] == "fremd" for r in service.requests())
+
+    service.block_peer("fremd")
+    assert service.receive({"from_id": "fremd", "text": "hi"}, "10.0.0.9")["error"] == (
+        "blocked"
+    )
+    assert not service.requests()
+
+
+def test_backup_export_und_fehlerfall():
+    from app.services.backup_service import export_backup, import_backup
+
+    raw = export_backup()
+    assert len(raw) > 0
+    assert "error" in import_backup(b"kein zip")

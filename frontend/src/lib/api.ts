@@ -244,6 +244,9 @@ export interface UserSettings {
   telegram_model: string;
   pet_provider: string;
   pet_model: string;
+  relay_enabled: boolean;
+  relay_broker: string;
+  relay_port: number;
   ha_url: string;
   ha_token: string;
   natural_voice: boolean;
@@ -285,6 +288,9 @@ export async function getUserSettings(): Promise<UserSettings> {
       telegram_model: "openai/gpt-oss-20b",
       pet_provider: "",
       pet_model: "openai/gpt-oss-20b",
+      relay_enabled: false,
+      relay_broker: "broker.hivemq.com",
+      relay_port: 1883,
       ha_url: "",
       ha_token: "",
       natural_voice: true,
@@ -765,6 +771,8 @@ export interface P2PIdentity {
   name: string;
   avatar: string;
   enabled: boolean;
+  code: string;
+  public_key: string;
 }
 
 export interface P2PPeer {
@@ -774,7 +782,25 @@ export interface P2PPeer {
   ip: string;
   online: boolean;
   typing: boolean;
+  encrypted: boolean;
+  waiting: boolean;
   last_seen: string;
+  unread: number;
+}
+
+export interface P2PRequest {
+  id: string;
+  name: string;
+  avatar: string;
+  ip: string;
+  created_at: string;
+}
+
+export interface P2PGroup {
+  id: string;
+  name: string;
+  members: string[];
+  member_names: string[];
   unread: number;
 }
 
@@ -790,12 +816,14 @@ export interface P2PNotification {
 export interface P2PMessage {
   id: string;
   peer_id: string;
+  group_id: string | null;
   direction: "in" | "out";
   sender_name: string;
   text: string;
-  media_kind: "image" | "video" | "file" | null;
+  media_kind: "image" | "video" | "audio" | "file" | null;
   media_name: string | null;
   media_mime: string | null;
+  transcript: string | null;
   has_media: boolean;
   created_at: string;
 }
@@ -821,10 +849,95 @@ export async function saveIdentity(
   return res.json();
 }
 
-export async function getP2PInfo(): Promise<{ ip: string; unread: number }> {
+export interface P2PInfo {
+  ip: string;
+  unread: number;
+  requests: number;
+  relay: { enabled: boolean; connected: boolean; broker: string };
+}
+
+export async function getP2PInfo(): Promise<P2PInfo> {
   const res = await fetch(`${BASE}/p2p/info`);
-  if (!res.ok) return { ip: "", unread: 0 };
+  if (!res.ok)
+    return {
+      ip: "",
+      unread: 0,
+      requests: 0,
+      relay: { enabled: false, connected: false, broker: "" },
+    };
   return res.json();
+}
+
+export async function getRequests(): Promise<P2PRequest[]> {
+  const res = await fetch(`${BASE}/p2p/requests`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function answerRequest(
+  peerId: string,
+  action: "accept" | "reject" | "block"
+): Promise<void> {
+  await fetch(`${BASE}/p2p/requests/${peerId}/${action}`, { method: "POST" });
+}
+
+export async function getGroups(): Promise<P2PGroup[]> {
+  const res = await fetch(`${BASE}/p2p/groups`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function createGroup(
+  name: string,
+  members: string[]
+): Promise<void> {
+  const res = await fetch(`${BASE}/p2p/groups`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, members }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function deleteGroup(groupId: string): Promise<void> {
+  await fetch(`${BASE}/p2p/groups/${groupId}`, { method: "DELETE" });
+}
+
+export async function transcribeMessage(messageId: string): Promise<string> {
+  const res = await fetch(`${BASE}/p2p/messages/${messageId}/transcribe`, {
+    method: "POST",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? `HTTP ${res.status}`);
+  return String(data.transcript ?? "");
+}
+
+export async function checkUpdate(): Promise<{
+  current: string;
+  latest: string;
+  update: boolean;
+  url: string;
+}> {
+  const res = await fetch(`${BASE}/update`);
+  if (!res.ok) throw new Error("update check failed");
+  return res.json();
+}
+
+export function backupUrl(): string {
+  return `${BASE}/backup/export`;
+}
+
+export async function importBackup(file: File): Promise<string> {
+  const res = await fetch(`${BASE}/backup/import`, {
+    method: "POST",
+    body: await file.arrayBuffer(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? `HTTP ${res.status}`);
+  return `${data.restored} Einträge wiederhergestellt. ${data.hinweis ?? ""}`;
 }
 
 export async function getPeers(): Promise<P2PPeer[]> {
@@ -833,11 +946,14 @@ export async function getPeers(): Promise<P2PPeer[]> {
   return res.json();
 }
 
-export async function addPeer(name: string): Promise<void> {
+export async function addPeer(
+  value: string,
+  mode: "name" | "code" = "name"
+): Promise<void> {
   const res = await fetch(`${BASE}/p2p/peers`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(mode === "code" ? { code: value } : { name: value }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -858,12 +974,18 @@ export async function getP2PMessages(peerId: string): Promise<P2PMessage[]> {
 export async function sendP2PMessage(
   peerId: string,
   text: string,
-  media?: { name: string; mime: string; data: string }
+  media?: { name: string; mime: string; data: string },
+  groupId = ""
 ): Promise<void> {
   const res = await fetch(`${BASE}/p2p/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ peer_id: peerId, text, media: media ?? null }),
+    body: JSON.stringify({
+      peer_id: peerId,
+      text,
+      media: media ?? null,
+      group_id: groupId,
+    }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

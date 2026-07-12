@@ -47,6 +47,9 @@ DEFAULTS = {
     "p2p_username": "",
     "p2p_avatar": "🙂",
     "p2p_enabled": True,
+    "relay_enabled": False,
+    "relay_broker": "broker.hivemq.com",
+    "relay_port": 1883,
 }
 
 

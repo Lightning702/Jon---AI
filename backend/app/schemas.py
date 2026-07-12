@@ -76,6 +76,9 @@ class SettingsIn(BaseModel):
     telegram_model: str | None = None
     pet_provider: str | None = None
     pet_model: str | None = None
+    relay_enabled: bool | None = None
+    relay_broker: str | None = None
+    relay_port: int | None = None
     ha_url: str | None = None
     ha_token: str | None = None
     natural_voice: bool | None = None

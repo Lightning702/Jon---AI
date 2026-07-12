@@ -101,9 +101,11 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   ausdrucken („Druck mir das aus")
 - **👤 Profil** — beim ersten Start fragt Jon nach deinem Namen und spricht dich fortan
   damit an; jederzeit änderbar
-- **💬 Freunde-Chat (Peer-to-Peer)** — schreibe anderen Jon-Nutzern Nachrichten, Bilder und
-  Videos. Direkt von PC zu PC, ohne Cloud, ohne Konto, ohne Kosten — gespeichert wird nur
-  auf den beiden beteiligten Geräten
+- **💬 Freunde-Chat (Peer-to-Peer)** — Nachrichten, Bilder, Videos, **Sprachnachrichten**
+  (auf Wunsch als Text statt zum Anhören) und **Gruppen**. Direkt von PC zu PC, **Ende-zu-Ende
+  verschlüsselt**, ohne Cloud und ohne Kosten. Unbekannte müssen erst eine
+  **Freundschaftsanfrage** stellen. Über das Relay erreichst du auch Freunde im Internet —
+  und Jon schreibt auf Zuruf für dich („Sag Anna, dass ich später komme")
 - **Coding-Agent** — als **„Jon Code"-Modus in der App** (Button oben rechts: Dateibaum +
   Editor + Jon-Agent rechts, mit `/model`- und `/provider`-Wechsel) und als **`jon`-Befehl
   im VS-Code-Terminal**. Jon arbeitet an ganzen Projekten wie ein moderner KI-Coding-Agent
@@ -240,26 +242,47 @@ Jon-Nutzer können sich **direkt gegenseitig schreiben** — Text, Bilder, Video
 **So funktioniert es:**
 
 1. Beim ersten Start legst du deinen **Namen** fest (später über 💬 → Profil änderbar).
-   Jeder Name gibt es im Netzwerk **nur einmal** — ist er vergeben, sagt Jon das sofort
+   Jeden Namen gibt es im Netzwerk **nur einmal**
 2. Klick auf **💬** in der Kopfzeile
-3. Wer Jon im selben Netzwerk offen hat, **erscheint automatisch** in deiner Freundesliste.
-   Sonst tippst du unten einfach den **Namen deines Freundes** ein — Jon ruft den Namen ins
-   Netzwerk, der passende Jon meldet sich, und der Kontakt ist da. Keine IP-Adressen nötig
-4. Freund anklicken, schreiben. Mit 📎 sendest du Bilder, Videos oder Dateien
+3. Freund hinzufügen:
+   - **Im selben WLAN:** einfach seinen **Namen** eintippen — Jon findet ihn
+   - **Woanders (Internet):** er trägt deinen **Jon-Code** ein (steht oben links im Chat).
+     Dafür muss das **Relay** an sein (Zahnrad → 🔌 Verbindungen), kostenlos
+4. Dein Freund bekommt eine **Freundschaftsanfrage** und muss sie annehmen. Erst danach
+   könnt ihr schreiben
+5. Mit 📎 sendest du Bilder, Videos und Dateien, mit 🎙 eine **Sprachnachricht**. Wer nicht
+   zuhören will, klickt **„📝 Text anzeigen"** und liest sie stattdessen
+6. Über **👥 Gruppe erstellen** chattest du mit mehreren Freunden gleichzeitig
 
 Wie bei WhatsApp siehst du eine **Tipp-Animation**, während dein Freund schreibt, und
-bekommst eine **Windows-Benachrichtigung** mit Ton, wenn dir jemand schreibt und der Chat
-gerade zu ist — ein Klick darauf öffnet den Chat.
+bekommst eine **Windows-Benachrichtigung** mit Ton, wenn dir jemand schreibt.
 
-**Wo liegen die Daten?** Ausschließlich auf **euren beiden PCs**: Nachrichten in der lokalen
-Datenbank, Bilder und Videos im Ordner `p2p_media`. Es gibt keinen Server dazwischen, der
-etwas mitliest oder speichert. Löschst du einen Kontakt, verschwinden Verlauf und Dateien mit.
+**Jon schreibt auch für dich:** „Sag Anna, dass ich später komme" · „Was hat Anna
+geschrieben?"
 
-**Ist das sicher?** Der Chat läuft auf einem **eigenen, abgeschotteten Port (8758)**, der
-ausschließlich Nachrichten annimmt. Die Jon-API mit der PC-Steuerung bleibt weiterhin nur
-lokal auf `127.0.0.1` erreichbar — niemand im WLAN kann darüber deinen PC steuern. Beim
-ersten Start fragt die Windows-Firewall nach Erlaubnis für den Chat-Port; die musst du
-einmal bestätigen.
+**Wo liegen die Daten?** Ausschließlich auf **euren Geräten**: Nachrichten in der lokalen
+Datenbank, Medien im Ordner `p2p_media`. Löschst du einen Kontakt, verschwindet alles mit.
+
+**Ist das sicher?**
+
+- **Ende-zu-Ende verschlüsselt** (X25519 + AES-GCM). Die Schlüssel entstehen auf euren PCs
+  und verlassen sie nie — auch das Internet-Relay sieht nur unlesbaren Datensalat
+- **Niemand kann dir ungefragt schreiben:** Unbekannte landen in der Anfrage-Liste. Bis du
+  annimmst, kommt keine Nachricht und keine Datei an. Blockieren geht mit einem Klick
+- Der Chat läuft auf einem **eigenen, abgeschotteten Port (8758)**, der ausschließlich
+  Nachrichten annimmt. Die Jon-API mit der PC-Steuerung bleibt nur lokal auf `127.0.0.1` —
+  niemand im WLAN kann darüber deinen PC steuern
+- Beim ersten Start fragt die Windows-Firewall nach Erlaubnis für den Chat-Port
+
+---
+
+## Backup & Updates
+
+- **Backup** (Zahnrad-Menü): Gedächtnis, Wissensbasis, Skills und Einstellungen als ZIP
+  exportieren und auf einem anderen PC wieder einspielen. API-Schlüssel bleiben absichtlich
+  draußen
+- **Updates:** Jon prüft beim Start, ob eine neuere Version auf GitHub liegt, und sagt
+  Bescheid
 
 ---
 

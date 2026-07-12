@@ -13,6 +13,7 @@ import CodeAgent from "./components/CodeAgent";
 import PetConfig from "./components/PetConfig";
 import ProfileModal from "./components/ProfileModal";
 import FriendsChat from "./components/FriendsChat";
+import SetupWizard from "./components/SetupWizard";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import {
@@ -22,6 +23,7 @@ import {
   StreamEvent,
   ToolMode,
   addDream,
+  checkUpdate,
   getChatNotifications,
   getIdentity,
   getP2PInfo,
@@ -150,6 +152,10 @@ export default function App() {
   const [firstRun, setFirstRun] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [update, setUpdate] = useState<{ latest: string; url: string } | null>(
+    null
+  );
   const [screenOn, setScreenOn] = useState(
     () => localStorage.getItem("jon_screen") === "1"
   );
@@ -293,6 +299,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!online) return;
     void (async () => {
       try {
         const me = await getIdentity();
@@ -303,8 +310,20 @@ export default function App() {
         }
       } catch {
       }
+      try {
+        const info = await checkUpdate();
+        if (info.update) setUpdate({ latest: info.latest, url: info.url });
+      } catch {
+      }
     })();
   }, [online]);
+
+  useEffect(() => {
+    if (!online || providers.length === 0) return;
+    if (!providers.some((p) => p.configured || p.models.length > 0)) {
+      setSetupOpen(true);
+    }
+  }, [online, providers]);
 
   useEffect(() => {
     if (!online || !identity?.name || friendsOpen) {
@@ -1276,6 +1295,34 @@ export default function App() {
           onClose={() => setFriendsOpen(false)}
         />
       )}
+      {update && (
+        <div className="fixed bottom-4 right-4 z-40 glass rounded-2xl border border-gold/30 px-4 py-3 flex items-center gap-3 max-w-[340px]">
+          <span className="text-xl">🚀</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] text-white/90">
+              Version {update.latest} ist da
+            </div>
+            <div className="text-[11px] text-white/45">
+              Du nutzt eine ältere Version von Jon.
+            </div>
+          </div>
+          <a
+            href={update.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[12px] px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold"
+          >
+            Laden
+          </a>
+          <button
+            onClick={() => setUpdate(null)}
+            className="text-white/30 hover:text-white/70 text-[12px]"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {setupOpen && <SetupWizard onDone={() => setSetupOpen(false)} />}
       {profileOpen && identity && (
         <ProfileModal
           identity={identity}
