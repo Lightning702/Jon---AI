@@ -34,6 +34,8 @@ DEFAULTS = {
     "calendar_ics_url": "",
     "telegram_bot_token": "",
     "telegram_chat_id": "",
+    "telegram_provider": "",
+    "telegram_model": "openai/gpt-oss-20b",
     "ha_url": "",
     "ha_token": "",
     "natural_voice": True,
@@ -93,6 +95,14 @@ class SettingsService:
     def selection(self) -> tuple[str, str]:
         with self._lock:
             return self._data.get("provider", ""), self._data.get("model", "")
+
+    def telegram_selection(self) -> tuple[str, str]:
+        with self._lock:
+            provider = self._data.get("telegram_provider", "") or self._data.get(
+                "provider", ""
+            )
+            model = self._data.get("telegram_model", "") or "openai/gpt-oss-20b"
+            return provider, model
 
 
 _service: SettingsService | None = None

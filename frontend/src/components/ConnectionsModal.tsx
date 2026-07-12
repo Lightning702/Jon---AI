@@ -19,6 +19,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
     calendar_ics_url: settings.calendar_ics_url ?? "",
     telegram_bot_token: settings.telegram_bot_token ?? "",
     telegram_chat_id: settings.telegram_chat_id ?? "",
+    telegram_model: settings.telegram_model ?? "openai/gpt-oss-20b",
     ha_url: settings.ha_url ?? "",
     ha_token: settings.ha_token ?? "",
     spotify_client_id: settings.spotify_client_id ?? "",
@@ -150,6 +151,16 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
                 </button>
               </div>
             )}
+            <div className="text-[11px] text-white/40 pt-1">
+              Modell für Telegram (unterwegs zählt Tempo — in der App gilt weiter
+              dein normal gewähltes Modell):
+            </div>
+            <input
+              className={field}
+              placeholder="openai/gpt-oss-20b"
+              value={form.telegram_model}
+              onChange={(e) => set("telegram_model", e.target.value)}
+            />
           </section>
 
           <section className="space-y-2">

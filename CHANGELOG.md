@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [2.7.2] — 2026-07-12
+
+### Neu
+- **Eigenes Modell für Telegram:** Unterwegs zählt Tempo, am PC Qualität. Telegram nutzt
+  jetzt standardmäßig **`openai/gpt-oss-20b`** (Antwort in ~2 s), während App und Mini Jon
+  weiterhin dein normal gewähltes Modell verwenden (Standard: `openai/gpt-oss-120b`).
+  Einstellbar im Zahnrad-Menü → 🔌 Verbindungen → Telegram.
+
+### Geändert
+- Der automatische Modellwechsel bei einem hängenden Modell überschreibt deine Modellwahl
+  **nicht mehr dauerhaft** — er gilt nur für die betroffene Antwort und sagt das auch dazu.
+
 ## [2.7.1] — 2026-07-12
 
 ### Neu

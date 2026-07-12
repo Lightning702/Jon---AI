@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "2.7.1"
+    app_version: str = "2.7.2"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = "*"
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{(DATA_DIR / 'jon.db').as_posix()}"
 
     default_provider: str = "nvidia"
-    default_model: str = "openai/gpt-oss-20b"
+    default_model: str = "openai/gpt-oss-120b"
 
     openai_api_key: str | None = None
     nvidia_api_key: str | None = None

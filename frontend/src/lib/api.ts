@@ -240,6 +240,8 @@ export interface UserSettings {
   calendar_ics_url: string;
   telegram_bot_token: string;
   telegram_chat_id: string;
+  telegram_provider: string;
+  telegram_model: string;
   ha_url: string;
   ha_token: string;
   natural_voice: boolean;
@@ -277,6 +279,8 @@ export async function getUserSettings(): Promise<UserSettings> {
       calendar_ics_url: "",
       telegram_bot_token: "",
       telegram_chat_id: "",
+      telegram_provider: "",
+      telegram_model: "openai/gpt-oss-20b",
       ha_url: "",
       ha_token: "",
       natural_voice: true,

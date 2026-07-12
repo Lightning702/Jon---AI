@@ -72,6 +72,8 @@ class SettingsIn(BaseModel):
     calendar_ics_url: str | None = None
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
+    telegram_provider: str | None = None
+    telegram_model: str | None = None
     ha_url: str | None = None
     ha_token: str | None = None
     natural_voice: bool | None = None

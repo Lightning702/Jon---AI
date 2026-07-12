@@ -49,11 +49,14 @@ class TelegramService:
         history = self._histories.setdefault(chat_id, [])
         history.append({"role": "user", "content": text})
         del history[:-8]
+        provider, model = get_settings_service().telegram_selection()
         payload = ChatIn(
             messages=[MessageIn(**m) for m in history],
             persist=False,
             tool_mode="allow",
             max_tokens=2048,
+            provider=provider or None,
+            model=model or None,
         )
         parts: list[str] = []
         tools: list[str] = []

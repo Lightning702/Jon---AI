@@ -300,13 +300,11 @@ class ChatService:
                 raise
             broken = request.model
             request.model = fallback
-            get_settings_service().update({"model": fallback})
             yield StreamChunk(
                 kind="content",
                 delta=(
-                    f"⚠️ Das Modell {broken} antwortet gerade nicht "
-                    f"({str(exc)[:80]}). Ich habe dauerhaft auf {fallback} "
-                    "gewechselt — du kannst das oben jederzeit ändern.\n\n"
+                    f"⚠️ {broken} antwortet gerade nicht — ich beantworte das "
+                    f"hier mit {fallback}. Deine Modellwahl bleibt unverändert.\n\n"
                 ),
             )
         async for chunk in provider.stream(request, executor):
