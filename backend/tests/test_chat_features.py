@@ -100,6 +100,98 @@ def test_unbekannter_absender_wird_zur_anfrage(tmp_path, monkeypatch):
     assert not service.requests()
 
 
+def test_neue_chat_routen():
+    paths = set(app.openapi()["paths"])
+    for route in (
+        "/api/p2p/groups/invites",
+        "/api/p2p/groups/{group_id}/accept",
+        "/api/p2p/groups/{group_id}/leave",
+        "/api/p2p/messages/{message_id}/react",
+        "/api/p2p/messages/{message_id}",
+        "/api/p2p/chats/{chat_id}",
+        "/api/p2p/search",
+    ):
+        assert route in paths, route
+
+
+def test_gruppennachricht_ohne_annahme_abgelehnt():
+    service = P2PService()
+    service._peers = {"anna": {"name": "Anna", "public_key": "", "ip": ""}}
+    service._groups = {}
+    result = service.receive(
+        {"from_id": "anna", "text": "hi", "group": {"id": "g1", "name": "Test"}},
+        "10.0.0.5",
+    )
+    assert result["error"] == "Gruppe nicht angenommen"
+
+
+def test_gruppeneinladung_von_unbekanntem_abgelehnt():
+    service = P2PService()
+    service._peers = {}
+    service._groups = {}
+    service._invites = {}
+    service._blocked = []
+    result = service.receive_event(
+        {
+            "from_id": "unbekannter",
+            "type": "group_invite",
+            "group": {"id": "g2", "name": "Party", "members": []},
+        },
+        "10.0.0.7",
+    )
+    assert result["error"] == "pending"
+
+
+def test_gruppeneinladung_von_freund_landet_in_einladungen():
+    service = P2PService()
+    service._peers = {"anna": {"name": "Anna", "public_key": "", "ip": ""}}
+    service._groups = {}
+    service._invites = {}
+    service._blocked = []
+    result = service.receive_event(
+        {
+            "from_id": "anna",
+            "from_name": "Anna",
+            "type": "group_invite",
+            "group": {
+                "id": "g3",
+                "name": "Party",
+                "members": [{"id": "anna", "name": "Anna"}],
+            },
+        },
+        "10.0.0.7",
+    )
+    assert result.get("pending") is True
+    assert any(i["id"] == "g3" for i in service.group_invites())
+    assert service.reject_group("g3")["rejected"] is True
+
+
+def test_nachricht_fuer_alle_loeschen_setzt_grabstein():
+    service = P2PService()
+    service._peers = {"anna": {"name": "Anna", "public_key": "", "ip": ""}}
+    message = service._store("anna", "in", "Anna", "Geheim", None)
+    service._tombstone(message["id"])
+    rest = [m for m in service.messages("anna") if m["id"] == message["id"]]
+    assert rest and rest[0]["deleted"] and rest[0]["text"] == ""
+
+
+def test_suche_findet_text():
+    service = P2PService()
+    service._peers = {"anna": {"name": "Anna", "public_key": "", "ip": ""}}
+    service._store("anna", "in", "Anna", "Pizza am Samstag", None)
+    hits = service.search("pizza")
+    assert hits and hits[0]["chat_name"] == "Anna"
+    assert service.search("x") == []
+
+
+def test_verlauf_loeschen():
+    service = P2PService()
+    service._peers = {"bob": {"name": "Bob", "public_key": "", "ip": ""}}
+    service._store("bob", "in", "Bob", "Hallo", None)
+    assert service.clear_chat("bob") >= 1
+    assert service.messages("bob") == []
+
+
 def test_backup_export_und_fehlerfall():
     from app.services.backup_service import export_backup, import_backup
 

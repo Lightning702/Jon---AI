@@ -53,6 +53,8 @@ class RelayService:
                     service.note_typing(peer_id)
             elif kind == "request":
                 service.receive_request(body, "")
+            elif kind == "event":
+                service.receive_event(body, "")
             elif kind == "inbox":
                 service.receive(body, "")
         except Exception:

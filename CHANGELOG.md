@@ -2,6 +2,32 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.0.0] — 2026-07-13
+
+Der Freunde-Chat kann jetzt alles, was ein Messenger können muss.
+
+### Neu — Gruppen
+- **Einladung statt Zwang:** Wer in eine Gruppe soll, bekommt eine **Einladung** und muss
+  sie annehmen. Vorher kommt keine Gruppennachricht an.
+- **Nur mit gemeinsamen Freunden:** Eine Einladung wird nur angezeigt, wenn du mit
+  mindestens einer Person aus der Gruppe befreundet bist — Fremde können dich nicht in
+  Gruppen ziehen.
+- **Gruppe verlassen:** Ein Klick, und du bist raus. Die anderen sehen „X hat die Gruppe
+  verlassen" und deinen Namen nicht mehr in der Mitgliederliste.
+
+### Neu — Nachrichten
+- **⏳ Offline-Zustellung:** Ist dein Freund gerade offline, geht die Nachricht nicht mehr
+  verloren. Sie wartet und wird **automatisch zugestellt**, sobald er wieder da ist.
+  Solange zeigt sie eine Uhr statt einem Haken.
+- **✓✓ Zustell- und Lesebestätigung:** 🕑 wartet · ✓✓ zugestellt · blaues ✓✓ gelesen.
+- **🗑 Löschen und Zurückrufen:** Eine Nachricht bei dir löschen — oder **für alle**, dann
+  verschwindet sie auch beim Freund und hinterlässt nur „Diese Nachricht wurde gelöscht".
+- **🧹 Chatverlauf löschen:** Ein Klick leert den ganzen Verlauf inklusive aller Medien.
+- **↩ Antworten & @Erwähnungen:** Auf eine bestimmte Nachricht antworten (sie wird zitiert),
+  und in Gruppen jemanden mit `@Name` ansprechen — die Nachricht wird bei ihm hervorgehoben.
+- **❤️ Reaktionen:** Mit ❤️ 👍 😂 😮 😢 🔥 auf eine Nachricht reagieren.
+- **🔍 Suche:** Alle Chats nach Wörtern durchsuchen — auch in Sprachnachrichten-Transkripten.
+
 ## [2.9.0] — 2026-07-13
 
 ### Neu — Chat

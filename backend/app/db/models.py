@@ -40,7 +40,25 @@ class P2PMessage(Base):
     media_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     media_mime: Mapped[str | None] = mapped_column(String(64), nullable=True)
     transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply_to: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reply_preview: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reactions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    deleted: Mapped[int] = mapped_column(Integer, default=0)
     seen: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
+class P2POutbox(Base):
+    __tablename__ = "p2p_outbox"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    peer_id: Mapped[str] = mapped_column(String(32), index=True)
+    kind: Mapped[str] = mapped_column(String(16), default="inbox")
+    message_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    payload: Mapped[str] = mapped_column(Text)
+    tries: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
 

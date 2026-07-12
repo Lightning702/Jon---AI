@@ -151,8 +151,10 @@ async def lifespan(app: FastAPI):
     from app.services.relay_service import get_relay_service
 
     relay_task = asyncio.create_task(get_relay_service().start())
+    outbox_task = asyncio.create_task(p2p.outbox_loop())
     yield
     relay_task.cancel()
+    outbox_task.cancel()
     warmup.cancel()
     dream_task.cancel()
     clipboard_task.cancel()

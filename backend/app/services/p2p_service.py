@@ -16,7 +16,7 @@ import httpx
 
 from app.core.config import DATA_DIR
 from app.db.database import session_scope
-from app.db.models import P2PMessage
+from app.db.models import P2PMessage, P2POutbox
 from app.services.crypto_service import get_crypto_service
 from app.services.settings_service import get_settings_service
 
@@ -40,6 +40,7 @@ class P2PService:
         self._peers: dict[str, dict] = data.get("peers", {})
         self._requests: dict[str, dict] = data.get("requests", {})
         self._blocked: list[str] = data.get("blocked", [])
+        self._invites: dict[str, dict] = {}
         self._groups: dict[str, dict] = self._load_groups()
         self._transport: asyncio.DatagramTransport | None = None
         self._typing: dict[str, float] = {}
@@ -79,16 +80,25 @@ class P2PService:
         if GROUPS_FILE.exists():
             try:
                 data = json.loads(GROUPS_FILE.read_text(encoding="utf-8"))
+                if isinstance(data, dict) and "groups" in data:
+                    self._invites = data.get("invites", {})
+                    return data.get("groups", {})
                 if isinstance(data, dict):
+                    self._invites = {}
                     return data
             except Exception:
                 pass
+        self._invites = {}
         return {}
 
     def _save_groups(self) -> None:
         try:
             GROUPS_FILE.write_text(
-                json.dumps(self._groups, ensure_ascii=False, indent=2),
+                json.dumps(
+                    {"groups": self._groups, "invites": self._invites},
+                    ensure_ascii=False,
+                    indent=2,
+                ),
                 encoding="utf-8",
             )
         except Exception:
@@ -600,6 +610,9 @@ class P2PService:
         text: str,
         media: dict | None,
         group_id: str = "",
+        message_id: str = "",
+        reply_to: str = "",
+        reply_preview: str = "",
     ) -> dict:
         media_file = None
         media_kind = None
@@ -625,7 +638,10 @@ class P2PService:
             else:
                 media_kind = "file"
         with session_scope() as session:
+            if message_id and session.get(P2PMessage, message_id) is not None:
+                return self._as_dict(session.get(P2PMessage, message_id))
             message = P2PMessage(
+                id=message_id or uuid.uuid4().hex,
                 peer_id=peer_id,
                 group_id=group_id or None,
                 direction=direction,
@@ -635,6 +651,8 @@ class P2PService:
                 media_kind=media_kind,
                 media_name=media_name,
                 media_mime=media_mime,
+                reply_to=reply_to or None,
+                reply_preview=reply_preview or None,
                 seen=1 if direction == "out" else 0,
             )
             session.add(message)
@@ -643,6 +661,10 @@ class P2PService:
 
     @staticmethod
     def _as_dict(message: P2PMessage) -> dict:
+        try:
+            reactions = json.loads(message.reactions) if message.reactions else {}
+        except Exception:
+            reactions = {}
         return {
             "id": message.id,
             "peer_id": message.peer_id,
@@ -654,9 +676,54 @@ class P2PService:
             "media_name": message.media_name,
             "media_mime": message.media_mime,
             "transcript": message.transcript,
+            "reply_to": message.reply_to,
+            "reply_preview": message.reply_preview,
+            "reactions": reactions,
+            "deleted": bool(message.deleted),
+            "delivered": message.delivered_at is not None,
+            "read": message.read_at is not None,
             "has_media": bool(message.media_file),
             "created_at": message.created_at.isoformat(),
         }
+
+    def _queue(self, peer_id: str, kind: str, payload: dict, message_id: str = "") -> None:
+        with session_scope() as session:
+            session.add(
+                P2POutbox(
+                    peer_id=peer_id,
+                    kind=kind,
+                    message_id=message_id or None,
+                    payload=json.dumps(payload, ensure_ascii=False),
+                )
+            )
+
+    def _mark_delivered(self, message_id: str) -> None:
+        with session_scope() as session:
+            row = session.get(P2PMessage, message_id)
+            if row is not None and row.delivered_at is None:
+                row.delivered_at = datetime.now(timezone.utc)
+
+    async def _send_or_queue(
+        self, peer_id: str, kind: str, payload: dict, message_id: str = ""
+    ) -> bool:
+        ok = await self._deliver(peer_id, kind, payload)
+        if ok:
+            if message_id:
+                await asyncio.to_thread(self._mark_delivered, message_id)
+            return True
+        await asyncio.to_thread(self._queue, peer_id, kind, payload, message_id)
+        return False
+
+    def _reply_preview(self, reply_to: str) -> str:
+        if not reply_to:
+            return ""
+        with session_scope() as session:
+            row = session.get(P2PMessage, reply_to)
+            if row is None:
+                return ""
+            who = "Du" if row.direction == "out" else (row.sender_name or "?")
+            body = row.text or (f"[{row.media_kind}]" if row.media_kind else "")
+            return f"{who}: {body[:80]}"
 
     async def send(
         self,
@@ -664,45 +731,55 @@ class P2PService:
         text: str,
         media: dict | None = None,
         group_id: str = "",
+        reply_to: str = "",
     ) -> dict:
         if group_id:
-            return await self.send_group(group_id, text, media)
+            return await self.send_group(group_id, text, media, reply_to)
         with self._lock:
             peer = dict(self._peers.get(peer_id) or {})
         if not peer:
             return {"error": "Unbekannter Kontakt"}
         if not text.strip() and not (media and media.get("data")):
             return {"error": "Leere Nachricht"}
+        if peer.get("waiting"):
+            return {
+                "error": f"{peer.get('name', 'Der Kontakt')} hat deine "
+                "Freundschaftsanfrage noch nicht angenommen."
+            }
         me = self.identity()
+        message_id = uuid.uuid4().hex
+        preview = await asyncio.to_thread(self._reply_preview, reply_to)
         payload = {
             "from_id": me["id"],
             "from_name": me["name"] or "Jon-Nutzer",
             "from_avatar": me["avatar"],
             "from_port": CHAT_PORT,
             "public_key": me["public_key"],
+            "msg_id": message_id,
             "text": text,
             "media": media or None,
+            "reply_to": reply_to or "",
+            "reply_preview": preview,
         }
-        ok = await self._deliver(peer_id, "inbox", payload)
-        if not ok:
-            if peer.get("waiting"):
-                return {
-                    "error": f"{peer.get('name', 'Der Kontakt')} hat deine "
-                    "Freundschaftsanfrage noch nicht angenommen."
-                }
-            return {
-                "error": f"{peer.get('name', 'Der Kontakt')} ist gerade nicht "
-                "erreichbar."
-            }
-        with self._lock:
-            if self._peers.get(peer_id, {}).pop("waiting", None) is not None:
-                self._save()
         try:
-            return await asyncio.to_thread(
-                self._store, peer_id, "out", me["name"], text, media, group_id
+            message = await asyncio.to_thread(
+                self._store,
+                peer_id,
+                "out",
+                me["name"],
+                text,
+                media,
+                "",
+                message_id,
+                reply_to,
+                preview,
             )
         except ValueError as exc:
             return {"error": str(exc)}
+        delivered = await self._send_or_queue(peer_id, "inbox", payload, message_id)
+        message["delivered"] = delivered
+        message["queued"] = not delivered
+        return message
 
     def receive(self, payload: dict, sender_ip: str) -> dict:
         peer_id = str(payload.get("from_id", "")).strip()
@@ -735,12 +812,7 @@ class P2PService:
             group_id = str(group["id"])
             with self._lock:
                 if group_id not in self._groups:
-                    self._groups[group_id] = {
-                        "name": str(group.get("name", "Gruppe")),
-                        "members": [str(m) for m in (group.get("members") or [])],
-                        "created_at": _now_iso(),
-                    }
-                    self._save_groups()
+                    return {"error": "Gruppe nicht angenommen"}
         media = payload.get("media") if isinstance(payload.get("media"), dict) else None
         message = self._store(
             peer_id,
@@ -749,9 +821,165 @@ class P2PService:
             str(payload.get("text", "")),
             media,
             group_id,
+            str(payload.get("msg_id", "")),
+            str(payload.get("reply_to", "")),
+            str(payload.get("reply_preview", "")),
         )
         self._typing.pop(peer_id, None)
+        if payload.get("msg_id"):
+            self._later(
+                self._send_event(
+                    peer_id,
+                    {
+                        "type": "receipt",
+                        "msg_id": str(payload["msg_id"]),
+                        "state": "delivered",
+                    },
+                )
+            )
         return {"ok": True, "id": message["id"]}
+
+    def _later(self, coro) -> None:
+        try:
+            asyncio.get_running_loop().create_task(coro)
+        except RuntimeError:
+            try:
+                asyncio.run(coro)
+            except Exception:
+                pass
+
+    async def _send_event(self, peer_id: str, event: dict) -> bool:
+        me = self.identity()
+        payload = {"from_id": me["id"], "from_name": me["name"], **event}
+        return await self._deliver(peer_id, "event", payload)
+
+    async def _broadcast_event(self, message: dict, event: dict) -> None:
+        group_id = message.get("group_id")
+        if group_id:
+            with self._lock:
+                members = list(
+                    (self._groups.get(group_id) or {}).get("members", [])
+                )
+            me = self.identity()["id"]
+            for member in members:
+                if member != me:
+                    await self._send_event(member, event)
+            return
+        await self._send_event(message["peer_id"], event)
+
+    def receive_event(self, payload: dict, sender_ip: str) -> dict:
+        peer_id = str(payload.get("from_id", "")).strip()
+        if not peer_id or peer_id in self._blocked:
+            return {"error": "blocked"}
+        with self._lock:
+            known = peer_id in self._peers
+        if not known:
+            return {"error": "pending"}
+        if "enc" in payload:
+            with self._lock:
+                public_key = str(self._peers[peer_id].get("public_key", ""))
+            try:
+                payload = get_crypto_service().decrypt(payload["enc"], public_key)
+            except Exception:
+                return {"error": "Entschlüsselung fehlgeschlagen"}
+        kind = str(payload.get("type", ""))
+        message_id = str(payload.get("msg_id", ""))
+
+        if kind == "receipt" and message_id:
+            with session_scope() as session:
+                row = session.get(P2PMessage, message_id)
+                if row is not None:
+                    now = datetime.now(timezone.utc)
+                    if row.delivered_at is None:
+                        row.delivered_at = now
+                    if payload.get("state") == "read" and row.read_at is None:
+                        row.read_at = now
+            return {"ok": True}
+
+        if kind == "reaction" and message_id:
+            emoji = str(payload.get("emoji", ""))[:8]
+            who = str(payload.get("from_name", "?"))
+            with session_scope() as session:
+                row = session.get(P2PMessage, message_id)
+                if row is None:
+                    return {"ok": True}
+                try:
+                    data = json.loads(row.reactions) if row.reactions else {}
+                except Exception:
+                    data = {}
+                people = [p for p in data.get(emoji, []) if p != who]
+                if len(people) == len(data.get(emoji, [])):
+                    people.append(who)
+                if people:
+                    data[emoji] = people
+                else:
+                    data.pop(emoji, None)
+                row.reactions = json.dumps(data, ensure_ascii=False)
+            return {"ok": True}
+
+        if kind == "delete" and message_id:
+            self._tombstone(message_id)
+            return {"ok": True}
+
+        if kind == "group_invite":
+            group = payload.get("group") or {}
+            group_id = str(group.get("id", ""))
+            if not group_id:
+                return {"error": "Ungültige Einladung"}
+            members = [m for m in (group.get("members") or []) if isinstance(m, dict)]
+            me = self.identity()["id"]
+            with self._lock:
+                known_member = any(
+                    m.get("id") in self._peers and m.get("id") != me for m in members
+                ) or peer_id in self._peers
+            if not known_member:
+                return {"error": "keine gemeinsamen Freunde"}
+            with self._lock:
+                if group_id in self._groups:
+                    return {"ok": True}
+                self._invites[group_id] = {
+                    "name": str(group.get("name", "Gruppe")),
+                    "from_id": peer_id,
+                    "from_name": str(payload.get("from_name", "")),
+                    "members": members,
+                    "created_at": _now_iso(),
+                }
+                self._save_groups()
+            return {"ok": True, "pending": True}
+
+        if kind == "group_leave":
+            group_id = str(payload.get("group_id", ""))
+            with self._lock:
+                group = self._groups.get(group_id)
+                if group and peer_id in group.get("members", []):
+                    group["members"] = [
+                        m for m in group["members"] if m != peer_id
+                    ]
+                    self._save_groups()
+            name = str(payload.get("from_name", "Jemand"))
+            self._store(
+                peer_id, "in", "", f"{name} hat die Gruppe verlassen.", None, group_id
+            )
+            return {"ok": True}
+
+        return {"ok": True}
+
+    def _tombstone(self, message_id: str) -> None:
+        with session_scope() as session:
+            row = session.get(P2PMessage, message_id)
+            if row is None:
+                return
+            if row.media_file:
+                (MEDIA_DIR / row.media_file).unlink(missing_ok=True)
+            row.deleted = 1
+            row.text = ""
+            row.media_file = None
+            row.media_kind = None
+            row.media_name = None
+            row.media_mime = None
+            row.transcript = None
+            row.reactions = None
+            row.seen = 1
 
     def receive_request(self, payload: dict, sender_ip: str) -> dict:
         peer_id = str(payload.get("from_id", "")).strip()
@@ -806,22 +1034,134 @@ class P2PService:
             )
         return result
 
-    def create_group(self, name: str, members: list[str]) -> dict:
+    def _member_card(self, peer_id: str) -> dict:
+        me = self.identity()
+        if peer_id == me["id"]:
+            return {
+                "id": me["id"],
+                "name": me["name"],
+                "avatar": me["avatar"],
+                "ip": self.local_ip(),
+                "port": CHAT_PORT,
+                "public_key": me["public_key"],
+            }
+        peer = self._peers.get(peer_id) or {}
+        return {
+            "id": peer_id,
+            "name": peer.get("name", "?"),
+            "avatar": peer.get("avatar", "🙂"),
+            "ip": peer.get("ip", ""),
+            "port": self._peer_port(peer),
+            "public_key": peer.get("public_key", ""),
+        }
+
+    async def create_group(self, name: str, members: list[str]) -> dict:
         clean = name.strip()[:40]
         valid = [m for m in members if m in self._peers]
         if not clean:
             return {"error": "Gruppenname angeben"}
         if not valid:
             return {"error": "Mindestens einen Freund auswählen"}
+        me = self.identity()
         group_id = uuid.uuid4().hex[:10]
+        all_members = [me["id"], *valid]
         with self._lock:
             self._groups[group_id] = {
                 "name": clean,
-                "members": valid,
+                "members": all_members,
                 "created_at": _now_iso(),
             }
             self._save_groups()
-        return {"id": group_id, "name": clean, "members": valid}
+        cards = [self._member_card(m) for m in all_members]
+        for member in valid:
+            await self._send_or_queue(
+                member,
+                "event",
+                {
+                    "from_id": me["id"],
+                    "from_name": me["name"],
+                    "type": "group_invite",
+                    "group": {"id": group_id, "name": clean, "members": cards},
+                },
+            )
+        return {"id": group_id, "name": clean, "members": all_members}
+
+    def group_invites(self) -> list[dict]:
+        with self._lock:
+            return [
+                {
+                    "id": gid,
+                    "name": data.get("name", "Gruppe"),
+                    "from_name": data.get("from_name", ""),
+                    "members": [m.get("name", "?") for m in data.get("members", [])],
+                }
+                for gid, data in self._invites.items()
+            ]
+
+    def accept_group(self, group_id: str) -> dict:
+        with self._lock:
+            invite = self._invites.get(group_id)
+        if not invite:
+            return {"error": "Keine Einladung für diese Gruppe"}
+        me = self.identity()["id"]
+        members = invite.get("members", [])
+        if not any(
+            m.get("id") in self._peers and m.get("id") != me for m in members
+        ) and invite.get("from_id") not in self._peers:
+            return {"error": "Du bist mit niemandem aus dieser Gruppe befreundet."}
+        for member in members:
+            member_id = str(member.get("id", ""))
+            if not member_id or member_id == me or member_id in self._blocked:
+                continue
+            if member_id not in self._peers:
+                self._add_peer(
+                    member_id,
+                    str(member.get("name", "")),
+                    str(member.get("avatar", "")),
+                    str(member.get("ip", "")),
+                    int(member.get("port") or 0),
+                    str(member.get("public_key", "")),
+                )
+                with self._lock:
+                    self._peers[member_id]["via_group"] = True
+                    self._save()
+        with self._lock:
+            self._groups[group_id] = {
+                "name": invite.get("name", "Gruppe"),
+                "members": [str(m.get("id")) for m in members],
+                "created_at": _now_iso(),
+            }
+            self._invites.pop(group_id, None)
+            self._save_groups()
+        return {"accepted": True, "id": group_id}
+
+    def reject_group(self, group_id: str) -> dict:
+        with self._lock:
+            existed = self._invites.pop(group_id, None) is not None
+            if existed:
+                self._save_groups()
+        return {"rejected": existed}
+
+    async def leave_group(self, group_id: str) -> dict:
+        with self._lock:
+            group = dict(self._groups.get(group_id) or {})
+        if not group:
+            return {"error": "Unbekannte Gruppe"}
+        me = self.identity()
+        for member in group.get("members", []):
+            if member != me["id"]:
+                await self._send_or_queue(
+                    member,
+                    "event",
+                    {
+                        "from_id": me["id"],
+                        "from_name": me["name"],
+                        "type": "group_leave",
+                        "group_id": group_id,
+                    },
+                )
+        self.delete_group(group_id)
+        return {"left": True, "id": group_id}
 
     def delete_group(self, group_id: str) -> bool:
         with self._lock:
@@ -840,36 +1180,59 @@ class P2PService:
         return existed
 
     async def send_group(
-        self, group_id: str, text: str, media: dict | None = None
+        self,
+        group_id: str,
+        text: str,
+        media: dict | None = None,
+        reply_to: str = "",
     ) -> dict:
         with self._lock:
             group = dict(self._groups.get(group_id) or {})
         if not group:
             return {"error": "Unbekannte Gruppe"}
+        if not text.strip() and not (media and media.get("data")):
+            return {"error": "Leere Nachricht"}
         me = self.identity()
         members = [m for m in group.get("members", []) if m != me["id"]]
+        message_id = uuid.uuid4().hex
+        preview = await asyncio.to_thread(self._reply_preview, reply_to)
         payload_base = {
             "from_id": me["id"],
             "from_name": me["name"] or "Jon-Nutzer",
             "from_avatar": me["avatar"],
             "from_port": CHAT_PORT,
             "public_key": me["public_key"],
+            "msg_id": message_id,
             "text": text,
             "media": media or None,
+            "reply_to": reply_to or "",
+            "reply_preview": preview,
             "group": {
                 "id": group_id,
                 "name": group.get("name", "Gruppe"),
                 "members": [me["id"], *members],
             },
         }
+        message = await asyncio.to_thread(
+            self._store,
+            me["id"],
+            "out",
+            me["name"],
+            text,
+            media,
+            group_id,
+            message_id,
+            reply_to,
+            preview,
+        )
         delivered = 0
         for member in members:
-            if await self._deliver(member, "inbox", dict(payload_base)):
+            if await self._send_or_queue(member, "inbox", dict(payload_base)):
                 delivered += 1
-        message = await asyncio.to_thread(
-            self._store, me["id"], "out", me["name"], text, media, group_id
-        )
-        message["delivered"] = delivered
+        if delivered:
+            await asyncio.to_thread(self._mark_delivered, message_id)
+        message["delivered"] = delivered > 0
+        message["delivered_to"] = delivered
         message["members"] = len(members)
         return message
 
@@ -886,6 +1249,7 @@ class P2PService:
             return [self._as_dict(r) for r in rows]
 
     def mark_seen(self, peer_id: str) -> int:
+        receipts: list[tuple[str, str]] = []
         with session_scope() as session:
             query = session.query(P2PMessage).filter(P2PMessage.seen == 0)
             if peer_id in self._groups:
@@ -895,7 +1259,164 @@ class P2PService:
             rows = query.all()
             for row in rows:
                 row.seen = 1
+                if row.direction == "in" and not row.group_id:
+                    receipts.append((row.peer_id, row.id))
+        for sender, message_id in receipts:
+            self._later(
+                self._send_event(
+                    sender,
+                    {"type": "receipt", "msg_id": message_id, "state": "read"},
+                )
+            )
+        return len(rows)
+
+    async def react(self, message_id: str, emoji: str) -> dict:
+        emoji = emoji.strip()[:8]
+        if not emoji:
+            return {"error": "Emoji angeben"}
+        me = self.identity()["name"] or "Du"
+        with session_scope() as session:
+            row = session.get(P2PMessage, message_id)
+            if row is None or row.deleted:
+                return {"error": "Nachricht nicht gefunden"}
+            try:
+                data = json.loads(row.reactions) if row.reactions else {}
+            except Exception:
+                data = {}
+            people = [p for p in data.get(emoji, []) if p != me]
+            if len(people) == len(data.get(emoji, [])):
+                people.append(me)
+            if people:
+                data[emoji] = people
+            else:
+                data.pop(emoji, None)
+            row.reactions = json.dumps(data, ensure_ascii=False)
+            message = self._as_dict(row)
+        await self._broadcast_event(
+            message, {"type": "reaction", "msg_id": message_id, "emoji": emoji}
+        )
+        return message
+
+    async def delete_message(self, message_id: str, for_all: bool = False) -> dict:
+        with session_scope() as session:
+            row = session.get(P2PMessage, message_id)
+            if row is None:
+                return {"error": "Nachricht nicht gefunden"}
+            message = self._as_dict(row)
+        if for_all and message["direction"] != "out":
+            return {"error": "Nur eigene Nachrichten können für alle gelöscht werden."}
+        if for_all:
+            await self._broadcast_event(
+                message, {"type": "delete", "msg_id": message_id}
+            )
+            await asyncio.to_thread(self._tombstone, message_id)
+            return {"deleted": True, "for_all": True}
+        with session_scope() as session:
+            row = session.get(P2PMessage, message_id)
+            if row is not None:
+                if row.media_file:
+                    (MEDIA_DIR / row.media_file).unlink(missing_ok=True)
+                session.delete(row)
+        return {"deleted": True, "for_all": False}
+
+    def clear_chat(self, chat_id: str) -> int:
+        with session_scope() as session:
+            query = session.query(P2PMessage)
+            if chat_id in self._groups:
+                query = query.filter(P2PMessage.group_id == chat_id)
+            else:
+                query = query.filter(
+                    P2PMessage.peer_id == chat_id, P2PMessage.group_id.is_(None)
+                )
+            rows = query.all()
+            for row in rows:
+                if row.media_file:
+                    (MEDIA_DIR / row.media_file).unlink(missing_ok=True)
+                session.delete(row)
             return len(rows)
+
+    def search(self, query: str, limit: int = 40) -> list[dict]:
+        needle = query.strip().lower()
+        if len(needle) < 2:
+            return []
+        results = []
+        with session_scope() as session:
+            rows = (
+                session.query(P2PMessage)
+                .filter(P2PMessage.deleted == 0)
+                .order_by(P2PMessage.created_at.desc())
+                .limit(2000)
+                .all()
+            )
+            for row in rows:
+                haystack = f"{row.text or ''} {row.transcript or ''}".lower()
+                if needle not in haystack:
+                    continue
+                item = self._as_dict(row)
+                if row.group_id:
+                    item["chat_name"] = (
+                        self._groups.get(row.group_id, {}).get("name", "Gruppe")
+                    )
+                    item["chat_id"] = row.group_id
+                else:
+                    peer = self._peers.get(row.peer_id) or {}
+                    item["chat_name"] = peer.get("name", "Unbekannt")
+                    item["chat_id"] = row.peer_id
+                results.append(item)
+                if len(results) >= limit:
+                    break
+        return results
+
+    async def outbox_loop(self) -> None:
+        while True:
+            await asyncio.sleep(12)
+            try:
+                with session_scope() as session:
+                    rows = (
+                        session.query(P2POutbox)
+                        .order_by(P2POutbox.created_at.asc())
+                        .limit(20)
+                        .all()
+                    )
+                    pending = [
+                        (r.id, r.peer_id, r.kind, r.payload, r.message_id, r.tries)
+                        for r in rows
+                    ]
+                for row_id, peer_id, kind, raw, message_id, tries in pending:
+                    if peer_id not in self._peers:
+                        await asyncio.to_thread(self._drop_outbox, row_id)
+                        continue
+                    try:
+                        payload = json.loads(raw)
+                    except Exception:
+                        await asyncio.to_thread(self._drop_outbox, row_id)
+                        continue
+                    if await self._deliver(peer_id, kind, payload):
+                        if message_id:
+                            await asyncio.to_thread(self._mark_delivered, message_id)
+                        await asyncio.to_thread(self._drop_outbox, row_id)
+                    elif tries > 200:
+                        await asyncio.to_thread(self._drop_outbox, row_id)
+                    else:
+                        await asyncio.to_thread(self._bump_outbox, row_id)
+            except Exception:
+                continue
+
+    def _drop_outbox(self, row_id: str) -> None:
+        with session_scope() as session:
+            row = session.get(P2POutbox, row_id)
+            if row is not None:
+                session.delete(row)
+
+    def _bump_outbox(self, row_id: str) -> None:
+        with session_scope() as session:
+            row = session.get(P2POutbox, row_id)
+            if row is not None:
+                row.tries += 1
+
+    def pending_outbox(self) -> int:
+        with session_scope() as session:
+            return session.query(P2POutbox).count()
 
     def unread_count(self, peer_id: str = "") -> int:
         with session_scope() as session:

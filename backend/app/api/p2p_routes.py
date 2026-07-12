@@ -33,6 +33,7 @@ class SendIn(BaseModel):
     text: str = ""
     media: MediaIn | None = None
     group_id: str = ""
+    reply_to: str = ""
 
 
 class TypingIn(BaseModel):
@@ -42,6 +43,10 @@ class TypingIn(BaseModel):
 class GroupIn(BaseModel):
     name: str
     members: list[str]
+
+
+class ReactIn(BaseModel):
+    emoji: str
 
 
 @router.get("/me")
@@ -67,7 +72,8 @@ async def info() -> dict:
     return {
         "ip": service.local_ip(),
         "unread": service.total_unread(),
-        "requests": len(service.requests()),
+        "requests": len(service.requests()) + len(service.group_invites()),
+        "queued": service.pending_outbox(),
         "relay": get_relay_service().status(),
     }
 
@@ -138,15 +144,67 @@ async def groups() -> list[dict]:
 
 @router.post("/groups")
 async def create_group(payload: GroupIn) -> dict:
-    result = get_p2p_service().create_group(payload.name, payload.members)
+    result = await get_p2p_service().create_group(payload.name, payload.members)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/groups/invites")
+async def group_invites() -> list[dict]:
+    return get_p2p_service().group_invites()
+
+
+@router.post("/groups/{group_id}/accept")
+async def accept_group(group_id: str) -> dict:
+    result = get_p2p_service().accept_group(group_id)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/groups/{group_id}/reject")
+async def reject_group(group_id: str) -> dict:
+    return get_p2p_service().reject_group(group_id)
+
+
+@router.post("/groups/{group_id}/leave")
+async def leave_group(group_id: str) -> dict:
+    result = await get_p2p_service().leave_group(group_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
     return result
 
 
 @router.delete("/groups/{group_id}")
 async def delete_group(group_id: str) -> dict:
     return {"deleted": get_p2p_service().delete_group(group_id)}
+
+
+@router.get("/search")
+async def search(q: str = "") -> list[dict]:
+    return await asyncio.to_thread(get_p2p_service().search, q)
+
+
+@router.post("/messages/{message_id}/react")
+async def react(message_id: str, payload: ReactIn) -> dict:
+    result = await get_p2p_service().react(message_id, payload.emoji)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@router.delete("/messages/{message_id}")
+async def delete_message(message_id: str, for_all: bool = False) -> dict:
+    result = await get_p2p_service().delete_message(message_id, for_all)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.delete("/chats/{chat_id}")
+async def clear_chat(chat_id: str) -> dict:
+    return {"cleared": await asyncio.to_thread(get_p2p_service().clear_chat, chat_id)}
 
 
 @router.get("/notifications")
@@ -185,7 +243,7 @@ async def transcribe(message_id: str) -> dict:
 async def send(payload: SendIn) -> dict:
     media = payload.media.model_dump() if payload.media else None
     result = await get_p2p_service().send(
-        payload.peer_id, payload.text, media, payload.group_id
+        payload.peer_id, payload.text, media, payload.group_id, payload.reply_to
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -237,6 +295,20 @@ def create_chat_app() -> FastAPI:
         if peer_id:
             service.note_typing(peer_id)
         return {"ok": True}
+
+    @app.post("/event")
+    async def event(request: Request) -> dict:
+        service = get_p2p_service()
+        if not service.identity()["enabled"]:
+            raise HTTPException(status_code=403, detail="Chat ist deaktiviert")
+        payload = await request.json()
+        sender_ip = request.client.host if request.client else ""
+        result = await asyncio.to_thread(service.receive_event, payload, sender_ip)
+        if result.get("error") in ("pending", "blocked"):
+            raise HTTPException(status_code=403, detail=result["error"])
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        return result
 
     @app.post("/inbox")
     async def inbox(request: Request) -> dict:

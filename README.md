@@ -252,7 +252,20 @@ Jon-Nutzer können sich **direkt gegenseitig schreiben** — Text, Bilder, Video
    könnt ihr schreiben
 5. Mit 📎 sendest du Bilder, Videos und Dateien, mit 🎙 eine **Sprachnachricht**. Wer nicht
    zuhören will, klickt **„📝 Text anzeigen"** und liest sie stattdessen
-6. Über **👥 Gruppe erstellen** chattest du mit mehreren Freunden gleichzeitig
+6. Über **👥 Gruppe erstellen** chattest du mit mehreren Freunden. Die Eingeladenen müssen
+   **beitreten** — und das geht nur, wenn sie mit mindestens einer Person aus der Gruppe
+   befreundet sind. Verlassen kann die Gruppe jeder jederzeit
+
+**Was der Chat sonst noch kann:**
+
+- **⏳ Offline-Zustellung** — ist dein Freund gerade aus, wartet die Nachricht und wird
+  zugestellt, sobald er wieder online ist
+- **✓✓ Zustell- und Lesebestätigung** — 🕑 wartet · ✓✓ zugestellt · blaues ✓✓ gelesen
+- **🗑 Löschen & Zurückrufen** — bei dir oder **für alle** (dann verschwindet sie auch beim
+  Freund), und der ganze **Verlauf** auf einen Klick
+- **↩ Antworten & @Erwähnungen** — auf eine bestimmte Nachricht antworten, in Gruppen mit
+  `@Name` jemanden direkt ansprechen
+- **❤️ Reaktionen** und **🔍 Suche** über alle Chats (auch in Sprachnachrichten)
 
 Wie bei WhatsApp siehst du eine **Tipp-Animation**, während dein Freund schreibt, und
 bekommst eine **Windows-Benachrichtigung** mit Ton, wenn dir jemand schreibt.

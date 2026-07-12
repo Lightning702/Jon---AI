@@ -1,26 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import {
   P2PGroup,
+  P2PGroupInvite,
   P2PIdentity,
   P2PMessage,
   P2PPeer,
   P2PRequest,
   addPeer,
+  answerGroupInvite,
   answerRequest,
+  clearChat,
   createGroup,
   deleteGroup,
+  deleteMessage,
   deletePeer,
+  getGroupInvites,
   getGroups,
   getP2PMessages,
   getPeers,
   getRequests,
   getTypingPeers,
+  leaveGroup,
   mediaUrl,
+  reactToMessage,
+  searchChats,
   sendP2PMessage,
   sendTyping,
   transcribeMessage,
 } from "../lib/api";
 import { VoiceRecorder } from "../lib/recorder";
+
+const EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
 
 interface Props {
   identity: P2PIdentity;
@@ -65,6 +75,12 @@ export default function FriendsChat({
   const [groupName, setGroupName] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [invites, setInvites] = useState<P2PGroupInvite[]>([]);
+  const [replyTo, setReplyTo] = useState<P2PMessage | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<P2PMessage[]>([]);
+  const [mentionOpen, setMentionOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const activeRef = useRef<string | null>(null);
@@ -80,6 +96,7 @@ export default function FriendsChat({
       setPeers(await getPeers());
       setGroups(await getGroups());
       setRequests(await getRequests());
+      setInvites(await getGroupInvites());
       const current = activeRef.current;
       if (current) setMessages(await getP2PMessages(current));
     };
@@ -122,15 +139,64 @@ export default function FriendsChat({
         group ? "" : activeId,
         text.trim(),
         media,
-        group ? activeId : ""
+        group ? activeId : "",
+        replyTo?.id ?? ""
       );
       setText("");
+      setReplyTo(null);
       setMessages(await getP2PMessages(activeId));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
+  };
+
+  const react = async (messageId: string, emoji: string) => {
+    setMenuFor(null);
+    await reactToMessage(messageId, emoji);
+    if (activeId) setMessages(await getP2PMessages(activeId));
+  };
+
+  const removeMessage = async (messageId: string, forAll: boolean) => {
+    setMenuFor(null);
+    await deleteMessage(messageId, forAll);
+    if (activeId) setMessages(await getP2PMessages(activeId));
+  };
+
+  const clearHistory = async () => {
+    if (!activeId) return;
+    await clearChat(activeId);
+    setMessages(await getP2PMessages(activeId));
+  };
+
+  const leave = async () => {
+    if (!group) return;
+    await leaveGroup(group.id);
+    setActiveId(null);
+    setMessages([]);
+    setGroups(await getGroups());
+  };
+
+  const decideGroup = async (groupId: string, action: "accept" | "reject") => {
+    setError("");
+    try {
+      await answerGroupInvite(groupId, action);
+      setInvites(await getGroupInvites());
+      setGroups(await getGroups());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const runSearch = async (value: string) => {
+    setQuery(value);
+    setHits(value.trim().length >= 2 ? await searchChats(value) : []);
+  };
+
+  const insertMention = (name: string) => {
+    setText((prev) => prev.replace(/@[\wÀ-ſ]*$/, `@${name} `));
+    setMentionOpen(false);
   };
 
   const attach = (file: File) => {
@@ -266,6 +332,48 @@ export default function FriendsChat({
             </button>
           </div>
 
+          <div className="px-2 pt-2">
+            <input
+              value={query}
+              onChange={(e) => void runSearch(e.target.value)}
+              placeholder="🔍 In allen Chats suchen …"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
+            />
+          </div>
+
+          {invites.length > 0 && (
+            <div className="p-2 border-b border-white/10 space-y-1.5">
+              <div className="text-[10px] uppercase tracking-wide text-gold/70 px-1">
+                Gruppen-Einladungen
+              </div>
+              {invites.map((g) => (
+                <div
+                  key={g.id}
+                  className="rounded-xl border border-gold/30 bg-gold/10 px-2.5 py-2"
+                >
+                  <div className="text-[12px] text-white/90">👥 {g.name}</div>
+                  <div className="text-[10px] text-white/40">
+                    von {g.from_name} · {g.members.join(", ")}
+                  </div>
+                  <div className="flex gap-1 mt-1.5">
+                    <button
+                      onClick={() => void decideGroup(g.id, "accept")}
+                      className="flex-1 text-[11px] py-1 rounded-lg bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold"
+                    >
+                      Beitreten
+                    </button>
+                    <button
+                      onClick={() => void decideGroup(g.id, "reject")}
+                      className="flex-1 text-[11px] py-1 rounded-lg border border-white/15 text-white/60 hover:bg-white/10"
+                    >
+                      Ablehnen
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {requests.length > 0 && (
             <div className="p-2 border-b border-white/10 space-y-1.5">
               <div className="text-[10px] uppercase tracking-wide text-gold/70 px-1">
@@ -314,6 +422,29 @@ export default function FriendsChat({
           )}
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {hits.length > 0 && (
+              <div className="space-y-1 pb-2 mb-1 border-b border-white/10">
+                <div className="text-[10px] uppercase tracking-wide text-gold/70 px-1">
+                  {hits.length} Treffer
+                </div>
+                {hits.map((h) => (
+                  <button
+                    key={h.id}
+                    onClick={() => {
+                      void openChat(h.chat_id ?? h.peer_id);
+                      setQuery("");
+                      setHits([]);
+                    }}
+                    className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/5 transition"
+                  >
+                    <div className="text-[11px] text-gold/80">{h.chat_name}</div>
+                    <div className="text-[12px] text-white/70 truncate">
+                      {h.text || h.transcript}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
             {peers.length === 0 && groups.length === 0 && (
               <div className="text-[12px] text-white/35 px-2 py-6 text-center leading-relaxed">
                 Noch keine Freunde. Wer Jon im selben Netzwerk offen hat,
@@ -541,12 +672,32 @@ export default function FriendsChat({
                 <span className="text-white/40">💬 Freunde-Chat</span>
               )}
             </div>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white/90 transition"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-1.5">
+              {activeId && (
+                <button
+                  onClick={() => void clearHistory()}
+                  title="Chatverlauf bei mir löschen"
+                  className="text-[11px] px-2 py-1 rounded-lg border border-white/10 text-white/45 hover:text-red-300 hover:border-red-400/30 transition"
+                >
+                  Verlauf löschen
+                </button>
+              )}
+              {group && (
+                <button
+                  onClick={() => void leave()}
+                  title="Gruppe verlassen"
+                  className="text-[11px] px-2 py-1 rounded-lg border border-white/10 text-white/45 hover:text-red-300 hover:border-red-400/30 transition"
+                >
+                  Gruppe verlassen
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white/90 transition"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
@@ -569,21 +720,101 @@ export default function FriendsChat({
             {messages.map((m) => {
               const mine = m.direction === "out";
               const shown = transcripts[m.id] ?? m.transcript;
+              const mentioned =
+                !mine &&
+                identity.name &&
+                m.text.toLowerCase().includes(`@${identity.name.toLowerCase()}`);
+              if (m.deleted)
+                return (
+                  <div
+                    key={m.id}
+                    className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                  >
+                    <div className="px-3 py-2 rounded-2xl border border-white/10 bg-white/5 text-white/35 text-[12px] italic">
+                      🚫 Diese Nachricht wurde gelöscht
+                    </div>
+                  </div>
+                );
               return (
                 <div
                   key={m.id}
-                  className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                  className={`group/msg flex items-center gap-1.5 ${
+                    mine ? "justify-end" : "justify-start"
+                  }`}
                 >
+                  {mine && (
+                    <button
+                      onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}
+                      className="opacity-0 group-hover/msg:opacity-100 text-white/30 hover:text-gold text-[13px] transition"
+                    >
+                      ⋯
+                    </button>
+                  )}
                   <div
-                    className={`max-w-[70%] px-3 py-2 rounded-2xl ${
+                    className={`relative max-w-[70%] px-3 py-2 rounded-2xl ${
                       mine
                         ? "bg-gradient-to-br from-gold-light/90 to-gold-dark/90 text-black rounded-br-md"
-                        : "bg-white/8 border border-white/10 text-white/90 rounded-bl-md"
+                        : mentioned
+                          ? "bg-gold/15 border border-gold/40 text-white/90 rounded-bl-md"
+                          : "bg-white/8 border border-white/10 text-white/90 rounded-bl-md"
                     }`}
                   >
+                    {menuFor === m.id && (
+                      <div
+                        className={`absolute z-10 top-full mt-1 ${
+                          mine ? "right-0" : "left-0"
+                        } glass rounded-xl border border-white/15 p-1.5 w-44`}
+                      >
+                        <div className="flex gap-1 pb-1.5 mb-1 border-b border-white/10">
+                          {EMOJIS.map((e) => (
+                            <button
+                              key={e}
+                              onClick={() => void react(m.id, e)}
+                              className="text-[15px] hover:scale-125 transition"
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setReplyTo(m);
+                            setMenuFor(null);
+                          }}
+                          className="w-full text-left text-[12px] px-2 py-1 rounded-lg text-white/70 hover:bg-white/10"
+                        >
+                          ↩ Antworten
+                        </button>
+                        <button
+                          onClick={() => void removeMessage(m.id, false)}
+                          className="w-full text-left text-[12px] px-2 py-1 rounded-lg text-white/70 hover:bg-white/10"
+                        >
+                          🗑 Bei mir löschen
+                        </button>
+                        {mine && (
+                          <button
+                            onClick={() => void removeMessage(m.id, true)}
+                            className="w-full text-left text-[12px] px-2 py-1 rounded-lg text-red-300/80 hover:bg-red-400/10"
+                          >
+                            🗑 Für alle löschen
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {group && !mine && (
                       <div className="text-[10px] font-semibold text-gold/80 mb-0.5">
                         {m.sender_name}
+                      </div>
+                    )}
+                    {m.reply_preview && (
+                      <div
+                        className={`text-[11px] mb-1 pl-2 border-l-2 rounded ${
+                          mine
+                            ? "border-black/30 text-black/60"
+                            : "border-gold/50 text-white/50"
+                        }`}
+                      >
+                        {m.reply_preview}
                       </div>
                     )}
                     {m.media_kind === "image" && (
@@ -640,8 +871,26 @@ export default function FriendsChat({
                         {m.text}
                       </div>
                     )}
+                    {Object.keys(m.reactions ?? {}).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {Object.entries(m.reactions).map(([emoji, people]) => (
+                          <button
+                            key={emoji}
+                            onClick={() => void react(m.id, emoji)}
+                            title={people.join(", ")}
+                            className={`text-[11px] px-1.5 py-0.5 rounded-full border ${
+                              mine
+                                ? "border-black/20 bg-black/10 text-black/80"
+                                : "border-white/15 bg-white/10 text-white/80"
+                            }`}
+                          >
+                            {emoji} {people.length}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div
-                      className={`text-[10px] mt-0.5 ${
+                      className={`flex items-center gap-1 text-[10px] mt-0.5 ${
                         mine ? "text-black/45" : "text-white/30"
                       }`}
                     >
@@ -649,8 +898,30 @@ export default function FriendsChat({
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
+                      {mine && (
+                        <span
+                          title={
+                            m.read
+                              ? "Gelesen"
+                              : m.delivered
+                                ? "Zugestellt"
+                                : "Wird zugestellt, sobald er online ist"
+                          }
+                          className={m.read ? "text-sky-700 font-bold" : ""}
+                        >
+                          {m.read ? "✓✓" : m.delivered ? "✓✓" : "🕑"}
+                        </span>
+                      )}
                     </div>
                   </div>
+                  {!mine && (
+                    <button
+                      onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}
+                      className="opacity-0 group-hover/msg:opacity-100 text-white/30 hover:text-gold text-[13px] transition"
+                    >
+                      ⋯
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -671,6 +942,33 @@ export default function FriendsChat({
 
           {activeId && (
             <div className="p-3 border-t border-white/10">
+              {replyTo && (
+                <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-white/5 border-l-2 border-gold/50">
+                  <span className="flex-1 text-[11px] text-white/60 truncate">
+                    ↩ {replyTo.direction === "out" ? "Du" : replyTo.sender_name}:{" "}
+                    {replyTo.text || `[${replyTo.media_kind}]`}
+                  </span>
+                  <button
+                    onClick={() => setReplyTo(null)}
+                    className="text-white/30 hover:text-white/70 text-[12px]"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              {mentionOpen && group && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {group.member_names.map((name) => (
+                    <button
+                      key={name}
+                      onClick={() => insertMention(name)}
+                      className="text-[11px] px-2 py-1 rounded-lg border border-gold/30 bg-gold/10 text-gold/90 hover:bg-gold/20"
+                    >
+                      @{name}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex items-end gap-2">
                 <input
                   ref={fileRef}
@@ -706,13 +1004,11 @@ export default function FriendsChat({
                 <textarea
                   value={text}
                   onChange={(e) => {
-                    setText(e.target.value);
+                    const value = e.target.value;
+                    setText(value);
+                    setMentionOpen(!!group && /@[\wÀ-ſ]*$/.test(value));
                     const now = Date.now();
-                    if (
-                      !group &&
-                      e.target.value &&
-                      now - typingSentRef.current > 1200
-                    ) {
+                    if (!group && value && now - typingSentRef.current > 1200) {
                       typingSentRef.current = now;
                       void sendTyping(activeId);
                     }

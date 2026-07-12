@@ -824,8 +824,23 @@ export interface P2PMessage {
   media_name: string | null;
   media_mime: string | null;
   transcript: string | null;
+  reply_to: string | null;
+  reply_preview: string | null;
+  reactions: Record<string, string[]>;
+  deleted: boolean;
+  delivered: boolean;
+  read: boolean;
   has_media: boolean;
   created_at: string;
+  chat_name?: string;
+  chat_id?: string;
+}
+
+export interface P2PGroupInvite {
+  id: string;
+  name: string;
+  from_name: string;
+  members: string[];
 }
 
 export const mediaUrl = (messageId: string) => `${BASE}/p2p/media/${messageId}`;
@@ -906,6 +921,59 @@ export async function deleteGroup(groupId: string): Promise<void> {
   await fetch(`${BASE}/p2p/groups/${groupId}`, { method: "DELETE" });
 }
 
+export async function getGroupInvites(): Promise<P2PGroupInvite[]> {
+  const res = await fetch(`${BASE}/p2p/groups/invites`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function answerGroupInvite(
+  groupId: string,
+  action: "accept" | "reject"
+): Promise<void> {
+  const res = await fetch(`${BASE}/p2p/groups/${groupId}/${action}`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function leaveGroup(groupId: string): Promise<void> {
+  await fetch(`${BASE}/p2p/groups/${groupId}/leave`, { method: "POST" });
+}
+
+export async function reactToMessage(
+  messageId: string,
+  emoji: string
+): Promise<void> {
+  await fetch(`${BASE}/p2p/messages/${messageId}/react`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ emoji }),
+  });
+}
+
+export async function deleteMessage(
+  messageId: string,
+  forAll = false
+): Promise<void> {
+  await fetch(`${BASE}/p2p/messages/${messageId}?for_all=${forAll}`, {
+    method: "DELETE",
+  });
+}
+
+export async function clearChat(chatId: string): Promise<void> {
+  await fetch(`${BASE}/p2p/chats/${chatId}`, { method: "DELETE" });
+}
+
+export async function searchChats(query: string): Promise<P2PMessage[]> {
+  const res = await fetch(`${BASE}/p2p/search?q=${encodeURIComponent(query)}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function transcribeMessage(messageId: string): Promise<string> {
   const res = await fetch(`${BASE}/p2p/messages/${messageId}/transcribe`, {
     method: "POST",
@@ -975,7 +1043,8 @@ export async function sendP2PMessage(
   peerId: string,
   text: string,
   media?: { name: string; mime: string; data: string },
-  groupId = ""
+  groupId = "",
+  replyTo = ""
 ): Promise<void> {
   const res = await fetch(`${BASE}/p2p/send`, {
     method: "POST",
@@ -985,6 +1054,7 @@ export async function sendP2PMessage(
       text,
       media: media ?? null,
       group_id: groupId,
+      reply_to: replyTo,
     }),
   });
   if (!res.ok) {
