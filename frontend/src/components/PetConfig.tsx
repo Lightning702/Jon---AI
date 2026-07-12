@@ -10,6 +10,7 @@ interface Cfg {
   pet_cheeks: boolean;
   pet_scale: number;
   pet_eyes: Eyes;
+  pet_model: string;
 }
 
 const DEFAULT: Cfg = {
@@ -18,6 +19,7 @@ const DEFAULT: Cfg = {
   pet_cheeks: false,
   pet_scale: 1,
   pet_eyes: "round",
+  pet_model: "openai/gpt-oss-20b",
 };
 
 function Eyes({ style, color }: { style: Eyes; color: string }) {
@@ -56,6 +58,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
         pet_cheeks: s.pet_cheeks !== false,
         pet_scale: s.pet_scale || 1,
         pet_eyes: (s.pet_eyes as Eyes) || "round",
+        pet_model: s.pet_model || DEFAULT.pet_model,
       })
     );
   }, []);
@@ -189,6 +192,19 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               <span className="text-[12px] text-white/50 w-10 text-right">
                 {Math.round(cfg.pet_scale * 100)}%
               </span>
+            </div>
+            <div className="space-y-1 pt-1">
+              <span className="text-[13px] text-white/80">Modell</span>
+              <input
+                value={cfg.pet_model}
+                onChange={(e) => update({ pet_model: e.target.value })}
+                placeholder="openai/gpt-oss-20b"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
+              />
+              <div className="text-[11px] text-white/40 leading-snug">
+                Mini Jon plaudert — ein schnelles Modell antwortet in ~2 s. Der
+                große Jon behält sein eigenes Modell.
+              </div>
             </div>
           </div>
 

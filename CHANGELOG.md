@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [2.8.2] — 2026-07-12
+
+### Behoben
+- **Mini Jon brauchte ewig für ein einfaches „Hallo".** Er hat immer das Modell des großen
+  Jon mitbenutzt — und das war `openai/gpt-oss-120b`, das auf NVIDIAs Servern hängt. Mini
+  Jon hat jetzt sein **eigenes Modell** (Standard `openai/gpt-oss-20b`) und antwortet
+  gemessen in **0,7–2 Sekunden**. Der große Jon behält sein Modell unverändert.
+  Einstellbar im 🎨-Knopf bei Mini Jon.
+- Mini Jon antwortet außerdem kürzer (max. 800 Tokens) — er plaudert, er schreibt keine
+  Aufsätze.
+
 ## [2.8.1] — 2026-07-12
 
 ### Behoben

@@ -36,6 +36,8 @@ DEFAULTS = {
     "telegram_chat_id": "",
     "telegram_provider": "",
     "telegram_model": "openai/gpt-oss-20b",
+    "pet_provider": "",
+    "pet_model": "openai/gpt-oss-20b",
     "ha_url": "",
     "ha_token": "",
     "natural_voice": True,
