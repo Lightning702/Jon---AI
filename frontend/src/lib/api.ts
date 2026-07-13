@@ -1133,7 +1133,12 @@ export async function getChatNotifications(): Promise<P2PNotification[]> {
   return res.json();
 }
 
-export async function getTypingPeers(): Promise<string[]> {
+export interface P2PTyping {
+  peer_id: string;
+  group_id: string;
+}
+
+export async function getTypingPeers(): Promise<P2PTyping[]> {
   try {
     const res = await fetch(`${BASE}/p2p/typing`);
     if (!res.ok) return [];
@@ -1144,12 +1149,15 @@ export async function getTypingPeers(): Promise<string[]> {
   }
 }
 
-export async function sendTyping(peerId: string): Promise<void> {
+export async function sendTyping(
+  peerId: string,
+  groupId = ""
+): Promise<void> {
   try {
     await fetch(`${BASE}/p2p/typing`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ peer_id: peerId }),
+      body: JSON.stringify({ peer_id: peerId, group_id: groupId }),
     });
   } catch {
     /* egal */

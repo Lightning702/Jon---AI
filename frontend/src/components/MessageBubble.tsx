@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import TypingDots from "./TypingDots";
 import { toolDetail, toolLabel } from "../lib/toolInfo";
 
 export interface ToolStep {
@@ -125,9 +126,18 @@ export default function MessageBubble({ entry }: { entry: ChatEntry }) {
               )}
             </div>
           )}
-          <span>{entry.content}</span>
-          {entry.streaming && (
-            <span className="inline-block w-2 h-4 ml-0.5 align-middle bg-gold animate-pulse rounded-sm" />
+          {entry.streaming && !entry.content ? (
+            <span className="flex items-center gap-2">
+              <TypingDots />
+              <span className="text-[12px] text-white/40">Jon schreibt …</span>
+            </span>
+          ) : (
+            <>
+              <span>{entry.content}</span>
+              {entry.streaming && (
+                <span className="inline-block w-2 h-4 ml-0.5 align-middle bg-gold animate-pulse rounded-sm" />
+              )}
+            </>
           )}
         </div>
       </div>

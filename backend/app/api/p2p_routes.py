@@ -38,6 +38,7 @@ class SendIn(BaseModel):
 
 class TypingIn(BaseModel):
     peer_id: str
+    group_id: str = ""
 
 
 class GroupIn(BaseModel):
@@ -219,7 +220,7 @@ async def notifications(channel: str = "app") -> list[dict]:
 
 @router.post("/typing")
 async def typing(payload: TypingIn) -> dict:
-    await get_p2p_service().send_typing(payload.peer_id)
+    await get_p2p_service().send_typing(payload.peer_id, payload.group_id)
     return {"ok": True}
 
 
@@ -298,7 +299,7 @@ def create_chat_app() -> FastAPI:
         payload = await request.json()
         peer_id = str(payload.get("from_id", "")).strip()
         if peer_id:
-            service.note_typing(peer_id)
+            service.note_typing(peer_id, str(payload.get("group_id", "")))
         return {"ok": True}
 
     @app.post("/event")

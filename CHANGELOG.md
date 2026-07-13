@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.3.0] — 2026-07-13
+
+### Neu — Tipp-Animation im Chat
+- **Jon-Chat:** Sobald du abschickst, tippt Jon sichtbar („Jon schreibt …" mit drei
+  hüpfenden Punkten) — statt einer leeren Blase, bis das erste Wort kommt. Sobald er
+  schreibt, läuft der Text wie gewohnt mit blinkendem Cursor.
+- **Gruppen-Chat:** Die Tipp-Animation gab es bisher nur in Einzelchats. Jetzt siehst du
+  auch in Gruppen, wer gerade schreibt („Anna tippt …", bei mehreren „Anna, Ben tippen …")
+  — im Kopf und als Blase unten im Verlauf.
+- **Richtiger Chat:** „Tippt" wird jetzt pro Chat gemerkt statt pro Person. Vorher hätte
+  „Anna tippt …" in einer Gruppe gestanden, während sie dir in Wahrheit privat schreibt.
+
 ## [3.2.1] — 2026-07-13
 
 ### Behoben

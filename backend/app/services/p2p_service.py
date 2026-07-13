@@ -44,7 +44,7 @@ class P2PService:
         self._invites: dict[str, dict] = {}
         self._groups: dict[str, dict] = self._load_groups()
         self._transport: asyncio.DatagramTransport | None = None
-        self._typing: dict[str, float] = {}
+        self._typing: dict[tuple[str, str], float] = {}
         self._notified: dict[str, set[str]] = {}
         self._loc_cache: dict[str, str] = {}
         self._cleaned = False
@@ -640,14 +640,19 @@ class P2PService:
             {"id": clean, "name": "Freund", "avatar": "🙂", "ip": "", "port": 0}
         )
 
-    def is_typing(self, peer_id: str) -> bool:
-        return (time.time() - self._typing.get(peer_id, 0.0)) < 4.0
+    def is_typing(self, peer_id: str, group_id: str = "") -> bool:
+        stamp = self._typing.get((peer_id, group_id), 0.0)
+        return (time.time() - stamp) < 4.0
 
-    def note_typing(self, peer_id: str) -> None:
-        self._typing[peer_id] = time.time()
+    def note_typing(self, peer_id: str, group_id: str = "") -> None:
+        self._typing[(peer_id, group_id)] = time.time()
 
-    def typing_peers(self) -> list[str]:
-        return [pid for pid in list(self._typing) if self.is_typing(pid)]
+    def typing_peers(self) -> list[dict]:
+        return [
+            {"peer_id": peer_id, "group_id": group_id}
+            for (peer_id, group_id) in list(self._typing)
+            if self.is_typing(peer_id, group_id)
+        ]
 
     async def _deliver(self, peer_id: str, kind: str, payload: dict) -> bool:
         with self._lock:
@@ -679,9 +684,11 @@ class P2PService:
 
         return await get_relay_service().publish(peer_id, kind, body)
 
-    async def send_typing(self, peer_id: str) -> None:
+    async def send_typing(self, peer_id: str, group_id: str = "") -> None:
         me = self.identity()
-        await self._deliver(peer_id, "typing", {"from_id": me["id"]})
+        await self._deliver(
+            peer_id, "typing", {"from_id": me["id"], "group_id": group_id}
+        )
 
     def pending_notifications(self, channel: str = "app") -> list[dict]:
         self._cleanup_orphans()
@@ -938,7 +945,7 @@ class P2PService:
             str(payload.get("reply_to", "")),
             str(payload.get("reply_preview", "")),
         )
-        self._typing.pop(peer_id, None)
+        self._typing.pop((peer_id, group_id), None)
         if payload.get("msg_id"):
             self._later(
                 self._send_event(

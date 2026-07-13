@@ -6,6 +6,7 @@ import {
   P2PIdentity,
   P2PMessage,
   P2PPeer,
+  P2PTyping,
   addPeer,
   answerGroupInvite,
   clearChat,
@@ -28,6 +29,7 @@ import {
   transcribeMessage,
 } from "../lib/api";
 import { VoiceRecorder } from "../lib/recorder";
+import TypingDots from "./TypingDots";
 
 const EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
 
@@ -36,20 +38,6 @@ interface Props {
   initialPeerId?: string | null;
   onEditProfile: () => void;
   onClose: () => void;
-}
-
-function TypingDots() {
-  return (
-    <span className="inline-flex items-center gap-1">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="w-1.5 h-1.5 rounded-full bg-gold/80 animate-bounce"
-          style={{ animationDelay: `${i * 0.15}s`, animationDuration: "0.9s" }}
-        />
-      ))}
-    </span>
-  );
 }
 
 export default function FriendsChat({
@@ -61,7 +49,7 @@ export default function FriendsChat({
   const [peers, setPeers] = useState<P2PPeer[]>([]);
   const [groups, setGroups] = useState<P2PGroup[]>([]);
   const [discovered, setDiscovered] = useState<P2PDiscovered[]>([]);
-  const [typing, setTyping] = useState<string[]>([]);
+  const [typing, setTyping] = useState<P2PTyping[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<P2PMessage[]>([]);
   const [text, setText] = useState("");
@@ -123,10 +111,25 @@ export default function FriendsChat({
     if (initialPeerId) void openChat(initialPeerId);
   }, [initialPeerId]);
 
-  const isTyping = (peerId: string) => typing.includes(peerId);
+  const isTyping = (peerId: string, groupId = "") =>
+    typing.some((t) => t.peer_id === peerId && t.group_id === groupId);
   const group = groups.find((g) => g.id === activeId) ?? null;
   const peer = peers.find((p) => p.id === activeId) ?? null;
   const activeName = group?.name ?? peer?.name ?? "";
+  const typingInGroup = group
+    ? group.members
+        .filter((m) => m !== identity.id && isTyping(m, group.id))
+        .map((m) => peers.find((p) => p.id === m)?.name ?? "Jemand")
+    : [];
+  const someoneTyping = group
+    ? typingInGroup.length > 0
+    : !!peer && (peer.typing || isTyping(peer.id));
+  const typingLabel =
+    typingInGroup.length === 1
+      ? `${typingInGroup[0]} tippt …`
+      : typingInGroup.length > 1
+        ? `${typingInGroup.slice(0, 2).join(", ")} tippen …`
+        : "tippt …";
 
   const openChat = async (id: string) => {
     setActiveId(id);
@@ -626,9 +629,15 @@ export default function FriendsChat({
                 <span className="flex items-center gap-2">
                   <span className="text-xl">👥</span>
                   {group.name}
-                  <span className="text-[11px] text-white/35">
-                    {group.member_names.join(", ")}
-                  </span>
+                  {typingInGroup.length > 0 ? (
+                    <span className="text-[11px] text-gold/90 flex items-center gap-1.5">
+                      <TypingDots /> {typingLabel}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-white/35">
+                      {group.member_names.join(", ")}
+                    </span>
+                  )}
                 </span>
               ) : peer ? (
                 <span className="flex items-center gap-2">
@@ -913,9 +922,14 @@ export default function FriendsChat({
                 </div>
               );
             })}
-            {peer && (peer.typing || isTyping(peer.id)) && (
+            {activeId && someoneTyping && (
               <div className="flex justify-start">
-                <div className="bg-white/8 border border-white/10 rounded-2xl rounded-bl-md px-4 py-3">
+                <div className="bg-white/8 border border-white/10 rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-2">
+                  {group && (
+                    <span className="text-[11px] text-gold/80">
+                      {typingLabel}
+                    </span>
+                  )}
                   <TypingDots />
                 </div>
               </div>
@@ -996,9 +1010,16 @@ export default function FriendsChat({
                     setText(value);
                     setMentionOpen(!!group && /@[\wÀ-ſ]*$/.test(value));
                     const now = Date.now();
-                    if (!group && value && now - typingSentRef.current > 1200) {
+                    if (value && now - typingSentRef.current > 1200) {
                       typingSentRef.current = now;
-                      void sendTyping(activeId);
+                      if (group) {
+                        for (const member of group.members) {
+                          if (member !== identity.id)
+                            void sendTyping(member, group.id);
+                        }
+                      } else {
+                        void sendTyping(activeId);
+                      }
                     }
                   }}
                   onKeyDown={(e) => {

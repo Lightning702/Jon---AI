@@ -50,7 +50,7 @@ class RelayService:
             if kind == "typing":
                 peer_id = str(body.get("from_id", ""))
                 if peer_id:
-                    service.note_typing(peer_id)
+                    service.note_typing(peer_id, str(body.get("group_id", "")))
             elif kind == "request":
                 service.receive_request(body, "")
             elif kind == "event":

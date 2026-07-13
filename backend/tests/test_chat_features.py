@@ -276,6 +276,34 @@ def test_gruppenaustritt_ohne_gruppe_legt_nichts_an():
     assert service.messages("gibtsnicht") == []
 
 
+def test_tippen_ist_pro_chat_getrennt():
+    service = P2PService()
+    service.note_typing("anna", "gruppe1")
+    assert service.is_typing("anna", "gruppe1")
+    assert not service.is_typing("anna")
+    assert not service.is_typing("anna", "gruppe2")
+    service.note_typing("anna")
+    assert service.is_typing("anna")
+    eintraege = service.typing_peers()
+    assert {"peer_id": "anna", "group_id": "gruppe1"} in eintraege
+    assert {"peer_id": "anna", "group_id": ""} in eintraege
+
+
+def test_nachricht_beendet_tippen_im_richtigen_chat():
+    service = P2PService()
+    service._peers = {"anna": {"name": "Anna", "public_key": "", "ip": ""}}
+    service._groups = {"g1": {"name": "Team", "members": ["anna"]}}
+    service._blocked = []
+    service.note_typing("anna")
+    service.note_typing("anna", "g1")
+    service.receive(
+        {"from_id": "anna", "text": "hi", "group": {"id": "g1", "name": "Team"}},
+        "10.0.0.5",
+    )
+    assert not service.is_typing("anna", "g1")
+    assert service.is_typing("anna")
+
+
 def test_humanizer_score_und_kurztext():
     from app.services.humanize_service import score
 
