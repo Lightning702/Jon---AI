@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.2.1] — 2026-07-13
+
+### Behoben
+- **Tests schrieben in echte Nutzerdaten:** Die Test-Suite lief gegen
+  `%LOCALAPPDATA%\Jon\data` statt gegen eine Wegwerf-Datenbank. Dadurch tauchten
+  erfundene Freunde („Anna"), erfundene Freundschaftsanfragen und ungelesene
+  Test-Nachrichten („Pizza am Samstag") in der echten App auf — das waren die
+  „Benachrichtigungen ohne Chat". Schlimmer: die Tests überschrieben die `peers.json`
+  und hätten beim nächsten Neustart echte Freunde gelöscht.
+  `tests/conftest.py` setzt jetzt `JON_DATA_DIR` auf ein temporäres Verzeichnis, löscht es
+  vor jedem Lauf und **bricht ab**, falls es doch auf echte Daten zeigt.
+- **„Not Found" im Humanisierer:** Neue Routen (`/api/humanize`, `/api/p2p/discovered`)
+  gibt es erst nach einem Backend-Neustart. Die App zeigte sonst nur „Not Found".
+
 ## [3.2.0] — 2026-07-13
 
 ### Neu — Freunde vorschlagen
