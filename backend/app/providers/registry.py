@@ -16,7 +16,7 @@ class ProviderRegistry:
         self._build()
 
     def _resolver(self, provider: str):
-        return lambda: self._keys.key_for(provider)
+        return lambda slot="jon": self._keys.key_for(provider, slot)
 
     def _build(self) -> None:
         s = self._settings

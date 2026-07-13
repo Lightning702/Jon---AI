@@ -35,9 +35,9 @@ DEFAULTS = {
     "telegram_bot_token": "",
     "telegram_chat_id": "",
     "telegram_provider": "",
-    "telegram_model": "openai/gpt-oss-20b",
+    "telegram_model": "",
     "pet_provider": "",
-    "pet_model": "openai/gpt-oss-20b",
+    "pet_model": "",
     "ha_url": "",
     "ha_token": "",
     "natural_voice": True,
@@ -106,8 +106,7 @@ class SettingsService:
             provider = self._data.get("telegram_provider", "") or self._data.get(
                 "provider", ""
             )
-            model = self._data.get("telegram_model", "") or "openai/gpt-oss-20b"
-            return provider, model
+            return provider, self._data.get("telegram_model", "")
 
 
 _service: SettingsService | None = None

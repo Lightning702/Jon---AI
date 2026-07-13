@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "3.3.0"
+    app_version: str = "3.4.0"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = "*"
@@ -57,7 +57,9 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{(DATA_DIR / 'jon.db').as_posix()}"
 
     default_provider: str = "nvidia"
-    default_model: str = "openai/gpt-oss-120b"
+    default_model: str = ""
+    default_jon_model: str = "openai/gpt-oss-120b"
+    default_emil_model: str = "openai/gpt-oss-20b"
 
     openai_api_key: str | None = None
     nvidia_api_key: str | None = None
@@ -92,6 +94,21 @@ class Settings(BaseSettings):
     reasoning_effort: str = "low"
     default_temperature: float = 1.0
     default_top_p: float = 1.0
+
+    @property
+    def jon_model(self) -> str:
+        return (
+            self.default_jon_model.strip()
+            or self.default_model.strip()
+            or "openai/gpt-oss-120b"
+        )
+
+    @property
+    def emil_model(self) -> str:
+        return self.default_emil_model.strip() or self.jon_model
+
+    def model_for(self, slot: str) -> str:
+        return self.emil_model if slot == "emil" else self.jon_model
 
     def origins(self) -> list[str]:
         raw = self.cors_origins.strip()

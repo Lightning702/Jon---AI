@@ -329,3 +329,53 @@ def test_backup_export_und_fehlerfall():
     raw = export_backup()
     assert len(raw) > 0
     assert "error" in import_backup(b"kein zip")
+
+
+def test_zwei_api_keys_per_komma():
+    from app.core.keys import pick_key, split_keys
+
+    raw = "key-emil, key-jon"
+    assert split_keys(raw) == ["key-emil", "key-jon"]
+    assert pick_key(raw, "emil") == "key-emil"
+    assert pick_key(raw, "jon") == "key-jon"
+
+
+def test_ein_key_gilt_fuer_beide():
+    from app.core.keys import pick_key
+
+    assert pick_key("nur-einer", "emil") == "nur-einer"
+    assert pick_key("nur-einer", "jon") == "nur-einer"
+    assert pick_key("", "jon") is None
+    assert pick_key(None, "emil") is None
+
+
+def test_keymanager_liefert_getrennte_keys():
+    from app.core.config import Settings
+    from app.core.keys import KeyManager
+
+    manager = KeyManager(Settings(nvidia_api_key="erster , zweiter"))
+    assert manager.env_key_for("nvidia", "emil") == "erster"
+    assert manager.env_key_for("nvidia", "jon") == "zweiter"
+
+
+def test_modelle_pro_slot():
+    from app.core.config import Settings
+
+    s = Settings(
+        default_jon_model="openai/gpt-oss-120b",
+        default_emil_model="openai/gpt-oss-20b",
+    )
+    assert s.model_for("jon") == "openai/gpt-oss-120b"
+    assert s.model_for("emil") == "openai/gpt-oss-20b"
+    assert Settings(default_jon_model="a", default_emil_model="").emil_model == "a"
+
+
+def test_slot_aus_persona_und_telegram():
+    from app.schemas import ChatIn, MessageIn
+    from app.services.chat_service import ChatService
+
+    service = ChatService()
+    msgs = [MessageIn(role="user", content="hi")]
+    assert service.slot_for(ChatIn(messages=msgs)) == "jon"
+    assert service.slot_for(ChatIn(messages=msgs, persona="junior")) == "emil"
+    assert service.slot_for(ChatIn(messages=msgs, slot="emil")) == "emil"

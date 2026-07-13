@@ -15,7 +15,7 @@ async def complete(
 ) -> str:
     settings = get_settings()
     provider = provider or settings.default_provider
-    model = model or settings.default_model
+    model = model or settings.jon_model
     prov = get_registry().get(provider)
     messages = []
     if system:

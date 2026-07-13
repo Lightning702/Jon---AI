@@ -314,10 +314,19 @@ class ChatService:
         async for chunk in provider.stream(request, executor):
             yield chunk
 
+    def slot_for(self, payload: ChatIn) -> str:
+        if payload.slot:
+            return payload.slot
+        return "emil" if payload.persona == "junior" else "jon"
+
     def resolve(self, payload: ChatIn) -> tuple[str, str]:
         saved_provider, saved_model = get_settings_service().selection()
         provider = payload.provider or saved_provider or self._settings.default_provider
-        model = payload.model or saved_model or self._settings.default_model
+        slot = self.slot_for(payload)
+        if slot == "emil":
+            model = payload.model or self._settings.emil_model
+        else:
+            model = payload.model or saved_model or self._settings.jon_model
         return provider, model
 
     def _ensure_conversation(self, payload: ChatIn, provider: str, model: str) -> str:
@@ -372,6 +381,7 @@ class ChatService:
 
     async def stream(self, payload: ChatIn) -> AsyncIterator[dict]:
         provider_name, model = self.resolve(payload)
+        slot = self.slot_for(payload)
         provider = self._registry.get(provider_name)
 
         if payload.mode != "coding" and get_settings_service().personality():
@@ -465,6 +475,7 @@ class ChatService:
             max_tokens=payload.max_tokens,
             seed=payload.seed,
             tools=tools,
+            slot=slot,
         )
 
         ask_mode = payload.tool_mode != "allow"
@@ -623,6 +634,7 @@ class ChatService:
                         max_tokens=payload.max_tokens,
                         seed=payload.seed,
                         tools=tools,
+                        slot=slot,
                     )
                     continue
                 content_parts.append(candidate)

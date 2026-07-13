@@ -23,6 +23,7 @@ class ChatIn(BaseModel):
     tool_mode: str = Field(default="ask", pattern="^(ask|allow)$")
     mode: str = Field(default="chat", pattern="^(chat|coding)$")
     persona: str = Field(default="papa", pattern="^(papa|junior)$")
+    slot: str = Field(default="", pattern="^(jon|emil)?$")
     workspace: str | None = None
 
 

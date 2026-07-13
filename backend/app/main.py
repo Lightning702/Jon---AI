@@ -48,7 +48,7 @@ async def _dream_watcher() -> None:
                 continue
             settings = get_settings()
             provider = data.get("provider") or settings.default_provider
-            model = data.get("model") or settings.default_model
+            model = data.get("model") or settings.jon_model
             await dreams.run_pending(provider, model)
         except Exception:
             continue
@@ -82,7 +82,7 @@ async def _task_watcher() -> None:
             data = get_settings_service().get()
             settings = get_settings()
             provider = data.get("provider") or settings.default_provider
-            model = data.get("model") or settings.default_model
+            model = data.get("model") or settings.jon_model
             await tasks.run_due(provider, model)
         except Exception:
             continue
@@ -109,7 +109,7 @@ async def _file_watcher() -> None:
             data = get_settings_service().get()
             settings = get_settings()
             provider = data.get("provider") or settings.default_provider
-            model = data.get("model") or settings.default_model
+            model = data.get("model") or settings.jon_model
             await get_watcher_service().tick(provider, model)
         except Exception:
             continue

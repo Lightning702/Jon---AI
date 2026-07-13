@@ -46,7 +46,7 @@ class JonCLI:
         self.provider_name = preferred if preferred in available else (
             available[0] if available else preferred
         )
-        self.model = self.settings.default_model
+        self.model = self.settings.jon_model
 
     async def _resolve_model(self) -> None:
         provider = self.registry.get(self.provider_name)

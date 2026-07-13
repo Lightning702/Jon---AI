@@ -43,7 +43,7 @@ class OpenAICompatibleProvider(LLMProvider):
         api_key: str | None = None,
         default_models: list[str] | None = None,
         timeout: float = 180.0,
-        key_resolver: Callable[[], str | None] | None = None,
+        key_resolver: Callable[..., str | None] | None = None,
     ) -> None:
         self.name = name
         self._base_url = base_url
@@ -51,33 +51,33 @@ class OpenAICompatibleProvider(LLMProvider):
         self._key_resolver = key_resolver
         self._default_models = default_models or []
         self._timeout = timeout
-        self._client_cache: AsyncOpenAI | None = None
-        self._cached_key: str | None = None
+        self._clients: dict[str, AsyncOpenAI] = {}
         self._models_cache: list[str] | None = None
         self._models_cached_at = 0.0
         self._models_cache_ttl = 0.0
 
-    def _key(self) -> str | None:
+    def _key(self, slot: str = "jon") -> str | None:
         if self._key_resolver is not None:
-            return self._key_resolver()
+            return self._key_resolver(slot)
         return self._static_key
 
     def available(self) -> bool:
         return bool(self._key())
 
-    def _client(self) -> AsyncOpenAI:
-        key = self._key()
+    def _client(self, slot: str = "jon") -> AsyncOpenAI:
+        key = self._key(slot)
         if not key:
             raise ProviderError(f"{self.name}: API key missing")
-        if self._client_cache is None or self._cached_key != key:
-            self._client_cache = AsyncOpenAI(
+        client = self._clients.get(key)
+        if client is None:
+            client = AsyncOpenAI(
                 base_url=self._base_url,
                 api_key=key,
                 timeout=self._timeout,
                 max_retries=1,
             )
-            self._cached_key = key
-        return self._client_cache
+            self._clients[key] = client
+        return client
 
     async def list_models(self) -> list[str]:
         now = time.monotonic()
@@ -173,7 +173,7 @@ class OpenAICompatibleProvider(LLMProvider):
     async def stream(
         self, request: ChatRequest, tool_executor: ToolExecutor | None = None
     ) -> AsyncIterator[StreamChunk]:
-        client = self._client()
+        client = self._client(request.slot)
         messages: list[dict] = [
             {"role": m.role, "content": m.content} for m in request.messages
         ]

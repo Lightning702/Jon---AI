@@ -23,6 +23,7 @@ class ChatRequest:
     seed: int | None = None
     stop: list[str] = field(default_factory=list)
     tools: list[dict] = field(default_factory=list)
+    slot: str = "jon"
 
 
 @dataclass

@@ -57,6 +57,7 @@ class TelegramService:
             max_tokens=2048,
             provider=provider or None,
             model=model or None,
+            slot="emil",
         )
         parts: list[str] = []
         tools: list[str] = []

@@ -172,7 +172,7 @@ class TaskService:
     ) -> dict:
         settings = get_settings()
         provider = provider or settings.default_provider
-        model = model or settings.default_model
+        model = model or settings.jon_model
         with self._lock:
             if self._data.get("running"):
                 return {"started": False, "reason": "laeuft bereits"}
@@ -206,7 +206,7 @@ class TaskService:
     ) -> dict:
         settings = get_settings()
         provider = provider or settings.default_provider
-        model = model or settings.default_model
+        model = model or settings.jon_model
         with self._lock:
             item = next(
                 (t for t in self._data["tasks"] if t["id"] == task_id), None

@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.4.0] — 2026-07-13
+
+### Neu — Zwei API-Keys und getrennte Modelle
+- **Zweiter Key per Komma:** In der `.env` darf jeder Key jetzt zwei Werte enthalten:
+  `NVIDIA_API_KEY=key-eins, key-zwei`. Der **erste** Key gehört Mini Jon und Telegram,
+  der **zweite** gehört Jon. Damit laufen zwei Modelle gleichzeitig, ohne dass sich ein
+  einzelner Key selbst ausbremst. Steht nur ein Key da, nutzen ihn beide (wie bisher).
+- **Getrennte Modelle:** `DEFAULT_MODEL` wird zu `DEFAULT_JON_MODEL` (Jon) und
+  `DEFAULT_EMIL_MODEL` (Mini Jon + Telegram). Ein altes `DEFAULT_MODEL` gilt weiter als
+  Rückfall.
+- Mini Jon und Telegram fallen nicht mehr auf Jons Modell zurück, sondern nehmen ihr
+  eigenes. Eine eigene Auswahl im Mini-Jon-Konfigurator sticht die `.env` weiterhin.
+
 ## [3.3.0] — 2026-07-13
 
 ### Neu — Tipp-Animation im Chat

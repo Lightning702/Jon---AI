@@ -274,7 +274,7 @@
         provider: "",
         model: "",
         pet_provider: "",
-        pet_model: "openai/gpt-oss-20b",
+        pet_model: "",
       };
       let bubbleTimer = null;
       let busy = false;
@@ -569,9 +569,10 @@
               persist: false,
               tool_mode: "allow",
               persona: "junior",
+              slot: "emil",
               max_tokens: 800,
               provider: cfg.pet_provider || cfg.provider || undefined,
-              model: cfg.pet_model || cfg.model || undefined,
+              model: cfg.pet_model || undefined,
             }),
           });
           const reader = res.body.getReader();

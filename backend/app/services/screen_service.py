@@ -41,7 +41,7 @@ class ScreenService:
             or VISION_DEFAULTS.get(provider_name)
             or model
             or saved_model
-            or settings.default_model
+            or settings.jon_model
         )
         provider = get_registry().all().get(provider_name)
         if not isinstance(provider, OpenAICompatibleProvider):

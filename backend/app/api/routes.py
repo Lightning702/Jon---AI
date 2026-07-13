@@ -74,7 +74,7 @@ async def health() -> HealthOut:
         app=settings.app_name,
         version=settings.app_version,
         default_provider=settings.default_provider,
-        default_model=settings.default_model,
+        default_model=settings.jon_model,
         available_providers=registry.available(),
     )
 
