@@ -13,20 +13,24 @@ import CodeAgent from "./components/CodeAgent";
 import PetConfig from "./components/PetConfig";
 import ProfileModal from "./components/ProfileModal";
 import FriendsChat from "./components/FriendsChat";
+import FriendRequestPopup from "./components/FriendRequestPopup";
 import SetupWizard from "./components/SetupWizard";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import {
   ConversationSummary,
   P2PIdentity,
+  P2PRequest,
   ProviderStatus,
   StreamEvent,
   ToolMode,
   addDream,
+  answerRequest,
   checkUpdate,
   getChatNotifications,
   getIdentity,
   getP2PInfo,
+  getRequests,
   approveTool,
   createSnapshot,
   deleteConversation,
@@ -151,6 +155,10 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [firstRun, setFirstRun] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friendsPeer, setFriendsPeer] = useState<string | null>(null);
+  const [friendRequests, setFriendRequests] = useState<P2PRequest[]>([]);
+  const [requestBusy, setRequestBusy] = useState(false);
+  const [requestError, setRequestError] = useState("");
   const [unread, setUnread] = useState(0);
   const [setupOpen, setSetupOpen] = useState(false);
   const [update, setUpdate] = useState<{ latest: string; url: string } | null>(
@@ -364,6 +372,37 @@ export default function App() {
     const timer = window.setInterval(() => void tick(), 3000);
     return () => window.clearInterval(timer);
   }, [online, identity, friendsOpen]);
+
+  useEffect(() => {
+    if (!online || !identity?.name) return;
+    const tick = async () => {
+      const incoming = await getRequests();
+      setFriendRequests(incoming);
+      if (incoming.length > 0) jonDesktop?.flashWindow?.();
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 3000);
+    return () => window.clearInterval(timer);
+  }, [online, identity]);
+
+  const decideRequest = async (action: "accept" | "reject" | "block") => {
+    const request = friendRequests[0];
+    if (!request || requestBusy) return;
+    setRequestBusy(true);
+    setRequestError("");
+    try {
+      await answerRequest(request.id, action);
+      setFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
+      if (action === "accept") {
+        setFriendsPeer(request.id);
+        setFriendsOpen(true);
+      }
+    } catch (e) {
+      setRequestError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRequestBusy(false);
+    }
+  };
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -1291,8 +1330,20 @@ export default function App() {
       {friendsOpen && identity && (
         <FriendsChat
           identity={identity}
+          initialPeerId={friendsPeer}
           onEditProfile={() => setProfileOpen(true)}
-          onClose={() => setFriendsOpen(false)}
+          onClose={() => {
+            setFriendsOpen(false);
+            setFriendsPeer(null);
+          }}
+        />
+      )}
+      {friendRequests.length > 0 && (
+        <FriendRequestPopup
+          request={friendRequests[0]}
+          busy={requestBusy}
+          error={requestError}
+          onDecide={(action) => void decideRequest(action)}
         />
       )}
       {update && (

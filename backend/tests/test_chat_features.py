@@ -100,6 +100,36 @@ def test_unbekannter_absender_wird_zur_anfrage(tmp_path, monkeypatch):
     assert not service.requests()
 
 
+def test_anfrage_bekommt_herkunft():
+    service = P2PService()
+    service._peers = {}
+    service._requests = {}
+    service._blocked = []
+    service.receive_request({"from_id": "nah", "from_name": "Nah"}, "192.168.1.20")
+    service.receive_request(
+        {
+            "from_id": "fern",
+            "from_name": "Fern",
+            "from_location": "Ungefähr aus Österreich · Wien",
+        },
+        "",
+    )
+    requests = {r["id"]: r for r in service.requests()}
+    assert requests["nah"]["location"] == "Aus deinem Netzwerk (WLAN)"
+    assert requests["fern"]["location"] == "Ungefähr aus Österreich · Wien"
+
+
+def test_nachricht_hebt_wartestatus_auf():
+    service = P2PService()
+    service._peers = {
+        "anna": {"name": "Anna", "public_key": "", "ip": "", "waiting": True}
+    }
+    service._blocked = []
+    result = service.receive({"from_id": "anna", "text": "hi"}, "10.0.0.5")
+    assert result.get("ok") is True
+    assert "waiting" not in service._peers["anna"]
+
+
 def test_neue_chat_routen():
     paths = set(app.openapi()["paths"])
     for route in (

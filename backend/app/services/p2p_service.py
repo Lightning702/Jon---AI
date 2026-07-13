@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import ipaddress
 import json
 import mimetypes
 import os
@@ -45,6 +46,7 @@ class P2PService:
         self._transport: asyncio.DatagramTransport | None = None
         self._typing: dict[str, float] = {}
         self._notified: dict[str, set[str]] = {}
+        self._loc_cache: dict[str, str] = {}
         MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
     def _load(self) -> dict:
@@ -136,6 +138,50 @@ class P2PService:
             return "127.0.0.1"
         finally:
             probe.close()
+
+    @staticmethod
+    def _is_public_ip(ip: str) -> bool:
+        try:
+            return ipaddress.ip_address(ip).is_global
+        except Exception:
+            return False
+
+    async def lookup_location(self, ip: str = "") -> str:
+        key = ip or "self"
+        cached = self._loc_cache.get(key)
+        if cached is not None:
+            return cached
+        location = ""
+        try:
+            async with httpx.AsyncClient(timeout=6) as client:
+                data = (
+                    await client.get(
+                        f"http://ip-api.com/json/{ip}"
+                        "?fields=status,country,city&lang=de"
+                    )
+                ).json()
+            if data.get("status") == "success":
+                country = str(data.get("country", "")).strip()
+                city = str(data.get("city", "")).strip()
+                if country:
+                    location = f"Ungefähr aus {country}"
+                    if city:
+                        location += f" · {city}"
+        except Exception:
+            location = ""
+        if location:
+            self._loc_cache[key] = location
+        return location
+
+    async def _refine_request_location(self, peer_id: str, ip: str) -> None:
+        location = await self.lookup_location(ip)
+        if not location:
+            return
+        with self._lock:
+            request = self._requests.get(peer_id)
+            if request is not None:
+                request["location"] = location
+                self._save()
 
     def _peer_by_name(self, name: str, only_fresh: bool = False) -> dict | None:
         wanted = name.strip().lower()
@@ -267,12 +313,12 @@ class P2PService:
             int(request.get("port") or 0),
             str(request.get("public_key", "")),
         )
-        asyncio.create_task(self._notify_accepted(peer_id))
+        self._later(self._notify_accepted(peer_id))
         return {"accepted": True, "id": peer_id}
 
     async def _notify_accepted(self, peer_id: str) -> None:
         me = self.identity()
-        await self._deliver(
+        await self._send_or_queue(
             peer_id,
             "request",
             {
@@ -445,6 +491,7 @@ class P2PService:
             "from_avatar": me["avatar"],
             "from_port": CHAT_PORT,
             "public_key": me["public_key"],
+            "from_location": await self.lookup_location(),
         }
         peer_id = str(target["id"])
         self._add_peer(
@@ -806,6 +853,9 @@ class P2PService:
             int(payload.get("from_port") or 0),
             str(payload.get("public_key", "")),
         )
+        with self._lock:
+            if self._peers.get(peer_id, {}).pop("waiting", None) is not None:
+                self._save()
         group = payload.get("group") if isinstance(payload.get("group"), dict) else None
         group_id = ""
         if group and group.get("id"):
@@ -994,6 +1044,11 @@ class P2PService:
                     ) or self._peers[peer_id].get("public_key", "")
                     self._save()
             return {"ok": True}
+        location = str(payload.get("from_location", "")).strip()
+        if sender_ip and not self._is_public_ip(sender_ip):
+            location = "Aus deinem Netzwerk (WLAN)"
+        elif not location:
+            location = "Über das Internet"
         with self._lock:
             if peer_id in self._peers:
                 self._peers[peer_id]["public_key"] = str(
@@ -1008,9 +1063,12 @@ class P2PService:
                 "ip": sender_ip,
                 "port": int(payload.get("from_port") or CHAT_PORT),
                 "public_key": str(payload.get("public_key", "")),
+                "location": location,
                 "created_at": _now_iso(),
             }
             self._save()
+        if self._is_public_ip(sender_ip):
+            self._later(self._refine_request_location(peer_id, sender_ip))
         return {"ok": True, "pending": True}
 
     def groups(self) -> list[dict]:

@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.1.0] — 2026-07-13
+
+### Neu — Freundschaftsanfragen als Popup
+- **Anfrage-Popup statt Seitenleiste:** Schickt dir jemand eine Freundschaftsanfrage,
+  öffnet sich sofort ein Fenster mitten im Bildschirm — mit Avatar, Name und
+  **ungefährer Herkunft** („Ungefähr aus Deutschland · Berlin", „Aus deinem Netzwerk
+  (WLAN)" oder „Über das Internet").
+- **Annehmen & direkt schreiben:** Ein Klick auf Annehmen öffnet den Chat mit der Person
+  sofort — keine Gegen-Anfrage mehr nötig, einfach lostippen.
+- **Ablehnen oder Blockieren** direkt im Popup.
+- **Zuverlässigere Annahme:** Die „Angenommen"-Nachricht wird jetzt zwischengespeichert
+  und zugestellt, sobald der andere online ist. Kommt eine Nachricht von jemandem an,
+  dessen Antwort auf deine Anfrage verloren ging, gilt die Anfrage automatisch als
+  angenommen — du kannst sofort zurückschreiben.
+
 ## [3.0.0] — 2026-07-13
 
 Der Freunde-Chat kann jetzt alles, was ein Messenger können muss.

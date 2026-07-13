@@ -5,10 +5,8 @@ import {
   P2PIdentity,
   P2PMessage,
   P2PPeer,
-  P2PRequest,
   addPeer,
   answerGroupInvite,
-  answerRequest,
   clearChat,
   createGroup,
   deleteGroup,
@@ -18,7 +16,6 @@ import {
   getGroups,
   getP2PMessages,
   getPeers,
-  getRequests,
   getTypingPeers,
   leaveGroup,
   mediaUrl,
@@ -34,6 +31,7 @@ const EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
 
 interface Props {
   identity: P2PIdentity;
+  initialPeerId?: string | null;
   onEditProfile: () => void;
   onClose: () => void;
 }
@@ -54,12 +52,12 @@ function TypingDots() {
 
 export default function FriendsChat({
   identity,
+  initialPeerId,
   onEditProfile,
   onClose,
 }: Props) {
   const [peers, setPeers] = useState<P2PPeer[]>([]);
   const [groups, setGroups] = useState<P2PGroup[]>([]);
-  const [requests, setRequests] = useState<P2PRequest[]>([]);
   const [typing, setTyping] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<P2PMessage[]>([]);
@@ -95,7 +93,6 @@ export default function FriendsChat({
     const tick = async () => {
       setPeers(await getPeers());
       setGroups(await getGroups());
-      setRequests(await getRequests());
       setInvites(await getGroupInvites());
       const current = activeRef.current;
       if (current) setMessages(await getP2PMessages(current));
@@ -117,6 +114,10 @@ export default function FriendsChat({
       behavior: "smooth",
     });
   }, [messages, activeId, typing]);
+
+  useEffect(() => {
+    if (initialPeerId) void openChat(initialPeerId);
+  }, [initialPeerId]);
 
   const isTyping = (peerId: string) => typing.includes(peerId);
   const group = groups.find((g) => g.id === activeId) ?? null;
@@ -268,12 +269,6 @@ export default function FriendsChat({
     }
   };
 
-  const decide = async (peerId: string, action: "accept" | "reject" | "block") => {
-    await answerRequest(peerId, action);
-    setRequests(await getRequests());
-    setPeers(await getPeers());
-  };
-
   const saveGroup = async () => {
     setError("");
     try {
@@ -367,53 +362,6 @@ export default function FriendsChat({
                       className="flex-1 text-[11px] py-1 rounded-lg border border-white/15 text-white/60 hover:bg-white/10"
                     >
                       Ablehnen
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {requests.length > 0 && (
-            <div className="p-2 border-b border-white/10 space-y-1.5">
-              <div className="text-[10px] uppercase tracking-wide text-gold/70 px-1">
-                Freundschaftsanfragen
-              </div>
-              {requests.map((r) => (
-                <div
-                  key={r.id}
-                  className="rounded-xl border border-gold/30 bg-gold/10 px-2.5 py-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{r.avatar}</span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[12px] text-white/90 truncate">
-                        {r.name}
-                      </span>
-                      <span className="block text-[10px] text-white/40">
-                        möchte mit dir schreiben
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex gap-1 mt-1.5">
-                    <button
-                      onClick={() => void decide(r.id, "accept")}
-                      className="flex-1 text-[11px] py-1 rounded-lg bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold"
-                    >
-                      Annehmen
-                    </button>
-                    <button
-                      onClick={() => void decide(r.id, "reject")}
-                      className="flex-1 text-[11px] py-1 rounded-lg border border-white/15 text-white/60 hover:bg-white/10"
-                    >
-                      Ablehnen
-                    </button>
-                    <button
-                      onClick={() => void decide(r.id, "block")}
-                      title="Blockieren"
-                      className="px-2 text-[11px] py-1 rounded-lg border border-red-400/30 text-red-300/80 hover:bg-red-400/10"
-                    >
-                      🚫
                     </button>
                   </div>
                 </div>

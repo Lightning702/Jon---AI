@@ -793,6 +793,7 @@ export interface P2PRequest {
   name: string;
   avatar: string;
   ip: string;
+  location: string;
   created_at: string;
 }
 
@@ -893,7 +894,15 @@ export async function answerRequest(
   peerId: string,
   action: "accept" | "reject" | "block"
 ): Promise<void> {
-  await fetch(`${BASE}/p2p/requests/${peerId}/${action}`, { method: "POST" });
+  const res = await fetch(`${BASE}/p2p/requests/${peerId}/${action}`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(
+      detail.detail ?? "Anfrage konnte nicht beantwortet werden"
+    );
+  }
 }
 
 export async function getGroups(): Promise<P2PGroup[]> {
