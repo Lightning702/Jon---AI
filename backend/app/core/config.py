@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "3.5.0"
+    app_version: str = "3.6.0"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = "*"
@@ -58,7 +58,7 @@ class Settings(BaseSettings):
 
     default_provider: str = "nvidia"
     default_model: str = ""
-    default_jon_model: str = "openai/gpt-oss-120b"
+    default_jon_model: str = "meta/llama-3.1-70b-instruct"
     default_emil_model: str = "openai/gpt-oss-20b"
 
     openai_api_key: str | None = None
@@ -100,7 +100,7 @@ class Settings(BaseSettings):
         return (
             self.default_jon_model.strip()
             or self.default_model.strip()
-            or "openai/gpt-oss-120b"
+            or "meta/llama-3.1-70b-instruct"
         )
 
     @property

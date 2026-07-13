@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.6.0] — 2026-07-13
+
+### Neu
+- **Standardmodell ist jetzt `meta/llama-3.1-70b-instruct`** (`DEFAULT_JON_MODEL`).
+  Gemessen: 0,4s roh, 2,3s im Chat — deutlich flotter als `gpt-oss-120b`, das NVIDIA
+  gerade drosselt. Mini Jon und Telegram bleiben auf `gpt-oss-20b`.
+
+### Behoben
+- **Einstellungsmenü passte nicht auf den Bildschirm:** Es hatte keine Höhenbegrenzung und
+  wuchs unten aus dem Bild. Jetzt ist es **scrollbar** (höchstens Fensterhöhe) und insgesamt
+  kompakter — schmaler, engere Abstände, kleinere Schalter.
+
 ## [3.5.0] — 2026-07-13
 
 ### Behoben — Jon war quälend langsam

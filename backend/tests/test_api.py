@@ -13,12 +13,15 @@ client = TestClient(app)
 
 
 def test_health():
+    from app.core.config import get_settings
+
     res = client.get("/api/health")
     assert res.status_code == 200
     body = res.json()
     assert body["status"] == "ok"
     assert body["default_provider"] == "nvidia"
-    assert body["default_model"] == "openai/gpt-oss-120b"
+    assert body["default_model"] == get_settings().jon_model
+    assert body["default_model"] == "meta/llama-3.1-70b-instruct"
 
 
 def test_providers():

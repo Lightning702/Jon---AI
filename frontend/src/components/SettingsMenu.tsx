@@ -163,11 +163,11 @@ export default function SettingsMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-9 z-50 w-72 glass rounded-2xl border border-white/15 px-4 py-3 text-left">
-            <div className="text-[11px] uppercase tracking-wide text-white/40 mb-2">
+          <div className="absolute right-0 top-9 z-50 w-64 glass rounded-2xl border border-white/15 px-3 py-2.5 text-left max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain">
+            <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">
               PC-Steuerung durch Jon
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {options.map((o) => (
                 <button
                   key={o.value}
@@ -175,7 +175,7 @@ export default function SettingsMenu({
                     onToolModeChange(o.value);
                     setOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl border transition-colors ${
+                  className={`w-full text-left px-2.5 py-1.5 rounded-xl border transition-colors ${
                     toolMode === o.value
                       ? "border-gold/40 bg-gold/10"
                       : "border-white/10 bg-white/5 hover:bg-white/10"
@@ -195,15 +195,15 @@ export default function SettingsMenu({
                 </button>
               ))}
             </div>
-            <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
+            <div className="text-[10px] uppercase tracking-wide text-white/40 mt-2.5 mb-1.5">
               Design
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {themes.map((t) => (
                 <button
                   key={t.value}
                   onClick={() => changeTheme(t.value)}
-                  className={`w-full text-left px-3 py-2 rounded-xl border transition-colors ${
+                  className={`w-full text-left px-2.5 py-1.5 rounded-xl border transition-colors ${
                     theme === t.value
                       ? "border-gold/40 bg-gold/10"
                       : "border-white/10 bg-white/5 hover:bg-white/10"
@@ -223,12 +223,12 @@ export default function SettingsMenu({
                 </button>
               ))}
             </div>
-            <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
+            <div className="text-[10px] uppercase tracking-wide text-white/40 mt-2.5 mb-1.5">
               Jon als Person
             </div>
             <button
               onClick={togglePersonality}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
             >
               <div className="text-left">
                 <div className="text-[12px] text-white/90">Persönlichkeit</div>
@@ -237,20 +237,20 @@ export default function SettingsMenu({
                 </div>
               </div>
               <span
-                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
                   personality ? "bg-gold/70" : "bg-white/15"
                 }`}
               >
                 <span
-                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                    personality ? "translate-x-4" : ""
+                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                    personality ? "translate-x-[14px]" : ""
                   }`}
                 />
               </span>
             </button>
             <button
               onClick={toggleFailover}
-              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
             >
               <div className="text-left">
                 <div className="text-[12px] text-white/90">
@@ -262,20 +262,20 @@ export default function SettingsMenu({
                 </div>
               </div>
               <span
-                className={`w-9 h-5 shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
+                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
                   failover ? "bg-gold/70" : "bg-white/15"
                 }`}
               >
                 <span
-                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                    failover ? "translate-x-4" : ""
+                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                    failover ? "translate-x-[14px]" : ""
                   }`}
                 />
               </span>
             </button>
             <button
               onClick={() => void toggleStartup()}
-              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
             >
               <div className="text-left">
                 <div className="text-[12px] text-white/90">Mit Windows starten</div>
@@ -284,20 +284,20 @@ export default function SettingsMenu({
                 </div>
               </div>
               <span
-                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
                   startup ? "bg-gold/70" : "bg-white/15"
                 }`}
               >
                 <span
-                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                    startup ? "translate-x-4" : ""
+                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                    startup ? "translate-x-[14px]" : ""
                   }`}
                 />
               </span>
             </button>
             <button
               onClick={toggleClipboard}
-              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
             >
               <div className="text-left">
                 <div className="text-[12px] text-white/90">Clipboard-Historie</div>
@@ -306,20 +306,20 @@ export default function SettingsMenu({
                 </div>
               </div>
               <span
-                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
                   clipboard ? "bg-gold/70" : "bg-white/15"
                 }`}
               >
                 <span
-                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                    clipboard ? "translate-x-4" : ""
+                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                    clipboard ? "translate-x-[14px]" : ""
                   }`}
                 />
               </span>
             </button>
             <button
               onClick={toggleWebcam}
-              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
             >
               <div className="text-left">
                 <div className="text-[12px] text-white/90">Webcam erlauben</div>
@@ -328,20 +328,20 @@ export default function SettingsMenu({
                 </div>
               </div>
               <span
-                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
                   webcam ? "bg-gold/70" : "bg-white/15"
                 }`}
               >
                 <span
-                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                    webcam ? "translate-x-4" : ""
+                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                    webcam ? "translate-x-[14px]" : ""
                   }`}
                 />
               </span>
             </button>
             <button
               onClick={toggleVoice}
-              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
             >
               <div className="text-left">
                 <div className="text-[12px] text-white/90">Natürliche Stimme</div>
@@ -350,25 +350,25 @@ export default function SettingsMenu({
                 </div>
               </div>
               <span
-                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
                   voice ? "bg-gold/70" : "bg-white/15"
                 }`}
               >
                 <span
-                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                    voice ? "translate-x-4" : ""
+                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                    voice ? "translate-x-[14px]" : ""
                   }`}
                 />
               </span>
             </button>
-            <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
+            <div className="text-[10px] uppercase tracking-wide text-white/40 mt-2.5 mb-1.5">
               Backup
             </div>
             <div className="flex gap-1.5">
               <a
                 href={backupUrl()}
                 download
-                className="flex-1 text-center text-[12px] py-2 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition"
+                className="flex-1 text-center text-[12px] py-1.5 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition"
               >
                 Exportieren
               </a>
@@ -393,7 +393,7 @@ export default function SettingsMenu({
               />
               <button
                 onClick={() => backupRef.current?.click()}
-                className="flex-1 text-[12px] py-2 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition"
+                className="flex-1 text-[12px] py-1.5 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition"
               >
                 Importieren
               </button>
@@ -404,18 +404,18 @@ export default function SettingsMenu({
             <div className="text-[11px] text-white/35 mt-1 leading-snug">
               Gedächtnis, Wissensbasis, Skills und Einstellungen — ohne API-Schlüssel.
             </div>
-            <div className="text-[11px] uppercase tracking-wide text-white/40 mt-3 mb-2">
+            <div className="text-[10px] uppercase tracking-wide text-white/40 mt-2.5 mb-1.5">
               Tagesbriefing
             </div>
             <input
               value={city}
               onChange={(e) => saveCity(e.target.value)}
               placeholder="Deine Stadt (für das Wetter)"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
             />
             <button
               onClick={() => void openConnections()}
-              className="w-full flex items-center justify-between px-3 py-2 mt-3 rounded-xl border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-2.5 rounded-xl border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
             >
               <div className="text-left">
                 <div className="text-[12px] text-gold/90">🔌 Verbindungen …</div>
