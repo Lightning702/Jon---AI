@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.6.1] — 2026-07-13
+
+### Behoben
+- **Einstellungsmenü passt jetzt auf jeden Bildschirm.** Es ist deutlich kleiner: die
+  Erklärungen stehen als Tooltip am Schalter statt als zweite Zeile darunter, die Schalter
+  sind einzeilig, „Zuerst fragen / Alles erlauben" und „Dunkel / Hell" stehen nebeneinander.
+  Höhe: **474px statt ~800px**, Breite 224px statt 288px.
+- Nachgemessen im echten Fenster bei 1920×1080, 1366×768, 1280×720 und 1024×600 — überall
+  ohne Scrollen. Selbst bei einem winzigen 900×500-Fenster bleibt es im Bild und scrollt
+  innen. (Vorher war die Höhenbegrenzung falsch berechnet: der Abstand des Menüs vom oberen
+  Rand fehlte, dadurch ragte es unten heraus.)
+
 ## [3.6.0] — 2026-07-13
 
 ### Neu

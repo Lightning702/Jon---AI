@@ -14,12 +14,88 @@ import ConnectionsModal from "./ConnectionsModal";
 
 type Theme = "dark" | "light";
 
+interface Choice {
+  value: string;
+  label: string;
+  hint: string;
+}
+
 const jonBridge = (window as unknown as {
   jon?: {
     getStartup?: () => Promise<boolean>;
     setStartup?: (enabled: boolean) => Promise<boolean>;
   };
 }).jon;
+
+function Section({ title }: { title: string }) {
+  return (
+    <div className="text-[9px] uppercase tracking-wider text-white/35 mt-2 mb-1 px-0.5">
+      {title}
+    </div>
+  );
+}
+
+function Segmented({
+  value,
+  items,
+  onPick,
+}: {
+  value: string;
+  items: Choice[];
+  onPick: (value: string) => void;
+}) {
+  return (
+    <div className="flex gap-1">
+      {items.map((item) => (
+        <button
+          key={item.value}
+          title={item.hint}
+          onClick={() => onPick(item.value)}
+          className={`flex-1 text-[11px] py-1 rounded-lg border transition-colors ${
+            value === item.value
+              ? "border-gold/40 bg-gold/15 text-gold"
+              : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+          }`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Toggle({
+  label,
+  hint,
+  on,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  on: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={hint}
+      className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+    >
+      <span className="text-[11px] text-white/85 truncate">{label}</span>
+      <span
+        className={`w-7 h-4 shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
+          on ? "bg-gold/70" : "bg-white/15"
+        }`}
+      >
+        <span
+          className={`w-3 h-3 rounded-full bg-white transition-transform ${
+            on ? "translate-x-3" : ""
+          }`}
+        />
+      </span>
+    </button>
+  );
+}
 
 export default function SettingsMenu({
   toolMode,
@@ -117,7 +193,7 @@ export default function SettingsMenu({
     void saveUserSettings({ theme: next });
   };
 
-  const options: { value: ToolMode; label: string; hint: string }[] = [
+  const options: Choice[] = [
     {
       value: "ask",
       label: "Zuerst fragen",
@@ -130,7 +206,7 @@ export default function SettingsMenu({
     },
   ];
 
-  const themes: { value: Theme; label: string; hint: string }[] = [
+  const themes: Choice[] = [
     { value: "dark", label: "Dunkel", hint: "Schwarz-Gold (Standard)." },
     { value: "light", label: "Hell", hint: "Weißer Modus mit Gold-Akzenten." },
   ];
@@ -163,214 +239,77 @@ export default function SettingsMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-9 z-50 w-64 glass rounded-2xl border border-white/15 px-3 py-2.5 text-left max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain">
-            <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">
-              PC-Steuerung durch Jon
-            </div>
+          <div className="absolute right-0 top-9 z-50 w-56 glass rounded-xl border border-white/15 px-2 py-2 text-left max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain">
+            <Section title="PC-Steuerung durch Jon" />
+            <Segmented
+              value={toolMode}
+              items={options}
+              onPick={(v) => {
+                onToolModeChange(v as ToolMode);
+                setOpen(false);
+              }}
+            />
+            <Section title="Design" />
+            <Segmented
+              value={theme}
+              items={themes}
+              onPick={(v) => changeTheme(v as Theme)}
+            />
+            <Section title="Jon" />
             <div className="space-y-1">
-              {options.map((o) => (
-                <button
-                  key={o.value}
-                  onClick={() => {
-                    onToolModeChange(o.value);
-                    setOpen(false);
-                  }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-xl border transition-colors ${
-                    toolMode === o.value
-                      ? "border-gold/40 bg-gold/10"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 text-[12px] text-white/90">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        toolMode === o.value ? "bg-gold" : "bg-white/20"
-                      }`}
-                    />
-                    {o.label}
-                  </div>
-                  <div className="text-[11px] text-white/45 mt-0.5 pl-4">
-                    {o.hint}
-                  </div>
-                </button>
-              ))}
+              <Toggle
+                label="Persönlichkeit"
+                hint="Jon mit Charakter, Gefühlen und Gedächtnis."
+                on={personality}
+                onClick={togglePersonality}
+              />
+              <Toggle
+                label="Anbieter wechseln"
+                hint="Ist dein Anbieter überlastet, nimmt Jon dasselbe Modell bei einem anderen. Kann dort Guthaben kosten."
+                on={failover}
+                onClick={toggleFailover}
+              />
+              <Toggle
+                label="Mit Windows starten"
+                hint="Backend und App starten beim Hochfahren automatisch."
+                on={startup}
+                onClick={() => void toggleStartup()}
+              />
+              <Toggle
+                label="Clipboard-Historie"
+                hint="Jon merkt sich lokal, was du kopierst (📋-Knopf)."
+                on={clipboard}
+                onClick={toggleClipboard}
+              />
+              <Toggle
+                label="Webcam erlauben"
+                hint="Jon darf auf Nachfrage durch die Webcam schauen."
+                on={webcam}
+                onClick={toggleWebcam}
+              />
+              <Toggle
+                label="Natürliche Stimme"
+                hint="Echte Neural-Stimme statt Roboterstimme (gratis)."
+                on={voice}
+                onClick={toggleVoice}
+              />
             </div>
-            <div className="text-[10px] uppercase tracking-wide text-white/40 mt-2.5 mb-1.5">
-              Design
-            </div>
-            <div className="space-y-1">
-              {themes.map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => changeTheme(t.value)}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-xl border transition-colors ${
-                    theme === t.value
-                      ? "border-gold/40 bg-gold/10"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 text-[12px] text-white/90">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        theme === t.value ? "bg-gold" : "bg-white/20"
-                      }`}
-                    />
-                    {t.label}
-                  </div>
-                  <div className="text-[11px] text-white/45 mt-0.5 pl-4">
-                    {t.hint}
-                  </div>
-                </button>
-              ))}
-            </div>
-            <div className="text-[10px] uppercase tracking-wide text-white/40 mt-2.5 mb-1.5">
-              Jon als Person
-            </div>
-            <button
-              onClick={togglePersonality}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="text-left">
-                <div className="text-[12px] text-white/90">Persönlichkeit</div>
-                <div className="text-[11px] text-white/45">
-                  Jon mit Charakter, Gefühlen & Gedächtnis.
-                </div>
-              </div>
-              <span
-                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
-                  personality ? "bg-gold/70" : "bg-white/15"
-                }`}
-              >
-                <span
-                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
-                    personality ? "translate-x-[14px]" : ""
-                  }`}
-                />
-              </span>
-            </button>
-            <button
-              onClick={toggleFailover}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="text-left">
-                <div className="text-[12px] text-white/90">
-                  Anbieter automatisch wechseln
-                </div>
-                <div className="text-[11px] text-white/45">
-                  Ist dein Anbieter überlastet, nimmt Jon dasselbe Modell bei
-                  einem anderen. Kann dort Guthaben kosten.
-                </div>
-              </div>
-              <span
-                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
-                  failover ? "bg-gold/70" : "bg-white/15"
-                }`}
-              >
-                <span
-                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
-                    failover ? "translate-x-[14px]" : ""
-                  }`}
-                />
-              </span>
-            </button>
-            <button
-              onClick={() => void toggleStartup()}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="text-left">
-                <div className="text-[12px] text-white/90">Mit Windows starten</div>
-                <div className="text-[11px] text-white/45">
-                  Backend & App starten beim Hochfahren automatisch.
-                </div>
-              </div>
-              <span
-                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
-                  startup ? "bg-gold/70" : "bg-white/15"
-                }`}
-              >
-                <span
-                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
-                    startup ? "translate-x-[14px]" : ""
-                  }`}
-                />
-              </span>
-            </button>
-            <button
-              onClick={toggleClipboard}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="text-left">
-                <div className="text-[12px] text-white/90">Clipboard-Historie</div>
-                <div className="text-[11px] text-white/45">
-                  Jon merkt sich lokal, was du kopierst (📋-Knopf).
-                </div>
-              </div>
-              <span
-                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
-                  clipboard ? "bg-gold/70" : "bg-white/15"
-                }`}
-              >
-                <span
-                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
-                    clipboard ? "translate-x-[14px]" : ""
-                  }`}
-                />
-              </span>
-            </button>
-            <button
-              onClick={toggleWebcam}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="text-left">
-                <div className="text-[12px] text-white/90">Webcam erlauben</div>
-                <div className="text-[11px] text-white/45">
-                  Jon darf auf Nachfrage durch die Webcam schauen.
-                </div>
-              </div>
-              <span
-                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
-                  webcam ? "bg-gold/70" : "bg-white/15"
-                }`}
-              >
-                <span
-                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
-                    webcam ? "translate-x-[14px]" : ""
-                  }`}
-                />
-              </span>
-            </button>
-            <button
-              onClick={toggleVoice}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="text-left">
-                <div className="text-[12px] text-white/90">Natürliche Stimme</div>
-                <div className="text-[11px] text-white/45">
-                  Echte Neural-Stimme statt Roboterstimme (gratis).
-                </div>
-              </div>
-              <span
-                className={`w-8 h-[18px] shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
-                  voice ? "bg-gold/70" : "bg-white/15"
-                }`}
-              >
-                <span
-                  className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${
-                    voice ? "translate-x-[14px]" : ""
-                  }`}
-                />
-              </span>
-            </button>
-            <div className="text-[10px] uppercase tracking-wide text-white/40 mt-2.5 mb-1.5">
-              Backup
-            </div>
-            <div className="flex gap-1.5">
+            <Section title="Tagesbriefing" />
+            <input
+              value={city}
+              onChange={(e) => saveCity(e.target.value)}
+              placeholder="Stadt (für das Wetter)"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
+            />
+            <Section title="Backup" />
+            <div className="flex gap-1">
               <a
                 href={backupUrl()}
                 download
-                className="flex-1 text-center text-[12px] py-1.5 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition"
+                title="Gedächtnis, Wissensbasis, Skills und Einstellungen sichern — ohne API-Schlüssel."
+                className="flex-1 text-center text-[11px] py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 transition"
               >
-                Exportieren
+                Export
               </a>
               <input
                 ref={backupRef}
@@ -393,37 +332,25 @@ export default function SettingsMenu({
               />
               <button
                 onClick={() => backupRef.current?.click()}
-                className="flex-1 text-[12px] py-1.5 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition"
+                title="Ein zuvor exportiertes Backup wieder einspielen."
+                className="flex-1 text-[11px] py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 transition"
               >
-                Importieren
+                Import
               </button>
             </div>
             {backupInfo && (
-              <div className="text-[11px] text-gold/70 mt-1.5">{backupInfo}</div>
+              <div className="text-[10px] text-gold/70 mt-1 leading-snug">
+                {backupInfo}
+              </div>
             )}
-            <div className="text-[11px] text-white/35 mt-1 leading-snug">
-              Gedächtnis, Wissensbasis, Skills und Einstellungen — ohne API-Schlüssel.
-            </div>
-            <div className="text-[10px] uppercase tracking-wide text-white/40 mt-2.5 mb-1.5">
-              Tagesbriefing
-            </div>
-            <input
-              value={city}
-              onChange={(e) => saveCity(e.target.value)}
-              placeholder="Deine Stadt (für das Wetter)"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
-            />
             <button
               onClick={() => void openConnections()}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 mt-2.5 rounded-xl border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
             >
-              <div className="text-left">
-                <div className="text-[12px] text-gold/90">🔌 Verbindungen …</div>
-                <div className="text-[11px] text-white/45">
-                  E-Mail, Kalender, Telegram, Smart Home
-                </div>
-              </div>
-              <span className="text-gold/70 text-[13px]">›</span>
+              <span className="text-[11px] text-gold/90">
+                🔌 Verbindungen …
+              </span>
+              <span className="text-gold/70 text-[12px]">›</span>
             </button>
           </div>
         </>
