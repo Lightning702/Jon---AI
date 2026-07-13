@@ -2,6 +2,32 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.5.0] — 2026-07-13
+
+### Behoben — Jon war quälend langsam
+Gemessen: Ein **roher** Aufruf an NVIDIA (ohne Jon-Code, ohne Tools) brauchte für
+`gpt-oss-120b` **95 bis über 180 Sekunden**, dasselbe Modell bei OpenRouter **3 Sekunden**.
+NVIDIAs Gratis-Tier drosselt das große Modell derzeit massiv. Zwei Fehler im Code haben
+das noch verschlimmert:
+
+- **Timeouts wurden wiederholt:** Ein Zeitüberschreitung galt als „vorübergehender Fehler"
+  und wurde 2× neu versucht — bei 90s Timeout also bis zu 180s Warten. Timeouts brechen
+  jetzt sofort ab (500er-Fehler werden weiterhin wiederholt, die kommen bei NVIDIA vor).
+- **Der Wachhund kam zu spät:** Er bewachte nur die Antwort-Häppchen, nicht den
+  Verbindungsaufbau — genau dort hing es. Jetzt ist auch der Aufbau begrenzt (10s, mit
+  Tools 20s, lokale Modelle bleiben unbegrenzt).
+
+### Neu — Jon weicht selbst aus
+- Ist dein Anbieter überlastet, nimmt Jon **dasselbe Modell bei einem anderen Anbieter**
+  (z.B. `gpt-oss-120b` über OpenRouter statt NVIDIA). Dein Modell bleibt, nur der Weg
+  ändert sich. Erst wenn kein Anbieter das Modell hat, weicht er auf ein kleineres aus.
+- Jon **merkt sich** einen lahmen Anbieter 15 Minuten lang und geht solange direkt den
+  schnellen Weg. Danach probiert er den alten wieder — erholt er sich, ist er zurück.
+- **Abschaltbar** im Zahnrad („Anbieter automatisch wechseln"). Wichtig: Der Ausweich-
+  Anbieter kann dort **Guthaben kosten**.
+
+Ergebnis auf 120b: erste Antwort **~1–4 Sekunden** statt 90–180.
+
 ## [3.4.0] — 2026-07-13
 
 ### Neu — Zwei API-Keys und getrennte Modelle

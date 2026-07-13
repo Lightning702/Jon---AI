@@ -211,6 +211,35 @@ FALLBACK_MODELS = {
     "groq": "llama-3.3-70b-versatile",
 }
 
+ALTERNATIVE_PROVIDERS = (
+    "groq",
+    "openrouter",
+    "together",
+    "nvidia",
+    "openai",
+    "deepseek",
+    "mistral",
+    "glm",
+    "qwen",
+    "xai",
+)
+
+SLOW_ROUTE_MEMORY = 900.0
+_slow_routes: dict[tuple[str, str], float] = {}
+
+
+def mark_slow(provider: str, model: str) -> None:
+    _slow_routes[(provider, model)] = time.time()
+
+
+def mark_fast(provider: str, model: str) -> None:
+    _slow_routes.pop((provider, model), None)
+
+
+def is_slow(provider: str, model: str) -> bool:
+    stamp = _slow_routes.get((provider, model), 0.0)
+    return time.time() - stamp < SLOW_ROUTE_MEMORY
+
 TOOL_PROVIDERS = {
     "nvidia",
     "openai",
@@ -289,30 +318,72 @@ class ChatService:
             pass
         return "\n\n".join(parts)
 
-    async def _stream_resilient(
-        self, provider, provider_name: str, request: ChatRequest, executor
+    async def route(self, primary: str, model: str) -> list[str]:
+        usable = [primary]
+        if not get_settings_service().get().get("auto_failover", True):
+            return usable
+        for name in ALTERNATIVE_PROVIDERS:
+            if name in usable:
+                continue
+            try:
+                provider = self._registry.get(name)
+            except Exception:
+                continue
+            if not provider.available():
+                continue
+            try:
+                models = await provider.list_models()
+            except Exception:
+                continue
+            if model in models:
+                usable.append(name)
+        healthy = [name for name in usable if not is_slow(name, model)]
+        stalled = [name for name in usable if is_slow(name, model)]
+        return healthy + stalled
+
+    async def _stream_route(
+        self, names: list[str], request: ChatRequest, executor, state: dict
     ):
-        started = False
-        try:
-            async for chunk in provider.stream(request, executor):
-                started = True
-                yield chunk
-            return
-        except Exception as exc:
-            fallback = FALLBACK_MODELS.get(provider_name, "")
-            if started or not fallback or fallback == request.model:
-                raise
-            broken = request.model
-            request.model = fallback
-            yield StreamChunk(
-                kind="content",
-                delta=(
-                    f"⚠️ {broken} antwortet gerade nicht — ich beantworte das "
-                    f"hier mit {fallback}. Deine Modellwahl bleibt unverändert.\n\n"
-                ),
-            )
-        async for chunk in provider.stream(request, executor):
-            yield chunk
+        for index, name in enumerate(names):
+            provider = self._registry.get(name)
+            started = False
+            try:
+                async for chunk in provider.stream(request, executor):
+                    if not started:
+                        started = True
+                        state["provider"] = name
+                        mark_fast(name, request.model)
+                    yield chunk
+                return
+            except Exception:
+                if started:
+                    raise
+                mark_slow(name, request.model)
+                if index + 1 < len(names):
+                    yield StreamChunk(
+                        kind="content",
+                        delta=(
+                            f"⚡ {name} ist gerade überlastet — ich nehme "
+                            f"{request.model} über {names[index + 1]}.\n\n"
+                        ),
+                    )
+                    continue
+                fallback = FALLBACK_MODELS.get(name, "")
+                if not fallback or fallback == request.model:
+                    raise
+                broken = request.model
+                request.model = fallback
+                yield StreamChunk(
+                    kind="content",
+                    delta=(
+                        f"⚠️ {broken} antwortet gerade nicht — ich beantworte das "
+                        f"hier mit {fallback}. Deine Modellwahl bleibt unverändert.\n\n"
+                    ),
+                )
+                async for chunk in provider.stream(request, executor):
+                    state["provider"] = name
+                    yield chunk
+                return
 
     def slot_for(self, payload: ChatIn) -> str:
         if payload.slot:
@@ -380,9 +451,11 @@ class ChatService:
             )
 
     async def stream(self, payload: ChatIn) -> AsyncIterator[dict]:
-        provider_name, model = self.resolve(payload)
+        chosen, model = self.resolve(payload)
         slot = self.slot_for(payload)
-        provider = self._registry.get(provider_name)
+        names = await self.route(chosen, model)
+        provider_name = names[0] if names else chosen
+        state = {"provider": provider_name}
 
         if payload.mode != "coding" and get_settings_service().personality():
             get_persona_service().touch()
@@ -514,8 +587,8 @@ class ChatService:
             releasing = not use_tools
             try:
                 chunk: StreamChunk
-                async for chunk in self._stream_resilient(
-                    provider, provider_name, request, executor
+                async for chunk in self._stream_route(
+                    names or [provider_name], request, executor, state
                 ):
                     if chunk.kind == "usage":
                         prompt_tokens += chunk.prompt_tokens
@@ -650,8 +723,8 @@ class ChatService:
 
         if content or prompt_tokens or completion_tokens:
             self._usage.record(
-                provider_name,
-                model,
+                state["provider"],
+                request.model,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 latency=time.perf_counter() - started,

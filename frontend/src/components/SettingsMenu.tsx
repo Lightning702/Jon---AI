@@ -33,6 +33,7 @@ export default function SettingsMenu({
     localStorage.getItem("jon_theme") === "light" ? "light" : "dark"
   );
   const [personality, setPersonality] = useState(true);
+  const [failover, setFailover] = useState(true);
   const [startup, setStartup] = useState(false);
   const [city, setCity] = useState("");
   const [clipboard, setClipboard] = useState(true);
@@ -45,6 +46,7 @@ export default function SettingsMenu({
   useEffect(() => {
     void getUserSettings().then((s) => {
       setPersonality(s.personality !== false);
+      setFailover(s.auto_failover !== false);
       setCity(s.briefing_city ?? "");
       setClipboard(s.clipboard_history !== false);
       setWebcam(s.webcam_enabled === true);
@@ -64,6 +66,12 @@ export default function SettingsMenu({
     const next = !personality;
     setPersonality(next);
     void saveUserSettings({ personality: next });
+  };
+
+  const toggleFailover = () => {
+    const next = !failover;
+    setFailover(next);
+    void saveUserSettings({ auto_failover: next });
   };
 
   const toggleStartup = async () => {
@@ -236,6 +244,31 @@ export default function SettingsMenu({
                 <span
                   className={`w-4 h-4 rounded-full bg-white transition-transform ${
                     personality ? "translate-x-4" : ""
+                  }`}
+                />
+              </span>
+            </button>
+            <button
+              onClick={toggleFailover}
+              className="w-full flex items-center justify-between px-3 py-2 mt-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-[12px] text-white/90">
+                  Anbieter automatisch wechseln
+                </div>
+                <div className="text-[11px] text-white/45">
+                  Ist dein Anbieter überlastet, nimmt Jon dasselbe Modell bei
+                  einem anderen. Kann dort Guthaben kosten.
+                </div>
+              </div>
+              <span
+                className={`w-9 h-5 shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
+                  failover ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    failover ? "translate-x-4" : ""
                   }`}
                 />
               </span>

@@ -12,6 +12,7 @@ DEFAULTS = {
     "prompt_mode": "append",
     "tool_mode": "ask",
     "personality": True,
+    "auto_failover": True,
     "provider": "",
     "model": "",
     "theme": "dark",

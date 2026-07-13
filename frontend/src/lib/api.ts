@@ -218,6 +218,7 @@ export interface UserSettings {
   prompt_mode: string;
   tool_mode: string;
   personality: boolean;
+  auto_failover: boolean;
   provider: string;
   model: string;
   theme: string;
@@ -262,6 +263,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       prompt_mode: "append",
       tool_mode: "ask",
       personality: true,
+      auto_failover: true,
       provider: "",
       model: "",
       theme: "dark",

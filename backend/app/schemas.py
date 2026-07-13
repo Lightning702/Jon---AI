@@ -51,6 +51,7 @@ class SettingsIn(BaseModel):
     prompt_mode: str | None = None
     tool_mode: str | None = None
     personality: bool | None = None
+    auto_failover: bool | None = None
     provider: str | None = None
     model: str | None = None
     theme: str | None = None

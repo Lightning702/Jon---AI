@@ -28,8 +28,9 @@ MIN_MAX_TOKENS = 4096
 MODELS_CACHE_TTL = 300.0
 MODELS_FAIL_TTL = 30.0
 REASONING_MODELS = ("gpt-oss",)
-TRANSIENT_ERRORS = (
-    InternalServerError,
+PATIENT_PROVIDERS = ("ollama", "lmstudio")
+TRANSIENT_ERRORS = (InternalServerError,)
+STALL_ERRORS = (
     APITimeoutError,
     APIConnectionError,
 )
@@ -138,6 +139,11 @@ class OpenAICompatibleProvider(LLMProvider):
         for attempt in range(TRANSIENT_RETRIES):
             try:
                 return await client.chat.completions.create(**payload)
+            except STALL_ERRORS as exc:
+                raise ProviderError(
+                    f"{self.name}: {payload.get('model')} antwortet nicht "
+                    "(Anbieter ueberlastet)"
+                ) from exc
             except TRANSIENT_ERRORS as exc:
                 last = exc
                 await asyncio.sleep(0.6 * (attempt + 1))
@@ -173,6 +179,7 @@ class OpenAICompatibleProvider(LLMProvider):
     async def stream(
         self, request: ChatRequest, tool_executor: ToolExecutor | None = None
     ) -> AsyncIterator[StreamChunk]:
+        settings = get_settings()
         client = self._client(request.slot)
         messages: list[dict] = [
             {"role": m.role, "content": m.content} for m in request.messages
@@ -180,6 +187,11 @@ class OpenAICompatibleProvider(LLMProvider):
         tools = request.tools or None
         use_tools = bool(tools and tool_executor)
         rounds = MAX_TOOL_ROUNDS if use_tools else 1
+        guard = (
+            0.0
+            if self.name in PATIENT_PROVIDERS
+            else settings.first_token_timeout * (2.0 if tools else 1.0)
+        )
         max_tokens = request.max_tokens or DEFAULT_MAX_TOKENS
         effort = get_settings().reasoning_effort.strip().lower()
         extra_body = (
@@ -189,7 +201,15 @@ class OpenAICompatibleProvider(LLMProvider):
             else None
         )
 
-        for _ in range(rounds):
+        for round_index in range(rounds):
+            watchdog = guard if round_index == 0 else 0.0
+            caller = (
+                client.with_options(
+                    timeout=max(watchdog, 8.0), max_retries=0
+                )
+                if watchdog > 0
+                else client
+            )
             payload = dict(
                 model=request.model,
                 messages=messages,
@@ -209,14 +229,13 @@ class OpenAICompatibleProvider(LLMProvider):
             if request.stop:
                 payload["stop"] = request.stop
 
-            completion = await self._create_with_retry(client, payload)
+            completion = await self._create_with_retry(caller, payload)
             max_tokens = payload["max_tokens"]
             if extra_body and "extra_body" not in payload:
                 extra_body = None
 
             content_acc: list[str] = []
             calls: dict[int, dict] = {}
-            watchdog = get_settings().first_token_timeout
             iterator = completion.__aiter__()
             first_chunk = True
 

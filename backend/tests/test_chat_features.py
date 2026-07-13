@@ -379,3 +379,48 @@ def test_slot_aus_persona_und_telegram():
     assert service.slot_for(ChatIn(messages=msgs)) == "jon"
     assert service.slot_for(ChatIn(messages=msgs, persona="junior")) == "emil"
     assert service.slot_for(ChatIn(messages=msgs, slot="emil")) == "emil"
+
+
+def test_lahmer_anbieter_rutscht_ans_ende():
+    import asyncio
+
+    from app.services import chat_service as cs
+
+    service = cs.ChatService()
+    model = "openai/gpt-oss-120b"
+    cs.mark_fast("nvidia", model)
+    frisch = asyncio.run(service.route("nvidia", model))
+    assert frisch[0] == "nvidia"
+    cs.mark_slow("nvidia", model)
+    spaeter = asyncio.run(service.route("nvidia", model))
+    assert spaeter[-1] == "nvidia"
+    if len(frisch) > 1:
+        assert spaeter[0] != "nvidia"
+    cs.mark_fast("nvidia", model)
+
+
+def test_anbieterwechsel_abschaltbar():
+    import asyncio
+
+    from app.services import chat_service as cs
+    from app.services.settings_service import get_settings_service
+
+    service = cs.ChatService()
+    settings = get_settings_service()
+    settings.update({"auto_failover": False})
+    try:
+        route = asyncio.run(service.route("nvidia", "openai/gpt-oss-120b"))
+        assert route == ["nvidia"]
+    finally:
+        settings.update({"auto_failover": True})
+
+
+def test_timeout_wird_nicht_wiederholt():
+    from openai import APIConnectionError, APITimeoutError, InternalServerError
+
+    from app.providers.openai_compatible import STALL_ERRORS, TRANSIENT_ERRORS
+
+    assert APITimeoutError in STALL_ERRORS
+    assert APIConnectionError in STALL_ERRORS
+    assert APITimeoutError not in TRANSIENT_ERRORS
+    assert InternalServerError in TRANSIENT_ERRORS

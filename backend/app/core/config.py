@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "3.4.0"
+    app_version: str = "3.5.0"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = "*"
@@ -88,7 +88,7 @@ class Settings(BaseSettings):
     xai_base_url: str = "https://api.x.ai/v1"
 
     request_timeout: float = 90.0
-    first_token_timeout: float = 30.0
+    first_token_timeout: float = 10.0
     models_timeout: float = 6.0
     max_tokens: int = 32768
     reasoning_effort: str = "low"
