@@ -372,7 +372,16 @@ verbindest du Anbieter zur Laufzeit im Konten-Bereich.
 ```
 NVIDIA_API_KEY=nvapi-...
 DEFAULT_PROVIDER=nvidia
-DEFAULT_MODEL=openai/gpt-oss-120b
+DEFAULT_JON_MODEL=openai/gpt-oss-120b
+DEFAULT_EMIL_MODEL=openai/gpt-oss-20b
+```
+
+Jon und Mini Jon laufen auf getrennten Modellen. Mit **einem** Key teilen sie ihn sich.
+Willst du beide gleichzeitig ohne Bremse nutzen, hinterlege **zwei Keys mit Komma** —
+der erste gehört Mini Jon und Telegram, der zweite Jon:
+
+```
+NVIDIA_API_KEY=erster-key-fuer-mini-jon-und-telegram, zweiter-key-fuer-jon
 ```
 
 ### 2. Backend
