@@ -104,6 +104,11 @@ async def delete_peer(peer_id: str) -> dict:
     return {"deleted": get_p2p_service().forget_peer(peer_id)}
 
 
+@router.get("/discovered")
+async def discovered() -> list[dict]:
+    return get_p2p_service().discovered()
+
+
 @router.get("/requests")
 async def requests() -> list[dict]:
     return get_p2p_service().requests()

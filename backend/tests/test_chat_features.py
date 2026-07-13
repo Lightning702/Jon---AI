@@ -222,6 +222,79 @@ def test_verlauf_loeschen():
     assert service.messages("bob") == []
 
 
+def test_vorschlaege_filtern_freunde_und_blockierte():
+    service = P2PService()
+    service._peers = {"anna": {"name": "Anna", "public_key": "", "ip": ""}}
+    service._blocked = ["boese"]
+    me = service.identity()["id"]
+    service.handle_packet(
+        {"jon": 1, "type": "announce", "id": "neu", "name": "Neu", "avatar": "🙂"},
+        "192.168.1.5",
+    )
+    service.handle_packet(
+        {"jon": 1, "type": "announce", "id": "anna", "name": "Anna"}, "192.168.1.6"
+    )
+    service.handle_packet(
+        {"jon": 1, "type": "announce", "id": me, "name": "Ich"}, "192.168.1.7"
+    )
+    ids = {d["id"] for d in service.discovered()}
+    assert "neu" in ids
+    assert "anna" not in ids
+    assert me not in ids
+    assert "boese" not in ids
+
+
+def test_verwaiste_nachrichten_zaehlen_nicht():
+    service = P2PService()
+    service._peers = {"anna": {"name": "Anna", "public_key": "", "ip": ""}}
+    service._groups = {}
+    service._cleaned = True
+    service._store("anna", "in", "Anna", "Hallo", None)
+    baseline = service.total_unread()
+    service._store("weg", "in", "Weg", "Geist", None)
+    service._store("anna", "in", "Anna", "Noch was", None)
+    assert service.total_unread() == baseline + 1
+    service._cleaned = False
+    assert service.total_unread() == baseline + 1
+    assert service.messages("weg") == []
+
+
+def test_gruppenaustritt_ohne_gruppe_legt_nichts_an():
+    service = P2PService()
+    service._peers = {"anna": {"name": "Anna", "public_key": "", "ip": ""}}
+    service._groups = {}
+    service._blocked = []
+    service.receive_event(
+        {
+            "from_id": "anna",
+            "from_name": "Anna",
+            "type": "group_leave",
+            "group_id": "gibtsnicht",
+        },
+        "10.0.0.5",
+    )
+    assert service.messages("gibtsnicht") == []
+
+
+def test_humanizer_score_und_kurztext():
+    from app.services.humanize_service import score
+
+    ki = (
+        "In der heutigen Zeit spielt eine entscheidende Rolle die Digitalisierung. "
+        "Darüber hinaus ist es wichtig zu beachten, dass viele Faktoren wirken. "
+        "Zusammenfassend lässt sich sagen, dass die Entwicklung weitergeht."
+    )
+    result = score(ki)
+    assert result["score"] > 30
+    assert result["phrases"]
+    assert score("Zu kurz.")["label"] == "zu kurz"
+
+
+def test_humanize_route_lehnt_kurzen_text_ab():
+    res = client.post("/api/humanize", json={"text": "hi"})
+    assert res.status_code == 400
+
+
 def test_backup_export_und_fehlerfall():
     from app.services.backup_service import export_backup, import_backup
 

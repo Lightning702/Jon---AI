@@ -121,6 +121,14 @@ class SimulateIn(BaseModel):
     model: str | None = None
 
 
+class HumanizeIn(BaseModel):
+    text: str
+    style: str = "neutral"
+    strength: int = 2
+    provider: str | None = None
+    model: str | None = None
+
+
 class SnapshotIn(BaseModel):
     label: str
     workspace: str | None = None

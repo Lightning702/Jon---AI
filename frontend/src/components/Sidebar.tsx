@@ -5,6 +5,7 @@ import type { ConversationSummary } from "../lib/api";
 interface Props {
   conversations: ConversationSummary[];
   activeId: string | null;
+  version: string;
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
@@ -13,6 +14,7 @@ interface Props {
 export default function Sidebar({
   conversations,
   activeId,
+  version,
   onSelect,
   onNew,
   onDelete,
@@ -78,7 +80,7 @@ export default function Sidebar({
         )}
       </div>
       <div className="p-4 text-[11px] text-white/30 border-t border-white/10">
-        Jon Desktop v2.4.0
+        {version ? `Jon Desktop v${version}` : "Jon Desktop"}
       </div>
     </aside>
   );

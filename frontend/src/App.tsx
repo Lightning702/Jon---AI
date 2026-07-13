@@ -14,6 +14,7 @@ import PetConfig from "./components/PetConfig";
 import ProfileModal from "./components/ProfileModal";
 import FriendsChat from "./components/FriendsChat";
 import FriendRequestPopup from "./components/FriendRequestPopup";
+import Humanizer from "./components/Humanizer";
 import SetupWizard from "./components/SetupWizard";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
@@ -149,6 +150,7 @@ export default function App() {
     "accounts" | "usage" | "skills" | null
   >(null);
   const [codeOpen, setCodeOpen] = useState(false);
+  const [humanizerOpen, setHumanizerOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
   const [clipboardOpen, setClipboardOpen] = useState(false);
   const [identity, setIdentity] = useState<P2PIdentity | null>(null);
@@ -161,6 +163,7 @@ export default function App() {
   const [requestError, setRequestError] = useState("");
   const [unread, setUnread] = useState(0);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [version, setVersion] = useState("");
   const [update, setUpdate] = useState<{ latest: string; url: string } | null>(
     null
   );
@@ -239,6 +242,7 @@ export default function App() {
     const connect = async () => {
       const health = await getHealth();
       setOnline(true);
+      setVersion(health.version);
       setProvider(health.default_provider);
       setModel(health.default_model);
       const provs = await getProviders();
@@ -833,6 +837,10 @@ export default function App() {
       setClipboardOpen(true);
       return;
     }
+    if (command === "/human" || command === "/humanize") {
+      setHumanizerOpen(true);
+      return;
+    }
     if (command === "/check" || command === "/pc") {
       void runDataPrompt(
         async () => CHECK_PROMPT(await getHealthCheck()),
@@ -1099,6 +1107,7 @@ export default function App() {
         <Sidebar
           conversations={conversations}
           activeId={activeId}
+          version={version}
           onSelect={loadConversation}
           onNew={startNew}
           onDelete={removeConversation}
@@ -1150,6 +1159,13 @@ export default function App() {
                   <polyline points="8 6 2 12 8 18" />
                 </svg>
                 <span className="text-[11px] font-medium">Code</span>
+              </button>
+              <button
+                onClick={() => setHumanizerOpen(true)}
+                title="Humanisierer — Texte natürlicher schreiben"
+                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <span className="text-[12px] leading-none">✍️</span>
               </button>
               <button
                 onClick={() => setFriendsOpen(true)}
@@ -1323,6 +1339,13 @@ export default function App() {
           model={model}
           onModelChange={changeModel}
           onClose={() => setCodeOpen(false)}
+        />
+      )}
+      {humanizerOpen && (
+        <Humanizer
+          provider={provider}
+          model={model}
+          onClose={() => setHumanizerOpen(false)}
         />
       )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}

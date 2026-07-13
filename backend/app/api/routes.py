@@ -23,6 +23,7 @@ from app.schemas import (
     ConversationOut,
     DreamIn,
     HealthOut,
+    HumanizeIn,
     KnowledgeLearnIn,
     KnowledgeSearchIn,
     ProviderStatus,
@@ -342,6 +343,29 @@ async def simulate(payload: SimulateIn) -> dict:
     return await get_simulation_service().simulate(
         payload.scenario, payload.context, payload.provider, payload.model
     )
+
+
+@router.post("/humanize")
+async def humanize(payload: HumanizeIn) -> dict:
+    from app.services.humanize_service import humanize as run_humanize
+
+    result = await run_humanize(
+        payload.text,
+        payload.style,
+        payload.strength,
+        payload.provider,
+        payload.model,
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/humanize/score")
+async def humanize_score(payload: HumanizeIn) -> dict:
+    from app.services.humanize_service import score
+
+    return score(payload.text)
 
 
 @router.get("/snapshots")

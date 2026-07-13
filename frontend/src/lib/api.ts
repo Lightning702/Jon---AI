@@ -312,6 +312,49 @@ export async function getHealthCheck(): Promise<Record<string, unknown>> {
   return res.json();
 }
 
+export interface HumanizeScore {
+  score: number;
+  label: string;
+  burstiness: number;
+  phrases: string[];
+}
+
+export interface HumanizeResult {
+  text: string;
+  before: HumanizeScore;
+  after: HumanizeScore;
+  words: number;
+}
+
+export async function humanizeText(
+  text: string,
+  style: string,
+  strength: number,
+  provider: string,
+  model: string
+): Promise<HumanizeResult> {
+  const res = await fetch(`${BASE}/humanize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, style, strength, provider, model }),
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail ?? "Umschreiben fehlgeschlagen");
+  }
+  return res.json();
+}
+
+export async function scoreText(text: string): Promise<HumanizeScore> {
+  const res = await fetch(`${BASE}/humanize/score`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error("score failed");
+  return res.json();
+}
+
 export interface Watcher {
   id: string;
   path: string;
@@ -797,6 +840,12 @@ export interface P2PRequest {
   created_at: string;
 }
 
+export interface P2PDiscovered {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
 export interface P2PGroup {
   id: string;
   name: string;
@@ -886,6 +935,12 @@ export async function getP2PInfo(): Promise<P2PInfo> {
 
 export async function getRequests(): Promise<P2PRequest[]> {
   const res = await fetch(`${BASE}/p2p/requests`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getDiscoveredPeers(): Promise<P2PDiscovered[]> {
+  const res = await fetch(`${BASE}/p2p/discovered`);
   if (!res.ok) return [];
   return res.json();
 }

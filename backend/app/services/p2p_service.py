@@ -47,6 +47,7 @@ class P2PService:
         self._typing: dict[str, float] = {}
         self._notified: dict[str, set[str]] = {}
         self._loc_cache: dict[str, str] = {}
+        self._cleaned = False
         MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
     def _load(self) -> dict:
@@ -296,6 +297,62 @@ class P2PService:
                 {"id": rid, **data} for rid, data in self._requests.items()
             ]
 
+    def discovered(self) -> list[dict]:
+        me = self.identity()["id"]
+        with self._lock:
+            friends = set(self._peers)
+            blocked = set(self._blocked)
+        now = time.time()
+        result = []
+        for peer_id, data in list(self._seen_peers.items()):
+            if now - float(data.get("seen_at", 0)) > 30:
+                continue
+            if peer_id == me or peer_id in blocked or peer_id in friends:
+                continue
+            name = str(data.get("name", "")).strip()
+            if not name:
+                continue
+            result.append(
+                {
+                    "id": peer_id,
+                    "name": name,
+                    "avatar": str(data.get("avatar", "")) or "🙂",
+                }
+            )
+        result.sort(key=lambda p: p["name"].lower())
+        return result
+
+    def _known_chat_ids(self) -> tuple[set[str], set[str]]:
+        with self._lock:
+            return set(self._peers), set(self._groups)
+
+    def _is_known(self, peer_id: str, group_id: str | None) -> bool:
+        peer_ids, group_ids = self._known_chat_ids()
+        if group_id:
+            return group_id in group_ids
+        return peer_id in peer_ids
+
+    def _cleanup_orphans(self) -> None:
+        if self._cleaned:
+            return
+        self._cleaned = True
+        try:
+            peer_ids, group_ids = self._known_chat_ids()
+            with session_scope() as session:
+                for row in session.query(P2PMessage).all():
+                    known = (
+                        row.group_id in group_ids
+                        if row.group_id
+                        else row.peer_id in peer_ids
+                    )
+                    if known:
+                        continue
+                    if row.media_file:
+                        (MEDIA_DIR / row.media_file).unlink(missing_ok=True)
+                    session.delete(row)
+        except Exception:
+            self._cleaned = False
+
     def blocked(self) -> list[dict]:
         with self._lock:
             return [{"id": bid} for bid in self._blocked]
@@ -430,6 +487,7 @@ class P2PService:
             "ip": sender_ip,
             "port": int(payload.get("port") or CHAT_PORT),
             "public_key": str(payload.get("public_key", "")),
+            "seen_at": time.time(),
         }
         self._remember_peer(
             peer_id,
@@ -626,6 +684,7 @@ class P2PService:
         await self._deliver(peer_id, "typing", {"from_id": me["id"]})
 
     def pending_notifications(self, channel: str = "app") -> list[dict]:
+        self._cleanup_orphans()
         seen = self._notified.setdefault(channel, set())
         with session_scope() as session:
             rows = (
@@ -635,7 +694,11 @@ class P2PService:
                 .limit(20)
                 .all()
             )
-            fresh = [self._as_dict(r) for r in rows if r.id not in seen]
+            fresh = [
+                self._as_dict(r)
+                for r in rows
+                if r.id not in seen and self._is_known(r.peer_id, r.group_id)
+            ]
         for item in fresh:
             seen.add(item["id"])
             with self._lock:
@@ -1006,10 +1069,16 @@ class P2PService:
                         m for m in group["members"] if m != peer_id
                     ]
                     self._save_groups()
-            name = str(payload.get("from_name", "Jemand"))
-            self._store(
-                peer_id, "in", "", f"{name} hat die Gruppe verlassen.", None, group_id
-            )
+            if group is not None:
+                name = str(payload.get("from_name", "Jemand"))
+                self._store(
+                    peer_id,
+                    "in",
+                    "",
+                    f"{name} hat die Gruppe verlassen.",
+                    None,
+                    group_id,
+                )
             return {"ok": True}
 
         return {"ok": True}
@@ -1494,8 +1563,14 @@ class P2PService:
             )
 
     def total_unread(self) -> int:
+        self._cleanup_orphans()
         with session_scope() as session:
-            return session.query(P2PMessage).filter(P2PMessage.seen == 0).count()
+            rows = (
+                session.query(P2PMessage).filter(P2PMessage.seen == 0).all()
+            )
+            return sum(
+                1 for row in rows if self._is_known(row.peer_id, row.group_id)
+            )
 
     def media_path(self, message_id: str) -> tuple[Path, str] | None:
         with session_scope() as session:

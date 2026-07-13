@@ -2,6 +2,30 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.2.0] — 2026-07-13
+
+### Neu — Freunde vorschlagen
+- **Vorschläge statt Raten:** Wer im selben Netzwerk Jon offen hat, wird beim Hinzufügen
+  direkt als Vorschlag angezeigt — Klick genügt, die Anfrage geht raus. Tippen filtert die
+  Liste. Bereits befreundete, blockierte und verschwundene Nutzer werden ausgeblendet.
+
+### Neu — Humanisierer (✍️ im Kopf oder `/human`)
+- Schreibt Texte natürlicher: variable Satzlängen, keine Floskeln, aktiv statt Passiv.
+  Inhalt und Fakten bleiben unverändert. Vier Tonarten, drei Stärken.
+- Zeigt eine **grobe eigene Schätzung** vorher/nachher (Satzlängen-Verteilung + typische
+  Floskeln). Das ist **kein echter KI-Detektor** — echte Detektoren rechnen anders und
+  liegen oft daneben.
+
+### Behoben
+- **Geister-Benachrichtigungen:** Der Zähler zeigte Nachrichten von Kontakten und Gruppen,
+  die es gar nicht mehr gibt (z.B. nach dem Löschen eines Freundes). Solche verwaisten
+  Nachrichten werden jetzt beim Start aufgeräumt und nicht mehr mitgezählt.
+- **Gruppen-Austritt:** „X hat die Gruppe verlassen" wurde auch für Gruppen gespeichert,
+  in denen man gar nicht ist — das erzeugte unsichtbare ungelesene Nachrichten.
+- **Versionsanzeige:** Die Seitenleiste zeigte fest „v2.4.0". Sie liest die Version jetzt
+  aus dem Backend.
+- **Chat-Sync:** Nachrichten, Freunde und Gruppen aktualisieren sich schneller (1,2s statt 2s).
+
 ## [3.1.0] — 2026-07-13
 
 ### Neu — Freundschaftsanfragen als Popup

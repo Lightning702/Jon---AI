@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  P2PDiscovered,
   P2PGroup,
   P2PGroupInvite,
   P2PIdentity,
@@ -12,6 +13,7 @@ import {
   deleteGroup,
   deleteMessage,
   deletePeer,
+  getDiscoveredPeers,
   getGroupInvites,
   getGroups,
   getP2PMessages,
@@ -58,6 +60,7 @@ export default function FriendsChat({
 }: Props) {
   const [peers, setPeers] = useState<P2PPeer[]>([]);
   const [groups, setGroups] = useState<P2PGroup[]>([]);
+  const [discovered, setDiscovered] = useState<P2PDiscovered[]>([]);
   const [typing, setTyping] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<P2PMessage[]>([]);
@@ -94,11 +97,12 @@ export default function FriendsChat({
       setPeers(await getPeers());
       setGroups(await getGroups());
       setInvites(await getGroupInvites());
+      setDiscovered(await getDiscoveredPeers());
       const current = activeRef.current;
       if (current) setMessages(await getP2PMessages(current));
     };
     void tick();
-    const timer = window.setInterval(() => void tick(), 2000);
+    const timer = window.setInterval(() => void tick(), 1200);
     const typingTimer = window.setInterval(async () => {
       setTyping(await getTypingPeers());
     }, 400);
@@ -254,20 +258,33 @@ export default function FriendsChat({
     }
   };
 
-  const connect = async () => {
-    if (!friendInput.trim()) return;
+  const connect = async (value?: string) => {
+    const target = (value ?? friendInput).trim();
+    if (!target) return;
     setAdding(true);
     setError("");
     try {
-      await addPeer(friendInput.trim(), addMode);
+      await addPeer(target, value ? "name" : addMode);
       setFriendInput("");
       setPeers(await getPeers());
+      setDiscovered(await getDiscoveredPeers());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setAdding(false);
     }
   };
+
+  const suggestions = discovered
+    .filter(
+      (d) =>
+        d.id !== identity.id &&
+        !peers.some((p) => p.id === d.id) &&
+        (addMode !== "name" ||
+          !friendInput.trim() ||
+          d.name.toLowerCase().includes(friendInput.trim().toLowerCase()))
+    )
+    .slice(0, 5);
 
   const saveGroup = async () => {
     setError("");
@@ -548,6 +565,29 @@ export default function FriendsChat({
                   </button>
                 ))}
               </div>
+              {addMode === "name" && suggestions.length > 0 && (
+                <div className="space-y-0.5">
+                  <div className="text-[10px] uppercase tracking-wide text-gold/70 px-1">
+                    In deinem Netzwerk
+                  </div>
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => void connect(s.name)}
+                      disabled={adding}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg border border-white/10 hover:border-gold/40 hover:bg-gold/10 disabled:opacity-40 transition text-left"
+                    >
+                      <span className="text-base">{s.avatar}</span>
+                      <span className="flex-1 min-w-0 text-[12px] text-white/85 truncate">
+                        {s.name}
+                      </span>
+                      <span className="text-[11px] text-gold/80">
+                        + Anfrage
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex gap-1.5">
                 <input
                   value={friendInput}
