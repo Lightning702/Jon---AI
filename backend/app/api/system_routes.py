@@ -187,6 +187,9 @@ async def delete_path(payload: PathIn) -> dict:
 class TtsIn(BaseModel):
     text: str
     voice: str = "de-DE-ConradNeural"
+    rate: str = "+8%"
+    volume: str = "+45%"
+    pitch: str = "+0Hz"
 
 
 @router.post("/tts")
@@ -196,7 +199,13 @@ async def tts(payload: TtsIn):
     try:
         from app.services.voice_service import synthesize_speech
 
-        audio = await synthesize_speech(payload.text, payload.voice)
+        audio = await synthesize_speech(
+            payload.text,
+            payload.voice,
+            payload.rate,
+            payload.volume,
+            payload.pitch,
+        )
     except Exception as exc:
         raise HTTPException(status_code=501, detail=str(exc))
     if not audio:

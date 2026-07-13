@@ -378,12 +378,15 @@ export async function getWatcherReports(): Promise<Watcher[]> {
   return res.json();
 }
 
-export async function speakServer(text: string): Promise<Blob | null> {
+export async function speakServer(
+  text: string,
+  options: { voice?: string; rate?: string; volume?: string; pitch?: string } = {}
+): Promise<Blob | null> {
   try {
     const res = await fetch(`${BASE}/system/tts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, ...options }),
     });
     if (!res.ok) return null;
     return await res.blob();

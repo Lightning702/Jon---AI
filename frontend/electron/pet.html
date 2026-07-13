@@ -447,7 +447,123 @@
           .replace(/\s+/g, " ")
           .trim();
       }
-      function speak(text, done) {
+      const EMIL_VOICE = "de-DE-FlorianMultilingualNeural";
+      const EMIL_PITCH = "+0Hz";
+      const EMIL_RATE = "+6%";
+      const EMIL_VOLUME = "+45%";
+      const BOOST = 2.4;
+
+      let audioCtx = null;
+      let player = null;
+      let analyser = null;
+      let mouthFrame = null;
+
+      function stopAudio() {
+        if (mouthFrame) cancelAnimationFrame(mouthFrame);
+        mouthFrame = null;
+        if (player) {
+          try {
+            player.pause();
+          } catch (e) {}
+          player = null;
+        }
+        analyser = null;
+      }
+
+      function driveMouth() {
+        if (!analyser) return;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const tick = () => {
+          if (!analyser) return;
+          analyser.getByteTimeDomainData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) {
+            const v = (data[i] - 128) / 128;
+            sum += v * v;
+          }
+          const level = Math.sqrt(sum / data.length);
+          openMouth(Math.min(1, level * 6));
+          mouthFrame = requestAnimationFrame(tick);
+        };
+        mouthFrame = requestAnimationFrame(tick);
+      }
+
+      async function speakNatural(clean) {
+        const res = await fetch(`${BASE}/system/tts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: clean,
+            voice: EMIL_VOICE,
+            rate: EMIL_RATE,
+            volume: EMIL_VOLUME,
+            pitch: EMIL_PITCH,
+          }),
+        });
+        if (!res.ok) throw new Error("tts");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const el = new Audio(url);
+        el.volume = 1;
+        audioCtx = audioCtx || new AudioContext();
+        await audioCtx.resume();
+        if (audioCtx.state !== "running") {
+          player = el;
+          lookX = 0;
+          lookY = 0;
+          eyeTransform(1);
+          if (mouthTimer) clearInterval(mouthTimer);
+          mouthTimer = setInterval(
+            () => openMouth(0.25 + Math.random() * 0.75),
+            95
+          );
+          await new Promise((resolve) => {
+            const finish = () => {
+              URL.revokeObjectURL(url);
+              resolve();
+            };
+            el.onended = finish;
+            el.onerror = finish;
+            el.play().catch(finish);
+          });
+          stopAudio();
+          stopMouth();
+          return;
+        }
+        const source = audioCtx.createMediaElementSource(el);
+        const compressor = audioCtx.createDynamicsCompressor();
+        compressor.threshold.value = -18;
+        compressor.knee.value = 12;
+        compressor.ratio.value = 4;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.2;
+        const gain = audioCtx.createGain();
+        gain.gain.value = BOOST;
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(compressor);
+        compressor.connect(gain);
+        gain.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        player = el;
+        lookX = 0;
+        lookY = 0;
+        eyeTransform(1);
+        driveMouth();
+        await new Promise((resolve) => {
+          const finish = () => {
+            URL.revokeObjectURL(url);
+            resolve();
+          };
+          el.onended = finish;
+          el.onerror = finish;
+          el.play().catch(finish);
+        });
+        stopAudio();
+        stopMouth();
+      }
+
+      function speakBrowser(clean, done) {
         const synth = window.speechSynthesis;
         if (!synth) {
           if (done) done();
@@ -456,16 +572,12 @@
         try {
           synth.cancel();
           if (!voice) pickVoice();
-          const clean = cleanForSpeech(text).slice(0, 600);
-          if (!clean) {
-            if (done) done();
-            return;
-          }
           const u = new SpeechSynthesisUtterance(clean);
           if (voice) u.voice = voice;
           u.lang = "de-DE";
           u.rate = 1.06;
-          u.pitch = voice && MALE.test(voice.name) ? 1.15 : 1.3;
+          u.pitch = voice && MALE.test(voice.name) ? 1.35 : 1.45;
+          u.volume = 1;
           u.onstart = () => {
             lookX = 0;
             lookY = 0;
@@ -488,6 +600,27 @@
           stopMouth();
           if (done) done();
         }
+      }
+
+      function speak(text, done) {
+        const clean = cleanForSpeech(text).slice(0, 600);
+        if (!clean) {
+          if (done) done();
+          return;
+        }
+        stopAudio();
+        try {
+          window.speechSynthesis.cancel();
+        } catch (e) {}
+        speakNatural(clean)
+          .then(() => {
+            if (done) done();
+          })
+          .catch(() => {
+            stopAudio();
+            stopMouth();
+            speakBrowser(clean, done);
+          });
       }
 
       let lookX = 0;
@@ -540,6 +673,7 @@
         try {
           window.speechSynthesis.cancel();
         } catch (e) {}
+        stopAudio();
         stopMouth();
         busy = false;
         document.body.classList.remove("busy");

@@ -55,13 +55,25 @@ class VoiceService:
             return ""
 
 
-async def synthesize_speech(text: str, voice: str = "de-DE-ConradNeural") -> bytes:
+JON_VOICE = "de-DE-ConradNeural"
+EMIL_VOICE = "de-DE-FlorianMultilingualNeural"
+
+
+async def synthesize_speech(
+    text: str,
+    voice: str = JON_VOICE,
+    rate: str = "+8%",
+    volume: str = "+45%",
+    pitch: str = "+0Hz",
+) -> bytes:
     import edge_tts
 
     clean = text.strip()[:1200]
     if not clean:
         return b""
-    communicate = edge_tts.Communicate(clean, voice, rate="+8%")
+    communicate = edge_tts.Communicate(
+        clean, voice, rate=rate, volume=volume, pitch=pitch
+    )
     chunks: list[bytes] = []
     async for chunk in communicate.stream():
         if chunk.get("type") == "audio" and chunk.get("data"):

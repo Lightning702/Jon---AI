@@ -2,6 +2,23 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.7.0] — 2026-07-13
+
+### Neu — Stimmen
+- **Jon und Mini Jon sind deutlich lauter.** Die Sprachausgabe wird jetzt schon beim
+  Erzeugen angehoben (+45 %) und im Abspieler nochmal verstärkt (Faktor 2,2 bzw. 2,4) —
+  mit Kompressor, damit nichts übersteuert. Gemessen: **+3,3 dB**, Spitzenpegel von
+  0,58 auf 0,90.
+- **Mini Jon hat eine eigene, natürliche Stimme.** Er sprach bisher mit der
+  Roboterstimme des Browsers, jetzt nutzt er dieselbe Neural-Stimme-Technik wie Jon —
+  aber mit einer **anderen, helleren Stimme** (`FlorianMultilingual` statt Jons `Conrad`).
+  Gemessen: **148 Hz statt 115 Hz** Grundfrequenz — hörbar heller, ohne künstliche
+  Tonhöhen-Verbiegung.
+- **Echter Lippen-Sync:** Mini Jons Mund bewegt sich jetzt zur tatsächlichen Lautstärke
+  seiner Stimme statt zufällig.
+- Klappt die Neural-Stimme nicht (z.B. ohne Internet), fällt Mini Jon wie bisher auf die
+  Browser-Stimme zurück — jetzt aber ebenfalls heller und auf voller Lautstärke.
+
 ## [3.6.1] — 2026-07-13
 
 ### Behoben

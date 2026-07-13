@@ -3,11 +3,38 @@ import { speakServer } from "./api";
 let cachedVoice: SpeechSynthesisVoice | null = null;
 let naturalVoice = true;
 let audio: HTMLAudioElement | null = null;
+let context: AudioContext | null = null;
+const wired = new WeakSet<HTMLAudioElement>();
 
 const MALE_PATTERN = /stefan|klaus|conrad|bernd|jonas|paul|markus|male|mann/i;
+const BOOST = 2.2;
 
 export function setNaturalVoice(enabled: boolean): void {
   naturalVoice = enabled;
+}
+
+async function amplify(player: HTMLAudioElement): Promise<void> {
+  if (wired.has(player)) return;
+  try {
+    context = context ?? new AudioContext();
+    await context.resume();
+    if (context.state !== "running") return;
+    const source = context.createMediaElementSource(player);
+    const compressor = context.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.knee.value = 12;
+    compressor.ratio.value = 4;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.2;
+    const gain = context.createGain();
+    gain.gain.value = BOOST;
+    source.connect(compressor);
+    compressor.connect(gain);
+    gain.connect(context.destination);
+    wired.add(player);
+  } catch {
+    player.volume = 1;
+  }
 }
 
 function pickVoice(): SpeechSynthesisVoice | null {
@@ -45,6 +72,8 @@ export async function speak(text: string): Promise<void> {
       stopSpeaking();
       const url = URL.createObjectURL(blob);
       const player = new Audio(url);
+      player.volume = 1;
+      await amplify(player);
       audio = player;
       await new Promise<void>((resolve) => {
         const finish = () => {
@@ -82,6 +111,7 @@ function speakBrowser(text: string): Promise<void> {
     utterance.lang = "de-DE";
     utterance.rate = 1.05;
     utterance.pitch = male ? 1 : 0.7;
+    utterance.volume = 1;
     let settled = false;
     const finish = () => {
       if (!settled) {
