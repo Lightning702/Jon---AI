@@ -14,8 +14,8 @@ class ChatIn(BaseModel):
     messages: list[MessageIn]
     provider: str | None = None
     model: str | None = None
-    temperature: float = 1.0
-    top_p: float = 1.0
+    temperature: float | None = None
+    top_p: float | None = None
     max_tokens: int | None = None
     seed: int | None = None
     conversation_id: str | None = None

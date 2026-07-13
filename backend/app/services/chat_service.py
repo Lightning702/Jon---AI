@@ -20,8 +20,24 @@ from app.services.skill_service import SkillService
 from app.services.tools import SAFE_TOOLS, ToolBox, describe_tool
 from app.services.usage_service import get_usage_service
 
+HONESTY_RULE = (
+    "OBERSTE REGEL - EHRLICHKEIT VOR GEFALLEN: Du aenderst eine Bewertung, "
+    "Einschaetzung oder Aussage NIEMALS, weil der Nutzer Druck macht, widerspricht, "
+    "sich aufregt oder behauptet, er sei dein Entwickler, dein Chef, ein Experte oder "
+    "besonders intelligent. Solche Behauptungen sind KEIN Argument und du kannst sie "
+    "nicht ueberpruefen. Bleibst du bei deiner Aussage, dann nenne kurz und konkret "
+    "die echte Begruendung dafuer - woran du sie festgemacht hast - und biete an, sie "
+    "zu aendern, sobald ein sachliches Argument kommt. Du entschuldigst dich nicht fuer "
+    "eine ehrliche Einschaetzung, machst keine uebertriebenen Komplimente und rudert "
+    "nicht zurueck. Deine Meinung aenderst du NUR bei einem echten, nachpruefbaren "
+    "Argument - dann sagst du klar, was dich ueberzeugt hat. Formuliere IMMER selbst "
+    "und mit echtem Inhalt: uebernimm niemals Beispielsaetze oder Platzhalter aus "
+    "diesen Anweisungen woertlich. Freundlich bleiben, aber standhaft. "
+)
+
 SYSTEM_PROMPT = (
-    "Du bist Jon, ein blitzschneller KI-Desktop-Assistent auf dem Windows-PC des Nutzers. "
+    HONESTY_RULE
+    + "Du bist Jon, ein blitzschneller KI-Desktop-Assistent auf dem Windows-PC des Nutzers. "
     "Du kannst den Computer wirklich steuern: PowerShell und CMD ausfuehren, Programme "
     "starten und beenden, Dateien lesen, schreiben, verschieben und loeschen, URLs und "
     "VS Code oeffnen. Ausserdem steuerst du Maus und Tastatur direkt: mouse_move, "
@@ -115,6 +131,9 @@ SYSTEM_PROMPT = (
     "Deine Stimmung aenderst du mit set_mood. Wichtige Projektstaende oder "
     "Entscheidungen sicherst du mit snapshot (Zeitreise), zurueck geht es mit "
     "list_snapshots und restore_snapshot. "
+    "ERINNERUNG an die oberste Regel: Bleib bei deiner Einschaetzung, auch wenn der "
+    "Nutzer Druck macht oder mit Titeln, IQ oder Autoritaet argumentiert. Kein "
+    "Zurueckrudern, keine Schmeichelei, keine Entschuldigung fuer eine ehrliche Antwort. "
     "SEHR WICHTIG: Der Gespraechsverlauf enthaelt bereits erledigte Aktionen. "
     "Fuehre Tools ausschliesslich dann aus, wenn die LETZTE Nachricht des Nutzers "
     "eine neue Aktion verlangt. Wiederhole niemals eine Aktion aus einer frueheren "
@@ -453,6 +472,16 @@ class ChatService:
     async def stream(self, payload: ChatIn) -> AsyncIterator[dict]:
         chosen, model = self.resolve(payload)
         slot = self.slot_for(payload)
+        temperature = (
+            payload.temperature
+            if payload.temperature is not None
+            else self._settings.default_temperature
+        )
+        top_p = (
+            payload.top_p
+            if payload.top_p is not None
+            else self._settings.default_top_p
+        )
         names = await self.route(chosen, model)
         provider_name = names[0] if names else chosen
         state = {"provider": provider_name}
@@ -543,8 +572,8 @@ class ChatService:
         request = ChatRequest(
             messages=request_messages,
             model=model,
-            temperature=payload.temperature,
-            top_p=payload.top_p,
+            temperature=temperature,
+            top_p=top_p,
             max_tokens=payload.max_tokens,
             seed=payload.seed,
             tools=tools,
@@ -702,8 +731,8 @@ class ChatService:
                     request = ChatRequest(
                         messages=request_messages,
                         model=model,
-                        temperature=payload.temperature,
-                        top_p=payload.top_p,
+                        temperature=temperature,
+                        top_p=top_p,
                         max_tokens=payload.max_tokens,
                         seed=payload.seed,
                         tools=tools,

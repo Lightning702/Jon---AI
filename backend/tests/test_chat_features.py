@@ -415,6 +415,39 @@ def test_anbieterwechsel_abschaltbar():
         settings.update({"auto_failover": True})
 
 
+def test_rollenmarker_werden_entfernt():
+    from app.providers.openai_compatible import clean_lead
+
+    assert clean_lead("assistant\n\nHallo Felix") == "Hallo Felix"
+    assert clean_lead("<|start_header_id|>assistant<|end_header_id|>\n\nHi") == "Hi"
+    assert clean_lead("system: Hallo") == "Hallo"
+    assert clean_lead("Hallo Felix") == "Hallo Felix"
+    assert clean_lead("Assistenten helfen dir") == "Assistenten helfen dir"
+
+
+def test_stopp_sequenzen_gesetzt():
+    from app.providers.openai_compatible import STOP_SEQUENCES
+
+    assert "<|eot_id|>" in STOP_SEQUENCES
+    assert "<|start_header_id|>" in STOP_SEQUENCES
+
+
+def test_ehrlichkeitsregel_steht_vorn():
+    from app.services.chat_service import HONESTY_RULE, SYSTEM_PROMPT
+
+    assert SYSTEM_PROMPT.startswith(HONESTY_RULE)
+    assert "OBERSTE REGEL" in HONESTY_RULE
+    assert "Entwickler" in HONESTY_RULE
+
+
+def test_sampling_standard_ist_gezaehmt():
+    from app.core.config import Settings
+
+    s = Settings()
+    assert s.default_temperature <= 0.8
+    assert s.default_top_p <= 0.95
+
+
 def test_timeout_wird_nicht_wiederholt():
     from openai import APIConnectionError, APITimeoutError, InternalServerError
 

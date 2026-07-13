@@ -448,10 +448,12 @@
           .trim();
       }
       const EMIL_VOICE = "de-DE-FlorianMultilingualNeural";
-      const EMIL_PITCH = "+0Hz";
-      const EMIL_RATE = "+6%";
+      const EMIL_PITCH = "+60Hz";
+      const EMIL_RATE = "+12%";
       const EMIL_VOLUME = "+45%";
       const BOOST = 2.4;
+      const FIRST_CHUNK = 80;
+      const NEXT_CHUNK = 160;
 
       let audioCtx = null;
       let player = null;
@@ -488,12 +490,32 @@
         mouthFrame = requestAnimationFrame(tick);
       }
 
-      async function speakNatural(clean) {
+      function splitForSpeech(text) {
+        const satzteile = text.match(/[^.!?…]+[.!?…]*/g) || [text];
+        const stuecke = [];
+        let aktuell = "";
+        for (const roh of satzteile) {
+          const s = roh.trim();
+          if (!s) continue;
+          const grenze = stuecke.length === 0 ? FIRST_CHUNK : NEXT_CHUNK;
+          const zusammen = aktuell ? aktuell + " " + s : s;
+          if (aktuell && zusammen.length > grenze) {
+            stuecke.push(aktuell);
+            aktuell = s;
+          } else {
+            aktuell = zusammen;
+          }
+        }
+        if (aktuell) stuecke.push(aktuell);
+        return stuecke;
+      }
+
+      async function fetchVoice(text) {
         const res = await fetch(`${BASE}/system/tts`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            text: clean,
+            text,
             voice: EMIL_VOICE,
             rate: EMIL_RATE,
             volume: EMIL_VOLUME,
@@ -501,55 +523,46 @@
           }),
         });
         if (!res.ok) throw new Error("tts");
-        const blob = await res.blob();
+        return res.blob();
+      }
+
+      async function playBlob(blob) {
         const url = URL.createObjectURL(blob);
         const el = new Audio(url);
         el.volume = 1;
         audioCtx = audioCtx || new AudioContext();
         await audioCtx.resume();
-        if (audioCtx.state !== "running") {
-          player = el;
-          lookX = 0;
-          lookY = 0;
-          eyeTransform(1);
+        const roh = audioCtx.state !== "running";
+        if (!roh) {
+          const source = audioCtx.createMediaElementSource(el);
+          const compressor = audioCtx.createDynamicsCompressor();
+          compressor.threshold.value = -18;
+          compressor.knee.value = 12;
+          compressor.ratio.value = 4;
+          compressor.attack.value = 0.003;
+          compressor.release.value = 0.2;
+          const gain = audioCtx.createGain();
+          gain.gain.value = BOOST;
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(compressor);
+          compressor.connect(gain);
+          gain.connect(analyser);
+          analyser.connect(audioCtx.destination);
+        }
+        player = el;
+        lookX = 0;
+        lookY = 0;
+        eyeTransform(1);
+        if (roh) {
           if (mouthTimer) clearInterval(mouthTimer);
           mouthTimer = setInterval(
             () => openMouth(0.25 + Math.random() * 0.75),
             95
           );
-          await new Promise((resolve) => {
-            const finish = () => {
-              URL.revokeObjectURL(url);
-              resolve();
-            };
-            el.onended = finish;
-            el.onerror = finish;
-            el.play().catch(finish);
-          });
-          stopAudio();
-          stopMouth();
-          return;
+        } else {
+          driveMouth();
         }
-        const source = audioCtx.createMediaElementSource(el);
-        const compressor = audioCtx.createDynamicsCompressor();
-        compressor.threshold.value = -18;
-        compressor.knee.value = 12;
-        compressor.ratio.value = 4;
-        compressor.attack.value = 0.003;
-        compressor.release.value = 0.2;
-        const gain = audioCtx.createGain();
-        gain.gain.value = BOOST;
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 512;
-        source.connect(compressor);
-        compressor.connect(gain);
-        gain.connect(analyser);
-        analyser.connect(audioCtx.destination);
-        player = el;
-        lookX = 0;
-        lookY = 0;
-        eyeTransform(1);
-        driveMouth();
         await new Promise((resolve) => {
           const finish = () => {
             URL.revokeObjectURL(url);
@@ -559,8 +572,25 @@
           el.onerror = finish;
           el.play().catch(finish);
         });
-        stopAudio();
+        if (mouthFrame) cancelAnimationFrame(mouthFrame);
+        mouthFrame = null;
+        analyser = null;
+        player = null;
         stopMouth();
+      }
+
+      async function speakNatural(clean, onStart) {
+        const stuecke = splitForSpeech(clean);
+        let naechstes = fetchVoice(stuecke[0]);
+        for (let i = 0; i < stuecke.length; i++) {
+          const blob = await naechstes;
+          naechstes =
+            i + 1 < stuecke.length ? fetchVoice(stuecke[i + 1]) : null;
+          if (canceled) return;
+          if (i === 0 && onStart) onStart();
+          await playBlob(blob);
+          if (canceled) return;
+        }
       }
 
       function speakBrowser(clean, done) {
@@ -602,9 +632,10 @@
         }
       }
 
-      function speak(text, done) {
+      function speak(text, done, onStart) {
         const clean = cleanForSpeech(text).slice(0, 600);
         if (!clean) {
+          if (onStart) onStart();
           if (done) done();
           return;
         }
@@ -612,13 +643,21 @@
         try {
           window.speechSynthesis.cancel();
         } catch (e) {}
-        speakNatural(clean)
+        let gestartet = false;
+        const start = () => {
+          if (gestartet) return;
+          gestartet = true;
+          if (onStart) onStart();
+        };
+        speakNatural(clean, start)
           .then(() => {
+            start();
             if (done) done();
           })
           .catch(() => {
             stopAudio();
             stopMouth();
+            start();
             speakBrowser(clean, done);
           });
       }
@@ -742,14 +781,17 @@
         answer = answer.trim() || "…";
         if (replied) rememberTurn(text, answer);
         say(answer, true);
-        setState("");
-        speak(answer, () => {
-          busy = false;
-          document.body.classList.remove("busy");
-          listener && listener.setBusy(false);
-          setState(listening ? "listening" : "");
-          scheduleHide(3500);
-        });
+        speak(
+          answer,
+          () => {
+            busy = false;
+            document.body.classList.remove("busy");
+            listener && listener.setBusy(false);
+            setState(listening ? "listening" : "");
+            scheduleHide(3500);
+          },
+          () => setState("")
+        );
       }
 
       function greetingByHour() {

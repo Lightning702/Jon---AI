@@ -21,7 +21,7 @@ def test_health():
     assert body["status"] == "ok"
     assert body["default_provider"] == "nvidia"
     assert body["default_model"] == get_settings().jon_model
-    assert body["default_model"] == "meta/llama-3.1-70b-instruct"
+    assert body["default_model"] == "openai/gpt-oss-120b"
 
 
 def test_providers():

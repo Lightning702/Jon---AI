@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "3.7.0"
+    app_version: str = "3.8.0"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = "*"
@@ -58,7 +58,7 @@ class Settings(BaseSettings):
 
     default_provider: str = "nvidia"
     default_model: str = ""
-    default_jon_model: str = "meta/llama-3.1-70b-instruct"
+    default_jon_model: str = "openai/gpt-oss-120b"
     default_emil_model: str = "openai/gpt-oss-20b"
 
     openai_api_key: str | None = None
@@ -92,15 +92,15 @@ class Settings(BaseSettings):
     models_timeout: float = 6.0
     max_tokens: int = 32768
     reasoning_effort: str = "low"
-    default_temperature: float = 1.0
-    default_top_p: float = 1.0
+    default_temperature: float = 0.7
+    default_top_p: float = 0.9
 
     @property
     def jon_model(self) -> str:
         return (
             self.default_jon_model.strip()
             or self.default_model.strip()
-            or "meta/llama-3.1-70b-instruct"
+            or "openai/gpt-oss-120b"
         )
 
     @property

@@ -27,9 +27,9 @@ class ProviderRegistry:
             base_url=s.nvidia_base_url,
             key_resolver=self._resolver("nvidia"),
             default_models=[
-                "meta/llama-3.1-70b-instruct",
                 "openai/gpt-oss-120b",
                 "openai/gpt-oss-20b",
+                "meta/llama-3.1-70b-instruct",
                 "z-ai/glm-5.2",
                 "deepseek-ai/deepseek-r1",
                 "qwen/qwen2.5-coder-32b-instruct",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from typing import AsyncIterator, Callable
 
@@ -29,6 +30,22 @@ MODELS_CACHE_TTL = 300.0
 MODELS_FAIL_TTL = 30.0
 REASONING_MODELS = ("gpt-oss",)
 PATIENT_PROVIDERS = ("ollama", "lmstudio")
+LEAD_GATE = 40
+TEMPLATE_TOKEN = re.compile(r"<\|[a-z_]+\|>")
+ROLE_PREFIX = re.compile(
+    r"^\s*(?:assistant|system|user|model)\s*[:\n]+", re.IGNORECASE
+)
+STOP_SEQUENCES = ["<|eot_id|>", "<|start_header_id|>", "<|end_header_id|>"]
+
+
+def clean_lead(text: str) -> str:
+    out = TEMPLATE_TOKEN.sub("", text)
+    while True:
+        stripped = ROLE_PREFIX.sub("", out, count=1)
+        if stripped == out:
+            break
+        out = stripped
+    return out.lstrip()
 TRANSIENT_ERRORS = (InternalServerError,)
 STALL_ERRORS = (
     APITimeoutError,
@@ -226,8 +243,7 @@ class OpenAICompatibleProvider(LLMProvider):
             payload["stream_options"] = {"include_usage": True}
             if request.seed is not None:
                 payload["seed"] = request.seed
-            if request.stop:
-                payload["stop"] = request.stop
+            payload["stop"] = list(request.stop) + STOP_SEQUENCES
 
             completion = await self._create_with_retry(caller, payload)
             max_tokens = payload["max_tokens"]
@@ -236,6 +252,8 @@ class OpenAICompatibleProvider(LLMProvider):
 
             content_acc: list[str] = []
             calls: dict[int, dict] = {}
+            lead = ""
+            lead_open = True
             iterator = completion.__aiter__()
             first_chunk = True
 
@@ -276,8 +294,22 @@ class OpenAICompatibleProvider(LLMProvider):
                         yield StreamChunk(delta=reasoning, kind="reasoning")
                     content = getattr(delta, "content", None)
                     if content:
-                        content_acc.append(content)
-                        yield StreamChunk(delta=content, kind="content")
+                        if lead_open:
+                            lead += content
+                            if len(lead) < LEAD_GATE:
+                                continue
+                            lead_open = False
+                            cleaned = clean_lead(lead)
+                            lead = ""
+                            if cleaned:
+                                content_acc.append(cleaned)
+                                yield StreamChunk(delta=cleaned, kind="content")
+                            continue
+                        piece = TEMPLATE_TOKEN.sub("", content)
+                        if not piece:
+                            continue
+                        content_acc.append(piece)
+                        yield StreamChunk(delta=piece, kind="content")
                     for tc in getattr(delta, "tool_calls", None) or []:
                         slot = calls.setdefault(
                             tc.index, {"id": None, "name": "", "args": ""}
@@ -297,6 +329,14 @@ class OpenAICompatibleProvider(LLMProvider):
                 continue
             except Exception as exc:
                 raise ProviderError(f"{self.name}: {exc}") from exc
+
+            if lead_open and lead:
+                cleaned = clean_lead(lead)
+                lead = ""
+                lead_open = False
+                if cleaned:
+                    content_acc.append(cleaned)
+                    yield StreamChunk(delta=cleaned, kind="content")
 
             if not calls:
                 return

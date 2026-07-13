@@ -8,6 +8,8 @@ const wired = new WeakSet<HTMLAudioElement>();
 
 const MALE_PATTERN = /stefan|klaus|conrad|bernd|jonas|paul|markus|male|mann/i;
 const BOOST = 2.2;
+const FIRST_CHUNK = 80;
+const NEXT_CHUNK = 160;
 
 export function setNaturalVoice(enabled: boolean): void {
   naturalVoice = enabled;
@@ -63,30 +65,64 @@ function cleanForSpeech(text: string): string {
     .trim();
 }
 
+function splitForSpeech(text: string): string[] {
+  const sentences = text.match(/[^.!?…]+[.!?…]*/g) ?? [text];
+  const chunks: string[] = [];
+  let current = "";
+  for (const raw of sentences) {
+    const sentence = raw.trim();
+    if (!sentence) continue;
+    const limit = chunks.length === 0 ? FIRST_CHUNK : NEXT_CHUNK;
+    const merged = current ? `${current} ${sentence}` : sentence;
+    if (current && merged.length > limit) {
+      chunks.push(current);
+      current = sentence;
+    } else {
+      current = merged;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+async function playBlob(blob: Blob): Promise<void> {
+  const url = URL.createObjectURL(blob);
+  const player = new Audio(url);
+  player.volume = 1;
+  await amplify(player);
+  audio = player;
+  await new Promise<void>((resolve) => {
+    const finish = () => {
+      URL.revokeObjectURL(url);
+      if (audio === player) audio = null;
+      resolve();
+    };
+    player.onended = finish;
+    player.onerror = finish;
+    void player.play().catch(finish);
+  });
+}
+
 export async function speak(text: string): Promise<void> {
   if (naturalVoice) {
     const clean = cleanForSpeech(text).slice(0, 1200);
     if (!clean) return;
-    const blob = await speakServer(clean);
-    if (blob) {
-      stopSpeaking();
-      const url = URL.createObjectURL(blob);
-      const player = new Audio(url);
-      player.volume = 1;
-      await amplify(player);
-      audio = player;
-      await new Promise<void>((resolve) => {
-        const finish = () => {
-          URL.revokeObjectURL(url);
-          if (audio === player) audio = null;
-          resolve();
-        };
-        player.onended = finish;
-        player.onerror = finish;
-        void player.play().catch(finish);
-      });
-      return;
+    const chunks = splitForSpeech(clean);
+    let pending = speakServer(chunks[0]);
+    stopSpeaking();
+    for (let i = 0; i < chunks.length; i++) {
+      const blob = await pending;
+      pending =
+        i + 1 < chunks.length
+          ? speakServer(chunks[i + 1])
+          : Promise.resolve(null);
+      if (!blob) {
+        if (i === 0) return speakBrowser(text);
+        return;
+      }
+      await playBlob(blob);
     }
+    return;
   }
   return speakBrowser(text);
 }

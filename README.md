@@ -372,7 +372,7 @@ verbindest du Anbieter zur Laufzeit im Konten-Bereich.
 ```
 NVIDIA_API_KEY=nvapi-...
 DEFAULT_PROVIDER=nvidia
-DEFAULT_JON_MODEL=meta/llama-3.1-70b-instruct
+DEFAULT_JON_MODEL=openai/gpt-oss-120b
 DEFAULT_EMIL_MODEL=openai/gpt-oss-20b
 ```
 

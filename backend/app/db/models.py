@@ -68,7 +68,7 @@ class Conversation(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     title: Mapped[str] = mapped_column(String(255), default="Neue Unterhaltung")
     provider: Mapped[str] = mapped_column(String(64), default="nvidia")
-    model: Mapped[str] = mapped_column(String(128), default="meta/llama-3.1-70b-instruct")
+    model: Mapped[str] = mapped_column(String(128), default="openai/gpt-oss-120b")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=_now, onupdate=_now
