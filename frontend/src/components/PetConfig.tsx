@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { getUserSettings, saveUserSettings } from "../lib/api";
+import {
+  ProviderStatus,
+  getProviders,
+  getUserSettings,
+  saveUserSettings,
+} from "../lib/api";
 
 type Eyes = "round" | "happy" | "sleepy";
 
@@ -10,6 +15,7 @@ interface Cfg {
   pet_cheeks: boolean;
   pet_scale: number;
   pet_eyes: Eyes;
+  pet_provider: string;
   pet_model: string;
 }
 
@@ -19,6 +25,7 @@ const DEFAULT: Cfg = {
   pet_cheeks: false,
   pet_scale: 1,
   pet_eyes: "round",
+  pet_provider: "",
   pet_model: "openai/gpt-oss-20b",
 };
 
@@ -49,18 +56,25 @@ function Eyes({ style, color }: { style: Eyes; color: string }) {
 
 export default function PetConfig({ onClose }: { onClose: () => void }) {
   const [cfg, setCfg] = useState<Cfg>(DEFAULT);
+  const [providers, setProviders] = useState<ProviderStatus[]>([]);
+  const [mainProvider, setMainProvider] = useState("");
 
   useEffect(() => {
-    void getUserSettings().then((s) =>
+    void getUserSettings().then((s) => {
       setCfg({
         pet_accent: s.pet_accent || DEFAULT.pet_accent,
         pet_face: s.pet_face || DEFAULT.pet_face,
         pet_cheeks: s.pet_cheeks !== false,
         pet_scale: s.pet_scale || 1,
         pet_eyes: (s.pet_eyes as Eyes) || "round",
+        pet_provider: s.pet_provider || "",
         pet_model: s.pet_model || DEFAULT.pet_model,
-      })
-    );
+      });
+      setMainProvider(s.provider || "");
+    });
+    void getProviders()
+      .then(setProviders)
+      .catch(() => setProviders([]));
   }, []);
 
   const update = (patch: Partial<Cfg>) => {
@@ -79,6 +93,14 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
     { value: "happy", label: "Fröhlich" },
     { value: "sleepy", label: "Verschlafen" },
   ];
+
+  const configured = providers.filter((p) => p.configured);
+  const activeProvider = cfg.pet_provider || mainProvider || "nvidia";
+  const models =
+    providers.find((p) => p.provider === activeProvider)?.models ?? [];
+  const followsJon = Boolean(mainProvider) && mainProvider !== "nvidia";
+  const selectField =
+    "w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[12px] text-white/90 outline-none focus:border-gold/50 [&>option]:bg-zinc-900";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -194,16 +216,45 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               </span>
             </div>
             <div className="space-y-1 pt-1">
+              <span className="text-[13px] text-white/80">Anbieter</span>
+              <select
+                value={cfg.pet_provider}
+                onChange={(e) =>
+                  update({ pet_provider: e.target.value, pet_model: "" })
+                }
+                disabled={followsJon}
+                className={selectField}
+              >
+                <option value="">Wie Jon ({mainProvider || "nvidia"})</option>
+                {configured.map((p) => (
+                  <option key={p.provider} value={p.provider}>
+                    {p.provider}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
               <span className="text-[13px] text-white/80">Modell</span>
-              <input
+              <select
                 value={cfg.pet_model}
                 onChange={(e) => update({ pet_model: e.target.value })}
-                placeholder="openai/gpt-oss-20b"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
-              />
+                disabled={followsJon}
+                className={selectField}
+              >
+                <option value="">Automatisch (openai/gpt-oss-20b)</option>
+                {cfg.pet_model && !models.includes(cfg.pet_model) && (
+                  <option value={cfg.pet_model}>{cfg.pet_model}</option>
+                )}
+                {models.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
               <div className="text-[11px] text-white/40 leading-snug">
-                Mini Jon plaudert — ein schnelles Modell antwortet in ~2 s. Der
-                große Jon behält sein eigenes Modell.
+                {followsJon
+                  ? `Jon nutzt gerade ${mainProvider} — Mini Jon übernimmt Anbieter und Modell automatisch von Jon.`
+                  : "Mini Jon plaudert — ein schnelles Modell antwortet in ~2 s. Wechselt Jon oben zu einem anderen Anbieter als NVIDIA, übernimmt Mini Jon automatisch Jons Anbieter und Modell."}
               </div>
             </div>
           </div>

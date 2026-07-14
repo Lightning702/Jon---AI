@@ -102,12 +102,23 @@ class SettingsService:
         with self._lock:
             return self._data.get("provider", ""), self._data.get("model", "")
 
+    def _companion_selection(
+        self, provider_key: str, model_key: str
+    ) -> tuple[str, str]:
+        main_provider = self._data.get("provider", "")
+        main_model = self._data.get("model", "")
+        if main_provider and main_provider != "nvidia":
+            return main_provider, main_model
+        provider = self._data.get(provider_key, "") or main_provider
+        return provider, self._data.get(model_key, "")
+
+    def pet_selection(self) -> tuple[str, str]:
+        with self._lock:
+            return self._companion_selection("pet_provider", "pet_model")
+
     def telegram_selection(self) -> tuple[str, str]:
         with self._lock:
-            provider = self._data.get("telegram_provider", "") or self._data.get(
-                "provider", ""
-            )
-            return provider, self._data.get("telegram_model", "")
+            return self._companion_selection("telegram_provider", "telegram_model")
 
 
 _service: SettingsService | None = None

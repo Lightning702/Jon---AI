@@ -226,9 +226,17 @@ def looks_like_tool_start(text: str) -> bool:
 
 FALLBACK_MODELS = {
     "nvidia": "openai/gpt-oss-20b",
-    "openrouter": "meta-llama/llama-3.1-8b-instruct",
+    "openrouter": "meta-llama/llama-3.1-8b-instruct:free",
     "groq": "llama-3.3-70b-versatile",
 }
+
+OPENROUTER_FREE_DEFAULTS = (
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "deepseek/deepseek-chat-v3-0324:free",
+    "google/gemini-2.0-flash-exp:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+)
 
 ALTERNATIVE_PROVIDERS = (
     "groq",
@@ -337,6 +345,21 @@ class ChatService:
             pass
         return "\n\n".join(parts)
 
+    async def openrouter_free(self, model: str) -> str:
+        if model.endswith(":free"):
+            return model
+        try:
+            models = await self._registry.get("openrouter").list_models()
+        except Exception:
+            models = []
+        candidate = f"{model}:free"
+        if candidate in models:
+            return candidate
+        for name in OPENROUTER_FREE_DEFAULTS:
+            if name in models:
+                return name
+        return OPENROUTER_FREE_DEFAULTS[0]
+
     async def route(self, primary: str, model: str) -> list[str]:
         usable = [primary]
         if not get_settings_service().get().get("auto_failover", True):
@@ -354,7 +377,14 @@ class ChatService:
                 models = await provider.list_models()
             except Exception:
                 continue
-            if model in models:
+            if name == "openrouter":
+                if (
+                    (model.endswith(":free") and model in models)
+                    or f"{model}:free" in models
+                    or any(m in models for m in OPENROUTER_FREE_DEFAULTS)
+                ):
+                    usable.append(name)
+            elif model in models:
                 usable.append(name)
         healthy = [name for name in usable if not is_slow(name, model)]
         stalled = [name for name in usable if is_slow(name, model)]
@@ -363,8 +393,13 @@ class ChatService:
     async def _stream_route(
         self, names: list[str], request: ChatRequest, executor, state: dict
     ):
+        chosen = request.model
         for index, name in enumerate(names):
             provider = self._registry.get(name)
+            if name == "openrouter" and index > 0:
+                request.model = await self.openrouter_free(chosen)
+            else:
+                request.model = chosen
             started = False
             try:
                 async for chunk in provider.stream(request, executor):
@@ -379,15 +414,25 @@ class ChatService:
                     raise
                 mark_slow(name, request.model)
                 if index + 1 < len(names):
+                    next_name = names[index + 1]
+                    next_model = (
+                        await self.openrouter_free(chosen)
+                        if next_name == "openrouter"
+                        else chosen
+                    )
                     yield StreamChunk(
                         kind="content",
                         delta=(
                             f"⚡ {name} ist gerade überlastet — ich nehme "
-                            f"{request.model} über {names[index + 1]}.\n\n"
+                            f"{next_model} über {next_name}.\n\n"
                         ),
                     )
                     continue
                 fallback = FALLBACK_MODELS.get(name, "")
+                if name == "openrouter":
+                    fallback = await self.openrouter_free(
+                        fallback or OPENROUTER_FREE_DEFAULTS[0]
+                    )
                 if not fallback or fallback == request.model:
                     raise
                 broken = request.model
@@ -410,12 +455,22 @@ class ChatService:
         return "emil" if payload.persona == "junior" else "jon"
 
     def resolve(self, payload: ChatIn) -> tuple[str, str]:
-        saved_provider, saved_model = get_settings_service().selection()
-        provider = payload.provider or saved_provider or self._settings.default_provider
+        settings_service = get_settings_service()
+        saved_provider, saved_model = settings_service.selection()
         slot = self.slot_for(payload)
         if slot == "emil":
-            model = payload.model or self._settings.emil_model
+            pet_provider, pet_model = settings_service.pet_selection()
+            provider = (
+                payload.provider
+                or pet_provider
+                or saved_provider
+                or self._settings.default_provider
+            )
+            model = payload.model or pet_model or self._settings.emil_model
         else:
+            provider = (
+                payload.provider or saved_provider or self._settings.default_provider
+            )
             model = payload.model or saved_model or self._settings.jon_model
         return provider, model
 

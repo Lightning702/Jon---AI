@@ -155,7 +155,10 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
             )}
             <div className="text-[11px] text-white/40 pt-1">
               Modell für Telegram (unterwegs zählt Tempo — in der App gilt weiter
-              dein normal gewähltes Modell):
+              dein normal gewähltes Modell). Wechselt Jon in der App zu einem
+              anderen Anbieter als NVIDIA, übernimmt Telegram automatisch Jons
+              Anbieter und Modell. Der Bot merkt sich eure Gespräche dauerhaft
+              und kennt Jons Gedächtnis (MEMORY.md):
             </div>
             <input
               className={field}

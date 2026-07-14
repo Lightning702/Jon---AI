@@ -2,6 +2,28 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.9.0] — 2026-07-14
+
+### Geändert — OpenRouter-Fallback kostet nichts mehr
+Wechselt Jon bei überlastetem Anbieter automatisch zu **OpenRouter**, nimmt er dort
+nur noch **Gratis-Modelle** (`:free`). Gibt es dein Modell als `:free`-Variante, nimmt
+er genau die; sonst ein bewährtes freies Modell (z. B.
+`meta-llama/llama-3.3-70b-instruct:free`). Auch der Not-Fallback am Ende der Kette ist
+jetzt ein `:free`-Modell. Wählst du OpenRouter selbst als Anbieter, bleibt deine
+Modellwahl unangetastet.
+
+### Neu — Mini Jon mit Anbieter- und Modellauswahl
+In „Mini Jon anpassen" wählst du jetzt **Anbieter und Modell aus echten Listen** statt
+per Tippfeld. Und: Wechselst du in der Jon-App zu einem anderen Anbieter als NVIDIA
+(z. B. OpenRouter), übernehmen **Mini Jon und der Telegram-Bot automatisch Jons
+Anbieter und Modell** — kein Auseinanderlaufen mehr. Bei NVIDIA gelten weiterhin die
+eigenen Einstellungen von Mini Jon und Telegram.
+
+### Neu — Telegram-Bot mit Gedächtnis
+Der Telegram-Bot **merkt sich eure Gespräche dauerhaft** (überlebt Neustarts,
+`/reset` löscht sie) und hat Zugriff auf **Jons persönliches Gedächtnis (MEMORY.md)**
+sowie das gemerkte Nutzerwissen — er weiß unterwegs dasselbe wie Jon am PC.
+
 ## [3.8.0] — 2026-07-14
 
 ### Behoben — Jon hat Kauderwelsch geredet

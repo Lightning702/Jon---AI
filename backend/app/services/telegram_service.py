@@ -1,17 +1,45 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 import httpx
 
+from app.core.config import DATA_DIR
 from app.services.settings_service import get_settings_service
+
+HISTORY_FILE = DATA_DIR / "telegram_memory.json"
+HISTORY_KEEP = 40
+HISTORY_SEND = 12
 
 
 class TelegramService:
     def __init__(self) -> None:
         self._offset = 0
-        self._histories: dict[str, list[dict]] = {}
+        self._histories: dict[str, list[dict]] = self._load_histories()
         self._chat_service = None
+
+    def _load_histories(self) -> dict[str, list[dict]]:
+        try:
+            data = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return {
+                    str(key): value
+                    for key, value in data.items()
+                    if isinstance(value, list)
+                }
+        except Exception:
+            pass
+        return {}
+
+    def _save_histories(self) -> None:
+        try:
+            HISTORY_FILE.write_text(
+                json.dumps(self._histories, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
 
     def _token(self) -> str:
         return str(get_settings_service().get().get("telegram_bot_token", "")).strip()
@@ -40,7 +68,21 @@ class TelegramService:
             await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
             await asyncio.sleep(4)
 
+    def _system_message(self) -> dict:
+        from app.services.persona_service import get_persona_service
+
+        system = self._chat_service._system_prompt()
+        memory = get_persona_service().read_memory_file(max_chars=6000).strip()
+        if memory and memory[:400] not in system:
+            system += "\n\nDEIN PERSOENLICHES GEDAECHTNIS (MEMORY.md):\n" + memory
+        system += (
+            "\n\nDu antwortest gerade ueber Telegram auf dem Handy des Nutzers. "
+            "Halte Antworten kompakt und gut lesbar ohne Markdown-Tabellen."
+        )
+        return {"role": "system", "content": system}
+
     async def _answer(self, chat_id: str, text: str) -> str:
+        from app.core.config import get_settings
         from app.schemas import ChatIn, MessageIn
         from app.services.chat_service import ChatService
 
@@ -48,15 +90,18 @@ class TelegramService:
             self._chat_service = ChatService()
         history = self._histories.setdefault(chat_id, [])
         history.append({"role": "user", "content": text})
-        del history[:-8]
+        del history[:-HISTORY_KEEP]
+        self._save_histories()
         provider, model = get_settings_service().telegram_selection()
+        settings = get_settings()
+        messages = [self._system_message(), *history[-HISTORY_SEND:]]
         payload = ChatIn(
-            messages=[MessageIn(**m) for m in history],
+            messages=[MessageIn(**m) for m in messages],
             persist=False,
             tool_mode="allow",
             max_tokens=2048,
-            provider=provider or None,
-            model=model or None,
+            provider=provider or settings.default_provider,
+            model=model or settings.emil_model,
             slot="emil",
         )
         parts: list[str] = []
@@ -82,7 +127,8 @@ class TelegramService:
         if not answer:
             answer = "Da kam leider keine Antwort zurück."
         history.append({"role": "assistant", "content": answer})
-        del history[:-8]
+        del history[:-HISTORY_KEEP]
+        self._save_histories()
         return answer
 
     async def _handle(self, chat_id: str, text: str) -> None:
@@ -151,6 +197,7 @@ class TelegramService:
                 continue
             if text.startswith("/reset"):
                 self._histories.pop(str(chat_id), None)
+                self._save_histories()
                 await self.send(chat_id, "Gespräch zurückgesetzt. 🧹")
                 continue
             asyncio.create_task(self._handle(str(chat_id), text))
