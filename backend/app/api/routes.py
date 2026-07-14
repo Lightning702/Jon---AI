@@ -21,22 +21,29 @@ from app.schemas import (
     ChatIn,
     ConversationDetail,
     ConversationOut,
+    CoworkAnswerIn,
     DownloadAnalyzeIn,
     DownloadStartIn,
     DreamIn,
+    FocusStartIn,
     HealthOut,
     HumanizeIn,
     KnowledgeLearnIn,
     KnowledgeSearchIn,
     ProviderStatus,
+    QuickwriteApplyIn,
     ReminderIn,
+    RoutineActionIn,
     ScreenObserveIn,
     SettingsIn,
+    ShowIn,
     SimulateIn,
     SkillWriteIn,
     SnapshotIn,
     TaskIn,
     TeamIn,
+    TimelineDescribeIn,
+    TimelineSearchIn,
     WatcherIn,
     WebcamIn,
 )
@@ -434,6 +441,132 @@ async def downloader_file(job_id: str):
     path, name = found
     mime = "audio/mpeg" if path.suffix.lower() == ".mp3" else "video/mp4"
     return FileResponse(path, filename=name, media_type=mime)
+
+
+@router.get("/focus")
+async def focus_state() -> dict:
+    from app.services.focus_service import get_focus_service
+
+    return get_focus_service().state()
+
+
+@router.post("/focus/start")
+async def focus_start(payload: FocusStartIn) -> dict:
+    from app.services.focus_service import get_focus_service
+
+    return get_focus_service().start(payload.minutes, payload.goal)
+
+
+@router.post("/focus/stop")
+async def focus_stop() -> dict:
+    from app.services.focus_service import get_focus_service
+
+    return get_focus_service().stop()
+
+
+@router.get("/cowork")
+async def cowork_state() -> dict:
+    from app.services.cowork_service import get_cowork_service
+
+    return get_cowork_service().state()
+
+
+@router.post("/cowork/answer")
+async def cowork_answer(payload: CoworkAnswerIn) -> dict:
+    from app.services.cowork_service import get_cowork_service
+
+    return get_cowork_service().answer(payload.accept)
+
+
+@router.get("/companion/events")
+async def companion_events() -> dict:
+    from app.services.cowork_service import get_cowork_service
+    from app.services.focus_service import get_focus_service
+
+    events = get_focus_service().poll_events() + get_cowork_service().poll_events()
+    return {"events": events}
+
+
+@router.get("/routine/suggestions")
+async def routine_suggestions() -> dict:
+    from app.services.settings_service import get_settings_service
+
+    if not get_settings_service().get().get("routine_enabled", True):
+        return {"suggestions": []}
+    from app.services.routine_service import get_routine_service
+
+    return {"suggestions": get_routine_service().suggestions()}
+
+
+@router.post("/routine/accept")
+async def routine_accept(payload: RoutineActionIn) -> dict:
+    from app.services.routine_service import get_routine_service
+
+    result = get_routine_service().accept(payload.id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@router.post("/routine/dismiss")
+async def routine_dismiss(payload: RoutineActionIn) -> dict:
+    from app.services.routine_service import get_routine_service
+
+    return get_routine_service().dismiss(payload.id)
+
+
+@router.post("/show")
+async def evening_show(payload: ShowIn) -> dict:
+    from app.services.show_service import build_show
+
+    result = await build_show(payload.provider, payload.model)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/timeline/search")
+async def timeline_search(payload: TimelineSearchIn) -> dict:
+    from app.services.timeline_service import get_timeline_service
+
+    return {"results": get_timeline_service().search(payload.query, payload.day)}
+
+
+@router.post("/timeline/describe")
+async def timeline_describe(payload: TimelineDescribeIn) -> dict:
+    from app.services.timeline_service import get_timeline_service
+
+    result = await get_timeline_service().describe(payload.file)
+    if "error" in result:
+        raise HTTPException(status_code=422, detail=result["error"])
+    return result
+
+
+@router.get("/timeline/stats")
+async def timeline_stats() -> dict:
+    from app.services.timeline_service import get_timeline_service
+
+    return get_timeline_service().stats()
+
+
+@router.get("/quickwrite/grab")
+async def quickwrite_grab() -> dict:
+    from app.services.quickwrite_service import get_quickwrite_service
+
+    result = await asyncio.to_thread(get_quickwrite_service().grab_selection)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/quickwrite/apply")
+async def quickwrite_apply(payload: QuickwriteApplyIn) -> dict:
+    from app.services.quickwrite_service import get_quickwrite_service
+
+    result = await get_quickwrite_service().apply(payload.mode)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
 
 
 @router.get("/snapshots")

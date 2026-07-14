@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import subprocess
+import tempfile
+from datetime import datetime
+from pathlib import Path
 
 import httpx
 
@@ -11,6 +15,7 @@ from app.services.settings_service import get_settings_service
 HISTORY_FILE = DATA_DIR / "telegram_memory.json"
 HISTORY_KEEP = 40
 HISTORY_SEND = 12
+MORNING_STATE_FILE = DATA_DIR / "telegram_morning.json"
 
 
 class TelegramService:
@@ -18,6 +23,8 @@ class TelegramService:
         self._offset = 0
         self._histories: dict[str, list[dict]] = self._load_histories()
         self._chat_service = None
+        self._voice_reply: set[str] = set()
+        self._last_morning = self._load_morning()
 
     def _load_histories(self) -> dict[str, list[dict]]:
         try:
@@ -37,6 +44,21 @@ class TelegramService:
             HISTORY_FILE.write_text(
                 json.dumps(self._histories, ensure_ascii=False, indent=2),
                 encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    def _load_morning(self) -> str:
+        try:
+            return str(json.loads(MORNING_STATE_FILE.read_text(encoding="utf-8")).get("last", ""))
+        except Exception:
+            return ""
+
+    def _save_morning(self, day: str) -> None:
+        self._last_morning = day
+        try:
+            MORNING_STATE_FILE.write_text(
+                json.dumps({"last": day}, ensure_ascii=False), encoding="utf-8"
             )
         except Exception:
             pass
@@ -62,6 +84,94 @@ class TelegramService:
                 "sendMessage",
                 {"chat_id": chat_id, "text": text[start : start + 3900]},
             )
+
+    async def send_voice(self, chat_id: str | int, text: str) -> bool:
+        token = self._token()
+        if not token:
+            return False
+        try:
+            from app.services.voice_service import synthesize_speech
+
+            mp3 = await synthesize_speech(text[:1200], rate="+6%")
+            if not mp3:
+                return False
+            ogg = await asyncio.to_thread(self._to_ogg, mp3)
+            if ogg is None:
+                return False
+            async with httpx.AsyncClient(timeout=45) as client:
+                await client.post(
+                    f"https://api.telegram.org/bot{token}/sendVoice",
+                    data={"chat_id": str(chat_id)},
+                    files={"voice": ("jon.ogg", ogg, "audio/ogg")},
+                )
+            return True
+        except Exception:
+            return False
+
+    def _to_ogg(self, mp3: bytes) -> bytes | None:
+        import shutil
+
+        if not shutil.which("ffmpeg"):
+            return None
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "in.mp3"
+            dst = Path(tmp) / "out.ogg"
+            src.write_bytes(mp3)
+            result = subprocess.run(
+                [
+                    "ffmpeg", "-y", "-i", str(src),
+                    "-c:a", "libopus", "-b:a", "48k", "-ar", "48000", "-ac", "1",
+                    str(dst),
+                ],
+                capture_output=True,
+            )
+            if result.returncode != 0 or not dst.exists():
+                return None
+            return dst.read_bytes()
+
+    async def _transcribe(self, file_id: str) -> str:
+        token = self._token()
+        if not token:
+            return ""
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                info = await client.get(
+                    f"https://api.telegram.org/bot{token}/getFile",
+                    params={"file_id": file_id},
+                )
+                file_path = info.json()["result"]["file_path"]
+                audio = await client.get(
+                    f"https://api.telegram.org/file/bot{token}/{file_path}"
+                )
+                raw = audio.content
+        except Exception:
+            return ""
+        wav = await asyncio.to_thread(self._to_wav, raw)
+        if wav is None:
+            return ""
+        try:
+            from app.services.voice_service import VoiceService
+
+            return await asyncio.to_thread(VoiceService().transcribe_wav, wav, "de-DE")
+        except Exception:
+            return ""
+
+    def _to_wav(self, audio: bytes) -> bytes | None:
+        import shutil
+
+        if not shutil.which("ffmpeg"):
+            return None
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "in.ogg"
+            dst = Path(tmp) / "out.wav"
+            src.write_bytes(audio)
+            result = subprocess.run(
+                ["ffmpeg", "-y", "-i", str(src), "-ar", "16000", "-ac", "1", str(dst)],
+                capture_output=True,
+            )
+            if result.returncode != 0 or not dst.exists():
+                return None
+            return dst.read_bytes()
 
     async def _typing(self, chat_id: str | int) -> None:
         while True:
@@ -131,7 +241,7 @@ class TelegramService:
         self._save_histories()
         return answer
 
-    async def _handle(self, chat_id: str, text: str) -> None:
+    async def _handle(self, chat_id: str, text: str, voice: bool = False) -> None:
         typing = asyncio.create_task(self._typing(chat_id))
         try:
             answer = await asyncio.wait_for(self._answer(chat_id, text), timeout=180)
@@ -144,7 +254,46 @@ class TelegramService:
             answer = f"Da ist etwas schiefgelaufen: {exc}"
         finally:
             typing.cancel()
+        spoke = False
+        if voice or chat_id in self._voice_reply:
+            spoke = await self.send_voice(chat_id, answer)
         await self.send(chat_id, answer)
+        if voice and not spoke:
+            self._voice_reply.discard(chat_id)
+
+    async def morning_tick(self) -> None:
+        data = get_settings_service().get()
+        if not data.get("telegram_morning", False):
+            return
+        chat_id = str(data.get("telegram_chat_id", "")).strip()
+        if not chat_id or not self._token():
+            return
+        target = str(data.get("telegram_morning_time", "07:30")).strip() or "07:30"
+        now = datetime.now()
+        today = now.strftime("%Y-%m-%d")
+        if self._last_morning == today or now.strftime("%H:%M") < target:
+            return
+        self._save_morning(today)
+        try:
+            from app.services.show_service import _today_data
+            from app.services.llm import complete
+
+            context = json.dumps(_today_data(), ensure_ascii=False)
+            text = await complete(
+                "Du bist Jon und sprichst dem Nutzer Felix eine persönliche "
+                "Guten-Morgen-Sprachnachricht auf sein Handy. Kurz (4-6 Sätze), warm, "
+                "natürlich gesprochen: begrüße ihn, nenne Wetter, wichtige Termine und "
+                "Erinnerungen aus den Daten, wünsche einen guten Start. Nutze nur echte "
+                "Daten, erfinde nichts. Kein Markdown, keine Aufzählung.",
+                f"Heutige Daten:\n{context}",
+                max_tokens=500,
+                temperature=0.8,
+            )
+        except Exception:
+            text = "Guten Morgen, Felix! Ich wünsche dir einen richtig guten Start in den Tag."
+        text = text.strip() or "Guten Morgen, Felix!"
+        spoke = await self.send_voice(chat_id, text)
+        await self.send(chat_id, ("🌅 " if not spoke else "🌅 ") + text)
 
     async def poll_once(self) -> None:
         token = self._token()
@@ -169,7 +318,22 @@ class TelegramService:
             message = update.get("message") or {}
             chat_id = (message.get("chat") or {}).get("id")
             text = (message.get("text") or "").strip()
-            if not chat_id or not text:
+            voice_msg = message.get("voice") or message.get("audio")
+            if not chat_id:
+                continue
+            is_voice = False
+            if not text and voice_msg and voice_msg.get("file_id"):
+                await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
+                text = (await self._transcribe(voice_msg["file_id"])).strip()
+                is_voice = True
+                if not text:
+                    await self.send(
+                        chat_id,
+                        "Ich konnte die Sprachnachricht leider nicht verstehen. "
+                        "Versuch es nochmal oder schreib mir.",
+                    )
+                    continue
+            if not text:
                 continue
             settings = get_settings_service()
             bound = str(settings.get().get("telegram_chat_id", "")).strip()
@@ -189,10 +353,12 @@ class TelegramService:
             if text.startswith("/start"):
                 await self.send(
                     chat_id,
-                    "Ich bin da. 👋 Schreib mir, was ich auf deinem PC tun soll "
-                    "— zum Beispiel: Öffne YouTube · Spiel was Entspanntes · "
+                    "Ich bin da. 👋 Schreib oder sprich mir, was ich auf deinem PC "
+                    "tun soll — zum Beispiel: Öffne YouTube · Spiel was Entspanntes · "
                     "Wie geht es meinem PC? · Hab ich neue Mails?\n\n"
-                    "Mit /reset vergesse ich unser bisheriges Gespräch.",
+                    "Schick mir gerne auch eine Sprachnachricht. Mit /stimme antworte "
+                    "ich dir per Sprachnachricht, mit /reset vergesse ich unser "
+                    "bisheriges Gespräch.",
                 )
                 continue
             if text.startswith("/reset"):
@@ -200,7 +366,17 @@ class TelegramService:
                 self._save_histories()
                 await self.send(chat_id, "Gespräch zurückgesetzt. 🧹")
                 continue
-            asyncio.create_task(self._handle(str(chat_id), text))
+            if text.startswith("/stimme") or text.startswith("/voice"):
+                if str(chat_id) in self._voice_reply:
+                    self._voice_reply.discard(str(chat_id))
+                    await self.send(chat_id, "Okay, ich antworte wieder mit Text. 💬")
+                else:
+                    self._voice_reply.add(str(chat_id))
+                    await self.send(
+                        chat_id, "Alles klar, ich antworte dir jetzt auch als Sprachnachricht. 🎙️"
+                    )
+                continue
+            asyncio.create_task(self._handle(str(chat_id), text, voice=is_voice))
 
 
 _service: TelegramService | None = None

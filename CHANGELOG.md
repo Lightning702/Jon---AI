@@ -2,6 +2,53 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.11.0] — 2026-07-15
+
+Acht neue Fähigkeiten, die es so in keiner anderen KI gibt.
+
+### Neu — Mini Jon arbeitet mit
+Mini Jon erkennt, wenn du in VS Code, Word, Google Docs, Obsidian & Co. arbeitest, und
+fragt dich, ob er mithelfen soll. Sagst du ja, schaut er dir ab und zu über die Schulter
+und gibt konkrete Tipps (Code-Fehler, Formulierung, nächster Schritt). Sagst du nein,
+hält er sich raus und fragt später nochmal. Unter Einstellungen → „Mitarbeiten & Fokus"
+stellst du ein, woran du gerade arbeitest (z. B. „mein Roman").
+
+### Neu — Fokus-Buddy
+Sag Jon „Starte einen Fokus für 30 Minuten fürs Lernen" — Mini Jon passt auf, meldet sich
+freundlich, wenn du auf YouTube & Co. abdriftest, und führt eine Fokus-Statistik pro Tag.
+
+### Neu — Schreib-Hotkey überall
+Markiere Text in **jeder** App und drück **Strg+Alt+H** (oder **Strg+Alt+Rechtsklick**) —
+Jon verbessert, humanisiert, übersetzt oder kürzt ihn und tippt das Ergebnis direkt an
+dieselbe Stelle zurück.
+
+### Neu — Telegram-Sprachnachrichten
+Schick dem Telegram-Bot eine Sprachnachricht wie einem Freund — Jon versteht sie (Whisper)
+und antwortet auf Wunsch (`/stimme`) mit seiner echten Stimme zurück.
+
+### Neu — Guten-Morgen-Audio
+Jon schickt dir jeden Morgen zur Wunschzeit eine persönliche Sprachnachricht auf Telegram:
+Begrüßung, Wetter, Termine, Erinnerungen — wie eine kleine private Radioshow.
+
+### Neu — Abend-Show
+Auf Knopfdruck (🎙️ im Header oder `/show`) plaudern Jon und Mini Jon hörbar miteinander
+über deinen Tag — zwei echte, unterschiedliche Stimmen im Dialog, mit deinen echten
+Tagesdaten.
+
+### Neu — Routine-Radar
+Jon erkennt wiederkehrende Gewohnheiten (z. B. „du öffnest morgens fast immer Spotify")
+und bietet über ein dezentes Banner an, das als Automation zu übernehmen — ein Klick, und
+er macht es künftig selbst.
+
+### Neu — Bildschirm-Zeitreise (Opt-in)
+Aktivierbar unter Einstellungen: Jon merkt sich lokal, was du offen hattest, und findet es
+auf Nachfrage wieder („Was hatte ich Dienstag zu Grafikkarten offen?"). Alles bleibt auf
+deinem PC, nichts verlässt den Rechner, ältere Aufnahmen löschen sich nach 7 Tagen selbst.
+
+### Verbessert
+- Alles läuft über das eine Jon-Backend und startet mit `start-jon.bat` (neue
+  Abhängigkeit `pynput` wird automatisch mitinstalliert).
+
 ## [3.10.0] — 2026-07-15
 
 ### Neu — Downloader direkt in der Jon-App

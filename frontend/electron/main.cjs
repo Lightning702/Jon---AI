@@ -18,6 +18,8 @@ const isDev = !app.isPackaged;
 let mainWindow = null;
 let petWindow = null;
 let quickWindow = null;
+let quickWriteWindow = null;
+const API_BASE = "http://127.0.0.1:8756/api";
 let backendProcess = null;
 let tray = null;
 let quitting = false;
@@ -54,6 +56,70 @@ function createQuickAsk() {
     quickWindow = null;
   });
 }
+
+function createQuickWrite() {
+  quickWriteWindow = new BrowserWindow({
+    width: 300,
+    height: 260,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    focusable: false,
+    hasShadow: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "quickwritePreload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  quickWriteWindow.setAlwaysOnTop(true, "screen-saver");
+  quickWriteWindow.setVisibleOnAllWorkspaces(true);
+  quickWriteWindow.loadFile(path.join(__dirname, "quickwrite.html"));
+  quickWriteWindow.on("closed", () => {
+    quickWriteWindow = null;
+  });
+}
+
+async function openQuickWrite() {
+  if (!quickWriteWindow) createQuickWrite();
+  const point = screen.getCursorScreenPoint();
+  const display = screen.getDisplayNearestPoint(point);
+  const x = Math.min(point.x + 8, display.workArea.x + display.workArea.width - 300);
+  const y = Math.min(point.y + 8, display.workArea.y + display.workArea.height - 260);
+  quickWriteWindow.setPosition(Math.round(x), Math.round(y));
+  quickWriteWindow.showInactive();
+  let data = { error: "Kein Text markiert." };
+  try {
+    const res = await fetch(`${API_BASE}/quickwrite/grab`);
+    data = await res.json();
+    if (!res.ok) data = { error: data.detail || "Kein Text markiert." };
+  } catch (e) {
+    data = { error: "Backend nicht erreichbar." };
+  }
+  if (quickWriteWindow) quickWriteWindow.webContents.send("quickwrite:data", data);
+}
+
+ipcMain.handle("quickwrite:apply", async (_e, mode) => {
+  let result = { ok: false, error: "Fehlgeschlagen." };
+  try {
+    const res = await fetch(`${API_BASE}/quickwrite/apply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode }),
+    });
+    const data = await res.json();
+    result = res.ok ? { ok: true } : { ok: false, error: data.detail || "Fehlgeschlagen." };
+  } catch (e) {
+    result = { ok: false, error: "Backend nicht erreichbar." };
+  }
+  if (quickWriteWindow) quickWriteWindow.webContents.send("quickwrite:result", result);
+  return result;
+});
+
+ipcMain.handle("quickwrite:hide", () => quickWriteWindow && quickWriteWindow.hide());
 
 function toggleQuickAsk() {
   if (!quickWindow) createQuickAsk();
@@ -316,12 +382,14 @@ app.whenReady().then(() => {
   globalShortcut.register("Control+Alt+J", toggleWindow);
   globalShortcut.register("Control+Alt+K", togglePet);
   globalShortcut.register("Control+Alt+Space", toggleQuickAsk);
+  globalShortcut.register("Control+Alt+H", () => void openQuickWrite());
   tray = new Tray(path.join(__dirname, "tray.png"));
   tray.setToolTip("Jon — Strg+Alt+J");
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Jon öffnen/verstecken", click: toggleWindow },
       { label: "Schnellfrage (Strg+Alt+Leer)", click: toggleQuickAsk },
+      { label: "Text verbessern (Strg+Alt+H)", click: () => void openQuickWrite() },
       { label: "Mini Jon ein/aus", click: togglePet },
       { type: "separator" },
       {

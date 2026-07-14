@@ -86,6 +86,13 @@ class SettingsIn(BaseModel):
     natural_voice: bool | None = None
     spotify_client_id: str | None = None
     spotify_client_secret: str | None = None
+    cowork_enabled: bool | None = None
+    cowork_context: str | None = None
+    quickwrite_enabled: bool | None = None
+    timeline_enabled: bool | None = None
+    routine_enabled: bool | None = None
+    telegram_morning: bool | None = None
+    telegram_morning_time: str | None = None
 
 
 class WatcherIn(BaseModel):
@@ -140,6 +147,41 @@ class DownloadStartIn(BaseModel):
     format: str = Field(default="mp4", pattern="^(mp4|mp3)$")
     quality: str = Field(default="best", pattern="^(best|1080|720|480)$")
     title: str = ""
+
+
+class FocusStartIn(BaseModel):
+    minutes: int = 25
+    goal: str = ""
+
+
+class CoworkAnswerIn(BaseModel):
+    accept: bool
+
+
+class TimelineSearchIn(BaseModel):
+    query: str = ""
+    day: str = ""
+
+
+class TimelineDescribeIn(BaseModel):
+    file: str
+
+
+class RoutineActionIn(BaseModel):
+    id: str
+
+
+class ShowIn(BaseModel):
+    provider: str | None = None
+    model: str | None = None
+
+
+class QuickwriteApplyIn(BaseModel):
+    mode: str = Field(default="verbessern")
+
+
+class MediaDownloadIn(BaseModel):
+    query: str
 
 
 class SnapshotIn(BaseModel):

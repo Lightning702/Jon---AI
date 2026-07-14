@@ -253,6 +253,13 @@ export interface UserSettings {
   natural_voice: boolean;
   spotify_client_id: string;
   spotify_client_secret: string;
+  cowork_enabled: boolean;
+  cowork_context: string;
+  quickwrite_enabled: boolean;
+  timeline_enabled: boolean;
+  routine_enabled: boolean;
+  telegram_morning: boolean;
+  telegram_morning_time: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -298,8 +305,66 @@ export async function getUserSettings(): Promise<UserSettings> {
       natural_voice: true,
       spotify_client_id: "",
       spotify_client_secret: "",
+      cowork_enabled: false,
+      cowork_context: "",
+      quickwrite_enabled: true,
+      timeline_enabled: false,
+      routine_enabled: true,
+      telegram_morning: false,
+      telegram_morning_time: "07:30",
     };
   return res.json();
+}
+
+export interface ShowLine {
+  speaker: "jon" | "mini";
+  text: string;
+}
+
+export async function buildShow(
+  provider: string,
+  model: string
+): Promise<ShowLine[]> {
+  const res = await fetch(`${BASE}/show`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider, model }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Show fehlgeschlagen.");
+  return data.lines;
+}
+
+export interface RoutineSuggestion {
+  id: string;
+  app: string;
+  slot: string;
+  days: number;
+  time: string;
+  text: string;
+}
+
+export async function getRoutineSuggestions(): Promise<RoutineSuggestion[]> {
+  const res = await fetch(`${BASE}/routine/suggestions`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.suggestions ?? [];
+}
+
+export async function acceptRoutine(id: string): Promise<void> {
+  await fetch(`${BASE}/routine/accept`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+}
+
+export async function dismissRoutine(id: string): Promise<void> {
+  await fetch(`${BASE}/routine/dismiss`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
 }
 
 export async function getWeekly(): Promise<Record<string, unknown>> {

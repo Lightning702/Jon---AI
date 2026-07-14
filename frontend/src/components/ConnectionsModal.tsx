@@ -20,6 +20,8 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
     telegram_bot_token: settings.telegram_bot_token ?? "",
     telegram_chat_id: settings.telegram_chat_id ?? "",
     telegram_model: settings.telegram_model ?? "openai/gpt-oss-20b",
+    telegram_morning: settings.telegram_morning ?? false,
+    telegram_morning_time: settings.telegram_morning_time ?? "07:30",
     ha_url: settings.ha_url ?? "",
     ha_token: settings.ha_token ?? "",
     spotify_client_id: settings.spotify_client_id ?? "",
@@ -166,6 +168,37 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
               value={form.telegram_model}
               onChange={(e) => set("telegram_model", e.target.value)}
             />
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-[12px] text-white/70">
+                🌅 Guten-Morgen-Sprachnachricht
+              </div>
+              <button
+                onClick={() => set("telegram_morning", !form.telegram_morning)}
+                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                  form.telegram_morning ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    form.telegram_morning ? "translate-x-4" : ""
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              Jon schickt dir jeden Morgen zur Wunschzeit eine persönliche
+              Sprachnachricht mit Wetter, Terminen und Erinnerungen. Schick ihm
+              auch selbst Sprachnachrichten — er versteht sie. Mit{" "}
+              <code>/stimme</code> antwortet er dir immer per Sprachnachricht.
+            </p>
+            {form.telegram_morning && (
+              <input
+                type="time"
+                className={field}
+                value={form.telegram_morning_time}
+                onChange={(e) => set("telegram_morning_time", e.target.value)}
+              />
+            )}
           </section>
 
           <section className="space-y-2">

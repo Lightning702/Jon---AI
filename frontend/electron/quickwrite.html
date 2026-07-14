@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: transparent; overflow: hidden; user-select: none; }
+  body {
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    padding: 10px;
+  }
+  .card {
+    background: rgba(16, 16, 20, 0.86);
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    border-radius: 16px;
+    backdrop-filter: blur(24px) saturate(150%);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+    padding: 12px;
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .head { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+  .dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: radial-gradient(circle at 32% 30%, #f4d97b, #d4af37 60%, #7a5c14);
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+  }
+  .head b { font-size: 12.5px; font-weight: 650; }
+  .head span { font-size: 11px; color: rgba(255, 255, 255, 0.4); margin-left: auto; }
+  .preview {
+    font-size: 11.5px; color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px; padding: 7px 9px; margin-bottom: 9px;
+    max-height: 46px; overflow: hidden; line-height: 1.4;
+    white-space: nowrap; text-overflow: ellipsis;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .btn {
+    font-family: inherit; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.85);
+    border-radius: 10px; padding: 9px 6px; font-size: 12px; font-weight: 600;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: rgba(212, 175, 55, 0.16); border-color: rgba(212, 175, 55, 0.45); color: #f0d98a; }
+  .btn.wide { grid-column: 1 / -1; }
+  .btn small { display: block; font-weight: 500; font-size: 10px; color: rgba(255, 255, 255, 0.4); margin-top: 1px; }
+  .status { margin-top: 9px; font-size: 11.5px; text-align: center; min-height: 15px; color: rgba(255, 255, 255, 0.6); }
+  .status.err { color: #ffb4ae; }
+  .status.ok { color: #7ee2a8; }
+  .busy .grid { opacity: 0.35; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="head">
+    <div class="dot"></div>
+    <b>Jon verbessert</b>
+    <span>Esc schließt</span>
+  </div>
+  <div class="preview" id="preview">…</div>
+  <div class="grid" id="grid">
+    <button class="btn" data-mode="verbessern">Verbessern<small>Rechtschreibung & Stil</small></button>
+    <button class="btn" data-mode="humanisieren">Humanisieren<small>menschlicher</small></button>
+    <button class="btn" data-mode="uebersetzen">Übersetzen<small>DE ⇄ EN</small></button>
+    <button class="btn" data-mode="kuerzen">Kürzen<small>auf die Hälfte</small></button>
+    <button class="btn wide" data-mode="antworten">Antwort schreiben</button>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+<script>
+  const preview = document.getElementById("preview");
+  const status = document.getElementById("status");
+  const card = document.getElementById("card");
+
+  window.quickwrite.onData((data) => {
+    card.classList.remove("busy");
+    status.textContent = "";
+    status.className = "status";
+    if (data.error) {
+      preview.textContent = data.error;
+      status.textContent = "Erst Text markieren, dann Strg+Alt+H.";
+      status.className = "status err";
+      return;
+    }
+    preview.textContent = data.preview || "(Text übernommen)";
+  });
+
+  window.quickwrite.onResult((data) => {
+    card.classList.remove("busy");
+    if (data.ok) {
+      status.textContent = "Eingefügt ✓";
+      status.className = "status ok";
+      setTimeout(() => window.quickwrite.hide(), 700);
+    } else {
+      status.textContent = data.error || "Fehlgeschlagen.";
+      status.className = "status err";
+    }
+  });
+
+  document.querySelectorAll(".btn").forEach((b) => {
+    b.onclick = () => {
+      card.classList.add("busy");
+      status.textContent = "Jon schreibt …";
+      status.className = "status";
+      window.quickwrite.apply(b.dataset.mode);
+    };
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") window.quickwrite.hide();
+  });
+</script>
+</body>
+</html>

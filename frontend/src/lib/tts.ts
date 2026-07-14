@@ -162,6 +162,32 @@ function speakBrowser(text: string): Promise<void> {
   });
 }
 
+const SHOW_VOICES: Record<string, string> = {
+  papa: "de-DE-ConradNeural",
+  junior: "de-DE-KillianNeural",
+};
+
+export async function speakAs(text: string, persona: "papa" | "junior"): Promise<void> {
+  const clean = cleanForSpeech(text).slice(0, 1200);
+  if (!clean) return;
+  const voice = SHOW_VOICES[persona] ?? SHOW_VOICES.papa;
+  const pitch = persona === "junior" ? "+0Hz" : "+0Hz";
+  const chunks = splitForSpeech(clean);
+  let pending = speakServer(chunks[0], { voice, pitch });
+  for (let i = 0; i < chunks.length; i++) {
+    const blob = await pending;
+    pending =
+      i + 1 < chunks.length
+        ? speakServer(chunks[i + 1], { voice, pitch })
+        : Promise.resolve(null);
+    if (!blob) {
+      if (i === 0) return speakBrowser(text);
+      return;
+    }
+    await playBlob(blob);
+  }
+}
+
 export function stopSpeaking(): void {
   window.speechSynthesis?.cancel();
   if (audio) {

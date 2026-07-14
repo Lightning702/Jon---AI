@@ -41,6 +41,9 @@ SAFE_TOOLS = {
     "set_mood",
     "list_snapshots",
     "snapshot",
+    "start_focus",
+    "stop_focus",
+    "recall_screen",
     "ask_knowledge",
     "list_documents",
     "clipboard_history",
@@ -111,6 +114,35 @@ CORE_TOOLS = {
 }
 
 TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
+    "focus": (
+        {"start_focus", "stop_focus"},
+        (
+            "fokus",
+            "focus",
+            "konzentr",
+            "lernen",
+            "lerne",
+            "produktiv",
+            "ablenk",
+            "pomodoro",
+            "timer fuers",
+            "dranbleiben",
+        ),
+    ),
+    "timeline": (
+        {"recall_screen"},
+        (
+            "hatte ich",
+            "offen",
+            "vorhin",
+            "gestern",
+            "letzte woche",
+            "bildschirm",
+            "zuletzt",
+            "erinnerst du dich",
+            "was war",
+        ),
+    ),
     "media": (
         {
             "media_control",
@@ -332,6 +364,12 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Führt einen CMD-Befehl auf deinem PC aus."
     if name == "open_url":
         return f"Öffnet {_shorten(args.get('url', 'eine URL'))} im Browser."
+    if name == "start_focus":
+        return "Startet den Fokus-Modus."
+    if name == "stop_focus":
+        return "Beendet den Fokus-Modus."
+    if name == "recall_screen":
+        return f"Durchsucht dein Bildschirm-Gedächtnis nach {_shorten(args.get('query', ''))}."
     if name == "start_program":
         return f"Startet das Programm {_shorten(args.get('path', ''))}."
     if name == "kill_program":
@@ -1323,6 +1361,30 @@ class ToolBox:
                 {"friend": _STR, "limit": _INT},
                 ["friend"],
             ),
+            _tool(
+                "start_focus",
+                "Startet den Fokus-Modus: Mini Jon passt auf, dass der Nutzer "
+                "konzentriert bleibt, und meldet sich, wenn er abschweift "
+                "('Starte einen Fokus fuer 30 Minuten fuers Lernen'). minutes = "
+                "Dauer, goal = woran er arbeitet.",
+                {"minutes": _INT, "goal": _STR},
+                [],
+            ),
+            _tool(
+                "stop_focus",
+                "Beendet den laufenden Fokus-Modus.",
+                {},
+                [],
+            ),
+            _tool(
+                "recall_screen",
+                "Durchsucht das lokale Bildschirm-Gedaechtnis (Bildschirm-Zeitreise) "
+                "danach, was der Nutzer frueher offen hatte ('Was hatte ich Dienstag "
+                "zu Grafikkarten offen?'). query = Suchbegriffe, day = optional "
+                "Datum als YYYY-MM-DD.",
+                {"query": _STR, "day": _STR},
+                [],
+            ),
         ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> str:
@@ -1452,6 +1514,34 @@ class ToolBox:
             )
         if name == "open_url":
             return json.dumps({"opened": svc.open_url(str(args.get("url", "")))})
+        if name == "start_focus":
+            from app.services.focus_service import get_focus_service
+
+            state = get_focus_service().start(
+                int(args.get("minutes", 25) or 25), str(args.get("goal", ""))
+            )
+            return json.dumps(state, ensure_ascii=False)
+        if name == "stop_focus":
+            from app.services.focus_service import get_focus_service
+
+            return json.dumps(get_focus_service().stop(), ensure_ascii=False)
+        if name == "recall_screen":
+            from app.services.timeline_service import get_timeline_service
+
+            results = get_timeline_service().search(
+                str(args.get("query", "")), str(args.get("day", ""))
+            )
+            if not results:
+                return json.dumps(
+                    {
+                        "treffer": [],
+                        "hinweis": "Nichts gefunden. Vielleicht ist die "
+                        "Bildschirm-Zeitreise nicht aktiviert oder es liegt zu "
+                        "weit zurueck.",
+                    },
+                    ensure_ascii=False,
+                )
+            return json.dumps({"treffer": results}, ensure_ascii=False)
         if name == "start_program":
             pid = svc.start_program(str(args.get("path", "")), args.get("args") or [])
             return json.dumps({"pid": pid})

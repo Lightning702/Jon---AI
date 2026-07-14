@@ -16,6 +16,8 @@ import FriendsChat from "./components/FriendsChat";
 import FriendRequestPopup from "./components/FriendRequestPopup";
 import Humanizer from "./components/Humanizer";
 import Downloader from "./components/Downloader";
+import EveningShow from "./components/EveningShow";
+import RoutineBanner from "./components/RoutineBanner";
 import SetupWizard from "./components/SetupWizard";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
@@ -153,6 +155,7 @@ export default function App() {
   const [codeOpen, setCodeOpen] = useState(false);
   const [humanizerOpen, setHumanizerOpen] = useState(false);
   const [downloaderOpen, setDownloaderOpen] = useState(false);
+  const [showOpen, setShowOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
   const [clipboardOpen, setClipboardOpen] = useState(false);
   const [identity, setIdentity] = useState<P2PIdentity | null>(null);
@@ -847,6 +850,10 @@ export default function App() {
       setDownloaderOpen(true);
       return;
     }
+    if (command === "/show" || command === "/abendshow") {
+      setShowOpen(true);
+      return;
+    }
     if (command === "/check" || command === "/pc") {
       void runDataPrompt(
         async () => CHECK_PROMPT(await getHealthCheck()),
@@ -1194,6 +1201,13 @@ export default function App() {
                 </svg>
               </button>
               <button
+                onClick={() => setShowOpen(true)}
+                title="Abend-Show — Jon & Mini Jon plaudern über deinen Tag"
+                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <span className="text-[12px] leading-none">🎙️</span>
+              </button>
+              <button
                 onClick={() => setFriendsOpen(true)}
                 title="Freunde-Chat — direkt von PC zu PC, ohne Server"
                 className="relative flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
@@ -1326,6 +1340,7 @@ export default function App() {
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+            <RoutineBanner />
             {entries.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center">
                 <h1 className="text-4xl font-bold gold-text mb-3">Jon</h1>
@@ -1375,6 +1390,13 @@ export default function App() {
         />
       )}
       {downloaderOpen && <Downloader onClose={() => setDownloaderOpen(false)} />}
+      {showOpen && (
+        <EveningShow
+          provider={provider}
+          model={model}
+          onClose={() => setShowOpen(false)}
+        />
+      )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
       {clipboardOpen && <ClipboardPanel onClose={() => setClipboardOpen(false)} />}
       {friendsOpen && identity && (

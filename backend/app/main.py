@@ -99,6 +99,52 @@ async def _telegram_watcher() -> None:
             await asyncio.sleep(10)
 
 
+async def _morning_watcher() -> None:
+    from app.services.telegram_service import get_telegram_service
+
+    service = get_telegram_service()
+    while True:
+        await asyncio.sleep(60)
+        try:
+            await service.morning_tick()
+        except Exception:
+            continue
+
+
+async def _companion_watcher() -> None:
+    from app.services.cowork_service import get_cowork_service
+    from app.services.focus_service import get_focus_service
+
+    focus = get_focus_service()
+    cowork = get_cowork_service()
+    while True:
+        await asyncio.sleep(5)
+        try:
+            await asyncio.to_thread(focus.tick)
+            await cowork.tick()
+        except Exception:
+            continue
+
+
+async def _routine_timeline_watcher() -> None:
+    from app.services.routine_service import get_routine_service
+    from app.services.settings_service import get_settings_service
+    from app.services.timeline_service import get_timeline_service
+
+    routine = get_routine_service()
+    timeline = get_timeline_service()
+    while True:
+        await asyncio.sleep(30)
+        try:
+            data = get_settings_service().get()
+            if data.get("routine_enabled", True):
+                await asyncio.to_thread(routine.tick)
+            if data.get("timeline_enabled", False):
+                await asyncio.to_thread(timeline.capture)
+        except Exception:
+            continue
+
+
 async def _file_watcher() -> None:
     from app.services.settings_service import get_settings_service
     from app.services.watcher_service import get_watcher_service
@@ -143,10 +189,20 @@ async def lifespan(app: FastAPI):
     clipboard_task = asyncio.create_task(_clipboard_watcher())
     automation_task = asyncio.create_task(_task_watcher())
     telegram_task = asyncio.create_task(_telegram_watcher())
+    morning_task = asyncio.create_task(_morning_watcher())
+    companion_task = asyncio.create_task(_companion_watcher())
+    routine_task = asyncio.create_task(_routine_timeline_watcher())
     files_task = asyncio.create_task(_file_watcher())
     chat_task = asyncio.create_task(_chat_server())
     announce_task = asyncio.create_task(p2p.announce_loop())
     listen_task = asyncio.create_task(p2p.listen_loop())
+
+    try:
+        from app.services.quickwrite_service import get_quickwrite_service
+
+        get_quickwrite_service().start_mouse_listener()
+    except Exception:
+        pass
 
     from app.services.relay_service import get_relay_service
 
@@ -160,6 +216,9 @@ async def lifespan(app: FastAPI):
     clipboard_task.cancel()
     automation_task.cancel()
     telegram_task.cancel()
+    morning_task.cancel()
+    companion_task.cancel()
+    routine_task.cancel()
     files_task.cancel()
     chat_task.cancel()
     announce_task.cancel()

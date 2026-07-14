@@ -117,6 +117,11 @@ export default function SettingsMenu({
   const [backupInfo, setBackupInfo] = useState("");
   const backupRef = useRef<HTMLInputElement>(null);
   const [voice, setVoice] = useState(true);
+  const [cowork, setCowork] = useState(false);
+  const [coworkContext, setCoworkContext] = useState("");
+  const [quickwrite, setQuickwrite] = useState(true);
+  const [timeline, setTimeline] = useState(false);
+  const [routine, setRoutine] = useState(true);
   const [connections, setConnections] = useState<UserSettings | null>(null);
 
   useEffect(() => {
@@ -127,6 +132,11 @@ export default function SettingsMenu({
       setClipboard(s.clipboard_history !== false);
       setWebcam(s.webcam_enabled === true);
       setVoice(s.natural_voice !== false);
+      setCowork(s.cowork_enabled === true);
+      setCoworkContext(s.cowork_context ?? "");
+      setQuickwrite(s.quickwrite_enabled !== false);
+      setTimeline(s.timeline_enabled === true);
+      setRoutine(s.routine_enabled !== false);
     });
     void (async () => {
       const backend = await getAutostart();
@@ -174,6 +184,35 @@ export default function SettingsMenu({
     setVoice(next);
     setNaturalVoice(next);
     void saveUserSettings({ natural_voice: next });
+  };
+
+  const toggleCowork = () => {
+    const next = !cowork;
+    setCowork(next);
+    void saveUserSettings({ cowork_enabled: next });
+  };
+
+  const saveCoworkContext = (value: string) => {
+    setCoworkContext(value);
+    void saveUserSettings({ cowork_context: value });
+  };
+
+  const toggleQuickwrite = () => {
+    const next = !quickwrite;
+    setQuickwrite(next);
+    void saveUserSettings({ quickwrite_enabled: next });
+  };
+
+  const toggleTimeline = () => {
+    const next = !timeline;
+    setTimeline(next);
+    void saveUserSettings({ timeline_enabled: next });
+  };
+
+  const toggleRoutine = () => {
+    const next = !routine;
+    setRoutine(next);
+    void saveUserSettings({ routine_enabled: next });
   };
 
   const openConnections = async () => {
@@ -292,6 +331,41 @@ export default function SettingsMenu({
                 hint="Echte Neural-Stimme statt Roboterstimme (gratis)."
                 on={voice}
                 onClick={toggleVoice}
+              />
+            </div>
+            <Section title="Mitarbeiten & Fokus" />
+            <div className="space-y-1">
+              <Toggle
+                label="Mini Jon arbeitet mit"
+                hint="Erkennt, wenn du in VS Code, Word & Co. arbeitest, fragt ob er mithelfen soll und gibt dann Tipps."
+                on={cowork}
+                onClick={toggleCowork}
+              />
+              {cowork && (
+                <input
+                  value={coworkContext}
+                  onChange={(e) => saveCoworkContext(e.target.value)}
+                  placeholder="Woran arbeitest du? (z. B. mein Roman, Mathe-Hausaufgaben)"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
+                />
+              )}
+              <Toggle
+                label="Gewohnheiten erkennen"
+                hint="Jon bemerkt wiederkehrende Abläufe und bietet an, sie zu automatisieren."
+                on={routine}
+                onClick={toggleRoutine}
+              />
+              <Toggle
+                label="Schreib-Hotkey (Strg+Alt+H)"
+                hint="Text irgendwo markieren und mit Strg+Alt+H oder Strg+Alt+Rechtsklick von Jon verbessern lassen."
+                on={quickwrite}
+                onClick={toggleQuickwrite}
+              />
+              <Toggle
+                label="Bildschirm-Zeitreise"
+                hint="Jon merkt sich lokal, was du offen hattest, und findet es auf Nachfrage wieder. Alles bleibt auf deinem PC."
+                on={timeline}
+                onClick={toggleTimeline}
               />
             </div>
             <Section title="Tagesbriefing" />

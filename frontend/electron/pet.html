@@ -196,6 +196,10 @@
       <div id="inputRow">
         <input id="field" placeholder="Sag Emil etwas …" autocomplete="off" />
       </div>
+      <div id="askRow" style="display:none;gap:8px;justify-content:center;margin-top:6px;">
+        <button id="askYes" class="petBtn" style="width:auto;padding:0 14px;border-radius:14px;background:rgba(212,175,55,0.22);border-color:rgba(212,175,55,0.5);color:#f0d98a;font-weight:600;">Ja, gerne</button>
+        <button id="askNo" class="petBtn" style="width:auto;padding:0 14px;border-radius:14px;">Später</button>
+      </div>
       <div id="jonWrap">
         <button id="mic" class="petBtn" title="Zuhören an/aus – sag „Emil“">🎙</button>
         <button id="stopBtn" class="petBtn" title="Stopp">⏹</button>
@@ -393,7 +397,10 @@
 
       function scheduleHide(ms) {
         if (bubbleTimer) clearTimeout(bubbleTimer);
-        bubbleTimer = setTimeout(() => bubble.classList.remove("show"), ms);
+        bubbleTimer = setTimeout(() => {
+          bubble.classList.remove("show");
+          if (typeof hideAsk === "function") hideAsk();
+        }, ms);
       }
       function say(text, keep) {
         if (!text) return;
@@ -902,6 +909,53 @@
         } catch (e) {}
       }
       setInterval(pollPresence, 20000);
+
+      const askRow = document.getElementById("askRow");
+      const askYes = document.getElementById("askYes");
+      const askNo = document.getElementById("askNo");
+      let askOpen = false;
+      function showAsk(text) {
+        askOpen = true;
+        say(text, true);
+        askRow.style.display = "flex";
+        scheduleHide(60000);
+      }
+      function hideAsk() {
+        askOpen = false;
+        askRow.style.display = "none";
+      }
+      async function answerCowork(accept) {
+        hideAsk();
+        try {
+          await fetch(`${BASE}/cowork/answer`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accept }),
+          });
+        } catch (e) {}
+      }
+      askYes.addEventListener("click", () => answerCowork(true));
+      askNo.addEventListener("click", () => answerCowork(false));
+
+      async function pollCompanion() {
+        if (busy || askOpen) return;
+        try {
+          const data = await (await fetch(`${BASE}/companion/events`)).json();
+          const events = (data && data.events) || [];
+          for (const ev of events) {
+            if (ev.kind === "cowork_ask") {
+              showAsk(ev.say);
+              speak(ev.say);
+              return;
+            }
+            say(ev.say, true);
+            scheduleHide(11000);
+            speak(ev.say);
+            return;
+          }
+        } catch (e) {}
+      }
+      setInterval(pollCompanion, 6000);
 
       const WAKE = new Set(["emil", "emile", "emilio", "emmi", "email", "mini"]);
       const SPEECH_THRESHOLD = 0.015;

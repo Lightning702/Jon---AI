@@ -51,6 +51,13 @@ DEFAULTS = {
     "relay_enabled": False,
     "relay_broker": "broker.hivemq.com",
     "relay_port": 1883,
+    "cowork_enabled": False,
+    "cowork_context": "",
+    "quickwrite_enabled": True,
+    "timeline_enabled": False,
+    "routine_enabled": True,
+    "telegram_morning": False,
+    "telegram_morning_time": "07:30",
 }
 
 
