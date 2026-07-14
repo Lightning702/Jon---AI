@@ -448,8 +448,8 @@
           .trim();
       }
       const EMIL_VOICE = "de-DE-FlorianMultilingualNeural";
-      const EMIL_PITCH = "+60Hz";
-      const EMIL_RATE = "+12%";
+      const EMIL_PITCH = "+0Hz";
+      const EMIL_RATE = "+10%";
       const EMIL_VOLUME = "+45%";
       const BOOST = 2.4;
       const FIRST_CHUNK = 80;
@@ -606,7 +606,7 @@
           if (voice) u.voice = voice;
           u.lang = "de-DE";
           u.rate = 1.06;
-          u.pitch = voice && MALE.test(voice.name) ? 1.35 : 1.45;
+          u.pitch = voice && MALE.test(voice.name) ? 1.1 : 1.2;
           u.volume = 1;
           u.onstart = () => {
             lookX = 0;

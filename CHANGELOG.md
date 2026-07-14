@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.9.3] — 2026-07-14
+
+### Geändert — Mini Jon klingt jetzt natürlich
+Der künstliche Tonhöhen-Aufschlag von +60 Hz auf Mini Jons Neural-Stimme ist raus — er
+hat die Stimme hörbar verzerrt. Mini Jon spricht jetzt mit Florians **natürlicher**
+Stimmlage: gemessen **142 Hz** statt vorher 200 Hz, gegenüber Jons 119 Hz. Damit klingt
+er wie eine echte junge Männerstimme und bleibt trotzdem klar heller als der große Jon.
+Auch die Ersatzstimme (falls die Neural-Stimme mal nicht erreichbar ist) ist auf eine
+natürlichere Tonhöhe zurückgestellt.
+
 ## [3.9.2] — 2026-07-14
 
 ### Behoben — Jon meldete bei NVIDIA sofort „überlastet"
