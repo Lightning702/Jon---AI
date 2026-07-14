@@ -447,7 +447,7 @@
           .replace(/\s+/g, " ")
           .trim();
       }
-      const EMIL_VOICE = "de-DE-FlorianMultilingualNeural";
+      const EMIL_VOICE = "de-DE-KillianNeural";
       const EMIL_PITCH = "+0Hz";
       const EMIL_RATE = "+10%";
       const EMIL_VOLUME = "+45%";
@@ -606,7 +606,7 @@
           if (voice) u.voice = voice;
           u.lang = "de-DE";
           u.rate = 1.06;
-          u.pitch = voice && MALE.test(voice.name) ? 1.1 : 1.2;
+          u.pitch = voice && MALE.test(voice.name) ? 1.0 : 1.1;
           u.volume = 1;
           u.onstart = () => {
             lookX = 0;

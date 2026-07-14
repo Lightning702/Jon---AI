@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.9.4] — 2026-07-14
+
+### Geändert — Mini Jons Stimme ist jetzt tiefer
+Mini Jon spricht jetzt mit `Killian` statt `Florian` — eine von Natur aus **tiefere**
+Männerstimme, ganz ohne künstliche Tonhöhen-Eingriffe. Gemessen: **111 Hz** statt
+vorher 142 Hz (Jon/Conrad liegt bei 119 Hz). Die Browser-Ersatzstimme wurde passend
+mit abgesenkt.
+
 ## [3.9.3] — 2026-07-14
 
 ### Geändert — Mini Jon klingt jetzt natürlich

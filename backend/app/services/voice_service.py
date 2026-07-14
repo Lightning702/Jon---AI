@@ -56,7 +56,7 @@ class VoiceService:
 
 
 JON_VOICE = "de-DE-ConradNeural"
-EMIL_VOICE = "de-DE-FlorianMultilingualNeural"
+EMIL_VOICE = "de-DE-KillianNeural"
 
 
 async def synthesize_speech(
