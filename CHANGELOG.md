@@ -2,6 +2,33 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.10.0] — 2026-07-15
+
+### Neu — Downloader direkt in der Jon-App
+Der Video-Downloader ist jetzt fest eingebaut (⬇-Knopf im Header oder `/download`):
+Link einfügen, Vorschau mit Thumbnail und Dauer erscheint, Format (MP4 oder MP3 mit
+320 kbps) und Qualität (Beste/1080p/720p/480p) wählen, Live-Fortschritt mit Tempo und
+Restzeit. Unterstützt YouTube, TikTok, Instagram, Twitter/X, SoundCloud und alles, was
+yt-dlp kennt. Läuft über das normale Jon-Backend — **eine** `start-jon.bat` startet
+alles, der separate Downloader-Ordner ist weg. Private Videos, Geo-Sperren und
+Altersbeschränkungen werden verständlich gemeldet; blockt YouTube mit 403, probiert
+Jon automatisch einen anderen Weg.
+
+### Neu — Spotify- und Amazon-Music-Links
+Einfach einen Spotify- oder Amazon-Music-Songlink einfügen. Beide Dienste sind
+kopiergeschützt, deshalb liest Jon Titel und Künstler aus dem Link, sucht die passende
+Aufnahme auf YouTube (mit Vorschau zum Prüfen) und speichert sie als MP3 mit 320 kbps —
+benannt nach „Künstler – Titel".
+
+### Verbessert — Humanisierer
+- Erkennt deutlich mehr KI-Floskeln (über 55 Marker statt 28) und zusätzlich zwei neue
+  Muster: gleichförmige Satzanfänge und KI-typische Struktur (Aufzählungen, Fettdruck,
+  Zwischenüberschriften).
+- Schreibt hartnäckige Texte automatisch in einem **zweiten Durchgang** nach, wenn der
+  erste noch zu maschinell klingt — mit gezieltem Feedback, welche Floskeln noch drin sind.
+- Präziserer Umschreib-Auftrag: variierte Satzanfänge, harte Schnitte statt
+  Floskel-Übergänge, keine Symmetrie, Verben statt Amtsdeutsch.
+
 ## [3.9.4] — 2026-07-14
 
 ### Geändert — Mini Jons Stimme ist jetzt tiefer

@@ -15,6 +15,7 @@ import ProfileModal from "./components/ProfileModal";
 import FriendsChat from "./components/FriendsChat";
 import FriendRequestPopup from "./components/FriendRequestPopup";
 import Humanizer from "./components/Humanizer";
+import Downloader from "./components/Downloader";
 import SetupWizard from "./components/SetupWizard";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
@@ -151,6 +152,7 @@ export default function App() {
   >(null);
   const [codeOpen, setCodeOpen] = useState(false);
   const [humanizerOpen, setHumanizerOpen] = useState(false);
+  const [downloaderOpen, setDownloaderOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
   const [clipboardOpen, setClipboardOpen] = useState(false);
   const [identity, setIdentity] = useState<P2PIdentity | null>(null);
@@ -841,6 +843,10 @@ export default function App() {
       setHumanizerOpen(true);
       return;
     }
+    if (command === "/download" || command === "/dl") {
+      setDownloaderOpen(true);
+      return;
+    }
     if (command === "/check" || command === "/pc") {
       void runDataPrompt(
         async () => CHECK_PROMPT(await getHealthCheck()),
@@ -1168,6 +1174,26 @@ export default function App() {
                 <span className="text-[12px] leading-none">✍️</span>
               </button>
               <button
+                onClick={() => setDownloaderOpen(true)}
+                title="Downloader — Videos & Musik als MP4/MP3 speichern"
+                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </button>
+              <button
                 onClick={() => setFriendsOpen(true)}
                 title="Freunde-Chat — direkt von PC zu PC, ohne Server"
                 className="relative flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
@@ -1348,6 +1374,7 @@ export default function App() {
           onClose={() => setHumanizerOpen(false)}
         />
       )}
+      {downloaderOpen && <Downloader onClose={() => setDownloaderOpen(false)} />}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
       {clipboardOpen && <ClipboardPanel onClose={() => setClipboardOpen(false)} />}
       {friendsOpen && identity && (

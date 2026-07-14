@@ -357,6 +357,54 @@ export async function scoreText(text: string): Promise<HumanizeScore> {
   return res.json();
 }
 
+export interface DownloadInfo {
+  title: string;
+  matched: string;
+  thumbnail: string;
+  duration: number;
+  uploader: string;
+  extractor: string;
+  max_height: number;
+  audio_only: boolean;
+  music: boolean;
+  url: string;
+}
+
+export async function analyzeDownload(url: string): Promise<DownloadInfo> {
+  const res = await fetch(`${BASE}/downloader/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Analyse fehlgeschlagen.");
+  return data;
+}
+
+export async function startDownload(
+  url: string,
+  format: string,
+  quality: string,
+  title: string
+): Promise<string> {
+  const res = await fetch(`${BASE}/downloader/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, format, quality, title }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Start fehlgeschlagen.");
+  return data.job;
+}
+
+export function downloadProgressUrl(job: string): string {
+  return `${BASE}/downloader/progress/${job}`;
+}
+
+export function downloadFileUrl(job: string): string {
+  return `${BASE}/downloader/file/${job}`;
+}
+
 export interface Watcher {
   id: string;
   path: string;

@@ -131,6 +131,17 @@ class HumanizeIn(BaseModel):
     model: str | None = None
 
 
+class DownloadAnalyzeIn(BaseModel):
+    url: str
+
+
+class DownloadStartIn(BaseModel):
+    url: str
+    format: str = Field(default="mp4", pattern="^(mp4|mp3)$")
+    quality: str = Field(default="best", pattern="^(best|1080|720|480)$")
+    title: str = ""
+
+
 class SnapshotIn(BaseModel):
     label: str
     workspace: str | None = None

@@ -21,6 +21,8 @@ from app.schemas import (
     ChatIn,
     ConversationDetail,
     ConversationOut,
+    DownloadAnalyzeIn,
+    DownloadStartIn,
     DreamIn,
     HealthOut,
     HumanizeIn,
@@ -366,6 +368,72 @@ async def humanize_score(payload: HumanizeIn) -> dict:
     from app.services.humanize_service import score
 
     return score(payload.text)
+
+
+@router.post("/downloader/analyze")
+async def downloader_analyze(payload: DownloadAnalyzeIn) -> dict:
+    from app.services.downloader_service import get_downloader_service
+
+    result = await asyncio.to_thread(get_downloader_service().analyze, payload.url)
+    if "error" in result:
+        raise HTTPException(status_code=422, detail=result["error"])
+    return result
+
+
+@router.post("/downloader/start")
+async def downloader_start(payload: DownloadStartIn) -> dict:
+    from app.services.downloader_service import get_downloader_service
+
+    result = get_downloader_service().start(
+        payload.url, payload.format, payload.quality, payload.title
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/downloader/progress/{job_id}")
+async def downloader_progress(job_id: str) -> StreamingResponse:
+    from app.services.downloader_service import get_downloader_service
+
+    service = get_downloader_service()
+    if service.state(job_id) is None:
+        raise HTTPException(status_code=404, detail="Unbekannter Download.")
+
+    async def event_stream():
+        while True:
+            state = service.state(job_id)
+            if state is None:
+                yield 'data: {"status": "error", "error": "Auftrag verschwunden."}\n\n'
+                return
+            yield f"data: {json.dumps(state, ensure_ascii=False)}\n\n"
+            if state["status"] in ("done", "error"):
+                return
+            await asyncio.sleep(0.4)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/downloader/file/{job_id}")
+async def downloader_file(job_id: str):
+    from fastapi.responses import FileResponse
+
+    from app.services.downloader_service import get_downloader_service
+
+    found = get_downloader_service().file_for(job_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="Datei nicht gefunden.")
+    path, name = found
+    mime = "audio/mpeg" if path.suffix.lower() == ".mp3" else "video/mp4"
+    return FileResponse(path, filename=name, media_type=mime)
 
 
 @router.get("/snapshots")
