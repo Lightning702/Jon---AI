@@ -222,7 +222,6 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
                 onChange={(e) =>
                   update({ pet_provider: e.target.value, pet_model: "" })
                 }
-                disabled={followsJon}
                 className={selectField}
               >
                 <option value="">Wie Jon ({mainProvider || "nvidia"})</option>
@@ -238,7 +237,6 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               <select
                 value={cfg.pet_model}
                 onChange={(e) => update({ pet_model: e.target.value })}
-                disabled={followsJon}
                 className={selectField}
               >
                 <option value="">Automatisch (openai/gpt-oss-20b)</option>
@@ -253,7 +251,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               </select>
               <div className="text-[11px] text-white/40 leading-snug">
                 {followsJon
-                  ? `Jon nutzt gerade ${mainProvider} — Mini Jon übernimmt Anbieter und Modell automatisch von Jon.`
+                  ? `Jon nutzt gerade ${mainProvider} — Mini Jon übernimmt Anbieter und Modell automatisch von Jon. Deine Auswahl hier gilt wieder, sobald Jon auf NVIDIA läuft.`
                   : "Mini Jon plaudert — ein schnelles Modell antwortet in ~2 s. Wechselt Jon oben zu einem anderen Anbieter als NVIDIA, übernimmt Mini Jon automatisch Jons Anbieter und Modell."}
               </div>
             </div>

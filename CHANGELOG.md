@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.9.1] — 2026-07-14
+
+### Behoben — Mini-Jon-Auswahl ließ sich nicht anklicken
+Die neuen Anbieter/Modell-Dropdowns in „Mini Jon anpassen" waren gesperrt, sobald Jon
+gerade einen anderen Anbieter als NVIDIA nutzt — sahen aber normal aus, deshalb passierte
+beim Klicken scheinbar nichts. Die Felder sind jetzt immer bedienbar; die Auswahl greift,
+sobald Jon wieder auf NVIDIA läuft (solange übernimmt Mini Jon weiter automatisch Jons
+Anbieter und Modell — ein Hinweis im Dialog erklärt das).
+
 ## [3.9.0] — 2026-07-14
 
 ### Geändert — OpenRouter-Fallback kostet nichts mehr
