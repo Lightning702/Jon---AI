@@ -390,57 +390,74 @@ class ChatService:
         stalled = [name for name in usable if is_slow(name, model)]
         return healthy + stalled
 
-    async def _stream_route(
-        self, names: list[str], request: ChatRequest, executor, state: dict
-    ):
-        chosen = request.model
-        for index, name in enumerate(names):
-            provider = self._registry.get(name)
-            if name == "openrouter" and index > 0:
-                request.model = await self.openrouter_free(chosen)
+    async def attempt_plan(
+        self, primary: str, names: list[str], model: str
+    ) -> list[tuple[str, str]]:
+        attempts: list[tuple[str, str]] = []
+        for name in names:
+            if name == "openrouter" and name != primary:
+                attempts.append((name, await self.openrouter_free(model)))
             else:
-                request.model = chosen
+                attempts.append((name, model))
+        fallback = FALLBACK_MODELS.get(primary, "")
+        if primary == "openrouter" and fallback:
+            fallback = await self.openrouter_free(fallback)
+        if fallback and fallback != model and (primary, model) in attempts:
+            attempts.insert(attempts.index((primary, model)) + 1, (primary, fallback))
+        healthy = [a for a in attempts if not is_slow(a[0], a[1])]
+        stalled = [a for a in attempts if is_slow(a[0], a[1])]
+        return healthy + stalled
+
+    async def _stream_route(
+        self, attempts: list[tuple[str, str]], request: ChatRequest, executor, state: dict
+    ):
+        for index, (name, model) in enumerate(attempts):
+            provider = self._registry.get(name)
+            request.model = model
             started = False
             try:
                 async for chunk in provider.stream(request, executor):
                     if not started:
                         started = True
                         state["provider"] = name
-                        mark_fast(name, request.model)
+                        mark_fast(name, model)
                     yield chunk
                 return
             except Exception:
                 if started:
                     raise
-                mark_slow(name, request.model)
-                if index + 1 < len(names):
-                    next_name = names[index + 1]
-                    next_model = (
-                        await self.openrouter_free(chosen)
-                        if next_name == "openrouter"
-                        else chosen
-                    )
-                    yield StreamChunk(
-                        kind="content",
-                        delta=(
+                mark_slow(name, model)
+                if index + 1 < len(attempts):
+                    next_name, next_model = attempts[index + 1]
+                    if next_name == name:
+                        delta = (
+                            f"⚡ {model} ist auf {name} gerade überlastet — ich "
+                            f"nehme {next_model}. Deine Modellwahl bleibt "
+                            "unverändert.\n\n"
+                        )
+                    else:
+                        delta = (
                             f"⚡ {name} ist gerade überlastet — ich nehme "
                             f"{next_model} über {next_name}.\n\n"
-                        ),
-                    )
+                        )
+                    yield StreamChunk(kind="content", delta=delta)
                     continue
                 fallback = FALLBACK_MODELS.get(name, "")
                 if name == "openrouter":
                     fallback = await self.openrouter_free(
                         fallback or OPENROUTER_FREE_DEFAULTS[0]
                     )
-                if not fallback or fallback == request.model:
+                if (
+                    not fallback
+                    or fallback == model
+                    or (name, fallback) in attempts
+                ):
                     raise
-                broken = request.model
                 request.model = fallback
                 yield StreamChunk(
                     kind="content",
                     delta=(
-                        f"⚠️ {broken} antwortet gerade nicht — ich beantworte das "
+                        f"⚠️ {model} antwortet gerade nicht — ich beantworte das "
                         f"hier mit {fallback}. Deine Modellwahl bleibt unverändert.\n\n"
                     ),
                 )
@@ -538,7 +555,10 @@ class ChatService:
             else self._settings.default_top_p
         )
         names = await self.route(chosen, model)
-        provider_name = names[0] if names else chosen
+        attempts = await self.attempt_plan(chosen, names, model)
+        if not attempts:
+            attempts = [(chosen, model)]
+        provider_name = attempts[0][0]
         state = {"provider": provider_name}
 
         if payload.mode != "coding" and get_settings_service().personality():
@@ -672,7 +692,7 @@ class ChatService:
             try:
                 chunk: StreamChunk
                 async for chunk in self._stream_route(
-                    names or [provider_name], request, executor, state
+                    attempts, request, executor, state
                 ):
                     if chunk.kind == "usage":
                         prompt_tokens += chunk.prompt_tokens

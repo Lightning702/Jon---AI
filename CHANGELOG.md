@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.9.2] — 2026-07-14
+
+### Behoben — Jon meldete bei NVIDIA sofort „überlastet"
+NVIDIA drosselt im Gratis-Tarif zeitweise nur die **großen** Modelle (Jons
+`gpt-oss-120b`), während die kleinen (`gpt-oss-20b`, Mini Jon/Telegram) normal laufen.
+Bisher sprang Jon dann sofort zu OpenRouter & Co. Jetzt probiert er **zuerst NVIDIAs
+schnelles Modell** (`openai/gpt-oss-20b`) — Antwort kommt weiter von NVIDIA, kostenlos
+und ohne Anbieterwechsel. Ist das große Modell als lahm gemerkt, antwortet Jon die
+nächsten 15 Minuten direkt mit dem schnellen Modell (ohne Wartezeit) und probiert das
+große danach automatisch wieder. Deine Modellwahl bleibt dabei immer unverändert.
+
 ## [3.9.1] — 2026-07-14
 
 ### Behoben — Mini-Jon-Auswahl ließ sich nicht anklicken

@@ -399,6 +399,42 @@ def test_lahmer_anbieter_rutscht_ans_ende():
     cs.mark_fast("nvidia", model)
 
 
+def test_nvidia_faellt_zuerst_auf_schnelles_nvidia_modell_zurueck():
+    import asyncio
+
+    from app.services import chat_service as cs
+
+    service = cs.ChatService()
+    model = "openai/gpt-oss-120b"
+    schnell = cs.FALLBACK_MODELS["nvidia"]
+    cs.mark_fast("nvidia", model)
+    cs.mark_fast("nvidia", schnell)
+    plan = asyncio.run(service.attempt_plan("nvidia", ["nvidia"], model))
+    assert plan[0] == ("nvidia", model)
+    assert plan[1] == ("nvidia", schnell)
+    cs.mark_slow("nvidia", model)
+    plan = asyncio.run(service.attempt_plan("nvidia", ["nvidia"], model))
+    assert plan[0] == ("nvidia", schnell)
+    assert plan[-1] == ("nvidia", model)
+    cs.mark_fast("nvidia", model)
+
+
+def test_openrouter_fallback_nur_gratis_modelle():
+    import asyncio
+
+    from app.services import chat_service as cs
+
+    service = cs.ChatService()
+    plan = asyncio.run(
+        service.attempt_plan(
+            "nvidia", ["nvidia", "openrouter"], "openai/gpt-oss-120b"
+        )
+    )
+    openrouter_modelle = [m for name, m in plan if name == "openrouter"]
+    assert openrouter_modelle
+    assert all(m.endswith(":free") for m in openrouter_modelle)
+
+
 def test_anbieterwechsel_abschaltbar():
     import asyncio
 
