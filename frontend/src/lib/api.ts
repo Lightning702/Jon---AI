@@ -255,6 +255,7 @@ export interface UserSettings {
   spotify_client_secret: string;
   cowork_enabled: boolean;
   cowork_context: string;
+  cowork_app: string;
   quickwrite_enabled: boolean;
   timeline_enabled: boolean;
   routine_enabled: boolean;
@@ -309,6 +310,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       spotify_client_secret: "",
       cowork_enabled: false,
       cowork_context: "",
+      cowork_app: "auto",
       quickwrite_enabled: true,
       timeline_enabled: false,
       routine_enabled: true,

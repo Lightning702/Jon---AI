@@ -88,6 +88,7 @@ class SettingsIn(BaseModel):
     spotify_client_secret: str | None = None
     cowork_enabled: bool | None = None
     cowork_context: str | None = None
+    cowork_app: str | None = None
     quickwrite_enabled: bool | None = None
     timeline_enabled: bool | None = None
     routine_enabled: bool | None = None

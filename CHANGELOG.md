@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.14.0] — 2026-07-15
+
+### Geändert — Mitarbeiten: App auswählen statt Text tippen
+Statt einzutippen, woran du arbeitest, **wählst du jetzt eine App aus einer Liste**
+(VS Code, Word, Google Docs, Obsidian, Excel u. v. m. — oder „Egal welche Arbeits-App").
+Mini Jon **prüft alle 5 Minuten, ob genau diese App offen ist**. Sobald sie offen ist,
+fragt er — wie gewohnt **hörbar mit seiner Stimme und sichtbar per Sprechblase samt
+Ja-/Nein-Knopf** — ob er mitarbeiten soll. Bei „Ja" schaut er ab und zu über deine
+Schulter und gibt Tipps, bei „Nein" hält er sich raus und fragt später nochmal.
+
 ## [3.13.2] — 2026-07-15
 
 ### Neu — Das Haustier lebt

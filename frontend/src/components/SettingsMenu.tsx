@@ -118,7 +118,7 @@ export default function SettingsMenu({
   const backupRef = useRef<HTMLInputElement>(null);
   const [voice, setVoice] = useState(true);
   const [cowork, setCowork] = useState(false);
-  const [coworkContext, setCoworkContext] = useState("");
+  const [coworkApp, setCoworkApp] = useState("auto");
   const [quickwrite, setQuickwrite] = useState(true);
   const [timeline, setTimeline] = useState(false);
   const [routine, setRoutine] = useState(true);
@@ -135,7 +135,7 @@ export default function SettingsMenu({
       setWebcam(s.webcam_enabled === true);
       setVoice(s.natural_voice !== false);
       setCowork(s.cowork_enabled === true);
-      setCoworkContext(s.cowork_context ?? "");
+      setCoworkApp(s.cowork_app || "auto");
       setQuickwrite(s.quickwrite_enabled !== false);
       setTimeline(s.timeline_enabled === true);
       setRoutine(s.routine_enabled !== false);
@@ -196,9 +196,9 @@ export default function SettingsMenu({
     void saveUserSettings({ cowork_enabled: next });
   };
 
-  const saveCoworkContext = (value: string) => {
-    setCoworkContext(value);
-    void saveUserSettings({ cowork_context: value });
+  const pickCoworkApp = (value: string) => {
+    setCoworkApp(value);
+    void saveUserSettings({ cowork_app: value });
   };
 
   const toggleQuickwrite = () => {
@@ -352,17 +352,40 @@ export default function SettingsMenu({
             <div className="space-y-1">
               <Toggle
                 label="Mini Jon arbeitet mit"
-                hint="Erkennt, wenn du in VS Code, Word & Co. arbeitest, fragt ob er mithelfen soll und gibt dann Tipps."
+                hint="Er prüft alle 5 Minuten, ob deine gewählte App offen ist, fragt dann per Sprache und Knopf, ob er mithelfen soll, und gibt Tipps."
                 on={cowork}
                 onClick={toggleCowork}
               />
               {cowork && (
-                <input
-                  value={coworkContext}
-                  onChange={(e) => saveCoworkContext(e.target.value)}
-                  placeholder="Woran arbeitest du? (z. B. mein Roman, Mathe-Hausaufgaben)"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
-                />
+                <div className="pt-1">
+                  <div className="text-[10px] text-white/40 px-0.5 mb-1">
+                    Bei welcher App soll er fragen?
+                  </div>
+                  <select
+                    value={coworkApp}
+                    onChange={(e) => pickCoworkApp(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white/90 outline-none focus:border-gold/50 [&>option]:bg-zinc-900"
+                  >
+                    <option value="auto">Egal welche Arbeits-App</option>
+                    <option value="vscode">VS Code</option>
+                    <option value="word">Word</option>
+                    <option value="docs">Google Docs</option>
+                    <option value="libreoffice">LibreOffice Writer</option>
+                    <option value="obsidian">Obsidian</option>
+                    <option value="onenote">OneNote</option>
+                    <option value="excel">Excel</option>
+                    <option value="powerpoint">PowerPoint</option>
+                    <option value="notion">Notion</option>
+                    <option value="notepadpp">Notepad++</option>
+                    <option value="notepad">Editor</option>
+                    <option value="pycharm">PyCharm</option>
+                    <option value="intellij">IntelliJ</option>
+                  </select>
+                  <div className="text-[9.5px] text-white/35 px-0.5 mt-1 leading-snug">
+                    Sobald die App offen ist, fragt Mini Jon (spricht + zeigt Ja/Nein). Bei
+                    „Ja" schaut er ab und zu über die Schulter, bei „Nein" fragt er später.
+                  </div>
+                </div>
               )}
               <Toggle
                 label="Gewohnheiten erkennen"

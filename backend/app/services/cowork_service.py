@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import threading
 import time
 
 from app.core.config import get_settings
-from app.services.focus_service import active_window_title
 from app.services.settings_service import get_settings_service
 
 WORK_APPS = (
@@ -26,19 +26,35 @@ WORK_APPS = (
     ("intellij", "IntelliJ"),
 )
 
-ASK_AFTER_SECONDS = 120
-REASK_AFTER_SECONDS = 2700
+APP_MARKERS = {
+    "vscode": (["visual studio code", "vscodium"], "VS Code"),
+    "word": (["word", "winword"], "Word"),
+    "docs": (["google docs", "docs.google"], "Google Docs"),
+    "libreoffice": (["libreoffice writer"], "LibreOffice Writer"),
+    "obsidian": (["obsidian"], "Obsidian"),
+    "onenote": (["onenote"], "OneNote"),
+    "excel": (["excel"], "Excel"),
+    "powerpoint": (["powerpoint"], "PowerPoint"),
+    "notion": (["notion"], "Notion"),
+    "notepad": (["notepad", "editor"], "Editor"),
+    "notepadpp": (["notepad++"], "Notepad++"),
+    "pycharm": (["pycharm"], "PyCharm"),
+    "intellij": (["intellij"], "IntelliJ"),
+}
+
+CHECK_INTERVAL = 300
+REASK_AFTER_SECONDS = 900
 TIP_INTERVAL = 200
 AWAY_RESET = 600
 
 TIP_PROMPT = (
-    "Du bist Mini Jon und arbeitest gerade mit dem Nutzer zusammen. Er arbeitet an: "
-    "{context}. Auf dem Bildschirm siehst du seine aktuelle Arbeit in {app}. Gib EINEN "
-    "kurzen, konkreten, hilfreichen Hinweis auf Deutsch (maximal 2 Saetze, locker und "
-    "freundlich, wie ein aufmerksamer Kollege): ein Tippfehler, ein Logikproblem, eine "
-    "bessere Formulierung, eine Idee oder der naechste sinnvolle Schritt. Beziehe dich "
-    "NUR auf das, was wirklich sichtbar ist. Wenn gerade nichts wirklich Hilfreiches zu "
-    "sagen ist, antworte AUSSCHLIESSLICH mit dem Wort: nichts"
+    "Du bist Mini Jon und arbeitest gerade mit dem Nutzer zusammen. Auf dem Bildschirm "
+    "siehst du seine aktuelle Arbeit in {app}. Gib EINEN kurzen, konkreten, hilfreichen "
+    "Hinweis auf Deutsch (maximal 2 Saetze, locker und freundlich, wie ein aufmerksamer "
+    "Kollege): ein Tippfehler, ein Logikproblem, eine bessere Formulierung, eine Idee "
+    "oder der naechste sinnvolle Schritt. Beziehe dich NUR auf das, was wirklich sichtbar "
+    "ist. Wenn gerade nichts wirklich Hilfreiches zu sagen ist, antworte AUSSCHLIESSLICH "
+    "mit dem Wort: nichts"
 )
 
 
@@ -50,13 +66,39 @@ def detect_work_app(title: str) -> str:
     return ""
 
 
+def open_window_titles() -> list[str]:
+    try:
+        import pygetwindow as gw
+
+        return [t for t in gw.getAllTitles() if t and t.strip()]
+    except Exception:
+        return []
+
+
+def app_open(target: str) -> str:
+    titles = open_window_titles()
+    if target in ("", "auto"):
+        for t in titles:
+            name = detect_work_app(t)
+            if name:
+                return name
+        return ""
+    markers, label = APP_MARKERS.get(target, (None, None))
+    if not markers:
+        return ""
+    for t in titles:
+        low = t.lower()
+        if any(m in low for m in markers):
+            return label
+    return ""
+
+
 class CoworkService:
     def __init__(self) -> None:
         self._lock = threading.RLock()
         self._mode = "idle"
         self._app = ""
-        self._work_since = 0.0
-        self._last_seen = 0.0
+        self._last_check = 0.0
         self._snoozed_at = 0.0
         self._last_tip = 0.0
         self._ask_pending = False
@@ -69,65 +111,66 @@ class CoworkService:
     def _enabled(self) -> bool:
         return bool(get_settings_service().get().get("cowork_enabled", False))
 
-    def _context(self) -> str:
-        return str(get_settings_service().get().get("cowork_context", "")).strip() or (
-            "sein aktuelles Projekt"
-        )
+    def _target(self) -> str:
+        return str(get_settings_service().get().get("cowork_app", "auto")).strip() or "auto"
 
     async def tick(self) -> None:
         if not self._enabled():
             with self._lock:
-                self._mode = "idle"
+                if self._mode != "idle":
+                    self._mode = "idle"
                 self._ask_pending = False
             return
-        title = active_window_title()
-        app = detect_work_app(title)
         now = time.time()
         with self._lock:
-            if not app:
-                if self._mode == "active" and now - self._last_seen > AWAY_RESET:
-                    self._mode = "idle"
-                    self._ask_pending = False
-                if self._mode != "active":
-                    self._work_since = 0.0
-                return
-            self._last_seen = now
-            if self._app != app:
-                self._app = app
-                self._work_since = now
-                if self._mode not in ("active", "snoozed"):
-                    self._mode = "idle"
-            if self._mode == "idle" and not self._ask_pending:
-                if self._work_since and now - self._work_since >= ASK_AFTER_SECONDS:
-                    self._ask_pending = True
-                    self._push(
-                        "cowork_ask",
-                        f"Ich sehe, du arbeitest gerade in {app} — soll ich mitarbeiten "
-                        "und ab und zu über deine Schulter schauen?",
-                    )
-                return
-            if self._mode == "snoozed":
-                if now - self._snoozed_at >= REASK_AFTER_SECONDS and not self._ask_pending:
-                    self._ask_pending = True
-                    self._push(
-                        "cowork_ask",
-                        f"Immer noch fleißig in {app}? Soll ich jetzt mithelfen?",
-                    )
-                return
-            if self._mode != "active" or now - self._last_tip < TIP_INTERVAL:
-                return
-            self._last_tip = now
-            context = self._context()
-            current_app = app
-        tip = await self._make_tip(current_app, context)
-        if tip:
+            mode = self._mode
+        if mode == "active":
             with self._lock:
-                if self._mode == "active":
-                    self._push("cowork_tip", tip)
+                if now - self._last_tip < TIP_INTERVAL:
+                    return
+                self._last_tip = now
+                current_app = self._app
+            label = await asyncio.to_thread(app_open, self._target())
+            if not label:
+                with self._lock:
+                    if now - self._last_check > AWAY_RESET:
+                        self._mode = "idle"
+                        self._ask_pending = False
+                return
+            self._last_check = now
+            tip = await self._make_tip(current_app)
+            if tip:
+                with self._lock:
+                    if self._mode == "active":
+                        self._push("cowork_tip", tip)
+            return
+        with self._lock:
+            if now - self._last_check < CHECK_INTERVAL:
+                return
+            self._last_check = now
+        label = await asyncio.to_thread(app_open, self._target())
+        if not label:
+            return
+        with self._lock:
+            if self._ask_pending:
+                return
+            if self._mode == "idle":
+                self._app = label
+                self._ask_pending = True
+                self._push(
+                    "cowork_ask",
+                    f"Ich sehe, du hast {label} offen — soll ich mitarbeiten und ab und "
+                    "zu über deine Schulter schauen?",
+                )
+            elif self._mode == "snoozed" and now - self._snoozed_at >= REASK_AFTER_SECONDS:
+                self._app = label
+                self._ask_pending = True
+                self._push(
+                    "cowork_ask",
+                    f"{label} ist noch offen — soll ich jetzt mithelfen?",
+                )
 
-    async def _make_tip(self, app: str, context: str) -> str:
-        import asyncio
-
+    async def _make_tip(self, app: str) -> str:
         from app.providers.openai_compatible import OpenAICompatibleProvider
         from app.providers.registry import get_registry
         from app.services.screen_service import VISION_DEFAULTS
@@ -145,7 +188,7 @@ class CoworkService:
             text = await provider.describe_image(
                 vision_model,
                 data_url,
-                TIP_PROMPT.format(context=context, app=app),
+                TIP_PROMPT.format(app=app or "seiner App"),
                 max_tokens=180,
             )
         except Exception:
@@ -161,10 +204,11 @@ class CoworkService:
             if accept:
                 self._mode = "active"
                 self._last_tip = time.time() - TIP_INTERVAL + 20
+                self._last_check = time.time()
                 self._push(
                     "cowork",
-                    f"Super, ich bin dabei! Arbeite ganz normal weiter an "
-                    f"{self._context()} — ich melde mich, wenn mir was auffällt. 🤝",
+                    f"Super, ich bin dabei! Arbeite ganz normal in {self._app or 'deiner App'} "
+                    "weiter — ich melde mich, wenn mir was auffällt. 🤝",
                 )
             else:
                 self._mode = "snoozed"

@@ -53,6 +53,7 @@ DEFAULTS = {
     "relay_port": 1883,
     "cowork_enabled": False,
     "cowork_context": "",
+    "cowork_app": "auto",
     "quickwrite_enabled": True,
     "timeline_enabled": False,
     "routine_enabled": True,

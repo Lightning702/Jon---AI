@@ -16,6 +16,19 @@ def test_arbeits_app_erkennung():
     assert detect_work_app("") == ""
 
 
+def test_gewaehlte_app_offen_erkennung(monkeypatch):
+    import app.services.cowork_service as cw
+
+    monkeypatch.setattr(cw, "open_window_titles", lambda: ["Kapitel 3 - Word", "Chrome"])
+    assert cw.app_open("word") == "Word"
+    assert cw.app_open("vscode") == ""
+    assert cw.app_open("auto") == "Word"
+    monkeypatch.setattr(cw, "open_window_titles", lambda: ["Chrome", "Explorer"])
+    assert cw.app_open("word") == ""
+    assert cw.app_open("auto") == ""
+    assert cw.CHECK_INTERVAL == 300
+
+
 def test_fokus_start_stop(tmp_path, monkeypatch):
     import app.services.focus_service as fs
 
