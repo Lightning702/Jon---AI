@@ -1219,58 +1219,11 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <button
-                onClick={() => setCodeOpen(true)}
-                title="Jon Code — Coding-Agent im Editor"
-                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-gold/30 bg-gold/10 text-gold/90 hover:bg-gold/20 transition-colors"
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="16 18 22 12 16 6" />
-                  <polyline points="8 6 2 12 8 18" />
-                </svg>
-                <span className="text-[11px] font-medium">Code</span>
-              </button>
-              <button
-                onClick={() => setHumanizerOpen(true)}
-                title="Humanisierer — Texte natürlicher schreiben"
-                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <span className="text-[12px] leading-none">✍️</span>
-              </button>
-              <button
-                onClick={() => setDownloaderOpen(true)}
-                title="Downloader — Videos & Musik als MP4/MP3 speichern"
-                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              </button>
               <div className="relative">
                 <button
                   onClick={() => setToolsMenuOpen((v) => !v)}
-                  title="Werkzeuge"
-                  className={`flex items-center gap-1 px-2.5 h-7 rounded-full border transition-colors ${
+                  title="Werkzeuge & Apps"
+                  className={`relative flex items-center gap-1 px-2.5 h-7 rounded-full border transition-colors ${
                     toolsMenuOpen
                       ? "border-gold/40 bg-gold/10 text-gold"
                       : "border-white/10 bg-white/5 text-white/40 hover:text-white/70"
@@ -1278,97 +1231,85 @@ export default function App() {
                 >
                   <span className="text-[12px] leading-none">🧰</span>
                   <span className="text-[11px] font-medium">Werkzeuge</span>
+                  {unread > 0 && !toolsMenuOpen && (
+                    <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-gold text-black text-[9px] font-bold flex items-center justify-center">
+                      {unread}
+                    </span>
+                  )}
                 </button>
                 {toolsMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setToolsMenuOpen(false)} />
-                    <div className="absolute right-0 top-9 z-50 w-52 glass rounded-xl border border-white/15 p-1.5 text-left">
-                      {[
-                        { icon: "🔎", label: "Alles durchsuchen", act: () => setSearchOpen(true) },
-                        { icon: "📌", label: "Haftnotizen", act: () => setNotesOpen(true) },
-                        { icon: "🔒", label: "Passwort-Tresor", act: () => setVaultOpen(true) },
-                        { icon: "📔", label: "Sprach-Tagebuch", act: () => setJournalOpen(true) },
-                        { icon: "🔍", label: "Bildschirm erklären", act: () => setExplainOpen(true) },
-                        { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
-                        { icon: "🍳", label: "Kochassistent", act: () => setRecipeOpen(true) },
-                        { icon: "🎴", label: "Lern-Karteikarten", act: () => setFlashcardsOpen(true) },
-                        { icon: "🎙️", label: "Abend-Show", act: () => setShowOpen(true) },
-                        { icon: "🎮", label: "Blockwelt-Spiel", act: () => window.open(blockweltUrl(), "_blank") },
-                      ].map((it) => (
-                        <button
-                          key={it.label}
-                          onClick={() => { it.act(); setToolsMenuOpen(false); }}
-                          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-white/75 hover:bg-white/10 hover:text-white transition-colors text-left"
-                        >
-                          <span className="text-[14px]">{it.icon}</span>
-                          <span className="text-[12px]">{it.label}</span>
-                        </button>
+                    <div className="absolute right-0 top-9 z-50 w-56 glass rounded-xl border border-white/15 p-1.5 text-left max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain">
+                      {([
+                        {
+                          title: "Arbeiten",
+                          items: [
+                            { icon: "🔎", label: "Alles durchsuchen", hint: "Strg+K", act: () => setSearchOpen(true) },
+                            { icon: "</>", label: "Jon Code", act: () => setCodeOpen(true) },
+                            { icon: "✍️", label: "Humanisierer", act: () => setHumanizerOpen(true) },
+                            { icon: "📌", label: "Haftnotizen", act: () => setNotesOpen(true) },
+                            { icon: "🔒", label: "Passwort-Tresor", act: () => setVaultOpen(true) },
+                            { icon: "📔", label: "Sprach-Tagebuch", act: () => setJournalOpen(true) },
+                            { icon: "🎴", label: "Lern-Karteikarten", act: () => setFlashcardsOpen(true) },
+                          ],
+                        },
+                        {
+                          title: "PC & Medien",
+                          items: [
+                            { icon: "🔍", label: "Bildschirm erklären", hint: "Strg+Alt+E", act: () => setExplainOpen(true) },
+                            { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
+                            { icon: "⬇️", label: "Downloader", act: () => setDownloaderOpen(true) },
+                            { icon: "🍳", label: "Kochassistent", act: () => setRecipeOpen(true) },
+                            { icon: "📋", label: "Clipboard-Historie", act: () => setClipboardOpen(true) },
+                          ],
+                        },
+                        {
+                          title: "Spaß & mehr",
+                          items: [
+                            { icon: "🎙️", label: "Abend-Show", act: () => setShowOpen(true) },
+                            { icon: "🎮", label: "Blockwelt-Spiel", act: () => window.open(blockweltUrl(), "_blank") },
+                            { icon: "💬", label: "Freunde-Chat", badge: unread, act: () => setFriendsOpen(true) },
+                            { icon: "👤", label: "Konten & Nutzung", act: () => setAccountsTab("accounts") },
+                          ],
+                        },
+                      ] as {
+                        title: string;
+                        items: {
+                          icon: string;
+                          label: string;
+                          hint?: string;
+                          badge?: number;
+                          act: () => void;
+                        }[];
+                      }[]).map((group) => (
+                        <div key={group.title} className="mb-1 last:mb-0">
+                          <div className="text-[9px] uppercase tracking-wider text-white/30 px-2.5 pt-1.5 pb-1">
+                            {group.title}
+                          </div>
+                          {group.items.map((it) => (
+                            <button
+                              key={it.label}
+                              onClick={() => { it.act(); setToolsMenuOpen(false); }}
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-white/75 hover:bg-white/10 hover:text-white transition-colors text-left"
+                            >
+                              <span className="text-[13px] w-5 text-center">{it.icon}</span>
+                              <span className="text-[12px] flex-1">{it.label}</span>
+                              {it.badge ? (
+                                <span className="min-w-[15px] h-[15px] px-1 rounded-full bg-gold text-black text-[9px] font-bold flex items-center justify-center">
+                                  {it.badge}
+                                </span>
+                              ) : it.hint ? (
+                                <span className="text-[9.5px] text-white/30">{it.hint}</span>
+                              ) : null}
+                            </button>
+                          ))}
+                        </div>
                       ))}
                     </div>
                   </>
                 )}
               </div>
-              <button
-                onClick={() => setFriendsOpen(true)}
-                title="Freunde-Chat — direkt von PC zu PC, ohne Server"
-                className="relative flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                </svg>
-                {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-gold text-black text-[9px] font-bold flex items-center justify-center">
-                    {unread}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setClipboardOpen(true)}
-                title="Clipboard-Historie — was du zuletzt kopiert hast"
-                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setAccountsTab("accounts")}
-                title="Konten, Nutzung & Skills"
-                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </button>
               <button
                 onClick={toggleScreen}
                 title={

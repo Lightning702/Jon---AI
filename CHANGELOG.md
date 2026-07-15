@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.13.1] — 2026-07-15
+
+### Geändert — Aufgeräumte Kopfzeile
+Die vielen einzelnen Knöpfe oben rechts sind jetzt alle im **„🧰 Werkzeuge"-Menü**
+gebündelt (Jon Code, Humanisierer, Downloader, Freunde-Chat, Clipboard, Konten und alle
+neuen Funktionen) — sauber in Abschnitte „Arbeiten", „PC & Medien" und „Spaß & mehr"
+gruppiert. So passt alles auf den Bildschirm, egal wie schmal das Fenster ist. Neue
+Freunde-Nachrichten zeigt jetzt ein Punkt direkt am Werkzeuge-Knopf. Nur die schnellen
+Schalter (Mini Jon, Live Screen, Sprache, Einstellungen) bleiben direkt sichtbar.
+
 ## [3.13.0] — 2026-07-15
 
 Zehn neue Funktionen. Alles im „🧰 Werkzeuge"-Menü oben rechts oder per Slash-Befehl.
