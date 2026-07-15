@@ -260,6 +260,8 @@ export interface UserSettings {
   routine_enabled: boolean;
   telegram_morning: boolean;
   telegram_morning_time: string;
+  pet_roam: boolean;
+  pet_companion: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -312,6 +314,8 @@ export async function getUserSettings(): Promise<UserSettings> {
       routine_enabled: true,
       telegram_morning: false,
       telegram_morning_time: "07:30",
+      pet_roam: false,
+      pet_companion: "none",
     };
   return res.json();
 }
@@ -472,6 +476,315 @@ export function downloadFileUrl(job: string): string {
 
 export function blockweltUrl(): string {
   return BASE.replace(/\/api$/, "") + "/blockwelt";
+}
+
+export interface JournalEntry {
+  id: string;
+  date: string;
+  time: string;
+  title: string;
+  tags: string[];
+  mood: string;
+  text: string;
+}
+
+export async function getJournal(): Promise<JournalEntry[]> {
+  const res = await fetch(`${BASE}/journal`);
+  if (!res.ok) return [];
+  return (await res.json()).entries ?? [];
+}
+
+export async function addJournal(text: string): Promise<JournalEntry> {
+  const res = await fetch(`${BASE}/journal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Speichern fehlgeschlagen.");
+  return data;
+}
+
+export async function askJournal(query: string): Promise<string> {
+  const res = await fetch(`${BASE}/journal/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Suche fehlgeschlagen.");
+  return data.answer;
+}
+
+export async function deleteJournal(id: string): Promise<void> {
+  await fetch(`${BASE}/journal/${id}`, { method: "DELETE" });
+}
+
+export interface CleanupPreview {
+  plan: string;
+  folder: string;
+  count: number;
+  summary: { ordner: string; dateien: number }[];
+  sample: { name: string; target: string }[];
+}
+
+export async function cleanupPreview(
+  folder: string,
+  by: string
+): Promise<CleanupPreview> {
+  const res = await fetch(`${BASE}/cleanup/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ folder, by }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Vorschau fehlgeschlagen.");
+  return data;
+}
+
+export async function cleanupApply(
+  plan: string
+): Promise<{ moved: number; failed: number }> {
+  const res = await fetch(`${BASE}/cleanup/apply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plan }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Aufräumen fehlgeschlagen.");
+  return data;
+}
+
+export interface RecipeIdea {
+  name: string;
+  dauer: string;
+  schwierigkeit: string;
+  beschreibung: string;
+}
+
+export async function recipeSuggest(ingredients: string): Promise<RecipeIdea[]> {
+  const res = await fetch(`${BASE}/recipe/suggest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ingredients }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Vorschlag fehlgeschlagen.");
+  return data.vorschlaege ?? [];
+}
+
+export interface Recipe {
+  name: string;
+  portionen: number;
+  zutaten: string[];
+  schritte: string[];
+}
+
+export async function recipeMake(dish: string): Promise<Recipe> {
+  const res = await fetch(`${BASE}/recipe/make`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dish }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Rezept fehlgeschlagen.");
+  return data;
+}
+
+export interface Deck {
+  id: string;
+  titel: string;
+  anzahl: number;
+  faellig: number;
+}
+
+export async function getDecks(): Promise<Deck[]> {
+  const res = await fetch(`${BASE}/flashcards`);
+  if (!res.ok) return [];
+  return (await res.json()).decks ?? [];
+}
+
+export async function generateDeck(
+  topic: string
+): Promise<{ id: string; titel: string; anzahl: number }> {
+  const res = await fetch(`${BASE}/flashcards/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ topic }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Erstellen fehlgeschlagen.");
+  return data;
+}
+
+export interface NextCard {
+  id?: string;
+  frage?: string;
+  stufe?: number;
+  offen?: number;
+  done?: boolean;
+}
+
+export async function nextCard(deck: string): Promise<NextCard> {
+  const res = await fetch(`${BASE}/flashcards/${deck}/next`);
+  if (!res.ok) throw new Error("Karte laden fehlgeschlagen.");
+  return res.json();
+}
+
+export async function answerCard(
+  deck: string,
+  card: string,
+  answer: string
+): Promise<{ richtig: boolean; loesung: string; feedback: string }> {
+  const res = await fetch(`${BASE}/flashcards/answer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ deck, card, answer }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Antwort fehlgeschlagen.");
+  return data;
+}
+
+export async function deleteDeck(deck: string): Promise<void> {
+  await fetch(`${BASE}/flashcards/${deck}`, { method: "DELETE" });
+}
+
+export async function explainScreen(): Promise<string> {
+  const res = await fetch(`${BASE}/screen/explain`, { method: "POST" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Erklärung fehlgeschlagen.");
+  return data.explanation;
+}
+
+export async function startPomodoro(goal: string): Promise<void> {
+  await fetch(`${BASE}/pomodoro/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ work: 25, brk: 5, rounds: 4, goal }),
+  });
+}
+
+export interface Note {
+  id: string;
+  text: string;
+  color: string;
+  pinned: boolean;
+  done: boolean;
+}
+
+export async function getNotes(): Promise<Note[]> {
+  const res = await fetch(`${BASE}/notes`);
+  if (!res.ok) return [];
+  return (await res.json()).notes ?? [];
+}
+
+export async function addNote(text: string, color: string): Promise<Note> {
+  const res = await fetch(`${BASE}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, color }),
+  });
+  return res.json();
+}
+
+export async function updateNote(id: string, patch: Partial<Note>): Promise<void> {
+  await fetch(`${BASE}/notes`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...patch }),
+  });
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  await fetch(`${BASE}/notes/${id}`, { method: "DELETE" });
+}
+
+export interface VaultEntry {
+  id: string;
+  title: string;
+  username: string;
+}
+
+export async function vaultStatus(): Promise<{ exists: boolean; unlocked: boolean }> {
+  const res = await fetch(`${BASE}/vault/status`);
+  return res.json();
+}
+
+export async function vaultCreate(password: string): Promise<void> {
+  const res = await fetch(`${BASE}/vault/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) throw new Error((await res.json()).detail ?? "Fehlgeschlagen.");
+}
+
+export async function vaultUnlock(password: string): Promise<void> {
+  const res = await fetch(`${BASE}/vault/unlock`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) throw new Error((await res.json()).detail ?? "Falsches Passwort.");
+}
+
+export async function vaultLock(): Promise<void> {
+  await fetch(`${BASE}/vault/lock`, { method: "POST" });
+}
+
+export async function vaultEntries(): Promise<{ locked: boolean; entries: VaultEntry[] }> {
+  const res = await fetch(`${BASE}/vault/entries`);
+  return res.json();
+}
+
+export async function vaultReveal(id: string): Promise<{ secret: string; username: string }> {
+  const res = await fetch(`${BASE}/vault/reveal/${id}`);
+  if (!res.ok) throw new Error((await res.json()).detail ?? "Gesperrt.");
+  return res.json();
+}
+
+export async function vaultAdd(
+  title: string,
+  username: string,
+  secret: string
+): Promise<VaultEntry> {
+  const res = await fetch(`${BASE}/vault/add`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, username, secret }),
+  });
+  if (!res.ok) throw new Error((await res.json()).detail ?? "Fehlgeschlagen.");
+  return res.json();
+}
+
+export async function vaultDelete(id: string): Promise<void> {
+  await fetch(`${BASE}/vault/${id}`, { method: "DELETE" });
+}
+
+export async function vaultGenerate(length: number, symbols: boolean): Promise<string> {
+  const res = await fetch(`${BASE}/vault/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ length, symbols }),
+  });
+  return (await res.json()).password;
+}
+
+export interface SearchGroup {
+  kind: string;
+  label: string;
+  items: { id?: string; title?: string; snippet: string }[];
+}
+
+export async function universalSearch(query: string): Promise<SearchGroup[]> {
+  const res = await fetch(`${BASE}/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) return [];
+  return (await res.json()).groups ?? [];
 }
 
 export interface Watcher {

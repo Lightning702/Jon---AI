@@ -114,13 +114,16 @@ async def _morning_watcher() -> None:
 async def _companion_watcher() -> None:
     from app.services.cowork_service import get_cowork_service
     from app.services.focus_service import get_focus_service
+    from app.services.pomodoro_service import get_pomodoro_service
 
     focus = get_focus_service()
     cowork = get_cowork_service()
+    pomodoro = get_pomodoro_service()
     while True:
         await asyncio.sleep(5)
         try:
             await asyncio.to_thread(focus.tick)
+            await asyncio.to_thread(pomodoro.tick)
             await cowork.tick()
         except Exception:
             continue

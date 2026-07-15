@@ -18,6 +18,14 @@ import Humanizer from "./components/Humanizer";
 import Downloader from "./components/Downloader";
 import EveningShow from "./components/EveningShow";
 import RoutineBanner from "./components/RoutineBanner";
+import Journal from "./components/Journal";
+import Cleanup from "./components/Cleanup";
+import Recipe from "./components/Recipe";
+import Flashcards from "./components/Flashcards";
+import ScreenExplain from "./components/ScreenExplain";
+import Notes from "./components/Notes";
+import Vault from "./components/Vault";
+import Search from "./components/Search";
 import SetupWizard from "./components/SetupWizard";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
@@ -68,6 +76,7 @@ const jonDesktop = (window as unknown as {
     togglePet?: () => void;
     flashWindow?: () => void;
     focusWindow?: () => void;
+    onExplainScreen?: (cb: () => void) => void;
   };
 }).jon;
 
@@ -157,6 +166,15 @@ export default function App() {
   const [humanizerOpen, setHumanizerOpen] = useState(false);
   const [downloaderOpen, setDownloaderOpen] = useState(false);
   const [showOpen, setShowOpen] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
+  const [recipeOpen, setRecipeOpen] = useState(false);
+  const [flashcardsOpen, setFlashcardsOpen] = useState(false);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [vaultOpen, setVaultOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
   const [clipboardOpen, setClipboardOpen] = useState(false);
   const [identity, setIdentity] = useState<P2PIdentity | null>(null);
@@ -189,6 +207,17 @@ export default function App() {
     []
   );
 
+  useEffect(() => {
+    jonDesktop?.onExplainScreen?.(() => setExplainOpen(true));
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   useEffect(() => {
     providerRef.current = provider;
   }, [provider]);
@@ -859,6 +888,38 @@ export default function App() {
       window.open(blockweltUrl(), "_blank");
       return;
     }
+    if (command === "/tagebuch" || command === "/journal") {
+      setJournalOpen(true);
+      return;
+    }
+    if (command === "/aufraeumen" || command === "/cleanup") {
+      setCleanupOpen(true);
+      return;
+    }
+    if (command === "/kochen" || command === "/rezept") {
+      setRecipeOpen(true);
+      return;
+    }
+    if (command === "/lernen" || command === "/karten" || command === "/quiz") {
+      setFlashcardsOpen(true);
+      return;
+    }
+    if (command === "/erklaer" || command === "/erklaere" || command === "/screen") {
+      setExplainOpen(true);
+      return;
+    }
+    if (command === "/notizen" || command === "/notes") {
+      setNotesOpen(true);
+      return;
+    }
+    if (command === "/tresor" || command === "/vault" || command === "/passwort") {
+      setVaultOpen(true);
+      return;
+    }
+    if (command === "/suche" || command === "/search" || command === "/find") {
+      setSearchOpen(true);
+      return;
+    }
     if (command === "/check" || command === "/pc") {
       void runDataPrompt(
         async () => CHECK_PROMPT(await getHealthCheck()),
@@ -1205,20 +1266,48 @@ export default function App() {
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
               </button>
-              <button
-                onClick={() => setShowOpen(true)}
-                title="Abend-Show — Jon & Mini Jon plaudern über deinen Tag"
-                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <span className="text-[12px] leading-none">🎙️</span>
-              </button>
-              <button
-                onClick={() => window.open(blockweltUrl(), "_blank")}
-                title="Blockwelt — 3D-Spiel, in dem Jon für dich baut"
-                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <span className="text-[12px] leading-none">🎮</span>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setToolsMenuOpen((v) => !v)}
+                  title="Werkzeuge"
+                  className={`flex items-center gap-1 px-2.5 h-7 rounded-full border transition-colors ${
+                    toolsMenuOpen
+                      ? "border-gold/40 bg-gold/10 text-gold"
+                      : "border-white/10 bg-white/5 text-white/40 hover:text-white/70"
+                  }`}
+                >
+                  <span className="text-[12px] leading-none">🧰</span>
+                  <span className="text-[11px] font-medium">Werkzeuge</span>
+                </button>
+                {toolsMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setToolsMenuOpen(false)} />
+                    <div className="absolute right-0 top-9 z-50 w-52 glass rounded-xl border border-white/15 p-1.5 text-left">
+                      {[
+                        { icon: "🔎", label: "Alles durchsuchen", act: () => setSearchOpen(true) },
+                        { icon: "📌", label: "Haftnotizen", act: () => setNotesOpen(true) },
+                        { icon: "🔒", label: "Passwort-Tresor", act: () => setVaultOpen(true) },
+                        { icon: "📔", label: "Sprach-Tagebuch", act: () => setJournalOpen(true) },
+                        { icon: "🔍", label: "Bildschirm erklären", act: () => setExplainOpen(true) },
+                        { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
+                        { icon: "🍳", label: "Kochassistent", act: () => setRecipeOpen(true) },
+                        { icon: "🎴", label: "Lern-Karteikarten", act: () => setFlashcardsOpen(true) },
+                        { icon: "🎙️", label: "Abend-Show", act: () => setShowOpen(true) },
+                        { icon: "🎮", label: "Blockwelt-Spiel", act: () => window.open(blockweltUrl(), "_blank") },
+                      ].map((it) => (
+                        <button
+                          key={it.label}
+                          onClick={() => { it.act(); setToolsMenuOpen(false); }}
+                          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-white/75 hover:bg-white/10 hover:text-white transition-colors text-left"
+                        >
+                          <span className="text-[14px]">{it.icon}</span>
+                          <span className="text-[12px]">{it.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               <button
                 onClick={() => setFriendsOpen(true)}
                 title="Freunde-Chat — direkt von PC zu PC, ohne Server"
@@ -1407,6 +1496,19 @@ export default function App() {
           provider={provider}
           model={model}
           onClose={() => setShowOpen(false)}
+        />
+      )}
+      {journalOpen && <Journal onClose={() => setJournalOpen(false)} />}
+      {cleanupOpen && <Cleanup onClose={() => setCleanupOpen(false)} />}
+      {recipeOpen && <Recipe onClose={() => setRecipeOpen(false)} />}
+      {flashcardsOpen && <Flashcards onClose={() => setFlashcardsOpen(false)} />}
+      {explainOpen && <ScreenExplain onClose={() => setExplainOpen(false)} />}
+      {notesOpen && <Notes onClose={() => setNotesOpen(false)} />}
+      {vaultOpen && <Vault onClose={() => setVaultOpen(false)} />}
+      {searchOpen && (
+        <Search
+          onOpenConversation={(id) => void loadConversation(id)}
+          onClose={() => setSearchOpen(false)}
         />
       )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}

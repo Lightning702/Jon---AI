@@ -58,6 +58,8 @@ DEFAULTS = {
     "routine_enabled": True,
     "telegram_morning": False,
     "telegram_morning_time": "07:30",
+    "pet_roam": False,
+    "pet_companion": "none",
 }
 
 

@@ -165,6 +165,43 @@ function createPet() {
   petWindow.on("closed", () => {
     petWindow = null;
   });
+  startPetRoam();
+}
+
+let roamOn = false;
+let roamAsleep = false;
+let roamTarget = null;
+let roamStarted = false;
+async function refreshRoamState() {
+  try {
+    const s = await (await fetch(`${API_BASE}/settings`)).json();
+    roamOn = s.pet_roam === true;
+  } catch (e) {
+    roamOn = false;
+  }
+  try {
+    const idle = Number((await (await fetch(`${API_BASE}/system/idle`)).json()).seconds || 0);
+    roamAsleep = idle > 300;
+  } catch (e) {
+    roamAsleep = false;
+  }
+}
+function startPetRoam() {
+  if (roamStarted) return;
+  roamStarted = true;
+  refreshRoamState();
+  setInterval(refreshRoamState, 4000);
+  setInterval(() => {
+    if (!petWindow || !petWindow.isVisible() || !roamOn || roamAsleep) return;
+    const area = screen.getPrimaryDisplay().workAreaSize;
+    const b = petWindow.getBounds();
+    const y = area.height - b.height - 12;
+    if (roamTarget === null || Math.abs(b.x - roamTarget) < 6) {
+      roamTarget = Math.round(Math.random() * (area.width - b.width - 40)) + 20;
+    }
+    const nx = b.x + Math.sign(roamTarget - b.x) * Math.min(3, Math.abs(roamTarget - b.x));
+    petWindow.setBounds({ x: Math.round(nx), y, width: b.width, height: b.height });
+  }, 45);
 }
 
 function togglePet() {
@@ -383,6 +420,13 @@ app.whenReady().then(() => {
   globalShortcut.register("Control+Alt+K", togglePet);
   globalShortcut.register("Control+Alt+Space", toggleQuickAsk);
   globalShortcut.register("Control+Alt+H", () => void openQuickWrite());
+  globalShortcut.register("Control+Alt+E", () => {
+    if (mainWindow) {
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.focus();
+      mainWindow.webContents.send("jon:explain-screen");
+    }
+  });
   tray = new Tray(path.join(__dirname, "tray.png"));
   tray.setToolTip("Jon — Strg+Alt+J");
   tray.setContextMenu(
@@ -390,6 +434,16 @@ app.whenReady().then(() => {
       { label: "Jon öffnen/verstecken", click: toggleWindow },
       { label: "Schnellfrage (Strg+Alt+Leer)", click: toggleQuickAsk },
       { label: "Text verbessern (Strg+Alt+H)", click: () => void openQuickWrite() },
+      {
+        label: "Bildschirm erklären (Strg+Alt+E)",
+        click: () => {
+          if (mainWindow) {
+            if (!mainWindow.isVisible()) mainWindow.show();
+            mainWindow.focus();
+            mainWindow.webContents.send("jon:explain-screen");
+          }
+        },
+      },
       { label: "Mini Jon ein/aus", click: togglePet },
       { type: "separator" },
       {

@@ -122,6 +122,8 @@ export default function SettingsMenu({
   const [quickwrite, setQuickwrite] = useState(true);
   const [timeline, setTimeline] = useState(false);
   const [routine, setRoutine] = useState(true);
+  const [petRoam, setPetRoam] = useState(false);
+  const [petCompanion, setPetCompanion] = useState("none");
   const [connections, setConnections] = useState<UserSettings | null>(null);
 
   useEffect(() => {
@@ -137,6 +139,8 @@ export default function SettingsMenu({
       setQuickwrite(s.quickwrite_enabled !== false);
       setTimeline(s.timeline_enabled === true);
       setRoutine(s.routine_enabled !== false);
+      setPetRoam(s.pet_roam === true);
+      setPetCompanion(s.pet_companion || "none");
     });
     void (async () => {
       const backend = await getAutostart();
@@ -213,6 +217,17 @@ export default function SettingsMenu({
     const next = !routine;
     setRoutine(next);
     void saveUserSettings({ routine_enabled: next });
+  };
+
+  const togglePetRoam = () => {
+    const next = !petRoam;
+    setPetRoam(next);
+    void saveUserSettings({ pet_roam: next });
+  };
+
+  const pickCompanion = (value: string) => {
+    setPetCompanion(value);
+    void saveUserSettings({ pet_companion: value });
   };
 
   const openConnections = async () => {
@@ -367,6 +382,33 @@ export default function SettingsMenu({
                 on={timeline}
                 onClick={toggleTimeline}
               />
+            </div>
+            <Section title="Mini Jon & Haustier" />
+            <div className="space-y-1">
+              <Toggle
+                label="Frei über den Bildschirm"
+                hint="Mini Jon wandert am unteren Rand herum statt fest in der Ecke zu stehen. Schläft, wenn du weg bist."
+                on={petRoam}
+                onClick={togglePetRoam}
+              />
+              <div className="pt-1">
+                <div className="text-[10px] text-white/40 px-0.5 mb-1">
+                  Haustier für Mini Jon
+                </div>
+                <Segmented
+                  value={petCompanion}
+                  items={[
+                    { value: "none", label: "Keins", hint: "Mini Jon ist allein." },
+                    { value: "cat", label: "🐱 Katze", hint: "Minka lebt bei Mini Jon." },
+                    { value: "dog", label: "🐶 Hund", hint: "Rocky lebt bei Mini Jon." },
+                  ]}
+                  onPick={pickCompanion}
+                />
+                <div className="text-[9.5px] text-white/35 px-0.5 mt-1 leading-snug">
+                  Mini Jon spielt mit dem Tier, wenn er frei ist — schläft mit ihm,
+                  wenn du weg bist.
+                </div>
+              </div>
             </div>
             <Section title="Tagesbriefing" />
             <input

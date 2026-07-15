@@ -93,6 +93,8 @@ class SettingsIn(BaseModel):
     routine_enabled: bool | None = None
     telegram_morning: bool | None = None
     telegram_morning_time: str | None = None
+    pet_roam: bool | None = None
+    pet_companion: str | None = None
 
 
 class WatcherIn(BaseModel):
@@ -189,6 +191,80 @@ class GameCommandIn(BaseModel):
     x: float = 0
     y: float = 0
     z: float = 0
+
+
+class JournalAddIn(BaseModel):
+    text: str
+
+
+class JournalAskIn(BaseModel):
+    query: str
+
+
+class CleanupPreviewIn(BaseModel):
+    folder: str = "downloads"
+    by: str = Field(default="typ", pattern="^(typ|datum)$")
+
+
+class CleanupApplyIn(BaseModel):
+    plan: str
+
+
+class RecipeSuggestIn(BaseModel):
+    ingredients: str
+
+
+class RecipeMakeIn(BaseModel):
+    dish: str
+
+
+class FlashcardsGenIn(BaseModel):
+    topic: str
+
+
+class FlashcardsAnswerIn(BaseModel):
+    deck: str
+    card: str
+    answer: str = ""
+
+
+class PomodoroStartIn(BaseModel):
+    work: int = 25
+    brk: int = 5
+    rounds: int = 4
+    goal: str = ""
+
+
+class NoteAddIn(BaseModel):
+    text: str = ""
+    color: str = "gold"
+
+
+class NoteUpdateIn(BaseModel):
+    id: str
+    text: str | None = None
+    color: str | None = None
+    pinned: bool | None = None
+    done: bool | None = None
+
+
+class VaultPasswordIn(BaseModel):
+    password: str
+
+
+class VaultAddIn(BaseModel):
+    title: str
+    username: str = ""
+    secret: str
+
+
+class VaultGenIn(BaseModel):
+    length: int = 20
+    symbols: bool = True
+
+
+class SearchIn(BaseModel):
+    query: str
 
 
 class SnapshotIn(BaseModel):

@@ -21,23 +21,38 @@ from app.schemas import (
     ChatIn,
     ConversationDetail,
     ConversationOut,
+    CleanupApplyIn,
+    CleanupPreviewIn,
     CoworkAnswerIn,
     DownloadAnalyzeIn,
     DownloadStartIn,
     DreamIn,
+    FlashcardsAnswerIn,
+    FlashcardsGenIn,
     FocusStartIn,
     GameCommandIn,
     HealthOut,
+    JournalAddIn,
+    JournalAskIn,
+    NoteAddIn,
+    NoteUpdateIn,
     HumanizeIn,
     KnowledgeLearnIn,
     KnowledgeSearchIn,
+    PomodoroStartIn,
     ProviderStatus,
     QuickwriteApplyIn,
+    RecipeMakeIn,
+    RecipeSuggestIn,
     ReminderIn,
     RoutineActionIn,
     ScreenObserveIn,
+    SearchIn,
     SettingsIn,
     ShowIn,
+    VaultAddIn,
+    VaultGenIn,
+    VaultPasswordIn,
     SimulateIn,
     SkillWriteIn,
     SnapshotIn,
@@ -483,8 +498,13 @@ async def cowork_answer(payload: CoworkAnswerIn) -> dict:
 async def companion_events() -> dict:
     from app.services.cowork_service import get_cowork_service
     from app.services.focus_service import get_focus_service
+    from app.services.pomodoro_service import get_pomodoro_service
 
-    events = get_focus_service().poll_events() + get_cowork_service().poll_events()
+    events = (
+        get_focus_service().poll_events()
+        + get_cowork_service().poll_events()
+        + get_pomodoro_service().poll_events()
+    )
     return {"events": events}
 
 
@@ -575,6 +595,283 @@ async def game_command(payload: GameCommandIn) -> dict:
     from app.services.game_service import game_command as run_command
 
     return await run_command(payload.message, payload.x, payload.y, payload.z)
+
+
+@router.get("/journal")
+async def journal_list() -> dict:
+    from app.services.journal_service import get_journal_service
+
+    return {"entries": get_journal_service().list()}
+
+
+@router.post("/journal")
+async def journal_add(payload: JournalAddIn) -> dict:
+    from app.services.journal_service import get_journal_service
+
+    result = await get_journal_service().add(payload.text)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/journal/ask")
+async def journal_ask(payload: JournalAskIn) -> dict:
+    from app.services.journal_service import get_journal_service
+
+    result = await get_journal_service().ask(payload.query)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.delete("/journal/{entry_id}")
+async def journal_delete(entry_id: str) -> dict:
+    from app.services.journal_service import get_journal_service
+
+    return {"deleted": get_journal_service().delete(entry_id)}
+
+
+@router.post("/cleanup/preview")
+async def cleanup_preview(payload: CleanupPreviewIn) -> dict:
+    from app.services.cleanup_service import get_cleanup_service
+
+    result = await asyncio.to_thread(
+        get_cleanup_service().preview, payload.folder, payload.by
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/cleanup/apply")
+async def cleanup_apply(payload: CleanupApplyIn) -> dict:
+    from app.services.cleanup_service import get_cleanup_service
+
+    result = await asyncio.to_thread(get_cleanup_service().apply, payload.plan)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/recipe/suggest")
+async def recipe_suggest(payload: RecipeSuggestIn) -> dict:
+    from app.services.recipe_service import suggest
+
+    result = await suggest(payload.ingredients)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/recipe/make")
+async def recipe_make(payload: RecipeMakeIn) -> dict:
+    from app.services.recipe_service import recipe
+
+    result = await recipe(payload.dish)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/flashcards")
+async def flashcards_decks() -> dict:
+    from app.services.flashcards_service import get_flashcards_service
+
+    return {"decks": get_flashcards_service().decks()}
+
+
+@router.post("/flashcards/generate")
+async def flashcards_generate(payload: FlashcardsGenIn) -> dict:
+    from app.services.flashcards_service import get_flashcards_service
+
+    result = await get_flashcards_service().generate(payload.topic)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/flashcards/{deck_id}/next")
+async def flashcards_next(deck_id: str) -> dict:
+    from app.services.flashcards_service import get_flashcards_service
+
+    result = get_flashcards_service().next_card(deck_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@router.post("/flashcards/answer")
+async def flashcards_answer(payload: FlashcardsAnswerIn) -> dict:
+    from app.services.flashcards_service import get_flashcards_service
+
+    result = await get_flashcards_service().answer(
+        payload.deck, payload.card, payload.answer
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.delete("/flashcards/{deck_id}")
+async def flashcards_delete(deck_id: str) -> dict:
+    from app.services.flashcards_service import get_flashcards_service
+
+    return {"deleted": get_flashcards_service().delete(deck_id)}
+
+
+@router.get("/pomodoro")
+async def pomodoro_state() -> dict:
+    from app.services.pomodoro_service import get_pomodoro_service
+
+    return get_pomodoro_service().state()
+
+
+@router.post("/pomodoro/start")
+async def pomodoro_start(payload: PomodoroStartIn) -> dict:
+    from app.services.pomodoro_service import get_pomodoro_service
+
+    return get_pomodoro_service().start(
+        payload.work, payload.brk, payload.rounds, payload.goal
+    )
+
+
+@router.post("/pomodoro/stop")
+async def pomodoro_stop() -> dict:
+    from app.services.pomodoro_service import get_pomodoro_service
+
+    return get_pomodoro_service().stop()
+
+
+@router.post("/screen/explain")
+async def screen_explain() -> dict:
+    from app.services.screen_service import get_screen_service
+
+    result = await get_screen_service().explain()
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/notes")
+async def notes_list() -> dict:
+    from app.services.notes_service import get_notes_service
+
+    return {"notes": get_notes_service().list()}
+
+
+@router.post("/notes")
+async def notes_add(payload: NoteAddIn) -> dict:
+    from app.services.notes_service import get_notes_service
+
+    return get_notes_service().add(payload.text, payload.color)
+
+
+@router.put("/notes")
+async def notes_update(payload: NoteUpdateIn) -> dict:
+    from app.services.notes_service import get_notes_service
+
+    result = get_notes_service().update(
+        payload.id,
+        text=payload.text,
+        color=payload.color,
+        pinned=payload.pinned,
+        done=payload.done,
+    )
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@router.delete("/notes/{note_id}")
+async def notes_delete(note_id: str) -> dict:
+    from app.services.notes_service import get_notes_service
+
+    return {"deleted": get_notes_service().delete(note_id)}
+
+
+@router.get("/vault/status")
+async def vault_status() -> dict:
+    from app.services.vault_service import get_vault_service
+
+    return get_vault_service().status()
+
+
+@router.post("/vault/create")
+async def vault_create(payload: VaultPasswordIn) -> dict:
+    from app.services.vault_service import get_vault_service
+
+    result = get_vault_service().create(payload.password)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/vault/unlock")
+async def vault_unlock(payload: VaultPasswordIn) -> dict:
+    from app.services.vault_service import get_vault_service
+
+    result = get_vault_service().unlock(payload.password)
+    if "error" in result:
+        raise HTTPException(status_code=401, detail=result["error"])
+    return result
+
+
+@router.post("/vault/lock")
+async def vault_lock() -> dict:
+    from app.services.vault_service import get_vault_service
+
+    return get_vault_service().lock()
+
+
+@router.get("/vault/entries")
+async def vault_entries() -> dict:
+    from app.services.vault_service import get_vault_service
+
+    return get_vault_service().list()
+
+
+@router.get("/vault/reveal/{entry_id}")
+async def vault_reveal(entry_id: str) -> dict:
+    from app.services.vault_service import get_vault_service
+
+    result = get_vault_service().reveal(entry_id)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/vault/add")
+async def vault_add(payload: VaultAddIn) -> dict:
+    from app.services.vault_service import get_vault_service
+
+    result = get_vault_service().add(payload.title, payload.username, payload.secret)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.delete("/vault/{entry_id}")
+async def vault_delete(entry_id: str) -> dict:
+    from app.services.vault_service import get_vault_service
+
+    result = get_vault_service().delete(entry_id)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/vault/generate")
+async def vault_generate(payload: VaultGenIn) -> dict:
+    from app.services.vault_service import get_vault_service
+
+    return {"password": get_vault_service().generate(payload.length, payload.symbols)}
+
+
+@router.post("/search")
+async def universal_search(payload: SearchIn) -> dict:
+    from app.services.search_service import universal_search as run_search
+
+    return await asyncio.to_thread(run_search, payload.query)
 
 
 @router.get("/snapshots")

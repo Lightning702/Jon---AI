@@ -28,6 +28,56 @@
         justify-content: flex-end;
         padding-bottom: 10px;
       }
+      #petPal {
+        position: absolute;
+        left: 14px;
+        bottom: 8px;
+        width: 66px;
+        height: 66px;
+        display: none;
+        pointer-events: auto;
+        cursor: pointer;
+        transition: transform 0.25s ease;
+        z-index: 3;
+      }
+      #petPal.show { display: block; }
+      #petPal.happy { animation: palHop 0.6s ease; }
+      #petZzz {
+        position: absolute;
+        left: 60px;
+        bottom: 52px;
+        color: #bcd0ff;
+        font-size: 15px;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 3;
+        text-shadow: 0 1px 3px #000;
+      }
+      #petZzz.show { animation: zzzFloat 2.4s ease-in-out infinite; }
+      @keyframes palHop {
+        0%, 100% { transform: translateY(0) scaleX(var(--dir, 1)); }
+        40% { transform: translateY(-14px) scaleX(var(--dir, 1)); }
+      }
+      @keyframes zzzFloat {
+        0% { opacity: 0; transform: translateY(4px); }
+        50% { opacity: 0.9; transform: translateY(-6px); }
+        100% { opacity: 0; transform: translateY(-16px); }
+      }
+      #petHeart {
+        position: absolute;
+        left: 40px;
+        bottom: 60px;
+        font-size: 16px;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 3;
+      }
+      #petHeart.show { animation: heartPop 1.2s ease; }
+      @keyframes heartPop {
+        0% { opacity: 0; transform: translateY(0) scale(0.6); }
+        30% { opacity: 1; transform: translateY(-8px) scale(1.1); }
+        100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+      }
       #bubble {
         max-width: 288px;
         margin-bottom: 10px;
@@ -193,6 +243,9 @@
   <body>
     <div id="stage">
       <div id="bubble"></div>
+      <svg id="petPal" viewBox="0 0 64 64"></svg>
+      <div id="petZzz">z</div>
+      <div id="petHeart">❤</div>
       <div id="inputRow">
         <input id="field" placeholder="Sag Emil etwas …" autocomplete="off" />
       </div>
@@ -388,6 +441,12 @@
         cheeks.style.display = cfg.pet_cheeks ? "block" : "none";
         renderEyes(cfg.pet_eyes || "round");
         jonWrap.style.transform = "scale(" + (cfg.pet_scale || 1) + ")";
+        const nextPet = cfg.pet_companion || "none";
+        if (nextPet !== petKind) {
+          petKind = nextPet;
+          renderPet(petKind, accent);
+          if (petKind !== "none") setPetSleep(petAsleep);
+        }
       }
 
       function setState(cls) {
@@ -897,6 +956,8 @@
         try {
           const r = await (await fetch(`${BASE}/system/idle`)).json();
           const idle = Number(r.seconds || 0);
+          if (idle > 300) setPetSleep(true);
+          else setPetSleep(false);
           if (idle > 600) {
             wasAway = true;
           } else if (wasAway && idle < 5) {
@@ -1246,6 +1307,109 @@
           applyConfig(s);
         } catch (e) {}
       }
+
+      const petPal = document.getElementById("petPal");
+      const petZzz = document.getElementById("petZzz");
+      const petHeart = document.getElementById("petHeart");
+      let petKind = "none";
+      let petAsleep = false;
+      let palFacing = 1;
+
+      function renderPet(kind, accent) {
+        if (kind === "cat") {
+          petPal.innerHTML =
+            '<ellipse cx="32" cy="46" rx="18" ry="14" fill="#5a5a64"/>' +
+            '<path d="M18 30 L14 16 L26 26 Z" fill="#5a5a64"/>' +
+            '<path d="M46 30 L50 16 L38 26 Z" fill="#5a5a64"/>' +
+            '<path d="M19 29 L17 21 L24 27 Z" fill="#ffb3c1"/>' +
+            '<path d="M45 29 L47 21 L40 27 Z" fill="#ffb3c1"/>' +
+            '<circle cx="32" cy="34" r="15" fill="#6d6d78"/>' +
+            '<circle cx="26" cy="32" r="2.6" fill="#111"/>' +
+            '<circle cx="38" cy="32" r="2.6" fill="#111"/>' +
+            '<path d="M30 37 Q32 39 34 37" fill="none" stroke="#111" stroke-width="1.6" stroke-linecap="round"/>' +
+            '<path d="M32 36 l0 2" stroke="#ffb3c1" stroke-width="1.6"/>' +
+            '<path d="M20 36 h-9 M20 39 h-8" stroke="#3a3a42" stroke-width="1.2" stroke-linecap="round"/>' +
+            '<path d="M44 36 h9 M44 39 h8" stroke="#3a3a42" stroke-width="1.2" stroke-linecap="round"/>' +
+            '<path d="M50 52 Q60 48 56 40" fill="none" stroke="#5a5a64" stroke-width="6" stroke-linecap="round"/>';
+        } else if (kind === "dog") {
+          petPal.innerHTML =
+            '<ellipse cx="32" cy="46" rx="19" ry="14" fill="#b98a55"/>' +
+            '<ellipse cx="16" cy="34" rx="7" ry="12" fill="#8a5f34"/>' +
+            '<ellipse cx="48" cy="34" rx="7" ry="12" fill="#8a5f34"/>' +
+            '<circle cx="32" cy="34" r="15" fill="#caa06a"/>' +
+            '<ellipse cx="32" cy="40" rx="8" ry="6" fill="#f0dfc4"/>' +
+            '<circle cx="26" cy="31" r="2.7" fill="#111"/>' +
+            '<circle cx="38" cy="31" r="2.7" fill="#111"/>' +
+            '<ellipse cx="32" cy="38" rx="3" ry="2.2" fill="#3a2a1a"/>' +
+            '<path d="M32 40 Q32 44 28 44" fill="none" stroke="#7a5a34" stroke-width="1.6" stroke-linecap="round"/>' +
+            '<path d="M50 50 Q60 44 54 38" fill="none" stroke="#b98a55" stroke-width="6" stroke-linecap="round"/>';
+        } else {
+          petPal.innerHTML = "";
+        }
+        petPal.classList.toggle("show", kind !== "none");
+        petPal.style.setProperty("--dir", palFacing);
+      }
+
+      function petName() {
+        return petKind === "cat" ? "Minka" : petKind === "dog" ? "Rocky" : "";
+      }
+
+      function setPetSleep(sleep) {
+        if (petKind === "none") return;
+        petAsleep = sleep;
+        petZzz.classList.toggle("show", sleep);
+        petPal.style.filter = sleep ? "brightness(0.6)" : "none";
+      }
+
+      let palX = 14;
+      function wanderPet() {
+        if (petKind === "none" || petAsleep || busy) return;
+        if (Math.random() < 0.5) {
+          const dir = Math.random() < 0.5 ? -1 : 1;
+          palX = Math.max(8, Math.min(180, palX + dir * (18 + Math.random() * 26)));
+          palFacing = dir;
+          petPal.style.setProperty("--dir", palFacing);
+          petPal.style.transform = "scaleX(" + palFacing + ")";
+          petPal.style.left = palX + "px";
+        }
+      }
+
+      const PET_ACTIONS = [
+        (n) => "Ich streichle " + n + " kurz. 🐾",
+        (n) => "Ich geb " + n + " was zu fressen.",
+        (n) => n + " will spielen — kurze Runde!",
+        (n) => n + " schnurrt zufrieden.",
+        (n) => "Ich krault " + n + " hinterm Ohr.",
+      ];
+      const PET_ACTIONS_DOG = [
+        (n) => "Ich werf " + n + " den Ball. 🎾",
+        (n) => "Ich geb " + n + " ein Leckerli.",
+        (n) => n + " wedelt mit dem Schwanz!",
+        (n) => "Ich kraul " + n + " den Bauch.",
+        (n) => n + " will Gassi — na gut, kurz!",
+      ];
+      function petInteract() {
+        if (petKind === "none" || petAsleep || busy || listening) return;
+        const n = petName();
+        const pool = petKind === "dog" ? PET_ACTIONS_DOG : PET_ACTIONS;
+        petHeart.classList.remove("show");
+        void petHeart.offsetWidth;
+        petHeart.classList.add("show");
+        petPal.classList.remove("happy");
+        void petPal.offsetWidth;
+        petPal.classList.add("happy");
+        say(pool[Math.floor(Math.random() * pool.length)](n));
+        scheduleHide(4500);
+      }
+
+      function petTick() {
+        if (petKind === "none") return;
+        if (petAsleep || busy) return;
+        wanderPet();
+        if (Math.random() < 0.4) petInteract();
+      }
+      setInterval(petTick, 14000);
+      setInterval(() => { if (!petAsleep && !busy) wanderPet(); }, 5000);
 
       renderEyes("round");
       applyIgnore(true);

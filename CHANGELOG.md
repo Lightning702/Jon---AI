@@ -2,6 +2,54 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.13.0] — 2026-07-15
+
+Zehn neue Funktionen. Alles im „🧰 Werkzeuge"-Menü oben rechts oder per Slash-Befehl.
+
+### Neu — Mini Jon bekommt ein Haustier
+Wähle in den Einstellungen eine **Katze (Minka)** oder einen **Hund (Rocky)** — das Tier
+lebt bei Mini Jon. Wenn Jon gerade nichts zu tun hat, spielt er mit ihm: streicheln,
+füttern, Ball werfen, kraulen. Bist du länger weg (AFK), schlafen beide friedlich (Zzz).
+Dazu neu: Mini Jon kann jetzt optional **frei am unteren Bildschirmrand herumwandern**
+statt fest in der Ecke zu stehen (ein-/ausschaltbar).
+
+### Neu — Sprach-Tagebuch (`/tagebuch`)
+Sprich einfach frei über deinen Tag — Jon transkribiert, gibt jedem Eintrag einen Titel
+und Stichworte und legt ihn datiert ab. Später durchsuchbar: „Was war letzte Woche los?"
+
+### Neu — Bildschirm-Erklärer (`/erklaer` · Strg+Alt+E)
+Jon schaut sich per Vision deinen Bildschirm an und erklärt, was zu sehen ist — löst
+Aufgaben, deutet Fehlermeldungen, übersetzt fremde Sprachen — und liest es dir vor.
+
+### Neu — Ordner aufräumen mit Vorschau (`/aufraeumen`)
+Jon sortiert Downloads, Desktop & Co. nach Typ oder Monat — zeigt aber **erst eine
+Vorschau**, verschoben wird nichts ohne deinen Klick.
+
+### Neu — Kochassistent (`/kochen`)
+Sag, was du hast — Jon schlägt Gerichte vor und liest dir das Rezept **Schritt für Schritt
+vor** (Hände frei), du gehst mit „Weiter" durch, mit Timer pro Schritt.
+
+### Neu — Lern-Karteikarten (`/lernen`)
+Jon macht aus einem Thema oder Text automatisch Karteikarten und quizzt dich ab, bewertet
+deine Antworten sinngemäß und wiederholt Schwieriges öfter (Spaced Repetition).
+
+### Neu — Pomodoro-Coach
+25 Minuten Arbeit / 5 Minuten Pause im Wechsel; Mini Jon kündigt Pausen an, schlägt kurze
+Dehnübungen vor und feiert jede geschaffte Runde.
+
+### Neu — Haftnotizen (`/notizen`)
+Schnelle, farbige Notizzettel direkt in Jon: anheften, abhaken, immer griffbereit.
+
+### Neu — Passwort-Tresor (`/tresor`)
+Ein lokal **verschlüsselter** Safe (AES/Fernet, PBKDF2) für Passwörter und Geheimnisse,
+geschützt mit einem Master-Passwort, mit eingebautem Passwort-Generator. Alles bleibt
+auf deinem PC, das Master-Passwort wird nirgends gespeichert, der Tresor sperrt sich nach
+15 Minuten selbst.
+
+### Neu — Universelle Suche (`/suche` · Strg+K)
+Ein Suchfeld durchsucht gleichzeitig **Unterhaltungen, Gedächtnis, Tagebuch und
+Wissensbasis** — Treffer aus dem Chat öffnest du mit einem Klick.
+
 ## [3.12.0] — 2026-07-15
 
 ### Neu — Blockwelt: 3D-Spiel mit Jon als Mitspieler
