@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.12.0] — 2026-07-15
+
+### Neu — Blockwelt: 3D-Spiel mit Jon als Mitspieler
+Ein komplettes Minecraft-artiges 3D-Spiel direkt in Jon (🎮 im Header oder `/spiel`):
+unendliche Welt mit Biomen, Bauen, Abbauen, Schwimmen, TNT, Enderperlen — und **Jon
+läuft als goldene Spielfigur mit dir herum**. Drück **T** und sag ihm, was er tun soll:
+„Bau mir ein Haus aus Glas" · „Grab einen Pool" · „Bau drei Bäume und einen Turm" ·
+„Folg mir" · „Spreng den Berg". Jon versteht freie Sprache über die KI, läuft zur
+Baustelle, baut Block für Block sichtbar vor deinen Augen (Häuser, Türme, Pyramiden,
+Brücken, Pools, Mauern, Bäume), gräbt, legt TNT mit Sicherheitsabstand — und antwortet
+dir mit seiner echten Stimme. Funktioniert sogar ohne KI-Verbindung mit fester
+Befehlserkennung.
+
+### Neu — Telegram-Befehle
+- **/stopp** bricht die laufende Aktion sofort ab — auch mitten in einer langen Antwort.
+- Nach jeder Aufgabe listet Jon auf, **welche Befehle er wirklich ausgeführt hat**
+  („✅ Ausgeführte Befehle: …").
+- **/endstimme** schaltet Sprachnachrichten dauerhaft aus, /stimme wieder an.
+
 ## [3.11.0] — 2026-07-15
 
 Acht neue Fähigkeiten, die es so in keiner anderen KI gibt.

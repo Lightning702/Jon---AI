@@ -45,6 +45,7 @@ import {
   getDueCapsules,
   getDueReminders,
   getHealth,
+  blockweltUrl,
   getHealthCheck,
   getProviders,
   getTaskReports,
@@ -854,6 +855,10 @@ export default function App() {
       setShowOpen(true);
       return;
     }
+    if (command === "/spiel" || command === "/blockwelt" || command === "/game") {
+      window.open(blockweltUrl(), "_blank");
+      return;
+    }
     if (command === "/check" || command === "/pc") {
       void runDataPrompt(
         async () => CHECK_PROMPT(await getHealthCheck()),
@@ -1206,6 +1211,13 @@ export default function App() {
                 className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
               >
                 <span className="text-[12px] leading-none">🎙️</span>
+              </button>
+              <button
+                onClick={() => window.open(blockweltUrl(), "_blank")}
+                title="Blockwelt — 3D-Spiel, in dem Jon für dich baut"
+                className="flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <span className="text-[12px] leading-none">🎮</span>
               </button>
               <button
                 onClick={() => setFriendsOpen(true)}

@@ -184,6 +184,13 @@ class MediaDownloadIn(BaseModel):
     query: str
 
 
+class GameCommandIn(BaseModel):
+    message: str
+    x: float = 0
+    y: float = 0
+    z: float = 0
+
+
 class SnapshotIn(BaseModel):
     label: str
     workspace: str | None = None

@@ -24,6 +24,8 @@ class TelegramService:
         self._histories: dict[str, list[dict]] = self._load_histories()
         self._chat_service = None
         self._voice_reply: set[str] = set()
+        self._voice_off: set[str] = set()
+        self._running: dict[str, asyncio.Task] = {}
         self._last_morning = self._load_morning()
 
     def _load_histories(self) -> dict[str, list[dict]]:
@@ -215,36 +217,47 @@ class TelegramService:
             slot="emil",
         )
         parts: list[str] = []
-        tools: list[str] = []
+        done_summaries: list[str] = []
+        running_summaries: dict[str, str] = {}
         announced = 0
         async for event in self._chat_service.stream(payload):
             kind = event.get("type")
             if kind == "content":
                 parts.append(event.get("delta") or "")
             elif kind == "tool" and event.get("status") == "running":
+                summary = event.get("summary") or event.get("name") or "Aktion"
+                if event.get("name"):
+                    running_summaries[str(event["name"])] = str(summary)
                 if announced < 3:
                     announced += 1
-                    summary = event.get("summary") or event.get("name") or "Aktion"
                     await self.send(chat_id, f"⚙️ {summary}")
             elif kind == "tool" and event.get("status") == "done":
                 if event.get("ok") and event.get("name"):
-                    tools.append(str(event["name"]))
+                    name = str(event["name"])
+                    done_summaries.append(running_summaries.get(name, name))
             elif kind == "error":
                 parts.append(f"[Fehler] {event.get('message', '')}")
         answer = "".join(parts).strip()
-        if not answer and tools:
-            answer = "Erledigt ✅ (" + ", ".join(dict.fromkeys(tools)) + ")"
+        executed = list(dict.fromkeys(done_summaries))
+        if not answer and executed:
+            answer = "Erledigt ✅"
         if not answer:
             answer = "Da kam leider keine Antwort zurück."
         history.append({"role": "assistant", "content": answer})
         del history[:-HISTORY_KEEP]
         self._save_histories()
+        if executed:
+            report = "\n".join(f"• {s}" for s in executed[:8])
+            answer = f"{answer}\n\n✅ Ausgeführte Befehle:\n{report}"
         return answer
 
     async def _handle(self, chat_id: str, text: str, voice: bool = False) -> None:
         typing = asyncio.create_task(self._typing(chat_id))
         try:
             answer = await asyncio.wait_for(self._answer(chat_id, text), timeout=180)
+        except asyncio.CancelledError:
+            typing.cancel()
+            return
         except asyncio.TimeoutError:
             answer = (
                 "Das hat zu lange gedauert. Versuch es nochmal oder wähle am PC "
@@ -254,12 +267,24 @@ class TelegramService:
             answer = f"Da ist etwas schiefgelaufen: {exc}"
         finally:
             typing.cancel()
-        spoke = False
-        if voice or chat_id in self._voice_reply:
-            spoke = await self.send_voice(chat_id, answer)
+        wants_voice = (voice or chat_id in self._voice_reply) and chat_id not in self._voice_off
+        if wants_voice:
+            await self.send_voice(chat_id, answer)
         await self.send(chat_id, answer)
-        if voice and not spoke:
-            self._voice_reply.discard(chat_id)
+
+    def _launch(self, chat_id: str, text: str, voice: bool = False) -> None:
+        old = self._running.get(chat_id)
+        if old and not old.done():
+            old.cancel()
+        task = asyncio.create_task(self._handle(chat_id, text, voice))
+        self._running[chat_id] = task
+
+    async def _cancel_running(self, chat_id: str) -> bool:
+        task = self._running.get(chat_id)
+        if task and not task.done():
+            task.cancel()
+            return True
+        return False
 
     async def morning_tick(self) -> None:
         data = get_settings_service().get()
@@ -356,9 +381,9 @@ class TelegramService:
                     "Ich bin da. 👋 Schreib oder sprich mir, was ich auf deinem PC "
                     "tun soll — zum Beispiel: Öffne YouTube · Spiel was Entspanntes · "
                     "Wie geht es meinem PC? · Hab ich neue Mails?\n\n"
-                    "Schick mir gerne auch eine Sprachnachricht. Mit /stimme antworte "
-                    "ich dir per Sprachnachricht, mit /reset vergesse ich unser "
-                    "bisheriges Gespräch.",
+                    "Schick mir gerne auch eine Sprachnachricht. Befehle: /stimme = "
+                    "ich antworte per Sprachnachricht · /endstimme = nur noch Text · "
+                    "/stopp = laufende Aktion abbrechen · /reset = Gespräch vergessen.",
                 )
                 continue
             if text.startswith("/reset"):
@@ -366,17 +391,26 @@ class TelegramService:
                 self._save_histories()
                 await self.send(chat_id, "Gespräch zurückgesetzt. 🧹")
                 continue
-            if text.startswith("/stimme") or text.startswith("/voice"):
-                if str(chat_id) in self._voice_reply:
-                    self._voice_reply.discard(str(chat_id))
-                    await self.send(chat_id, "Okay, ich antworte wieder mit Text. 💬")
-                else:
-                    self._voice_reply.add(str(chat_id))
-                    await self.send(
-                        chat_id, "Alles klar, ich antworte dir jetzt auch als Sprachnachricht. 🎙️"
-                    )
+            if text.startswith("/stopp") or text.startswith("/stop"):
+                stopped = await self._cancel_running(str(chat_id))
+                await self.send(
+                    chat_id,
+                    "Abgebrochen. ⛔" if stopped else "Gerade läuft nichts, alles ruhig. 👍",
+                )
                 continue
-            asyncio.create_task(self._handle(str(chat_id), text, voice=is_voice))
+            if text.startswith("/endstimme"):
+                self._voice_off.add(str(chat_id))
+                self._voice_reply.discard(str(chat_id))
+                await self.send(chat_id, "Okay, keine Sprachnachrichten mehr — nur noch Text. 💬")
+                continue
+            if text.startswith("/stimme") or text.startswith("/voice"):
+                self._voice_off.discard(str(chat_id))
+                self._voice_reply.add(str(chat_id))
+                await self.send(
+                    chat_id, "Alles klar, ich antworte dir jetzt als Sprachnachricht. 🎙️"
+                )
+                continue
+            self._launch(str(chat_id), text, voice=is_voice)
 
 
 _service: TelegramService | None = None

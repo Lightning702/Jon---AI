@@ -26,6 +26,7 @@ from app.schemas import (
     DownloadStartIn,
     DreamIn,
     FocusStartIn,
+    GameCommandIn,
     HealthOut,
     HumanizeIn,
     KnowledgeLearnIn,
@@ -567,6 +568,13 @@ async def quickwrite_apply(payload: QuickwriteApplyIn) -> dict:
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
+
+
+@router.post("/game/command")
+async def game_command(payload: GameCommandIn) -> dict:
+    from app.services.game_service import game_command as run_command
+
+    return await run_command(payload.message, payload.x, payload.y, payload.z)
 
 
 @router.get("/snapshots")

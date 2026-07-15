@@ -242,6 +242,17 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(system_router)
     app.include_router(p2p_router)
+
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
+
+    game_file = Path(__file__).resolve().parent / "static" / "blockwelt.html"
+
+    @app.get("/blockwelt")
+    async def blockwelt():
+        return FileResponse(game_file, media_type="text/html")
+
     dist = ROOT_DIR / "frontend" / "dist"
     if dist.is_dir():
         app.mount("/app", StaticFiles(directory=str(dist), html=True), name="app")

@@ -470,6 +470,10 @@ export function downloadFileUrl(job: string): string {
   return `${BASE}/downloader/file/${job}`;
 }
 
+export function blockweltUrl(): string {
+  return BASE.replace(/\/api$/, "") + "/blockwelt";
+}
+
 export interface Watcher {
   id: string;
   path: string;
