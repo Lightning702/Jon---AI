@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.14.1] — 2026-07-15
+
+### Behoben — „Mit Windows starten" funktioniert jetzt zuverlässig
+Der Autostart startet beim Hochfahren jetzt **Backend UND App** sicher. Vorher konnte
+der Start abbrechen, wenn das Backend beim Login nicht schnell genug hochkam (das
+Start-Skript blieb dann mit einer Fehlermeldung hängen und die App startete nie). Ein
+neuer, robuster Autostart-Launcher (`autostart-jon.bat`) startet das Backend, wartet
+kurz und nicht blockierend und öffnet dann in jedem Fall die App — ohne Nachfragen oder
+Abbrüche. Getestet: Server ist nach ~2 Sekunden erreichbar.
+
 ## [3.14.0] — 2026-07-15
 
 ### Geändert — Mitarbeiten: App auswählen statt Text tippen

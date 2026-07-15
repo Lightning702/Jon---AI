@@ -834,9 +834,11 @@ class SystemService:
         if not enabled:
             launcher.unlink(missing_ok=True)
             return False
-        bat = ROOT_DIR / "start-jon.bat"
+        bat = ROOT_DIR / "autostart-jon.bat"
         if not bat.exists():
-            raise FileNotFoundError(f"start-jon.bat nicht gefunden: {bat}")
+            bat = ROOT_DIR / "start-jon.bat"
+        if not bat.exists():
+            raise FileNotFoundError(f"Autostart-Skript nicht gefunden: {bat}")
         launcher.parent.mkdir(parents=True, exist_ok=True)
         launcher.write_text(
             'Set sh = CreateObject("WScript.Shell")\n'
