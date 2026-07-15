@@ -78,6 +78,35 @@
         30% { opacity: 1; transform: translateY(-8px) scale(1.1); }
         100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
       }
+      .heartParticle {
+        position: absolute;
+        font-size: 18px;
+        pointer-events: none;
+        z-index: 6;
+        will-change: transform, opacity;
+        animation: heartFloat 1.5s ease-out forwards;
+      }
+      @keyframes heartFloat {
+        0% { opacity: 0; transform: translateY(0) scale(0.5) rotate(var(--rot, 0deg)); }
+        20% { opacity: 1; transform: translateY(-18px) scale(1.15) rotate(var(--rot, 0deg)); }
+        100% { opacity: 0; transform: translateY(-64px) scale(0.85) translateX(var(--drift, 0px)) rotate(var(--rot, 0deg)); }
+      }
+      #petSpeech {
+        position: absolute;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        pointer-events: none;
+        z-index: 6;
+        opacity: 0;
+        text-shadow: 0 1px 4px #000;
+      }
+      #petSpeech.show { animation: petSpeechPop 1.3s ease; }
+      @keyframes petSpeechPop {
+        0% { opacity: 0; transform: translateY(2px) scale(0.8); }
+        25% { opacity: 1; transform: translateY(-6px) scale(1); }
+        100% { opacity: 0; transform: translateY(-18px) scale(0.95); }
+      }
       #bubble {
         max-width: 288px;
         margin-bottom: 10px;
@@ -246,6 +275,7 @@
       <svg id="petPal" viewBox="0 0 64 64"></svg>
       <div id="petZzz">z</div>
       <div id="petHeart">❤</div>
+      <div id="petSpeech"></div>
       <div id="inputRow">
         <input id="field" placeholder="Sag Emil etwas …" autocomplete="off" />
       </div>
@@ -1270,7 +1300,7 @@
         const interactive =
           el &&
           el.closest(
-            "#jon, #mic, #close, #stopBtn, #bubble.show, #inputRow.show"
+            "#jon, #mic, #close, #stopBtn, #bubble.show, #inputRow.show, #petPal.show"
           );
         applyIgnore(!interactive);
       });
@@ -1392,21 +1422,141 @@
         if (petKind === "none" || petAsleep || busy || listening) return;
         const n = petName();
         const pool = petKind === "dog" ? PET_ACTIONS_DOG : PET_ACTIONS;
-        petHeart.classList.remove("show");
-        void petHeart.offsetWidth;
-        petHeart.classList.add("show");
         petPal.classList.remove("happy");
         void petPal.offsetWidth;
         petPal.classList.add("happy");
+        spawnHearts(3);
+        petSound();
         say(pool[Math.floor(Math.random() * pool.length)](n));
         scheduleHide(4500);
       }
 
-      function petTick() {
+      const petSpeech = document.getElementById("petSpeech");
+      function spawnHearts(count) {
+        const rect = petPal.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const top = rect.top;
+        for (let i = 0; i < count; i++) {
+          const h = document.createElement("div");
+          h.className = "heartParticle";
+          h.textContent = ["❤", "💕", "💛", "🧡"][Math.floor(Math.random() * 4)];
+          h.style.left = cx - 9 + (Math.random() * 30 - 15) + "px";
+          h.style.top = top - 6 + "px";
+          h.style.setProperty("--drift", (Math.random() * 30 - 15) + "px");
+          h.style.setProperty("--rot", (Math.random() * 30 - 15) + "deg");
+          h.style.animationDelay = i * 0.12 + "s";
+          document.body.appendChild(h);
+          setTimeout(() => h.remove(), 1800 + i * 120);
+        }
+      }
+      function showPetSpeech(text) {
+        const rect = petPal.getBoundingClientRect();
+        petSpeech.textContent = text;
+        petSpeech.style.left = rect.left + rect.width / 2 - 12 + "px";
+        petSpeech.style.top = rect.top - 22 + "px";
+        petSpeech.classList.remove("show");
+        void petSpeech.offsetWidth;
+        petSpeech.classList.add("show");
+      }
+
+      let petAudioCtx = null;
+      function petAudio() {
+        try {
+          if (!petAudioCtx) petAudioCtx = new AudioContext();
+          if (petAudioCtx.state !== "running") petAudioCtx.resume();
+          return petAudioCtx.state === "running" ? petAudioCtx : null;
+        } catch (e) {
+          return null;
+        }
+      }
+      function bark() {
+        const ctx = petAudio();
+        showPetSpeech("Wuff!");
+        if (!ctx) return;
+        for (let k = 0; k < 2; k++) {
+          const t = ctx.currentTime + k * 0.16;
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = "sawtooth";
+          o.frequency.setValueAtTime(260, t);
+          o.frequency.exponentialRampToValueAtTime(150, t + 0.09);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.28, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start(t);
+          o.stop(t + 0.15);
+        }
+      }
+      function meow() {
+        const ctx = petAudio();
+        showPetSpeech("Miau~");
+        if (!ctx) return;
+        const t = ctx.currentTime;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "triangle";
+        o.frequency.setValueAtTime(620, t);
+        o.frequency.linearRampToValueAtTime(880, t + 0.18);
+        o.frequency.linearRampToValueAtTime(560, t + 0.5);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.22, t + 0.06);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(t);
+        o.stop(t + 0.6);
+      }
+      function purr() {
+        const ctx = petAudio();
+        showPetSpeech("Schnurr…");
+        if (!ctx) return;
+        const t = ctx.currentTime;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(45, t);
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(28, t);
+        lfoGain.gain.setValueAtTime(0.12, t);
+        lfo.connect(lfoGain);
+        lfoGain.connect(g.gain);
+        g.gain.setValueAtTime(0.14, t);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(t);
+        lfo.start(t);
+        o.stop(t + 1.1);
+        lfo.stop(t + 1.1);
+      }
+      function petSound() {
+        if (petKind === "dog") bark();
+        else if (petKind === "cat") Math.random() < 0.5 ? meow() : purr();
+      }
+
+      petPal.addEventListener("click", () => {
         if (petKind === "none") return;
+        if (petAsleep) {
+          setPetSleep(false);
+          say(petName() + " ist aufgewacht. 🐾");
+          scheduleHide(3500);
+        }
+        spawnHearts(5);
+        petPal.classList.remove("happy");
+        void petPal.offsetWidth;
+        petPal.classList.add("happy");
+        petSound();
+      });
+
+      function petTick() {
+        if (petKind === "none" || document.hidden) return;
         if (petAsleep || busy) return;
         wanderPet();
-        if (Math.random() < 0.4) petInteract();
+        const r = Math.random();
+        if (r < 0.4) petInteract();
+        else if (r < 0.7) petSound();
       }
       setInterval(petTick, 14000);
       setInterval(() => { if (!petAsleep && !busy) wanderPet(); }, 5000);

@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.13.2] — 2026-07-15
+
+### Neu — Das Haustier lebt
+- **Klick aufs Tier** lässt jetzt einen Schwarm Herzchen über seinem Kopf aufsteigen.
+- **Der Hund bellt** ab und zu („Wuff!"), **die Katze miaut oder schnurrt** — mit echten,
+  im Browser erzeugten Tiergeräuschen und einer kleinen Sprechblase.
+- Klickst du das schlafende Tier an, wacht es auf.
+
+### Behoben
+- Das Haustier ließ sich **nicht anklicken** — das Mini-Jon-Fenster war an der Stelle
+  durchklickbar. Jetzt reagiert das Tier auf Klicks. Geräusche pausieren, wenn Mini Jon
+  ausgeblendet ist.
+
 ## [3.13.1] — 2026-07-15
 
 ### Geändert — Aufgeräumte Kopfzeile
