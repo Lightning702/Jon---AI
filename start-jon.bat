@@ -41,6 +41,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
+findstr /I /C:"JON_LAN=true" ".env" >nul 2>nul
+if not errorlevel 1 (
+    powershell -NoProfile -Command "if(-not (Get-NetFirewallRule -DisplayName 'Jon Wear OS' -ErrorAction SilentlyContinue)){exit 1}else{exit 0}" >nul 2>nul
+    if errorlevel 1 (
+        echo Gebe Jon einmalig fuer Handy/Uhr im WLAN frei ^(Windows fragt kurz nach Admin^)...
+        powershell -NoProfile -Command "Start-Process powershell -Verb RunAs -WindowStyle Hidden -ArgumentList '-NoProfile -Command New-NetFirewallRule -DisplayName ''Jon Wear OS'' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8756 -Profile Any'" >nul 2>nul
+    )
+)
+
+set "WLANIP="
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'WLAN' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty IPAddress)"`) do set "WLANIP=%%a"
+if not defined WLANIP for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like '192.168.*' -or $_.IPAddress -like '10.*' } | Select-Object -First 1 -ExpandProperty IPAddress)"`) do set "WLANIP=%%a"
+
 set "LOGDIR=%LOCALAPPDATA%\Jon"
 if not exist "%LOGDIR%" mkdir "%LOGDIR%"
 set "LOGFILE=%LOGDIR%\backend.log"
@@ -78,6 +91,12 @@ for /l %%i in (1,1,40) do (
 )
 if defined BACKEND_OK (
     echo Backend laeuft auf http://127.0.0.1:8756
+    if defined WLANIP (
+        echo.
+        echo Fuer Handy/Uhr im selben WLAN eintragen:  http://%WLANIP%:8756
+        echo Test im Handy-Browser:  http://%WLANIP%:8756/api/health
+        echo.
+    )
 ) else (
     echo.
     echo Das Backend ist nicht gestartet. Letzte Zeilen aus dem Log:

@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.14.2] — 2026-07-15
+
+### Neu — Jon im WLAN erreichbar (für Handy & Smartwatch)
+Wenn in der `.env` `JON_LAN=true` steht, gibt `start-jon.bat` beim Start automatisch die
+nötige **Windows-Firewall-Regel für Port 8756 frei** (einmalige Admin-Nachfrage) und zeigt
+im Fenster die **WLAN-Adresse deines PCs** an (z. B. `http://10.0.0.253:8756`) samt
+Test-Link `…/api/health`. Damit kannst du von Handy oder Smartwatch im selben WLAN auf Jon
+zugreifen. Hinweis: Nur im eigenen, vertrauenswürdigen WLAN aktivieren.
+
 ## [3.14.1] — 2026-07-15
 
 ### Behoben — „Mit Windows starten" funktioniert jetzt zuverlässig
