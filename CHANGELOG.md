@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.14.3] — 2026-07-16
+
+### Behoben — Mini Jon hatte kein Gesicht mehr
+Bei den Stimmungen **nachdenklich/müde** (z. B. nach mehr als 20 Stunden ohne Kontakt)
+und bei der Augen-Einstellung **„Verschlafen“** werden Augen und Mund als waagerechte
+Linien gezeichnet. Der goldene Farbverlauf konnte auf solche Linien ohne Höhe nicht
+angewendet werden — der Browser zeichnete sie dann **gar nicht**, und Mini Jon war nur
+noch ein leerer Kreis. Der Farbverlauf nutzt jetzt feste Koordinaten
+(`gradientUnits="userSpaceOnUse"`), damit hat Mini Jon in jeder Stimmung ein Gesicht.
+
 ## [3.14.2] — 2026-07-15
 
 ### Neu — Jon im WLAN erreichbar (für Handy & Smartwatch)
