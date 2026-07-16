@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.15.1] — 2026-07-16
+
+### Behoben — Web-App-Build scheiterte auf dem Raspberry Pi
+`postcss.config.js` nutzte ESM-Syntax (`export default`) in einer CommonJS-Datei. Neuere
+Node-Versionen am PC erkennen das automatisch, Node 18 auf dem Pi bricht mit
+`SyntaxError: Unexpected token 'export'` ab. Die Datei heißt jetzt
+`postcss.config.mjs` und ist damit auf jeder Node-Version eindeutig ESM.
+
 ## [3.15.0] — 2026-07-16
 
 ### Neu — Always-on-Jon auf dem Raspberry Pi
