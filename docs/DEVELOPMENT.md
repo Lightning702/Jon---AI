@@ -62,6 +62,15 @@ Vite muss an `127.0.0.1` gebunden sein.
 4. Reine Leseaktion? Dann Namen in `SAFE_TOOLS` aufnehmen.
 5. Falls nötig, eine Methode im passenden Service ergänzen.
 
+## Raspberry Pi (Always-on-Backend)
+
+`pi-installieren.sh` richtet das Backend auf einem Pi als systemd-Dienst (`jon.service`)
+ein: venv unter `backend/.venv`, schlanke Abhängigkeiten aus `backend/requirements-pi.txt`
+(ohne pyautogui/pygetwindow/pyperclip/pynput/opencv — alle Nutzungen sind lazy/guarded),
+`JON_LAN=true` in der `.env`, Web-App-Build nach `frontend/dist` (falls Node verfügbar;
+`ELECTRON_SKIP_BINARY_DOWNLOAD=1` spart den Electron-Download). Daten liegen auf dem Pi
+unter `~/.jon/data`. Shell-Skripte brauchen LF-Zeilenenden (`.gitattributes` erzwingt das).
+
 ## Deployment der Website
 
 `website/` ist statisch. Netlify-Deploy per Drag&Drop des Ordners; `netlify.toml` enthält

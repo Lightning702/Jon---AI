@@ -356,6 +356,27 @@ mit allen Tools, Wissensbasis, Automationen und PC-Steuerung, weil dein PC die A
 > ⚠️ Damit ist Jon für alle Geräte in deinem WLAN erreichbar — nur in vertrauenswürdigen
 > Netzwerken aktivieren.
 
+### Immer an: Jon auf dem Raspberry Pi
+
+Damit Handy und Smartwatch Jon **rund um die Uhr** erreichen — auch wenn der PC aus ist —
+kann das Backend auf einem Raspberry Pi (ab Pi 4) laufen:
+
+1. Repo auf den Pi holen: `git clone https://github.com/Lightning702/Jon---AI.git jon`
+   (oder die `jon.zip` von der Website entpacken)
+2. `cd jon && bash pi-installieren.sh`
+3. API-Keys eintragen: `nano .env`, danach `sudo systemctl restart jon`
+
+Das Skript installiert alle Abhängigkeiten, baut die Web-App und richtet einen
+systemd-Dienst ein, der **bei jedem Hochfahren automatisch startet** und bei Abstürzen neu
+startet. Danach erreichst du Jon am Handy unter `http://<Pi-IP>:8756/app` — die Adresse
+zeigt das Skript am Ende an.
+
+Der PC-Betrieb ändert sich dadurch nicht: `start-jon.bat` funktioniert weiter wie gehabt.
+PC und Pi sind zwei getrennte Jons mit eigenen Einstellungen und eigenem Gedächtnis. Auf
+dem Pi fehlen nur die PC-Steuerungs-Tools (Fenster, Maus/Tastatur, Screenshots,
+Zwischenablage) — alles andere (Chat, Web-Suche, Erinnerungen, Telegram, Freunde-Chat,
+Wissensbasis …) läuft dort genauso.
+
 ---
 
 ## Setup

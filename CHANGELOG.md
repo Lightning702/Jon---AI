@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.15.0] — 2026-07-16
+
+### Neu — Always-on-Jon auf dem Raspberry Pi
+Das Backend läuft jetzt auf Wunsch auf einem **Raspberry Pi (ab Pi 4)** und ist damit für
+Handy-PWA und Smartwatch **rund um die Uhr** erreichbar, auch wenn der PC aus ist. Ein
+Befehl genügt: `bash pi-installieren.sh` installiert die Abhängigkeiten (neue schlanke
+`backend/requirements-pi.txt` ohne PC-Steuerungs-Bibliotheken), setzt `JON_LAN=true`, baut
+die Web-App für `http://<Pi-IP>:8756/app` und richtet einen **systemd-Dienst** ein, der
+beim Hochfahren automatisch startet und bei Abstürzen neu startet. Der PC-Start über
+`start-jon.bat` funktioniert unverändert weiter. Neue `.gitattributes` sorgt dafür, dass
+Shell-Skripte mit Linux-Zeilenenden ausgeliefert werden.
+
 ## [3.14.3] — 2026-07-16
 
 ### Behoben — Mini Jon hatte kein Gesicht mehr
