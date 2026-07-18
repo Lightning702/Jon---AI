@@ -665,6 +665,15 @@ class TelegramService:
                     chat_id, "Alles klar, ich antworte dir jetzt als Sprachnachricht. 🎙️"
                 )
                 continue
+            if is_voice and len(text) > 200:
+                text = (
+                    "Ich habe dir eine längere Sprachnachricht geschickt. Hier die "
+                    "wörtliche Transkription:\n\n" + text + "\n\nFasse sie mir in "
+                    "wenigen kurzen Stichpunkten zusammen. Trage außerdem alle darin "
+                    "genannten Termine, Aufgaben und Erinnerungen mit calendar_add in "
+                    "meinen Kalender ein (date versteht heute/morgen/Wochentag) und "
+                    "sag mir am Ende kurz, was du eingetragen hast."
+                )
             self._launch(str(chat_id), text, voice=is_voice)
 
 
