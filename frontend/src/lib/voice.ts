@@ -1,4 +1,4 @@
-import { transcribeAudio } from "./api";
+import { transcribeAudio, wakePoll, wakeStart } from "./api";
 
 export type VoiceState =
   | "idle"
@@ -10,6 +10,7 @@ export type VoiceState =
 export interface VoiceCallbacks {
   onState: (state: VoiceState) => void;
   onCommand: (text: string) => void;
+  onBargeIn?: () => void;
 }
 
 const WAKE_WORDS = new Set(["jon", "john", "jonny", "johnny", "jonh"]);
@@ -19,6 +20,7 @@ const MIN_SPEECH_MS = 350;
 const MAX_UTTERANCE_MS = 15000;
 const PREROLL_CHUNKS = 5;
 const ARM_TIMEOUT_MS = 12000;
+const WAKE_POLL_MS = 400;
 
 function downsampleTo16k(chunks: Float32Array[], inputRate: number): Int16Array {
   let total = 0;
@@ -84,6 +86,12 @@ export class VoiceListener {
   private armTimer: number | null = null;
   private running = false;
   private busy = false;
+  private speaking = false;
+  private speakingText = "";
+  private mode: "backend" | "local" = "local";
+  private pollTimer: number | null = null;
+  private lastCounter = -1;
+  private capturing = false;
 
   constructor(callbacks: VoiceCallbacks) {
     this.callbacks = callbacks;
@@ -93,8 +101,57 @@ export class VoiceListener {
     this.busy = busy;
   }
 
+  setSpeaking(speaking: boolean, text = "") {
+    this.speaking = speaking;
+    this.speakingText = speaking ? text : "";
+  }
+
+  private isEcho(words: string[]): boolean {
+    if (!this.speakingText) return false;
+    const spoken = this.speakingText.toLowerCase();
+    let hits = 0;
+    for (const w of words) if (w.length > 3 && spoken.includes(w)) hits++;
+    return hits >= Math.max(2, Math.ceil(words.length * 0.6));
+  }
+
+  isBackendWake(): boolean {
+    return this.mode === "backend";
+  }
+
   async start(): Promise<void> {
     if (this.running) return;
+    this.running = true;
+    try {
+      const status = await wakeStart();
+      if (status.listening) {
+        this.mode = "backend";
+        this.lastCounter = status.counter ?? 0;
+        this.callbacks.onState("listening");
+        this.pollTimer = window.setInterval(() => void this.pollWake(), WAKE_POLL_MS);
+        return;
+      }
+    } catch {
+      void 0;
+    }
+    this.mode = "local";
+    await this.openMic();
+    this.callbacks.onState("listening");
+  }
+
+  stop(): void {
+    this.running = false;
+    if (this.pollTimer !== null) {
+      window.clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+    this.closeMic();
+    this.capturing = false;
+    this.disarm();
+    this.callbacks.onState("idle");
+  }
+
+  private async openMic(): Promise<void> {
+    if (this.stream) return;
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
@@ -109,12 +166,9 @@ export class VoiceListener {
     this.processor.onaudioprocess = (e) => this.handleChunk(e);
     this.source.connect(this.processor);
     this.processor.connect(this.context.destination);
-    this.running = true;
-    this.callbacks.onState("listening");
   }
 
-  stop(): void {
-    this.running = false;
+  private closeMic(): void {
     this.processor?.disconnect();
     this.source?.disconnect();
     this.stream?.getTracks().forEach((t) => t.stop());
@@ -123,8 +177,57 @@ export class VoiceListener {
     this.source = null;
     this.stream = null;
     this.context = null;
+    this.inUtterance = false;
+    this.utterance = [];
+    this.preroll = [];
+  }
+
+  private async pollWake(): Promise<void> {
+    if (!this.running || this.capturing) return;
+    try {
+      const status = await wakePoll();
+      if (!status.listening && this.running && !this.capturing) {
+        void wakeStart().catch(() => undefined);
+        return;
+      }
+      if (this.lastCounter < 0) {
+        this.lastCounter = status.counter;
+        return;
+      }
+      if (status.counter > this.lastCounter) {
+        this.lastCounter = status.counter;
+        if (this.busy && !this.speaking) return;
+        if (this.speaking) this.callbacks.onBargeIn?.();
+        void this.captureCommand();
+      }
+    } catch {
+      void 0;
+    }
+  }
+
+  private async captureCommand(): Promise<void> {
+    if (this.capturing) return;
+    this.capturing = true;
+    this.armed = true;
+    try {
+      await this.openMic();
+      this.callbacks.onState("armed");
+      this.armTimer = window.setTimeout(() => {
+        this.finishBackendCapture();
+      }, ARM_TIMEOUT_MS);
+    } catch {
+      this.capturing = false;
+      this.armed = false;
+      this.callbacks.onState("listening");
+    }
+  }
+
+  private finishBackendCapture(): void {
+    if (this.mode !== "backend") return;
     this.disarm();
-    this.callbacks.onState("idle");
+    this.closeMic();
+    this.capturing = false;
+    if (this.running) this.callbacks.onState("listening");
   }
 
   private disarm() {
@@ -141,6 +244,10 @@ export class VoiceListener {
     this.callbacks.onState("armed");
     this.armTimer = window.setTimeout(() => {
       this.armed = false;
+      if (this.mode === "backend") {
+        this.finishBackendCapture();
+        return;
+      }
       if (this.running) this.callbacks.onState("listening");
     }, ARM_TIMEOUT_MS);
   }
@@ -207,6 +314,10 @@ export class VoiceListener {
 
   private handleTranscript(text: string) {
     if (!text) {
+      if (this.mode === "backend" && this.armed) {
+        this.callbacks.onState("armed");
+        return;
+      }
       this.callbacks.onState(this.armed ? "armed" : "listening");
       return;
     }
@@ -216,14 +327,36 @@ export class VoiceListener {
       .split(/\s+/)
       .filter(Boolean);
 
-    if (this.busy) {
+    if (this.busy && !this.speaking) {
       this.callbacks.onState("listening");
+      return;
+    }
+
+    if (this.busy && this.speaking) {
+      if (this.isEcho(words)) {
+        this.callbacks.onState("listening");
+        return;
+      }
+      const idx = words.findIndex((w) => WAKE_WORDS.has(w));
+      if (!this.armed && idx < 0) {
+        this.callbacks.onState("listening");
+        return;
+      }
+      this.callbacks.onBargeIn?.();
+      if (this.armed) {
+        this.disarm();
+        this.emitCommand(text);
+        return;
+      }
+      const command = words.slice(idx + 1).join(" ").trim();
+      if (command.length >= 3) this.emitCommand(command);
+      else this.arm();
       return;
     }
 
     if (this.armed) {
       this.disarm();
-      this.callbacks.onCommand(text);
+      this.emitCommand(text);
       return;
     }
 
@@ -234,9 +367,18 @@ export class VoiceListener {
     }
     const command = words.slice(idx + 1).join(" ").trim();
     if (command.length >= 3) {
-      this.callbacks.onCommand(command);
+      this.emitCommand(command);
     } else {
       this.arm();
     }
+  }
+
+  private emitCommand(text: string) {
+    if (this.mode === "backend") {
+      this.disarm();
+      this.closeMic();
+      this.capturing = false;
+    }
+    this.callbacks.onCommand(text);
   }
 }

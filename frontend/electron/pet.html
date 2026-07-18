@@ -728,6 +728,14 @@
         }
       }
 
+      let speakingText = "";
+      function isEcho(words) {
+        if (!speakingText) return false;
+        const spoken = speakingText.toLowerCase();
+        let hits = 0;
+        for (const w of words) if (w.length > 3 && spoken.includes(w)) hits++;
+        return hits >= Math.max(2, Math.ceil(words.length * 0.6));
+      }
       function speak(text, done, onStart) {
         const clean = cleanForSpeech(text).slice(0, 600);
         if (!clean) {
@@ -739,6 +747,11 @@
         try {
           window.speechSynthesis.cancel();
         } catch (e) {}
+        speakingText = clean;
+        const fertig = () => {
+          speakingText = "";
+          if (done) done();
+        };
         let gestartet = false;
         const start = () => {
           if (gestartet) return;
@@ -748,13 +761,13 @@
         speakNatural(clean, start)
           .then(() => {
             start();
-            if (done) done();
+            fertig();
           })
           .catch(() => {
             stopAudio();
             stopMouth();
             start();
-            speakBrowser(clean, done);
+            speakBrowser(clean, fertig);
           });
       }
 
@@ -799,6 +812,7 @@
 
       function cancel() {
         canceled = true;
+        speakingText = "";
         if (currentAbort) {
           try {
             currentAbort.abort();
@@ -1113,6 +1127,7 @@
           this.engaged = false;
           this.running = false;
           this.busy = false;
+          this.oneShot = false;
         }
         setBusy(b) {
           this.busy = b;
@@ -1155,11 +1170,6 @@
           const input = e.inputBuffer.getChannelData(0);
           const chunk = new Float32Array(input);
           const chunkMs = (chunk.length / this.ctx.sampleRate) * 1000;
-          if (this.busy) {
-            this.inUtt = false;
-            this.utt = [];
-            return;
-          }
           let sum = 0;
           for (let i = 0; i < chunk.length; i++) sum += chunk[i] * chunk[i];
           const voiced = Math.sqrt(sum / chunk.length) > SPEECH_THRESHOLD;
@@ -1200,8 +1210,16 @@
             });
             text = ((await res.json()).text || "").trim();
           } catch (e) {}
-          if (!this.running || this.busy) return;
+          if (!this.running) return;
           this.handle(text);
+          if (this.oneShot) {
+            this.oneShot = false;
+            this.stop();
+            if (wakeMode) {
+              listening = true;
+              setState(busy ? "" : "listening");
+            }
+          }
         }
         handle(text) {
           if (!text) return;
@@ -1210,11 +1228,17 @@
             .replace(/[^\p{L}\p{N} ]/gu, " ")
             .split(/\s+/)
             .filter(Boolean);
+          const wakeIdx = words.findIndex((w) => WAKE.has(w));
+          if (busy) {
+            if (isEcho(words)) return;
+            if (!this.engaged && wakeIdx < 0) return;
+            cancel();
+          }
           if (this.engaged) {
             ask(text);
             return;
           }
-          const idx = words.findIndex((w) => WAKE.has(w));
+          const idx = wakeIdx;
           if (idx < 0) return;
           this.engaged = true;
           let start = idx + 1;
@@ -1231,18 +1255,88 @@
       }
 
       let listener = null;
+      let wakeMode = false;
+      let wakePollTimer = null;
+      let wakeShotTimer = null;
+      let wakeCounter = -1;
+      async function tryBackendWake() {
+        try {
+          const r = await (
+            await fetch(`${BASE}/voice/wake/start`, { method: "POST" })
+          ).json();
+          return r.listening === true;
+        } catch (e) {
+          return false;
+        }
+      }
+      async function pollWake() {
+        try {
+          const r = await (await fetch(`${BASE}/voice/wake`)).json();
+          if (!r.listening) {
+            fetch(`${BASE}/voice/wake/start`, { method: "POST" }).catch(() => {});
+            return;
+          }
+          if (wakeCounter < 0) {
+            wakeCounter = r.counter;
+            return;
+          }
+          if (r.counter > wakeCounter) {
+            wakeCounter = r.counter;
+            onWake();
+          }
+        } catch (e) {}
+      }
+      function onWake() {
+        primeSpeech();
+        if (busy) cancel();
+        if (!listener) listener = new Listener();
+        listener.engaged = true;
+        listener.oneShot = true;
+        listener.start().catch(() => {});
+        setState("listening");
+        if (wakeShotTimer) clearTimeout(wakeShotTimer);
+        wakeShotTimer = setTimeout(() => {
+          if (listener && listener.oneShot) {
+            listener.oneShot = false;
+            listener.stop();
+            listening = true;
+            setState(busy ? "" : "listening");
+          }
+        }, 12000);
+      }
       function setMic(on) {
         localStorage.setItem("jonjr_voice", on ? "1" : "0");
         micBtn.classList.toggle("off", !on);
         if (on) {
-          if (!listener) listener = new Listener();
-          listener.start().catch(() => {
-            micBtn.classList.add("off");
-            localStorage.setItem("jonjr_voice", "0");
+          tryBackendWake().then((ok) => {
+            if (localStorage.getItem("jonjr_voice") === "0") return;
+            if (ok) {
+              wakeMode = true;
+              wakeCounter = -1;
+              listening = true;
+              setState("listening");
+              if (!wakePollTimer) wakePollTimer = setInterval(pollWake, 500);
+              return;
+            }
+            wakeMode = false;
+            if (!listener) listener = new Listener();
+            listener.start().catch(() => {
+              micBtn.classList.add("off");
+              localStorage.setItem("jonjr_voice", "0");
+            });
           });
-        } else if (listener) {
-          listener.stop();
-          listener = null;
+        } else {
+          wakeMode = false;
+          if (wakePollTimer) {
+            clearInterval(wakePollTimer);
+            wakePollTimer = null;
+          }
+          listening = false;
+          setState("");
+          if (listener) {
+            listener.stop();
+            listener = null;
+          }
         }
       }
       micBtn.addEventListener("click", (e) => {

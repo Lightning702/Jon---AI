@@ -652,7 +652,9 @@ export default function App() {
     if (!failed && answer) {
       setVoiceState("speaking");
       setVoiceDetail(snippet);
+      listener?.setSpeaking(true, answer);
       await speak(answer);
+      listener?.setSpeaking(false);
     }
     listener?.setBusy(false);
     setVoiceState(failed ? "error" : "done");
@@ -685,6 +687,12 @@ export default function App() {
       },
       onCommand: (text) => {
         void runVoiceCommand(text);
+      },
+      onBargeIn: () => {
+        stopSpeaking();
+        listenerRef.current?.setSpeaking(false);
+        listenerRef.current?.setBusy(false);
+        setVoiceState("listening");
       },
     });
     listenerRef.current = listener;

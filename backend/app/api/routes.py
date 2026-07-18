@@ -1210,3 +1210,24 @@ async def pair_remove(device_id: str) -> dict:
     from app.services.pairing_service import get_pairing_service
 
     return {"removed": get_pairing_service().remove(device_id)}
+
+
+@router.get("/voice/wake")
+async def wake_poll() -> dict:
+    from app.services.wake_service import get_wake_service
+
+    return get_wake_service().poll()
+
+
+@router.post("/voice/wake/start")
+async def wake_start() -> dict:
+    from app.services.wake_service import get_wake_service
+
+    return await asyncio.to_thread(get_wake_service().start)
+
+
+@router.post("/voice/wake/stop")
+async def wake_stop() -> dict:
+    from app.services.wake_service import get_wake_service
+
+    return get_wake_service().stop()

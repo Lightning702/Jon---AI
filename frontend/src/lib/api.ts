@@ -263,6 +263,7 @@ export interface UserSettings {
   telegram_morning_time: string;
   pet_roam: boolean;
   pet_companion: string;
+  wake_sensitivity: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -318,6 +319,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       telegram_morning_time: "07:30",
       pet_roam: false,
       pet_companion: "none",
+      wake_sensitivity: "mittel",
     };
   return res.json();
 }
@@ -1798,4 +1800,27 @@ export async function getPairedDevices(): Promise<PairedDevice[]> {
 
 export async function removePairedDevice(id: string): Promise<void> {
   await fetch(`${BASE}/pair/devices/${id}`, { method: "DELETE" });
+}
+
+export interface WakeStatus {
+  available: boolean;
+  listening: boolean;
+  counter: number;
+  error?: string;
+}
+
+export async function wakeStart(): Promise<WakeStatus> {
+  const res = await fetch(`${BASE}/voice/wake/start`, { method: "POST" });
+  if (!res.ok) throw new Error("wake start failed");
+  return res.json();
+}
+
+export async function wakePoll(): Promise<WakeStatus> {
+  const res = await fetch(`${BASE}/voice/wake`);
+  if (!res.ok) throw new Error("wake poll failed");
+  return res.json();
+}
+
+export async function wakeStop(): Promise<void> {
+  await fetch(`${BASE}/voice/wake/stop`, { method: "POST" });
 }

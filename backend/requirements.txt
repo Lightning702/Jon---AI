@@ -20,3 +20,5 @@ cryptography>=43.0
 paho-mqtt>=2.0
 yt-dlp>=2026.1.1
 pynput>=1.7
+openwakeword>=0.6
+sounddevice>=0.5

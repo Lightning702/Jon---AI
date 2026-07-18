@@ -61,6 +61,7 @@ DEFAULTS = {
     "telegram_morning_time": "07:30",
     "pet_roam": False,
     "pet_companion": "none",
+    "wake_sensitivity": "mittel",
 }
 
 

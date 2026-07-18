@@ -97,6 +97,7 @@ class SettingsIn(BaseModel):
     telegram_morning_time: str | None = None
     pet_roam: bool | None = None
     pet_companion: str | None = None
+    wake_sensitivity: str | None = None
 
 
 class WatcherIn(BaseModel):

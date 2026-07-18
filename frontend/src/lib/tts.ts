@@ -85,6 +85,8 @@ function splitForSpeech(text: string): string[] {
   return chunks;
 }
 
+let generation = 0;
+
 async function playBlob(blob: Blob): Promise<void> {
   const url = URL.createObjectURL(blob);
   const player = new Audio(url);
@@ -99,8 +101,13 @@ async function playBlob(blob: Blob): Promise<void> {
     };
     player.onended = finish;
     player.onerror = finish;
+    player.onpause = finish;
     void player.play().catch(finish);
   });
+}
+
+export function isSpeaking(): boolean {
+  return audio !== null || window.speechSynthesis?.speaking === true;
 }
 
 export async function speak(text: string): Promise<void> {
@@ -110,8 +117,10 @@ export async function speak(text: string): Promise<void> {
     const chunks = splitForSpeech(clean);
     let pending = speakServer(chunks[0]);
     stopSpeaking();
+    const gen = ++generation;
     for (let i = 0; i < chunks.length; i++) {
       const blob = await pending;
+      if (gen !== generation) return;
       pending =
         i + 1 < chunks.length
           ? speakServer(chunks[i + 1])
@@ -121,6 +130,7 @@ export async function speak(text: string): Promise<void> {
         return;
       }
       await playBlob(blob);
+      if (gen !== generation) return;
     }
     return;
   }
@@ -174,8 +184,10 @@ export async function speakAs(text: string, persona: "papa" | "junior"): Promise
   const pitch = persona === "junior" ? "+0Hz" : "+0Hz";
   const chunks = splitForSpeech(clean);
   let pending = speakServer(chunks[0], { voice, pitch });
+  const gen = ++generation;
   for (let i = 0; i < chunks.length; i++) {
     const blob = await pending;
+    if (gen !== generation) return;
     pending =
       i + 1 < chunks.length
         ? speakServer(chunks[i + 1], { voice, pitch })
@@ -185,13 +197,16 @@ export async function speakAs(text: string, persona: "papa" | "junior"): Promise
       return;
     }
     await playBlob(blob);
+    if (gen !== generation) return;
   }
 }
 
 export function stopSpeaking(): void {
+  generation++;
   window.speechSynthesis?.cancel();
   if (audio) {
-    audio.pause();
+    const player = audio;
     audio = null;
+    player.pause();
   }
 }

@@ -129,6 +129,7 @@ export default function SettingsMenu({
   const [petCompanion, setPetCompanion] = useState("none");
   const [connections, setConnections] = useState<UserSettings | null>(null);
   const [devices, setDevices] = useState<PairedDevice[]>([]);
+  const [wakeSensitivity, setWakeSensitivity] = useState("mittel");
 
   useEffect(() => {
     if (!open) return;
@@ -157,6 +158,7 @@ export default function SettingsMenu({
       setRoutine(s.routine_enabled !== false);
       setPetRoam(s.pet_roam === true);
       setPetCompanion(s.pet_companion || "none");
+      setWakeSensitivity(s.wake_sensitivity || "mittel");
     });
     void (async () => {
       const backend = await getAutostart();
@@ -244,6 +246,11 @@ export default function SettingsMenu({
   const pickCompanion = (value: string) => {
     setPetCompanion(value);
     void saveUserSettings({ pet_companion: value });
+  };
+
+  const pickWakeSensitivity = (value: string) => {
+    setWakeSensitivity(value);
+    void saveUserSettings({ wake_sensitivity: value });
   };
 
   const openConnections = async () => {
@@ -421,6 +428,37 @@ export default function SettingsMenu({
                 on={timeline}
                 onClick={toggleTimeline}
               />
+            </div>
+            <Section title="Sprachsteuerung" />
+            <div className="pt-1">
+              <div className="text-[10px] text-white/40 px-0.5 mb-1">
+                Wake-Word-Empfindlichkeit („Jon“)
+              </div>
+              <Segmented
+                value={wakeSensitivity}
+                items={[
+                  {
+                    value: "niedrig",
+                    label: "Niedrig",
+                    hint: "Reagiert nur bei sehr deutlichem „Jon“ — kaum Fehlauslöser.",
+                  },
+                  {
+                    value: "mittel",
+                    label: "Mittel",
+                    hint: "Ausgewogen (Standard).",
+                  },
+                  {
+                    value: "hoch",
+                    label: "Hoch",
+                    hint: "Reagiert schnell, kann öfter versehentlich anspringen.",
+                  },
+                ]}
+                onPick={pickWakeSensitivity}
+              />
+              <div className="text-[9.5px] text-white/35 px-0.5 mt-1 leading-snug">
+                Mit openWakeWord läuft die Erkennung offline im Backend. Fehlt es,
+                nutzt Jon automatisch die bisherige Erkennung im Fenster.
+              </div>
             </div>
             <Section title="Mini Jon & Haustier" />
             <div className="space-y-1">
