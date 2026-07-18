@@ -61,6 +61,10 @@ SAFE_TOOLS = {
     "amazon_now_playing",
     "list_friends",
     "read_friend_messages",
+    "browser_read",
+    "browser_screenshot",
+    "calendar_list",
+    "calendar_search",
 }
 
 
@@ -114,6 +118,41 @@ CORE_TOOLS = {
 }
 
 TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
+    "browser": (
+        {
+            "browser_goto",
+            "browser_click",
+            "browser_fill",
+            "browser_read",
+            "browser_screenshot",
+            "browser_back",
+            "browser_close",
+        },
+        (
+            "browser",
+            "webseite",
+            "website",
+            "www.",
+            "http",
+            "klick",
+            "click",
+            "formular",
+            "ausfuell",
+            "ausfüll",
+            "bestell",
+            "buchen",
+            "anmeld",
+            "google",
+            "amazon",
+            "ebay",
+            "youtube",
+            "geh auf",
+            "geh zu",
+            "surf",
+            "such auf",
+            "seite",
+        ),
+    ),
     "focus": (
         {"start_focus", "stop_focus"},
         (
@@ -585,6 +624,23 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         )
     if name == "read_friend_messages":
         return f"Liest den Chat mit {_shorten(args.get('friend', ''))}."
+    if name == "browser_goto":
+        return f"Öffnet im Jon-Browser: {_shorten(args.get('url', ''))}"
+    if name == "browser_click":
+        return f"Klickt im Browser auf: {_shorten(args.get('target', ''))}"
+    if name == "browser_fill":
+        return (
+            f"Füllt im Browser {_shorten(args.get('target', ''))} aus: "
+            f"{_shorten(args.get('text', ''))}"
+        )
+    if name == "browser_read":
+        return "Liest die aktuelle Browser-Seite."
+    if name == "browser_screenshot":
+        return "Macht einen Screenshot der Browser-Seite."
+    if name == "browser_back":
+        return "Geht im Browser eine Seite zurück."
+    if name == "browser_close":
+        return "Schließt den Jon-Browser."
     return f"Führt das Tool {name} aus."
 
 
@@ -749,6 +805,56 @@ class ToolBox:
                 "Liefert Groesse des Hauptmonitors, Grenzen des gesamten virtuellen "
                 "Desktops (alle Monitore) und die aktuelle Mausposition. Rufe das "
                 "auf, bevor du die Maus bewegst oder klickst.",
+                {},
+                [],
+            ),
+            _tool(
+                "browser_goto",
+                "Oeffnet eine URL in Jons eigenem sichtbarem Browser-Fenster "
+                "(Playwright/Chromium). Die Session bleibt zwischen Aufrufen offen. "
+                "Nutze danach browser_read, um die Seite zu verstehen.",
+                {"url": _STR},
+                ["url"],
+            ),
+            _tool(
+                "browser_click",
+                "Klickt im Jon-Browser auf ein Element. target ist ein Selektor "
+                "aus browser_read ODER sichtbarer Text (z.B. 'Anmelden').",
+                {"target": _STR},
+                ["target"],
+            ),
+            _tool(
+                "browser_fill",
+                "Fuellt im Jon-Browser ein Eingabefeld aus. target ist ein Selektor "
+                "aus browser_read ODER die sichtbare Beschriftung des Felds. "
+                "press_enter=true drueckt danach Enter.",
+                {"target": _STR, "text": _STR, "press_enter": _BOOL},
+                ["target", "text"],
+            ),
+            _tool(
+                "browser_read",
+                "Liest die aktuelle Seite im Jon-Browser: Titel, URL, sichtbarer "
+                "Text und interaktive Elemente (Links, Buttons, Eingabefelder) mit "
+                "stabilen Selektoren zum gezielten Klicken.",
+                {},
+                [],
+            ),
+            _tool(
+                "browser_screenshot",
+                "Macht einen Screenshot der aktuellen Browser-Seite und liefert "
+                "den Dateipfad.",
+                {},
+                [],
+            ),
+            _tool(
+                "browser_back",
+                "Geht im Jon-Browser eine Seite zurueck.",
+                {},
+                [],
+            ),
+            _tool(
+                "browser_close",
+                "Schliesst das Jon-Browser-Fenster und beendet die Session.",
                 {},
                 [],
             ),
@@ -1507,6 +1613,11 @@ class ToolBox:
                 args = self._guard_args(name, args)
             except PermissionError as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name.startswith("browser_"):
+            from app.services.browser_service import get_browser_service
+
+            op = name.removeprefix("browser_")
+            return get_browser_service().call(op, args)
         svc = self._service
         if name == "run_powershell":
             r = svc.run_powershell(str(args.get("command", "")))
