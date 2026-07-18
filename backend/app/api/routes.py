@@ -61,6 +61,8 @@ from app.schemas import (
     TimelineDescribeIn,
     TimelineSearchIn,
     TrashRestoreIn,
+    CalendarAddIn,
+    CalendarUpdateIn,
     PairRequestIn,
     PairClaimIn,
     PairDenyIn,
@@ -1231,3 +1233,52 @@ async def wake_stop() -> dict:
     from app.services.wake_service import get_wake_service
 
     return get_wake_service().stop()
+
+
+@router.get("/calendar")
+async def calendar_merged(start: str = "", days: int = 7) -> list[dict]:
+    from app.services.calendar_service import get_calendar_service
+
+    return get_calendar_service().merged(start=start, days=days)
+
+
+@router.post("/calendar")
+async def calendar_add(payload: CalendarAddIn) -> dict:
+    from app.services.calendar_service import get_calendar_service
+
+    try:
+        return get_calendar_service().add(
+            title=payload.title,
+            day=payload.date,
+            time=payload.time,
+            duration_minutes=payload.duration_minutes,
+            note=payload.note,
+            kind=payload.kind,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.put("/calendar/{entry_id}")
+async def calendar_update(entry_id: str, payload: CalendarUpdateIn) -> dict:
+    from app.services.calendar_service import get_calendar_service
+
+    fields = {k: v for k, v in payload.model_dump().items() if v is not None}
+    try:
+        return get_calendar_service().update(entry_id, fields)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.delete("/calendar/{entry_id}")
+async def calendar_delete(entry_id: str) -> dict:
+    from app.services.calendar_service import get_calendar_service
+
+    return {"deleted": get_calendar_service().delete(entry_id)}
+
+
+@router.get("/calendar/due")
+async def calendar_due() -> list[dict]:
+    from app.services.calendar_service import get_calendar_service
+
+    return get_calendar_service().due()

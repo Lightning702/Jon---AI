@@ -91,6 +91,17 @@ class BriefingService:
             data["in_abwesenheit_getan"] = absence_actions(24)
         except Exception:
             data["in_abwesenheit_getan"] = []
+        try:
+            from app.services.calendar_service import get_calendar_service
+
+            merged = get_calendar_service().merged(days=1)
+            data["kalender_heute"] = merged[:12]
+            week = get_calendar_service().merged(days=7)
+            data["offene_tasks"] = [
+                e for e in week if e.get("typ") == "task" and not e.get("erledigt")
+            ][:10]
+        except Exception:
+            data["kalender_heute"] = []
         return data
 
     def weekly_data(self) -> dict:
@@ -101,6 +112,14 @@ class BriefingService:
         data: dict = {
             "zeitraum": f"{week_ago.strftime('%d.%m.')} – {now.strftime('%d.%m.%Y')}",
         }
+        try:
+            from app.services.calendar_service import get_calendar_service
+
+            data["kalender_naechste_woche"] = get_calendar_service().merged(days=7)[
+                :15
+            ]
+        except Exception:
+            data["kalender_naechste_woche"] = []
         try:
             from app.services.persona_service import get_persona_service
 

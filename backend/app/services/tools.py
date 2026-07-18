@@ -153,6 +153,40 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "seite",
         ),
     ),
+    "calendar": (
+        {
+            "calendar_add",
+            "calendar_list",
+            "calendar_update",
+            "calendar_delete",
+            "calendar_search",
+        },
+        (
+            "kalender",
+            "calendar",
+            "termin",
+            "verschieb",
+            "trag",
+            "eintrag",
+            "montag",
+            "dienstag",
+            "mittwoch",
+            "donnerstag",
+            "freitag",
+            "samstag",
+            "sonntag",
+            "morgen",
+            "uebermorgen",
+            "übermorgen",
+            "uhr",
+            "woche",
+            "zahnarzt",
+            "arzt",
+            "geburtstag",
+            "treffen",
+            "meeting",
+        ),
+    ),
     "focus": (
         {"start_focus", "stop_focus"},
         (
@@ -641,6 +675,19 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Geht im Browser eine Seite zurück."
     if name == "browser_close":
         return "Schließt den Jon-Browser."
+    if name == "calendar_add":
+        return (
+            f"Trägt in den Kalender ein: {_shorten(args.get('title', ''))} "
+            f"am {_shorten(args.get('date', ''))} {_shorten(args.get('time', ''))}"
+        )
+    if name == "calendar_list":
+        return "Liest den Kalender."
+    if name == "calendar_update":
+        return f"Ändert den Kalendereintrag {_shorten(args.get('id', ''))}."
+    if name == "calendar_delete":
+        return f"Löscht den Kalendereintrag {_shorten(args.get('id', ''))}."
+    if name == "calendar_search":
+        return f"Sucht im Kalender nach: {_shorten(args.get('query', ''))}"
     return f"Führt das Tool {name} aus."
 
 
@@ -807,6 +854,59 @@ class ToolBox:
                 "auf, bevor du die Maus bewegst oder klickst.",
                 {},
                 [],
+            ),
+            _tool(
+                "calendar_add",
+                "Traegt etwas in Jons eigenen Kalender ein. date: YYYY-MM-DD, "
+                "TT.MM., 'heute', 'morgen' oder Wochentag. time optional HH:MM. "
+                "kind: termin (Standard), task oder erinnerung. Meldet Konflikte "
+                "mit ueberschneidenden Terminen zurueck - sag sie dem Nutzer an.",
+                {
+                    "title": _STR,
+                    "date": _STR,
+                    "time": _STR,
+                    "duration_minutes": _INT,
+                    "note": _STR,
+                    "kind": _STR,
+                },
+                ["title", "date"],
+            ),
+            _tool(
+                "calendar_list",
+                "Listet Kalendereintraege inklusive Automationen, Erinnerungen "
+                "und dem verbundenen ICS-Kalender. start: Datum (Standard heute), "
+                "days: Anzahl Tage (Standard 7).",
+                {"start": _STR, "days": _INT},
+                [],
+            ),
+            _tool(
+                "calendar_update",
+                "Aendert einen Kalendereintrag (id aus calendar_list/search). "
+                "Nur die uebergebenen Felder werden geaendert. done=true hakt "
+                "einen Task ab.",
+                {
+                    "id": _STR,
+                    "title": _STR,
+                    "date": _STR,
+                    "time": _STR,
+                    "duration_minutes": _INT,
+                    "note": _STR,
+                    "kind": _STR,
+                    "done": _BOOL,
+                },
+                ["id"],
+            ),
+            _tool(
+                "calendar_delete",
+                "Loescht einen Kalendereintrag (id aus calendar_list/search).",
+                {"id": _STR},
+                ["id"],
+            ),
+            _tool(
+                "calendar_search",
+                "Sucht in Jons Kalender nach Titel oder Notiz.",
+                {"query": _STR},
+                ["query"],
             ),
             _tool(
                 "browser_goto",
@@ -1607,6 +1707,61 @@ class ToolBox:
             ensure_ascii=False,
         )
 
+    def _calendar(self, name: str, args: dict[str, Any]) -> str:
+        from app.services.calendar_service import get_calendar_service
+
+        service = get_calendar_service()
+        try:
+            if name == "calendar_add":
+                result = service.add(
+                    title=str(args.get("title", "")),
+                    day=str(args.get("date", "")),
+                    time=str(args.get("time", "")),
+                    duration_minutes=int(args.get("duration_minutes") or 0),
+                    note=str(args.get("note", "")),
+                    kind=str(args.get("kind", "termin")),
+                )
+                return json.dumps(result, ensure_ascii=False)
+            if name == "calendar_list":
+                return json.dumps(
+                    service.merged(
+                        start=str(args.get("start", "")),
+                        days=int(args.get("days") or 7),
+                    ),
+                    ensure_ascii=False,
+                )
+            if name == "calendar_update":
+                fields = {
+                    k: v
+                    for k, v in args.items()
+                    if k
+                    in (
+                        "title",
+                        "date",
+                        "time",
+                        "duration_minutes",
+                        "note",
+                        "kind",
+                        "done",
+                    )
+                }
+                return json.dumps(
+                    service.update(str(args.get("id", "")), fields),
+                    ensure_ascii=False,
+                )
+            if name == "calendar_delete":
+                return json.dumps(
+                    {"geloescht": service.delete(str(args.get("id", "")))},
+                    ensure_ascii=False,
+                )
+            if name == "calendar_search":
+                return json.dumps(
+                    service.search(str(args.get("query", ""))), ensure_ascii=False
+                )
+            return json.dumps({"error": f"Unbekanntes Tool {name}"})
+        except Exception as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
+
     def _execute(self, name: str, args: dict[str, Any]) -> str:
         if self._root:
             try:
@@ -1618,6 +1773,8 @@ class ToolBox:
 
             op = name.removeprefix("browser_")
             return get_browser_service().call(op, args)
+        if name.startswith("calendar_"):
+            return self._calendar(name, args)
         svc = self._service
         if name == "run_powershell":
             r = svc.run_powershell(str(args.get("command", "")))

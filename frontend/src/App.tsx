@@ -28,6 +28,7 @@ import Vault from "./components/Vault";
 import Search from "./components/Search";
 import SetupWizard from "./components/SetupWizard";
 import PairingScreen from "./components/PairingScreen";
+import CalendarPanel from "./components/CalendarPanel";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import {
@@ -41,6 +42,8 @@ import {
   addDream,
   denyPair,
   getActions,
+  getCalendar,
+  getCalendarDue,
   getPairPending,
   getTrash,
   restoreTrash,
@@ -203,6 +206,7 @@ export default function App() {
   const [screenOn, setScreenOn] = useState(
     () => localStorage.getItem("jon_screen") === "1"
   );
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [pairingNeeded, setPairingNeeded] = useState(false);
   const [pairPending, setPairPending] = useState<PairPending | null>(null);
   const pairPollOffRef = useRef(false);
@@ -509,6 +513,20 @@ export default function App() {
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("Jon — Erinnerung", { body: r.text });
+        }
+      }
+      const calendarDue = await getCalendarDue();
+      for (const e of calendarDue) {
+        setEntries((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: "assistant",
+            content: `📅 Termin jetzt: **${e.title}** (${e.time} Uhr)`,
+          },
+        ]);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Jon — Termin", { body: `${e.title} (${e.time} Uhr)` });
         }
       }
       const reports = await getDreamReports();
@@ -1003,6 +1021,41 @@ export default function App() {
       void runBriefing();
       return;
     }
+    if (command === "/kalender" || command === "/calendar") {
+      void runSlashJob(text, "📅 Lade Kalender …", async () => {
+        const events = await getCalendar("", 7);
+        if (!events.length)
+          return "Die nächsten 7 Tage sind frei. 📅 öffnet den Kalender — oder sag mir einfach: „Trag Freitag 15 Uhr Zahnarzt ein.“";
+        const byDay = new Map<string, typeof events>();
+        for (const e of events) {
+          const list = byDay.get(e.datum) ?? [];
+          list.push(e);
+          byDay.set(e.datum, list);
+        }
+        const icons: Record<string, string> = {
+          jon: "🟡",
+          automation: "🤖",
+          erinnerung: "🔔",
+          ics: "🔵",
+        };
+        return (
+          "**📅 Deine nächsten 7 Tage:**\n\n" +
+          [...byDay.entries()]
+            .map(
+              ([day, list]) =>
+                `**${new Date(day).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit" })}**\n` +
+                list
+                  .map(
+                    (e) =>
+                      `- ${icons[e.quelle] ?? "▪️"} ${e.zeit ? `${e.zeit} · ` : ""}${e.erledigt ? `~~${e.titel}~~` : e.titel}`
+                  )
+                  .join("\n")
+            )
+            .join("\n\n")
+        );
+      });
+      return;
+    }
     if (command === "/undo") {
       void runSlashJob(text, "↩️ Stelle wieder her …", async () => {
         const r = await undoTrash();
@@ -1340,6 +1393,14 @@ export default function App() {
                   </button>
                 </div>
               )}
+              <button
+                onClick={() => setCalendarOpen(true)}
+                title="Jons Kalender — Termine, Tasks und Erinnerungen"
+                className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <span className="text-[12px] leading-none">📅</span>
+                <span className="text-[11px] font-medium">Kalender</span>
+              </button>
               <div className="relative">
                 <button
                   onClick={() => setToolsMenuOpen((v) => !v)}
@@ -1621,6 +1682,7 @@ export default function App() {
           </button>
         </div>
       )}
+      {calendarOpen && <CalendarPanel onClose={() => setCalendarOpen(false)} />}
       {pairPending && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="glass rounded-2xl border border-gold/40 p-6 max-w-sm w-[92%] text-center space-y-3">

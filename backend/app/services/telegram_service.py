@@ -175,6 +175,34 @@ class TelegramService:
                 return None
             return dst.read_bytes()
 
+    async def _analyze_photo(self, file_id: str, name: str, mime: str) -> str:
+        import base64
+
+        token = self._token()
+        if not token:
+            return ""
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                info = await client.get(
+                    f"https://api.telegram.org/bot{token}/getFile",
+                    params={"file_id": file_id},
+                )
+                file_path = info.json()["result"]["file_path"]
+                image = await client.get(
+                    f"https://api.telegram.org/file/bot{token}/{file_path}"
+                )
+                raw = image.content
+        except Exception:
+            return ""
+        from app.services.attachment_service import get_attachment_service
+
+        result = await get_attachment_service().extract(
+            name, mime, base64.b64encode(raw).decode("ascii")
+        )
+        if "error" in result:
+            return ""
+        return str(result.get("content", ""))
+
     async def _typing(self, chat_id: str | int) -> None:
         while True:
             await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
@@ -367,6 +395,46 @@ class TelegramService:
                         "Versuch es nochmal oder schreib mir.",
                     )
                     continue
+            photo = message.get("photo") or []
+            doc = message.get("document") or {}
+            image_file = None
+            image_mime = "image/jpeg"
+            image_name = "foto.jpg"
+            if photo:
+                image_file = photo[-1].get("file_id")
+            elif (
+                str(doc.get("mime_type", "")).startswith("image/")
+                and doc.get("file_id")
+            ):
+                image_file = doc["file_id"]
+                image_mime = str(doc["mime_type"])
+                image_name = str(doc.get("file_name") or "bild.png")
+            if not text and image_file:
+                await self._api(
+                    "sendChatAction", {"chat_id": chat_id, "action": "typing"}
+                )
+                beschreibung = await self._analyze_photo(
+                    image_file, image_name, image_mime
+                )
+                if not beschreibung:
+                    await self.send(
+                        chat_id,
+                        "Ich konnte das Bild leider nicht analysieren - "
+                        "dafuer brauche ich einen Anbieter mit Vision-Modell "
+                        "(z. B. NVIDIA oder OpenAI).",
+                    )
+                    continue
+                caption = (message.get("caption") or "").strip()
+                text = (
+                    "Ich habe dir ein Foto geschickt. Das ist darauf zu sehen "
+                    f"(automatische Bildanalyse): {beschreibung}"
+                )
+                if caption:
+                    text += f"\n\nMeine Frage dazu: {caption}"
+                else:
+                    text += (
+                        "\n\nSag mir kurz, was du siehst und was dir auffaellt."
+                    )
             if not text:
                 continue
             settings = get_settings_service()

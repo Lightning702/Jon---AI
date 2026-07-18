@@ -1824,3 +1824,72 @@ export async function wakePoll(): Promise<WakeStatus> {
 export async function wakeStop(): Promise<void> {
   await fetch(`${BASE}/voice/wake/stop`, { method: "POST" });
 }
+
+export interface CalendarEvent {
+  id: string;
+  quelle: "jon" | "automation" | "erinnerung" | "ics";
+  titel: string;
+  datum: string;
+  zeit: string;
+  dauer_minuten?: number;
+  notiz?: string;
+  ort?: string;
+  typ: "termin" | "task" | "erinnerung";
+  erledigt: boolean;
+}
+
+export async function getCalendar(
+  start = "",
+  days = 7
+): Promise<CalendarEvent[]> {
+  const params = new URLSearchParams();
+  if (start) params.set("start", start);
+  params.set("days", String(days));
+  const res = await fetch(`${BASE}/calendar?${params.toString()}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export interface CalendarEntryIn {
+  title: string;
+  date: string;
+  time?: string;
+  duration_minutes?: number;
+  note?: string;
+  kind?: string;
+}
+
+export async function addCalendarEntry(
+  entry: CalendarEntryIn
+): Promise<{ id?: string; konflikte?: unknown[]; detail?: string }> {
+  const res = await fetch(`${BASE}/calendar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  });
+  return res.json();
+}
+
+export async function updateCalendarEntry(
+  id: string,
+  fields: Partial<CalendarEntryIn> & { done?: boolean }
+): Promise<{ konflikte?: unknown[]; detail?: string }> {
+  const res = await fetch(`${BASE}/calendar/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(fields),
+  });
+  return res.json();
+}
+
+export async function deleteCalendarEntry(id: string): Promise<void> {
+  await fetch(`${BASE}/calendar/${id}`, { method: "DELETE" });
+}
+
+export async function getCalendarDue(): Promise<
+  { title: string; time: string }[]
+> {
+  const res = await fetch(`${BASE}/calendar/due`);
+  if (!res.ok) return [];
+  return res.json();
+}

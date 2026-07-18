@@ -370,3 +370,22 @@ class PairClaimIn(BaseModel):
 
 class PairDenyIn(BaseModel):
     request_id: str
+
+
+class CalendarAddIn(BaseModel):
+    title: str
+    date: str
+    time: str = ""
+    duration_minutes: int = 0
+    note: str = ""
+    kind: str = "termin"
+
+
+class CalendarUpdateIn(BaseModel):
+    title: str | None = None
+    date: str | None = None
+    time: str | None = None
+    duration_minutes: int | None = None
+    note: str | None = None
+    kind: str | None = None
+    done: bool | None = None
