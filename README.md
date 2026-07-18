@@ -1,5 +1,7 @@
 # Jon — KI-Desktop-Assistent
 
+![Jon und Mini Jon](docs/img/jon-banner.png)
+
 🇬🇧 **English version: [README.en.md](README.en.md)**
 
 Jon ist ein moderner KI-Desktop-Assistent für Windows mit Multi-Provider-Unterstützung,

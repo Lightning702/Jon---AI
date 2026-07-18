@@ -1,5 +1,7 @@
 # Jon — AI Desktop Assistant
 
+![Jon and Mini Jon](docs/img/jon-banner.png)
+
 🇩🇪 **Deutsche Version: [README.md](README.md)**
 
 Jon is a modern AI desktop assistant for Windows with multi-provider support,

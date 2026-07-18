@@ -111,7 +111,7 @@ function chatPing() {
     });
     window.setTimeout(() => void ctx.close(), 800);
   } catch {
-    /* kein Ton möglich */
+    void 0;
   }
 }
 

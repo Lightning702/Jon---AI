@@ -2,6 +2,27 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.17.0] — 2026-07-19
+
+### Neu — fünf frische Ideen
+- **Mini Jon tanzt zur Musik** — läuft Spotify oder Amazon Music, wippt Mini Jon im Takt,
+  zeigt Notensymbole und färbt sich in einer Song-Farbe; stoppt die Musik, wird er sofort
+  wieder normal (`/api/music/now`).
+- **Trink- & Steh-Erinnerungen** — Mini Jon meldet sich alle 90 Minuten sanft (Wasser,
+  aufstehen, durchatmen). Abschaltbar im Zahnrad-Menü.
+- **Lange Telegram-Sprachnachrichten** — ab 200 Zeichen fasst Jon sie in Stichpunkten
+  zusammen und trägt genannte Termine automatisch in den Kalender ein.
+- **Vorlese-Modus** — markierten Text mit **Strg+Alt+V** an Mini Jon geben, er liest ihn
+  mit seiner Stimme vor.
+- **Automatische Datei-Ablage** — neue Downloads wandern regelbasiert in Unterordner
+  (Bilder, Dokumente, Musik, Rechnungen, Screenshots …), alles per Papierkorb
+  wiederherstellbar. Standardmäßig aus, Toggle im Zahnrad-Menü.
+
+### Verbessert
+- **Sprachwechsel** greift jetzt wirklich live (Deutsch/English) und ist auf mehr
+  Oberflächen-Bereiche ausgeweitet.
+- README mit Banner-Bild von Jon und Mini Jon, englische README ebenso.
+
 ## [3.16.0] — 2026-07-19
 
 ### Neu — Sieben große Funktionsblöcke
