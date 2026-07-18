@@ -32,10 +32,53 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 
 ## Sprache
 
-- Wake-Word „Jon" (auch john/jonny/johnny), armed-Modus
+- Wake-Word „Jon" wahlweise offline über openWakeWord im Backend (unter 1 s), mit
+  automatischem Fallback auf die Fenster-Erkennung; Empfindlichkeit niedrig/mittel/hoch
+- Barge-in: Sprechen während Jon redet stoppt die Ausgabe sofort (Jon und Mini Jon),
+  mit Echo-Schutz
+- Mikrofon nur offen, wenn wirklich zugehört wird
 - Sprache-zu-Text über Google-Erkennung (Backend)
 - Text-to-Speech-Antworten (Web Speech API), bevorzugt deutsche männliche Stimme
 - Sprach-Kontext im RAM (letzte 12 Turns), ohne Chat-Verlauf zu verändern
+
+## Browser-Automatisierung
+
+- Sichtbares Chromium-Fenster (Playwright), persistente Session pro Chat
+- `browser_goto/read/click/fill/screenshot/back/close`
+- `browser_read` liefert Text plus interaktive Elemente mit stabilen Selektoren
+- Klick/Ausfüllen per Selektor oder sichtbarem Text, 15 s Timeout, klare Fehler
+- Chromium wird beim ersten Aufruf automatisch installiert
+- Skill `browser-automation.md`: nie Logins/Käufe ohne Bestätigung
+
+## Kalender
+
+- Eigener lokaler Kalender (`data/calendar.json`) mit Monats-/Wochenansicht im
+  Black/Gold-Design
+- `calendar_add/list/update/delete/search` — Eintragen per Zuruf, Konflikt-Ansage
+- Automationen, Erinnerungen und der ICS-Kalender (Google/Outlook, read-only) farblich
+  integriert; erledigte Tasks durchgestrichen
+- Termine mit Uhrzeit melden sich im Chat und als Browser-Benachrichtigung
+- Fließt in Tagesbriefing und Wochenrückblick ein; `/kalender` zeigt 7 Tage
+
+## Vertrauen & Sicherheit
+
+- Papierkorb: Löschen/Überschreiben/Verschieben sichert das Original 30 Tage in
+  `data/trash`; `/undo` und `/papierkorb` zum Wiederherstellen
+- Aktionsprotokoll aller Tool-Aufrufe mit Quelle; `/log` mit Filter; Abwesenheits-Bericht
+  im Briefing
+- LAN-Pairing bei `JON_LAN=1`: 6-stelliger Code, Geräte-Tokens, Verwaltung im Zahnrad-Menü
+
+## Auto-Update & Installer
+
+- `/update` und Update-Knopf: Backup von `data/`, `git pull`, bedingtes `pip`/`npm`,
+  Neustart (auf dem Pi `systemctl restart jon`)
+- `build-installer.bat`: PyInstaller-Bundle (`jon-backend.exe`) + NSIS → `Jon-Setup.exe`,
+  ohne Python/Node/Terminal beim Endnutzer
+
+## Sprachen
+
+- Umschalter Deutsch/English im Zahnrad-Menü steuert Oberfläche (i18n) und Jons
+  Antwortsprache; englische `README.en.md`
 
 ## Gedächtnis
 

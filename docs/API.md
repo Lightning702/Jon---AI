@@ -63,6 +63,49 @@ API sie nicht liefert.
 `/api/system/powershell`, `/cmd`, `/open-url`, `/start-program`, `/kill-program`,
 `/explorer`, `/files/{list,read,write,move,delete}`, `/vscode`, `/transcribe`.
 
+## Papierkorb & Aktionsprotokoll
+
+- `GET /api/trash` — Papierkorb-Einträge (gelöscht/überschrieben/verschoben).
+- `POST /api/trash/restore` `{ id }` — Eintrag wiederherstellen.
+- `POST /api/trash/undo` — letzte Dateiaktion rückgängig machen.
+- `GET /api/actions?source=&day=&limit=` — Aktionsprotokoll, gefiltert nach Quelle
+  (`app`, `mini-jon`, `telegram`, `automation`, `watcher`) und Tag (`heute`, `gestern`,
+  Datum).
+
+## Geräte-Pairing (nur bei `JON_LAN=1`)
+
+- `POST /api/pair/request` `{ name }` → `{ request_id }` — vom Gerät gestartet.
+- `POST /api/pair/claim` `{ request_id, code }` → `{ token }` — Code vom PC eingeben.
+- `GET /api/pair/pending` — offene Anfragen (nur vom PC, `127.0.0.1`).
+- `POST /api/pair/deny` `{ request_id }` — Anfrage ablehnen (nur vom PC).
+- `GET /api/pair/devices`, `DELETE /api/pair/devices/{id}` — gekoppelte Geräte verwalten.
+
+Gepairte Geräte senden ihr Token im Header `X-Jon-Token`; ohne gültiges Token
+antworten alle `/api`-Endpunkte außer Pairing und Health mit `401 pairing_required`.
+
+## Sprachsteuerung (openWakeWord)
+
+- `GET /api/voice/wake` — Status (`available`, `listening`, `counter`, `error`).
+- `POST /api/voice/wake/start` — Wake-Word-Erkennung starten (offline).
+- `POST /api/voice/wake/stop` — stoppen und Mikrofon freigeben.
+
+## Kalender
+
+- `GET /api/calendar?start=&days=` — zusammengeführte Einträge (Jon, Automationen,
+  Erinnerungen, ICS).
+- `POST /api/calendar` `{ title, date, time?, duration_minutes?, note?, kind? }` — anlegen;
+  liefert `konflikte`, wenn sich Termine überschneiden.
+- `PUT /api/calendar/{id}` — ändern (nur gesetzte Felder); `done` hakt Tasks ab.
+- `DELETE /api/calendar/{id}` — löschen.
+- `GET /api/calendar/due` — jetzt fällige Termine (für Benachrichtigungen).
+
+## Auto-Update
+
+- `GET /api/update` — prüft, ob eine neuere Version vorliegt.
+- `POST /api/update` — führt das Update aus und streamt den Fortschritt als `text/plain`
+  (Backup von `data/`, `git pull`, bedingt `pip`/`npm`, Neustart bzw. `systemctl restart
+  jon` auf dem Pi).
+
 ## Tools (Function Calling)
 
 Jon ruft diese Tools im Chat auf. In Klammern die Pflichtargumente.
@@ -97,10 +140,22 @@ Jon ruft diese Tools im Chat auf. In Klammern die Pflichtargumente.
 - `keyboard_type(text)`, `keyboard_press(key)`, `keyboard_hotkey(keys)`
 - `list_windows()`, `focus_window(title)`, `wait(seconds)`
 
+### Browser (Playwright)
+- `browser_goto(url)`, `browser_read()`, `browser_click(target)`, `browser_fill(target,
+  text, press_enter?)`
+- `browser_screenshot()`, `browser_back()`, `browser_close()`
+- `target` ist ein Selektor aus `browser_read` oder sichtbarer Text.
+
+### Kalender
+- `calendar_add(title, date, time?, duration_minutes?, note?, kind?)`
+- `calendar_list(start?, days?)`, `calendar_search(query)`
+- `calendar_update(id, ...)`, `calendar_delete(id)`
+
 ### Gedächtnis & Skills
 - `remember(content)`, `recall(query?)`, `forget(query)`
 - `list_skills()`, `read_skill(name)`, `write_skill(name, content)`
 
-**Freigabe:** Ohne Rückfrage laufen nur `get_screen_info`, `list_windows`, `wait`,
-`recall`, `system_info`, `list_processes`, `list_skills`, `read_skill`. Alle anderen
-fragen im Modus „Zuerst fragen" um Erlaubnis.
+**Freigabe:** Ohne Rückfrage laufen nur reine Abfragen wie `get_screen_info`,
+`list_windows`, `wait`, `recall`, `system_info`, `list_processes`, `list_skills`,
+`read_skill`, `browser_read`, `browser_screenshot`, `calendar_list`, `calendar_search`.
+Alle anderen fragen im Modus „Zuerst fragen" um Erlaubnis.

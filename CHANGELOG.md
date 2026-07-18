@@ -2,6 +2,47 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.16.0] — 2026-07-19
+
+### Neu — Sieben große Funktionsblöcke
+
+**Vertrauen: Papierkorb, Aktionsprotokoll, LAN-Pairing.** Löschen, Überschreiben und
+Verschieben von Dateien sichern das Original vorher in `data/trash` (30 Tage). `/undo`
+stellt die letzte Dateiaktion wieder her, `/papierkorb` (Alias `/trash`) listet den Inhalt.
+Jeder Tool-Aufruf wird mit Quelle (App, Mini Jon, Telegram, Automation, Watcher) in einer
+SQLite-Tabelle protokolliert; `/log` zeigt die letzten Aktionen mit Filter, das
+Tagesbriefing fasst zusammen, was Jon in Abwesenheit getan hat. Bei `JON_LAN=1` muss sich
+jedes neue Gerät per 6-stelligem Code koppeln, bevor es Zugriff bekommt; gekoppelte Geräte
+sind im Zahnrad-Menü verwaltbar.
+
+**Sprach-Erlebnis.** Wake-Word „Jon" läuft offline über openWakeWord im Backend, mit
+automatischem Fallback auf die bisherige Erkennung. Barge-in: sprichst du, während Jon
+redet, stoppt er sofort. Empfindlichkeit im Zahnrad-Menü einstellbar. Gilt für Jon und
+Mini Jon.
+
+**Browser-Automatisierung.** Neue Tool-Gruppe `browser_goto/click/fill/read/screenshot/
+back/close` steuert ein sichtbares Chromium-Fenster (Playwright). Jon liest Seiten Schritt
+für Schritt, klickt per Selektor oder sichtbarem Text und meldet Fehler verständlich.
+
+**Jon-Kalender.** Eigener lokaler Kalender (📅-Knopf) mit Monats-/Wochenansicht. Jon trägt
+Termine per Zuruf ein („Trag Freitag 15 Uhr Zahnarzt ein"), warnt bei Konflikten, zeigt
+Automationen, Erinnerungen und den ICS-Kalender farblich integriert. `/kalender` zeigt 7
+Tage; Termine mit Uhrzeit melden sich im Chat und als Benachrichtigung.
+
+**Echtes Auto-Update.** `/update` sichert `data/`, holt per git die neue Version,
+installiert nur Geändertes nach und startet neu (auf dem Pi via `systemctl restart jon`).
+
+**Englisch & Deutsch.** Sprachumschalter im Zahnrad-Menü stellt Oberfläche und Jons
+Antworten auf Englisch um. Neue `README.en.md`.
+
+**Windows-Installer.** `build-installer.bat` bündelt das Backend mit PyInstaller zu einer
+eigenständigen `jon-backend.exe` und paketiert per NSIS eine `Jon-Setup.exe` — kein Python,
+kein Node, kein Terminal nötig. Ersetzt `installer-bauen.bat`.
+
+### Auch dabei
+- Telegram: Fotos werden per Vision-Modell analysiert; einfache Maus-/Tastaturbefehle
+  („klick", „schreibe …", „drücke enter") lösen sofort das echte Tool aus.
+
 ## [3.15.1] — 2026-07-16
 
 ### Behoben — Web-App-Build scheiterte auf dem Raspberry Pi

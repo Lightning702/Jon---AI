@@ -62,6 +62,27 @@ Vite muss an `127.0.0.1` gebunden sein.
 4. Reine Leseaktion? Dann Namen in `SAFE_TOOLS` aufnehmen.
 5. Falls nötig, eine Methode im passenden Service ergänzen.
 
+## Windows-Installer (Jon-Setup.exe)
+
+`build-installer.bat` baut die eigenständige `Jon-Setup.exe` in drei Schritten:
+
+1. PyInstaller bündelt das Backend nach `backend/jon-backend.spec` zu
+   `backend/dist/jon-backend/jon-backend.exe` (Entry-Point `backend/run_backend.py`,
+   `collect_all` für openWakeWord, Playwright, cv2, edge-tts, sounddevice u. a.).
+2. `npm run build` erzeugt das Frontend.
+3. `electron-builder --config frontend/installer.config.json` paketiert per NSIS und
+   nimmt `jon-backend/` als `extraResources` mit.
+
+Zur Laufzeit erkennt `frontend/electron/main.cjs` die gebündelte `jon-backend.exe` und
+startet sie statt Python; beim Beenden wird sie per `taskkill /t /f` sauber gestoppt. Ist
+keine Exe vorhanden (Entwickler-Setup), fällt es auf `python -m app.main` zurück. Im
+gefrorenen Zustand (`sys.frozen`) legt das Backend sein Datenverzeichnis neben die Exe
+(Fallback `%LOCALAPPDATA%\Jon\data`). Playwright-Chromium und openWakeWord-Modelle werden
+beim ersten Bedarf zur Laufzeit nachgeladen, nicht ins Bundle gepackt.
+
+Der klassische Entwickler-Build (`npm run package` mit rohem `backend/`-Ordner und
+lokalem Python) bleibt über die `build`-Sektion in `package.json` erhalten.
+
 ## Raspberry Pi (Always-on-Backend)
 
 `pi-installieren.sh` richtet das Backend auf einem Pi als systemd-Dienst (`jon.service`)
