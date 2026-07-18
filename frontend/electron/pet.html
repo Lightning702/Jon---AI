@@ -186,6 +186,29 @@
           transform: translateY(-6px);
         }
       }
+      body.dancing #jon {
+        animation: dance 0.5s ease-in-out infinite;
+      }
+      @keyframes dance {
+        0% { transform: translateY(0) rotate(-5deg); }
+        25% { transform: translateY(-8px) rotate(4deg); }
+        50% { transform: translateY(0) rotate(-4deg); }
+        75% { transform: translateY(-8px) rotate(5deg); }
+        100% { transform: translateY(0) rotate(-5deg); }
+      }
+      #note {
+        position: absolute;
+        font-size: 17px;
+        pointer-events: none;
+        z-index: 6;
+        opacity: 0;
+      }
+      #note.show { animation: noteFloat 1.6s ease-out; }
+      @keyframes noteFloat {
+        0% { opacity: 0; transform: translateY(0) rotate(-10deg); }
+        25% { opacity: 1; transform: translateY(-14px) rotate(8deg); }
+        100% { opacity: 0; transform: translateY(-40px) rotate(-8deg); }
+      }
       #eyes {
         transform-box: fill-box;
         transform-origin: center;
@@ -276,6 +299,7 @@
       <div id="petZzz">z</div>
       <div id="petHeart">❤</div>
       <div id="petSpeech"></div>
+      <div id="note">♪</div>
       <div id="inputRow">
         <input id="field" placeholder="Sag Emil etwas …" autocomplete="off" />
       </div>
@@ -994,6 +1018,81 @@
         } catch (e) {}
       }
       setInterval(pollFriends, 5000);
+
+      const noteEl = document.getElementById("note");
+      let dancing = false;
+      let currentSong = "";
+      let noteTimer = null;
+      function hslVariants(hsl) {
+        const m = hsl.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+        if (!m) return null;
+        const h = +m[1], s = +m[2];
+        return [
+          `hsl(${h}, ${s}%, 72%)`,
+          `hsl(${h}, ${s}%, 58%)`,
+          `hsl(${h}, ${s}%, 40%)`,
+        ];
+      }
+      function stopDancing() {
+        if (!dancing) return;
+        dancing = false;
+        currentSong = "";
+        document.body.classList.remove("dancing");
+        if (noteTimer) {
+          clearInterval(noteTimer);
+          noteTimer = null;
+        }
+        lastCfgJson = "";
+        applyConfig({});
+      }
+      function floatNote() {
+        if (petAsleep || busy) return;
+        const rect = jonWrap.getBoundingClientRect();
+        noteEl.textContent = ["♪", "♫", "♬", "🎵"][Math.floor(Math.random() * 4)];
+        noteEl.style.left = rect.left + rect.width * (0.3 + Math.random() * 0.4) + "px";
+        noteEl.style.top = rect.top + 10 + "px";
+        noteEl.classList.remove("show");
+        void noteEl.offsetWidth;
+        noteEl.classList.add("show");
+      }
+      async function pollMusic() {
+        if (petAsleep) {
+          stopDancing();
+          return;
+        }
+        try {
+          const m = await (await fetch(`${BASE}/music/now`)).json();
+          if (!m.laeuft) {
+            stopDancing();
+            return;
+          }
+          const song = (m.kuenstler || "") + "|" + (m.titel || "");
+          const variants = hslVariants(m.farbe || "");
+          if (variants) {
+            const stops = grad.children;
+            stops[0].setAttribute("stop-color", variants[0]);
+            stops[1].setAttribute("stop-color", variants[1]);
+            stops[2].setAttribute("stop-color", variants[2]);
+          }
+          if (!dancing) {
+            dancing = true;
+            document.body.classList.add("dancing");
+            if (!noteTimer) noteTimer = setInterval(floatNote, 900);
+          }
+          if (song !== currentSong && !busy && m.titel) {
+            currentSong = song;
+            const line = m.kuenstler
+              ? `🎵 ${m.kuenstler} — ${m.titel}`
+              : `🎵 ${m.titel}`;
+            say(line);
+            scheduleHide(4000);
+          }
+        } catch (e) {
+          stopDancing();
+        }
+      }
+      setInterval(pollMusic, 4000);
+      setTimeout(pollMusic, 2000);
 
       let wasAway = false;
       async function pollPresence() {

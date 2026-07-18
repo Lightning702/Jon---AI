@@ -1288,3 +1288,35 @@ async def calendar_due() -> list[dict]:
     from app.services.calendar_service import get_calendar_service
 
     return get_calendar_service().due()
+
+
+@router.get("/music/now")
+async def music_now() -> dict:
+    import hashlib
+
+    from app.services.amazon_music_service import get_amazon_music_service
+    from app.services.spotify_service import get_spotify_service
+
+    def check(fn):
+        try:
+            r = fn()
+            return r if r.get("laeuft") else None
+        except Exception:
+            return None
+
+    playing = await asyncio.to_thread(check, get_spotify_service().now_playing)
+    if playing is None:
+        playing = await asyncio.to_thread(check, get_amazon_music_service().now_playing)
+    if playing is None:
+        return {"laeuft": False}
+    signature = f"{playing.get('kuenstler', '')}|{playing.get('titel', '')}".lower()
+    digest = int(hashlib.md5(signature.encode("utf-8")).hexdigest(), 16)
+    hue = digest % 360
+    sat = 60 + (digest // 360) % 30
+    return {
+        "laeuft": True,
+        "titel": playing.get("titel", ""),
+        "kuenstler": playing.get("kuenstler", ""),
+        "wo": playing.get("wo", ""),
+        "farbe": f"hsl({hue}, {sat}%, 60%)",
+    }
