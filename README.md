@@ -1,5 +1,7 @@
 # Jon — KI-Desktop-Assistent
 
+🇬🇧 **English version: [README.en.md](README.en.md)**
+
 Jon ist ein moderner KI-Desktop-Assistent für Windows mit Multi-Provider-Unterstützung,
 Streaming, Langzeit-Persistenz, echter Systemsteuerung, Maus-/Tastatur-Automatisierung,
 Sprachsteuerung, einem bearbeitbaren Skill-System und einer eigenständigen Handy-App.

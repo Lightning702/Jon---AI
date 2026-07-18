@@ -990,7 +990,7 @@ export default function App() {
       );
       return;
     }
-    if (command === "/woche" || command === "/weekly") {
+    if (command === "/woche" || command === "/weekly" || command === "/week") {
       void runDataPrompt(async () => WEEKLY_PROMPT(await getWeekly()), text);
       return;
     }
