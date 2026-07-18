@@ -1320,3 +1320,10 @@ async def music_now() -> dict:
         "wo": playing.get("wo", ""),
         "farbe": f"hsl({hue}, {sat}%, 60%)",
     }
+
+
+@router.get("/autofile/recent")
+async def autofile_recent() -> list[dict]:
+    from app.services.autofile_service import get_autofile_service
+
+    return get_autofile_service().recent()

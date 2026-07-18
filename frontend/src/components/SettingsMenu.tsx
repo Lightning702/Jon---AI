@@ -126,6 +126,7 @@ export default function SettingsMenu({
   const [coworkApp, setCoworkApp] = useState("auto");
   const [quickwrite, setQuickwrite] = useState(true);
   const [timeline, setTimeline] = useState(false);
+  const [autofile, setAutofile] = useState(false);
   const [routine, setRoutine] = useState(true);
   const [petRoam, setPetRoam] = useState(false);
   const [petWellness, setPetWellness] = useState(true);
@@ -158,6 +159,7 @@ export default function SettingsMenu({
       setCoworkApp(s.cowork_app || "auto");
       setQuickwrite(s.quickwrite_enabled !== false);
       setTimeline(s.timeline_enabled === true);
+      setAutofile(s.autofile_enabled === true);
       setRoutine(s.routine_enabled !== false);
       setPetRoam(s.pet_roam === true);
       setPetWellness(s.pet_wellness !== false);
@@ -233,6 +235,12 @@ export default function SettingsMenu({
     const next = !timeline;
     setTimeline(next);
     void saveUserSettings({ timeline_enabled: next });
+  };
+
+  const toggleAutofile = () => {
+    const next = !autofile;
+    setAutofile(next);
+    void saveUserSettings({ autofile_enabled: next });
   };
 
   const toggleRoutine = () => {
@@ -437,6 +445,12 @@ export default function SettingsMenu({
                 hint="Jon merkt sich lokal, was du offen hattest, und findet es auf Nachfrage wieder. Alles bleibt auf deinem PC."
                 on={timeline}
                 onClick={toggleTimeline}
+              />
+              <Toggle
+                label="Downloads automatisch einsortieren"
+                hint="Neue Downloads wandern in Unterordner nach Typ (Bilder, Dokumente, Musik, Rechnungen, Screenshots …). Alles per Papierkorb wiederherstellbar."
+                on={autofile}
+                onClick={toggleAutofile}
               />
             </div>
             <Section title="Sprache / Language" />

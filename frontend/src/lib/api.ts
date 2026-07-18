@@ -265,6 +265,7 @@ export interface UserSettings {
   pet_companion: string;
   wake_sensitivity: string;
   pet_wellness: boolean;
+  autofile_enabled: boolean;
   language: string;
 }
 
@@ -323,6 +324,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       pet_companion: "none",
       wake_sensitivity: "mittel",
       pet_wellness: true,
+      autofile_enabled: false,
       language: "de",
     };
   return res.json();

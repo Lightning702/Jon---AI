@@ -99,6 +99,7 @@ class SettingsIn(BaseModel):
     pet_companion: str | None = None
     wake_sensitivity: str | None = None
     pet_wellness: bool | None = None
+    autofile_enabled: bool | None = None
     language: str | None = None
 
 

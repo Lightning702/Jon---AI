@@ -63,6 +63,7 @@ DEFAULTS = {
     "pet_companion": "none",
     "wake_sensitivity": "mittel",
     "pet_wellness": True,
+    "autofile_enabled": False,
     "language": "de",
 }
 
