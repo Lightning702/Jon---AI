@@ -443,6 +443,59 @@ class TelegramService:
             return True
         return False
 
+    def _morning_calendar(self, now: datetime) -> dict:
+        from datetime import timedelta
+
+        try:
+            from app.services.calendar_service import get_calendar_service
+
+            service = get_calendar_service()
+        except Exception:
+            return {"heute": [], "morgen_erinnerungen": []}
+        today = now.strftime("%Y-%m-%d")
+        tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        def slim(e: dict) -> dict:
+            return {
+                "titel": e.get("titel", ""),
+                "zeit": e.get("zeit", ""),
+                "typ": e.get("typ", "termin"),
+                "quelle": e.get("quelle", ""),
+            }
+
+        try:
+            heute = [
+                slim(e)
+                for e in service.merged(start=today, days=1)
+                if e.get("datum") == today and not e.get("erledigt")
+            ]
+        except Exception:
+            heute = []
+        try:
+            morgen = [
+                slim(e)
+                for e in service.merged(start=tomorrow, days=1)
+                if e.get("datum") == tomorrow
+                and not e.get("erledigt")
+                and (e.get("typ") == "erinnerung" or e.get("quelle") == "erinnerung")
+            ]
+        except Exception:
+            morgen = []
+        return {"heute": heute, "morgen_erinnerungen": morgen}
+
+    def _morning_fallback(self, cal: dict) -> str:
+        parts = ["Guten Morgen, Felix! Ich wünsche dir einen richtig guten Start in den Tag."]
+        if cal["heute"]:
+            eintraege = ", ".join(
+                (f"{e['zeit']} Uhr {e['titel']}" if e["zeit"] else e["titel"])
+                for e in cal["heute"][:6]
+            )
+            parts.append(f"Heute steht an: {eintraege}.")
+        if cal["morgen_erinnerungen"]:
+            morgen = ", ".join(e["titel"] for e in cal["morgen_erinnerungen"][:6])
+            parts.append(f"Und denk schon mal an morgen: {morgen}.")
+        return " ".join(parts)
+
     async def morning_tick(self) -> None:
         data = get_settings_service().get()
         if not data.get("telegram_morning", False):
@@ -456,26 +509,31 @@ class TelegramService:
         if self._last_morning == today or now.strftime("%H:%M") < target:
             return
         self._save_morning(today)
+        cal = self._morning_calendar(now)
         try:
             from app.services.show_service import _today_data
             from app.services.llm import complete
 
-            context = json.dumps(_today_data(), ensure_ascii=False)
+            payload = {"tagesdaten": _today_data(), "kalender": cal}
+            context = json.dumps(payload, ensure_ascii=False)
             text = await complete(
                 "Du bist Jon und sprichst dem Nutzer Felix eine persönliche "
-                "Guten-Morgen-Sprachnachricht auf sein Handy. Kurz (4-6 Sätze), warm, "
-                "natürlich gesprochen: begrüße ihn, nenne Wetter, wichtige Termine und "
-                "Erinnerungen aus den Daten, wünsche einen guten Start. Nutze nur echte "
-                "Daten, erfinde nichts. Kein Markdown, keine Aufzählung.",
+                "Guten-Morgen-Sprachnachricht auf sein Handy. Kurz (4-7 Sätze), warm, "
+                "natürlich gesprochen: begrüße ihn, nenne das Wetter. Zähle dann die "
+                "heutigen Termine, Tasks und Erinnerungen aus kalender.heute mit Uhrzeit "
+                "auf, falls vorhanden. Gibt es Einträge in kalender.morgen_erinnerungen, "
+                "erinnere ihn zusätzlich freundlich schon heute daran, dass diese "
+                "Erinnerung morgen ansteht. Wünsche einen guten Start. Nutze nur echte "
+                "Daten, erfinde nichts. Kein Markdown, keine Aufzählung mit Strichen.",
                 f"Heutige Daten:\n{context}",
                 max_tokens=500,
                 temperature=0.8,
             )
         except Exception:
-            text = "Guten Morgen, Felix! Ich wünsche dir einen richtig guten Start in den Tag."
-        text = text.strip() or "Guten Morgen, Felix!"
+            text = self._morning_fallback(cal)
+        text = text.strip() or self._morning_fallback(cal)
         spoke = await self.send_voice(chat_id, text)
-        await self.send(chat_id, ("🌅 " if not spoke else "🌅 ") + text)
+        await self.send(chat_id, "🌅 " + text)
 
     async def poll_once(self) -> None:
         token = self._token()
