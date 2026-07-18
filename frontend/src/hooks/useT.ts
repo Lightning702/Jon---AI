@@ -15,7 +15,10 @@ export function useT() {
   const [lang, setLangState] = useState(currentLang);
 
   useEffect(() => {
-    const handler = () => setLangState(currentLang);
+    const handler = () => {
+      currentLang = localStorage.getItem("jon_lang") || "de";
+      setLangState(currentLang);
+    };
     window.addEventListener("jon_lang_change", handler);
     return () => window.removeEventListener("jon_lang_change", handler);
   }, []);

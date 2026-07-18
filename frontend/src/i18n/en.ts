@@ -31,7 +31,12 @@ export const en: Translations = {
   cal_duration_ph: "Duration (min)",
   cal_note_ph: "Note (optional)",
   cal_done: "Done",
-  
+  cal_all_day: "all day",
+  cal_source_jon: "Jon",
+  cal_source_automation: "Automation",
+  cal_source_reminder: "Reminder",
+  cal_source_ics: "Google/Outlook",
+
   // Trash
   trash_title: "🗑️ Loading Trash …",
   trash_empty: "Trash is empty. Deleted, overwritten, and moved files land here and are kept for 30 days.",
@@ -53,4 +58,20 @@ export const en: Translations = {
   
   // Chat
   chat_placeholder: "Ask Jon...",
+  search_history: "Search history …",
+  drop_file: "Drop file here …",
+  new_chat: "New chat",
+  no_conversations: "No conversations yet",
+  empty_title: "How can I help?",
+  empty_hint: "Ask me something, give me a task, or say „Jon“.",
+  header_mini_jon: "Mini Jon",
+  header_calendar: "Calendar",
+  header_tools: "Tools",
+  live_screen_on: "Live screen on — Jon is watching",
+  live_screen_off: "Live screen off",
+  voice_on: "Listening on — say „Jon“",
+  voice_off: "Listening off",
+  tools_work: "Work",
+  tools_pc: "PC & Media",
+  tools_fun: "Fun & more",
 };

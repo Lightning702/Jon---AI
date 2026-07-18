@@ -7,6 +7,7 @@ import {
   getCalendar,
   updateCalendarEntry,
 } from "../lib/api";
+import { useT } from "../hooks/useT";
 
 const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const MONTHS = [
@@ -29,13 +30,6 @@ const SOURCE_STYLE: Record<string, string> = {
   automation: "border-violet-400/40 bg-violet-400/10 text-violet-200",
   erinnerung: "border-amber-400/40 bg-amber-400/10 text-amber-200",
   ics: "border-sky-400/40 bg-sky-400/10 text-sky-200",
-};
-
-const SOURCE_LABEL: Record<string, string> = {
-  jon: "Jon",
-  automation: "Automation",
-  erinnerung: "Erinnerung",
-  ics: "Google/Outlook",
 };
 
 function iso(d: Date): string {
@@ -71,6 +65,13 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function CalendarPanel({ onClose }: { onClose: () => void }) {
+  const { t, lang } = useT();
+  const SOURCE_LABEL: Record<string, string> = {
+    jon: t("cal_source_jon"),
+    automation: t("cal_source_automation"),
+    erinnerung: t("cal_source_reminder"),
+    ics: t("cal_source_ics"),
+  };
   const [view, setView] = useState<"monat" | "woche">("monat");
   const [cursor, setCursor] = useState(() => new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -194,7 +195,7 @@ export default function CalendarPanel({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-[15px] font-semibold gold-text">
-              📅 Jons Kalender
+              {t("cal_title")}
             </span>
             <div className="flex items-center gap-1 text-[12px]">
               <button
@@ -206,7 +207,7 @@ export default function CalendarPanel({ onClose }: { onClose: () => void }) {
               <span className="min-w-[130px] text-center text-white/80">
                 {view === "monat"
                   ? `${MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}`
-                  : `Woche ab ${new Date(range.start).toLocaleDateString("de-DE")}`}
+                  : `${t("cal_week")} — ${new Date(range.start).toLocaleDateString(lang === "en" ? "en-US" : "de-DE")}`}
               </span>
               <button
                 onClick={() => shift(1)}
@@ -221,7 +222,7 @@ export default function CalendarPanel({ onClose }: { onClose: () => void }) {
                 }}
                 className="ml-1 px-2 h-6 rounded-lg border border-gold/30 bg-gold/10 text-gold/90 text-[11px]"
               >
-                Heute
+                {t("today")}
               </button>
             </div>
           </div>
@@ -237,7 +238,7 @@ export default function CalendarPanel({ onClose }: { onClose: () => void }) {
                       : "bg-white/5 text-white/50 hover:bg-white/10"
                   }`}
                 >
-                  {v === "monat" ? "Monat" : "Woche"}
+                  {v === "monat" ? t("cal_month") : t("cal_week")}
                 </button>
               ))}
             </div>
@@ -374,7 +375,7 @@ export default function CalendarPanel({ onClose }: { onClose: () => void }) {
                         {e.titel}
                       </div>
                       <div className="text-[10px] opacity-70">
-                        {e.zeit || "ganztägig"}
+                        {e.zeit || t("cal_all_day")}
                         {e.dauer_minuten ? ` · ${e.dauer_minuten} Min` : ""}
                         {" · "}
                         {SOURCE_LABEL[e.quelle]}
@@ -407,12 +408,12 @@ export default function CalendarPanel({ onClose }: { onClose: () => void }) {
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
             <div className="glass rounded-2xl border border-white/20 w-[92%] max-w-sm p-4 space-y-2.5">
               <div className="text-[13px] font-semibold gold-text">
-                {form.id ? "Eintrag bearbeiten" : "Neuer Eintrag"}
+                {form.id ? t("cal_edit_entry") : t("cal_new_entry")}
               </div>
               <input
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Titel"
+                placeholder={t("cal_title_ph")}
                 autoFocus
                 className="w-full bg-white/5 border border-white/15 rounded-lg px-2.5 py-1.5 text-[12.5px] text-white outline-none focus:border-gold/50"
               />
@@ -436,23 +437,23 @@ export default function CalendarPanel({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setForm({ ...form, kind: e.target.value })}
                   className="flex-1 bg-white/5 border border-white/15 rounded-lg px-2 py-1.5 text-[12px] text-white outline-none [&>option]:bg-zinc-900"
                 >
-                  <option value="termin">Termin</option>
-                  <option value="task">Task</option>
-                  <option value="erinnerung">Erinnerung</option>
+                  <option value="termin">{t("cal_type_termin")}</option>
+                  <option value="task">{t("cal_type_task")}</option>
+                  <option value="erinnerung">{t("cal_type_reminder")}</option>
                 </select>
                 <input
                   value={form.duration}
                   onChange={(e) =>
                     setForm({ ...form, duration: e.target.value.replace(/\D/g, "") })
                   }
-                  placeholder="Dauer (Min)"
+                  placeholder={t("cal_duration_ph")}
                   className="w-28 bg-white/5 border border-white/15 rounded-lg px-2 py-1.5 text-[12px] text-white outline-none focus:border-gold/50"
                 />
               </div>
               <textarea
                 value={form.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
-                placeholder="Notiz (optional)"
+                placeholder={t("cal_note_ph")}
                 rows={2}
                 className="w-full bg-white/5 border border-white/15 rounded-lg px-2.5 py-1.5 text-[12px] text-white outline-none focus:border-gold/50 resize-none"
               />

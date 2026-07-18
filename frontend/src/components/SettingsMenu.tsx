@@ -13,6 +13,7 @@ import {
   setAutostart,
 } from "../lib/api";
 import { setNaturalVoice } from "../lib/tts";
+import { useT } from "../hooks/useT";
 import ConnectionsModal from "./ConnectionsModal";
 
 type Theme = "dark" | "light";
@@ -107,6 +108,7 @@ export default function SettingsMenu({
   toolMode: ToolMode;
   onToolModeChange: (mode: ToolMode) => void;
 }) {
+  const { lang, setLang } = useT();
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(() =>
     localStorage.getItem("jon_theme") === "light" ? "light" : "dark"
@@ -435,12 +437,11 @@ export default function SettingsMenu({
                 UI & Chat Sprache
               </div>
               <select
-                value={localStorage.getItem("jon_lang") || "de"}
+                value={lang}
                 onChange={(e) => {
-                  const lang = e.target.value;
-                  localStorage.setItem("jon_lang", lang);
-                  window.dispatchEvent(new Event("jon_lang_change"));
-                  void saveUserSettings({ language: lang });
+                  const next = e.target.value;
+                  setLang(next);
+                  void saveUserSettings({ language: next });
                 }}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white/90 outline-none focus:border-gold/50 [&>option]:bg-zinc-900"
               >

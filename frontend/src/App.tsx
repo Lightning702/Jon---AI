@@ -1428,7 +1428,7 @@ export default function App() {
                     className="flex items-center gap-1.5 pl-2.5 pr-2 h-7 hover:bg-gold/20 transition-colors"
                   >
                     <span className="text-[13px] leading-none">🙂</span>
-                    <span className="text-[11px] font-medium">Mini Jon</span>
+                    <span className="text-[11px] font-medium">{t("header_mini_jon")}</span>
                   </button>
                   <button
                     onClick={() => setPetConfigOpen(true)}
@@ -1445,7 +1445,7 @@ export default function App() {
                 className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
               >
                 <span className="text-[12px] leading-none">📅</span>
-                <span className="text-[11px] font-medium">Kalender</span>
+                <span className="text-[11px] font-medium">{t("header_calendar")}</span>
               </button>
               <div className="relative">
                 <button
@@ -1458,7 +1458,7 @@ export default function App() {
                   }`}
                 >
                   <span className="text-[12px] leading-none">🧰</span>
-                  <span className="text-[11px] font-medium">Werkzeuge</span>
+                  <span className="text-[11px] font-medium">{t("header_tools")}</span>
                   {unread > 0 && !toolsMenuOpen && (
                     <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-gold text-black text-[9px] font-bold flex items-center justify-center">
                       {unread}
@@ -1471,7 +1471,7 @@ export default function App() {
                     <div className="absolute right-0 top-9 z-50 w-56 glass rounded-xl border border-white/15 p-1.5 text-left max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain">
                       {([
                         {
-                          title: "Arbeiten",
+                          title: t("tools_work"),
                           items: [
                             { icon: "🔎", label: "Alles durchsuchen", hint: "Strg+K", act: () => setSearchOpen(true) },
                             { icon: "</>", label: "Jon Code", act: () => setCodeOpen(true) },
@@ -1483,7 +1483,7 @@ export default function App() {
                           ],
                         },
                         {
-                          title: "PC & Medien",
+                          title: t("tools_pc"),
                           items: [
                             { icon: "🔍", label: "Bildschirm erklären", hint: "Strg+Alt+E", act: () => setExplainOpen(true) },
                             { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
@@ -1493,7 +1493,7 @@ export default function App() {
                           ],
                         },
                         {
-                          title: "Spaß & mehr",
+                          title: t("tools_fun"),
                           items: [
                             { icon: "🎙️", label: "Abend-Show", act: () => setShowOpen(true) },
                             { icon: "🎮", label: "Blockwelt-Spiel", act: () => window.open(blockweltUrl(), "_blank") },
@@ -1540,11 +1540,7 @@ export default function App() {
               </div>
               <button
                 onClick={toggleScreen}
-                title={
-                  screenOn
-                    ? "Live Screen an — Jon schaut mit und meldet sich, wenn er etwas Hilfreiches sieht"
-                    : "Live Screen aus"
-                }
+                title={screenOn ? t("live_screen_on") : t("live_screen_off")}
                 className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
                   screenOn
                     ? "border-sky-400/40 bg-sky-400/10 text-sky-300"
@@ -1613,11 +1609,10 @@ export default function App() {
             <RoutineBanner />
             {entries.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center">
-                <h1 className="text-4xl font-bold gold-text mb-3">Jon</h1>
-                <p className="text-white/40 max-w-md">
-                  Dein moderner KI-Desktop-Assistent. Wähle ein Modell und beginne
-                  eine Unterhaltung.
-                </p>
+                <h1 className="text-4xl font-bold gold-text mb-3">
+                  {t("empty_title")}
+                </h1>
+                <p className="text-white/40 max-w-md">{t("empty_hint")}</p>
               </div>
             )}
             {entries.map((e) => (

@@ -29,7 +29,12 @@ export const de = {
   cal_duration_ph: "Dauer (Min)",
   cal_note_ph: "Notiz (optional)",
   cal_done: "Erledigt",
-  
+  cal_all_day: "ganztägig",
+  cal_source_jon: "Jon",
+  cal_source_automation: "Automation",
+  cal_source_reminder: "Erinnerung",
+  cal_source_ics: "Google/Outlook",
+
   // Trash
   trash_title: "🗑️ Lade Papierkorb …",
   trash_empty: "Der Papierkorb ist leer. Gelöschte, überschriebene und verschobene Dateien landen hier und bleiben 30 Tage erhalten.",
@@ -51,6 +56,22 @@ export const de = {
   
   // Chat
   chat_placeholder: "Frag Jon...",
+  search_history: "Verlauf durchsuchen …",
+  drop_file: "Datei hier loslassen …",
+  new_chat: "Neuer Chat",
+  no_conversations: "Noch keine Unterhaltungen",
+  empty_title: "Wie kann ich helfen?",
+  empty_hint: "Frag mich etwas, gib mir eine Aufgabe oder sag „Jon“.",
+  header_mini_jon: "Mini Jon",
+  header_calendar: "Kalender",
+  header_tools: "Werkzeuge",
+  live_screen_on: "Live Screen an — Jon schaut mit",
+  live_screen_off: "Live Screen aus",
+  voice_on: "Zuhören an — sag „Jon“",
+  voice_off: "Zuhören aus",
+  tools_work: "Arbeiten",
+  tools_pc: "PC & Medien",
+  tools_fun: "Spaß & mehr",
 };
 
 export type Translations = typeof de;

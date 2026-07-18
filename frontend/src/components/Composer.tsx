@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { extractAttachment } from "../lib/api";
+import { useT } from "../hooks/useT";
 
 export interface PendingAttachment {
   id: string;
@@ -29,6 +30,7 @@ const kindIcon = (kind: string, status: string) => {
 };
 
 export default function Composer({ disabled, onSend, onStop, streaming }: Props) {
+  const { t } = useT();
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -205,11 +207,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
             onKeyDown={onKey}
             onPaste={onPaste}
             rows={1}
-            placeholder={
-              dragging
-                ? "Datei hier loslassen …"
-                : "Schreibe Jon eine Nachricht ..." // We will leave this one or translate it? Wait, I didn't import useT.
-            }
+            placeholder={dragging ? t("drop_file") : t("chat_placeholder")}
             className="flex-1 bg-transparent resize-none outline-none px-3 py-2 text-white/90 placeholder-white/30 max-h-44"
           />
           {streaming ? (

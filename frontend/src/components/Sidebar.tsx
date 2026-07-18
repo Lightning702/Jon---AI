@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import type { ConversationSummary } from "../lib/api";
+import { useT } from "../hooks/useT";
 
 interface Props {
   conversations: ConversationSummary[];
@@ -19,6 +20,7 @@ export default function Sidebar({
   onNew,
   onDelete,
 }: Props) {
+  const { t } = useT();
   const [query, setQuery] = useState("");
   const filtered = query.trim()
     ? conversations.filter((c) =>
@@ -32,14 +34,14 @@ export default function Sidebar({
           onClick={onNew}
           className="no-drag w-full py-3 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold shadow-gold hover:brightness-110 transition"
         >
-          + Neue Unterhaltung
+          {t("new_chat")}
         </button>
       </div>
       <div className="px-4 pb-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Verlauf durchsuchen …"
+          placeholder={t("search_history")}
           className="no-drag w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] text-white/80 placeholder-white/30 outline-none focus:border-gold/40"
         />
       </div>
@@ -75,7 +77,7 @@ export default function Sidebar({
         ))}
         {filtered.length === 0 && (
           <p className="text-center text-white/30 text-sm mt-8">
-            {query.trim() ? "Keine Treffer" : "Noch keine Unterhaltungen"}
+            {query.trim() ? "—" : t("no_conversations")}
           </p>
         )}
       </div>
