@@ -1,4 +1,4 @@
-const BASE =
+export const BASE =
   window.location.protocol.startsWith("http") &&
   window.location.port === "8756"
     ? `${window.location.origin}/api`

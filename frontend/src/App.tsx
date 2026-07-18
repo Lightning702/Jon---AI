@@ -1095,7 +1095,7 @@ export default function App() {
       setEntries((prev) => [
         ...prev,
         { id: `u-${id}`, role: "user", content: text },
-        { id: `s-${id}`, role: "system", content: "⚙️ Starte Update...\n" },
+        { id: `s-${id}`, role: "assistant", content: "⚙️ Starte Update...\n" },
       ]);
       try {
         const res = await fetch(`${BASE}/update`, { method: "POST" });
