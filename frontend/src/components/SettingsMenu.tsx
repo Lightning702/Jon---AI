@@ -429,6 +429,25 @@ export default function SettingsMenu({
                 onClick={toggleTimeline}
               />
             </div>
+            <Section title="Sprache / Language" />
+            <div className="pt-1">
+              <div className="text-[10px] text-white/40 px-0.5 mb-1">
+                UI & Chat Sprache
+              </div>
+              <select
+                value={localStorage.getItem("jon_lang") || "de"}
+                onChange={(e) => {
+                  const lang = e.target.value;
+                  localStorage.setItem("jon_lang", lang);
+                  window.dispatchEvent(new Event("jon_lang_change"));
+                  void saveUserSettings({ language: lang });
+                }}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white/90 outline-none focus:border-gold/50 [&>option]:bg-zinc-900"
+              >
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+              </select>
+            </div>
             <Section title="Sprachsteuerung" />
             <div className="pt-1">
               <div className="text-[10px] text-white/40 px-0.5 mb-1">

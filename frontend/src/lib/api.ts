@@ -264,6 +264,7 @@ export interface UserSettings {
   pet_roam: boolean;
   pet_companion: string;
   wake_sensitivity: string;
+  language: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -320,6 +321,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       pet_roam: false,
       pet_companion: "none",
       wake_sensitivity: "mittel",
+      language: "de",
     };
   return res.json();
 }

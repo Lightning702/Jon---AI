@@ -154,7 +154,10 @@ const briefingPrompt = (data: Record<string, unknown>) =>
   "unter „Was ich in deiner Abwesenheit getan habe“ in 1-3 Zeilen zusammen. " +
   "Rufe KEINE Tools auf, alle Daten stehen oben. Maximal 10 kurze Zeilen.";
 
+import { useT } from "./hooks/useT";
+
 export default function App() {
+  const { t } = useT();
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
   const [provider, setProvider] = useState("nvidia");
   const [model, setModel] = useState("openai/gpt-oss-120b");
@@ -1095,30 +1098,39 @@ export default function App() {
       setEntries((prev) => [
         ...prev,
         { id: `u-${id}`, role: "user", content: text },
-        { id: `s-${id}`, role: "assistant", content: "⚙️ Starte Update...\n" },
+        { id: `s-${id}`, role: "assistant", content: t("update_progress") },
       ]);
+      const appendTo = (extra: string) =>
+        setEntries((prev) =>
+          prev.map((e) =>
+            e.id === `s-${id}` ? { ...e, content: e.content + extra } : e
+          )
+        );
       try {
         const res = await fetch(`${BASE}/update`, { method: "POST" });
-        if (!res.body) throw new Error("Kein Body empfangen");
+        if (res.status === 405 || res.status === 404) {
+          appendTo(
+            "\n⚠️ Dein Backend läuft noch mit einer älteren Version und kennt " +
+              "das Update noch nicht.\nStarte Jon einmal neu (start-jon.bat) — " +
+              "danach funktioniert /update.\nAuf dem Raspberry Pi: `sudo " +
+              "systemctl restart jon`."
+          );
+          return;
+        }
+        if (!res.ok || !res.body) {
+          const detail = await res.text().catch(() => "");
+          throw new Error(detail || `HTTP ${res.status}`);
+        }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          setEntries((prev) =>
-            prev.map((e) =>
-              e.id === `s-${id}` ? { ...e, content: e.content + chunk } : e
-            )
-          );
+          appendTo(decoder.decode(value, { stream: true }));
         }
-      } catch (err: any) {
-        setEntries((prev) =>
-          prev.map((e) =>
-            e.id === `s-${id}`
-              ? { ...e, content: e.content + `\n❌ Fehler: ${err.message}` }
-              : e
-          )
+      } catch (err) {
+        appendTo(
+          `\n❌ Fehler: ${err instanceof Error ? err.message : String(err)}`
         );
       }
       return;

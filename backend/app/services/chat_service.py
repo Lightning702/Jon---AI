@@ -321,6 +321,14 @@ class ChatService:
                 ]
             else:
                 parts = [base]
+            
+            lang = settings_service.get().get("language", "de")
+            if lang == "en":
+                parts.append(
+                    "WICHTIG / IMPORTANT: The user has selected English as their preferred language. "
+                    "You MUST respond entirely in English. All your output, explanations, and conversational "
+                    "text must be in English. (Except when specifically asked to translate or output something else)."
+                )
         catalog = self._skills.catalog()
         if catalog:
             parts.append(catalog)

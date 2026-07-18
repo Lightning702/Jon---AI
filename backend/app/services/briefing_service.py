@@ -6,15 +6,10 @@ from app.services.reminder_service import get_reminder_service
 from app.services.settings_service import get_settings_service
 from app.services.system_service import SystemService
 
-WEEKDAYS = [
-    "Montag",
-    "Dienstag",
-    "Mittwoch",
-    "Donnerstag",
-    "Freitag",
-    "Samstag",
-    "Sonntag",
-]
+WEEKDAYS = {
+    "de": ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"],
+    "en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+}
 
 _system = SystemService()
 
@@ -22,8 +17,9 @@ _system = SystemService()
 class BriefingService:
     def build(self) -> dict:
         now = datetime.now()
+        lang = str(get_settings_service().get().get("language", "de"))
         data: dict = {
-            "weekday": WEEKDAYS[now.weekday()],
+            "weekday": WEEKDAYS.get(lang, WEEKDAYS["de"])[now.weekday()],
             "date": now.strftime("%d.%m.%Y"),
             "time": now.strftime("%H:%M"),
             "calendar_week": now.isocalendar()[1],

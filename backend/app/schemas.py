@@ -98,6 +98,7 @@ class SettingsIn(BaseModel):
     pet_roam: bool | None = None
     pet_companion: str | None = None
     wake_sensitivity: str | None = None
+    language: str | None = None
 
 
 class WatcherIn(BaseModel):

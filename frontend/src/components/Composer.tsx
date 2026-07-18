@@ -208,7 +208,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
             placeholder={
               dragging
                 ? "Datei hier loslassen …"
-                : "Schreibe Jon eine Nachricht ..."
+                : "Schreibe Jon eine Nachricht ..." // We will leave this one or translate it? Wait, I didn't import useT.
             }
             className="flex-1 bg-transparent resize-none outline-none px-3 py-2 text-white/90 placeholder-white/30 max-h-44"
           />
