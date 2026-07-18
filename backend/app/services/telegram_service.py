@@ -288,7 +288,127 @@ class TelegramService:
             answer = f"{answer}\n\n✅ Ausgeführte Befehle:\n{report}"
         return answer
 
+    def _direct_control(self, text: str) -> str | None:
+        raw = text.strip()
+        low = raw.lower().strip(" .!?")
+        if not low:
+            return None
+        from app.services.automation_service import AutomationService
+
+        auto = AutomationService()
+
+        def log(tool: str, args: dict, result: str) -> None:
+            from app.services.action_log_service import log_action
+
+            log_action("telegram", tool, args, result, ok="error" not in result)
+
+        try:
+            for trigger in ("schreibe ", "schreib ", "tippe ", "tipp ", "type "):
+                if low.startswith(trigger):
+                    payload = raw[len(trigger):].strip().strip('"').strip("'")
+                    if not payload:
+                        return None
+                    auto.keyboard_type(payload, False)
+                    log("keyboard_type", {"text": payload}, "ok")
+                    return f"⌨️ Geschrieben: {payload}"
+            for trigger in ("drücke ", "druecke ", "drück ", "drueck ", "taste "):
+                if low.startswith(trigger):
+                    key = low[len(trigger):].strip().replace("die ", "").replace(
+                        "-taste", ""
+                    ).strip()
+                    key = {
+                        "eingabe": "enter",
+                        "eingabetaste": "enter",
+                        "zurück": "backspace",
+                        "zurueck": "backspace",
+                        "leertaste": "space",
+                        "leer": "space",
+                        "escape": "esc",
+                        "hoch": "up",
+                        "runter": "down",
+                        "rechts": "right",
+                        "links": "left",
+                    }.get(key, key)
+                    if not key:
+                        return None
+                    auto.keyboard_press(key, 1)
+                    log("keyboard_press", {"key": key}, "ok")
+                    return f"⌨️ Taste gedrückt: {key}"
+            if low in ("enter", "eingabe", "bestätigen", "bestaetigen", "senden"):
+                auto.keyboard_press("enter", 1)
+                log("keyboard_press", {"key": "enter"}, "ok")
+                return "⌨️ Enter gedrückt"
+            if low in (
+                "doppelklick",
+                "doppel klick",
+                "doppelklicke",
+                "doppelt klicken",
+                "doppelklicken",
+            ):
+                auto.mouse_click(None, None, "left", 2)
+                log("mouse_click", {"clicks": 2}, "ok")
+                return "🖱️ Doppelklick"
+            if any(
+                low == v or low.startswith(v + " ")
+                for v in (
+                    "rechtsklick",
+                    "rechts klick",
+                    "rechtsklicke",
+                    "rechtsklicken",
+                    "rechte maustaste",
+                )
+            ):
+                auto.mouse_click(None, None, "right", 1)
+                log("mouse_click", {"button": "right"}, "ok")
+                return "🖱️ Rechtsklick"
+            if any(
+                low == v or low.startswith(v + " ")
+                for v in (
+                    "klick",
+                    "klicke",
+                    "klick mal",
+                    "klicken",
+                    "linksklick",
+                    "links klick",
+                    "linksklicke",
+                    "linksklicken",
+                    "mausklick",
+                    "click",
+                    "drauf klicken",
+                    "drauf klick",
+                )
+            ):
+                auto.mouse_click(None, None, "left", 1)
+                log("mouse_click", {"button": "left"}, "ok")
+                return "🖱️ Linksklick (an aktueller Mausposition)"
+            if any(
+                w in low
+                for w in ("scroll", "scrolle", "runterscrollen", "hochscrollen")
+            ):
+                down = not any(w in low for w in ("hoch", "oben", "up"))
+                auto.mouse_scroll(-600 if down else 600)
+                log("mouse_scroll", {"down": down}, "ok")
+                return "🖱️ Gescrollt " + ("runter" if down else "hoch")
+        except Exception as exc:
+            return f"Das ging nicht: {exc}"
+        return None
+
     async def _handle(self, chat_id: str, text: str, voice: bool = False) -> None:
+        direct = await asyncio.to_thread(self._direct_control, text)
+        if direct is not None:
+            history = self._histories.setdefault(chat_id, [])
+            history.append({"role": "user", "content": text})
+            history.append({"role": "assistant", "content": direct})
+            del history[:-HISTORY_KEEP]
+            self._save_histories()
+            wants_voice = (
+                voice or chat_id in self._voice_reply
+            ) and chat_id not in self._voice_off
+            if wants_voice:
+                await self.send_voice(chat_id, direct)
+            else:
+                await self.send(chat_id, direct)
+            return
         typing = asyncio.create_task(self._typing(chat_id))
         try:
             answer = await asyncio.wait_for(self._answer(chat_id, text), timeout=180)
