@@ -27,6 +27,7 @@ class TelegramService:
         self._voice_off: set[str] = set()
         self._running: dict[str, asyncio.Task] = {}
         self._last_morning = self._load_morning()
+        self._pending_place: dict[str, str] = {}
 
     def _load_histories(self) -> dict[str, list[dict]]:
         try:
@@ -202,6 +203,25 @@ class TelegramService:
         if "error" in result:
             return ""
         return str(result.get("content", ""))
+
+    async def _handle_location(
+        self, chat_id: str, lat: float, lon: float, live: bool = False
+    ) -> None:
+        from app.services.location_service import get_location_service
+
+        service = get_location_service()
+        pending = self._pending_place.pop(chat_id, None)
+        if pending and not live:
+            service.add_place(chat_id, pending, lat, lon)
+            await self.send(
+                chat_id,
+                f"📍 Gemerkt! „{pending}“ ist jetzt gespeichert. Sag z. B. "
+                f"„Erinnere mich an Milch, wenn ich beim {pending} bin“.",
+            )
+            return
+        triggered = service.check(chat_id, lat, lon)
+        for text in triggered:
+            await self.send(chat_id, f"📍 Du bist da! Denk an: {text}")
 
     async def _typing(self, chat_id: str | int) -> None:
         while True:
@@ -555,12 +575,24 @@ class TelegramService:
             return
         for update in data.get("result", []):
             self._offset = max(self._offset, int(update["update_id"]) + 1)
-            message = update.get("message") or {}
+            edited = update.get("edited_message") or {}
+            message = update.get("message") or edited or {}
             chat_id = (message.get("chat") or {}).get("id")
-            text = (message.get("text") or "").strip()
-            voice_msg = message.get("voice") or message.get("audio")
             if not chat_id:
                 continue
+            location = message.get("location") or message.get("venue", {}).get(
+                "location"
+            )
+            if location:
+                await self._handle_location(
+                    str(chat_id),
+                    float(location.get("latitude")),
+                    float(location.get("longitude")),
+                    live=bool(edited),
+                )
+                continue
+            text = (message.get("text") or "").strip()
+            voice_msg = message.get("voice") or message.get("audio")
             is_voice = False
             if not text and voice_msg and voice_msg.get("file_id"):
                 await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
@@ -664,6 +696,57 @@ class TelegramService:
                 await self.send(
                     chat_id, "Alles klar, ich antworte dir jetzt als Sprachnachricht. 🎙️"
                 )
+                continue
+            low = text.lower()
+            place_trigger = None
+            for phrase in (
+                "ort speichern",
+                "neuer ort",
+                "merk dir diesen ort als",
+                "ort merken",
+                "speicher den ort",
+                "das ist mein",
+                "das ist der",
+                "das ist die",
+                "das ist das",
+            ):
+                if low.startswith(phrase):
+                    place_trigger = text[len(phrase):].strip(" :.-") or ""
+                    break
+            if place_trigger is not None:
+                name = place_trigger or "Ort"
+                self._pending_place[str(chat_id)] = name
+                await self.send(
+                    chat_id,
+                    f"Alles klar. Teile mir jetzt deinen Standort (📎 → Standort), "
+                    f"dann merke ich mir ihn als „{name}“.",
+                )
+                continue
+            from app.services.location_service import (
+                get_location_service,
+                parse_geo_reminder,
+            )
+
+            geo = parse_geo_reminder(text)
+            if geo:
+                what, where = geo
+                missing = get_location_service().add_reminder(
+                    str(chat_id), what, where
+                )
+                if missing:
+                    await self.send(
+                        chat_id,
+                        f"Ich merke mir: „{what}“ bei „{where}“. Den Ort „{where}“ "
+                        f"kenne ich aber noch nicht — schreib „Ort speichern: {where}“ "
+                        "und teile mir dann dort deinen Standort, dann kann ich dich "
+                        "wirklich erinnern, wenn du da bist.",
+                    )
+                else:
+                    await self.send(
+                        chat_id,
+                        f"📍 Erledigt! Ich erinnere dich an „{what}“, sobald du bei "
+                        f"„{where}“ bist. Teile dazu unterwegs deinen Live-Standort.",
+                    )
                 continue
             if is_voice and len(text) > 200:
                 text = (
