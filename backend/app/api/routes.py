@@ -60,6 +60,10 @@ from app.schemas import (
     TeamIn,
     TimelineDescribeIn,
     TimelineSearchIn,
+    TrashRestoreIn,
+    PairRequestIn,
+    PairClaimIn,
+    PairDenyIn,
     WatcherIn,
     WebcamIn,
 )
@@ -1125,3 +1129,84 @@ async def delete_watcher(watcher_id: str) -> dict:
     from app.services.watcher_service import get_watcher_service
 
     return {"deleted": get_watcher_service().delete(watcher_id)}
+
+
+def _require_local(request: Request) -> None:
+    host = request.client.host if request.client else ""
+    if host not in ("127.0.0.1", "::1", "localhost", "testclient"):
+        raise HTTPException(status_code=403, detail="Nur vom PC selbst erlaubt")
+
+
+@router.get("/trash")
+async def trash_list() -> list[dict]:
+    from app.services.trash_service import get_trash_service
+
+    return get_trash_service().entries()
+
+
+@router.post("/trash/restore")
+async def trash_restore(payload: TrashRestoreIn) -> dict:
+    from app.services.trash_service import get_trash_service
+
+    return get_trash_service().restore(payload.id)
+
+
+@router.post("/trash/undo")
+async def trash_undo() -> dict:
+    from app.services.trash_service import get_trash_service
+
+    return get_trash_service().undo_last()
+
+
+@router.get("/actions")
+async def action_log(source: str = "", day: str = "", limit: int = 30) -> list[dict]:
+    from app.services.action_log_service import list_actions
+
+    return list_actions(limit=limit, source=source, day=day)
+
+
+@router.post("/pair/request")
+async def pair_request(payload: PairRequestIn) -> dict:
+    from app.services.pairing_service import get_pairing_service
+
+    return {"request_id": get_pairing_service().request(payload.name)}
+
+
+@router.post("/pair/claim")
+async def pair_claim(payload: PairClaimIn) -> dict:
+    from app.services.pairing_service import get_pairing_service
+
+    result = get_pairing_service().claim(payload.request_id, payload.code)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/pair/pending")
+async def pair_pending(request: Request) -> list[dict]:
+    from app.services.pairing_service import get_pairing_service
+
+    _require_local(request)
+    return get_pairing_service().pending()
+
+
+@router.post("/pair/deny")
+async def pair_deny(payload: PairDenyIn, request: Request) -> dict:
+    from app.services.pairing_service import get_pairing_service
+
+    _require_local(request)
+    return {"denied": get_pairing_service().deny(payload.request_id)}
+
+
+@router.get("/pair/devices")
+async def pair_devices() -> list[dict]:
+    from app.services.pairing_service import get_pairing_service
+
+    return get_pairing_service().devices()
+
+
+@router.delete("/pair/devices/{device_id}")
+async def pair_remove(device_id: str) -> dict:
+    from app.services.pairing_service import get_pairing_service
+
+    return {"removed": get_pairing_service().remove(device_id)}

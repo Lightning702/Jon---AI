@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  PairedDevice,
   ToolMode,
   UserSettings,
   backupUrl,
   getAutostart,
+  getPairedDevices,
   getUserSettings,
   importBackup,
+  removePairedDevice,
   saveUserSettings,
   setAutostart,
 } from "../lib/api";
@@ -125,6 +128,19 @@ export default function SettingsMenu({
   const [petRoam, setPetRoam] = useState(false);
   const [petCompanion, setPetCompanion] = useState("none");
   const [connections, setConnections] = useState<UserSettings | null>(null);
+  const [devices, setDevices] = useState<PairedDevice[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    void getPairedDevices()
+      .then(setDevices)
+      .catch(() => setDevices([]));
+  }, [open]);
+
+  const dropDevice = async (id: string) => {
+    await removePairedDevice(id);
+    setDevices((prev) => prev.filter((d) => d.id !== id));
+  };
 
   useEffect(() => {
     void getUserSettings().then((s) => {
@@ -440,6 +456,35 @@ export default function SettingsMenu({
               placeholder="Stadt (für das Wetter)"
               className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
             />
+            {devices.length > 0 && (
+              <>
+                <Section title="Gekoppelte Geräte" />
+                <div className="space-y-1">
+                  {devices.map((d) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-white/85 truncate">
+                          📱 {d.name}
+                        </div>
+                        <div className="text-[9.5px] text-white/35">
+                          seit {d.paired_at.slice(0, 10)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => void dropDevice(d.id)}
+                        title="Gerät entkoppeln — es muss sich danach neu koppeln."
+                        className="text-white/35 hover:text-red-300 text-[12px] shrink-0"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             <Section title="Backup" />
             <div className="flex gap-1">
               <a

@@ -25,6 +25,7 @@ class ChatIn(BaseModel):
     persona: str = Field(default="papa", pattern="^(papa|junior)$")
     slot: str = Field(default="", pattern="^(jon|emil)?$")
     workspace: str | None = None
+    source: str = ""
 
 
 class ApproveIn(BaseModel):
@@ -351,3 +352,20 @@ class HealthOut(BaseModel):
     default_provider: str
     default_model: str
     available_providers: list[str]
+
+
+class TrashRestoreIn(BaseModel):
+    id: str
+
+
+class PairRequestIn(BaseModel):
+    name: str = "Geraet"
+
+
+class PairClaimIn(BaseModel):
+    request_id: str
+    code: str
+
+
+class PairDenyIn(BaseModel):
+    request_id: str

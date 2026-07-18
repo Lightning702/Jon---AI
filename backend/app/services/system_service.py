@@ -141,6 +141,10 @@ class SystemService:
 
     def write_file(self, path: str, content: str) -> None:
         target = Path(path).expanduser()
+        if target.exists():
+            from app.services.trash_service import get_trash_service
+
+            get_trash_service().stash_overwrite(target)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
 
@@ -150,26 +154,38 @@ class SystemService:
         occurrences = text.count(old)
         if occurrences == 0:
             raise ValueError("Textstelle nicht gefunden")
+        from app.services.trash_service import get_trash_service
+
+        get_trash_service().stash_overwrite(target, "bearbeitet")
         replaced = text.replace(old, new) if count < 0 else text.replace(old, new, count)
         target.write_text(replaced, encoding="utf-8")
         return {"path": str(target), "replacements": occurrences if count < 0 else min(count, occurrences)}
 
     def move_path(self, source: str, destination: str) -> str:
+        from app.services.trash_service import get_trash_service
+
         src = Path(source).expanduser()
         dst = Path(destination).expanduser()
         if not src.exists():
             raise FileNotFoundError(str(src))
         dst.parent.mkdir(parents=True, exist_ok=True)
-        return shutil.move(str(src), str(dst))
+        if dst.exists() and dst.is_file():
+            get_trash_service().stash_overwrite(dst)
+        moved = shutil.move(str(src), str(dst))
+        get_trash_service().record_move(src, Path(moved))
+        return moved
 
     def delete_path(self, path: str) -> None:
         target = Path(path).expanduser()
         if not target.exists():
             raise FileNotFoundError(str(target))
-        if target.is_dir():
-            shutil.rmtree(target)
-        else:
-            target.unlink()
+        from app.services.trash_service import get_trash_service
+
+        if get_trash_service().stash_delete(target) is None:
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
 
     def open_in_vscode(self, path: str) -> int:
         return self.start_program("code", [path])

@@ -1682,3 +1682,120 @@ export async function streamChat(
     }
   }
 }
+
+export interface TrashEntry {
+  id: string;
+  action: string;
+  original: string;
+  name?: string;
+  destination?: string;
+  deleted_at?: string;
+}
+
+export async function getTrash(): Promise<TrashEntry[]> {
+  const res = await fetch(`${BASE}/trash`);
+  if (!res.ok) throw new Error("trash failed");
+  return res.json();
+}
+
+export async function restoreTrash(
+  id: string
+): Promise<{ restored?: string; error?: string }> {
+  const res = await fetch(`${BASE}/trash/restore`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  return res.json();
+}
+
+export async function undoTrash(): Promise<{
+  restored?: string;
+  error?: string;
+}> {
+  const res = await fetch(`${BASE}/trash/undo`, { method: "POST" });
+  return res.json();
+}
+
+export interface ActionLogEntry {
+  id: number;
+  source: string;
+  tool: string;
+  args: string;
+  result: string;
+  ok: boolean;
+  created_at: string;
+}
+
+export async function getActions(
+  source = "",
+  day = "",
+  limit = 30
+): Promise<ActionLogEntry[]> {
+  const params = new URLSearchParams();
+  if (source) params.set("source", source);
+  if (day) params.set("day", day);
+  params.set("limit", String(limit));
+  const res = await fetch(`${BASE}/actions?${params.toString()}`);
+  if (!res.ok) throw new Error("actions failed");
+  return res.json();
+}
+
+export interface PairPending {
+  request_id: string;
+  name: string;
+  code: string;
+}
+
+export interface PairedDevice {
+  id: string;
+  name: string;
+  paired_at: string;
+}
+
+export async function pairRequest(name: string): Promise<{ request_id: string }> {
+  const res = await fetch(`${BASE}/pair/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error("pair request failed");
+  return res.json();
+}
+
+export async function pairClaim(
+  requestId: string,
+  code: string
+): Promise<{ token?: string; detail?: string }> {
+  const res = await fetch(`${BASE}/pair/claim`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ request_id: requestId, code }),
+  });
+  return res.json();
+}
+
+export async function getPairPending(): Promise<PairPending[]> {
+  const res = await fetch(`${BASE}/pair/pending`);
+  if (res.status === 403) throw new Error("forbidden");
+  if (!res.ok) throw new Error("pending failed");
+  return res.json();
+}
+
+export async function denyPair(requestId: string): Promise<void> {
+  await fetch(`${BASE}/pair/deny`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ request_id: requestId }),
+  });
+}
+
+export async function getPairedDevices(): Promise<PairedDevice[]> {
+  const res = await fetch(`${BASE}/pair/devices`);
+  if (!res.ok) throw new Error("devices failed");
+  return res.json();
+}
+
+export async function removePairedDevice(id: string): Promise<void> {
+  await fetch(`${BASE}/pair/devices/${id}`, { method: "DELETE" });
+}

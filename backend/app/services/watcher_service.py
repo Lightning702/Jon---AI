@@ -123,7 +123,7 @@ class WatcherService:
                 )
                 try:
                     result = await get_task_service()._run_task(
-                        prompt, provider or "", model or ""
+                        prompt, provider or "", model or "", source="watcher"
                     )
                 except Exception as exc:
                     result = f"Datei-Waechter fehlgeschlagen: {exc}"

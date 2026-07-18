@@ -27,16 +27,24 @@ import Notes from "./components/Notes";
 import Vault from "./components/Vault";
 import Search from "./components/Search";
 import SetupWizard from "./components/SetupWizard";
+import PairingScreen from "./components/PairingScreen";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import {
   ConversationSummary,
   P2PIdentity,
   P2PRequest,
+  PairPending,
   ProviderStatus,
   StreamEvent,
   ToolMode,
   addDream,
+  denyPair,
+  getActions,
+  getPairPending,
+  getTrash,
+  restoreTrash,
+  undoTrash,
   answerRequest,
   checkUpdate,
   getChatNotifications,
@@ -138,8 +146,9 @@ const briefingPrompt = (data: Record<string, unknown>) =>
   "Begrüßung passend zur Uhrzeit, Wochentag und Datum, das Wetter (falls " +
   "vorhanden, sonst erwähne kurz, dass die Stadt im Zahnrad-Menü eingetragen " +
   "werden kann), heutige Erinnerungen, Wecker und geplante Automationen (nur " +
-  "falls vorhanden). Rufe KEINE Tools auf, alle Daten stehen oben. Maximal 8 " +
-  "kurze Zeilen.";
+  "falls vorhanden). Falls in_abwesenheit_getan Einträge enthält, fasse sie " +
+  "unter „Was ich in deiner Abwesenheit getan habe“ in 1-3 Zeilen zusammen. " +
+  "Rufe KEINE Tools auf, alle Daten stehen oben. Maximal 10 kurze Zeilen.";
 
 export default function App() {
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
@@ -194,6 +203,10 @@ export default function App() {
   const [screenOn, setScreenOn] = useState(
     () => localStorage.getItem("jon_screen") === "1"
   );
+  const [pairingNeeded, setPairingNeeded] = useState(false);
+  const [pairPending, setPairPending] = useState<PairPending | null>(null);
+  const pairPollOffRef = useRef(false);
+  const trashListRef = useRef<string[]>([]);
   const lastScreenRef = useRef("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -206,6 +219,26 @@ export default function App() {
   const voiceHistoryRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
     []
   );
+
+  useEffect(() => {
+    const onNeed = () => setPairingNeeded(true);
+    window.addEventListener("jon:pairing-required", onNeed);
+    return () => window.removeEventListener("jon:pairing-required", onNeed);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      if (pairPollOffRef.current) return;
+      try {
+        const pending = await getPairPending();
+        setPairPending(pending[0] ?? null);
+      } catch (e) {
+        if (e instanceof Error && e.message === "forbidden")
+          pairPollOffRef.current = true;
+      }
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     jonDesktop?.onExplainScreen?.(() => setExplainOpen(true));
@@ -962,11 +995,91 @@ export default function App() {
       void runBriefing();
       return;
     }
+    if (command === "/undo") {
+      void runSlashJob(text, "↩️ Stelle wieder her …", async () => {
+        const r = await undoTrash();
+        return r.error
+          ? `Das ging nicht: ${r.error}`
+          : `↩️ Wiederhergestellt: \`${r.restored}\``;
+      });
+      return;
+    }
+    if (command === "/papierkorb" || command === "/trash") {
+      void runSlashJob(text, "🗑️ Lade Papierkorb …", async () => {
+        const items = await getTrash();
+        trashListRef.current = items.map((e) => e.id);
+        if (!items.length)
+          return "Der Papierkorb ist leer. Gelöschte, überschriebene und verschobene Dateien landen hier und bleiben 30 Tage erhalten.";
+        return (
+          "**🗑️ Papierkorb** (wird nach 30 Tagen geleert):\n\n" +
+          items
+            .slice(0, 20)
+            .map(
+              (e, i) =>
+                `${i + 1}. **${e.name || "?"}** · ${e.action} · ${(e.deleted_at ?? "").replace("T", " ")}\n   \`${e.original}\``
+            )
+            .join("\n") +
+          "\n\nWiederherstellen: `/restore <Nummer>` — oder `/undo` für die letzte Aktion."
+        );
+      });
+      return;
+    }
     if (command === "/export") {
       exportChat();
       return;
     }
     const arg = text.trim().slice(text.trim().indexOf(" ") + 1).trim();
+    if (command.startsWith("/restore") || command.startsWith("/wiederherstellen")) {
+      void runSlashJob(text, "↩️ Stelle wieder her …", async () => {
+        const nr = parseInt(arg, 10);
+        const id = trashListRef.current[nr - 1];
+        if (!id)
+          return "Nutzung: erst `/papierkorb` anzeigen, dann `/restore <Nummer>`.";
+        const r = await restoreTrash(id);
+        return r.error
+          ? `Das ging nicht: ${r.error}`
+          : `↩️ Wiederhergestellt: \`${r.restored}\``;
+      });
+      return;
+    }
+    if (command.startsWith("/log")) {
+      void runSlashJob(text, "📜 Lade Aktionsprotokoll …", async () => {
+        const known = ["app", "mini-jon", "telegram", "automation", "watcher"];
+        let source = "";
+        let day = "";
+        if (command !== "/log") {
+          for (const part of arg.split(/\s+/)) {
+            const val = part.toLowerCase();
+            if (known.includes(val)) source = val;
+            else if (val === "mini" || val === "emil") source = "mini-jon";
+            else if (val) day = val;
+          }
+        }
+        const actions = await getActions(source, day, 30);
+        if (!actions.length)
+          return source || day
+            ? "Keine Aktionen im Protokoll für diesen Filter."
+            : "Das Aktionsprotokoll ist noch leer.";
+        const icons: Record<string, string> = {
+          app: "💻",
+          "mini-jon": "🙂",
+          telegram: "✈️",
+          automation: "🤖",
+          watcher: "👀",
+        };
+        return (
+          "**📜 Aktionsprotokoll** (neueste zuerst):\n\n" +
+          actions
+            .map(
+              (a) =>
+                `- ${a.ok ? "✅" : "❌"} ${icons[a.source] ?? "▪️"} \`${a.tool}\` · ${a.created_at.replace("T", " ").slice(0, 16)}${a.args ? `\n  ${a.args.slice(0, 110)}` : ""}`
+            )
+            .join("\n") +
+          "\n\nFilter: `/log telegram`, `/log automation heute`, `/log gestern`"
+        );
+      });
+      return;
+    }
     if (command.startsWith("/webcam") || command.startsWith("/kamera")) {
       void runSlashJob(text, "📷 Jon schaut durch die Webcam …", async () => {
         const question =
@@ -1500,6 +1613,32 @@ export default function App() {
           </button>
         </div>
       )}
+      {pairPending && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass rounded-2xl border border-gold/40 p-6 max-w-sm w-[92%] text-center space-y-3">
+            <div className="text-2xl">📱</div>
+            <div className="text-[15px] font-semibold text-white/90">
+              „{pairPending.name}“ möchte sich mit Jon koppeln
+            </div>
+            <div className="text-[13px] text-white/55">
+              Gib diesen Code auf dem Gerät ein:
+            </div>
+            <div className="text-[34px] font-bold tracking-[0.3em] gold-text">
+              {pairPending.code}
+            </div>
+            <button
+              onClick={() => {
+                void denyPair(pairPending.request_id);
+                setPairPending(null);
+              }}
+              className="text-[12.5px] text-white/45 hover:text-white/80"
+            >
+              Ablehnen
+            </button>
+          </div>
+        </div>
+      )}
+      {pairingNeeded && <PairingScreen />}
       {setupOpen && <SetupWizard onDone={() => setSetupOpen(false)} />}
       {profileOpen && identity && (
         <ProfileModal

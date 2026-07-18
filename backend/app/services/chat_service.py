@@ -633,6 +633,7 @@ class ChatService:
                 return
 
         use_tools = provider_name in TOOL_PROVIDERS
+        tool_source = payload.source or ("mini-jon" if slot == "emil" else "app")
         toolbox = self._toolbox
         if payload.mode == "coding" and payload.workspace:
             toolbox = ToolBox(
@@ -674,7 +675,7 @@ class ChatService:
                     raise ToolDeniedError(
                         "Der Nutzer hat die Ausführung dieses Tools abgelehnt."
                     )
-            return await toolbox.execute(name, args)
+            return await toolbox.execute(name, args, source=tool_source)
 
         executor = gated_executor if use_tools else None
 
@@ -764,7 +765,9 @@ class ChatService:
                     )
                     if approved:
                         try:
-                            result = await toolbox.execute(name, args)
+                            result = await toolbox.execute(
+                                name, args, source=tool_source
+                            )
                         except Exception as exc:
                             result = json.dumps(
                                 {"error": str(exc)}, ensure_ascii=False

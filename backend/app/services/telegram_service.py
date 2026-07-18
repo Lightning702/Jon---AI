@@ -189,7 +189,15 @@ class TelegramService:
             system += "\n\nDEIN PERSOENLICHES GEDAECHTNIS (MEMORY.md):\n" + memory
         system += (
             "\n\nDu antwortest gerade ueber Telegram auf dem Handy des Nutzers. "
-            "Halte Antworten kompakt und gut lesbar ohne Markdown-Tabellen."
+            "Halte Antworten kompakt und gut lesbar ohne Markdown-Tabellen. "
+            "Du steuerst dabei wirklich seinen PC zuhause: Sagt er z. B. "
+            "'schreibe hallo', rufe keyboard_type mit dem Text auf. Sagt er "
+            "'linksklicke' oder 'klick', rufe mouse_click OHNE x und y auf - "
+            "dann wird an der aktuellen Mausposition geklickt, ohne die Maus zu "
+            "bewegen. Uebergib x/y nur, wenn er ein konkretes Ziel nennt. "
+            "keyboard_press drueckt einzelne Tasten, keyboard_hotkey "
+            "Kombinationen, screenshot zeigt dir den Bildschirm. Fuehre solche "
+            "Befehle direkt aus, statt nachzufragen."
         )
         return {"role": "system", "content": system}
 
@@ -215,6 +223,7 @@ class TelegramService:
             provider=provider or settings.default_provider,
             model=model or settings.emil_model,
             slot="emil",
+            source="telegram",
         )
         parts: list[str] = []
         done_summaries: list[str] = []

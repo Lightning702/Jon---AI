@@ -612,6 +612,7 @@ class ToolBox:
         skills: SkillService | None = None,
         reminders: ReminderService | None = None,
         root: str | None = None,
+        source: str = "app",
     ) -> None:
         self._service = service or SystemService()
         self._automation = automation or AutomationService()
@@ -619,6 +620,7 @@ class ToolBox:
         self._skills = skills or SkillService()
         self._reminders = reminders or ReminderService()
         self._root = str(Path(root).expanduser().resolve()) if root else None
+        self._source = source
 
     def _guard_path(self, value: Any) -> str:
         root = Path(self._root or "")
@@ -1387,7 +1389,21 @@ class ToolBox:
             ),
         ]
 
-    async def execute(self, name: str, args: dict[str, Any]) -> str:
+    async def execute(
+        self, name: str, args: dict[str, Any], source: str | None = None
+    ) -> str:
+        from app.services.action_log_service import log_action
+
+        src = source or self._source
+        try:
+            result = await self._dispatch(name, args)
+        except Exception as exc:
+            log_action(src, name, args, f"Fehler: {exc}", ok=False)
+            raise
+        log_action(src, name, args, result, ok='"error"' not in result[:200])
+        return result
+
+    async def _dispatch(self, name: str, args: dict[str, Any]) -> str:
         if name == "webcam_look":
             from app.services.webcam_service import get_webcam_service
 

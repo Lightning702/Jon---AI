@@ -134,13 +134,13 @@ class TaskService:
         return due
 
     async def _run_task(
-        self, task: str, provider_name: str, model: str
+        self, task: str, provider_name: str, model: str, source: str = "automation"
     ) -> str:
         from app.services.chat_service import TOOL_PROVIDERS
         from app.services.tools import ToolBox
 
         provider = get_registry().get(provider_name)
-        toolbox = ToolBox()
+        toolbox = ToolBox(source=source)
         use_tools = provider_name in TOOL_PROVIDERS
         request = ChatRequest(
             messages=[

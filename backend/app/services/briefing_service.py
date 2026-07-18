@@ -85,6 +85,12 @@ class BriefingService:
             ] or events[:5]
         except Exception:
             pass
+        try:
+            from app.services.action_log_service import absence_actions
+
+            data["in_abwesenheit_getan"] = absence_actions(24)
+        except Exception:
+            data["in_abwesenheit_getan"] = []
         return data
 
     def weekly_data(self) -> dict:
