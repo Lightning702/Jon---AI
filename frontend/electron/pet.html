@@ -1785,6 +1785,19 @@
       if (localStorage.getItem("jonjr_voice") !== "0") setTimeout(() => setMic(true), 1500);
       else micBtn.classList.add("off");
       setTimeout(startupGreeting, 1200);
+
+      if (window.jonpet && window.jonpet.onRead) {
+        window.jonpet.onRead((text) => {
+          const clean = (text || "").trim();
+          if (!clean) return;
+          primeSpeech();
+          if (busy) cancel();
+          const preview = clean.length > 220 ? clean.slice(0, 220) + " …" : clean;
+          say("📖 " + preview, true);
+          scheduleHide(8000);
+          speak(clean, () => scheduleHide(2500), () => setState(""));
+        });
+      }
     </script>
   </body>
 </html>

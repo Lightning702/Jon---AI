@@ -102,6 +102,19 @@ async function openQuickWrite() {
   if (quickWriteWindow) quickWriteWindow.webContents.send("quickwrite:data", data);
 }
 
+async function readAloudSelection() {
+  let text = "";
+  try {
+    const res = await fetch(`${API_BASE}/quickwrite/grab`);
+    const data = await res.json();
+    if (res.ok && data.text) text = String(data.text).trim();
+  } catch (e) {}
+  if (!text) return;
+  if (!petWindow) createPet();
+  else petWindow.show();
+  if (petWindow) petWindow.webContents.send("pet:read", text.slice(0, 4000));
+}
+
 ipcMain.handle("quickwrite:apply", async (_e, mode) => {
   let result = { ok: false, error: "Fehlgeschlagen." };
   try {
@@ -437,6 +450,7 @@ app.whenReady().then(() => {
   globalShortcut.register("Control+Alt+K", togglePet);
   globalShortcut.register("Control+Alt+Space", toggleQuickAsk);
   globalShortcut.register("Control+Alt+H", () => void openQuickWrite());
+  globalShortcut.register("Control+Alt+V", () => void readAloudSelection());
   globalShortcut.register("Control+Alt+E", () => {
     if (mainWindow) {
       if (!mainWindow.isVisible()) mainWindow.show();
