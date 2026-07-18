@@ -62,6 +62,7 @@ DEFAULTS = {
     "pet_roam": False,
     "pet_companion": "none",
     "wake_sensitivity": "mittel",
+    "pet_wellness": True,
     "language": "de",
 }
 

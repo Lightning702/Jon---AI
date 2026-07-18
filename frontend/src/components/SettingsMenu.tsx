@@ -128,6 +128,7 @@ export default function SettingsMenu({
   const [timeline, setTimeline] = useState(false);
   const [routine, setRoutine] = useState(true);
   const [petRoam, setPetRoam] = useState(false);
+  const [petWellness, setPetWellness] = useState(true);
   const [petCompanion, setPetCompanion] = useState("none");
   const [connections, setConnections] = useState<UserSettings | null>(null);
   const [devices, setDevices] = useState<PairedDevice[]>([]);
@@ -159,6 +160,7 @@ export default function SettingsMenu({
       setTimeline(s.timeline_enabled === true);
       setRoutine(s.routine_enabled !== false);
       setPetRoam(s.pet_roam === true);
+      setPetWellness(s.pet_wellness !== false);
       setPetCompanion(s.pet_companion || "none");
       setWakeSensitivity(s.wake_sensitivity || "mittel");
     });
@@ -243,6 +245,12 @@ export default function SettingsMenu({
     const next = !petRoam;
     setPetRoam(next);
     void saveUserSettings({ pet_roam: next });
+  };
+
+  const togglePetWellness = () => {
+    const next = !petWellness;
+    setPetWellness(next);
+    void saveUserSettings({ pet_wellness: next });
   };
 
   const pickCompanion = (value: string) => {
@@ -487,6 +495,12 @@ export default function SettingsMenu({
                 hint="Mini Jon wandert am unteren Rand herum statt fest in der Ecke zu stehen. Schläft, wenn du weg bist."
                 on={petRoam}
                 onClick={togglePetRoam}
+              />
+              <Toggle
+                label="Trink- & Steh-Erinnerungen"
+                hint="Mini Jon erinnert dich alle 90 Minuten sanft ans Trinken, Aufstehen und Durchatmen."
+                on={petWellness}
+                onClick={togglePetWellness}
               />
               <div className="pt-1">
                 <div className="text-[10px] text-white/40 px-0.5 mb-1">

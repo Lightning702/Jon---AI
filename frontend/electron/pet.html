@@ -386,6 +386,7 @@
         model: "",
         pet_provider: "",
         pet_model: "",
+        pet_wellness: true,
       };
       let bubbleTimer = null;
       let busy = false;
@@ -1093,6 +1094,29 @@
       }
       setInterval(pollMusic, 4000);
       setTimeout(pollMusic, 2000);
+
+      const WELLNESS = [
+        { text: "Zeit für einen Schluck Wasser! 💧", speak: "Trink mal einen Schluck Wasser." },
+        { text: "Streck dich mal kurz und steh auf! 🧍", speak: "Steh mal kurz auf und streck dich." },
+        { text: "Kurze Pause? Schau mal aus dem Fenster. 🌿", speak: "Gönn deinen Augen eine kurze Pause." },
+        { text: "Schultern locker, tief durchatmen. 😌", speak: "Schultern locker machen und einmal tief durchatmen." },
+      ];
+      const WELLNESS_MS = 90 * 60 * 1000;
+      let lastWellness = Date.now();
+      let wellnessIdx = 0;
+      function wellnessTick() {
+        if (cfg.pet_wellness === false) return;
+        if (busy || petAsleep || dancing) return;
+        if (Date.now() - lastWellness < WELLNESS_MS) return;
+        lastWellness = Date.now();
+        const w = WELLNESS[wellnessIdx % WELLNESS.length];
+        wellnessIdx++;
+        doubleBlink();
+        say(w.text);
+        scheduleHide(7000);
+        speak(w.speak);
+      }
+      setInterval(wellnessTick, 60000);
 
       let wasAway = false;
       async function pollPresence() {
