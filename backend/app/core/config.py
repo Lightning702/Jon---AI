@@ -2,19 +2,40 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ROOT_DIR = Path(__file__).resolve().parents[3]
+FROZEN = getattr(sys, "frozen", False)
+
+if FROZEN:
+    ROOT_DIR = Path(sys.executable).resolve().parent
+else:
+    ROOT_DIR = Path(__file__).resolve().parents[3]
 ENV_FILE = ROOT_DIR / ".env"
+
+
+def _writable(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".jon-write-test"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+        return True
+    except Exception:
+        return False
 
 
 def _resolve_data_dir() -> Path:
     override = os.environ.get("JON_DATA_DIR")
     if override:
         return Path(override)
+    if FROZEN:
+        beside = Path(sys.executable).resolve().parent / "data"
+        if _writable(beside):
+            return beside
     base = os.environ.get("LOCALAPPDATA")
     if base:
         return Path(base) / "Jon" / "data"
