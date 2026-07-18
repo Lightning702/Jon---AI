@@ -254,14 +254,31 @@ function runProcess(cmd, args, opts) {
 
 async function startBackend() {
   if (!app.isPackaged) return;
-  const backendDir = path.join(process.resourcesPath, "backend");
-  if (!fs.existsSync(backendDir)) return;
   const logDir = app.getPath("userData");
   let out = "ignore";
   try {
     fs.mkdirSync(logDir, { recursive: true });
     out = fs.openSync(path.join(logDir, "backend.log"), "a");
   } catch (e) {}
+
+  const bundledExe = path.join(
+    process.resourcesPath,
+    "jon-backend",
+    "jon-backend.exe"
+  );
+  if (fs.existsSync(bundledExe)) {
+    backendProcess = spawn(bundledExe, [], {
+      cwd: path.dirname(bundledExe),
+      env: { ...process.env },
+      stdio: ["ignore", out, out],
+      windowsHide: true,
+    });
+    backendProcess.on("error", () => {});
+    return;
+  }
+
+  const backendDir = path.join(process.resourcesPath, "backend");
+  if (!fs.existsSync(backendDir)) return;
   const py = resolvePython();
   const cmd = py[0];
   const pre = py.slice(1);
@@ -470,6 +487,20 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-app.on("quit", () => {
-  if (backendProcess) backendProcess.kill();
-});
+function stopBackend() {
+  if (!backendProcess) return;
+  const pid = backendProcess.pid;
+  backendProcess = null;
+  try {
+    if (process.platform === "win32" && pid) {
+      spawnSync("taskkill", ["/pid", String(pid), "/t", "/f"], {
+        windowsHide: true,
+      });
+    } else if (pid) {
+      process.kill(pid);
+    }
+  } catch (e) {}
+}
+
+app.on("before-quit", stopBackend);
+app.on("quit", stopBackend);

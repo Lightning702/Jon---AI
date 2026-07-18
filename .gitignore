@@ -15,3 +15,6 @@ release/
 .vite/
 *.log
 .DS_Store
+backend/build/
+backend/dist/
+*.spec.bak

@@ -1,0 +1,28 @@
+{
+  "appId": "io.jon.desktop",
+  "productName": "Jon",
+  "files": ["dist/**/*", "electron/**/*"],
+  "extraResources": [
+    {
+      "from": "../backend/dist/jon-backend",
+      "to": "jon-backend",
+      "filter": ["**/*"]
+    }
+  ],
+  "directories": {
+    "output": "release"
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "electron/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Jon",
+    "runAfterFinish": true
+  }
+}
