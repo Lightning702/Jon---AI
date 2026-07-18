@@ -1072,6 +1072,12 @@ async def update_check() -> dict:
     return await asyncio.to_thread(check_update)
 
 
+@router.post("/update")
+async def execute_update():
+    from app.services.update_process import perform_update
+    return StreamingResponse(perform_update(), media_type="text/plain")
+
+
 @router.get("/backup/export")
 async def backup_export(include_keys: bool = False):
     from fastapi.responses import Response

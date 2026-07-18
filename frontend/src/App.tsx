@@ -80,6 +80,7 @@ import {
   runSimulation,
   runTeam,
   streamChat,
+  BASE,
 } from "./lib/api";
 
 const jonDesktop = (window as unknown as {
@@ -1089,6 +1090,39 @@ export default function App() {
       exportChat();
       return;
     }
+    if (command === "/update") {
+      const id = Date.now().toString();
+      setEntries((prev) => [
+        ...prev,
+        { id: `u-${id}`, role: "user", content: text },
+        { id: `s-${id}`, role: "system", content: "⚙️ Starte Update...\n" },
+      ]);
+      try {
+        const res = await fetch(`${BASE}/update`, { method: "POST" });
+        if (!res.body) throw new Error("Kein Body empfangen");
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          setEntries((prev) =>
+            prev.map((e) =>
+              e.id === `s-${id}` ? { ...e, content: e.content + chunk } : e
+            )
+          );
+        }
+      } catch (err: any) {
+        setEntries((prev) =>
+          prev.map((e) =>
+            e.id === `s-${id}`
+              ? { ...e, content: e.content + `\n❌ Fehler: ${err.message}` }
+              : e
+          )
+        );
+      }
+      return;
+    }
     const arg = text.trim().slice(text.trim().indexOf(" ") + 1).trim();
     if (command.startsWith("/restore") || command.startsWith("/wiederherstellen")) {
       void runSlashJob(text, "↩️ Stelle wieder her …", async () => {
@@ -1666,20 +1700,33 @@ export default function App() {
               Du nutzt eine ältere Version von Jon.
             </div>
           </div>
-          <a
-            href={update.url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[12px] px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold"
-          >
-            Laden
-          </a>
-          <button
-            onClick={() => setUpdate(null)}
-            className="text-white/30 hover:text-white/70 text-[12px]"
-          >
-            ✕
-          </button>
+          <div className="flex flex-col gap-1.5 items-end">
+            <button
+              onClick={() => {
+                setUpdate(null);
+                void send("/update");
+              }}
+              className="px-2.5 py-1 rounded-lg bg-gold/15 text-gold text-[11px] hover:bg-gold/25 font-semibold"
+            >
+              Auto-Update
+            </button>
+            <div className="flex items-center gap-3">
+              <a
+                href={update.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] text-white/45 hover:text-white/70"
+              >
+                Manuell
+              </a>
+              <button
+                onClick={() => setUpdate(null)}
+                className="text-white/30 hover:text-white/70 text-[12px]"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
         </div>
       )}
       {calendarOpen && <CalendarPanel onClose={() => setCalendarOpen(false)} />}
