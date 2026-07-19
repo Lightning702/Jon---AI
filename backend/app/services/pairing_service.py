@@ -47,13 +47,20 @@ class PairingService:
         with self._lock:
             self._prune()
             request_id = secrets.token_hex(16)
+            device = (name or "").strip()[:40] or "Geraet"
+            code = f"{secrets.randbelow(1_000_000):06d}"
             self._requests[request_id] = {
-                "name": (name or "").strip()[:40] or "Geraet",
-                "code": f"{secrets.randbelow(1_000_000):06d}",
+                "name": device,
+                "code": code,
                 "created": time.time(),
                 "attempts": 0,
             }
-            return request_id
+        print(
+            f"[JON-PAIRING] Koppel-Code fuer \"{device}\": {code}  "
+            "(gib ihn auf dem Geraet ein)",
+            flush=True,
+        )
+        return request_id
 
     def pending(self) -> list[dict]:
         with self._lock:
