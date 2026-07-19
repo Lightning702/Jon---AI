@@ -209,6 +209,29 @@
         25% { opacity: 1; transform: translateY(-14px) rotate(8deg); }
         100% { opacity: 0; transform: translateY(-40px) rotate(-8deg); }
       }
+      #pomo {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 128px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(14, 14, 18, 0.92);
+        border: 1px solid rgba(212, 175, 55, 0.45);
+        color: #f0d98a;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        display: none;
+        z-index: 5;
+        text-shadow: 0 1px 3px #000;
+      }
+      #pomo.show { display: block; }
+      #pomo.brk {
+        border-color: rgba(143, 227, 160, 0.6);
+        color: #a8f0ba;
+      }
+      body.pomo-break #jon { animation: bob 1.6s ease-in-out infinite; }
       #eyes {
         transform-box: fill-box;
         transform-origin: center;
@@ -300,6 +323,7 @@
       <div id="petHeart">❤</div>
       <div id="petSpeech"></div>
       <div id="note">♪</div>
+      <div id="pomo"></div>
       <div id="inputRow">
         <input id="field" placeholder="Sag Emil etwas …" autocomplete="off" />
       </div>
@@ -1094,6 +1118,60 @@
       }
       setInterval(pollMusic, 4000);
       setTimeout(pollMusic, 2000);
+
+      const pomoEl = document.getElementById("pomo");
+      const BREAK_TIPS = [
+        "Pause! Steh auf und streck dich. 🧍",
+        "Kurze Pause — Augen zu und tief durchatmen. 😌",
+        "Zeit für einen Schluck Wasser. 💧",
+        "Schüttel die Hände aus und schau kurz aus dem Fenster. 🌿",
+      ];
+      let pomoPhase = "";
+      let pomoTipIdx = 0;
+      function fmtTime(sec) {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return m + ":" + String(s).padStart(2, "0");
+      }
+      async function pollPomodoro() {
+        try {
+          const p = await (await fetch(`${BASE}/pomodoro`)).json();
+          if (!p.active) {
+            if (pomoPhase) {
+              pomoPhase = "";
+              pomoEl.classList.remove("show", "brk");
+              document.body.classList.remove("pomo-break");
+            }
+            return;
+          }
+          const brk = p.phase === "break";
+          pomoEl.textContent =
+            (brk ? "☕ Pause " : "🎯 Fokus ") +
+            fmtTime(p.remaining_seconds || 0) +
+            "  ·  " +
+            p.round +
+            "/" +
+            p.rounds;
+          pomoEl.classList.add("show");
+          pomoEl.classList.toggle("brk", brk);
+          document.body.classList.toggle("pomo-break", brk);
+          if (p.phase !== pomoPhase) {
+            pomoPhase = p.phase;
+            if (brk && !busy) {
+              renderEyes("happy");
+              doubleBlink();
+              const tip = BREAK_TIPS[pomoTipIdx % BREAK_TIPS.length];
+              pomoTipIdx++;
+              say(tip);
+              scheduleHide(6000);
+            } else if (!brk) {
+              renderEyes(cfg.pet_eyes || "round");
+            }
+          }
+        } catch (e) {}
+      }
+      setInterval(pollPomodoro, 3000);
+      setTimeout(pollPomodoro, 2500);
 
       const WELLNESS = [
         { text: "Zeit für einen Schluck Wasser! 💧", speak: "Trink mal einen Schluck Wasser." },
