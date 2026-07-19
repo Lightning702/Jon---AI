@@ -1914,3 +1914,35 @@ export async function getAppUsage(days = 7): Promise<AppUsageReport> {
   if (!res.ok) throw new Error("usage failed");
   return res.json();
 }
+
+export interface MeetingStatus {
+  running: boolean;
+  mikrofon?: string;
+  sekunden?: number;
+  segmente?: number;
+}
+
+export async function meetingStatus(): Promise<MeetingStatus> {
+  const res = await fetch(`${BASE}/meeting/status`);
+  if (!res.ok) return { running: false };
+  return res.json();
+}
+
+export async function meetingStart(): Promise<{
+  running?: boolean;
+  mikrofon?: string;
+  error?: string;
+}> {
+  const res = await fetch(`${BASE}/meeting/start`, { method: "POST" });
+  return res.json();
+}
+
+export async function meetingStop(): Promise<{
+  zusammenfassung?: string;
+  todos?: string[];
+  transkript?: string;
+  error?: string;
+}> {
+  const res = await fetch(`${BASE}/meeting/stop`, { method: "POST" });
+  return res.json();
+}

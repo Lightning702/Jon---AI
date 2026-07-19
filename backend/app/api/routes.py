@@ -1334,3 +1334,29 @@ async def usage_apps(days: int = 7) -> dict:
     from app.services.appusage_service import get_appusage_service
 
     return get_appusage_service().report(days)
+
+
+@router.get("/meeting/status")
+async def meeting_status() -> dict:
+    from app.services.meeting_service import get_meeting_service
+
+    return get_meeting_service().status()
+
+
+@router.post("/meeting/start")
+async def meeting_start() -> dict:
+    from app.services.meeting_service import get_meeting_service
+
+    return await asyncio.to_thread(get_meeting_service().start)
+
+
+@router.post("/meeting/stop")
+async def meeting_stop() -> dict:
+    from app.services.meeting_service import get_meeting_service
+    from app.services.settings_service import get_settings_service
+
+    data = get_settings_service().get()
+    settings = get_settings()
+    provider = data.get("provider") or settings.default_provider
+    model = data.get("model") or settings.jon_model
+    return await get_meeting_service().stop(provider, model)

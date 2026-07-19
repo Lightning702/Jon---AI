@@ -23,3 +23,4 @@ pynput>=1.7
 openwakeword>=0.6
 sounddevice>=0.5
 playwright>=1.49
+soundcard>=0.4

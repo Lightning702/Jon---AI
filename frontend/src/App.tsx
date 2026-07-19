@@ -45,6 +45,9 @@ import {
   getAppUsage,
   getCalendar,
   getCalendarDue,
+  meetingStart,
+  meetingStatus,
+  meetingStop,
   getPairPending,
   getTrash,
   restoreTrash,
@@ -1024,6 +1027,41 @@ export default function App() {
     }
     if (command === "/briefing") {
       void runBriefing();
+      return;
+    }
+    if (command === "/meeting" || command === "/mitschrift") {
+      const st = await meetingStatus();
+      if (st.running) {
+        void runSlashJob(text, "📝 Beende Mitschrift und fasse zusammen …", async () => {
+          const r = await meetingStop();
+          if (r.error) return `Das ging nicht: ${r.error}`;
+          const todos =
+            r.todos && r.todos.length
+              ? "\n\n**✅ In den Kalender eingetragen:**\n" +
+                r.todos.map((t: string) => `- ${t}`).join("\n")
+              : "";
+          return `**📝 Meeting-Zusammenfassung**\n\n${r.zusammenfassung || "—"}${todos}`;
+        });
+      } else {
+        const r = await meetingStart();
+        if (r.error) {
+          setEntries((prev) => [
+            ...prev,
+            { id: nextId(), role: "user", content: text },
+            { id: nextId(), role: "assistant", content: `Das ging nicht: ${r.error}` },
+          ]);
+        } else {
+          setEntries((prev) => [
+            ...prev,
+            { id: nextId(), role: "user", content: text },
+            {
+              id: nextId(),
+              role: "assistant",
+              content: `🔴 Mitschrift läuft (Mikro: ${r.mikrofon}). Ich höre System-Ton und dein Mikrofon mit. Schreib nochmal \`/meeting\`, um zu stoppen und eine Zusammenfassung mit To-dos zu bekommen.`,
+            },
+          ]);
+        }
+      }
       return;
     }
     if (command === "/fokus" || command === "/focus" || command === "/stats") {
