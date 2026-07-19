@@ -7,7 +7,87 @@ import {
   restoreClipboardEntry,
 } from "../lib/api";
 
-export default function ClipboardPanel({ onClose }: { onClose: () => void }) {
+interface SmartAction {
+  label: string;
+  run: () => void;
+}
+
+function detectActions(
+  text: string,
+  onAsk?: (text: string) => void
+): SmartAction[] {
+  const t = text.trim();
+  const actions: SmartAction[] = [];
+  const urlMatch = t.match(/\bhttps?:\/\/\S+/i) || t.match(/\bwww\.\S+\.\S+/i);
+  const email = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(t);
+  const phone = /^[+0][\d\s/()-]{6,}$/.test(t);
+  const iban = t.replace(/\s/g, "").match(/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/i);
+  const address = /\b\d{4,5}\s+[A-Za-zÄÖÜäöüß]/.test(t) && /\d/.test(t);
+  const strongCode = /=>|\bfunction\b|\bconst\b|\bimport\b|\bdef\b|\{\s*\n/.test(t);
+  const weakCode =
+    /[{};]/.test(t) && (t.includes("\n") || t.length > 40);
+  const looksCode = strongCode || weakCode;
+
+  if (urlMatch) {
+    const url = urlMatch[0].startsWith("http")
+      ? urlMatch[0]
+      : "https://" + urlMatch[0];
+    actions.push({ label: "🌐 Öffnen", run: () => window.open(url, "_blank") });
+  }
+  if (email) {
+    actions.push({
+      label: "✉️ Mail schreiben",
+      run: () => window.open("mailto:" + t, "_blank"),
+    });
+  }
+  if (phone) {
+    const digits = t.replace(/[^\d+]/g, "");
+    actions.push({
+      label: "📞 Anrufen",
+      run: () => window.open("tel:" + digits, "_blank"),
+    });
+    actions.push({
+      label: "💬 WhatsApp",
+      run: () =>
+        window.open("https://wa.me/" + digits.replace(/\D/g, ""), "_blank"),
+    });
+  }
+  if (iban && onAsk) {
+    actions.push({
+      label: "🧠 Merken",
+      run: () => onAsk("Merk dir diese IBAN dauerhaft: " + t),
+    });
+  }
+  if (address && !urlMatch) {
+    actions.push({
+      label: "🗺️ In Maps öffnen",
+      run: () =>
+        window.open(
+          "https://www.google.com/maps/search/?api=1&query=" +
+            encodeURIComponent(t),
+          "_blank"
+        ),
+    });
+  }
+  if (looksCode && onAsk) {
+    actions.push({
+      label: "💡 Erklären",
+      run: () => onAsk("Erkläre mir diesen Code kurz und verständlich:\n\n" + t),
+    });
+  }
+  if (!looksCode && !iban && onAsk && t.length > 0 && t.length < 2000) {
+    actions.push({ label: "🤖 An Jon", run: () => onAsk(t) });
+  }
+  return actions;
+}
+
+export default function ClipboardPanel({
+  onClose,
+  onAsk,
+}: {
+  onClose: () => void;
+  onAsk?: (text: string) => void;
+}) {
   const [entries, setEntries] = useState<ClipboardEntry[]>([]);
   const [query, setQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -85,6 +165,21 @@ export default function ClipboardPanel({ onClose }: { onClose: () => void }) {
             >
               <div className="text-[12px] text-white/80 whitespace-pre-wrap break-words max-h-20 overflow-hidden">
                 {e.text.length > 300 ? e.text.slice(0, 300) + "…" : e.text}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {detectActions(e.text, onAsk).map((a) => (
+                  <button
+                    key={a.label}
+                    onClick={() => {
+                      a.run();
+                      if (a.label === "💡 Erklären" || a.label === "🤖 An Jon" || a.label === "🧠 Merken")
+                        onClose();
+                    }}
+                    className="text-[11px] px-2 py-1 rounded-lg border border-gold/30 bg-gold/10 text-gold/90 hover:bg-gold/20 transition-colors"
+                  >
+                    {a.label}
+                  </button>
+                ))}
               </div>
               <div className="flex items-center justify-between mt-1.5">
                 <span className="text-[10px] text-white/30">

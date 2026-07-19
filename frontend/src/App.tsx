@@ -1676,7 +1676,15 @@ export default function App() {
         />
       )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
-      {clipboardOpen && <ClipboardPanel onClose={() => setClipboardOpen(false)} />}
+      {clipboardOpen && (
+        <ClipboardPanel
+          onClose={() => setClipboardOpen(false)}
+          onAsk={(text) => {
+            setClipboardOpen(false);
+            void send(text);
+          }}
+        />
+      )}
       {friendsOpen && identity && (
         <FriendsChat
           identity={identity}
