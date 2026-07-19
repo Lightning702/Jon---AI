@@ -100,6 +100,7 @@ class SettingsIn(BaseModel):
     wake_sensitivity: str | None = None
     pet_wellness: bool | None = None
     autofile_enabled: bool | None = None
+    app_usage_enabled: bool | None = None
     language: str | None = None
 
 

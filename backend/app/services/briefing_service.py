@@ -117,6 +117,14 @@ class BriefingService:
         except Exception:
             data["kalender_naechste_woche"] = []
         try:
+            from app.services.appusage_service import get_appusage_service
+
+            report = get_appusage_service().report(7)
+            if report.get("gesamt_minuten"):
+                data["app_zeiten"] = report
+        except Exception:
+            pass
+        try:
             from app.services.persona_service import get_persona_service
 
             data["jons_gedaechtnis"] = get_persona_service().read_memory_file(

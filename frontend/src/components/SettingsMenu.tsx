@@ -127,6 +127,7 @@ export default function SettingsMenu({
   const [quickwrite, setQuickwrite] = useState(true);
   const [timeline, setTimeline] = useState(false);
   const [autofile, setAutofile] = useState(false);
+  const [appUsage, setAppUsage] = useState(false);
   const [routine, setRoutine] = useState(true);
   const [petRoam, setPetRoam] = useState(false);
   const [petWellness, setPetWellness] = useState(true);
@@ -160,6 +161,7 @@ export default function SettingsMenu({
       setQuickwrite(s.quickwrite_enabled !== false);
       setTimeline(s.timeline_enabled === true);
       setAutofile(s.autofile_enabled === true);
+      setAppUsage(s.app_usage_enabled === true);
       setRoutine(s.routine_enabled !== false);
       setPetRoam(s.pet_roam === true);
       setPetWellness(s.pet_wellness !== false);
@@ -241,6 +243,12 @@ export default function SettingsMenu({
     const next = !autofile;
     setAutofile(next);
     void saveUserSettings({ autofile_enabled: next });
+  };
+
+  const toggleAppUsage = () => {
+    const next = !appUsage;
+    setAppUsage(next);
+    void saveUserSettings({ app_usage_enabled: next });
   };
 
   const toggleRoutine = () => {
@@ -451,6 +459,12 @@ export default function SettingsMenu({
                 hint="Neue Downloads wandern in Unterordner nach Typ (Bilder, Dokumente, Musik, Rechnungen, Screenshots …). Alles per Papierkorb wiederherstellbar."
                 on={autofile}
                 onClick={toggleAutofile}
+              />
+              <Toggle
+                label="App-Nutzung erfassen (/fokus)"
+                hint="Jon merkt sich lokal, in welchen Apps du wie lange bist, und zeigt es dir mit /fokus. Nichts verlaesst deinen PC."
+                on={appUsage}
+                onClick={toggleAppUsage}
               />
             </div>
             <Section title="Sprache / Language" />

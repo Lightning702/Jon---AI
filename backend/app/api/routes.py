@@ -1327,3 +1327,10 @@ async def autofile_recent() -> list[dict]:
     from app.services.autofile_service import get_autofile_service
 
     return get_autofile_service().recent()
+
+
+@router.get("/usage/apps")
+async def usage_apps(days: int = 7) -> dict:
+    from app.services.appusage_service import get_appusage_service
+
+    return get_appusage_service().report(days)

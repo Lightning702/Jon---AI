@@ -42,6 +42,7 @@ import {
   addDream,
   denyPair,
   getActions,
+  getAppUsage,
   getCalendar,
   getCalendarDue,
   getPairPending,
@@ -1023,6 +1024,27 @@ export default function App() {
     }
     if (command === "/briefing") {
       void runBriefing();
+      return;
+    }
+    if (command === "/fokus" || command === "/focus" || command === "/stats") {
+      void runSlashJob(text, "📊 Werte deine App-Zeiten aus …", async () => {
+        const r = await getAppUsage(7);
+        if (!r.apps.length)
+          return "Noch keine App-Zeiten erfasst. Aktiviere „App-Nutzung erfassen“ im Zahnrad-Menü — dann sehe ich, wo deine Zeit hingeht (alles bleibt lokal).";
+        const max = r.apps[0].minuten || 1;
+        const fmt = (m: number) =>
+          m >= 60 ? `${Math.floor(m / 60)} h ${Math.round(m % 60)} min` : `${Math.round(m)} min`;
+        const bars = r.apps
+          .map((a) => {
+            const filled = Math.max(1, Math.round((a.minuten / max) * 16));
+            return `\`${"█".repeat(filled)}${"░".repeat(16 - filled)}\` **${a.app}** · ${fmt(a.minuten)}`;
+          })
+          .join("\n");
+        return (
+          `**📊 Deine App-Zeiten (letzte 7 Tage)**\n\nGesamt: ${fmt(r.gesamt_minuten)}\n\n${bars}\n\n` +
+          "_Nur lokal erfasst. Abschaltbar im Zahnrad-Menü._"
+        );
+      });
       return;
     }
     if (command === "/kalender" || command === "/calendar") {

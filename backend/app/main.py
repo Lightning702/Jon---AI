@@ -175,6 +175,21 @@ async def _autofile_watcher() -> None:
             continue
 
 
+async def _appusage_watcher() -> None:
+    from app.services.settings_service import get_settings_service
+    from app.services.appusage_service import get_appusage_service
+
+    interval = 15
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            if not get_settings_service().get().get("app_usage_enabled", False):
+                continue
+            await asyncio.to_thread(get_appusage_service().tick, interval)
+        except Exception:
+            continue
+
+
 async def _chat_server() -> None:
     from app.services.p2p_service import CHAT_PORT
 
@@ -212,6 +227,7 @@ async def lifespan(app: FastAPI):
     routine_task = asyncio.create_task(_routine_timeline_watcher())
     files_task = asyncio.create_task(_file_watcher())
     autofile_task = asyncio.create_task(_autofile_watcher())
+    appusage_task = asyncio.create_task(_appusage_watcher())
     chat_task = asyncio.create_task(_chat_server())
     announce_task = asyncio.create_task(p2p.announce_loop())
     listen_task = asyncio.create_task(p2p.listen_loop())
@@ -240,6 +256,7 @@ async def lifespan(app: FastAPI):
     routine_task.cancel()
     files_task.cancel()
     autofile_task.cancel()
+    appusage_task.cancel()
     chat_task.cancel()
     announce_task.cancel()
     listen_task.cancel()

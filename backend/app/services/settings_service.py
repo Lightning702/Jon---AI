@@ -64,6 +64,7 @@ DEFAULTS = {
     "wake_sensitivity": "mittel",
     "pet_wellness": True,
     "autofile_enabled": False,
+    "app_usage_enabled": False,
     "language": "de",
 }
 

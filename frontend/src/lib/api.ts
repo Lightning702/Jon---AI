@@ -266,6 +266,7 @@ export interface UserSettings {
   wake_sensitivity: string;
   pet_wellness: boolean;
   autofile_enabled: boolean;
+  app_usage_enabled: boolean;
   language: string;
 }
 
@@ -325,6 +326,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       wake_sensitivity: "mittel",
       pet_wellness: true,
       autofile_enabled: false,
+      app_usage_enabled: false,
       language: "de",
     };
   return res.json();
@@ -1897,5 +1899,18 @@ export async function getCalendarDue(): Promise<
 > {
   const res = await fetch(`${BASE}/calendar/due`);
   if (!res.ok) return [];
+  return res.json();
+}
+
+export interface AppUsageReport {
+  zeitraum_tage: number;
+  gesamt_minuten: number;
+  apps: { app: string; minuten: number }[];
+  pro_tag: Record<string, number>;
+}
+
+export async function getAppUsage(days = 7): Promise<AppUsageReport> {
+  const res = await fetch(`${BASE}/usage/apps?days=${days}`);
+  if (!res.ok) throw new Error("usage failed");
   return res.json();
 }
