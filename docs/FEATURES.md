@@ -80,6 +80,28 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Umschalter Deutsch/English im Zahnrad-Menü steuert Oberfläche (i18n) und Jons
   Antwortsprache; englische `README.en.md`
 
+## Mini Jon lebendig
+
+- Tanzt zur Musik (Spotify/Amazon), färbt sich in Song-Farbe, wird bei Stopp normal
+- Trink- & Steh-Erinnerungen alle 90 Minuten (abschaltbar)
+- Pomodoro-Coach: Timer-Badge, fröhlich in Pausen, Bewegungstipps
+- Vorlese-Modus: markierten Text mit Strg+Alt+V vorlesen lassen
+
+## Produktivität & Alltag
+
+- **Fokus-Statistik** (`/fokus`) — lokale App-Zeiten als Balkendiagramm, im Wochenrückblick
+- **Automatische Datei-Ablage** — Downloads regelbasiert einsortieren, mit Papierkorb
+- **Zwischenablage-Aktionen** — URL/Mail/Telefon/IBAN/Adresse/Code erkannt, passende Aktion
+- **Meeting-Mitschrift** (`/meeting`) — System-Ton + Mikrofon (Fifine bevorzugt), live
+  transkribiert, Zusammenfassung mit To-dos in den Kalender
+
+## Telegram
+
+- Fotos per Vision-Modell analysieren, Maus/Tastatur direkt steuern
+- Lange Sprachnachrichten zusammenfassen + Termine in den Kalender
+- Standort-Erinnerungen: benannte Orte + Geofencing über Live-Standort
+- Guten-Morgen-Nachricht mit Terminen, Erinnerungen einen Tag vorher
+
 ## Gedächtnis
 
 - Persistentes Langzeitgedächtnis (SQLite)

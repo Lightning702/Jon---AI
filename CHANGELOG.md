@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.18.0] — 2026-07-19
+
+### Neu — fünf weitere Ideen
+- **Standort-Erinnerungen über Telegram** — benannte Orte per geteiltem Standort merken
+  („Ort speichern: Supermarkt") und Geo-Erinnerungen anlegen („Erinnere mich an Milch,
+  wenn ich beim Supermarkt bin"). Während ein Live-Standort läuft, meldet sich Jon, wenn
+  du am Ort bist.
+- **Zwischenablage-Aktionen** — die Clipboard-Historie erkennt URLs, E-Mails, Telefon,
+  IBAN, Adressen und Code und bietet passende Aktionen (öffnen, Maps, anrufen, merken,
+  erklären lassen …).
+- **Fokus-Statistik** — Jon erfasst lokal, in welchen Apps du wie lange bist; `/fokus`
+  zeigt die letzten 7 Tage als Balkendiagramm, fließt in den Wochenrückblick ein.
+  Standardmäßig aus, alles bleibt auf dem PC.
+- **Pomodoro-Coach** — Mini Jon zeigt ein Timer-Badge, wird in Pausen fröhlich und gibt
+  Bewegungstipps.
+- **Meeting-Mitschrift** — `/meeting` nimmt System-Ton und Mikrofon (bevorzugt Fifine)
+  gleichzeitig auf, transkribiert live und erstellt beim Stopp eine Zusammenfassung mit
+  To-dos, die in den Kalender wandern.
+
 ## [3.17.0] — 2026-07-19
 
 ### Neu — fünf frische Ideen
