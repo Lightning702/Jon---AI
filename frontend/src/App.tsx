@@ -27,7 +27,6 @@ import Notes from "./components/Notes";
 import Vault from "./components/Vault";
 import Search from "./components/Search";
 import SetupWizard from "./components/SetupWizard";
-import PairingScreen from "./components/PairingScreen";
 import CalendarPanel from "./components/CalendarPanel";
 import { VoiceListener } from "./lib/voice";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
@@ -35,12 +34,10 @@ import {
   ConversationSummary,
   P2PIdentity,
   P2PRequest,
-  PairPending,
   ProviderStatus,
   StreamEvent,
   ToolMode,
   addDream,
-  denyPair,
   getActions,
   getAppUsage,
   getCalendar,
@@ -48,7 +45,6 @@ import {
   meetingStart,
   meetingStatus,
   meetingStop,
-  getPairPending,
   getTrash,
   restoreTrash,
   undoTrash,
@@ -215,9 +211,6 @@ export default function App() {
     () => localStorage.getItem("jon_screen") === "1"
   );
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [pairingNeeded, setPairingNeeded] = useState(false);
-  const [pairPending, setPairPending] = useState<PairPending | null>(null);
-  const pairPollOffRef = useRef(false);
   const trashListRef = useRef<string[]>([]);
   const lastScreenRef = useRef("");
   const abortRef = useRef<AbortController | null>(null);
@@ -231,26 +224,6 @@ export default function App() {
   const voiceHistoryRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
     []
   );
-
-  useEffect(() => {
-    const onNeed = () => setPairingNeeded(true);
-    window.addEventListener("jon:pairing-required", onNeed);
-    return () => window.removeEventListener("jon:pairing-required", onNeed);
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(async () => {
-      if (pairPollOffRef.current) return;
-      try {
-        const pending = await getPairPending();
-        setPairPending(pending[0] ?? null);
-      } catch (e) {
-        if (e instanceof Error && e.message === "forbidden")
-          pairPollOffRef.current = true;
-      }
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     jonDesktop?.onExplainScreen?.(() => setExplainOpen(true));
@@ -1805,32 +1778,6 @@ export default function App() {
         </div>
       )}
       {calendarOpen && <CalendarPanel onClose={() => setCalendarOpen(false)} />}
-      {pairPending && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="glass rounded-2xl border border-gold/40 p-6 max-w-sm w-[92%] text-center space-y-3">
-            <div className="text-2xl">📱</div>
-            <div className="text-[15px] font-semibold text-white/90">
-              „{pairPending.name}“ möchte sich mit Jon koppeln
-            </div>
-            <div className="text-[13px] text-white/55">
-              Gib diesen Code auf dem Gerät ein:
-            </div>
-            <div className="text-[34px] font-bold tracking-[0.3em] gold-text">
-              {pairPending.code}
-            </div>
-            <button
-              onClick={() => {
-                void denyPair(pairPending.request_id);
-                setPairPending(null);
-              }}
-              className="text-[12.5px] text-white/45 hover:text-white/80"
-            >
-              Ablehnen
-            </button>
-          </div>
-        </div>
-      )}
-      {pairingNeeded && <PairingScreen />}
       {setupOpen && <SetupWizard onDone={() => setSetupOpen(false)} />}
       {profileOpen && identity && (
         <ProfileModal

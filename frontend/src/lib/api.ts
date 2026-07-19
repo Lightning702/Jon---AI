@@ -1751,65 +1751,6 @@ export async function getActions(
   return res.json();
 }
 
-export interface PairPending {
-  request_id: string;
-  name: string;
-  code: string;
-}
-
-export interface PairedDevice {
-  id: string;
-  name: string;
-  paired_at: string;
-}
-
-export async function pairRequest(name: string): Promise<{ request_id: string }> {
-  const res = await fetch(`${BASE}/pair/request`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) throw new Error("pair request failed");
-  return res.json();
-}
-
-export async function pairClaim(
-  requestId: string,
-  code: string
-): Promise<{ token?: string; detail?: string }> {
-  const res = await fetch(`${BASE}/pair/claim`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ request_id: requestId, code }),
-  });
-  return res.json();
-}
-
-export async function getPairPending(): Promise<PairPending[]> {
-  const res = await fetch(`${BASE}/pair/pending`);
-  if (res.status === 403) throw new Error("forbidden");
-  if (!res.ok) throw new Error("pending failed");
-  return res.json();
-}
-
-export async function denyPair(requestId: string): Promise<void> {
-  await fetch(`${BASE}/pair/deny`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ request_id: requestId }),
-  });
-}
-
-export async function getPairedDevices(): Promise<PairedDevice[]> {
-  const res = await fetch(`${BASE}/pair/devices`);
-  if (!res.ok) throw new Error("devices failed");
-  return res.json();
-}
-
-export async function removePairedDevice(id: string): Promise<void> {
-  await fetch(`${BASE}/pair/devices/${id}`, { method: "DELETE" });
-}
-
 export interface WakeStatus {
   available: boolean;
   listening: boolean;

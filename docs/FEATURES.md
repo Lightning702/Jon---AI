@@ -66,7 +66,7 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
   `data/trash`; `/undo` und `/papierkorb` zum Wiederherstellen
 - Aktionsprotokoll aller Tool-Aufrufe mit Quelle; `/log` mit Filter; Abwesenheits-Bericht
   im Briefing
-- LAN-Pairing bei `JON_LAN=1`: 6-stelliger Code, Geräte-Tokens, Verwaltung im Zahnrad-Menü
+- Mit `JON_LAN=1` ist Jon für Handy und Smartwatch im eigenen WLAN erreichbar
 
 ## Auto-Update & Installer
 

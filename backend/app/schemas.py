@@ -363,19 +363,6 @@ class TrashRestoreIn(BaseModel):
     id: str
 
 
-class PairRequestIn(BaseModel):
-    name: str = "Geraet"
-
-
-class PairClaimIn(BaseModel):
-    request_id: str
-    code: str
-
-
-class PairDenyIn(BaseModel):
-    request_id: str
-
-
 class CalendarAddIn(BaseModel):
     title: str
     date: str

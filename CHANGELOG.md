@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.18.1] — 2026-07-19
+
+### Geändert — LAN-Pairing entfernt
+Das Geräte-Pairing (6-stelliger Code bei `JON_LAN=1`) ist komplett entfernt. Wie früher
+ist Jon mit `JON_LAN=1` einfach im eigenen WLAN für Handy und Smartwatch erreichbar, ohne
+Kopplung — besonders praktisch auf dem Raspberry Pi ohne Bildschirm. Papierkorb und
+Aktionsprotokoll bleiben unverändert erhalten.
+
 ## [3.18.0] — 2026-07-19
 
 ### Neu — fünf weitere Ideen

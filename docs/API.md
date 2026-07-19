@@ -72,17 +72,6 @@ API sie nicht liefert.
   (`app`, `mini-jon`, `telegram`, `automation`, `watcher`) und Tag (`heute`, `gestern`,
   Datum).
 
-## Geräte-Pairing (nur bei `JON_LAN=1`)
-
-- `POST /api/pair/request` `{ name }` → `{ request_id }` — vom Gerät gestartet.
-- `POST /api/pair/claim` `{ request_id, code }` → `{ token }` — Code vom PC eingeben.
-- `GET /api/pair/pending` — offene Anfragen (nur vom PC, `127.0.0.1`).
-- `POST /api/pair/deny` `{ request_id }` — Anfrage ablehnen (nur vom PC).
-- `GET /api/pair/devices`, `DELETE /api/pair/devices/{id}` — gekoppelte Geräte verwalten.
-
-Gepairte Geräte senden ihr Token im Header `X-Jon-Token`; ohne gültiges Token
-antworten alle `/api`-Endpunkte außer Pairing und Health mit `401 pairing_required`.
-
 ## Sprachsteuerung (openWakeWord)
 
 - `GET /api/voice/wake` — Status (`available`, `listening`, `counter`, `error`).

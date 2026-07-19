@@ -276,29 +276,6 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    from fastapi.responses import JSONResponse
-
-    PAIR_FREE = ("/api/pair/request", "/api/pair/claim", "/api/health")
-
-    @app.middleware("http")
-    async def pairing_guard(request, call_next):
-        if not settings.jon_lan:
-            return await call_next(request)
-        host = request.client.host if request.client else ""
-        if host in ("127.0.0.1", "::1", "localhost", "testclient"):
-            return await call_next(request)
-        path = request.url.path
-        if not path.startswith("/api") or path in PAIR_FREE:
-            return await call_next(request)
-        token = request.headers.get("x-jon-token") or request.query_params.get(
-            "token", ""
-        )
-        from app.services.pairing_service import get_pairing_service
-
-        if token and get_pairing_service().verify(token):
-            return await call_next(request)
-        return JSONResponse({"detail": "pairing_required"}, status_code=401)
     app.include_router(router)
     app.include_router(system_router)
     app.include_router(p2p_router)

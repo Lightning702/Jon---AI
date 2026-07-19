@@ -60,9 +60,6 @@ git clone https://github.com/Lightning702/Jon---AI.git
   moves and searches appointments by voice ("Add dentist Friday 3pm"), warns about
   conflicts, and shows automations, reminders and your connected ICS calendar side by side.
   `/calendar` shows the next 7 days.
-- **🔒 LAN pairing** — With `JON_LAN=1`, every new device must pair with a 6-digit code
-  shown on the PC before it gets a permanent token. Paired devices are managed in the gear
-  menu.
 - **🔄 Auto-update** — `/update` pulls the latest version, backs up `data/` first, reinstalls
   only what changed, and restarts (on the Raspberry Pi via `systemctl restart jon`).
 - **🌍 English & German** — Switch the whole UI and Jon's replies between German and English
@@ -132,5 +129,5 @@ starts automatically on boot. Reach Jon at `http://<Pi-IP>:8756/app`.
 
 - API keys live only in your local `.env` or the local account store, never in the code.
 - All system control respects the approval mode ("ask first" / "allow all").
-- With `JON_LAN=1`, LAN access requires device pairing.
+- `JON_LAN=1` exposes Jon to your local network — only enable it in a trusted network.
 - The trash keeps deleted files for 30 days so mistakes are recoverable.
