@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("jon", {
   pickFolder: () => ipcRenderer.invoke("dialog:openFolder"),
   openVscode: (folder) => ipcRenderer.invoke("shell:openVscode", folder),
   togglePet: () => ipcRenderer.invoke("pet:toggle"),
+  openPrivateBrowser: () => ipcRenderer.invoke("private:open"),
   flashWindow: () => ipcRenderer.invoke("app:flash"),
   focusWindow: () => ipcRenderer.invoke("app:focus"),
   getStartup: () => ipcRenderer.invoke("startup:get"),

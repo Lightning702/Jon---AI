@@ -19,6 +19,8 @@ let mainWindow = null;
 let petWindow = null;
 let quickWindow = null;
 let quickWriteWindow = null;
+let privateWindow = null;
+const PRIVATE_PARTITION = "jon-privat";
 const API_BASE = "http://127.0.0.1:8756/api";
 let backendProcess = null;
 let tray = null;
@@ -323,6 +325,68 @@ async function startBackend() {
   backendProcess.on("error", () => {});
 }
 
+function clearPrivateData() {
+  try {
+    const ses = session.fromPartition(PRIVATE_PARTITION);
+    void ses.clearStorageData();
+    void ses.clearCache();
+    void ses.clearAuthCache();
+    void ses.clearHostResolverCache();
+    void ses.clearCodeCaches({});
+  } catch {}
+}
+
+function openPrivateBrowser() {
+  if (privateWindow) {
+    if (privateWindow.isMinimized()) privateWindow.restore();
+    privateWindow.show();
+    privateWindow.focus();
+    return;
+  }
+  const ses = session.fromPartition(PRIVATE_PARTITION);
+  ses.setPermissionRequestHandler((_wc, _permission, cb) => cb(false));
+  privateWindow = new BrowserWindow({
+    width: 1200,
+    height: 820,
+    minWidth: 720,
+    minHeight: 480,
+    backgroundColor: "#0a0a0e",
+    frame: false,
+    icon: path.join(__dirname, "icon.png"),
+    webPreferences: {
+      preload: path.join(__dirname, "privatePreload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: true,
+    },
+  });
+  privateWindow.loadFile(path.join(__dirname, "private-browser.html"));
+  privateWindow.on("closed", () => {
+    privateWindow = null;
+    clearPrivateData();
+  });
+}
+
+app.on("web-contents-created", (_event, contents) => {
+  if (contents.getType() !== "webview") return;
+  contents.setWindowOpenHandler(({ url }) => {
+    const host = contents.hostWebContents;
+    if (
+      host &&
+      privateWindow &&
+      !privateWindow.isDestroyed() &&
+      host.id === privateWindow.webContents.id &&
+      /^https?:/i.test(url)
+    ) {
+      host.send("private:open-tab", url);
+    }
+    return { action: "deny" };
+  });
+  contents.on("will-navigate", (event, url) => {
+    if (!/^(https?|about):/i.test(url)) event.preventDefault();
+  });
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -399,6 +463,16 @@ ipcMain.handle("window:moveBy", (_event, dx, dy) => {
   mainWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
 });
 
+ipcMain.handle("private:open", () => openPrivateBrowser());
+ipcMain.handle("private:minimize", () => privateWindow && privateWindow.minimize());
+ipcMain.handle("private:maximize", () => {
+  if (!privateWindow) return;
+  if (privateWindow.isMaximized()) privateWindow.unmaximize();
+  else privateWindow.maximize();
+});
+ipcMain.handle("private:close", () => privateWindow && privateWindow.close());
+ipcMain.handle("private:clear", () => clearPrivateData());
+
 ipcMain.handle("quickask:hide", () => quickWindow && quickWindow.hide());
 ipcMain.handle("pet:toggle", () => togglePet());
 ipcMain.handle("pet:hide", () => petWindow && petWindow.hide());
@@ -450,6 +524,7 @@ app.whenReady().then(() => {
   globalShortcut.register("Control+Alt+K", togglePet);
   globalShortcut.register("Control+Alt+Space", toggleQuickAsk);
   globalShortcut.register("Control+Alt+H", () => void openQuickWrite());
+  globalShortcut.register("Control+Alt+P", openPrivateBrowser);
   globalShortcut.register("Control+Alt+V", () => void readAloudSelection());
   globalShortcut.register("Control+Alt+E", () => {
     if (mainWindow) {
@@ -476,6 +551,7 @@ app.whenReady().then(() => {
         },
       },
       { label: "Mini Jon ein/aus", click: togglePet },
+      { label: "Privater Browser (Strg+Alt+P)", click: openPrivateBrowser },
       { type: "separator" },
       {
         label: "Beenden",
@@ -495,6 +571,7 @@ app.whenReady().then(() => {
 app.on("before-quit", () => {
   quitting = true;
   globalShortcut.unregisterAll();
+  clearPrivateData();
 });
 
 app.on("window-all-closed", () => {

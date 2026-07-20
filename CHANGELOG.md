@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.20.3] — 2026-07-21
+
+### Neu — Privater Browser
+Komplett privater Browser direkt in der Jon-App (Werkzeuge → 🕶️ Privater Browser,
+`/privat` oder Strg+Alt+P, auch im Tray): eigenes Fenster im Jon-Design mit Tabs,
+Adress-/Suchleiste und Mausrad-/Tastatur-Shortcuts (Strg+T/W/L/R, Strg+Tab). Alles läuft
+in einer reinen In-Memory-Session — kein Verlauf, keine Cookies, kein Cache, keine
+Logins landen auf der Festplatte; beim Schließen (und per 🧹 „Spuren löschen") wird
+zusätzlich alles sofort gewischt. Suchen laufen standardmäßig über DuckDuckGo,
+Berechtigungsanfragen (Kamera, Standort …) werden in diesem Fenster automatisch
+abgelehnt, Popups öffnen als Tab statt als neues Fenster. Kein Konto, keine Anmeldung,
+nichts verlässt den PC.
+
 ## [3.19.0] — 2026-07-21
 
 ### Neu — Telegram-Gruppen & schlafender Mini Jon

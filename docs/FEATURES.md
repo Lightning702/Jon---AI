@@ -110,6 +110,15 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
   mit geschlossenen Augen, `/aufwachen` weckt ihn — der Schlaf-Status gilt
   auch für die Desktop-Figur
 
+## Privater Browser
+
+- Eigenes Browserfenster in der App (Werkzeuge → 🕶️, `/privat`, Strg+Alt+P)
+- Tabs, Adress-/Suchleiste (DuckDuckGo), Strg+T/W/L/R, Strg+Tab
+- Reine In-Memory-Session: kein Verlauf, keine Cookies, kein Cache auf der Platte
+- Beim Schließen und per „Spuren löschen" wird alles sofort gewischt
+- Berechtigungsanfragen automatisch abgelehnt, Popups öffnen als Tab
+- Keine Anmeldung, kein Konto — komplett lokal und privat
+
 ## Gedächtnis
 
 - Persistentes Langzeitgedächtnis (SQLite)

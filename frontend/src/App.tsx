@@ -89,6 +89,7 @@ const jonDesktop = (window as unknown as {
     flashWindow?: () => void;
     focusWindow?: () => void;
     onExplainScreen?: (cb: () => void) => void;
+    openPrivateBrowser?: () => void;
   };
 }).jon;
 
@@ -920,6 +921,10 @@ export default function App() {
       setDownloaderOpen(true);
       return;
     }
+    if (command === "/privat" || command === "/private" || command === "/inkognito") {
+      jonDesktop?.openPrivateBrowser?.();
+      return;
+    }
     if (command === "/show" || command === "/abendshow") {
       setShowOpen(true);
       return;
@@ -1521,6 +1526,9 @@ export default function App() {
                             { icon: "🔍", label: "Bildschirm erklären", hint: "Strg+Alt+E", act: () => setExplainOpen(true) },
                             { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
                             { icon: "⬇️", label: "Downloader", act: () => setDownloaderOpen(true) },
+                            ...(jonDesktop?.openPrivateBrowser
+                              ? [{ icon: "🕶️", label: "Privater Browser", hint: "Strg+Alt+P", act: () => jonDesktop.openPrivateBrowser?.() }]
+                              : []),
                             { icon: "🍳", label: "Kochassistent", act: () => setRecipeOpen(true) },
                             { icon: "📋", label: "Clipboard-Historie", act: () => setClipboardOpen(true) },
                           ],

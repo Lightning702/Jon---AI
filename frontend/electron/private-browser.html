@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Privater Browser — Jon</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        background: #0a0a0e;
+        color: #f4f0e6;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        overflow: hidden;
+      }
+      #titlebar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 36px;
+        padding: 0 0 0 12px;
+        background: linear-gradient(180deg, #101016, #0a0a0e);
+        border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+        -webkit-app-region: drag;
+        user-select: none;
+      }
+      #titlebar .logo {
+        font-size: 14px;
+      }
+      #titlebar .name {
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(244, 240, 230, 0.85);
+      }
+      #privBadge {
+        font-size: 10px;
+        color: #f0d98a;
+        background: rgba(212, 175, 55, 0.12);
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        border-radius: 999px;
+        padding: 2px 9px;
+        white-space: nowrap;
+      }
+      #winBtns {
+        margin-left: auto;
+        display: flex;
+        -webkit-app-region: no-drag;
+      }
+      #winBtns button {
+        width: 42px;
+        height: 36px;
+        background: transparent;
+        border: none;
+        color: rgba(244, 240, 230, 0.6);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      #winBtns button:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+      }
+      #winBtns #btnClose:hover {
+        background: #c0392b;
+      }
+      #tabbar {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+        padding: 6px 8px 0;
+        background: #0a0a0e;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .tab {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        max-width: 210px;
+        min-width: 110px;
+        height: 30px;
+        padding: 0 8px 0 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: none;
+        border-radius: 10px 10px 0 0;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(244, 240, 230, 0.55);
+        font-size: 11.5px;
+        cursor: pointer;
+        user-select: none;
+        flex: 0 1 auto;
+      }
+      .tab.active {
+        background: rgba(212, 175, 55, 0.1);
+        border-color: rgba(212, 175, 55, 0.35);
+        color: #f0d98a;
+      }
+      .tab .t-title {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .tab .t-spin {
+        width: 10px;
+        height: 10px;
+        border: 2px solid rgba(212, 175, 55, 0.25);
+        border-top-color: #d4af37;
+        border-radius: 50%;
+        display: none;
+        animation: spin 0.8s linear infinite;
+        flex: none;
+      }
+      .tab.loading .t-spin {
+        display: block;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .tab .t-close {
+        width: 16px;
+        height: 16px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        font-size: 11px;
+        line-height: 1;
+        cursor: pointer;
+        flex: none;
+      }
+      .tab .t-close:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+      #newTab {
+        width: 28px;
+        height: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(244, 240, 230, 0.6);
+        font-size: 15px;
+        cursor: pointer;
+        flex: none;
+        margin-bottom: 2px;
+      }
+      #newTab:hover {
+        color: #f0d98a;
+        border-color: rgba(212, 175, 55, 0.4);
+      }
+      #toolbar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        background: #101016;
+        border-top: 1px solid rgba(212, 175, 55, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      }
+      #toolbar .nav {
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(244, 240, 230, 0.7);
+        font-size: 14px;
+        cursor: pointer;
+        flex: none;
+      }
+      #toolbar .nav:hover:not(:disabled) {
+        color: #f0d98a;
+        border-color: rgba(212, 175, 55, 0.4);
+      }
+      #toolbar .nav:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      #addrWrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      #addrWrap:focus-within {
+        border-color: rgba(212, 175, 55, 0.55);
+        background: rgba(212, 175, 55, 0.06);
+      }
+      #addrWrap .lock {
+        font-size: 11px;
+        color: rgba(244, 240, 230, 0.4);
+        flex: none;
+      }
+      #addr {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #f4f0e6;
+        font-size: 12.5px;
+      }
+      #addr::placeholder {
+        color: rgba(244, 240, 230, 0.3);
+      }
+      #wipe {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        padding: 0 12px;
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        border-radius: 999px;
+        background: rgba(212, 175, 55, 0.1);
+        color: #f0d98a;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        flex: none;
+      }
+      #wipe:hover {
+        background: rgba(212, 175, 55, 0.22);
+      }
+      #views {
+        position: absolute;
+        inset: 112px 0 0 0;
+        background: #0d0d12;
+      }
+      #views webview {
+        position: absolute;
+        inset: 0;
+        display: none;
+      }
+      #views webview.active {
+        display: flex;
+      }
+      #empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        color: rgba(244, 240, 230, 0.4);
+        text-align: center;
+        padding: 24px;
+      }
+      #empty .big {
+        font-size: 44px;
+      }
+      #empty .head {
+        font-size: 16px;
+        font-weight: 600;
+        color: #f0d98a;
+      }
+      #empty .sub {
+        font-size: 12px;
+        max-width: 420px;
+        line-height: 1.6;
+      }
+      #toast {
+        position: absolute;
+        left: 50%;
+        bottom: 26px;
+        transform: translateX(-50%) translateY(20px);
+        background: rgba(16, 16, 22, 0.95);
+        border: 1px solid rgba(212, 175, 55, 0.45);
+        color: #f0d98a;
+        font-size: 12px;
+        padding: 9px 16px;
+        border-radius: 999px;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.25s ease;
+        z-index: 20;
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="titlebar">
+      <span class="logo">🕶️</span>
+      <span class="name">Privater Browser</span>
+      <span id="privBadge">Privat — Verlauf, Cookies &amp; Logins werden nicht gespeichert</span>
+      <div id="winBtns">
+        <button id="btnMin" title="Minimieren">─</button>
+        <button id="btnMax" title="Maximieren">▢</button>
+        <button id="btnClose" title="Schließen (löscht alle Spuren)">✕</button>
+      </div>
+    </div>
+    <div id="tabbar">
+      <button id="newTab" title="Neuer Tab (Strg+T)">+</button>
+    </div>
+    <div id="toolbar">
+      <button id="back" class="nav" title="Zurück">←</button>
+      <button id="fwd" class="nav" title="Vor">→</button>
+      <button id="reload" class="nav" title="Neu laden (Strg+R)">⟳</button>
+      <div id="addrWrap">
+        <span class="lock">🔒</span>
+        <input
+          id="addr"
+          placeholder="Adresse eingeben oder privat suchen (DuckDuckGo) …"
+          spellcheck="false"
+          autocomplete="off"
+        />
+      </div>
+      <button id="wipe" title="Alle Tabs schließen und sämtliche Daten sofort löschen">
+        🧹 Spuren löschen
+      </button>
+    </div>
+    <div id="views">
+      <div id="empty">
+        <div class="big">🕶️</div>
+        <div class="head">Du bist privat unterwegs</div>
+        <div class="sub">
+          Dieses Fenster speichert nichts: kein Verlauf, keine Cookies, kein Cache,
+          keine Logins — alles lebt nur im Arbeitsspeicher und wird beim Schließen
+          restlos gelöscht. Suchen laufen über DuckDuckGo. Öffne mit + oder Strg+T
+          einen Tab.
+        </div>
+      </div>
+    </div>
+    <div id="toast"></div>
+
+    <script>
+      const tabbar = document.getElementById("tabbar");
+      const newTabBtn = document.getElementById("newTab");
+      const views = document.getElementById("views");
+      const emptyEl = document.getElementById("empty");
+      const addr = document.getElementById("addr");
+      const backBtn = document.getElementById("back");
+      const fwdBtn = document.getElementById("fwd");
+      const reloadBtn = document.getElementById("reload");
+      const wipeBtn = document.getElementById("wipe");
+      const toastEl = document.getElementById("toast");
+
+      const START_URL = "https://duckduckgo.com/";
+      let tabs = [];
+      let activeId = null;
+      let tabSeq = 0;
+      let toastTimer = null;
+
+      function toast(text) {
+        toastEl.textContent = text;
+        toastEl.classList.add("show");
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2600);
+      }
+
+      function toUrl(raw) {
+        const t = raw.trim();
+        if (!t) return "";
+        if (/^https?:\/\//i.test(t)) return t;
+        if (/^about:blank$/i.test(t)) return t;
+        const local = /^(localhost|127\.|192\.168\.|10\.)/i.test(t);
+        if (
+          /^[^\s]+\.[^\s]{2,}(\/.*)?$/i.test(t) ||
+          /^localhost(:\d+)?(\/.*)?$/i.test(t) ||
+          /^\d{1,3}(\.\d{1,3}){3}(:\d+)?(\/.*)?$/.test(t)
+        ) {
+          return (local ? "http://" : "https://") + t;
+        }
+        return "https://duckduckgo.com/?q=" + encodeURIComponent(t);
+      }
+
+      function activeTab() {
+        return tabs.find((t) => t.id === activeId) || null;
+      }
+
+      function updateChrome() {
+        const tab = activeTab();
+        emptyEl.style.display = tab ? "none" : "flex";
+        if (!tab) {
+          addr.value = "";
+          backBtn.disabled = true;
+          fwdBtn.disabled = true;
+          reloadBtn.disabled = true;
+          document.title = "Privater Browser — Jon";
+          return;
+        }
+        reloadBtn.disabled = false;
+        reloadBtn.textContent = tab.loading ? "✕" : "⟳";
+        try {
+          backBtn.disabled = !tab.view.canGoBack();
+          fwdBtn.disabled = !tab.view.canGoForward();
+        } catch (e) {
+          backBtn.disabled = true;
+          fwdBtn.disabled = true;
+        }
+        if (document.activeElement !== addr) {
+          addr.value = tab.url === "about:blank" ? "" : tab.url;
+        }
+        document.title = (tab.title || "Privater Browser") + " — privat";
+      }
+
+      function setActive(id) {
+        activeId = id;
+        for (const tab of tabs) {
+          tab.btn.classList.toggle("active", tab.id === id);
+          tab.view.classList.toggle("active", tab.id === id);
+        }
+        updateChrome();
+      }
+
+      function closeTab(id) {
+        const idx = tabs.findIndex((t) => t.id === id);
+        if (idx === -1) return;
+        const [tab] = tabs.splice(idx, 1);
+        tab.btn.remove();
+        tab.view.remove();
+        if (activeId === id) {
+          const next = tabs[idx] || tabs[idx - 1];
+          setActive(next ? next.id : null);
+        } else {
+          updateChrome();
+        }
+      }
+
+      function createTab(url, activate = true) {
+        const id = ++tabSeq;
+        const btn = document.createElement("div");
+        btn.className = "tab";
+        btn.innerHTML =
+          '<span class="t-spin"></span><span class="t-title">Neuer Tab</span>' +
+          '<button class="t-close" title="Tab schließen (Strg+W)">✕</button>';
+        btn.addEventListener("click", () => setActive(id));
+        btn.addEventListener("auxclick", (e) => {
+          if (e.button === 1) closeTab(id);
+        });
+        btn.querySelector(".t-close").addEventListener("click", (e) => {
+          e.stopPropagation();
+          closeTab(id);
+        });
+        tabbar.insertBefore(btn, newTabBtn);
+
+        const view = document.createElement("webview");
+        view.setAttribute("partition", "jon-privat");
+        view.setAttribute("src", url || START_URL);
+        views.appendChild(view);
+
+        const tab = {
+          id,
+          btn,
+          view,
+          title: "Neuer Tab",
+          url: url || START_URL,
+          loading: true,
+        };
+        tabs.push(tab);
+
+        view.addEventListener("page-title-updated", (e) => {
+          tab.title = e.title || tab.url;
+          btn.querySelector(".t-title").textContent = tab.title;
+          if (tab.id === activeId) updateChrome();
+        });
+        view.addEventListener("did-start-loading", () => {
+          tab.loading = true;
+          btn.classList.add("loading");
+          if (tab.id === activeId) updateChrome();
+        });
+        view.addEventListener("did-stop-loading", () => {
+          tab.loading = false;
+          btn.classList.remove("loading");
+          if (tab.id === activeId) updateChrome();
+        });
+        const onNav = (e) => {
+          if (e.isMainFrame === false) return;
+          tab.url = e.url || tab.url;
+          if (tab.id === activeId) updateChrome();
+        };
+        view.addEventListener("did-navigate", onNav);
+        view.addEventListener("did-navigate-in-page", onNav);
+        view.addEventListener("did-fail-load", (e) => {
+          if (e.errorCode === -3 || !e.isMainFrame) return;
+          tab.title = "Seite nicht erreichbar";
+          btn.querySelector(".t-title").textContent = tab.title;
+        });
+
+        if (activate) setActive(id);
+        return tab;
+      }
+
+      function navigate(raw) {
+        const url = toUrl(raw);
+        if (!url) return;
+        const tab = activeTab();
+        if (tab) {
+          tab.url = url;
+          tab.view.loadURL(url);
+        } else {
+          createTab(url, true);
+        }
+        addr.blur();
+      }
+
+      async function wipeAll() {
+        for (const tab of [...tabs]) closeTab(tab.id);
+        try {
+          await window.jonPrivat.clearAll();
+        } catch (e) {}
+        createTab(START_URL, true);
+        toast("🧹 Alles gelöscht — Cookies, Cache und Tabs sind weg.");
+      }
+
+      newTabBtn.addEventListener("click", () => {
+        createTab(START_URL, true);
+        addr.focus();
+        addr.select();
+      });
+      backBtn.addEventListener("click", () => {
+        const tab = activeTab();
+        if (tab && tab.view.canGoBack()) tab.view.goBack();
+      });
+      fwdBtn.addEventListener("click", () => {
+        const tab = activeTab();
+        if (tab && tab.view.canGoForward()) tab.view.goForward();
+      });
+      reloadBtn.addEventListener("click", () => {
+        const tab = activeTab();
+        if (!tab) return;
+        if (tab.loading) tab.view.stop();
+        else tab.view.reload();
+      });
+      wipeBtn.addEventListener("click", wipeAll);
+      addr.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") navigate(addr.value);
+        if (e.key === "Escape") {
+          updateChrome();
+          addr.blur();
+        }
+      });
+      addr.addEventListener("focus", () => addr.select());
+
+      document.getElementById("btnMin").addEventListener("click", () =>
+        window.jonPrivat.minimize()
+      );
+      document.getElementById("btnMax").addEventListener("click", () =>
+        window.jonPrivat.maximize()
+      );
+      document.getElementById("btnClose").addEventListener("click", () =>
+        window.jonPrivat.close()
+      );
+
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "t") {
+          e.preventDefault();
+          createTab(START_URL, true);
+          addr.focus();
+        } else if (e.ctrlKey && e.key.toLowerCase() === "w") {
+          e.preventDefault();
+          if (activeId !== null) closeTab(activeId);
+        } else if (e.ctrlKey && e.key.toLowerCase() === "l") {
+          e.preventDefault();
+          addr.focus();
+          addr.select();
+        } else if ((e.ctrlKey && e.key.toLowerCase() === "r") || e.key === "F5") {
+          e.preventDefault();
+          const tab = activeTab();
+          if (tab) tab.view.reload();
+        } else if (e.ctrlKey && e.key === "Tab") {
+          e.preventDefault();
+          if (!tabs.length) return;
+          const idx = tabs.findIndex((t) => t.id === activeId);
+          const next = tabs[(idx + (e.shiftKey ? tabs.length - 1 : 1)) % tabs.length];
+          setActive(next.id);
+        }
+      });
+
+      window.jonPrivat.onOpenTab((url) => {
+        if (url) createTab(url, true);
+      });
+
+      createTab(START_URL, true);
+      setInterval(updateChrome, 1200);
+    </script>
+  </body>
+</html>
