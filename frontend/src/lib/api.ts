@@ -492,6 +492,10 @@ export function blockweltUrl(): string {
   return BASE.replace(/\/api$/, "") + "/blockwelt";
 }
 
+export function privatBrowserUrl(): string {
+  return BASE.replace(/\/api$/, "") + "/privat";
+}
+
 export interface JournalEntry {
   id: string;
   date: string;

@@ -364,6 +364,25 @@ async def mini_jon_set_status(payload: MiniJonStatusIn) -> dict:
     return result
 
 
+@router.get("/private/proxy")
+async def private_proxy(url: str = ""):
+    from fastapi.responses import Response
+
+    from app.services.private_proxy_service import fetch
+
+    status, body, content_type = await fetch(url)
+    return Response(
+        content=body,
+        status_code=status,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Referrer-Policy": "no-referrer",
+            "X-Robots-Tag": "noindex, nofollow",
+        },
+    )
+
+
 @router.get("/persona/memory")
 async def persona_memory() -> dict:
     return {"memory": get_persona_service().read_memory_file(max_chars=20000)}

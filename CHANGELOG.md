@@ -2,6 +2,23 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.21.0] — 2026-07-21
+
+### Neu — Privater Browser auch auf dem Pi & über Mini Jon
+- **Web-/Pi-Version**: Der private Browser läuft jetzt auch ohne Electron. Das Backend
+  liefert unter `/privat` eine eigenständige Browser-Seite (Tabs, Adress-/Suchleiste,
+  DuckDuckGo, In-Memory — nichts wird gespeichert). Läuft Jon auf dem Raspberry Pi oder
+  wird die Web-App im Browser geöffnet, startet über „Privater Browser"/`/privat` diese
+  Seite in einem neuen Tab; in der Electron-App weiterhin das native Fenster.
+- **Seiten-Proxy** (`/api/private/proxy`): Seiten werden über Jon geladen, damit sie sich
+  im In-App-Browser überhaupt öffnen (X-Frame-Options/CSP-Frame-Sperren werden dabei
+  umgangen, ein `<base>` und ein kleines Navigations-Skript werden eingefügt, sodass
+  Links und Suchformulare im privaten Browser bleiben). Der Proxy speichert nichts, setzt
+  `Cache-Control: no-store` und `Referrer-Policy: no-referrer` und blockt interne Adressen
+  (Loopback, Link-Local, Cloud-Metadaten) gegen SSRF.
+- **Mini Jon** öffnet den privaten Browser: Sag der Desktop-Figur z. B. „öffne den
+  privaten Browser" oder „privat surfen", und Emil startet ihn für dich.
+
 ## [3.20.3] — 2026-07-21
 
 ### Neu — Privater Browser

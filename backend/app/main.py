@@ -303,6 +303,16 @@ def create_app() -> FastAPI:
     async def blockwelt():
         return FileResponse(game_file, media_type="text/html")
 
+    private_file = Path(__file__).resolve().parent / "static" / "privat.html"
+
+    @app.get("/privat")
+    async def privat():
+        return FileResponse(
+            private_file,
+            media_type="text/html",
+            headers={"Cache-Control": "no-store"},
+        )
+
     dist = ROOT_DIR / "frontend" / "dist"
     if dist.is_dir():
         app.mount("/app", StaticFiles(directory=str(dist), html=True), name="app")

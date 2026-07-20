@@ -73,6 +73,7 @@ import {
   getWatcherReports,
   getWeekly,
   listSnapshots,
+  privatBrowserUrl,
   observeScreen,
   observeWebcam,
   saveUserSettings,
@@ -92,6 +93,11 @@ const jonDesktop = (window as unknown as {
     openPrivateBrowser?: () => void;
   };
 }).jon;
+
+function openPrivateBrowser() {
+  if (jonDesktop?.openPrivateBrowser) jonDesktop.openPrivateBrowser();
+  else window.open(privatBrowserUrl(), "_blank", "noopener");
+}
 
 function chatPing() {
   try {
@@ -922,7 +928,7 @@ export default function App() {
       return;
     }
     if (command === "/privat" || command === "/private" || command === "/inkognito") {
-      jonDesktop?.openPrivateBrowser?.();
+      openPrivateBrowser();
       return;
     }
     if (command === "/show" || command === "/abendshow") {
@@ -1526,9 +1532,7 @@ export default function App() {
                             { icon: "🔍", label: "Bildschirm erklären", hint: "Strg+Alt+E", act: () => setExplainOpen(true) },
                             { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
                             { icon: "⬇️", label: "Downloader", act: () => setDownloaderOpen(true) },
-                            ...(jonDesktop?.openPrivateBrowser
-                              ? [{ icon: "🕶️", label: "Privater Browser", hint: "Strg+Alt+P", act: () => jonDesktop.openPrivateBrowser?.() }]
-                              : []),
+                            { icon: "🕶️", label: "Privater Browser", hint: jonDesktop?.openPrivateBrowser ? "Strg+Alt+P" : undefined, act: () => openPrivateBrowser() },
                             { icon: "🍳", label: "Kochassistent", act: () => setRecipeOpen(true) },
                             { icon: "📋", label: "Clipboard-Historie", act: () => setClipboardOpen(true) },
                           ],

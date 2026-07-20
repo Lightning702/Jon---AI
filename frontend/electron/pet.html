@@ -900,9 +900,24 @@
         scheduleHide(1500);
       }
 
+      function wantsPrivateBrowser(text) {
+        const s = (text || "").toLowerCase();
+        if (!/privat|inkognito|incognito/.test(s)) return false;
+        return /browser|surf|internet|seite|googl|web/.test(s) ||
+          /privater browser|privaten browser|inkognito/.test(s);
+      }
+
       async function ask(text) {
         if (busy || !text.trim()) return;
         if (miniAsleep) wakeMiniJon();
+        if (window.jonpet && window.jonpet.openPrivate && wantsPrivateBrowser(text)) {
+          window.jonpet.openPrivate();
+          const line = "Klar, ich öffne dir den privaten Browser! 🕶️ Da wird nichts gespeichert.";
+          say(line);
+          speak("Klar, ich öffne dir den privaten Browser. Da wird nichts gespeichert.");
+          rememberTurn(text, line);
+          return;
+        }
         busy = true;
         canceled = false;
         document.body.classList.add("busy");
