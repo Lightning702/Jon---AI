@@ -77,6 +77,7 @@ class SettingsIn(BaseModel):
     telegram_chat_id: str | None = None
     telegram_provider: str | None = None
     telegram_model: str | None = None
+    mini_jon_bot_token: str | None = None
     pet_provider: str | None = None
     pet_model: str | None = None
     relay_enabled: bool | None = None
@@ -107,6 +108,10 @@ class SettingsIn(BaseModel):
 class WatcherIn(BaseModel):
     path: str
     task: str
+
+
+class MiniJonStatusIn(BaseModel):
+    status: str
 
 
 class ScreenObserveIn(BaseModel):

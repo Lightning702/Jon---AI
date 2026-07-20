@@ -63,6 +63,24 @@
         50% { opacity: 0.9; transform: translateY(-6px); }
         100% { opacity: 0; transform: translateY(-16px); }
       }
+      #jonZzz {
+        position: absolute;
+        right: -4px;
+        top: -8px;
+        color: #f0d98a;
+        font-size: 20px;
+        letter-spacing: 3px;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 6;
+        text-shadow: 0 1px 3px #000;
+      }
+      #jonZzz.show { animation: zzzFloat 2.8s ease-in-out infinite; }
+      body.miniSleep #jon svg { animation: miniBreath 4.2s ease-in-out infinite; }
+      @keyframes miniBreath {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.035); }
+      }
       #petHeart {
         position: absolute;
         left: 40px;
@@ -335,6 +353,7 @@
         <button id="mic" class="petBtn" title="Zuhören an/aus – sag „Emil“">🎙</button>
         <button id="stopBtn" class="petBtn" title="Stopp">⏹</button>
         <button id="close" class="petBtn" title="Mini Jon ausblenden (Strg+Alt+K)">✕</button>
+        <div id="jonZzz">z z</div>
         <div id="jon">
           <svg width="120" height="120" viewBox="0 0 120 120">
             <defs>
@@ -845,15 +864,16 @@
         }, 900 + Math.random() * 900);
       }
       setInterval(() => {
+        if (miniAsleep) return;
         const r = Math.random();
         if (r < 0.12) doubleBlink();
         else if (r < 0.75) blink();
       }, 3600);
       setInterval(() => {
-        if (!busy && Math.random() < 0.6) lookAround();
+        if (!busy && !miniAsleep && Math.random() < 0.6) lookAround();
       }, 2600);
       setInterval(() => {
-        if (!busy && !mouthTimer && Math.random() < 0.16) {
+        if (!busy && !miniAsleep && !mouthTimer && Math.random() < 0.16) {
           openMouth(0.4);
           setTimeout(() => openMouth(0), 260);
         }
@@ -882,6 +902,7 @@
 
       async function ask(text) {
         if (busy || !text.trim()) return;
+        if (miniAsleep) wakeMiniJon();
         busy = true;
         canceled = false;
         document.body.classList.add("busy");
@@ -1001,7 +1022,7 @@
       };
       let currentMood = "";
       function applyMood(mood) {
-        if (!mood || mood === currentMood) return;
+        if (!mood || mood === currentMood || miniAsleep) return;
         currentMood = mood;
         const face = MOOD_FACE[mood];
         if (!face) return;
@@ -1157,7 +1178,7 @@
           document.body.classList.toggle("pomo-break", brk);
           if (p.phase !== pomoPhase) {
             pomoPhase = p.phase;
-            if (brk && !busy) {
+            if (brk && !busy && !miniAsleep) {
               renderEyes("happy");
               doubleBlink();
               const tip = BREAK_TIPS[pomoTipIdx % BREAK_TIPS.length];
@@ -1184,7 +1205,7 @@
       let wellnessIdx = 0;
       function wellnessTick() {
         if (cfg.pet_wellness === false) return;
-        if (busy || petAsleep || dancing) return;
+        if (busy || petAsleep || dancing || miniAsleep) return;
         if (Date.now() - lastWellness < WELLNESS_MS) return;
         lastWellness = Date.now();
         const w = WELLNESS[wellnessIdx % WELLNESS.length];
@@ -1215,6 +1236,46 @@
         } catch (e) {}
       }
       setInterval(pollPresence, 20000);
+
+      const jonZzz = document.getElementById("jonZzz");
+      let miniAsleep = false;
+      function setMiniSleep(sleep) {
+        if (miniAsleep === sleep) return;
+        miniAsleep = sleep;
+        document.body.classList.toggle("miniSleep", sleep);
+        jonZzz.classList.toggle("show", sleep);
+        if (sleep) {
+          stopMouth();
+          renderEyes("sleepy");
+          smile.setAttribute("d", "M46 80 H74");
+          jon.style.filter = "brightness(0.55)";
+        } else {
+          jon.style.filter = "none";
+          renderEyes(cfg.pet_eyes || "round");
+          smile.setAttribute("d", "M44 76 Q60 90 76 76");
+          currentMood = "";
+          pollMood();
+          doubleBlink();
+        }
+      }
+      async function wakeMiniJon() {
+        setMiniSleep(false);
+        try {
+          await fetch(`${BASE}/mini-jon/status`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "wach" }),
+          });
+        } catch (e) {}
+      }
+      async function pollMiniStatus() {
+        try {
+          const r = await (await fetch(`${BASE}/mini-jon/status`)).json();
+          setMiniSleep(r.status === "schlaeft");
+        } catch (e) {}
+      }
+      setInterval(pollMiniStatus, 8000);
+      setTimeout(pollMiniStatus, 1500);
 
       const askRow = document.getElementById("askRow");
       const askYes = document.getElementById("askYes");

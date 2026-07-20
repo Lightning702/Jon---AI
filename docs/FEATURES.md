@@ -101,6 +101,14 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Lange Sprachnachrichten zusammenfassen + Termine in den Kalender
 - Standort-Erinnerungen: benannte Orte + Geofencing über Live-Standort
 - Guten-Morgen-Nachricht mit Terminen, Erinnerungen einen Tag vorher
+- **Gruppen-Chats**: Jon und Mini Jon lesen in Gruppen still mit (Kontext),
+  antworten aber nur bei Erwähnung mit ihrem `@Benutzernamen`; beliebig viele
+  Bots harmonieren in derselben Gruppe über einen gemeinsamen Verlauf
+  (bei @BotFather `/setprivacy` → Disable, damit die Bots alles mitlesen)
+- **Mini Jon als eigener Bot** (eigenes Token): antwortet als Emil; mit
+  `/schlafen` schläft er ein und zeigt statt Antworten eine Schlaf-Animation
+  mit geschlossenen Augen, `/aufwachen` weckt ihn — der Schlaf-Status gilt
+  auch für die Desktop-Figur
 
 ## Gedächtnis
 

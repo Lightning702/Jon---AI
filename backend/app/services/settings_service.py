@@ -37,6 +37,7 @@ DEFAULTS = {
     "telegram_chat_id": "",
     "telegram_provider": "",
     "telegram_model": "",
+    "mini_jon_bot_token": "",
     "pet_provider": "",
     "pet_model": "",
     "ha_url": "",

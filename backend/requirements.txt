@@ -24,3 +24,5 @@ openwakeword>=0.6
 sounddevice>=0.5
 playwright>=1.49
 soundcard>=0.4
+pillow>=10.1
+

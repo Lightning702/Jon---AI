@@ -243,6 +243,7 @@ export interface UserSettings {
   telegram_chat_id: string;
   telegram_provider: string;
   telegram_model: string;
+  mini_jon_bot_token: string;
   pet_provider: string;
   pet_model: string;
   relay_enabled: boolean;
@@ -303,6 +304,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       telegram_chat_id: "",
       telegram_provider: "",
       telegram_model: "openai/gpt-oss-20b",
+      mini_jon_bot_token: "",
       pet_provider: "",
       pet_model: "openai/gpt-oss-20b",
       relay_enabled: false,

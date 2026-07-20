@@ -28,6 +28,8 @@ class TelegramService:
         self._running: dict[str, asyncio.Task] = {}
         self._last_morning = self._load_morning()
         self._pending_place: dict[str, str] = {}
+        self._username = ""
+        self._username_token = ""
 
     def _load_histories(self) -> dict[str, list[dict]]:
         try:
@@ -80,6 +82,73 @@ class TelegramService:
                 )
         except Exception:
             pass
+
+    async def bot_username(self) -> str:
+        token = self._token()
+        if not token:
+            return ""
+        if token == self._username_token and self._username:
+            return self._username
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                response = await client.get(
+                    f"https://api.telegram.org/bot{token}/getMe"
+                )
+                data = response.json()
+        except Exception:
+            return ""
+        name = str(((data or {}).get("result") or {}).get("username") or "")
+        if name:
+            self._username = name
+            self._username_token = token
+        return name
+
+    async def _handle_group_message(self, message: dict) -> None:
+        from app.services.telegram_group_service import (
+            FEHLER_ANTWORT,
+            get_group_memory,
+            group_answer,
+            is_mentioned,
+            strip_mention,
+        )
+
+        chat = message.get("chat") or {}
+        chat_id = str(chat.get("id") or "")
+        text = (message.get("text") or message.get("caption") or "").strip()
+        if not chat_id or not text or text.startswith("/"):
+            return
+        sender_info = message.get("from") or {}
+        sender = str(
+            sender_info.get("first_name") or sender_info.get("username") or "Jemand"
+        ).strip()
+        memory = get_group_memory()
+        memory.record(chat_id, sender, text, message_id=message.get("message_id"))
+        username = await self.bot_username()
+        if not username or not is_mentioned(text, message.get("entities"), username):
+            return
+        question = strip_mention(text, username) or "Hallo!"
+        await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
+        provider, model = get_settings_service().telegram_selection()
+        try:
+            answer = await asyncio.wait_for(
+                group_answer(
+                    "papa",
+                    username,
+                    sender,
+                    question,
+                    transcript=memory.transcript(chat_id),
+                    group=True,
+                    partner_hint="dein Sohn Emil alias Mini Jon mit eigenem Bot",
+                    provider=provider,
+                    model=model,
+                    slot="jon",
+                ),
+                timeout=120,
+            )
+        except Exception:
+            answer = FEHLER_ANTWORT
+        memory.record(chat_id, "Jon", answer, bot="jon")
+        await self.send(chat_id, answer)
 
     async def send(self, chat_id: str | int, text: str) -> None:
         for start in range(0, max(len(text), 1), 3900):
@@ -579,6 +648,12 @@ class TelegramService:
             message = update.get("message") or edited or {}
             chat_id = (message.get("chat") or {}).get("id")
             if not chat_id:
+                continue
+            from app.services.telegram_group_service import GROUP_CHAT_TYPES
+
+            if str((message.get("chat") or {}).get("type") or "") in GROUP_CHAT_TYPES:
+                if not edited:
+                    await self._handle_group_message(message)
                 continue
             location = message.get("location") or message.get("venue", {}).get(
                 "location"

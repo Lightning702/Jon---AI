@@ -18,6 +18,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
     mail_smtp_port: settings.mail_smtp_port ?? 587,
     calendar_ics_url: settings.calendar_ics_url ?? "",
     telegram_bot_token: settings.telegram_bot_token ?? "",
+    mini_jon_bot_token: settings.mini_jon_bot_token ?? "",
     telegram_chat_id: settings.telegram_chat_id ?? "",
     telegram_model: settings.telegram_model ?? "openai/gpt-oss-20b",
     telegram_morning: settings.telegram_morning ?? false,
@@ -199,6 +200,32 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
                 onChange={(e) => set("telegram_morning_time", e.target.value)}
               />
             )}
+            <div className="text-[11px] uppercase tracking-wide text-gold/70 pt-3">
+              👥 Gruppen & Mini Jon
+            </div>
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              Füge Jon (und Mini Jon) einfach zu einer Telegram-Gruppe hinzu:
+              Sie lesen dort still mit, um den Kontext zu verstehen, und
+              antworten nur, wenn jemand sie mit ihrem{" "}
+              <code>@Benutzernamen</code> erwähnt — beide Bots können
+              gleichzeitig in derselben Gruppe sein. Damit sie wirklich alles
+              mitlesen können, bei <code>@BotFather</code> für jeden Bot{" "}
+              <code>/setprivacy</code> → <code>Disable</code> setzen. Mini Jon
+              braucht einen eigenen Bot (<code>/newbot</code>):
+            </p>
+            <input
+              className={field}
+              type="password"
+              placeholder="Bot-Token für Mini Jon (optional)"
+              value={form.mini_jon_bot_token}
+              onChange={(e) => set("mini_jon_bot_token", e.target.value)}
+            />
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              Mini Jon kennt <code>/schlafen</code> und <code>/aufwachen</code>{" "}
+              — schläft er, zeigt er statt einer Antwort seine
+              Schlaf-Animation mit geschlossenen Augen (auch auf dem
+              Bildschirm schläft er dann sichtbar).
+            </p>
           </section>
 
           <section className="space-y-2">

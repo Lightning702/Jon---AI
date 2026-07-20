@@ -34,6 +34,7 @@ from app.schemas import (
     HealthOut,
     JournalAddIn,
     JournalAskIn,
+    MiniJonStatusIn,
     NoteAddIn,
     NoteUpdateIn,
     HumanizeIn,
@@ -344,6 +345,23 @@ async def delete_reminder(reminder_id: str) -> dict:
 @router.get("/persona")
 async def persona() -> dict:
     return get_persona_service().state()
+
+
+@router.get("/mini-jon/status")
+async def mini_jon_status() -> dict:
+    from app.services.mini_jon_service import get_mini_jon_service
+
+    return get_mini_jon_service().status()
+
+
+@router.post("/mini-jon/status")
+async def mini_jon_set_status(payload: MiniJonStatusIn) -> dict:
+    from app.services.mini_jon_service import get_mini_jon_service
+
+    result = get_mini_jon_service().set_status(payload.status)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
 
 
 @router.get("/persona/memory")

@@ -12,6 +12,7 @@ async def complete(
     model: str | None = None,
     max_tokens: int = 4096,
     temperature: float = 0.9,
+    slot: str = "jon",
 ) -> str:
     settings = get_settings()
     provider = provider or settings.default_provider
@@ -28,6 +29,7 @@ async def complete(
         top_p=1.0,
         max_tokens=max_tokens,
         tools=[],
+        slot=slot,
     )
     parts: list[str] = []
     async for chunk in prov.stream(request, None):

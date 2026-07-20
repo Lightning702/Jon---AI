@@ -99,6 +99,17 @@ async def _telegram_watcher() -> None:
             await asyncio.sleep(10)
 
 
+async def _group_bots_watcher() -> None:
+    from app.services.telegram_group_service import get_group_bots
+
+    bots = get_group_bots()
+    while True:
+        try:
+            await asyncio.gather(*(bot.poll_once() for bot in bots))
+        except Exception:
+            await asyncio.sleep(10)
+
+
 async def _morning_watcher() -> None:
     from app.services.telegram_service import get_telegram_service
 
@@ -222,6 +233,7 @@ async def lifespan(app: FastAPI):
     clipboard_task = asyncio.create_task(_clipboard_watcher())
     automation_task = asyncio.create_task(_task_watcher())
     telegram_task = asyncio.create_task(_telegram_watcher())
+    group_bots_task = asyncio.create_task(_group_bots_watcher())
     morning_task = asyncio.create_task(_morning_watcher())
     companion_task = asyncio.create_task(_companion_watcher())
     routine_task = asyncio.create_task(_routine_timeline_watcher())
@@ -251,6 +263,7 @@ async def lifespan(app: FastAPI):
     clipboard_task.cancel()
     automation_task.cancel()
     telegram_task.cancel()
+    group_bots_task.cancel()
     morning_task.cancel()
     companion_task.cancel()
     routine_task.cancel()

@@ -2,6 +2,24 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.19.0] — 2026-07-21
+
+### Neu — Telegram-Gruppen & schlafender Mini Jon
+- **Gruppen-Chats mit mehreren Bots**: Jon und Mini Jon (eigener Bot-Token unter
+  Verbindungen) lesen in Telegram-Gruppen alle Nachrichten mit und verstehen so den
+  Gesprächskontext, antworten aber nur, wenn sie jemand mit ihrem `@Benutzernamen`
+  erwähnt. Ein gemeinsamer Gruppen-Verlauf sorgt dafür, dass beliebig viele Bots in
+  derselben Gruppe harmonieren — jeder kennt auch die Antworten der anderen. Neue
+  Architektur `telegram_group_service.py` (GroupBot-Basisklasse, weitere Bots =
+  Unterklasse). In Gruppen sind PC-Tools bewusst aus. Wichtig: bei @BotFather pro Bot
+  `/setprivacy` → Disable, sonst liefert Telegram den Bots nur Erwähnungen und Befehle.
+- **Mini Jon schläft**: neuer Status `wach`/`schläft` (`GET/POST /api/mini-jon/status`,
+  Telegram `/schlafen` und `/aufwachen`). Schläft Emil, antwortet er in Telegram nicht
+  mehr, sondern schickt eine generierte Schlaf-Animation (GIF im Jon-Design: geschlossene
+  Augen, schwebende Zzz, ruhiges Atmen). Die Desktop-Figur schläft sichtbar mit:
+  geschlossene Augen, gedimmtes Gesicht, Zzz und Atem-Animation; Blinzeln, Umschauen,
+  Stimmungs- und Wellness-Impulse pausieren. Eine Nachricht an ihn weckt ihn auf.
+
 ## [3.18.1] — 2026-07-19
 
 ### Geändert — LAN-Pairing entfernt

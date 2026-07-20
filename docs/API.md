@@ -88,6 +88,24 @@ API sie nicht liefert.
 - `DELETE /api/calendar/{id}` — löschen.
 - `GET /api/calendar/due` — jetzt fällige Termine (für Benachrichtigungen).
 
+## Mini Jon
+
+- `GET /api/mini-jon/status` — Status (`{ status: "wach" | "schlaeft", since }`).
+- `POST /api/mini-jon/status` `{ status }` — Status setzen; „schläft" wird auch von den
+  Telegram-Kommandos `/schlafen` und `/aufwachen` des Mini-Jon-Bots geschaltet. Schläft
+  Emil, zeigen Desktop-Figur und Telegram-Bot eine Schlaf-Animation mit geschlossenen
+  Augen statt Antworten.
+
+## Telegram-Gruppen
+
+Jon (`telegram_bot_token`) und Mini Jon (`mini_jon_bot_token`, eigener Bot) können
+gemeinsam in Telegram-Gruppen sein: Beide lesen alle Nachrichten mit (bei @BotFather
+`/setprivacy` → Disable) und speichern sie in einem gemeinsamen Gruppen-Verlauf
+(`data/telegram_groups.json`), antworten aber nur, wenn sie mit ihrem `@Benutzernamen`
+erwähnt werden. Weitere Bots lassen sich als Unterklasse von `GroupBot`
+(`app/services/telegram_group_service.py`) ergänzen und harmonieren über denselben
+Verlauf. In Gruppen sind PC-Tools bewusst deaktiviert.
+
 ## Auto-Update
 
 - `GET /api/update` — prüft, ob eine neuere Version vorliegt.
