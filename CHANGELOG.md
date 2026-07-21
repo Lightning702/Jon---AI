@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.23.0] — 2026-07-21
+
+### Neu — Mini Jon schläft mit Schlafmaske und träumt
+- Wenn Mini Jon schläft (z. B. weil du länger als 5 Minuten weg bist oder per
+  Telegram `/schlafen`), setzt er sich jetzt eine **Schlafmaske** auf — dunkel mit
+  Goldrand, kleinem Mond und Sternchen.
+- In der Sprechblase, wo sonst seine Antworten stehen, wird währenddessen sein
+  **Traum** angezeigt (💭, wechselt alle paar Sekunden) — in einem eigenen,
+  verträumten Blau-Stil.
+- Die **Zzz** schweben jetzt direkt an seinem Kopf statt weit daneben.
+- Ist der PC länger als 5 Minuten unbenutzt (AFK), schläft Mini Jon automatisch ein
+  und wacht auf, sobald du zurück bist oder ihn ansprichst.
+
 ## [3.22.1] — 2026-07-21
 
 ### Behoben — Privater Browser jetzt auch auf dem Raspberry Pi

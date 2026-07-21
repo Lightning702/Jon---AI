@@ -65,11 +65,11 @@
       }
       #jonZzz {
         position: absolute;
-        right: -4px;
-        top: -8px;
+        right: 14px;
+        top: 6px;
         color: #f0d98a;
-        font-size: 20px;
-        letter-spacing: 3px;
+        font-size: 19px;
+        letter-spacing: 2px;
         opacity: 0;
         pointer-events: none;
         z-index: 6;
@@ -148,6 +148,18 @@
         opacity: 1;
         transform: translateY(0);
         pointer-events: auto;
+      }
+      #bubble.dream {
+        font-style: italic;
+        text-align: center;
+        color: #c9d4ff;
+        border-color: rgba(150, 168, 255, 0.45);
+        border-radius: 18px 18px 18px 18px;
+        box-shadow: 0 10px 30px rgba(15, 25, 70, 0.5);
+      }
+      body.light #bubble.dream {
+        color: #4a5686;
+        border-color: rgba(90, 110, 200, 0.35);
       }
       #bubble::-webkit-scrollbar {
         width: 5px;
@@ -379,6 +391,20 @@
               <ellipse cx="82" cy="70" rx="8" ry="5" fill="#ff9bb0" opacity="0.5" />
             </g>
             <g id="eyes"></g>
+            <g id="sleepMask" style="display: none">
+              <path d="M31 48 Q19 43 10 50" stroke="#3a3a52" stroke-width="4" fill="none" stroke-linecap="round" />
+              <path d="M89 48 Q101 43 110 50" stroke="#3a3a52" stroke-width="4" fill="none" stroke-linecap="round" />
+              <path
+                d="M30 53 Q30 40 44 40 Q60 45 76 40 Q90 40 90 53 Q90 65 74 64 Q60 60 46 64 Q30 65 30 53 Z"
+                fill="#171722"
+                stroke="url(#gold)"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <path d="M50 44 a8 8 0 1 0 8 11 a6.5 6.5 0 0 1 -8 -11 Z" fill="#f0d98a" />
+              <path d="M70 46 l1.8 3.4 3.4 1.8 -3.4 1.8 -1.8 3.4 -1.8 -3.4 -3.4 -1.8 3.4 -1.8 Z" fill="#f0d98a" />
+              <circle cx="80" cy="45" r="1.6" fill="#f0d98a" />
+            </g>
             <path
               id="smile"
               d="M44 76 Q60 90 76 76"
@@ -561,6 +587,7 @@
       }
       function say(text, keep) {
         if (!text) return;
+        bubble.classList.remove("dream");
         bubble.textContent = text;
         bubble.classList.add("show");
         if (bubbleTimer) clearTimeout(bubbleTimer);
@@ -1251,6 +1278,8 @@
           const idle = Number(r.seconds || 0);
           if (idle > 300) setPetSleep(true);
           else setPetSleep(false);
+          afkAsleep = idle > 300 && !busy;
+          refreshSleep();
           if (idle > 600) {
             wasAway = true;
           } else if (wasAway && idle < 5) {
@@ -1265,18 +1294,51 @@
       setInterval(pollPresence, 20000);
 
       const jonZzz = document.getElementById("jonZzz");
+      const sleepMask = document.getElementById("sleepMask");
       let miniAsleep = false;
+      let backendAsleep = false;
+      let afkAsleep = false;
+      const DREAMS = [
+        "💭 Ich fliege durch goldene Wolken …",
+        "💭 Ich träume, dass ich so groß bin wie Papa Jon …",
+        "💭 Schäfchen zählen … 01, 10, 11, 100 …",
+        "💭 Ein Meer aus warmem Kakao … lecker …",
+        "💭 Ich gewinne das Blockwelt-Turnier … 🏆",
+        "💭 Pixel-Schäfchen hüpfen über den Bildschirmrand …",
+        "💭 Ich surfe auf einer Regenbogen-Datenwelle …",
+        "💭 Alle unsere Erinnerungen leuchten wie Sterne …",
+        "💭 Ich baue ein Schloss aus goldenen Bausteinen …",
+        "💭 Psst … ich träume von unserem nächsten Abenteuer …",
+      ];
+      let dreamTimer = null;
+      let dreamIdx = Math.floor(Math.random() * DREAMS.length);
+      function showDream() {
+        if (!miniAsleep || busy) return;
+        say(DREAMS[dreamIdx % DREAMS.length], true);
+        bubble.classList.add("dream");
+        dreamIdx++;
+      }
       function setMiniSleep(sleep) {
         if (miniAsleep === sleep) return;
         miniAsleep = sleep;
         document.body.classList.toggle("miniSleep", sleep);
         jonZzz.classList.toggle("show", sleep);
+        sleepMask.style.display = sleep ? "block" : "none";
         if (sleep) {
           stopMouth();
           renderEyes("sleepy");
           smile.setAttribute("d", "M46 80 H74");
           jon.style.filter = "brightness(0.55)";
+          showDream();
+          if (!dreamTimer) dreamTimer = setInterval(showDream, 13000);
         } else {
+          if (dreamTimer) {
+            clearInterval(dreamTimer);
+            dreamTimer = null;
+          }
+          if (bubble.classList.contains("dream")) {
+            bubble.classList.remove("dream", "show");
+          }
           jon.style.filter = "none";
           renderEyes(cfg.pet_eyes || "round");
           smile.setAttribute("d", "M44 76 Q60 90 76 76");
@@ -1285,7 +1347,12 @@
           doubleBlink();
         }
       }
+      function refreshSleep() {
+        setMiniSleep(backendAsleep || afkAsleep);
+      }
       async function wakeMiniJon() {
+        backendAsleep = false;
+        afkAsleep = false;
         setMiniSleep(false);
         try {
           await fetch(`${BASE}/mini-jon/status`, {
@@ -1298,7 +1365,8 @@
       async function pollMiniStatus() {
         try {
           const r = await (await fetch(`${BASE}/mini-jon/status`)).json();
-          setMiniSleep(r.status === "schlaeft");
+          backendAsleep = r.status === "schlaeft";
+          refreshSleep();
         } catch (e) {}
       }
       setInterval(pollMiniStatus, 8000);
