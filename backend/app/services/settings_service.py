@@ -67,6 +67,10 @@ DEFAULTS = {
     "autofile_enabled": False,
     "app_usage_enabled": False,
     "language": "de",
+    "netlify_token": "",
+    "netlify_site_id": "",
+    "netlify_site_name": "",
+    "netlify_site_url": "",
 }
 
 

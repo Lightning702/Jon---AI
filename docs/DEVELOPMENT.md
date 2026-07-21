@@ -94,13 +94,17 @@ unter `~/.jon/data`. Shell-Skripte brauchen LF-Zeilenenden (`.gitattributes` erz
 
 ## Deployment der Website
 
-`website/` ist statisch. Am schnellsten: `netlify-hochladen.bat` doppelklicken — das
-baut `website/jon.zip` neu, packt den kompletten Website-Inhalt in `netlify-upload.zip`
-(wenige MB) und öffnet Explorer + Netlify. Die Zip dann einfach bei Netlify auf die
-Deploy-Fläche ziehen (bestehende Website: Reiter „Deploys"; neue Website:
-`app.netlify.com/drop`). Netlify entpackt die Zip automatisch.
+`website/` ist statisch. Am schnellsten direkt in der App: **🧰 Werkzeuge → 🌐 Website
+hochladen** (oder `/website` im Chat). Beim ersten Mal einen Netlify Personal Access
+Token (app.netlify.com/user/applications) einfügen und die Website auswählen — danach
+reicht ein Klick oder ein Drag&Drop des Jon-Ordners auf die Fläche: Jon baut
+`website/jon.zip` frisch und schickt nur den Website-Inhalt (~1 MB) über die
+Netlify-API. Endpunkte: `/api/netlify/status|token|sites|site|deploy`.
 
-**Nicht** den ganzen Jon-Ordner per Drag&Drop hochladen: mit `backend/dist` und
-`node_modules` sind das über 1 GB — der Upload dauert dann viele Minuten und bricht ab.
-`website/netlify.toml` enthält den NVIDIA-Proxy und die PWA-Header und ist in der Zip
-enthalten.
+Alternative ohne App: `python scripts/netlify_paket.py` erzeugt `netlify-upload.zip`,
+die man bei Netlify auf die Deploy-Fläche zieht (Netlify entpackt sie automatisch).
+
+**Nicht** den ganzen Jon-Ordner auf netlify.com ziehen: mit `backend/dist` und
+`node_modules` sind das über 1 GB — der Browser lädt dann alles hoch, braucht viele
+Minuten und bricht ab. `website/netlify.toml` enthält den NVIDIA-Proxy und die
+PWA-Header.

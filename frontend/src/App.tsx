@@ -23,6 +23,7 @@ import Cleanup from "./components/Cleanup";
 import Recipe from "./components/Recipe";
 import Flashcards from "./components/Flashcards";
 import ScreenExplain from "./components/ScreenExplain";
+import NetlifyUpload from "./components/NetlifyUpload";
 import PrivateBrowser from "./components/PrivateBrowser";
 import Notes from "./components/Notes";
 import Vault from "./components/Vault";
@@ -191,6 +192,7 @@ export default function App() {
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [privateBrowserOpen, setPrivateBrowserOpen] = useState(false);
+  const [netlifyOpen, setNetlifyOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [vaultOpen, setVaultOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -929,6 +931,10 @@ export default function App() {
       setPrivateBrowserOpen(true);
       return;
     }
+    if (command === "/netlify" || command === "/website" || command === "/hochladen") {
+      setNetlifyOpen(true);
+      return;
+    }
     if (command === "/show" || command === "/abendshow") {
       setShowOpen(true);
       return;
@@ -1531,6 +1537,7 @@ export default function App() {
                             { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
                             { icon: "⬇️", label: "Downloader", act: () => setDownloaderOpen(true) },
                             { icon: "🕶️", label: "Privater Browser", hint: jonDesktop?.openPrivateBrowser ? "Strg+Alt+P" : undefined, act: () => setPrivateBrowserOpen(true) },
+                            { icon: "🌐", label: "Website hochladen", act: () => setNetlifyOpen(true) },
                             { icon: "🍳", label: "Kochassistent", act: () => setRecipeOpen(true) },
                             { icon: "📋", label: "Clipboard-Historie", act: () => setClipboardOpen(true) },
                           ],
@@ -1723,6 +1730,7 @@ export default function App() {
           }
         />
       )}
+      {netlifyOpen && <NetlifyUpload onClose={() => setNetlifyOpen(false)} />}
       {notesOpen && <Notes onClose={() => setNotesOpen(false)} />}
       {vaultOpen && <Vault onClose={() => setVaultOpen(false)} />}
       {searchOpen && (

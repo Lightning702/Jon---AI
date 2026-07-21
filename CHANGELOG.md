@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.26.0] — 2026-07-21
+
+### Neu — Website hochladen direkt in der App (Drag&Drop des Jon-Ordners)
+- Neues Werkzeug **🧰 Werkzeuge → 🌐 Website hochladen** (auch `/website`, `/netlify`,
+  `/hochladen`): Zieh einfach deinen kompletten Jon-Ordner auf die Fläche (oder klick) —
+  Jon baut `website/jon.zip` frisch und lädt nur den Website-Inhalt (~1 MB) über die
+  Netlify-API hoch. Fertig in Sekunden, mit Live-Link zur Website.
+- Einmalige Einrichtung: Netlify Personal Access Token einfügen
+  (app.netlify.com/user/applications) und Website aus der Liste wählen. Der Token wird
+  nur lokal gespeichert.
+- `netlify-hochladen.bat` ist wieder entfernt — kein Skript mehr nötig, alles läuft in
+  der App. (`scripts/netlify_paket.py` bleibt als Alternative ohne App.)
+- Hintergrund: Drag&Drop des ganzen Ordners auf netlify.com lud über 1 GB
+  (`backend/dist`, `node_modules`) durch den Browser — deshalb 15 Minuten und Abbruch.
+
 ## [3.25.0] — 2026-07-21
 
 ### Neu — Netlify-Upload in Sekunden statt 15 Minuten

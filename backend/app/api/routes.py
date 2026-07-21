@@ -35,6 +35,8 @@ from app.schemas import (
     JournalAddIn,
     JournalAskIn,
     MiniJonStatusIn,
+    NetlifySiteIn,
+    NetlifyTokenIn,
     NoteAddIn,
     NoteUpdateIn,
     HumanizeIn,
@@ -362,6 +364,55 @@ async def mini_jon_set_status(payload: MiniJonStatusIn) -> dict:
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
+
+
+@router.get("/netlify/status")
+async def netlify_status() -> dict:
+    from app.services.netlify_service import get_netlify_service
+
+    return get_netlify_service().status()
+
+
+@router.post("/netlify/token")
+async def netlify_token(payload: NetlifyTokenIn) -> dict:
+    from app.services.netlify_service import get_netlify_service
+
+    try:
+        return await get_netlify_service().set_token(payload.token)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/netlify/sites")
+async def netlify_sites() -> list[dict]:
+    from app.services.netlify_service import get_netlify_service
+
+    try:
+        return await get_netlify_service().sites()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/netlify/site")
+async def netlify_site(payload: NetlifySiteIn) -> dict:
+    from app.services.netlify_service import get_netlify_service
+
+    try:
+        return get_netlify_service().set_site(payload.site_id, payload.name, payload.url)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/netlify/deploy")
+async def netlify_deploy() -> dict:
+    from app.services.netlify_service import get_netlify_service
+
+    try:
+        return await get_netlify_service().deploy()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Deploy fehlgeschlagen: {exc}")
 
 
 @router.get("/private/proxy")
