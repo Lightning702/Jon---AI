@@ -119,9 +119,11 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Beim Schließen und per „Spuren löschen" wird alles sofort gewischt
 - Berechtigungsanfragen automatisch abgelehnt, Popups öffnen als Tab
 - Keine Anmeldung, kein Konto — komplett lokal und privat
-- **Auch ohne Electron** (Raspberry Pi / Web-App): Backend-Seite unter `/privat` mit
-  denselben Tabs und Suche; Seiten laufen über den Jon-Proxy (`/api/private/proxy`,
-  umgeht Frame-Sperren, speichert nichts, blockt interne Adressen gegen SSRF)
+- **Auch auf dem Raspberry Pi / in der Web-App**: unter Werkzeuge im selben eingebetteten
+  Fenster (sobald die Web-App gebaut ist, was `pi-update.sh` jetzt automatisch erledigt)
+  und jederzeit direkt unter `http://<IP>:8756/privat` — diese Seite braucht keinen Build.
+  Seiten laufen über den Jon-Proxy (`/api/private/proxy`, umgeht Frame-Sperren, speichert
+  nichts, blockt interne Adressen gegen SSRF)
 - **Mini Jon** öffnet ihn auf Zuruf („öffne den privaten Browser")
 
 ## Gedächtnis

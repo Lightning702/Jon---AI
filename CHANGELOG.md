@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.22.1] — 2026-07-21
+
+### Behoben — Privater Browser jetzt auch auf dem Raspberry Pi
+- Der private Browser lief backendseitig schon auf dem Pi (die Seite `/privat` und der
+  Proxy `/api/private/proxy` werden direkt vom Backend ausgeliefert), aber `pi-update.sh`
+  hat die Web-App nach dem `git pull` **nie neu gebaut** — dadurch erschienen neue
+  Frontend-Funktionen (wie der „Privater Browser"-Knopf unter Werkzeuge) auf dem Pi nicht.
+  `pi-update.sh` baut die Web-App jetzt neu; schlägt der Bau fehl (oft zu wenig RAM), wird
+  die vorige Oberfläche automatisch wiederhergestellt statt zerstört.
+- Beide Pi-Skripte zeigen jetzt die direkte Adresse des privaten Browsers an
+  (`http://<IP>:8756/privat`). Diese Seite braucht **keinen** Web-App-Build und funktioniert
+  auf dem Pi auch dann, wenn der React-Bau nicht durchläuft.
+
 ## [3.22.0] — 2026-07-21
 
 ### Geändert — Privater Browser öffnet jetzt in der App
