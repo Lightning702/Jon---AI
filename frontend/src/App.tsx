@@ -66,7 +66,6 @@ import {
   getDueReminders,
   getHealth,
   blockweltUrl,
-  veroeffentlichenUrl,
   getHealthCheck,
   getProviders,
   getTaskReports,
@@ -928,10 +927,6 @@ export default function App() {
     }
     if (command === "/privat" || command === "/private" || command === "/inkognito") {
       setPrivateBrowserOpen(true);
-      return;
-    }
-    if (command === "/netlify" || command === "/website" || command === "/hochladen") {
-      window.open(veroeffentlichenUrl(), "_blank");
       return;
     }
     if (command === "/show" || command === "/abendshow") {

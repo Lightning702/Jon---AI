@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.28.0] — 2026-07-21
+
+### Entfernt — kein eigener Veröffentlichungsdienst mehr
+- Die selbstgebaute Netlify-Anbindung (Veröffentlichen-Seite `/veroeffentlichen`, das
+  Werkzeug „Website hochladen", `netlify_service.py`, die `/api/netlify/*`-Routen,
+  `scripts/netlify_paket.py`) ist komplett entfernt. Die Website wird wieder ganz normal
+  bei Netlify veröffentlicht.
+- **So geht's** (einmal einrichten, dann automatisch): Bei Netlify „Add new site →
+  Import an existing project → GitHub" wählen und das Repo `Jon---AI` verbinden. Das
+  Root-`netlify.toml` (`publish = "website"`) sorgt dafür, dass Netlify nur den
+  `website/`-Ordner veröffentlicht und den Rest (`node_modules`, `backend/dist`)
+  ignoriert. Jeder `git push` deployt dann automatisch — kein „Access Denied" mehr.
+- Manuell geht weiterhin: nur den **`website/`-Ordner** (nicht den ganzen Jon-Ordner)
+  auf `app.netlify.com/drop` ziehen.
+
 ## [3.27.0] — 2026-07-21
 
 ### Geändert — Jon-Ordner per Drag&Drop veröffentlichen (Werkzeug-Fenster entfernt)

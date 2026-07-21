@@ -114,16 +114,6 @@ class MiniJonStatusIn(BaseModel):
     status: str
 
 
-class NetlifyTokenIn(BaseModel):
-    token: str = ""
-
-
-class NetlifySiteIn(BaseModel):
-    site_id: str
-    name: str = ""
-    url: str = ""
-
-
 class ScreenObserveIn(BaseModel):
     provider: str | None = None
     model: str | None = None

@@ -94,18 +94,14 @@ unter `~/.jon/data`. Shell-Skripte brauchen LF-Zeilenenden (`.gitattributes` erz
 
 ## Deployment der Website
 
-`website/` ist statisch. Veröffentlichen über die Seite
-`http://127.0.0.1:8756/veroeffentlichen` (öffnet auch per `/website` im Chat): den
-kompletten Jon-Ordner auf die Fläche ziehen (oder klicken) — Jon baut
-`website/jon.zip` frisch und schickt nur den Website-Inhalt (~1 MB) über die
-Netlify-API. Beim ersten Mal einen Netlify Personal Access Token
-(app.netlify.com/user/applications) einfügen und die Website auswählen.
-Endpunkte: `/api/netlify/status|token|sites|site|deploy`.
+`website/` ist statisch und wird ganz normal bei Netlify veröffentlicht. Empfohlen
+(einmal einrichten, danach automatisch): das GitHub-Repo bei Netlify verbinden
+(„Add new site" → „Import an existing project" → GitHub → Repo `Jon---AI`). Das
+Root-`netlify.toml` mit `publish = "website"` sorgt dafür, dass Netlify nur den
+`website/`-Ordner veröffentlicht — `node_modules`, `backend/dist` usw. werden dabei
+ignoriert. Jeder `git push` löst dann automatisch einen neuen Deploy aus.
 
-Alternative ohne App: `python scripts/netlify_paket.py` erzeugt `netlify-upload.zip`,
-die man bei Netlify auf die Deploy-Fläche zieht (Netlify entpackt sie automatisch).
-
-**Nicht** den ganzen Jon-Ordner auf netlify.com ziehen: mit `backend/dist` und
-`node_modules` sind das über 1 GB — der Browser lädt dann alles hoch, braucht viele
-Minuten und bricht ab. `website/netlify.toml` enthält den NVIDIA-Proxy und die
-PWA-Header.
+Manuell per Drag&Drop geht nur der **`website/`-Ordner** (nicht der ganze Jon-Ordner):
+auf `app.netlify.com/drop` ziehen. Der ganze Jon-Ordner ist über 1 GB groß und läuft
+beim Upload in „Access Denied". `netlify.toml` enthält den NVIDIA-Proxy und die
+PWA-Header. Nach Codeänderungen `website/jon.zip` neu bauen.

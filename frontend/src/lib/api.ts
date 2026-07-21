@@ -496,9 +496,6 @@ export function privatBrowserUrl(): string {
   return BASE.replace(/\/api$/, "") + "/privat";
 }
 
-export function veroeffentlichenUrl(): string {
-  return BASE.replace(/\/api$/, "") + "/veroeffentlichen";
-}
 
 export interface JournalEntry {
   id: string;
