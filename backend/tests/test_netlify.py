@@ -87,6 +87,14 @@ def _reset():
     )
 
 
+def test_veroeffentlichen_seite_wird_ausgeliefert():
+    for pfad in ("/veroeffentlichen", "/publish"):
+        res = client.get(pfad)
+        assert res.status_code == 200
+        assert "Jon-Ordner" in res.text
+        assert "/api/netlify/" in res.text
+
+
 def test_netlify_routen_registriert():
     paths = set(app.openapi()["paths"])
     for p in (

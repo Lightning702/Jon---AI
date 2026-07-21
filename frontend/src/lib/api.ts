@@ -496,71 +496,8 @@ export function privatBrowserUrl(): string {
   return BASE.replace(/\/api$/, "") + "/privat";
 }
 
-export interface NetlifyStatus {
-  token_set: boolean;
-  site_id: string;
-  site_name: string;
-  site_url: string;
-  website_found: boolean;
-}
-
-export interface NetlifySite {
-  id: string;
-  name: string;
-  url: string;
-}
-
-export interface NetlifyDeployResult {
-  state: string;
-  url: string;
-  deploy_url: string;
-  dauer: number;
-  zip_kb: number;
-  jon_zip_dateien: number;
-}
-
-async function netlifyJson<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    let msg = `Fehler ${res.status}`;
-    try {
-      const data = await res.json();
-      if (data.detail) msg = String(data.detail);
-    } catch {}
-    throw new Error(msg);
-  }
-  return res.json() as Promise<T>;
-}
-
-export async function netlifyStatus(): Promise<NetlifyStatus> {
-  return netlifyJson(await fetch(`${BASE}/netlify/status`));
-}
-
-export async function netlifySetToken(token: string): Promise<{ token_set: boolean; email?: string }> {
-  return netlifyJson(
-    await fetch(`${BASE}/netlify/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    })
-  );
-}
-
-export async function netlifySites(): Promise<NetlifySite[]> {
-  return netlifyJson(await fetch(`${BASE}/netlify/sites`));
-}
-
-export async function netlifySetSite(site: NetlifySite): Promise<NetlifyStatus> {
-  return netlifyJson(
-    await fetch(`${BASE}/netlify/site`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ site_id: site.id, name: site.name, url: site.url }),
-    })
-  );
-}
-
-export async function netlifyDeploy(): Promise<NetlifyDeployResult> {
-  return netlifyJson(await fetch(`${BASE}/netlify/deploy`, { method: "POST" }));
+export function veroeffentlichenUrl(): string {
+  return BASE.replace(/\/api$/, "") + "/veroeffentlichen";
 }
 
 export interface JournalEntry {

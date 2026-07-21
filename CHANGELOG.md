@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.27.0] — 2026-07-21
+
+### Geändert — Jon-Ordner per Drag&Drop veröffentlichen (Werkzeug-Fenster entfernt)
+- Das Werkzeug-Fenster „Website hochladen" aus 3.26.0 ist wieder entfernt. Stattdessen
+  gibt es die Seite **`http://127.0.0.1:8756/veroeffentlichen`** (öffnet auch mit
+  `/website` im Chat): Dort ziehst du den **kompletten Jon-Ordner** auf die Fläche —
+  Jon nimmt die Dateien direkt von der Festplatte, baut jon.zip frisch und schickt nur
+  die Website (~1 MB) zu Netlify. Live in Sekunden, mit Link.
+- Zum „Access Denied" bei netlify.com: Beim Ziehen des ganzen Ordners lädt der Browser
+  dort über 1 GB hoch (node_modules, backend/dist); nach vielen Minuten läuft Netlifys
+  Upload-Freigabe ab und Netlify blockt mit „Access Denied". Das lässt sich auf
+  netlify.com nicht abstellen — die Veröffentlichen-Seite umgeht es, weil nur die
+  Website selbst hochgeladen wird. Ein frischer Deploy darüber ersetzt auch einen
+  hängengebliebenen kaputten Deploy.
+
 ## [3.26.0] — 2026-07-21
 
 ### Neu — Website hochladen direkt in der App (Drag&Drop des Jon-Ordners)

@@ -94,12 +94,13 @@ unter `~/.jon/data`. Shell-Skripte brauchen LF-Zeilenenden (`.gitattributes` erz
 
 ## Deployment der Website
 
-`website/` ist statisch. Am schnellsten direkt in der App: **🧰 Werkzeuge → 🌐 Website
-hochladen** (oder `/website` im Chat). Beim ersten Mal einen Netlify Personal Access
-Token (app.netlify.com/user/applications) einfügen und die Website auswählen — danach
-reicht ein Klick oder ein Drag&Drop des Jon-Ordners auf die Fläche: Jon baut
+`website/` ist statisch. Veröffentlichen über die Seite
+`http://127.0.0.1:8756/veroeffentlichen` (öffnet auch per `/website` im Chat): den
+kompletten Jon-Ordner auf die Fläche ziehen (oder klicken) — Jon baut
 `website/jon.zip` frisch und schickt nur den Website-Inhalt (~1 MB) über die
-Netlify-API. Endpunkte: `/api/netlify/status|token|sites|site|deploy`.
+Netlify-API. Beim ersten Mal einen Netlify Personal Access Token
+(app.netlify.com/user/applications) einfügen und die Website auswählen.
+Endpunkte: `/api/netlify/status|token|sites|site|deploy`.
 
 Alternative ohne App: `python scripts/netlify_paket.py` erzeugt `netlify-upload.zip`,
 die man bei Netlify auf die Deploy-Fläche zieht (Netlify entpackt sie automatisch).

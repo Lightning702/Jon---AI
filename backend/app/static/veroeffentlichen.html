@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jon – Website veröffentlichen</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      html,
+      body {
+        min-height: 100%;
+      }
+      body {
+        background: radial-gradient(1200px 600px at 50% -10%, #1c1a12, #0a0a0e 60%);
+        color: #f4f0e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      #karte {
+        width: 640px;
+        max-width: 100%;
+        background: rgba(18, 18, 24, 0.92);
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        border-radius: 20px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+      }
+      #kopf {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 18px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      #kopf .logo {
+        font-size: 24px;
+      }
+      #kopf .titel {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      #kopf .untertitel {
+        font-size: 12px;
+        color: rgba(244, 240, 230, 0.45);
+      }
+      #inhalt {
+        padding: 24px;
+      }
+      .hinweis {
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(244, 240, 230, 0.75);
+        margin-bottom: 12px;
+      }
+      .hinweis a {
+        color: #d4af37;
+      }
+      .reihe {
+        display: flex;
+        gap: 8px;
+      }
+      input[type="password"],
+      input[type="text"] {
+        flex: 1;
+        padding: 11px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        background: rgba(10, 10, 14, 0.9);
+        color: #f4f0e6;
+        font-size: 13px;
+        outline: none;
+      }
+      input:focus {
+        border-color: rgba(212, 175, 55, 0.7);
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .gold {
+        padding: 11px 18px;
+        background: linear-gradient(135deg, #f5d67b, #d4af37 60%, #9a7b1f);
+        color: #17130a;
+      }
+      .gold:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .leise {
+        background: none;
+        color: rgba(244, 240, 230, 0.45);
+        font-weight: 400;
+        font-size: 12px;
+        padding: 4px 6px;
+      }
+      .leise:hover {
+        color: #d4af37;
+      }
+      .site {
+        display: block;
+        width: 100%;
+        text-align: left;
+        margin-top: 8px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+        color: #f4f0e6;
+      }
+      .site:hover {
+        border-color: rgba(212, 175, 55, 0.6);
+        background: rgba(212, 175, 55, 0.08);
+      }
+      .site .name {
+        font-size: 14px;
+      }
+      .site .url {
+        font-size: 11px;
+        color: rgba(244, 240, 230, 0.45);
+        font-weight: 400;
+      }
+      #zone {
+        border: 2px dashed rgba(212, 175, 55, 0.45);
+        border-radius: 18px;
+        padding: 46px 24px;
+        text-align: center;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, transform 0.1s;
+        background: rgba(212, 175, 55, 0.04);
+      }
+      #zone:hover {
+        background: rgba(212, 175, 55, 0.09);
+      }
+      #zone.drag {
+        background: rgba(212, 175, 55, 0.18);
+        border-color: #d4af37;
+        transform: scale(1.01);
+      }
+      #zone .gross {
+        font-size: 40px;
+        margin-bottom: 10px;
+      }
+      #zone .haupt {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      #zone .neben {
+        font-size: 12.5px;
+        color: rgba(244, 240, 230, 0.5);
+        margin-top: 6px;
+        line-height: 1.5;
+      }
+      #zone.laeuft {
+        cursor: default;
+        border-color: rgba(212, 175, 55, 0.8);
+      }
+      @keyframes pulsieren {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+      #zone.laeuft .gross {
+        animation: pulsieren 0.9s ease-in-out infinite;
+      }
+      #ergebnis {
+        display: none;
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(110, 220, 150, 0.4);
+        background: rgba(110, 220, 150, 0.1);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      #ergebnis a {
+        color: #f5d67b;
+        font-weight: 600;
+      }
+      #fehler {
+        display: none;
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 120, 120, 0.4);
+        background: rgba(255, 120, 120, 0.1);
+        color: #ffb3b3;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      #fuss {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 11.5px;
+        color: rgba(244, 240, 230, 0.35);
+      }
+      #erklaerung {
+        margin-top: 18px;
+        font-size: 11.5px;
+        line-height: 1.6;
+        color: rgba(244, 240, 230, 0.35);
+      }
+      .versteckt {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="karte">
+      <div id="kopf">
+        <span class="logo">🌐</span>
+        <div>
+          <div class="titel">Jon-Website veröffentlichen</div>
+          <div class="untertitel">Kompletten Jon-Ordner hierher ziehen – live in Sekunden</div>
+        </div>
+      </div>
+      <div id="inhalt">
+        <div id="schrittToken" class="versteckt">
+          <div class="hinweis">
+            Einmalig verbinden: Erstelle auf
+            <a href="https://app.netlify.com/user/applications#personal-access-tokens" target="_blank" rel="noreferrer">app.netlify.com/user/applications</a>
+            einen „Personal Access Token" und füge ihn hier ein. Er wird nur lokal bei Jon gespeichert.
+          </div>
+          <div class="reihe">
+            <input id="tokenFeld" type="password" placeholder="Netlify-Token einfügen …" />
+            <button id="tokenKnopf" class="gold">Verbinden</button>
+          </div>
+        </div>
+
+        <div id="schrittSite" class="versteckt">
+          <div class="hinweis">Wähle deine Website:</div>
+          <div id="siteListe"></div>
+          <button id="sitesNeu" class="leise">↻ Liste neu laden</button>
+        </div>
+
+        <div id="schrittDrop" class="versteckt">
+          <div id="zone">
+            <div class="gross">📁</div>
+            <div class="haupt" id="zoneHaupt">Zieh deinen kompletten Jon-Ordner hier rein</div>
+            <div class="neben" id="zoneNeben">
+              oder klick einfach – Jon nimmt die Dateien direkt von deiner Festplatte,
+              baut jon.zip frisch und schickt nur die Website (~1 MB) zu Netlify
+            </div>
+          </div>
+          <div id="ergebnis"></div>
+          <div id="fehler"></div>
+          <div id="erklaerung">
+            Warum nicht mehr direkt auf netlify.com ziehen? Dein Jon-Ordner ist über 1 GB
+            groß (node_modules, backend/dist). Der Browser lädt beim Drag&amp;Drop dort jede
+            einzelne Datei hoch – nach vielen Minuten läuft Netlifys Upload-Freigabe ab und
+            es kommt „Access Denied". Diese Seite hier schickt nur die Website selbst, darum
+            klappt es zuverlässig.
+          </div>
+        </div>
+      </div>
+      <div id="fuss">
+        <div id="fussInfo">Verbinde …</div>
+        <div>
+          <button id="siteWechsel" class="leise versteckt">Website wechseln</button>
+          <button id="trennen" class="leise versteckt">Trennen</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let laeuft = false;
+
+      async function api(pfad, options) {
+        const res = await fetch("/api/netlify/" + pfad, options);
+        if (!res.ok) {
+          let msg = "Fehler " + res.status;
+          try {
+            const d = await res.json();
+            if (d.detail) msg = String(d.detail);
+          } catch (e) {}
+          throw new Error(msg);
+        }
+        return res.json();
+      }
+
+      function zeige(schritt) {
+        for (const id of ["schrittToken", "schrittSite", "schrittDrop"])
+          $(id).classList.toggle("versteckt", id !== schritt);
+      }
+
+      function fehler(text) {
+        $("fehler").style.display = text ? "block" : "none";
+        $("fehler").textContent = text || "";
+      }
+
+      async function aktualisieren() {
+        try {
+          const s = await api("status");
+          $("siteWechsel").classList.toggle("versteckt", !s.token_set);
+          $("trennen").classList.toggle("versteckt", !s.token_set);
+          if (!s.token_set) {
+            $("fussInfo").textContent = "Noch nicht mit Netlify verbunden.";
+            zeige("schrittToken");
+          } else if (!s.site_id) {
+            $("fussInfo").textContent = "Verbunden – Website wählen.";
+            zeige("schrittSite");
+            await sitesLaden();
+          } else {
+            $("fussInfo").textContent = "Website: " + (s.site_name || s.site_id);
+            zeige("schrittDrop");
+          }
+        } catch (e) {
+          fehler(
+            "Jon-Backend nicht erreichbar (" + e.message + "). Läuft Jon gerade?"
+          );
+          zeige("schrittDrop");
+        }
+      }
+
+      async function sitesLaden() {
+        $("siteListe").innerHTML = "";
+        try {
+          const sites = await api("sites");
+          if (!sites.length) {
+            $("siteListe").innerHTML =
+              '<div class="hinweis">Keine Websites gefunden – lege sie einmal bei Netlify an und lade neu.</div>';
+            return;
+          }
+          for (const site of sites) {
+            const b = document.createElement("button");
+            b.className = "site";
+            b.innerHTML =
+              '<div class="name">' + site.name + '</div><div class="url">' + site.url + "</div>";
+            b.addEventListener("click", async () => {
+              try {
+                await api("site", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ site_id: site.id, name: site.name, url: site.url }),
+                });
+                await aktualisieren();
+              } catch (e) {
+                fehler(e.message);
+              }
+            });
+            $("siteListe").appendChild(b);
+          }
+        } catch (e) {
+          fehler(e.message);
+        }
+      }
+
+      $("tokenKnopf").addEventListener("click", async () => {
+        const token = $("tokenFeld").value.trim();
+        if (!token) return;
+        $("tokenKnopf").disabled = true;
+        $("tokenKnopf").textContent = "Prüfe …";
+        fehler("");
+        try {
+          await api("token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+          });
+          $("tokenFeld").value = "";
+          await aktualisieren();
+        } catch (e) {
+          fehler(e.message);
+        }
+        $("tokenKnopf").disabled = false;
+        $("tokenKnopf").textContent = "Verbinden";
+      });
+      $("tokenFeld").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("tokenKnopf").click();
+      });
+      $("sitesNeu").addEventListener("click", () => void sitesLaden());
+      $("siteWechsel").addEventListener("click", async () => {
+        zeige("schrittSite");
+        await sitesLaden();
+      });
+      $("trennen").addEventListener("click", async () => {
+        try {
+          await api("token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: "" }),
+          });
+          await aktualisieren();
+        } catch (e) {
+          fehler(e.message);
+        }
+      });
+
+      async function veroeffentlichen() {
+        if (laeuft) return;
+        laeuft = true;
+        fehler("");
+        $("ergebnis").style.display = "none";
+        $("zone").classList.add("laeuft");
+        $("zone").querySelector(".gross").textContent = "🚀";
+        $("zoneHaupt").textContent = "Lade hoch …";
+        $("zoneNeben").textContent =
+          "Jon baut jon.zip frisch und schickt die Website zu Netlify.";
+        try {
+          const r = await api("deploy", { method: "POST" });
+          const info = [];
+          info.push(r.dauer + "s");
+          info.push(r.zip_kb + " KB hochgeladen");
+          if (r.jon_zip_dateien > 0)
+            info.push("jon.zip mit " + r.jon_zip_dateien + " Dateien neu gebaut");
+          $("ergebnis").innerHTML =
+            '✅ <b>Website ist live!</b><br /><a href="' +
+            r.url +
+            '" target="_blank" rel="noreferrer">' +
+            r.url +
+            "</a><br /><span style=\"color:rgba(244,240,230,0.45)\">" +
+            info.join(" · ") +
+            "</span>";
+          $("ergebnis").style.display = "block";
+        } catch (e) {
+          fehler(e.message);
+        }
+        $("zone").classList.remove("laeuft");
+        $("zone").querySelector(".gross").textContent = "📁";
+        $("zoneHaupt").textContent = "Zieh deinen kompletten Jon-Ordner hier rein";
+        $("zoneNeben").textContent =
+          "oder klick einfach – Jon nimmt die Dateien direkt von deiner Festplatte, baut jon.zip frisch und schickt nur die Website (~1 MB) zu Netlify";
+        laeuft = false;
+      }
+
+      $("zone").addEventListener("click", () => void veroeffentlichen());
+      for (const ev of ["dragover", "dragenter"])
+        document.body.addEventListener(ev, (e) => {
+          e.preventDefault();
+          $("zone").classList.add("drag");
+        });
+      for (const ev of ["dragleave", "dragend"])
+        document.body.addEventListener(ev, (e) => {
+          e.preventDefault();
+          $("zone").classList.remove("drag");
+        });
+      document.body.addEventListener("drop", (e) => {
+        e.preventDefault();
+        $("zone").classList.remove("drag");
+        if (!$("schrittDrop").classList.contains("versteckt")) void veroeffentlichen();
+      });
+
+      void aktualisieren();
+    </script>
+  </body>
+</html>
