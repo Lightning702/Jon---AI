@@ -281,6 +281,12 @@
         opacity: 1;
         transform: translateX(-50%) translateY(0);
       }
+      body.embed #top {
+        display: none;
+      }
+      body.embed #views {
+        top: 76px;
+      }
     </style>
   </head>
   <body>
@@ -553,7 +559,9 @@
         }
       });
 
-      const start = new URLSearchParams(location.search).get("url");
+      const params = new URLSearchParams(location.search);
+      if (params.get("embed")) document.body.classList.add("embed");
+      const start = params.get("url");
       if (start) createTab(start, true);
       updateChrome();
     </script>

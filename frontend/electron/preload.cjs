@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("jon", {
   getStartup: () => ipcRenderer.invoke("startup:get"),
   setStartup: (enabled) => ipcRenderer.invoke("startup:set", enabled),
   onExplainScreen: (cb) => ipcRenderer.on("jon:explain-screen", () => cb()),
+  onOpenPrivate: (cb) => ipcRenderer.on("jon:open-private", () => cb()),
   getPathForFile: (file) => {
     try {
       return webUtils.getPathForFile(file);

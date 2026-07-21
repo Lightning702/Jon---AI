@@ -336,6 +336,20 @@ function clearPrivateData() {
   } catch {}
 }
 
+function openPrivateInApp() {
+  if (!mainWindow) createWindow();
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+  const send = () => mainWindow.webContents.send("jon:open-private");
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once("did-finish-load", send);
+  } else {
+    send();
+  }
+}
+
 function openPrivateBrowser() {
   if (privateWindow) {
     if (privateWindow.isMinimized()) privateWindow.restore();
@@ -464,6 +478,7 @@ ipcMain.handle("window:moveBy", (_event, dx, dy) => {
 });
 
 ipcMain.handle("private:open", () => openPrivateBrowser());
+ipcMain.handle("private:open-in-app", () => openPrivateInApp());
 ipcMain.handle("private:minimize", () => privateWindow && privateWindow.minimize());
 ipcMain.handle("private:maximize", () => {
   if (!privateWindow) return;
@@ -524,7 +539,7 @@ app.whenReady().then(() => {
   globalShortcut.register("Control+Alt+K", togglePet);
   globalShortcut.register("Control+Alt+Space", toggleQuickAsk);
   globalShortcut.register("Control+Alt+H", () => void openQuickWrite());
-  globalShortcut.register("Control+Alt+P", openPrivateBrowser);
+  globalShortcut.register("Control+Alt+P", openPrivateInApp);
   globalShortcut.register("Control+Alt+V", () => void readAloudSelection());
   globalShortcut.register("Control+Alt+E", () => {
     if (mainWindow) {
@@ -551,7 +566,7 @@ app.whenReady().then(() => {
         },
       },
       { label: "Mini Jon ein/aus", click: togglePet },
-      { label: "Privater Browser (Strg+Alt+P)", click: openPrivateBrowser },
+      { label: "Privater Browser (Strg+Alt+P)", click: openPrivateInApp },
       { type: "separator" },
       {
         label: "Beenden",

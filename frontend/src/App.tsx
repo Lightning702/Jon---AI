@@ -23,6 +23,7 @@ import Cleanup from "./components/Cleanup";
 import Recipe from "./components/Recipe";
 import Flashcards from "./components/Flashcards";
 import ScreenExplain from "./components/ScreenExplain";
+import PrivateBrowser from "./components/PrivateBrowser";
 import Notes from "./components/Notes";
 import Vault from "./components/Vault";
 import Search from "./components/Search";
@@ -73,7 +74,6 @@ import {
   getWatcherReports,
   getWeekly,
   listSnapshots,
-  privatBrowserUrl,
   observeScreen,
   observeWebcam,
   saveUserSettings,
@@ -90,14 +90,10 @@ const jonDesktop = (window as unknown as {
     flashWindow?: () => void;
     focusWindow?: () => void;
     onExplainScreen?: (cb: () => void) => void;
+    onOpenPrivate?: (cb: () => void) => void;
     openPrivateBrowser?: () => void;
   };
 }).jon;
-
-function openPrivateBrowser() {
-  if (jonDesktop?.openPrivateBrowser) jonDesktop.openPrivateBrowser();
-  else window.open(privatBrowserUrl(), "_blank", "noopener");
-}
 
 function chatPing() {
   try {
@@ -194,6 +190,7 @@ export default function App() {
   const [recipeOpen, setRecipeOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
+  const [privateBrowserOpen, setPrivateBrowserOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [vaultOpen, setVaultOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -234,6 +231,7 @@ export default function App() {
 
   useEffect(() => {
     jonDesktop?.onExplainScreen?.(() => setExplainOpen(true));
+    jonDesktop?.onOpenPrivate?.(() => setPrivateBrowserOpen(true));
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -928,7 +926,7 @@ export default function App() {
       return;
     }
     if (command === "/privat" || command === "/private" || command === "/inkognito") {
-      openPrivateBrowser();
+      setPrivateBrowserOpen(true);
       return;
     }
     if (command === "/show" || command === "/abendshow") {
@@ -1532,7 +1530,7 @@ export default function App() {
                             { icon: "🔍", label: "Bildschirm erklären", hint: "Strg+Alt+E", act: () => setExplainOpen(true) },
                             { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
                             { icon: "⬇️", label: "Downloader", act: () => setDownloaderOpen(true) },
-                            { icon: "🕶️", label: "Privater Browser", hint: jonDesktop?.openPrivateBrowser ? "Strg+Alt+P" : undefined, act: () => openPrivateBrowser() },
+                            { icon: "🕶️", label: "Privater Browser", hint: jonDesktop?.openPrivateBrowser ? "Strg+Alt+P" : undefined, act: () => setPrivateBrowserOpen(true) },
                             { icon: "🍳", label: "Kochassistent", act: () => setRecipeOpen(true) },
                             { icon: "📋", label: "Clipboard-Historie", act: () => setClipboardOpen(true) },
                           ],
@@ -1712,6 +1710,19 @@ export default function App() {
       {recipeOpen && <Recipe onClose={() => setRecipeOpen(false)} />}
       {flashcardsOpen && <Flashcards onClose={() => setFlashcardsOpen(false)} />}
       {explainOpen && <ScreenExplain onClose={() => setExplainOpen(false)} />}
+      {privateBrowserOpen && (
+        <PrivateBrowser
+          onClose={() => setPrivateBrowserOpen(false)}
+          onPopOut={
+            jonDesktop?.openPrivateBrowser
+              ? () => {
+                  jonDesktop.openPrivateBrowser?.();
+                  setPrivateBrowserOpen(false);
+                }
+              : undefined
+          }
+        />
+      )}
       {notesOpen && <Notes onClose={() => setNotesOpen(false)} />}
       {vaultOpen && <Vault onClose={() => setVaultOpen(false)} />}
       {searchOpen && (

@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.22.0] — 2026-07-21
+
+### Geändert — Privater Browser öffnet jetzt in der App
+- Der private Browser öffnet unter **🧰 Werkzeuge → 🕶️ Privater Browser** jetzt als
+  eingebettetes Fenster **in der App** (Modal) statt in einem separaten Fenster/Tab —
+  überall gleich, auch auf dem Raspberry Pi und in der Web-App. Ein Knopf „↗ Eigenes
+  Fenster" öffnet ihn in der Desktop-App weiterhin als eigenes Fenster.
+- `/privat`, `Strg+Alt+P` und das Tray-Menü öffnen ebenfalls diese In-App-Ansicht.
+- **Mini Jon** öffnet den privaten Browser jetzt zuverlässig in der App: Ein Zuruf wie
+  „privat", „inkognito", „öffne den privaten Browser" oder „privat surfen" holt Jon in
+  den Vordergrund und öffnet den Browser direkt im Fenster. Die Browser-Seite kennt
+  einen `embed`-Modus, der ihre eigene Titelleiste ausblendet, damit sie sauber in die
+  App passt.
+
 ## [3.21.0] — 2026-07-21
 
 ### Neu — Privater Browser auch auf dem Pi & über Mini Jon

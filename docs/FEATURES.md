@@ -112,7 +112,8 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 
 ## Privater Browser
 
-- Eigenes Browserfenster in der App (Werkzeuge → 🕶️, `/privat`, Strg+Alt+P)
+- Öffnet als eingebettetes Fenster in der App (Werkzeuge → 🕶️, `/privat`, Strg+Alt+P);
+  „↗ Eigenes Fenster" öffnet ihn in der Desktop-App zusätzlich als eigenes Fenster
 - Tabs, Adress-/Suchleiste (DuckDuckGo), Strg+T/W/L/R, Strg+Tab
 - Reine In-Memory-Session: kein Verlauf, keine Cookies, kein Cache auf der Platte
 - Beim Schließen und per „Spuren löschen" wird alles sofort gewischt

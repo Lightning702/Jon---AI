@@ -901,17 +901,29 @@
       }
 
       function wantsPrivateBrowser(text) {
-        const s = (text || "").toLowerCase();
+        const s = (text || "").toLowerCase().trim();
+        if (/^(privat|inkognito|incognito|privater browser|privaten browser)$/.test(s))
+          return true;
         if (!/privat|inkognito|incognito/.test(s)) return false;
-        return /browser|surf|internet|seite|googl|web/.test(s) ||
-          /privater browser|privaten browser|inkognito/.test(s);
+        return /browser|surf|internet|seite|googl|web|oeffne|öffne|starte|zeig/.test(s);
+      }
+
+      function openPrivateBrowser() {
+        if (window.jonpet && window.jonpet.openPrivateInApp)
+          window.jonpet.openPrivateInApp();
+        else if (window.jonpet && window.jonpet.openPrivate)
+          window.jonpet.openPrivate();
       }
 
       async function ask(text) {
         if (busy || !text.trim()) return;
         if (miniAsleep) wakeMiniJon();
-        if (window.jonpet && window.jonpet.openPrivate && wantsPrivateBrowser(text)) {
-          window.jonpet.openPrivate();
+        if (
+          window.jonpet &&
+          (window.jonpet.openPrivateInApp || window.jonpet.openPrivate) &&
+          wantsPrivateBrowser(text)
+        ) {
+          openPrivateBrowser();
           const line = "Klar, ich öffne dir den privaten Browser! 🕶️ Da wird nichts gespeichert.";
           say(line);
           speak("Klar, ich öffne dir den privaten Browser. Da wird nichts gespeichert.");
