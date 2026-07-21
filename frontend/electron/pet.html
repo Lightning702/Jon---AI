@@ -1317,6 +1317,16 @@
         { text: "💭 Alle unsere Erinnerungen leuchten wie Sterne …", scene: "sterne" },
         { text: "💭 Ich baue ein Schloss aus goldenen Bausteinen …", scene: "schloss" },
         { text: "💭 Psst … ich träume von unserem nächsten Abenteuer …", scene: "abenteuer" },
+        { text: "💭 Ich schwebe durch ein Meer aus Seifenblasen …", scene: "blasen" },
+        { text: "💭 Ich fahre mit dem Sternen-Express durch die Nacht …", scene: "zug" },
+        { text: "💭 Ich tauche zu leuchtenden Quallen hinab …", scene: "quallen" },
+        { text: "💭 Ich pflanze einen Garten voller Glücksklee …", scene: "garten" },
+        { text: "💭 Ich male den Himmel in Regenbogenfarben an …", scene: "malen" },
+        { text: "💭 Ich baue einen Schneemann mitten im Sommer …", scene: "schnee" },
+        { text: "💭 Ich gewinne das Wettrennen gegen Minka und Rocky …", scene: "rennen" },
+        { text: "💭 Ich fange Sternschnuppen mit meinem Kescher …", scene: "schnuppen" },
+        { text: "💭 Ich backe Mond-Kekse für uns alle …", scene: "kekse" },
+        { text: "💭 Ich dirigiere ein Orchester aus Glühwürmchen …", scene: "gluehwuermchen" },
       ];
       const dreamCanvas = document.createElement("canvas");
       dreamCanvas.id = "dreamCanvas";
@@ -1682,6 +1692,486 @@
           dctx.fill();
           dctx.restore();
           vizGesicht(x - 1, y, 6);
+        },
+        blasen(t) {
+          vizNacht(t);
+          for (let i = 0; i < 9; i++) {
+            const ph = (t * (0.1 + (i % 3) * 0.04) + i * 0.13) % 1;
+            const x = ((i * 47 + 20) % VW) + Math.sin(t * 0.9 + i) * 9;
+            const y = VH + 14 - ph * (VH + 28);
+            const r = 5 + (i % 4) * 3.5;
+            dctx.strokeStyle = "rgba(170,195,255,0.65)";
+            dctx.lineWidth = 1.5;
+            dctx.beginPath();
+            dctx.arc(x, y, r, 0, 7);
+            dctx.stroke();
+            dctx.strokeStyle = "rgba(255,255,255,0.75)";
+            dctx.beginPath();
+            dctx.arc(x, y, r * 0.65, -2.2, -1.1);
+            dctx.stroke();
+          }
+          const y = 50 + Math.sin(t * 1.1) * 9;
+          dctx.strokeStyle = "rgba(190,210,255,0.8)";
+          dctx.lineWidth = 2;
+          dctx.beginPath();
+          dctx.arc(120, y, 22, 0, 7);
+          dctx.stroke();
+          vizGesicht(120, y, 14);
+        },
+        zug(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#f0d98a";
+          dctx.beginPath();
+          dctx.arc(24, 20, 9, 0, 7);
+          dctx.fill();
+          dctx.strokeStyle = "#3d4470";
+          dctx.lineWidth = 3;
+          dctx.beginPath();
+          dctx.moveTo(0, 90);
+          dctx.lineTo(VW, 90);
+          dctx.stroke();
+          dctx.lineWidth = 2;
+          for (let i = 0; i < 16; i++) {
+            const x = (i * 18 + 18 - ((t * 60) % 18)) % (VW + 18);
+            dctx.beginPath();
+            dctx.moveTo(x, 92);
+            dctx.lineTo(x + 8, 92);
+            dctx.stroke();
+          }
+          const wob = Math.sin(t * 6);
+          dctx.fillStyle = "#3a4066";
+          dctx.fillRect(94, 62 + wob * 0.5, 52, 24);
+          dctx.fillRect(34, 62 - wob * 0.5, 52, 24);
+          dctx.fillStyle = "#2e3458";
+          dctx.fillRect(152, 56 + wob, 54, 30);
+          dctx.fillStyle = "#d4af37";
+          dctx.fillRect(152, 56 + wob, 54, 4);
+          dctx.fillRect(192, 44 + wob, 10, 14);
+          dctx.fillStyle = "#f0d98a";
+          dctx.fillRect(100, 66, 10, 9);
+          dctx.fillRect(118, 66, 10, 9);
+          dctx.fillRect(40, 66, 10, 9);
+          dctx.fillRect(58, 66, 10, 9);
+          dctx.fillStyle = "#14172e";
+          for (const wx of [46, 74, 106, 134, 164, 194]) {
+            dctx.beginPath();
+            dctx.arc(wx, 87, 5.5, 0, 7);
+            dctx.fill();
+            dctx.fillStyle = "#d4af37";
+            dctx.beginPath();
+            dctx.arc(wx, 87, 2, 0, 7);
+            dctx.fill();
+            dctx.fillStyle = "#14172e";
+          }
+          vizGesicht(170, 69 + wob, 8);
+          for (let i = 0; i < 6; i++) {
+            const ph = (t * 0.5 + i / 6) % 1;
+            dctx.fillStyle = "rgba(220,220,235," + (0.5 * (1 - ph)).toFixed(2) + ")";
+            dctx.beginPath();
+            dctx.arc(197 - ph * 30, 40 - ph * 24, 3 + ph * 5, 0, 7);
+            dctx.fill();
+          }
+        },
+        quallen(t) {
+          const g = dctx.createLinearGradient(0, 0, 0, VH);
+          g.addColorStop(0, "#0a2038");
+          g.addColorStop(1, "#0e3a4c");
+          dctx.fillStyle = g;
+          dctx.fillRect(0, 0, VW, VH);
+          for (let i = 0; i < 7; i++) {
+            const ph = (t * 0.2 + i * 0.14) % 1;
+            dctx.fillStyle = "rgba(200,230,255,0.35)";
+            dctx.beginPath();
+            dctx.arc((i * 41 + 15) % VW, VH - ph * VH, 2 + (i % 3), 0, 7);
+            dctx.fill();
+          }
+          const QU = [
+            [62, 38, 14, "rgba(190,140,255,0.85)"],
+            [140, 58, 11, "rgba(120,220,255,0.85)"],
+            [205, 34, 12, "rgba(255,150,200,0.85)"],
+          ];
+          QU.forEach(([qx, qy, qr, farbe], i) => {
+            const y = qy + Math.sin(t * 1.2 + i * 2) * 6;
+            const puls = 1 + Math.sin(t * 2.4 + i) * 0.12;
+            dctx.save();
+            dctx.shadowColor = farbe;
+            dctx.shadowBlur = 14;
+            dctx.fillStyle = farbe;
+            dctx.beginPath();
+            dctx.arc(qx, y, qr * puls, Math.PI, 0);
+            dctx.quadraticCurveTo(qx, y + qr * 0.5, qx - qr * puls, y);
+            dctx.fill();
+            dctx.restore();
+            dctx.strokeStyle = farbe;
+            dctx.lineWidth = 1.5;
+            for (let k = -1; k <= 1; k++) {
+              dctx.beginPath();
+              dctx.moveTo(qx + k * qr * 0.5, y + 2);
+              dctx.quadraticCurveTo(
+                qx + k * qr * 0.5 + Math.sin(t * 3 + k + i) * 4,
+                y + 10,
+                qx + k * qr * 0.5 + Math.sin(t * 3 + k + i + 1) * 5,
+                y + 18
+              );
+              dctx.stroke();
+            }
+          });
+          dctx.strokeStyle = "rgba(190,210,255,0.7)";
+          dctx.lineWidth = 2;
+          dctx.beginPath();
+          dctx.arc(30, 74, 17, 0, 7);
+          dctx.stroke();
+          vizGesicht(30, 74, 12);
+        },
+        garten(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#1c3524";
+          dctx.fillRect(0, 80, VW, 20);
+          const zyk = t % 9;
+          for (let i = 0; i < 7; i++) {
+            const s = Math.max(0, Math.min(1, (zyk - i * 0.9) / 0.6));
+            if (!s) continue;
+            const x = 26 + i * 35;
+            dctx.strokeStyle = "#3f7a4d";
+            dctx.lineWidth = 2;
+            dctx.beginPath();
+            dctx.moveTo(x, 82);
+            dctx.lineTo(x, 82 - 12 * s);
+            dctx.stroke();
+            const gold = i === 3;
+            dctx.fillStyle = gold ? "#f0d98a" : "#57b56b";
+            const bl = gold ? 4 : 3;
+            for (let k = 0; k < bl; k++) {
+              const a = (k / bl) * Math.PI * 2 - Math.PI / 2;
+              dctx.beginPath();
+              dctx.arc(
+                x + Math.cos(a) * 4.5 * s,
+                82 - 12 * s + Math.sin(a) * 4.5 * s,
+                4 * s,
+                0,
+                7
+              );
+              dctx.fill();
+            }
+            if (gold && s === 1) vizFunkel(x + 9, 63, 3, "rgba(240,217,138,0.9)");
+          }
+          const bx = 129 + Math.sin(t * 0.8) * 70;
+          const by = 40 + Math.sin(t * 2.6) * 8;
+          const flap = Math.abs(Math.sin(t * 10)) * 5 + 2;
+          dctx.fillStyle = "#e2a0c8";
+          dctx.beginPath();
+          dctx.ellipse(bx - 3, by, flap, 4.5, -0.4, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.ellipse(bx + 3, by, flap, 4.5, 0.4, 0, 7);
+          dctx.fill();
+          dctx.fillStyle = "#2a2a38";
+          dctx.fillRect(bx - 1, by - 4, 2, 8);
+        },
+        malen(t) {
+          vizNacht(t);
+          const cx = 129;
+          const cy = 112;
+          const cols = ["#e2574c", "#f0a24a", "#f0d94a", "#57b56b", "#5b7fd4"];
+          const ph = (t % 8) / 8;
+          let ba = null;
+          let br = 0;
+          dctx.lineCap = "round";
+          for (let i = 0; i < cols.length; i++) {
+            const e = Math.max(0, Math.min(1, ph * 2.2 - i * 0.24));
+            if (!e) continue;
+            dctx.strokeStyle = cols[i];
+            dctx.lineWidth = 7;
+            dctx.beginPath();
+            dctx.arc(cx, cy, 92 - i * 9, Math.PI, Math.PI + Math.PI * e);
+            dctx.stroke();
+            if (e < 1 && ba === null) {
+              ba = Math.PI + Math.PI * e;
+              br = 92 - i * 9;
+            }
+          }
+          dctx.lineCap = "butt";
+          if (ba === null) {
+            ba = Math.PI + Math.PI * (0.5 + 0.5 * Math.sin(t));
+            br = 92;
+          }
+          const px = cx + Math.cos(ba) * br;
+          const py = cy + Math.sin(ba) * br;
+          dctx.save();
+          dctx.translate(px, py);
+          dctx.rotate(ba + Math.PI / 2);
+          dctx.fillStyle = "#e8e6f4";
+          dctx.beginPath();
+          dctx.moveTo(-4, 0);
+          dctx.lineTo(4, 0);
+          dctx.lineTo(0, -10);
+          dctx.fill();
+          dctx.fillStyle = "#d4af37";
+          dctx.fillRect(-4, 0, 8, 5);
+          dctx.fillStyle = "#7a4a2f";
+          dctx.fillRect(-2.5, 5, 5, 22);
+          dctx.restore();
+        },
+        schnee(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#f0d98a";
+          dctx.beginPath();
+          dctx.arc(28, 22, 11, 0, 7);
+          dctx.fill();
+          dctx.strokeStyle = "rgba(240,217,138,0.8)";
+          dctx.lineWidth = 2;
+          for (let i = 0; i < 8; i++) {
+            const a = i * 0.785 + t * 0.5;
+            dctx.beginPath();
+            dctx.moveTo(28 + Math.cos(a) * 15, 22 + Math.sin(a) * 15);
+            dctx.lineTo(28 + Math.cos(a) * 20, 22 + Math.sin(a) * 20);
+            dctx.stroke();
+          }
+          dctx.fillStyle = "#232a55";
+          dctx.fillRect(0, 90, VW, 10);
+          dctx.fillStyle = "#f4f6fc";
+          dctx.beginPath();
+          dctx.arc(150, 76, 17, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.arc(150, 50, 12, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.arc(150, 29, 8.5, 0, 7);
+          dctx.fill();
+          dctx.fillStyle = "#2a2a38";
+          dctx.beginPath();
+          dctx.arc(147, 27, 1.4, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.arc(153, 27, 1.4, 0, 7);
+          dctx.fill();
+          dctx.fillStyle = "#f0a24a";
+          dctx.beginPath();
+          dctx.moveTo(150, 30);
+          dctx.lineTo(160, 32);
+          dctx.lineTo(150, 33.5);
+          dctx.fill();
+          dctx.strokeStyle = "#d4af37";
+          dctx.lineWidth = 4;
+          dctx.beginPath();
+          dctx.moveTo(142, 38);
+          dctx.lineTo(158, 38);
+          dctx.stroke();
+          dctx.beginPath();
+          dctx.moveTo(156, 38);
+          dctx.lineTo(158 + Math.sin(t * 2) * 2, 48);
+          dctx.stroke();
+          dctx.strokeStyle = "#7a5a3a";
+          dctx.lineWidth = 2.5;
+          dctx.beginPath();
+          dctx.moveTo(137, 55);
+          dctx.lineTo(122, 44);
+          dctx.moveTo(163, 55);
+          dctx.lineTo(178, 44);
+          dctx.stroke();
+          dctx.fillStyle = "rgba(244,246,252,0.9)";
+          for (let i = 0; i < 12; i++) {
+            const x = ((i * 53 + 11) % VW) + Math.sin(t * 1.4 + i) * 6;
+            const y = (t * 22 + i * 37) % VH;
+            dctx.fillRect(x, y, 2.5, 2.5);
+          }
+        },
+        rennen(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#232a55";
+          dctx.fillRect(0, 82, VW, 18);
+          dctx.strokeStyle = "rgba(240,217,138,0.5)";
+          dctx.lineWidth = 2;
+          dctx.setLineDash([10, 12]);
+          dctx.lineDashOffset = -((t * 90) % 22);
+          dctx.beginPath();
+          dctx.moveTo(0, 91);
+          dctx.lineTo(VW, 91);
+          dctx.stroke();
+          dctx.setLineDash([]);
+          dctx.strokeStyle = "#8a7a4a";
+          dctx.lineWidth = 3;
+          dctx.beginPath();
+          dctx.moveTo(238, 82);
+          dctx.lineTo(238, 34);
+          dctx.stroke();
+          for (let r = 0; r < 3; r++)
+            for (let c = 0; c < 4; c++) {
+              dctx.fillStyle = (r + c) % 2 ? "#f4f0e6" : "#17171c";
+              dctx.fillRect(238 - 20 + c * 5, 34 + r * 5 + Math.sin(t * 3 + c) * 1.2, 5, 5);
+            }
+          vizGesicht(190, 70 - Math.abs(Math.sin(t * 5)) * 8, 13);
+          const kx = 118;
+          const ky = 72 - Math.abs(Math.sin(t * 5 + 1)) * 4;
+          dctx.fillStyle = "#9aa0b0";
+          dctx.beginPath();
+          dctx.ellipse(kx, ky, 14, 8, 0, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.arc(kx + 13, ky - 6, 6.5, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.moveTo(kx + 9, ky - 10);
+          dctx.lineTo(kx + 11, ky - 16);
+          dctx.lineTo(kx + 14, ky - 11);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.moveTo(kx + 14, ky - 11);
+          dctx.lineTo(kx + 17, ky - 16);
+          dctx.lineTo(kx + 19, ky - 10);
+          dctx.fill();
+          dctx.strokeStyle = "#9aa0b0";
+          dctx.lineWidth = 3;
+          dctx.beginPath();
+          dctx.moveTo(kx - 13, ky - 2);
+          dctx.quadraticCurveTo(kx - 22, ky - 12 + Math.sin(t * 6) * 3, kx - 18, ky - 16);
+          dctx.stroke();
+          const hx = 52;
+          const hy = 72 - Math.abs(Math.sin(t * 5 + 2.4)) * 4;
+          dctx.fillStyle = "#a9744a";
+          dctx.beginPath();
+          dctx.ellipse(hx, hy, 15, 9, 0, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.arc(hx + 14, hy - 7, 7.5, 0, 7);
+          dctx.fill();
+          dctx.fillStyle = "#7a4a2f";
+          dctx.beginPath();
+          dctx.ellipse(hx + 9, hy - 9, 3, 6, 0.5, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.ellipse(hx + 19, hy - 9, 3, 6, -0.5, 0, 7);
+          dctx.fill();
+          dctx.strokeStyle = "#a9744a";
+          dctx.lineWidth = 3;
+          dctx.beginPath();
+          dctx.moveTo(hx - 14, hy - 3);
+          dctx.lineTo(hx - 21, hy - 12 + Math.sin(t * 7) * 3);
+          dctx.stroke();
+        },
+        schnuppen(t) {
+          vizNacht(t);
+          for (let i = 0; i < 3; i++) {
+            const ph = (t * 0.45 + i * 0.33) % 1;
+            const x = VW + 30 - ph * (VW + 70);
+            const y = 6 + ph * 46 + i * 12;
+            const grad = dctx.createLinearGradient(x, y, x + 34, y - 14);
+            grad.addColorStop(0, "rgba(240,217,138,0.95)");
+            grad.addColorStop(1, "rgba(240,217,138,0)");
+            dctx.strokeStyle = grad;
+            dctx.lineWidth = 2.5;
+            dctx.beginPath();
+            dctx.moveTo(x, y);
+            dctx.lineTo(x + 34, y - 14);
+            dctx.stroke();
+            vizFunkel(x, y, 3, "rgba(255,240,200,0.95)");
+          }
+          const a = -0.5 + Math.sin(t * 1.3) * 0.55;
+          const px = 195;
+          const py = 98;
+          const nx = px + Math.cos(a - Math.PI / 2) * 46;
+          const ny = py + Math.sin(a - Math.PI / 2) * 46;
+          dctx.strokeStyle = "#8a7a4a";
+          dctx.lineWidth = 3;
+          dctx.beginPath();
+          dctx.moveTo(px, py);
+          dctx.lineTo(nx, ny);
+          dctx.stroke();
+          dctx.strokeStyle = "rgba(190,210,255,0.85)";
+          dctx.lineWidth = 2;
+          dctx.beginPath();
+          dctx.arc(nx, ny - 8, 11, 0, 7);
+          dctx.stroke();
+          dctx.lineWidth = 1;
+          for (let k = -1; k <= 1; k++) {
+            dctx.beginPath();
+            dctx.moveTo(nx - 8, ny - 12 + k * 5);
+            dctx.lineTo(nx + 8, ny - 12 + k * 5);
+            dctx.stroke();
+          }
+          if (Math.sin(t * 1.3) > 0.4)
+            vizFunkel(nx, ny - 8, 4, "rgba(240,217,138,0.95)");
+          vizGesicht(226, 84, 12);
+        },
+        kekse(t) {
+          vizNacht(t);
+          const warm = dctx.createLinearGradient(0, 40, 0, VH);
+          warm.addColorStop(0, "rgba(240,160,74,0)");
+          warm.addColorStop(1, "rgba(240,160,74,0.28)");
+          dctx.fillStyle = warm;
+          dctx.fillRect(0, 40, VW, 60);
+          dctx.fillStyle = "#2a2a38";
+          dctx.beginPath();
+          if (dctx.roundRect) dctx.roundRect(38, 62, 182, 26, 8);
+          else dctx.rect(38, 62, 182, 26);
+          dctx.fill();
+          for (let i = 0; i < 3; i++) {
+            const x = 66 + i * 62;
+            const y = 74 + Math.sin(t * 1.8 + i) * 1.5;
+            dctx.fillStyle = "#d8a95a";
+            dctx.beginPath();
+            dctx.arc(x, y, 9, 0, 7);
+            dctx.fill();
+            dctx.fillStyle = "#2a2a38";
+            dctx.beginPath();
+            dctx.arc(x + 4.5, y - 3.5, 7, 0, 7);
+            dctx.fill();
+          }
+          dctx.fillStyle = "#d8a95a";
+          dctx.beginPath();
+          dctx.arc(97, 75, 8, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.arc(159, 75, 8, 0, 7);
+          dctx.fill();
+          dctx.fillStyle = "#5a3a24";
+          for (const [px, py] of [[94, 72], [100, 76], [96, 78], [156, 72], [162, 76], [158, 78]]) {
+            dctx.beginPath();
+            dctx.arc(px, py, 1.3, 0, 7);
+            dctx.fill();
+          }
+          for (let i = 0; i < 4; i++) {
+            const ph = (t * 0.3 + i * 0.25) % 1;
+            dctx.fillStyle = "rgba(244,240,230," + (0.35 * (1 - ph)).toFixed(2) + ")";
+            dctx.beginPath();
+            dctx.arc(58 + i * 50 + Math.sin(ph * 5 + i) * 5, 58 - ph * 34, 3 + ph * 4, 0, 7);
+            dctx.fill();
+          }
+          vizGesicht(226, 40, 12);
+        },
+        gluehwuermchen(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#152a1c";
+          dctx.fillRect(0, 88, VW, 12);
+          vizGesicht(34, 62, 13);
+          const a = Math.sin(t * 2.4) * 0.7 - 0.35;
+          const bx = 47;
+          const by = 54;
+          dctx.strokeStyle = "#d4af37";
+          dctx.lineWidth = 2;
+          dctx.beginPath();
+          dctx.moveTo(bx, by);
+          dctx.lineTo(bx + Math.cos(a) * 20, by + Math.sin(a) * 20);
+          dctx.stroke();
+          vizFunkel(bx + Math.cos(a) * 20, by + Math.sin(a) * 20, 2, "rgba(240,217,138,0.9)");
+          for (let i = 0; i < 9; i++) {
+            const x = 80 + i * 20;
+            const y = 46 + Math.sin(i * 0.8 + t * 2.4) * 16;
+            const glow = 0.55 + 0.45 * Math.sin(t * 3 + i * 1.7);
+            dctx.fillStyle = "rgba(200,255,120," + (0.25 * glow).toFixed(2) + ")";
+            dctx.beginPath();
+            dctx.arc(x, y, 7, 0, 7);
+            dctx.fill();
+            dctx.fillStyle = "rgba(220,255,140," + (0.5 + 0.5 * glow).toFixed(2) + ")";
+            dctx.beginPath();
+            dctx.arc(x, y, 2.2, 0, 7);
+            dctx.fill();
+          }
+          dctx.fillStyle = "rgba(240,217,138,0.75)";
+          dctx.font = "12px 'Segoe UI'";
+          dctx.fillText("♪", 120 + Math.sin(t) * 40, 22 + Math.sin(t * 1.7) * 6);
+          dctx.fillText("♫", 180 + Math.sin(t + 2) * 30, 30 + Math.sin(t * 1.4 + 1) * 6);
         },
       };
       let dreamScene = "wolken";

@@ -2,6 +2,22 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.25.0] — 2026-07-21
+
+### Neu — Netlify-Upload in Sekunden statt 15 Minuten
+- Neues Skript `netlify-hochladen.bat` (nutzt `scripts/netlify_paket.py`): baut
+  `website/jon.zip` frisch, packt den kompletten Website-Inhalt in eine kleine
+  `netlify-upload.zip` (wenige MB) und öffnet Explorer + Netlify. Die Zip einfach auf
+  die Deploy-Fläche ziehen — Netlify entpackt sie automatisch, fertig in Sekunden.
+- Hintergrund: Beim Hochladen des ganzen Jon-Ordners gingen über 1 GB mit
+  (`backend/dist`, `node_modules`) — deshalb dauerte der Upload 15 Minuten und brach ab.
+
+### Neu — 10 weitere Träume für Mini Jon, alle mit passender Visualisierung
+- Seifenblasen-Meer, Sternen-Express, leuchtende Quallen, Glücksklee-Garten,
+  Himmel in Regenbogenfarben anmalen, Schneemann im Sommer, Wettrennen gegen Minka
+  und Rocky, Sternschnuppen mit dem Kescher fangen, Mond-Kekse backen und ein
+  Glühwürmchen-Orchester dirigieren — Mini Jon träumt jetzt aus 20 Träumen.
+
 ## [3.24.0] — 2026-07-21
 
 ### Neu — Mini Jons Träume werden visualisiert

@@ -18,3 +18,4 @@ release/
 backend/build/
 backend/dist/
 *.spec.bak
+netlify-upload.zip

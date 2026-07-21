@@ -94,5 +94,13 @@ unter `~/.jon/data`. Shell-Skripte brauchen LF-Zeilenenden (`.gitattributes` erz
 
 ## Deployment der Website
 
-`website/` ist statisch. Netlify-Deploy per Drag&Drop des Ordners; `netlify.toml` enthält
-den NVIDIA-Proxy und PWA-Header. Nach Codeänderungen `website/jon.zip` neu bauen.
+`website/` ist statisch. Am schnellsten: `netlify-hochladen.bat` doppelklicken — das
+baut `website/jon.zip` neu, packt den kompletten Website-Inhalt in `netlify-upload.zip`
+(wenige MB) und öffnet Explorer + Netlify. Die Zip dann einfach bei Netlify auf die
+Deploy-Fläche ziehen (bestehende Website: Reiter „Deploys"; neue Website:
+`app.netlify.com/drop`). Netlify entpackt die Zip automatisch.
+
+**Nicht** den ganzen Jon-Ordner per Drag&Drop hochladen: mit `backend/dist` und
+`node_modules` sind das über 1 GB — der Upload dauert dann viele Minuten und bricht ab.
+`website/netlify.toml` enthält den NVIDIA-Proxy und die PWA-Header und ist in der Zip
+enthalten.
