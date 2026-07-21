@@ -161,6 +161,14 @@
         color: #4a5686;
         border-color: rgba(90, 110, 200, 0.35);
       }
+      #dreamCanvas {
+        display: block;
+        width: 100%;
+        border-radius: 12px;
+      }
+      #dreamCap {
+        margin-top: 8px;
+      }
       #bubble::-webkit-scrollbar {
         width: 5px;
       }
@@ -1299,24 +1307,408 @@
       let backendAsleep = false;
       let afkAsleep = false;
       const DREAMS = [
-        "💭 Ich fliege durch goldene Wolken …",
-        "💭 Ich träume, dass ich so groß bin wie Papa Jon …",
-        "💭 Schäfchen zählen … 01, 10, 11, 100 …",
-        "💭 Ein Meer aus warmem Kakao … lecker …",
-        "💭 Ich gewinne das Blockwelt-Turnier … 🏆",
-        "💭 Pixel-Schäfchen hüpfen über den Bildschirmrand …",
-        "💭 Ich surfe auf einer Regenbogen-Datenwelle …",
-        "💭 Alle unsere Erinnerungen leuchten wie Sterne …",
-        "💭 Ich baue ein Schloss aus goldenen Bausteinen …",
-        "💭 Psst … ich träume von unserem nächsten Abenteuer …",
+        { text: "💭 Ich fliege durch goldene Wolken …", scene: "wolken" },
+        { text: "💭 Ich träume, dass ich so groß bin wie Papa Jon …", scene: "gross" },
+        { text: "💭 Schäfchen zählen … 01, 10, 11, 100 …", scene: "schafe" },
+        { text: "💭 Ein Meer aus warmem Kakao … lecker …", scene: "kakao" },
+        { text: "💭 Ich gewinne das Blockwelt-Turnier … 🏆", scene: "pokal" },
+        { text: "💭 Pixel-Schäfchen hüpfen über den Bildschirmrand …", scene: "pixel" },
+        { text: "💭 Ich surfe auf einer Regenbogen-Datenwelle …", scene: "welle" },
+        { text: "💭 Alle unsere Erinnerungen leuchten wie Sterne …", scene: "sterne" },
+        { text: "💭 Ich baue ein Schloss aus goldenen Bausteinen …", scene: "schloss" },
+        { text: "💭 Psst … ich träume von unserem nächsten Abenteuer …", scene: "abenteuer" },
       ];
+      const dreamCanvas = document.createElement("canvas");
+      dreamCanvas.id = "dreamCanvas";
+      dreamCanvas.width = 516;
+      dreamCanvas.height = 200;
+      const dreamCap = document.createElement("div");
+      dreamCap.id = "dreamCap";
+      const dctx = dreamCanvas.getContext("2d");
+      const VW = 258;
+      const VH = 100;
+      function vizNacht(t) {
+        const g = dctx.createLinearGradient(0, 0, 0, VH);
+        g.addColorStop(0, "#0d1130");
+        g.addColorStop(1, "#1c2258");
+        dctx.fillStyle = g;
+        dctx.fillRect(0, 0, VW, VH);
+        for (let i = 0; i < 14; i++) {
+          const x = (i * 97 + 31) % VW;
+          const y = (i * 53 + 11) % (VH - 24);
+          const a = 0.2 + 0.55 * Math.abs(Math.sin(t * 1.3 + i * 2.1));
+          dctx.fillStyle = "rgba(240,217,138," + a.toFixed(2) + ")";
+          dctx.fillRect(x, y, 2, 2);
+        }
+      }
+      function vizWolke(x, y, s, farbe) {
+        dctx.fillStyle = farbe;
+        dctx.beginPath();
+        dctx.arc(x, y, 10 * s, 0, 7);
+        dctx.arc(x + 12 * s, y - 6 * s, 12 * s, 0, 7);
+        dctx.arc(x + 26 * s, y, 10 * s, 0, 7);
+        dctx.arc(x + 13 * s, y + 4 * s, 13 * s, 0, 7);
+        dctx.fill();
+      }
+      function vizGesicht(x, y, r) {
+        dctx.beginPath();
+        dctx.arc(x, y, r, 0, 7);
+        dctx.fillStyle = "#0a0a0e";
+        dctx.fill();
+        dctx.lineWidth = Math.max(2, r * 0.16);
+        dctx.strokeStyle = "#d4af37";
+        dctx.stroke();
+        dctx.fillStyle = "#f0d98a";
+        dctx.beginPath();
+        dctx.arc(x - r * 0.34, y - r * 0.14, r * 0.15, 0, 7);
+        dctx.fill();
+        dctx.beginPath();
+        dctx.arc(x + r * 0.34, y - r * 0.14, r * 0.15, 0, 7);
+        dctx.fill();
+        dctx.beginPath();
+        dctx.arc(x, y + r * 0.18, r * 0.42, 0.4, Math.PI - 0.4);
+        dctx.lineWidth = Math.max(1.5, r * 0.1);
+        dctx.stroke();
+      }
+      function vizFunkel(x, y, s, farbe) {
+        dctx.fillStyle = farbe;
+        dctx.beginPath();
+        dctx.moveTo(x, y - s * 2);
+        dctx.quadraticCurveTo(x, y, x + s * 2, y);
+        dctx.quadraticCurveTo(x, y, x, y + s * 2);
+        dctx.quadraticCurveTo(x, y, x - s * 2, y);
+        dctx.quadraticCurveTo(x, y, x, y - s * 2);
+        dctx.fill();
+      }
+      function vizSchaf(x, y, s) {
+        dctx.fillStyle = "#e8e6f4";
+        [[0, 0, 9], [8, -3, 8], [16, 0, 9], [8, 3, 9], [4, -6, 7], [12, -6, 7]].forEach(
+          ([dx, dy, r]) => {
+            dctx.beginPath();
+            dctx.arc(x + dx * s, y + dy * s, r * s, 0, 7);
+            dctx.fill();
+          }
+        );
+        dctx.fillStyle = "#2a2a38";
+        dctx.beginPath();
+        dctx.arc(x - 7 * s, y - 4 * s, 4.5 * s, 0, 7);
+        dctx.fill();
+        dctx.strokeStyle = "#2a2a38";
+        dctx.lineWidth = 2 * s;
+        dctx.beginPath();
+        dctx.moveTo(x + 2 * s, y + 8 * s);
+        dctx.lineTo(x + 2 * s, y + 14 * s);
+        dctx.moveTo(x + 12 * s, y + 8 * s);
+        dctx.lineTo(x + 12 * s, y + 14 * s);
+        dctx.stroke();
+      }
+      function vizPixelSchaf(x, y, s) {
+        const G = ["..wwww..", ".wwwwwww", "kkwwwwww", ".kwwwwww", "..ww..ww"];
+        for (let r = 0; r < G.length; r++)
+          for (let c = 0; c < 8; c++) {
+            const ch = G[r][c];
+            if (ch === ".") continue;
+            dctx.fillStyle = ch === "k" ? "#2a2a38" : "#e8e6f4";
+            dctx.fillRect(x + c * s, y + r * s, s - 0.5, s - 0.5);
+          }
+      }
+      const BURG = [];
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 10; c++) BURG.push([c, r]);
+      for (const c of [0, 1, 4, 5, 8, 9]) BURG.push([c, 2]);
+      for (const c of [0, 1, 8, 9]) BURG.push([c, 3]);
+      for (const c of [0, 9]) BURG.push([c, 4]);
+      const DREAM_SCENES = {
+        wolken(t) {
+          vizNacht(t);
+          for (let i = 0; i < 3; i++) {
+            const x = VW - ((t * (22 + i * 9) + i * 130) % (VW + 70));
+            vizWolke(x, 24 + i * 27, 0.75 + i * 0.25, "rgba(232,196,110,0.5)");
+          }
+          const y = 50 + Math.sin(t * 1.8) * 6;
+          const fl = Math.sin(t * 9) * 0.2;
+          dctx.fillStyle = "rgba(244,240,230,0.85)";
+          dctx.beginPath();
+          dctx.ellipse(38, y + 2, 12, 5, -0.5 + fl, 0, 7);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.ellipse(66, y + 2, 12, 5, 0.5 - fl, 0, 7);
+          dctx.fill();
+          vizGesicht(52, y, 15);
+        },
+        gross(t) {
+          vizNacht(t);
+          vizGesicht(185, 54, 30);
+          const r = 13 + 13 * (0.5 + 0.5 * Math.sin(t * 0.9 - 1.6));
+          vizGesicht(80, 84 - r, r);
+          dctx.strokeStyle = "rgba(240,217,138,0.5)";
+          dctx.lineWidth = 1.5;
+          dctx.setLineDash([4, 5]);
+          dctx.beginPath();
+          dctx.moveTo(40, 24);
+          dctx.lineTo(222, 24);
+          dctx.stroke();
+          dctx.setLineDash([]);
+        },
+        schafe(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#232a55";
+          dctx.fillRect(0, 94, VW, 6);
+          dctx.strokeStyle = "#8a7a4a";
+          dctx.lineWidth = 3;
+          dctx.beginPath();
+          dctx.moveTo(122, 95);
+          dctx.lineTo(122, 70);
+          dctx.moveTo(140, 95);
+          dctx.lineTo(140, 70);
+          dctx.moveTo(112, 76);
+          dctx.lineTo(150, 76);
+          dctx.moveTo(112, 86);
+          dctx.lineTo(150, 86);
+          dctx.stroke();
+          for (let i = 0; i < 2; i++) {
+            const p = ((t * 55 + i * 170) % (VW + 90)) - 45;
+            const x = VW - p;
+            const d = (x - 131) / 36;
+            const y = 80 - Math.max(0, 28 * (1 - d * d));
+            vizSchaf(x, y, 1);
+          }
+          const n = Math.floor((t / 2.6) % 5);
+          dctx.fillStyle = "rgba(240,217,138,0.9)";
+          dctx.font = "bold 15px Consolas";
+          dctx.textAlign = "center";
+          dctx.fillText(["01", "10", "11", "100", "101"][n], 131, 28 - ((t % 2.6) / 2.6) * 8);
+          dctx.textAlign = "left";
+        },
+        kakao(t) {
+          vizNacht(t);
+          for (let l = 0; l < 2; l++) {
+            dctx.fillStyle = l ? "#6b4a2f" : "#54371f";
+            dctx.beginPath();
+            dctx.moveTo(0, VH);
+            for (let x = 0; x <= VW; x += 6)
+              dctx.lineTo(x, 60 + l * 13 + Math.sin(x * 0.05 + t * (1.5 + l * 0.7)) * 5);
+            dctx.lineTo(VW, VH);
+            dctx.closePath();
+            dctx.fill();
+          }
+          dctx.fillStyle = "#f4f0e6";
+          for (let i = 0; i < 3; i++) {
+            const x = 45 + i * 80;
+            const y = 70 + (i % 2) * 12 + Math.sin(t * 1.6 + i) * 4;
+            dctx.beginPath();
+            dctx.arc(x, y, 6, 0, 7);
+            dctx.fill();
+          }
+          for (let i = 0; i < 5; i++) {
+            const ph = (t * 0.35 + i * 0.2) % 1;
+            const x = 40 + i * 45 + Math.sin(ph * 6 + i) * 7;
+            const y = 58 - ph * 42;
+            dctx.fillStyle = "rgba(244,240,230," + (0.4 * (1 - ph)).toFixed(2) + ")";
+            dctx.beginPath();
+            dctx.arc(x, y, 3.5 + ph * 5, 0, 7);
+            dctx.fill();
+          }
+        },
+        pokal(t) {
+          vizNacht(t);
+          const cx = 129;
+          const cy = 42;
+          dctx.strokeStyle = "#d4af37";
+          dctx.lineWidth = 3.5;
+          dctx.beginPath();
+          dctx.arc(cx - 18, cy - 2, 8, 0, 7);
+          dctx.stroke();
+          dctx.beginPath();
+          dctx.arc(cx + 18, cy - 2, 8, 0, 7);
+          dctx.stroke();
+          dctx.fillStyle = "#d4af37";
+          dctx.beginPath();
+          dctx.moveTo(cx - 16, cy - 14);
+          dctx.lineTo(cx + 16, cy - 14);
+          dctx.quadraticCurveTo(cx + 14, cy + 14, cx, cy + 18);
+          dctx.quadraticCurveTo(cx - 14, cy + 14, cx - 16, cy - 14);
+          dctx.fill();
+          dctx.fillRect(cx - 3, cy + 17, 6, 10);
+          dctx.fillRect(cx - 12, cy + 27, 24, 6);
+          for (let i = 0; i < 6; i++) {
+            const a = t * 1.2 + i * 1.05;
+            const rr = 36 + Math.sin(t * 2 + i) * 5;
+            vizFunkel(
+              cx + Math.cos(a) * rr,
+              cy + 8 + Math.sin(a) * rr * 0.55,
+              2.5,
+              "rgba(240,217,138,0.8)"
+            );
+          }
+          const KONF = ["#e2574c", "#57b56b", "#5b7fd4", "#f0d98a"];
+          for (let i = 0; i < 7; i++) {
+            const ph = (t * 0.3 + i * 0.143) % 1;
+            const x = (i * 41 + 15) % VW;
+            dctx.fillStyle = KONF[i % 4];
+            dctx.save();
+            dctx.translate(x, ph * VH);
+            dctx.rotate(t * 2 + i);
+            dctx.fillRect(-3, -3, 6, 6);
+            dctx.restore();
+          }
+        },
+        pixel(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#232a55";
+          dctx.fillRect(0, 88, VW, 12);
+          for (let i = 0; i < 3; i++) {
+            const x = VW + 40 - ((t * 45 + i * 115) % (VW + 90));
+            const y = 66 - Math.abs(Math.sin(t * 4 + i * 2)) * 18;
+            vizPixelSchaf(x, y, 4.4);
+          }
+        },
+        welle(t) {
+          vizNacht(t);
+          const cols = ["#e2574c", "#f0a24a", "#f0d94a", "#57b56b", "#5b7fd4", "#9b6bd4"];
+          dctx.globalAlpha = 0.85;
+          dctx.lineWidth = 4;
+          for (let i = 0; i < cols.length; i++) {
+            dctx.strokeStyle = cols[i];
+            dctx.beginPath();
+            for (let x = 0; x <= VW; x += 4) {
+              const y = 56 + i * 5.5 + Math.sin(x * 0.035 - t * 2.6) * 12;
+              x ? dctx.lineTo(x, y) : dctx.moveTo(x, y);
+            }
+            dctx.stroke();
+          }
+          dctx.globalAlpha = 1;
+          const bx = 100;
+          const by = 56 + Math.sin(bx * 0.035 - t * 2.6) * 12;
+          dctx.fillStyle = "#f4f0e6";
+          dctx.beginPath();
+          dctx.ellipse(bx, by - 5, 18, 3.5, -0.15, 0, 7);
+          dctx.fill();
+          vizGesicht(bx, by - 21, 13);
+          dctx.fillStyle = "rgba(240,217,138,0.7)";
+          dctx.font = "10px Consolas";
+          for (let i = 0; i < 5; i++) {
+            const x = (i * 61 + ((t * 30) % 61)) % VW;
+            dctx.fillText(i % 2 ? "1" : "0", x, 18 + ((i * 13) % 26));
+          }
+        },
+        sterne(t) {
+          vizNacht(t);
+          const pts = [
+            [30, 70],
+            [60, 34],
+            [95, 52],
+            [129, 26],
+            [163, 50],
+            [198, 32],
+            [228, 66],
+          ];
+          dctx.strokeStyle = "rgba(240,217,138,0.35)";
+          dctx.lineWidth = 1.5;
+          dctx.beginPath();
+          pts.forEach(([x, y], i) => (i ? dctx.lineTo(x, y) : dctx.moveTo(x, y)));
+          dctx.stroke();
+          pts.forEach(([x, y], i) => {
+            const s = 2.5 + 1.8 * Math.abs(Math.sin(t * 1.4 + i));
+            vizFunkel(x, y, s, "rgba(240,217,138,0.95)");
+          });
+        },
+        schloss(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#232a55";
+          dctx.fillRect(0, 92, VW, 8);
+          const prog = ((t % 10) / 10) * (BURG.length + 8);
+          const n = Math.min(BURG.length, Math.ceil(prog));
+          const B = 15;
+          const x0 = 55;
+          const y0 = 92;
+          for (let i = 0; i < n; i++) {
+            const [c, r] = BURG[i];
+            const f = Math.max(0, Math.min(1, prog - i));
+            const y = y0 - r * B - B + 1 - (1 - f) * 30;
+            dctx.globalAlpha = 0.3 + 0.7 * f;
+            dctx.fillStyle = (c + r) % 2 ? "#d4af37" : "#b8952c";
+            dctx.fillRect(x0 + c * B, y, B - 1.5, B - 1.5);
+          }
+          dctx.globalAlpha = 1;
+          if (n === BURG.length && prog > BURG.length + 1) {
+            dctx.fillStyle = "#0a0a0e";
+            dctx.beginPath();
+            dctx.arc(x0 + 5 * B, y0, B * 0.9, Math.PI, 0);
+            dctx.fill();
+            vizFunkel(x0 + B, y0 - 5 * B - 8, 4, "rgba(240,217,138,0.9)");
+            vizFunkel(x0 + 9 * B - 4, y0 - 5 * B - 2, 3, "rgba(240,217,138,0.8)");
+          }
+        },
+        abenteuer(t) {
+          vizNacht(t);
+          dctx.fillStyle = "#f0d98a";
+          dctx.beginPath();
+          dctx.arc(225, 24, 11, 0, 7);
+          dctx.fill();
+          dctx.fillStyle = "rgba(200,170,90,0.7)";
+          for (const [mx, my, mr] of [[221, 21, 3], [229, 27, 2.5], [224, 29, 1.8]]) {
+            dctx.beginPath();
+            dctx.arc(mx, my, mr, 0, 7);
+            dctx.fill();
+          }
+          const x = ((t * 40) % (VW + 80)) - 40;
+          const y = 55 + Math.sin(t * 1.5) * 14;
+          dctx.save();
+          dctx.translate(x, y);
+          dctx.rotate(Math.sin(t * 1.5) * -0.2);
+          for (let i = 0; i < 8; i++) {
+            dctx.fillStyle = "rgba(240,160,74," + (0.5 - i * 0.06).toFixed(2) + ")";
+            dctx.beginPath();
+            dctx.arc(-16 - i * 7, 0, 5 - i * 0.5, 0, 7);
+            dctx.fill();
+          }
+          dctx.fillStyle = "#e2574c";
+          dctx.beginPath();
+          dctx.moveTo(-8, -5);
+          dctx.lineTo(-17, -13);
+          dctx.lineTo(-11, 0);
+          dctx.fill();
+          dctx.beginPath();
+          dctx.moveTo(-8, 5);
+          dctx.lineTo(-17, 13);
+          dctx.lineTo(-11, 0);
+          dctx.fill();
+          dctx.fillStyle = "#e8e6f4";
+          dctx.beginPath();
+          dctx.moveTo(17, 0);
+          dctx.quadraticCurveTo(7, -8, -11, -6);
+          dctx.lineTo(-11, 6);
+          dctx.quadraticCurveTo(7, 8, 17, 0);
+          dctx.fill();
+          dctx.restore();
+          vizGesicht(x - 1, y, 6);
+        },
+      };
+      let dreamScene = "wolken";
+      let dreamAnim = null;
+      function dreamLoop(ts) {
+        if (!miniAsleep || !dreamCanvas.isConnected) {
+          dreamAnim = null;
+          return;
+        }
+        dctx.setTransform(2, 0, 0, 2, 0, 0);
+        (DREAM_SCENES[dreamScene] || DREAM_SCENES.wolken)(ts / 1000);
+        dreamAnim = requestAnimationFrame(dreamLoop);
+      }
       let dreamTimer = null;
       let dreamIdx = Math.floor(Math.random() * DREAMS.length);
       function showDream() {
         if (!miniAsleep || busy) return;
-        say(DREAMS[dreamIdx % DREAMS.length], true);
-        bubble.classList.add("dream");
+        const d = DREAMS[dreamIdx % DREAMS.length];
         dreamIdx++;
+        dreamScene = d.scene;
+        bubble.textContent = "";
+        bubble.appendChild(dreamCanvas);
+        dreamCap.textContent = d.text;
+        bubble.appendChild(dreamCap);
+        bubble.classList.add("dream", "show");
+        if (bubbleTimer) clearTimeout(bubbleTimer);
+        if (!dreamAnim) dreamAnim = requestAnimationFrame(dreamLoop);
       }
       function setMiniSleep(sleep) {
         if (miniAsleep === sleep) return;
@@ -1336,8 +1728,13 @@
             clearInterval(dreamTimer);
             dreamTimer = null;
           }
+          if (dreamAnim) {
+            cancelAnimationFrame(dreamAnim);
+            dreamAnim = null;
+          }
           if (bubble.classList.contains("dream")) {
             bubble.classList.remove("dream", "show");
+            bubble.textContent = "";
           }
           jon.style.filter = "none";
           renderEyes(cfg.pet_eyes || "round");

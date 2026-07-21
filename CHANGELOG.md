@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.24.0] — 2026-07-21
+
+### Neu — Mini Jons Träume werden visualisiert
+- Während Mini Jon schläft, zeigt die Traum-Blase jetzt zu jedem Traum eine **kleine
+  animierte Szene** (Canvas) über dem Traumtext: goldene Wolken mit fliegendem Emil,
+  „so groß wie Papa Jon", springende Schäfchen mit Binär-Zähler, ein Kakao-Meer mit
+  Marshmallows, der Blockwelt-Pokal mit Konfetti, hüpfende Pixel-Schäfchen, Surfen auf
+  der Regenbogen-Datenwelle, ein leuchtendes Erinnerungs-Sternbild, ein Schloss aus
+  goldenen Bausteinen, das sich Stein für Stein baut, und eine Abenteuer-Rakete.
+- Die Animation läuft nur, solange er wirklich schläft und der Traum sichtbar ist,
+  und stoppt beim Aufwachen sofort.
+
 ## [3.23.0] — 2026-07-21
 
 ### Neu — Mini Jon schläft mit Schlafmaske und träumt
