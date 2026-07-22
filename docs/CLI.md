@@ -30,8 +30,7 @@ Zwei Wege, damit `jon` verfügbar ist:
    ```
    Danach ist `jon` systemweit im Terminal verfügbar.
 
-2. **Ohne Installation:** die mitgelieferte `jon.bat` (Windows) aufrufen, oder im
-   `backend`-Ordner `python -m app.cli`.
+2. **Ohne Installation:** im `backend`-Ordner `python -m app.cli` ausführen.
 
 ## Was Jon im Terminal kann
 

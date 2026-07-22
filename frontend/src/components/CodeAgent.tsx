@@ -45,6 +45,40 @@ interface Props {
   onClose: () => void;
 }
 
+interface GoalStep {
+  text: string;
+  status: "offen" | "läuft" | "fertig" | "fehler";
+}
+
+function parsePlan(raw: string): { steps?: string[]; frage?: string } {
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start < 0 || end <= start) return {};
+  try {
+    const data = JSON.parse(raw.slice(start, end + 1)) as {
+      steps?: unknown;
+      schritte?: unknown;
+      frage?: unknown;
+    };
+    const list = Array.isArray(data.steps)
+      ? data.steps
+      : Array.isArray(data.schritte)
+        ? data.schritte
+        : undefined;
+    const steps = list
+      ?.map((s) => String(s).trim())
+      .filter(Boolean)
+      .slice(0, 12);
+    const frage =
+      typeof data.frage === "string" && data.frage.trim()
+        ? data.frage.trim()
+        : undefined;
+    return { steps: steps && steps.length ? steps : undefined, frage };
+  } catch {
+    return {};
+  }
+}
+
 function FileTree({
   path,
   depth,
@@ -141,6 +175,12 @@ export default function CodeAgent({
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [goal, setGoal] = useState("");
+  const [goalSteps, setGoalSteps] = useState<GoalStep[]>([]);
+  const [goalRunning, setGoalRunning] = useState(false);
+  const [goalQuestion, setGoalQuestion] = useState("");
+  const goalStopRef = useRef(false);
+  const goalAbortRef = useRef<AbortController | null>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const undoRef = useRef<{ stack: string[]; last: number }>({ stack: [], last: 0 });
@@ -350,15 +390,253 @@ export default function CodeAgent({
   const sys = (text: string) =>
     setEntries((prev) => [...prev, { id: nid(), role: "assistant", content: text }]);
 
+  const reloadOpenFile = async () => {
+    setRefreshKey((k) => k + 1);
+    if (filePathRef.current && fileKindRef.current === "text") {
+      try {
+        const next = await readWorkspaceFile(filePathRef.current);
+        if (next !== contentRef.current) {
+          pushUndo(contentRef.current);
+          setFileContent(next);
+          setDirty(false);
+        }
+      } catch {
+        /* file may have been deleted */
+      }
+    }
+  };
+
+  const runGoalChat = async (
+    history: { role: "user" | "assistant"; content: string }[]
+  ): Promise<{ text: string; error: string }> => {
+    const assistant: ChatEntry = {
+      id: nid(),
+      role: "assistant",
+      content: "",
+      streaming: true,
+      tools: [],
+    };
+    setEntries((prev) => [...prev, assistant]);
+    let text = "";
+    let error = "";
+    const controller = new AbortController();
+    goalAbortRef.current = controller;
+    try {
+      await streamChat(
+        {
+          messages: history,
+          provider,
+          model,
+          persist: false,
+          tool_mode: "allow",
+          mode: "coding",
+          workspace,
+        },
+        {
+          onReasoning: (delta) =>
+            setEntries((prev) =>
+              prev.map((e) =>
+                e.id === assistant.id
+                  ? { ...e, reasoning: (e.reasoning ?? "") + delta }
+                  : e
+              )
+            ),
+          onTool: (evt) =>
+            setEntries((prev) =>
+              prev.map((e) => {
+                if (e.id !== assistant.id) return e;
+                const tools = [...(e.tools ?? [])];
+                if (evt.status === "running") {
+                  tools.push({
+                    name: evt.name ?? "tool",
+                    done: false,
+                    args: evt.args,
+                    summary: evt.summary,
+                  });
+                } else {
+                  const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
+                  if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
+                }
+                return { ...e, tools };
+              })
+            ),
+          onContent: (delta) => {
+            text += delta;
+            setEntries((prev) =>
+              prev.map((e) =>
+                e.id === assistant.id ? { ...e, content: e.content + delta } : e
+              )
+            );
+          },
+          onError: (message) => {
+            error = message;
+            setEntries((prev) =>
+              prev.map((e) =>
+                e.id === assistant.id
+                  ? { ...e, content: e.content + `\n\n[Fehler] ${message}` }
+                  : e
+              )
+            );
+          },
+        },
+        controller.signal
+      );
+    } catch {
+      if (!error) error = "abgebrochen";
+    }
+    goalAbortRef.current = null;
+    setEntries((prev) =>
+      prev.map((e) => (e.id === assistant.id ? { ...e, streaming: false } : e))
+    );
+    await reloadOpenFile();
+    return { text, error };
+  };
+
+  const finishGoal = (message: string) => {
+    sys(message);
+    setGoalRunning(false);
+    setStreaming(false);
+  };
+
+  const startGoal = async (goalText: string, clarification = "") => {
+    setGoal(goalText);
+    setGoalSteps([]);
+    setGoalQuestion("");
+    setGoalRunning(true);
+    setStreaming(true);
+    goalStopRef.current = false;
+    const history: { role: "user" | "assistant"; content: string }[] = [];
+    const planPrompt = [
+      `/goal-Modus. Mein Ziel: ${goalText}`,
+      clarification ? `Meine Klärung dazu: ${clarification}` : "",
+      "Sieh dich bei Bedarf kurz im Projekt um und zerlege das Ziel dann in 2 bis 8 konkrete, nacheinander ausführbare Schritte.",
+      'Wenn das Ziel zu unklar ist, um loszulegen, stelle genau eine Rückfrage. Antworte am Ende NUR mit JSON, ohne Text davor oder danach: {"steps": ["Schritt 1", "Schritt 2"]} oder {"frage": "deine Rückfrage"}',
+    ]
+      .filter(Boolean)
+      .join("\n");
+    history.push({ role: "user", content: planPrompt });
+    const plan = await runGoalChat(history);
+    if (goalStopRef.current) {
+      finishGoal("🛑 Ziel gestoppt.");
+      return;
+    }
+    if (plan.error && !plan.text) {
+      finishGoal(`Die Planung ist fehlgeschlagen: ${plan.error}`);
+      return;
+    }
+    const parsed = parsePlan(plan.text);
+    if (parsed.frage && !parsed.steps) {
+      setGoalQuestion(parsed.frage);
+      setGoalRunning(false);
+      setStreaming(false);
+      return;
+    }
+    if (!parsed.steps) {
+      finishGoal(
+        "Ich konnte keinen Plan aus der Antwort lesen. Formuliere das Ziel bitte etwas konkreter und starte /goal erneut."
+      );
+      return;
+    }
+    const steps: GoalStep[] = parsed.steps.map((text) => ({
+      text,
+      status: "offen",
+    }));
+    setGoalSteps(steps);
+    history.push({
+      role: "assistant",
+      content: JSON.stringify({ steps: parsed.steps }),
+    });
+    let failure = "";
+    for (let i = 0; i < steps.length; i++) {
+      if (goalStopRef.current) break;
+      setGoalSteps((prev) =>
+        prev.map((s, j) => (j === i ? { ...s, status: "läuft" } : s))
+      );
+      history.push({
+        role: "user",
+        content: `Schritt ${i + 1}/${steps.length}: ${steps[i].text}\nFühre genau diesen Schritt jetzt aus. Fasse am Ende in 1-2 Sätzen zusammen, was du getan hast.`,
+      });
+      let result = await runGoalChat(history);
+      if (result.error && !goalStopRef.current) {
+        history.push({
+          role: "assistant",
+          content: (result.text || "Fehler.").slice(0, 1500),
+        });
+        history.push({
+          role: "user",
+          content: `Der Schritt schlug fehl: ${result.error}\nAnalysiere die Ursache, behebe sie und führe den Schritt danach erneut aus.`,
+        });
+        result = await runGoalChat(history);
+      }
+      history.push({
+        role: "assistant",
+        content: (result.text || "(keine Antwort)").slice(0, 1500),
+      });
+      if (goalStopRef.current) break;
+      if (result.error) {
+        setGoalSteps((prev) =>
+          prev.map((s, j) => (j === i ? { ...s, status: "fehler" } : s))
+        );
+        failure = result.error;
+        break;
+      }
+      setGoalSteps((prev) =>
+        prev.map((s, j) => (j === i ? { ...s, status: "fertig" } : s))
+      );
+    }
+    if (goalStopRef.current) {
+      finishGoal("🛑 Ziel auf deinen Wunsch gestoppt.");
+      return;
+    }
+    history.push({
+      role: "user",
+      content: failure
+        ? `Das Ziel wurde nicht vollständig erreicht (letzter Fehler: ${failure}). Erstelle einen kurzen Abschlussbericht: was erledigt wurde, woran es scheiterte und was ich jetzt tun kann.`
+        : "Alle Schritte sind erledigt. Erstelle einen kurzen Abschlussbericht: was wurde pro Schritt getan und was sollte ich noch prüfen.",
+    });
+    await runGoalChat(history);
+    setGoalRunning(false);
+    setStreaming(false);
+  };
+
+  const stopGoal = () => {
+    goalStopRef.current = true;
+    goalAbortRef.current?.abort();
+  };
+
   const handleCommand = (raw: string): boolean => {
     const [cmd, ...rest] = raw.slice(1).split(/\s+/);
     const arg = rest.join(" ").trim();
     const c = cmd.toLowerCase();
     if (c === "help") {
       sys(
-        "Befehle: /model [name], /provider [name], /tools, /status, /clear, /help. " +
-          "Beschreibe Jon einfach, was er im Projekt tun soll."
+        "Befehle: /goal Zielbeschreibung, /model [name], /provider [name], /tools, /status, /clear, /help. " +
+          "Mit /goal plant Jon die Schritte zu deinem Ziel, führt sie nacheinander aus und berichtet am Ende. " +
+          "Oder beschreibe Jon einfach direkt, was er im Projekt tun soll."
       );
+      return true;
+    }
+    if (c === "goal") {
+      if (!arg) {
+        sys(
+          "Nutzung: /goal Zielbeschreibung — z. B. „/goal Erstelle eine Funktion zur Datenvalidierung“. " +
+            "Jon zerlegt das Ziel in Schritte, arbeitet sie nacheinander ab, zeigt den Fortschritt und liefert einen Abschlussbericht."
+        );
+        return true;
+      }
+      if (!workspace) {
+        sys("Wähle zuerst oben einen Projektordner.");
+        return true;
+      }
+      if (goalRunning) {
+        sys("Es läuft schon ein Ziel — stoppe es zuerst über den Stopp-Knopf.");
+        return true;
+      }
+      setEntries((prev) => [
+        ...prev,
+        { id: nid(), role: "user", content: `/goal ${arg}` },
+      ]);
+      void startGoal(arg);
       return true;
     }
     if (c === "clear") {
@@ -405,6 +683,11 @@ export default function CodeAgent({
     setInput("");
     if (text.startsWith("/")) {
       handleCommand(text);
+      return;
+    }
+    if (goalQuestion) {
+      setEntries((prev) => [...prev, { id: nid(), role: "user", content: text }]);
+      void startGoal(goal, text);
       return;
     }
     if (!workspace) {
@@ -864,12 +1147,66 @@ export default function CodeAgent({
                   )}
             </div>
           )}
+          {goal && (goalRunning || goalSteps.length > 0 || goalQuestion) && (
+            <div className="border-b border-white/10 bg-black/30 px-3 py-2 max-h-48 overflow-y-auto flex-none">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[12px] text-gold truncate">🎯 {goal}</span>
+                {goalRunning && (
+                  <button
+                    onClick={stopGoal}
+                    className="text-[11px] px-2 py-0.5 rounded bg-red-500/20 border border-red-400/30 text-red-300 hover:bg-red-500/30 flex-none"
+                  >
+                    Stopp
+                  </button>
+                )}
+              </div>
+              {goalSteps.length > 0 && (
+                <div className="mt-1.5 space-y-1">
+                  {goalSteps.map((s, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-1.5 text-[11.5px] leading-snug"
+                    >
+                      <span className="flex-none">
+                        {s.status === "fertig"
+                          ? "✅"
+                          : s.status === "läuft"
+                            ? "▶️"
+                            : s.status === "fehler"
+                              ? "❌"
+                              : "⚪"}
+                      </span>
+                      <span
+                        className={
+                          s.status === "fertig"
+                            ? "text-white/40 line-through"
+                            : s.status === "läuft"
+                              ? "text-gold/90"
+                              : s.status === "fehler"
+                                ? "text-red-300"
+                                : "text-white/60"
+                        }
+                      >
+                        {s.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {goalQuestion && (
+                <div className="mt-1.5 text-[11.5px] text-amber-300/90">
+                  ❓ {goalQuestion} — antworte einfach unten im Chat.
+                </div>
+              )}
+            </div>
+          )}
           <div ref={chatRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
             {entries.length === 0 && (
               <div className="text-[12px] text-white/40 leading-relaxed">
                 Jon arbeitet hier direkt an deinem Projekt — Dateien lesen, ändern, Tests
-                laufen lassen. Beschreib einfach dein Ziel. Mit <b>/model</b> und
-                <b> /provider</b> wechselst du das Modell.
+                laufen lassen. Beschreib einfach dein Ziel, oder starte mit
+                <b> /goal Ziel</b> den Ziel-Modus: Jon plant Schritte, führt sie aus und
+                berichtet. Mit <b>/model</b> und <b>/provider</b> wechselst du das Modell.
               </div>
             )}
             {entries.map((e) => (
@@ -888,7 +1225,7 @@ export default function CodeAgent({
                   }
                 }}
                 rows={1}
-                placeholder="Jon beauftragen … (/help)"
+                placeholder="Jon beauftragen … (/goal Ziel, /help)"
                 className="flex-1 bg-transparent resize-none outline-none px-2 py-1.5 text-[13px] text-white/90 placeholder-white/30 max-h-32"
               />
               <button

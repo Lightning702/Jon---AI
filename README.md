@@ -32,13 +32,22 @@ wie das geht. Er hat auch bisschen geholfen.)
 
 ## Jon herunterladen
 
-Der einfachste Weg zu Jon führt über die offizielle Website:
+Der einfachste Weg: die fertigen Downloads von der Website
+**[https://getjon.netlify.app](https://getjon.netlify.app)** (oder direkt aus den
+[GitHub-Releases](https://github.com/Lightning702/Jon---AI/releases/latest)):
 
-1. Öffne **[https://getjon.netlify.app](https://getjon.netlify.app)**
-2. Klicke auf **Download** — du erhältst die Datei `jon.zip`
-3. Entpacke die Zip-Datei an einen Ort deiner Wahl (z. B. `C:\Jon`)
-4. Folge danach der [Setup-Anleitung](#setup) weiter unten
-5. Nach dem Setup startet ein Doppelklick auf `start-jon.bat` Backend und App zusammen
+- **Jon-Setup.exe** — Installer mit Startmenü- und Desktop-Verknüpfung
+- **Jon-Windows.zip** — portable Version: entpacken, `Jon.exe` starten
+
+Beide enthalten die Jon App, Mini Jon und das komplette Backend (startet automatisch
+mit). API-Einstellungen trägst du direkt in der App ein (Zahnrad → **Konten**) — kein
+Python, kein Node.js, keine `.env` nötig.
+
+Für Entwickler gibt es weiter den Quellcode als `jon.zip` auf der Website:
+
+1. Entpacke die Zip-Datei an einen Ort deiner Wahl (z. B. `C:\Jon`)
+2. Folge danach der [Setup-Anleitung](#setup) weiter unten
+3. Nach dem Setup startet ein Doppelklick auf `start-jon.bat` Backend und App zusammen
 
 Alternativ das Repository direkt klonen:
 

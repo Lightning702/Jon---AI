@@ -2,6 +2,35 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.30.0] — 2026-07-22
+
+### Neu — Fertige Downloads: Jon-Setup.exe und portable ZIP
+- Jon gibt es jetzt fertig gebaut zum Herunterladen — **Jon-Setup.exe** (Installer mit
+  Startmenü- und Desktop-Verknüpfung) und **Jon-Windows.zip** (portabel: entpacken,
+  `Jon.exe` starten). Beide enthalten die Jon App, Mini Jon und das komplette Backend,
+  das automatisch mitstartet. API-Einstellungen trägst du direkt in der App ein
+  (Zahnrad → Konten) — sie werden lokal gespeichert, keine `.env` nötig.
+- Die Downloads liegen als GitHub-Release (zu groß fürs Repo); die Website verlinkt auf
+  `releases/latest/download/…` und zeigt damit immer die neueste Version. Auf der
+  Download-Seite wählst du frei zwischen .exe und .zip, der Quellcode bleibt daneben.
+- Gebaut wird beides mit `python scripts/build_installer.py` (ersetzt
+  `build-installer.bat`). `jon.bat` ist ebenfalls entfernt — die CLI startet mit
+  `python -m app.cli` im backend-Ordner. `start-jon.bat` und `autostart-jon.bat`
+  bleiben (Entwickler-Start + Autostart-Funktion).
+
+### Neu — /goal-Modus in Jon Code
+- In Jon Code startest du mit **`/goal Zielbeschreibung`** den Ziel-Modus: Jon sieht
+  sich das Projekt an, zerlegt dein Ziel in 2-8 Schritte, arbeitet sie nacheinander ab
+  und zeigt den Fortschritt als Checkliste (⚪ offen, ▶️ läuft, ✅ fertig, ❌ Fehler).
+- Ist das Ziel zu unklar, stellt Jon genau eine Rückfrage — deine Antwort unten im Chat
+  genügt, dann plant er weiter. Schlägt ein Schritt fehl, analysiert Jon den Fehler und
+  versucht es einmal erneut; danach bricht er sauber ab. Am Ende gibt es immer einen
+  Abschlussbericht: was erledigt wurde, was offen blieb, was du prüfen solltest.
+- Über den Stopp-Knopf im Ziel-Panel brichst du jederzeit ab.
+
+### Neu — Über-mich-Seite auf der Website
+- Die Website hat jetzt eine „Über mich"-Sektion über Felix und das Jon-Projekt.
+
 ## [3.29.0] — 2026-07-22
 
 ### Behoben — Mini Jon mit eigenem Anbieter + Ollama ohne Tool-Fehler

@@ -62,16 +62,22 @@ Vite muss an `127.0.0.1` gebunden sein.
 4. Reine Leseaktion? Dann Namen in `SAFE_TOOLS` aufnehmen.
 5. Falls nötig, eine Methode im passenden Service ergänzen.
 
-## Windows-Installer (Jon-Setup.exe)
+## Windows-Installer + portable ZIP (Jon-Setup.exe / Jon-Windows.zip)
 
-`build-installer.bat` baut die eigenständige `Jon-Setup.exe` in drei Schritten:
+`python scripts/build_installer.py` baut beides in vier Schritten:
 
 1. PyInstaller bündelt das Backend nach `backend/jon-backend.spec` zu
    `backend/dist/jon-backend/jon-backend.exe` (Entry-Point `backend/run_backend.py`,
    `collect_all` für openWakeWord, Playwright, cv2, edge-tts, sounddevice u. a.).
 2. `npm run build` erzeugt das Frontend.
-3. `electron-builder --config frontend/installer.config.json` paketiert per NSIS und
-   nimmt `jon-backend/` als `extraResources` mit.
+3. `electron-builder --config frontend/installer.config.json` paketiert per NSIS die
+   `frontend/release/Jon-Setup.exe` und nimmt `jon-backend/` als `extraResources` mit.
+4. Aus `frontend/release/win-unpacked` entsteht zusätzlich die portable
+   `frontend/release/Jon-Windows.zip` (entpacken, `Jon.exe` starten — keine Installation).
+
+Beide Artefakte sind zu groß fürs Repo — sie werden als GitHub-Release veröffentlicht
+(`Releases` → Assets `Jon-Setup.exe` + `Jon-Windows.zip`); die Website verlinkt auf
+`releases/latest/download/…`, zeigt also immer automatisch das neueste Release.
 
 Zur Laufzeit erkennt `frontend/electron/main.cjs` die gebündelte `jon-backend.exe` und
 startet sie statt Python; beim Beenden wird sie per `taskkill /t /f` sauber gestoppt. Ist

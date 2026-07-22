@@ -69,6 +69,10 @@ h2{text-align:center;font-size:clamp(28px,5vw,42px);font-weight:800;letter-spaci
 .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-size:13px;border-top:1px solid rgba(255,255,255,.06);margin-top:40px}
 .note{max-width:720px;margin:30px auto 0;padding:16px 20px;border-radius:14px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);font-size:13px;color:rgba(255,255,255,.65);text-align:center}
+.about-card{max-width:760px;margin:44px auto 0;padding:34px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px)}
+.about-card p{color:rgba(255,255,255,.62);font-size:15px;line-height:1.75}
+.about-card p+p{margin-top:18px}
+.dl-hint{font-size:12.5px;color:rgba(255,255,255,.4);margin-top:14px;text-align:center}
 @media(max-width:640px){.mock-body{grid-template-columns:1fr}.mock-side{display:none}nav a{display:none}.video-wrap{border-radius:14px}}
 #cookie-banner{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100;width:min(680px,calc(100vw - 32px));padding:20px 24px;border-radius:18px;background:rgba(11,11,15,.92);border:1px solid rgba(212,175,55,.3);backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.6);display:none}
 #cookie-banner.show{display:block;animation:cookieIn .35s ease}
@@ -97,6 +101,7 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 <a href="#features">Funktionen</a>
 <a href="#install">Installation</a>
 <a href="#app">Handy-App</a>
+<a href="#about">Über mich</a>
 <a href="#download">Download</a>
 <a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
 </div>
@@ -153,7 +158,7 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 
 <section id="install">
 <h2>In <span class="gold">3 Schritten</span> startklar</h2>
-<p class="sub">Backend in Python, Desktop-App in Electron.</p>
+<p class="sub">Der schnellste Weg: die fertige <a href="#download" style="color:var(--gold-light)">Jon-Setup.exe</a> — App, Mini Jon und Backend inklusive, API-Keys trägst du direkt in der App ein. Für Entwickler geht es auch aus dem Quellcode:</p>
 <div class="steps">
 <div class="step"><div class="n">1</div><div><h4>Projekt herunterladen &amp; API-Key setzen</h4><p>Lege deinen NVIDIA-Key in die Datei <b>.env</b>:</p><code>NVIDIA_API_KEY=nvapi-...
 DEFAULT_MODEL=openai/gpt-oss-120b</code></div></div>
@@ -188,15 +193,29 @@ cd frontend &amp;&amp; npm install</code></div></div>
 </div>
 </section>
 
+<section id="about">
+<h2>Über <span class="gold">mich</span></h2>
+<div class="about-card">
+<p>Hi, ich bin Felix, ein leidenschaftlicher Softwareentwickler aus Österreich. Ich liebe es, Ideen in echte Projekte zu verwandeln und ständig neue Technologien zu entdecken. Egal ob moderne Webanwendungen, KI oder kreative Tools, ich probiere gerne Neues aus und entwickle Lösungen, die nicht nur funktionieren, sondern auch Spaß machen.</p>
+<p>Im Mittelpunkt steht dabei Jon, mein KI-Assistent. Für dieses Projekt experimentiere ich mit künstlicher Intelligenz, lokalen Sprachmodellen, Smart-Home-Integration und moderner Softwareentwicklung. Jon ist für mich nicht nur ein spannendes Projekt, sondern auch eine Möglichkeit, neue Ideen auszuprobieren und mich als Entwickler weiterzuentwickeln.</p>
+<p>Ich glaube daran, dass man nie ausgelernt hat. Deshalb verbringe ich viel Zeit damit, neue Programmiersprachen, Frameworks und Technologien auszuprobieren und mein Wissen in spannende Projekte einfließen zu lassen. Mein Ziel ist es, Software zu entwickeln, die nützlich, innovativ und einfach zu bedienen ist.</p>
+</div>
+</section>
+
 <section id="download">
 <h2><span class="gold">Download</span></h2>
-<p class="sub">Hol dir Jon und starte in wenigen Minuten.</p>
+<p class="sub">Jon App mit Mini Jon und Backend — komplett in einem Paket. Wähle, wie du Jon haben willst.</p>
 <div class="cta" style="margin-top:44px">
-<a class="btn btn-primary" href="jon.zip" download>Jon herunterladen (.zip)</a>
-<a class="btn btn-ghost" href="https://build.nvidia.com" target="_blank" rel="noopener">NVIDIA API-Key holen</a>
-<a class="btn btn-ghost" href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">Quellcode auf GitHub</a>
+<a class="btn btn-primary" href="https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe">⬇ Jon-Setup.exe (Installer)</a>
+<a class="btn btn-primary" href="https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Windows.zip">📦 Jon als ZIP (portabel)</a>
 </div>
-<div class="note">Hinweis: Jon nutzt ausschließlich deinen eigenen NVIDIA-API-Key und standardmäßig das Modell GPT-OSS&nbsp;120B. API-Keys werden niemals im Code gespeichert, sondern ausschließlich lokal in deiner <b>.env</b>-Datei.</div>
+<p class="dl-hint">Die .exe installiert Jon mit Startmenü- und Desktop-Verknüpfung. Die ZIP entpackst du einfach in einen Ordner und startest <b>Jon.exe</b> — gleiche App, gleiche Funktionen, keine Installation nötig.</p>
+<div class="cta" style="margin-top:26px">
+<a class="btn btn-ghost" href="jon.zip" download>Quellcode (.zip)</a>
+<a class="btn btn-ghost" href="https://build.nvidia.com" target="_blank" rel="noopener">NVIDIA API-Key holen</a>
+<a class="btn btn-ghost" href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
+</div>
+<div class="note">In beiden Varianten sind die Jon App, Mini Jon (Emil) und das komplette Backend enthalten — es startet automatisch mit. Deine API-Einstellungen trägst du direkt in der App ein (Zahnrad → <b>Konten</b>): Key einfügen, fertig. Alle Keys bleiben ausschließlich lokal auf deinem Gerät. Ganz ohne Key läuft Jon gratis mit Ollama oder LM Studio.</div>
 </section>
 </div>
 
@@ -209,7 +228,7 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <a href="agb.html">AGB</a>
 <button class="cookie-link" onclick="jonShowCookieBanner()">Cookie-Einstellungen</button>
 </div>
-<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.18.1 · Läuft lokal auf deinem Rechner</div>
+<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.30.0 · Läuft lokal auf deinem Rechner</div>
 </footer>
 
 <div id="cookie-banner" role="dialog" aria-label="Cookie-Hinweis">

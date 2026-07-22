@@ -17,6 +17,7 @@
     "icon": "electron/icon.ico"
   },
   "nsis": {
+    "artifactName": "Jon-Setup.exe",
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,

@@ -72,7 +72,7 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 
 - `/update` und Update-Knopf: Backup von `data/`, `git pull`, bedingtes `pip`/`npm`,
   Neustart (auf dem Pi `systemctl restart jon`)
-- `build-installer.bat`: PyInstaller-Bundle (`jon-backend.exe`) + NSIS → `Jon-Setup.exe`,
+- `python scripts/build_installer.py`: PyInstaller-Bundle (`jon-backend.exe`) + NSIS → `Jon-Setup.exe` + portable `Jon-Windows.zip`,
   ohne Python/Node/Terminal beim Endnutzer
 
 ## Sprachen
