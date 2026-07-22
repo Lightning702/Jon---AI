@@ -70,6 +70,7 @@ class OpenAICompatibleProvider(LLMProvider):
         self._default_models = default_models or []
         self._timeout = timeout
         self._clients: dict[str, AsyncOpenAI] = {}
+        self._no_tool_models: set[str] = set()
         self._models_cache: list[str] | None = None
         self._models_cached_at = 0.0
         self._models_cache_ttl = 0.0
@@ -178,6 +179,18 @@ class OpenAICompatibleProvider(LLMProvider):
                     payload.pop("extra_body", None)
                     last = exc
                     continue
+                message = str(exc).lower()
+                if (
+                    status == 400
+                    and payload.get("tools")
+                    and "tool" in message
+                    and ("support" in message or "unsupported" in message)
+                ):
+                    self._no_tool_models.add(payload.get("model", ""))
+                    payload.pop("tools", None)
+                    payload.pop("tool_choice", None)
+                    last = exc
+                    continue
                 tokens = payload.get("max_tokens")
                 if (
                     status == 400
@@ -202,7 +215,9 @@ class OpenAICompatibleProvider(LLMProvider):
             {"role": m.role, "content": m.content} for m in request.messages
         ]
         tools = request.tools or None
-        use_tools = bool(tools and tool_executor)
+        use_tools = bool(
+            tools and tool_executor and request.model not in self._no_tool_models
+        )
         rounds = MAX_TOOL_ROUNDS if use_tools else 1
         guard = (
             0.0
@@ -249,6 +264,9 @@ class OpenAICompatibleProvider(LLMProvider):
             max_tokens = payload["max_tokens"]
             if extra_body and "extra_body" not in payload:
                 extra_body = None
+            if use_tools and "tools" not in payload:
+                use_tools = False
+                tools = None
 
             content_acc: list[str] = []
             calls: dict[int, dict] = {}

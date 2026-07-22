@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "3.28.0"
+    app_version: str = "3.29.0"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = "*"

@@ -98,7 +98,8 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
   const activeProvider = cfg.pet_provider || mainProvider || "nvidia";
   const models =
     providers.find((p) => p.provider === activeProvider)?.models ?? [];
-  const followsJon = Boolean(mainProvider) && mainProvider !== "nvidia";
+  const followsJon =
+    Boolean(mainProvider) && mainProvider !== "nvidia" && !cfg.pet_provider;
   const selectField =
     "w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[12px] text-white/90 outline-none focus:border-gold/50 [&>option]:bg-zinc-900";
 
@@ -251,8 +252,8 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               </select>
               <div className="text-[11px] text-white/40 leading-snug">
                 {followsJon
-                  ? `Jon nutzt gerade ${mainProvider} — Mini Jon übernimmt Anbieter und Modell automatisch von Jon. Deine Auswahl hier gilt wieder, sobald Jon auf NVIDIA läuft.`
-                  : "Mini Jon plaudert — ein schnelles Modell antwortet in ~2 s. Wechselt Jon oben zu einem anderen Anbieter als NVIDIA, übernimmt Mini Jon automatisch Jons Anbieter und Modell."}
+                  ? `Jon nutzt gerade ${mainProvider} — ohne eigene Auswahl übernimmt Mini Jon Anbieter und Modell von Jon. Wähle oben einen Anbieter (z. B. nvidia), dann gilt deine Auswahl immer.`
+                  : "Mini Jon plaudert — ein schnelles Modell antwortet in ~2 s. Deine Auswahl hier gilt immer. Steht der Anbieter auf „Wie Jon“, übernimmt Mini Jon Jons Anbieter und Modell, sobald Jon nicht auf NVIDIA läuft."}
               </div>
             </div>
           </div>

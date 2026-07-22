@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.29.0] — 2026-07-22
+
+### Behoben — Mini Jon mit eigenem Anbieter + Ollama ohne Tool-Fehler
+- Mini Jon (und Telegram) können jetzt einen **eigenen Anbieter** nutzen, auch wenn Jon
+  selbst auf einem anderen läuft: Wählst du in „Mini Jon anpassen" z. B. **nvidia**,
+  gilt deine Auswahl immer — die Folge-Regel („übernimmt Jons Anbieter") greift nur
+  noch, wenn kein eigener Anbieter gewählt ist. Damit läuft Mini Jon mit NVIDIA,
+  während Jon Ollama nutzt.
+- **Ollama-Fehler behoben**: Modelle ohne Tool-Unterstützung (z. B. `gemma3:270m`)
+  brachen mit `400 — does not support tools` ab. Jon wiederholt die Anfrage jetzt
+  automatisch ohne Tools und merkt sich das Modell, sodass künftige Anfragen direkt
+  ohne Tools laufen. Das Modell antwortet dann ganz normal (kann nur keine
+  PC-Werkzeuge aufrufen).
+
 ## [3.28.0] — 2026-07-21
 
 ### Entfernt — kein eigener Veröffentlichungsdienst mehr
