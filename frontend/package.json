@@ -1,8 +1,8 @@
 {
   "name": "jon-desktop",
-  "version": "3.30.0",
+  "version": "3.30.1",
   "description": "Jon - Der moderne KI-Desktop-Assistent",
-  "author": "Jon",
+  "author": "Felix / Jon Projekt",
   "license": "MIT",
   "main": "electron/main.cjs",
   "scripts": {

@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.30.1] — 2026-07-23
+
+### Behoben — Downloads werden seltener fälschlich als schädlich gemeldet
+- Die Warnungen kamen von SmartScreen/Virenscanner-Heuristiken, die bei neuen,
+  unsignierten Programmen anschlagen — nicht von echter Schadsoftware. Dagegen getan:
+  `jon-backend.exe` trägt jetzt vollständige Datei-Metadaten (Produkt, Version,
+  Herausgeber, Open-Source-Hinweis), läuft als normales Konsolenprogramm statt als
+  „unsichtbare" Fenster-Anwendung (ein bekannter Heuristik-Auslöser; die App versteckt
+  die Konsole selbst) und der Installer nennt einen echten Herausgeber. Neue Downloads
+  als Release v3.30.1, das alte Release ist entfernt.
+- Die Download-Seite erklärt jetzt ehrlich, warum die SmartScreen-Meldung erscheinen
+  kann und wie man sie bestätigt (Weitere Informationen → Trotzdem ausführen).
+- Ganz verschwinden kann die Erst-Warnung nur mit einem kostenpflichtigen
+  Code-Signing-Zertifikat oder wachsender Download-Reputation.
+
 ## [3.30.0] — 2026-07-22
 
 ### Neu — Fertige Downloads: Jon-Setup.exe und portable ZIP
