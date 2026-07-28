@@ -68,6 +68,7 @@ def test_blockwelt_ist_immer_dabei(wurzel):
     blockwelt = next(s for s in spiele if s["id"] == "blockwelt")
     assert blockwelt["typ"] == "web"
     assert blockwelt["status"] == "bereit"
+    assert blockwelt["vorschau"] is True
 
 
 def test_status_ohne_exe_ist_nicht_gebaut(wurzel):
@@ -110,7 +111,13 @@ def test_stoppen_ohne_lauf_ist_harmlos(wurzel):
 def test_vorschau_datei(wurzel):
     assert arc.ArcadeService().vorschau("testspiel").read_bytes() == b"bild"
     with pytest.raises(arc.SpielFehler):
-        arc.ArcadeService().vorschau("blockwelt")
+        arc.ArcadeService().vorschau("gibtsnicht")
+
+
+def test_blockwelt_hat_eigenes_vorschaubild(wurzel):
+    bild = arc.ArcadeService().vorschau("blockwelt")
+    assert bild.exists()
+    assert bild.name == "blockwelt.jpg"
 
 
 def test_api_liefert_spiele():

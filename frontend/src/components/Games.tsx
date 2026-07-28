@@ -20,6 +20,8 @@ const STATUS_TEXT: Record<SpielStatus, string> = {
   nicht_verfuegbar: "nicht verfügbar",
 };
 
+const imDesktop = typeof (window as { jon?: unknown }).jon !== "undefined";
+
 const STATUS_STIL: Record<SpielStatus, string> = {
   bereit: "border-emerald-400/35 bg-emerald-400/10 text-emerald-300",
   laeuft: "border-sky-400/35 bg-sky-400/10 text-sky-300",
@@ -82,7 +84,7 @@ export default function Games({ onClose, fokus }: { onClose: () => void; fokus?:
         const fenster = window.open(spielSeitenUrl(res.pfad), "_blank", "noopener");
         notiz(
           spiel.id,
-          fenster
+          fenster || imDesktop
             ? `${spiel.titel} läuft jetzt in einem eigenen Tab.`
             : "Der Browser hat das neue Fenster blockiert — bitte Pop-ups für Jon erlauben."
         );

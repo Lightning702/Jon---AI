@@ -13,6 +13,7 @@ MANIFEST_NAMEN = ("jon-spiele.json", "jon-games.json")
 CACHE_SEKUNDEN = 5.0
 START_PRUEFUNG = 0.6
 BAU_TIMEOUT = 900
+STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
 
 EINGEBAUTE_SPIELE = [
     {
@@ -29,7 +30,8 @@ EINGEBAUTE_SPIELE = [
         "typ": "web",
         "pfad": "/blockwelt",
         "version": "1.0",
-        "herausgeber": "Jon",
+        "herausgeber": "FelWorks",
+        "vorschau": STATIC_DIR / "blockwelt.jpg",
     }
 ]
 
