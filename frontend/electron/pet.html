@@ -2306,7 +2306,7 @@
       }
       setInterval(pollCompanion, 6000);
 
-      const WAKE = new Set(["emil", "emile", "emilio", "emmi", "email", "mini"]);
+      const WAKE = new Set(["emil", "emile", "emilio", "emmi", "email", "mini", "jon", "john", "jonny", "johnny"]);
       const SPEECH_THRESHOLD = 0.015;
       const SILENCE_END_MS = 1100;
       const MIN_SPEECH_MS = 350;
@@ -2372,19 +2372,52 @@
           this.running = false;
           this.busy = false;
           this.oneShot = false;
+          const restartMic = async () => {
+            if (wakeMode) {
+              try {
+                await fetch(`${BASE}/voice/wake/stop`, { method: "POST" });
+                await fetch(`${BASE}/voice/wake/start`, { method: "POST" });
+              } catch (e) {}
+            }
+            if (this.running) {
+              const engaged = this.engaged;
+              const oneShot = this.oneShot;
+              this.stop();
+              this.engaged = engaged;
+              this.oneShot = oneShot;
+              try {
+                await this.start();
+              } catch (e) {}
+            }
+          };
+          navigator.mediaDevices.addEventListener("devicechange", restartMic);
+          window.addEventListener("jon_mic_changed", restartMic);
         }
         setBusy(b) {
           this.busy = b;
         }
         async start() {
           if (this.running) return;
-          this.stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
-          });
+          const deviceId = localStorage.getItem("jon_mic_device") || "default";
+          const audio = {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          };
+          if (deviceId && deviceId !== "default") {
+            audio.deviceId = { ideal: deviceId };
+          }
+          try {
+            this.stream = await navigator.mediaDevices.getUserMedia({ audio });
+          } catch (e) {
+            this.stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              },
+            });
+          }
           this.ctx = new AudioContext();
           await this.ctx.resume().catch(() => {});
           this.src = this.ctx.createMediaStreamSource(this.stream);

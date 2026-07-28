@@ -62,6 +62,11 @@ git clone https://github.com/Lightning702/Jon---AI.git
   `/calendar` shows the next 7 days.
 - **🔄 Auto-update** — `/update` pulls the latest version, backs up `data/` first, reinstalls
   only what changed, and restarts (on the Raspberry Pi via `systemctl restart jon`).
+- **🕹️ Games built in** — The FelWorks Game Collection ships with Jon: **ECHO**
+  (first-person psychological horror) and **AETHERIA** (fantasy open-world RPG) run as
+  their own window, the **Blockwelt** voxel sandbox opens in a browser tab. Find them under
+  Tools → Games; nothing launches on its own, only the **Start** button opens a game and Jon
+  stays open. Drop a folder with a `jon-spiele.json` next to Jon to add your own.
 - **🌍 English & German** — Switch the whole UI and Jon's replies between German and English
   in the gear menu.
 - Plus: knowledge base, automations, reminders, friends chat, Telegram bot (with photo

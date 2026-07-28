@@ -7,6 +7,11 @@
       "from": "../backend/dist/jon-backend",
       "to": "jon-backend",
       "filter": ["**/*"]
+    },
+    {
+      "from": "../ECHO",
+      "to": "ECHO",
+      "filter": ["jon-spiele.json", "README.md", "bin/**/*", "shaders/**/*", "vorschau/**/*"]
     }
   ],
   "directories": {
@@ -14,7 +19,8 @@
   },
   "win": {
     "target": "nsis",
-    "icon": "electron/icon.ico"
+    "icon": "electron/icon.ico",
+    "publisherName": "FelWorks"
   },
   "nsis": {
     "artifactName": "Jon-Setup.exe",

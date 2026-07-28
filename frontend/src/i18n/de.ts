@@ -63,6 +63,7 @@ export const de = {
   voice_off: "Zuhören aus",
   tools_work: "Arbeiten",
   tools_pc: "PC & Medien",
+  tools_games: "Spiele",
   tools_fun: "Spaß & mehr",
 };
 

@@ -65,5 +65,6 @@ export const en: Translations = {
   voice_off: "Listening off",
   tools_work: "Work",
   tools_pc: "PC & Media",
+  tools_games: "Games",
   tools_fun: "Fun & more",
 };

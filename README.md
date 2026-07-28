@@ -73,6 +73,13 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   sind frei anpassbar (🎨-Knopf), und im hellen Modus wird auch er weiß. Er hat — wie der
   große Jon — seine eigene Persönlichkeit und Familiengeschichte. Ein-/Ausblenden mit
   `Strg+Alt+K`
+- **🕹️ Spiele (FelWorks Game Collection)** — **ECHO** (First-Person-Psychological-Horror,
+  4 Etagen, 464 Räume, fünf Enden), **AETHERIA** (Fantasy-Open-World-RPG mit Dörfern,
+  Aufträgen und Weltkarte) und die **Blockwelt** (Voxel-Sandbox, in der Jon für dich baut)
+  stecken direkt in Jon: **Werkzeuge → Spiele → Starten** oder `/spiele`. Nichts startet von
+  allein — erst der Klick öffnet das Spiel, ECHO und AETHERIA in einem eigenen Fenster, die
+  Blockwelt in einem neuen Tab. Jon läuft dabei normal weiter. Weitere Spiele kommen dazu,
+  indem man einen Ordner mit einer `jon-spiele.json` neben Jon legt
 - **Persönlichkeit & eigenes Gedächtnis** — Jon ist kein neutraler Bot: eigener Charakter,
   Stimmungen, Lebensgeschichte und eine eigene `MEMORY.md`, in die er selbst schreibt
 - **KI-Team, Simulationen, Zeitreise & Dream Mode** — `/team`, `/simulate`, `/snapshot(s)`,

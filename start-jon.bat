@@ -91,6 +91,12 @@ for /l %%i in (1,1,40) do (
 )
 if defined BACKEND_OK (
     echo Backend laeuft auf http://127.0.0.1:8756
+    set "SPIELE="
+    for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "try{$r=Invoke-RestMethod -TimeoutSec 5 http://127.0.0.1:8756/api/games; (($r.spiele | ForEach-Object { $_.titel + ' [' + $_.status + ']' }) -join ', ')}catch{''}"`) do set "SPIELE=%%a"
+    if defined SPIELE (
+        echo Spiele-Dienst laeuft: !SPIELE!
+        echo Spiele starten erst ueber Werkzeuge ^> Spiele ^> Starten.
+    )
     if defined WLANIP (
         echo.
         echo Fuer Handy/Uhr im selben WLAN eintragen:  http://%WLANIP%:8756

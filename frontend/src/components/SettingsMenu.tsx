@@ -131,6 +131,22 @@ export default function SettingsMenu({
   const [petCompanion, setPetCompanion] = useState("none");
   const [connections, setConnections] = useState<UserSettings | null>(null);
   const [wakeSensitivity, setWakeSensitivity] = useState("mittel");
+  const [micList, setMicList] = useState<{ id: string; name: string }[]>([]);
+  const [selectedMic, setSelectedMic] = useState("default");
+
+  const loadMics = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const inputs = devices
+        .filter((d) => d.kind === "audioinput")
+        .map((d) => ({
+          id: d.deviceId,
+          name: d.label || `Mikrofon (${d.deviceId.slice(0, 5)})`,
+        }));
+      setMicList(inputs);
+    } catch {}
+  };
 
   useEffect(() => {
     void getUserSettings().then((s) => {
@@ -151,7 +167,10 @@ export default function SettingsMenu({
       setPetWellness(s.pet_wellness !== false);
       setPetCompanion(s.pet_companion || "none");
       setWakeSensitivity(s.wake_sensitivity || "mittel");
+      setSelectedMic(s.microphone_device || "default");
     });
+    void loadMics();
+    navigator.mediaDevices.addEventListener("devicechange", loadMics);
     void (async () => {
       const backend = await getAutostart();
       if (backend) {
@@ -160,6 +179,9 @@ export default function SettingsMenu({
       }
       if (jonBridge?.getStartup) setStartup(await jonBridge.getStartup());
     })();
+    return () => {
+      navigator.mediaDevices.removeEventListener("devicechange", loadMics);
+    };
   }, []);
 
   const togglePersonality = () => {
@@ -261,6 +283,16 @@ export default function SettingsMenu({
   const pickWakeSensitivity = (value: string) => {
     setWakeSensitivity(value);
     void saveUserSettings({ wake_sensitivity: value });
+  };
+
+  const pickMicrophone = (deviceId: string) => {
+    setSelectedMic(deviceId);
+    const mic = micList.find((m) => m.id === deviceId);
+    const name = mic ? mic.name : "";
+    localStorage.setItem("jon_mic_device", deviceId);
+    localStorage.setItem("jon_mic_name", name);
+    void saveUserSettings({ microphone_device: deviceId, microphone_name: name });
+    window.dispatchEvent(new Event("jon_mic_changed"));
   };
 
   const openConnections = async () => {
@@ -471,6 +503,21 @@ export default function SettingsMenu({
             </div>
             <Section title="Sprachsteuerung" />
             <div className="pt-1">
+              <div className="text-[10px] text-white/40 px-0.5 mb-1">
+                Mikrofon
+              </div>
+              <select
+                value={selectedMic}
+                onChange={(e) => pickMicrophone(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white/90 outline-none focus:border-gold/50 [&>option]:bg-zinc-900 mb-2"
+              >
+                <option value="default">Standard (PC-Auswahl)</option>
+                {micList.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
               <div className="text-[10px] text-white/40 px-0.5 mb-1">
                 Wake-Word-Empfindlichkeit („Jon“)
               </div>

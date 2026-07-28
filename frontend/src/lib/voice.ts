@@ -1,4 +1,4 @@
-import { transcribeAudio, wakePoll, wakeStart } from "./api";
+import { transcribeAudio, wakePoll, wakeStart, wakeStop } from "./api";
 
 export type VoiceState =
   | "idle"
@@ -95,6 +95,24 @@ export class VoiceListener {
 
   constructor(callbacks: VoiceCallbacks) {
     this.callbacks = callbacks;
+    const restartMic = async () => {
+      if (this.mode === "backend" && this.running) {
+        try {
+          await wakeStop();
+          await wakeStart();
+        } catch {}
+      }
+      if (this.running && this.stream) {
+        const wasArmed = this.armed;
+        this.closeMic();
+        await this.openMic();
+        if (wasArmed) {
+          this.callbacks.onState("armed");
+        }
+      }
+    };
+    navigator.mediaDevices.addEventListener("devicechange", restartMic);
+    window.addEventListener("jon_mic_changed", restartMic);
   }
 
   setBusy(busy: boolean) {
@@ -152,13 +170,28 @@ export class VoiceListener {
 
   private async openMic(): Promise<void> {
     if (this.stream) return;
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
-    });
+    const deviceId = localStorage.getItem("jon_mic_device") || "default";
+    const audioConstraints: MediaTrackConstraints = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    };
+    if (deviceId && deviceId !== "default") {
+      audioConstraints.deviceId = { ideal: deviceId };
+    }
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints,
+      });
+    } catch {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+    }
     this.context = new AudioContext();
     await this.context.resume().catch(() => undefined);
     this.source = this.context.createMediaStreamSource(this.stream);

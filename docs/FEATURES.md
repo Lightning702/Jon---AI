@@ -87,6 +87,21 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Pomodoro-Coach: Timer-Badge, fröhlich in Pausen, Bewegungstipps
 - Vorlese-Modus: markierten Text mit Strg+Alt+V vorlesen lassen
 
+## Spiele
+
+- **Werkzeuge → Spiele** (`/spiele`) — Übersicht mit Vorschaubild, Beschreibung, Steuerung,
+  Version und Status (bereit, läuft, wird gebaut, Fehler); gestartet wird erst per Klick
+- **ECHO** (`/echo`) — First-Person-Psychological-Horror, 4 Etagen, 464 Räume, adaptive
+  Regie, fünf Enden; startet als eigenes Fenster, Jon bleibt offen
+- **AETHERIA** (`/aetheria`) — Fantasy-Open-World-RPG mit sechs Dörfern, Aufträgen,
+  Stufenaufstieg, Tag/Nacht und Weltkarte
+- **Blockwelt** (`/spiel`) — Voxel-Sandbox im Browser-Tab, Jon baut auf Zuruf (Taste T)
+- **Eigene Spiele nachrüsten** — Ordner mit `jon-spiele.json` neben Jon (oder in `games/`)
+  legen: Titel, Beschreibung, Icon, Vorschaubild, Exe, Startparameter und optionales
+  Bau-Skript; Jon findet ihn beim nächsten Öffnen der Liste ohne Code-Änderung
+- **Fehlerfall** — fehlt die Spieldatei oder bricht der Start ab, erscheint eine Meldung
+  in der Karte (inkl. Hinweis auf `echo.log`), Jon läuft unbeeindruckt weiter
+
 ## Produktivität & Alltag
 
 - **Fokus-Statistik** (`/fokus`) — lokale App-Zeiten als Balkendiagramm, im Wochenrückblick

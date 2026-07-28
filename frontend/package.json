@@ -1,8 +1,8 @@
 {
   "name": "jon-desktop",
-  "version": "3.30.1",
+  "version": "3.31.0",
   "description": "Jon - Der moderne KI-Desktop-Assistent",
-  "author": "Felix / Jon Projekt",
+  "author": "FelWorks",
   "license": "MIT",
   "main": "electron/main.cjs",
   "scripts": {
@@ -49,12 +49,18 @@
           "!.venv/**",
           "!venv/**"
         ]
+      },
+      {
+        "from": "../ECHO",
+        "to": "ECHO",
+        "filter": ["jon-spiele.json", "README.md", "bin/**/*", "shaders/**/*", "vorschau/**/*"]
       }
     ],
     "directories": { "output": "release" },
     "win": {
       "target": "nsis",
-      "icon": "electron/icon.ico"
+      "icon": "electron/icon.ico",
+      "publisherName": "FelWorks"
     },
     "nsis": {
       "oneClick": false,

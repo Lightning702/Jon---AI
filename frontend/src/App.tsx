@@ -25,6 +25,7 @@ import Flashcards from "./components/Flashcards";
 import ScreenExplain from "./components/ScreenExplain";
 import PrivateBrowser from "./components/PrivateBrowser";
 import Notes from "./components/Notes";
+import Games from "./components/Games";
 import Vault from "./components/Vault";
 import Search from "./components/Search";
 import SetupWizard from "./components/SetupWizard";
@@ -66,6 +67,8 @@ import {
   getDueReminders,
   getHealth,
   blockweltUrl,
+  getSpiele,
+  Spiel,
   getHealthCheck,
   getProviders,
   getTaskReports,
@@ -192,6 +195,8 @@ export default function App() {
   const [explainOpen, setExplainOpen] = useState(false);
   const [privateBrowserOpen, setPrivateBrowserOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [gamesOpen, setGamesOpen] = useState<string | null>(null);
+  const [spiele, setSpiele] = useState<Spiel[]>([]);
   const [vaultOpen, setVaultOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
@@ -253,6 +258,12 @@ export default function App() {
   useEffect(() => {
     toolModeRef.current = toolMode;
   }, [toolMode]);
+  useEffect(() => {
+    if (!toolsMenuOpen && gamesOpen === null) return;
+    void getSpiele()
+      .then(setSpiele)
+      .catch(() => setSpiele([]));
+  }, [toolsMenuOpen, gamesOpen]);
 
   const changeToolMode = (mode: ToolMode) => {
     setToolMode(mode);
@@ -937,6 +948,10 @@ export default function App() {
       window.open(blockweltUrl(), "_blank");
       return;
     }
+    if (command === "/spiele" || command === "/games" || command === "/echo" || command === "/aetheria") {
+      setGamesOpen(command === "/echo" || command === "/aetheria" ? command.slice(1) : "");
+      return;
+    }
     if (command === "/tagebuch" || command === "/journal") {
       setJournalOpen(true);
       return;
@@ -1536,10 +1551,20 @@ export default function App() {
                           ],
                         },
                         {
+                          title: t("tools_games"),
+                          items: [
+                            { icon: "🕹️", label: "Alle Spiele", hint: spiele.length ? String(spiele.length) : undefined, act: () => setGamesOpen("") },
+                            ...spiele.map((spiel) => ({
+                              icon: spiel.icon || "🎮",
+                              label: spiel.titel,
+                              act: () => setGamesOpen(spiel.id),
+                            })),
+                          ],
+                        },
+                        {
                           title: t("tools_fun"),
                           items: [
                             { icon: "🎙️", label: "Abend-Show", act: () => setShowOpen(true) },
-                            { icon: "🎮", label: "Blockwelt-Spiel", act: () => window.open(blockweltUrl(), "_blank") },
                             { icon: "💬", label: "Freunde-Chat", badge: unread, act: () => setFriendsOpen(true) },
                             { icon: "👤", label: "Konten & Nutzung", act: () => setAccountsTab("accounts") },
                           ],
@@ -1724,6 +1749,9 @@ export default function App() {
         />
       )}
       {notesOpen && <Notes onClose={() => setNotesOpen(false)} />}
+      {gamesOpen !== null && (
+        <Games onClose={() => setGamesOpen(null)} fokus={gamesOpen || undefined} />
+      )}
       {vaultOpen && <Vault onClose={() => setVaultOpen(false)} />}
       {searchOpen && (
         <Search

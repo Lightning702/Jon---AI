@@ -2,6 +2,38 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.31.0] — 2026-07-28
+
+### Neu — Spiele in Jon (FelWorks Game Collection)
+- **Werkzeuge → Spiele**: neuer Abschnitt im Werkzeuge-Menü plus Übersichtsfenster mit
+  einer Karte je Spiel — Vorschaubild, Titel, Genre, Beschreibung, Steuerung, Version,
+  Herausgeber, Baudatum und Status (bereit · läuft · wird gebaut · Fehler). Gestartet
+  wird ausschließlich per Klick auf **Starten**; beim Start von Jon öffnet sich kein
+  Spielfenster.
+- **ECHO** (Psychological Horror) und **AETHERIA** (Fantasy-Open-World-RPG) laufen als
+  eigener Prozess in einem eigenen Fenster, die **Blockwelt** öffnet sich in einem neuen
+  Tab. Jon bleibt in allen Fällen offen und bedienbar.
+- Neue Endpoints `GET /api/games`, `POST /api/games/{id}/start|stop|build` und
+  `GET /api/games/{id}/vorschau`; laufende Spiele werden mitverfolgt und lassen sich aus
+  der Karte heraus wieder beenden.
+- **Erweiterbar ohne Code-Änderung**: `arcade_service` sucht neben Jon (und in `games/`)
+  nach Ordnern mit einer `jon-spiele.json` — Titel, Icon, Vorschaubild, Exe,
+  Startparameter und optionales Bau-Skript stehen dort drin.
+- **Fehlerbehandlung**: fehlende Spieldatei, sofortiger Absturz, fehlende Build-Tools
+  oder ein blockiertes Browser-Fenster ergeben eine verständliche Meldung in der Karte
+  statt eines Absturzes. Ist ein Spiel noch nicht kompiliert, baut der **Bauen**-Knopf es
+  im Hintergrund.
+- `start-jon.bat` bleibt der einzige Einstiegspunkt und startet mit dem Backend auch den
+  Spiele-Dienst; es meldet beim Start, welche Spiele bereit sind.
+- Installer und ZIP liefern die Spiele mit (`resources/ECHO`), die Website stellt sie mit
+  Screenshots vor.
+
+### Geändert
+- Herausgeber der Downloads ist jetzt **FelWorks** (NSIS-Installer, `Jon.exe` und
+  `jon-backend.exe`).
+- Der Menüpunkt „Blockwelt-Spiel" ist von „Spaß & mehr" in den neuen Abschnitt „Spiele"
+  umgezogen; `/spiel` öffnet sie weiterhin direkt.
+
 ## [3.30.1] — 2026-07-23
 
 ### Behoben — Downloads werden seltener fälschlich als schädlich gemeldet

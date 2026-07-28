@@ -269,6 +269,8 @@ export interface UserSettings {
   autofile_enabled: boolean;
   app_usage_enabled: boolean;
   language: string;
+  microphone_device?: string;
+  microphone_name?: string;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -494,6 +496,77 @@ export function blockweltUrl(): string {
 
 export function privatBrowserUrl(): string {
   return BASE.replace(/\/api$/, "") + "/privat";
+}
+
+export type SpielStatus =
+  | "bereit"
+  | "laeuft"
+  | "baut"
+  | "nicht_gebaut"
+  | "fehler"
+  | "fehlt"
+  | "nicht_verfuegbar";
+
+export interface Spiel {
+  id: string;
+  titel: string;
+  genre: string;
+  icon: string;
+  kurz: string;
+  beschreibung: string;
+  steuerung: string;
+  version: string;
+  herausgeber: string;
+  sammlung: string;
+  typ: "nativ" | "web";
+  pfad: string;
+  status: SpielStatus;
+  hinweis: string;
+  vorschau: boolean;
+  baubar: boolean;
+  gebaut_am: string;
+}
+
+export interface SpielAktion {
+  id: string;
+  typ: "nativ" | "web";
+  status: SpielStatus;
+  pfad?: string;
+  pid?: number;
+  hinweis?: string;
+}
+
+async function spielAktion(id: string, aktion: string): Promise<SpielAktion> {
+  const res = await fetch(`${BASE}/games/${encodeURIComponent(id)}/${aktion}`, { method: "POST" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Das Spiel konnte nicht gestartet werden.");
+  return data;
+}
+
+export async function getSpiele(frisch = false): Promise<Spiel[]> {
+  const res = await fetch(`${BASE}/games${frisch ? "?frisch=true" : ""}`);
+  if (!res.ok) throw new Error("Die Spiele-Liste konnte nicht geladen werden.");
+  return (await res.json()).spiele ?? [];
+}
+
+export async function startSpiel(id: string): Promise<SpielAktion> {
+  return spielAktion(id, "start");
+}
+
+export async function stopSpiel(id: string): Promise<SpielAktion> {
+  return spielAktion(id, "stop");
+}
+
+export async function buildSpiel(id: string): Promise<SpielAktion> {
+  return spielAktion(id, "build");
+}
+
+export function spielVorschauUrl(id: string): string {
+  return `${BASE}/games/${encodeURIComponent(id)}/vorschau`;
+}
+
+export function spielSeitenUrl(pfad: string): string {
+  return BASE.replace(/\/api$/, "") + pfad;
 }
 
 

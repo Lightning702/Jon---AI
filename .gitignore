@@ -18,3 +18,18 @@ release/
 backend/build/
 backend/dist/
 *.spec.bak
+ECHO/saves/
+ECHO/settings.cfg
+ECHO/bin/*.pdb
+ECHO/bin/*.ilk
+/Jon.exe
+/Uninstall Jon.exe
+/LICENSE.electron.txt
+/LICENSES.chromium.html
+/*.pak
+/*.dll
+/*.dat
+/*.bin
+/vk_swiftshader_icd.json
+/locales/
+/resources/

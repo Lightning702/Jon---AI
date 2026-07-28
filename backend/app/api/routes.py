@@ -5,7 +5,7 @@ import json
 import time
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from app.core.config import get_settings
 from app.core.keys import KeyManager
@@ -635,6 +635,55 @@ async def game_command(payload: GameCommandIn) -> dict:
     from app.services.game_service import game_command as run_command
 
     return await run_command(payload.message, payload.x, payload.y, payload.z)
+
+
+@router.get("/games")
+async def games_list(frisch: bool = False) -> dict:
+    from app.services.arcade_service import get_arcade_service
+
+    spiele = await asyncio.to_thread(get_arcade_service().spiele, frisch)
+    return {"spiele": spiele}
+
+
+@router.post("/games/{spiel_id}/start")
+async def games_start(spiel_id: str) -> dict:
+    from app.services.arcade_service import SpielFehler, get_arcade_service
+
+    try:
+        return await asyncio.to_thread(get_arcade_service().starten, spiel_id)
+    except SpielFehler as fehler:
+        raise HTTPException(status_code=400, detail=str(fehler)) from fehler
+
+
+@router.post("/games/{spiel_id}/stop")
+async def games_stop(spiel_id: str) -> dict:
+    from app.services.arcade_service import SpielFehler, get_arcade_service
+
+    try:
+        return await asyncio.to_thread(get_arcade_service().stoppen, spiel_id)
+    except SpielFehler as fehler:
+        raise HTTPException(status_code=400, detail=str(fehler)) from fehler
+
+
+@router.post("/games/{spiel_id}/build")
+async def games_build(spiel_id: str) -> dict:
+    from app.services.arcade_service import SpielFehler, get_arcade_service
+
+    try:
+        return await asyncio.to_thread(get_arcade_service().bauen, spiel_id)
+    except SpielFehler as fehler:
+        raise HTTPException(status_code=400, detail=str(fehler)) from fehler
+
+
+@router.get("/games/{spiel_id}/vorschau")
+async def games_vorschau(spiel_id: str):
+    from app.services.arcade_service import SpielFehler, get_arcade_service
+
+    try:
+        bild = await asyncio.to_thread(get_arcade_service().vorschau, spiel_id)
+    except SpielFehler as fehler:
+        raise HTTPException(status_code=404, detail=str(fehler)) from fehler
+    return FileResponse(bild)
 
 
 @router.get("/journal")

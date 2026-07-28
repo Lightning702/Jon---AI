@@ -67,6 +67,8 @@ DEFAULTS = {
     "autofile_enabled": False,
     "app_usage_enabled": False,
     "language": "de",
+    "microphone_device": "default",
+    "microphone_name": "",
 }
 
 

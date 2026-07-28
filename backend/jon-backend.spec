@@ -29,7 +29,7 @@ version_info = VSVersionInfo(
                 StringTable(
                     "040704B0",
                     [
-                        StringStruct("CompanyName", "Felix / Jon Projekt"),
+                        StringStruct("CompanyName", "FelWorks"),
                         StringStruct(
                             "FileDescription",
                             "Jon Backend - KI-Desktop-Assistent (laeuft nur lokal)",

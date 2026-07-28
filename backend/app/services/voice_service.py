@@ -51,7 +51,7 @@ class VoiceService:
             audio = self._recognizer.record(source)
         try:
             return str(self._recognizer.recognize_google(audio, language=language))
-        except sr.UnknownValueError:
+        except Exception:
             return ""
 
 

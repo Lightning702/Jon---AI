@@ -88,6 +88,24 @@ API sie nicht liefert.
 - `DELETE /api/calendar/{id}` — löschen.
 - `GET /api/calendar/due` — jetzt fällige Termine (für Benachrichtigungen).
 
+## Spiele
+
+- `GET /api/games?frisch=` — alle gefundenen Spiele mit `status` (`bereit`, `laeuft`,
+  `baut`, `nicht_gebaut`, `fehler`, `fehlt`, `nicht_verfuegbar`), `hinweis`, `version`,
+  `herausgeber`, `gebaut_am`, `typ` (`nativ` oder `web`) und `vorschau`. `frisch=true`
+  liest die Manifeste neu ein.
+- `POST /api/games/{id}/start` — startet das Spiel als eigenen Prozess (`typ: "nativ"`)
+  bzw. liefert den Pfad zum Öffnen im Browser-Tab (`typ: "web"`). Fehler kommen als 400
+  mit verständlichem Text.
+- `POST /api/games/{id}/stop` — beendet ein laufendes Spiel.
+- `POST /api/games/{id}/build` — kompiliert das Spiel im Hintergrund (Bau-Skript aus dem
+  Manifest, nur Windows); der Fortschritt steht danach im `status`.
+- `GET /api/games/{id}/vorschau` — Vorschaubild.
+
+Neue Spiele braucht man nicht einzuprogrammieren: Ordner mit `jon-spiele.json` neben Jon
+oder in `games/` legen (`spiele: [{ id, titel, genre, icon, kurz, beschreibung,
+steuerung, exe, args, vorschau, version }]`).
+
 ## Mini Jon
 
 - `GET /api/mini-jon/status` — Status (`{ status: "wach" | "schlaeft", since }`).

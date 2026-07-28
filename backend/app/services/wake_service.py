@@ -33,15 +33,21 @@ class WakeService:
         return THRESHOLDS.get(level, 0.55)
 
     def available(self) -> bool:
-        if self._available is None:
-            try:
-                import openwakeword  # noqa: F401
-                import sounddevice  # noqa: F401
+        try:
+            import openwakeword  # noqa: F401
+            import sounddevice  # noqa: F401
 
-                self._available = True
-            except Exception as exc:
-                self._available = False
-                self._error = f"openWakeWord nicht verfuegbar: {exc}"
+            custom = (
+                sorted(str(p) for p in WAKEWORD_DIR.glob("*.onnx"))
+                if WAKEWORD_DIR.is_dir()
+                else []
+            )
+            self._available = len(custom) > 0
+            if not self._available:
+                self._error = "Keine benutzerdefinierten Wake-Word-Modelle (.onnx) vorhanden"
+        except Exception as exc:
+            self._available = False
+            self._error = f"openWakeWord nicht verfuegbar: {exc}"
         return self._available
 
     def start(self) -> dict:
@@ -54,6 +60,11 @@ class WakeService:
             try:
                 import numpy as np
                 import sounddevice as sd
+                try:
+                    sd._terminate()
+                    sd._initialize()
+                except Exception:
+                    pass
                 from openwakeword.model import Model
 
                 custom = (
@@ -89,7 +100,25 @@ class WakeService:
                     except Exception:
                         pass
 
+                mic_name = str(
+                    get_settings_service().get().get("microphone_name", "")
+                ).strip()
+                device_idx = None
+                if mic_name and mic_name != "default":
+                    try:
+                        devs = sd.query_devices()
+                        for idx, dev in enumerate(devs):
+                            if (
+                                dev.get("max_input_channels", 0) > 0
+                                and mic_name.lower() in dev.get("name", "").lower()
+                            ):
+                                device_idx = idx
+                                break
+                    except Exception:
+                        pass
+
                 self._stream = sd.RawInputStream(
+                    device=device_idx,
                     samplerate=16000,
                     blocksize=1280,
                     channels=1,
