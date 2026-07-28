@@ -12,6 +12,7 @@ frontend/src/**/*.d.ts
 !frontend/src/vite-env.d.ts
 dist-electron/
 release/
+release2/
 .vite/
 *.log
 .DS_Store
