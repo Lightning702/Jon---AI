@@ -431,6 +431,7 @@ export default function CodeAgent({
           tool_mode: "allow",
           mode: "coding",
           workspace,
+          active_file: filePathRef.current,
         },
         {
           onReasoning: (delta) =>
@@ -499,6 +500,7 @@ export default function CodeAgent({
   };
 
   const startGoal = async (goalText: string, clarification = "") => {
+    if (dirtyRef.current) await saveFile();
     setGoal(goalText);
     setGoalSteps([]);
     setGoalQuestion("");
@@ -612,7 +614,8 @@ export default function CodeAgent({
       sys(
         "Befehle: /goal Zielbeschreibung, /model [name], /provider [name], /tools, /status, /clear, /help. " +
           "Mit /goal plant Jon die Schritte zu deinem Ziel, führt sie nacheinander aus und berichtet am Ende. " +
-          "Oder beschreibe Jon einfach direkt, was er im Projekt tun soll."
+          "Sonst sag einfach, was passieren soll: Nennst du eine Datei (z. B. „schreib das in index.html“), schreibt Jon direkt dort hinein, " +
+          "ohne Dateinamen nimmt er die geöffnete Datei. Jon bleibt dabei immer im gewählten Projektordner."
       );
       return true;
     }
@@ -648,7 +651,11 @@ export default function CodeAgent({
       return true;
     }
     if (c === "tools") {
-      sys("Jon nutzt: read_file, write_file, edit_file, search_files, list_dir, run_powershell, run_cmd, git u.v.m.");
+      sys(
+        "Im Code-Modus hat Jon nur Werkzeuge für den Projektordner: read_file, write_file, edit_file, append_file, " +
+          "search_files, list_dir, make_dir, move_path, copy_path, delete_path, zip/unzip, run_powershell, run_cmd (Start immer im Ordner), " +
+          "http_get, download_file, web_search, open_in_vscode. Alles außerhalb des Ordners wird blockiert."
+      );
       return true;
     }
     if (c === "model") {
@@ -694,6 +701,7 @@ export default function CodeAgent({
       sys("Wähle zuerst oben einen Projektordner.");
       return;
     }
+    if (dirtyRef.current) await saveFile();
     const userEntry: ChatEntry = { id: nid(), role: "user", content: text };
     const assistant: ChatEntry = {
       id: nid(),
@@ -715,6 +723,7 @@ export default function CodeAgent({
         tool_mode: "allow",
         mode: "coding",
         workspace,
+        active_file: filePathRef.current,
       },
       {
         onReasoning: (delta) =>
@@ -1092,6 +1101,14 @@ export default function CodeAgent({
             >
               {model}
             </button>
+            {filePath && (
+              <span
+                className="ml-auto flex-none max-w-[45%] truncate text-[11px] px-1.5 py-0.5 rounded bg-gold/10 text-gold/80"
+                title={`Jon kennt diese Datei: ${filePath}`}
+              >
+                📄 {filePath.split(/[\\/]/).pop()}
+              </span>
+            )}
           </div>
           {picker && (
             <div className="absolute top-9 left-0 right-0 z-10 max-h-64 overflow-y-auto glass border-b border-white/10 p-2">
@@ -1203,10 +1220,11 @@ export default function CodeAgent({
           <div ref={chatRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
             {entries.length === 0 && (
               <div className="text-[12px] text-white/40 leading-relaxed">
-                Jon arbeitet hier direkt an deinem Projekt — Dateien lesen, ändern, Tests
-                laufen lassen. Beschreib einfach dein Ziel, oder starte mit
-                <b> /goal Ziel</b> den Ziel-Modus: Jon plant Schritte, führt sie aus und
-                berichtet. Mit <b>/model</b> und <b>/provider</b> wechselst du das Modell.
+                Jon arbeitet ausschließlich im geöffneten Ordner — Dateien lesen, ändern,
+                Tests laufen lassen. Sag <b>„schreib mir in index.html …"</b> und Jon
+                schreibt direkt in diese Datei; ohne Dateinamen nimmt er die gerade
+                geöffnete. Mit <b>/goal Ziel</b> plant er Schritte und arbeitet sie ab, mit
+                <b> /model</b> und <b>/provider</b> wechselst du das Modell.
               </div>
             )}
             {entries.map((e) => (

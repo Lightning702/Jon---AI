@@ -29,6 +29,24 @@ Konkrete Dinge, die du Jon sagen kannst.
 Jon liest zuerst den Skill `web-design`, schreibt eine vollständige `index.html` mit
 eingebettetem CSS und öffnet sie im Browser.
 
+## Präsentationen (Skill powerpoint)
+
+- „Mach mir eine Präsentation über den Klimawandel, 10 Folien."
+- „Bau ein Pitch-Deck für meine App-Idee, Farbwelt teal."
+- „Fass die Präsentation auf dem Desktop zusammen." (nutzt `read_pptx`)
+
+Jon liest den Skill `powerpoint`, plant die Folien, ruft `create_pptx` auf und öffnet die
+fertige `.pptx` — mit Titelfolie, wechselnden Layouts, Kennzahlen und Sprechernotizen.
+
+## Coden im Projektordner (Jon Code)
+
+- „Schreib mir in index.html ein Login-Formular." → landet direkt in dieser Datei
+- „Mach den Header schöner." → gilt für die Datei, die gerade im Editor offen ist
+- „/goal Baue eine Suchfunktion ein und lass die Tests laufen."
+
+Jon arbeitet ausschließlich im geöffneten Ordner; Pfade und Shell-Sprünge nach draußen
+werden blockiert.
+
 ## Automatisierung
 
 - „Öffne WhatsApp und schreib meiner Schwester, dass ich später komme."

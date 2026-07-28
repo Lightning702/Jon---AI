@@ -11,6 +11,31 @@ Jon arbeitet als autonomer Coding-Agent an ganzen Projekten — auf zwei Wegen:
 
 Jon ist dabei **kein eigener Editor**, sondern arbeitet in deinem aktuellen Workspace.
 
+## Nur der geöffnete Ordner
+
+Der gewählte Projektordner ist Jons einziger Arbeitsbereich:
+
+- Alle Datei-Tools sind auf ihn begrenzt, Pfade außerhalb werden abgelehnt.
+- Shell-Befehle starten immer in ihm; ein `cd ..`, `pushd`, `Set-Location C:\…` oder ein
+  anderer Sprung nach draußen wird blockiert, bevor der Befehl läuft.
+- Im Code-Modus bekommt Jon nur die Projekt-Werkzeuge (Dateien, Suche, Shell, Git, Web) —
+  Mail, Musik, Smarthome, Kalender und Co. sind hier gar nicht erst verfügbar.
+
+## Direkt in die richtige Datei
+
+- **Nennst du eine Datei** („schreib mir in index.html ein Login-Formular"), sucht Jon sie
+  im Projektordner, bekommt ihren Inhalt mit und ändert genau diese Datei. Gibt es sie
+  noch nicht, legt er sie an.
+- **Nennst du keine** („mach den Header schöner"), gilt die Datei, die gerade im Editor
+  offen ist — ihr Pfad und Inhalt stehen Jon immer zur Verfügung. Ungespeicherte Änderungen
+  werden vor dem Senden automatisch gespeichert.
+- Jon gibt fertigen Code **nicht** im Chat aus, sondern schreibt ihn in die Datei und
+  fasst in ein bis drei Sätzen zusammen, was er geändert hat. Der Editor lädt danach
+  automatisch neu (Strg+Z macht rückgängig).
+- Für alles Sichtbare (HTML, CSS, React …) gilt Jons Design-Vorgabe: modernes Liquid
+  Glass statt grauem Standard-Formular — außer das Projekt hat schon ein eigenes Design,
+  dann fügt er sich dort ein.
+
 ## Im Terminal
 
 ## Starten

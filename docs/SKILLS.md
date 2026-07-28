@@ -47,6 +47,9 @@ Der Name muss klein geschrieben sein und darf Buchstaben, Ziffern, `-` und `_` e
 | Name | Zweck |
 |------|-------|
 | `web-design` | Moderne, responsive Websites bauen (Tokens, Layout, Checkliste) |
+| `powerpoint` | Präsentationen mit `create_pptx` bauen: Layouts, Farbwelten, Aufbau |
+| `game-design` | Spiele im Browser bauen (2D und 3D) |
+| `browser-automation` | Webseiten fernsteuern, Formulare ausfüllen |
 | `pc-automation` | Zuverlässige Maus-/Tastatur-Steuerung, Rezepte |
 | `research` | Sauber im Web nachschlagen und zusammenfassen |
 

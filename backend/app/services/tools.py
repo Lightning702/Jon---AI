@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -65,6 +66,7 @@ SAFE_TOOLS = {
     "browser_screenshot",
     "calendar_list",
     "calendar_search",
+    "read_pptx",
 }
 
 
@@ -115,6 +117,42 @@ CORE_TOOLS = {
     "get_weather",
     "journal",
     "remember_about_user",
+}
+
+_CHDIR_RE = re.compile(
+    r"(?:^|[;&|`(]|\bthen\b|\bdo\b)\s*"
+    r"(?:cd|chdir|pushd|sl|set-location)\s+"
+    r"(?:/d\s+)?(?:-(?:literal)?path\s+)?"
+    r"(?P<path>\"[^\"]+\"|'[^']+'|[^\s;&|)]+)",
+    re.IGNORECASE,
+)
+
+CODING_TOOLS = {
+    "run_powershell",
+    "run_cmd",
+    "list_dir",
+    "read_file",
+    "write_file",
+    "edit_file",
+    "append_file",
+    "search_files",
+    "make_dir",
+    "move_path",
+    "copy_path",
+    "delete_path",
+    "zip_paths",
+    "unzip",
+    "open_in_vscode",
+    "open_url",
+    "http_get",
+    "download_file",
+    "web_search",
+    "read_pdf",
+    "create_pptx",
+    "read_pptx",
+    "list_skills",
+    "read_skill",
+    "wait",
 }
 
 TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
@@ -410,6 +448,26 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
         ),
     ),
     "pdf": ({"read_pdf"}, ("pdf", "dokument", "seite", "lesen")),
+    "pptx": (
+        {"create_pptx", "read_pptx"},
+        (
+            "powerpoint",
+            "power point",
+            "pptx",
+            "praesentation",
+            "präsentation",
+            "folie",
+            "folien",
+            "slide",
+            "deck",
+            "vortrag",
+            "referat",
+            "praesi",
+            "präsi",
+            "handout",
+            "pitch",
+        ),
+    ),
     "friends": (
         {"list_friends", "send_friend_message", "read_friend_messages"},
         (
@@ -563,6 +621,15 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return f"Fragt das Wetter für {_shorten(args.get('city', ''))} ab."
     if name == "read_pdf":
         return f"Liest die PDF-Datei {_shorten(args.get('path', ''))}."
+    if name == "create_pptx":
+        slides = args.get("slides")
+        anzahl = len(slides) if isinstance(slides, list) else 0
+        return (
+            f"Erstellt die PowerPoint „{_shorten(args.get('title', ''))}“"
+            + (f" mit {anzahl} Folien." if anzahl else ".")
+        )
+    if name == "read_pptx":
+        return f"Liest die PowerPoint {_shorten(args.get('path', ''))}."
     if name == "journal":
         return f"Schreibt in Jons Gedächtnis: {_shorten(args.get('entry', ''))}"
     if name == "read_journal":
@@ -751,6 +818,13 @@ class ToolBox:
             )
         return str(resolved)
 
+    def _guard_command(self, command: str) -> None:
+        for match in _CHDIR_RE.finditer(command):
+            target = match.group("path").strip().strip("\"'")
+            if not target or target == ".":
+                continue
+            self._guard_path(target)
+
     def _guard_args(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
         guarded = dict(args)
         for key in ("path", "source", "destination", "root", "workspace"):
@@ -759,15 +833,19 @@ class ToolBox:
         if isinstance(guarded.get("sources"), list):
             guarded["sources"] = [self._guard_path(s) for s in guarded["sources"]]
         if name == "run_powershell" and guarded.get("command"):
+            self._guard_command(str(guarded["command"]))
             guarded["command"] = (
                 f'Set-Location -LiteralPath "{self._root}"; ' + str(guarded["command"])
             )
         if name == "run_cmd" and guarded.get("command"):
+            self._guard_command(str(guarded["command"]))
             guarded["command"] = f'cd /d "{self._root}" && ' + str(guarded["command"])
         return guarded
 
-    def schema(self, context: str = "") -> list[dict]:
+    def schema(self, context: str = "", coding: bool = False) -> list[dict]:
         tools = self._all_tools()
+        if coding:
+            return [t for t in tools if t["function"]["name"] in CODING_TOOLS]
         allowed = select_tools(context)
         if allowed is None:
             return tools
@@ -1246,6 +1324,41 @@ class ToolBox:
                 "Nutze das, wenn der Nutzer eine PDF analysieren oder "
                 "zusammenfassen will.",
                 {"path": _STR, "max_pages": _INT},
+                ["path"],
+            ),
+            _tool(
+                "create_pptx",
+                "Erstellt eine fertige, designte PowerPoint-Datei (.pptx) mit 16:9-Folien. "
+                "Nutze das IMMER, wenn der Nutzer eine Praesentation, Folien, ein Deck "
+                "oder eine PowerPoint will - schreibe nie selbst XML und starte kein "
+                "Skript dafuer. Lies vorher den Skill 'powerpoint' (read_skill) und folge "
+                "ihm. slides ist eine Liste von Objekten mit layout (title, bullets, "
+                "cards, stat, two_columns, image, quote, timeline, closing) und je nach "
+                "Layout: title, subtitle, text, footer, bullets (Liste), items (Liste aus "
+                "{title, text, bullets}), image (Pfad), notes (Sprechernotizen). theme: "
+                "midnight, forest, coral, terracotta, ocean, charcoal, teal, berry, sage, "
+                "cherry, gold.",
+                {
+                    "title": _STR,
+                    "slides": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": "Die Folien als Objekte",
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "Zieldatei (.pptx). Leer = Jons Praesentationen-Ordner",
+                    },
+                    "theme": _STR,
+                    "subtitle": _STR,
+                },
+                ["title", "slides"],
+            ),
+            _tool(
+                "read_pptx",
+                "Liest Text und Sprechernotizen aus einer vorhandenen PowerPoint-Datei, "
+                "um sie zusammenzufassen oder als Vorlage zu verstehen.",
+                {"path": _STR, "max_slides": _INT},
                 ["path"],
             ),
             _tool(
@@ -2030,6 +2143,33 @@ class ToolBox:
                 return json.dumps(
                     svc.read_pdf(
                         str(args.get("path", "")), int(args.get("max_pages", 40))
+                    ),
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name in ("create_pptx", "read_pptx"):
+            from app.services.pptx_service import get_pptx_service
+
+            pptx = get_pptx_service()
+            try:
+                if name == "read_pptx":
+                    return json.dumps(
+                        pptx.read(
+                            str(args.get("path", "")), int(args.get("max_slides", 60))
+                        ),
+                        ensure_ascii=False,
+                    )
+                slides = args.get("slides")
+                if isinstance(slides, str):
+                    slides = json.loads(slides)
+                return json.dumps(
+                    pptx.create(
+                        title=str(args.get("title", "Praesentation")),
+                        slides=list(slides or []),
+                        path=str(args.get("path", "")) or None,
+                        theme=str(args.get("theme", "")) or "midnight",
+                        subtitle=str(args.get("subtitle", "")),
                     ),
                     ensure_ascii=False,
                 )

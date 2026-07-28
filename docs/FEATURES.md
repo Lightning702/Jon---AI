@@ -23,6 +23,28 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Aufklappbare Tool-Chips: Befehl, Zusammenfassung, Ergebnis
 - Reine Leseaktionen laufen ohne Rückfrage
 
+## Präsentationen
+
+- `create_pptx` baut eine fertige **PowerPoint-Datei (.pptx)** im 16:9-Format
+- Layouts: `title`, `bullets`, `cards`, `stat`, `two_columns`, `image`, `quote`,
+  `timeline`, `closing` — inklusive Sprechernotizen
+- Elf Farbwelten (`midnight`, `ocean`, `forest`, `sage`, `teal`, `coral`, `terracotta`,
+  `berry`, `cherry`, `charcoal`, `gold`), passend zum Thema gewählt
+- Der Skill `powerpoint` gibt Aufbau, Layoutwahl und Checkliste vor
+- `read_pptx` liest vorhandene Präsentationen samt Notizen zum Zusammenfassen
+
+## Jon Code
+
+- Der geöffnete Projektordner ist der einzige Arbeitsbereich: Datei-Tools sind darauf
+  begrenzt, Shell-Befehle starten darin, und ein `cd` nach draußen wird blockiert
+- Im Code-Modus stehen nur Projekt-Werkzeuge bereit (Dateien, Suche, Shell, Git, Web)
+- „Schreib mir in index.html …" → Jon findet die Datei, kennt ihren Inhalt und ändert
+  genau sie; ohne Dateinamen gilt die im Editor geöffnete Datei
+- Fertiger Code landet in der Datei statt im Chat; ungespeicherte Änderungen werden vor
+  dem Senden gespeichert, der Editor lädt danach neu
+- Design-Vorgabe für alles Sichtbare: modernes Liquid Glass (Tokens, Blur, Hell/Dunkel,
+  Fokus-Zustände, reduzierte Bewegung) statt grauem Standard
+
 ## Automatisierung
 
 - Maus bewegen/klicken/scrollen, Tastatur tippen/drücken/Kombinationen

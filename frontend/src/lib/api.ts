@@ -1726,6 +1726,7 @@ export async function streamChat(
     tool_mode?: ToolMode;
     mode?: "chat" | "coding";
     workspace?: string | null;
+    active_file?: string | null;
   },
   handlers: StreamHandlers,
   signal?: AbortSignal

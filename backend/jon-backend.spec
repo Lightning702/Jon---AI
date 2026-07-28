@@ -68,6 +68,7 @@ for pkg in (
     "openai",
     "google.generativeai",
     "paho",
+    "pptx",
 ):
     try:
         d, b, h = collect_all(pkg)

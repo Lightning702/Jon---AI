@@ -130,7 +130,13 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   Editor + Jon-Agent rechts, mit `/model`- und `/provider`-Wechsel) und als **`jon`-Befehl
   im VS-Code-Terminal**. Jon arbeitet an ganzen Projekten wie ein moderner KI-Coding-Agent
   und bleibt dabei technisch auf den gewählten Projektordner begrenzt — Zugriffe außerhalb
-  werden blockiert (siehe [docs/CLI.md](docs/CLI.md))
+  und Sprünge per `cd` werden blockiert. Nennst du eine Datei („schreib mir in index.html
+  ein Login-Formular"), landet der Code direkt dort; ohne Dateinamen gilt die geöffnete
+  Datei. Oberflächen baut Jon von selbst modern (Liquid Glass) statt grau
+  (siehe [docs/CLI.md](docs/CLI.md))
+- **📊 Präsentationen** — „Mach mir eine Präsentation über den Klimawandel": Jon baut eine
+  fertige **.pptx** mit Titelfolie, Karten, Kennzahlen, Zeitstrahl, Zitaten und
+  Sprechernotizen in elf Farbwelten und öffnet sie
 - **Multi-Provider-Chat** mit einheitlicher Schnittstelle: NVIDIA, OpenAI, Anthropic,
   Gemini, **Ollama & LM Studio (lokal, gratis)**, OpenRouter, Groq, Together AI, xAI,
   DeepSeek, GLM, Qwen, Mistral

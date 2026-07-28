@@ -54,6 +54,19 @@ export const TOOL_LABELS: Record<string, string> = {
   spotify_now_playing: "Läuft gerade",
   amazon_play: "Amazon Music",
   amazon_now_playing: "Läuft gerade",
+  read_pdf: "PDF lesen",
+  create_pptx: "PowerPoint erstellen",
+  read_pptx: "PowerPoint lesen",
+  edit_file: "Datei ändern",
+  append_file: "Datei ergänzen",
+  search_files: "Dateien suchen",
+  make_dir: "Ordner anlegen",
+  copy_path: "Kopieren",
+  zip_paths: "Zippen",
+  unzip: "Entpacken",
+  web_search: "Web-Suche",
+  http_get: "Seite abrufen",
+  download_file: "Download",
 };
 
 export function toolLabel(name: string): string {

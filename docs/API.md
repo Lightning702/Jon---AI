@@ -27,6 +27,10 @@ Basis-URL: `http://127.0.0.1:8756`. Interaktive Docs: `/docs`.
 }
 ```
 
+Für Jon Code zusätzlich `"mode": "coding"`, `"workspace": "C:/Projekt"` und optional
+`"active_file": "C:/Projekt/index.html"`. Der Workspace begrenzt alle Tools auf diesen
+Ordner; `active_file` gibt Jon Pfad und Inhalt der gerade geöffneten Datei mit.
+
 SSE-Events: `meta`, `content`, `reasoning`, `tool` (mit `args`, `summary`, optional
 `approval_id`), `error`, `done`.
 
@@ -176,11 +180,21 @@ Jon ruft diese Tools im Chat auf. In Klammern die Pflichtargumente.
 - `calendar_list(start?, days?)`, `calendar_search(query)`
 - `calendar_update(id, ...)`, `calendar_delete(id)`
 
+### Dokumente & Präsentationen
+- `read_pdf(path, max_pages?)`
+- `create_pptx(title, slides, path?, theme?, subtitle?)` — baut eine fertige `.pptx`.
+  `slides` ist eine Liste aus `{layout, title, subtitle, text, bullets, items, image,
+  notes}`; `layout` ist `title`, `bullets`, `cards`, `stat`, `two_columns`, `image`,
+  `quote`, `timeline` oder `closing`; `theme` eines von `midnight`, `ocean`, `forest`,
+  `sage`, `teal`, `coral`, `terracotta`, `berry`, `cherry`, `charcoal`, `gold`
+- `read_pptx(path, max_slides?)` — Text und Sprechernotizen je Folie
+
 ### Gedächtnis & Skills
 - `remember(content)`, `recall(query?)`, `forget(query)`
 - `list_skills()`, `read_skill(name)`, `write_skill(name, content)`
 
 **Freigabe:** Ohne Rückfrage laufen nur reine Abfragen wie `get_screen_info`,
 `list_windows`, `wait`, `recall`, `system_info`, `list_processes`, `list_skills`,
-`read_skill`, `browser_read`, `browser_screenshot`, `calendar_list`, `calendar_search`.
+`read_skill`, `read_pptx`, `browser_read`, `browser_screenshot`, `calendar_list`,
+`calendar_search`.
 Alle anderen fragen im Modus „Zuerst fragen" um Erlaubnis.

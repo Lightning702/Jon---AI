@@ -25,6 +25,7 @@ class ChatIn(BaseModel):
     persona: str = Field(default="papa", pattern="^(papa|junior)$")
     slot: str = Field(default="", pattern="^(jon|emil)?$")
     workspace: str | None = None
+    active_file: str | None = None
     source: str = ""
 
 

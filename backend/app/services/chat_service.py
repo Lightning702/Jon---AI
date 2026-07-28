@@ -12,7 +12,13 @@ from app.providers.base import ChatMessage, ChatRequest, StreamChunk
 from app.providers.registry import get_registry
 from app.schemas import ChatIn
 from app.services.approval_service import ToolDeniedError, get_approval_service
-from app.services.coding import CODING_PROMPT, workspace_summary
+from app.services.coding import (
+    CODING_PROMPT,
+    DESIGN_PROMPT,
+    active_file_context,
+    mentioned_files_context,
+    workspace_summary,
+)
 from app.services.memory_service import MemoryService
 from app.services.persona_service import get_persona_service
 from app.services.settings_service import get_settings_service
@@ -308,14 +314,21 @@ class ChatService:
         coding: bool = False,
         workspace: str | None = None,
         persona: str = "papa",
+        active_file: str | None = None,
+        user_text: str = "",
     ) -> str:
         if coding:
             from pathlib import Path
 
-            base = CODING_PROMPT
-            parts = [base]
+            parts = [CODING_PROMPT, DESIGN_PROMPT]
             if workspace:
                 parts.append(workspace_summary(Path(workspace)))
+            active = active_file_context(workspace, active_file)
+            if active:
+                parts.append(active)
+            mentioned = mentioned_files_context(workspace, user_text, active_file)
+            if mentioned:
+                parts.append(mentioned)
         else:
             settings_service = get_settings_service()
             custom, mode = settings_service.custom_prompt()
@@ -597,6 +610,10 @@ class ChatService:
         request_messages = [
             ChatMessage(role=m.role, content=m.content) for m in payload.messages
         ]
+        latest_user = next(
+            (m.content for m in reversed(payload.messages) if m.role == "user"),
+            "",
+        )
         if not any(m.role == "system" for m in request_messages):
             request_messages.insert(
                 0,
@@ -606,19 +623,14 @@ class ChatService:
                         coding=payload.mode == "coding",
                         workspace=payload.workspace,
                         persona=payload.persona,
+                        active_file=payload.active_file,
+                        user_text=latest_user,
                     ),
                 ),
             )
 
         if payload.mode != "coding":
-            last_user = next(
-                (
-                    m.content
-                    for m in reversed(payload.messages)
-                    if m.role == "user"
-                ),
-                "",
-            )
+            last_user = latest_user
             if wants_webcam(last_user):
                 from app.services.webcam_service import get_webcam_service
 
@@ -663,7 +675,8 @@ class ChatService:
         tool_context = " ".join(
             m.content for m in payload.messages if m.role == "user"
         )[-1500:]
-        tools = toolbox.schema(tool_context) if use_tools else []
+        coding_mode = payload.mode == "coding"
+        tools = toolbox.schema(tool_context, coding=coding_mode) if use_tools else []
         request = ChatRequest(
             messages=request_messages,
             model=model,

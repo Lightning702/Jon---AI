@@ -2,6 +2,46 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.32.0] — 2026-07-28
+
+### Neu — Jon macht PowerPoints
+- **`create_pptx`** baut eine fertige `.pptx` (16:9) mit neun Layouts: `title`,
+  `bullets`, `cards`, `stat`, `two_columns`, `image`, `quote`, `timeline`, `closing` —
+  je mit Sprechernotizen, Karten, nummerierten Kreisen, großen Kennzahlen und
+  automatischer Schriftgrößen-Anpassung bei langen Titeln.
+- **Elf Farbwelten** (`midnight`, `ocean`, `forest`, `sage`, `teal`, `coral`,
+  `terracotta`, `berry`, `cherry`, `charcoal`, `gold`) mit abgestimmten Werten für
+  Fläche, Text, Akzent und gedämpften Text.
+- **Neuer Skill `powerpoint`**: Aufbau einer Präsentation, Layout-Tabelle, Themenwahl,
+  Regeln (max. 5 Punkte pro Folie, Layouts abwechseln, dunkle Anker-Folien) und
+  Checkliste. Jon liest ihn vor dem Bauen und hält sich daran.
+- **`read_pptx`** liest vorhandene Präsentationen samt Notizen — zum Zusammenfassen oder
+  Weiterbauen.
+- Fehlt die Titelfolie, wird sie ergänzt; fehlt ein Bild, bleibt die Folie heil.
+  Abhängigkeit `python-pptx` liegt der Installer-Version bei.
+
+### Geändert — Jon Code bleibt im Ordner und schreibt direkt in die Datei
+- **Nur der geöffnete Projektordner**: zusätzlich zur bestehenden Pfad-Sperre werden jetzt
+  auch Shell-Ausbrüche (`cd ..`, `pushd`, `Set-Location C:\…`, `cd ~`) blockiert, bevor
+  der Befehl läuft. Im Code-Modus bekommt Jon außerdem nur noch die 23 Projekt-Werkzeuge
+  (Dateien, Suche, Shell, Git, Web) — Mail, Musik, Smarthome, Kalender & Co. fallen weg.
+- **Genannte Dateien**: „schreib mir in index.html …" — Jon sucht die Datei im Projekt,
+  bekommt Pfad und Inhalt in den Kontext und ändert genau sie. Mehrere Treffer werden
+  benannt, fehlende Dateien legt er an.
+- **Geöffnete Datei als Kontext**: Pfad und Inhalt der im Editor offenen Datei gehen mit;
+  „hier", „da" und „in der Datei" beziehen sich darauf. Ungespeicherte Änderungen werden
+  vor dem Senden automatisch gespeichert, ein Chip im Chat zeigt die aktive Datei.
+- **Projektbaum statt Ordnerliste**: der System-Prompt enthält jetzt zwei Ebenen des
+  Projekts (ohne `node_modules`, `dist`, `.venv` …), damit Jon Dateien direkt findet.
+- **Bessere Coding-Prompts**: Code kommt in die Datei statt in den Chat, keine Rückfrage
+  vor dem Schreiben, keine Kommentare im Code (außer gewünscht), Stil und Konventionen des
+  Projekts werden übernommen.
+- **Design-Vorgabe (Liquid Glass)**: für alles Sichtbare gibt Jon sich jetzt Mühe —
+  halbtransparente Flächen mit `backdrop-filter`, Tiefe im Hintergrund, Design-Tokens,
+  fluide Typografie, Hover-/Fokus-Zustände, Hell und Dunkel, Kontrast ≥ 4.5:1,
+  `prefers-reduced-motion`, keine externen CDNs. Hat das Projekt schon ein Design, fügt er
+  sich dort ein.
+
 ## [3.31.0] — 2026-07-28
 
 ### Neu — Spiele in Jon (FelWorks Game Collection)
