@@ -14,7 +14,7 @@ RAW_CONFIG = (
     "backend/app/core/config.py"
 )
 RELEASES_API = "https://api.github.com/repos/Lightning702/Jon---AI/releases/latest"
-DOWNLOAD = "https://getjon.netlify.app"
+DOWNLOAD = "https://getjon.info"
 INSTALLER_NAME = "Jon-Setup.exe"
 UPDATE_DIR = DATA_DIR / "updates"
 CACHE_TTL = 1800.0

@@ -1,8 +1,25 @@
-# Jon — KI-Desktop-Assistent
+<div align="center">
 
 ![Jon und Mini Jon](docs/img/jon-banner.png)
 
-🇬🇧 **English version: [README.en.md](README.en.md)**
+# Jon — KI-Desktop-Assistent
+
+**Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
+
+[![Version](https://img.shields.io/badge/Version-3.35.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
+[![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
+[![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
+
+[![Jon-Setup.exe herunterladen](https://img.shields.io/badge/⬇%20Jon--Setup.exe-Installer-d4af37?style=for-the-badge&labelColor=0b0b0f)](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe)
+[![Portable ZIP](https://img.shields.io/badge/📦%20Jon--Windows.zip-portabel-9a7b1f?style=for-the-badge&labelColor=0b0b0f)](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Windows.zip)
+[![Website](https://img.shields.io/badge/🌐%20getjon.info-Website-3a2f8f?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
+
+🇬🇧 [English version](README.en.md) · 📖 [Changelog](CHANGELOG.md) · 🕹️ [Spiele](#spiele--online-koop) · 🛠️ [Setup](#setup)
+
+</div>
+
+---
 
 Jon ist ein moderner KI-Desktop-Assistent für Windows mit Multi-Provider-Unterstützung,
 Streaming, Langzeit-Persistenz, echter Systemsteuerung, Maus-/Tastatur-Automatisierung,
@@ -11,30 +28,64 @@ Backend in Python/FastAPI, Frontend in Electron + React + TypeScript im
 Black/Gold-Glassmorphism-Design. (Claude hat es nur veröffentlicht, weil ich nicht wusste
 wie das geht. Er hat auch bisschen geholfen.)
 
-**Website & Download: [https://getjon.netlify.app](https://getjon.netlify.app)**
+<div align="center">
+
+### 🎬 Jon in zwei Minuten installieren
+
+[![Jon installieren — Video ansehen](https://img.youtube.com/vi/tjVsXAmi750/sddefault.jpg)](https://www.youtube.com/watch?v=tjVsXAmi750)
+
+*Klick aufs Bild — das Video liegt auch auf [getjon.info](https://getjon.info).*
+
+</div>
+
+---
+
+## 🕹️ Drei Spiele. Zwei Spieler. Ein Freundschaftscode.
+
+Die **FelWorks Game Collection** steckt direkt in Jon — und seit v3.34 spielt ihr alles
+zu zweit über einen 6-stelligen Code.
+
+<table>
+<tr>
+<td width="50%" align="center">
+<img src="website/spiele/echo.jpg" alt="ECHO — Psychological Horror" width="100%">
+<br><b>ECHO</b><br><sub>Psychological Horror · 4 Etagen · 464 Räume · fünf Enden</sub>
+</td>
+<td width="50%" align="center">
+<img src="website/spiele/aetheria.jpg" alt="AETHERIA — Open-World-RPG" width="100%">
+<br><b>AETHERIA</b><br><sub>Fantasy-Open-World · Dörfer, Aufträge, Weltkarte</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" align="center">
+<img src="website/spiele/block.png" alt="Blockwelt — Voxel-Sandbox" width="100%">
+<br><b>Blockwelt</b><br><sub>Voxel-Sandbox, in der Jon für dich baut</sub>
+</td>
+<td width="50%" align="center">
+<img src="docs/img/koop-blockwelt.png" alt="Online-Koop in der Blockwelt" width="100%">
+<br><b>Online-Koop</b><br><sub>Gemeinsame Welt, Ping-Anzeige, Team-Chat</sub>
+</td>
+</tr>
+</table>
 
 ---
 
 ## Inhalt
 
-- [Jon herunterladen](#jon-herunterladen)
-- [Funktionen](#funktionen)
-- [Was Jon steuern kann (Tools)](#was-jon-steuern-kann-tools)
-- [Skills](#skills)
-- [Konten & Modelle](#konten--modelle)
-- [Nutzung /usage](#nutzung-usage)
-- [Handy-App](#handy-app)
-- [Spiele & Online-Koop](#spiele--online-koop)
-- [Setup](#setup)
-- [Dokumentation](#dokumentation)
-- [Sicherheit](#sicherheit)
+| Loslegen | Können | Technik |
+| --- | --- | --- |
+| [⬇ Jon herunterladen](#jon-herunterladen) | [✨ Funktionen](#funktionen) | [🛠️ Setup](#setup) |
+| [🚀 Installation mit der .exe](#weg-a--installation-mit-jon-setupexe) | [🔧 Tools](#was-jon-steuern-kann-tools) | [💻 Aus dem Quellcode](#weg-b--aus-dem-quellcode) |
+| [🔑 Konten & Modelle](#konten--modelle) | [🧩 Skills](#skills) | [📚 Dokumentation](#dokumentation) |
+| [📱 Handy-App](#handy-app) | [🕹️ Spiele & Online-Koop](#spiele--online-koop) | [🔒 Sicherheit](#sicherheit) |
+| [🔗 Verbindungen](#verbindungen-einrichten) | [💬 Freunde-Chat](#freunde-chat-) | [💾 Backup & Updates](#backup--updates) |
 
 ---
 
 ## Jon herunterladen
 
 Der einfachste Weg: die fertigen Downloads von der Website
-**[https://getjon.netlify.app](https://getjon.netlify.app)** (oder direkt aus den
+**[https://getjon.info](https://getjon.info)** (oder direkt aus den
 [GitHub-Releases](https://github.com/Lightning702/Jon---AI/releases/latest)):
 
 - **Jon-Setup.exe** — Installer mit Startmenü- und Desktop-Verknüpfung
@@ -60,7 +111,7 @@ git clone https://github.com/Lightning702/Jon---AI.git
 neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
 
 **Ohne Installation:** Die Handy-App läuft direkt im Browser unter
-[https://getjon.netlify.app/app](https://getjon.netlify.app/app/).
+[https://getjon.info/app](https://getjon.info/app/).
 
 ---
 
@@ -366,7 +417,7 @@ Felder werden nicht erfunden.
 
 ## Handy-App
 
-Die PWA unter [getjon.netlify.app/app](https://getjon.netlify.app/app/) läuft ohne
+Die PWA unter [getjon.info/app](https://getjon.info/app/) läuft ohne
 Installation und speichert deinen Key nur lokal! Sie kann:
 
 - mit jedem Provider chatten (eigener API-Key)
@@ -484,7 +535,101 @@ nur auf deinem Rechner. `JON_LAN` brauchst du dafür **nicht** mehr.
 
 ## Setup
 
-### 1. Umgebungsvariablen
+Es gibt zwei Wege. **Fast alle wollen Weg A** — da brauchst du weder Python noch Node.js
+noch eine `.env`.
+
+| | Weg A: Jon-Setup.exe | Weg B: Quellcode |
+| --- | --- | --- |
+| Für wen | einfach benutzen | mitentwickeln, Pi, Linux |
+| Vorbereitung | keine | Python 3.12+, Node.js 20+ |
+| API-Keys | in der App unter **Konten** | in der App oder in der `.env` |
+| Updates | Knopf in der App | `/update` (`git pull`) |
+| Dauer | ~2 Minuten | ~10 Minuten |
+
+---
+
+### Weg A — Installation mit `Jon-Setup.exe`
+
+**1. Herunterladen**
+
+[⬇ Jon-Setup.exe](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe)
+(~280 MB) oder über [getjon.info](https://getjon.info). Wer nichts installieren will,
+nimmt [Jon-Windows.zip](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Windows.zip):
+entpacken, `Jon.exe` starten, fertig — Schritt 2 und 3 entfallen dann.
+
+**2. Windows-Warnung wegklicken**
+
+Beim ersten Start meldet sich SmartScreen mit *„Der Computer wurde durch Windows
+geschützt"*. Das liegt **nicht** an einem Virus, sondern daran, dass die Datei nicht mit
+einem kostenpflichtigen Zertifikat signiert ist. Klicke auf **Weitere Informationen** →
+**Trotzdem ausführen**. Der komplette Quellcode liegt hier im Repo, du kannst Jon
+jederzeit selbst bauen.
+
+**3. Installieren**
+
+Der Installer fragt nach dem Zielordner (Vorgabe passt), legt Startmenü- und
+Desktop-Verknüpfung an und startet Jon danach automatisch. Installiert wird **für den
+aktuellen Benutzer**, also ohne Administratorrechte.
+
+Mit dabei sind: die Jon-App, **Mini Jon** (die Desktop-Figur), das komplette **Backend**
+(startet automatisch mit) und die **FelWorks Game Collection**. Nichts davon musst du
+separat einrichten.
+
+**4. Einen API-Schlüssel eintragen**
+
+Ohne Schlüssel kann Jon nicht denken. In der App: **Personen-Symbol oben rechts →
+Konten** → Anbieter wählen → Schlüssel einfügen → speichern. Jon liest danach automatisch
+alle verfügbaren Modelle aus.
+
+Ein kostenloser Anfang: [build.nvidia.com](https://build.nvidia.com) → Konto anlegen →
+API-Key erzeugen (beginnt mit `nvapi-`). Die Schlüssel landen ausschließlich lokal in
+`accounts.json`, niemals im Repo oder in der Cloud.
+
+> **Tipp:** Jon und Mini Jon nutzen getrennte Modelle. Mit **einem** Schlüssel teilen sie
+> ihn sich. Trägst du **zwei durch Komma getrennt** ein, gehört der erste Mini Jon und
+> Telegram, der zweite Jon — dann bremsen sie sich gegenseitig nicht aus.
+
+**5. Loslegen**
+
+- `Strg+Alt+J` — Jon-Fenster zeigen/verstecken
+- `Strg+Alt+Leertaste` — Schnellfrage überall auf dem Bildschirm
+- `Strg+Alt+K` — Mini Jon ein/aus
+- **Werkzeuge → Spiele** oder `/spiele` — ECHO, AETHERIA, Blockwelt
+
+**Wo liegen meine Daten?**
+Alles unter `%LOCALAPPDATA%\Jon\data` — Chats, Gedächtnis, Konten, Wissensbasis,
+Spielstände. Ein Update fasst diesen Ordner nicht an. Das Zahnrad-Menü exportiert alles
+als ZIP (ohne Schlüssel), zum Umziehen auf einen anderen PC.
+
+**Beenden und Hintergrund**
+Das **X** beendet Jon vollständig, inklusive Backend. Soll er im Hintergrund bleiben
+(Schnellfrage und Hotkeys weiter aktiv), nimm den **⌄**-Knopf daneben oder im
+Infobereich → *Im Hintergrund weiterlaufen*.
+
+**Aktualisieren**
+`/update` im Chat oder der Update-Knopf: Jon lädt die neue Version selbst herunter,
+prüft sie, fragt einmal nach, schließt sich und installiert. Danach startet er von
+allein wieder — deine Daten bleiben, wie sie sind.
+
+**Deinstallieren**
+Windows-Einstellungen → *Apps* → **Jon** → Deinstallieren. Der Datenordner bleibt
+absichtlich stehen; lösche `%LOCALAPPDATA%\Jon` von Hand, wenn du wirklich alles los
+sein willst.
+
+**Wenn etwas klemmt**
+
+| Symptom | Ursache und Abhilfe |
+| --- | --- |
+| „Backend nicht erreichbar" | Das Backend braucht beim allerersten Start ein paar Sekunden. Bleibt es dabei: Jon einmal ganz beenden (X) und neu starten |
+| Port 8756 belegt | Ein altes Backend läuft noch. Jon räumt das beim Beenden selbst auf; sonst im Task-Manager `jon-backend.exe` beenden |
+| Freund kann dem Koop nicht beitreten | Er braucht die **Einladung mit Adresse** (`AB39KD@192.168.1.20:8760`), nicht nur den Code. Über das Internet zusätzlich Portfreigabe für 8760 und 8759 |
+| SmartScreen erscheint erneut | Nach jedem Update einmal normal, siehe Schritt 2 |
+
+---
+
+### Weg B — Aus dem Quellcode
+
+#### 1. Umgebungsvariablen
 
 ```bash
 cp .env.example .env
@@ -508,7 +653,7 @@ der erste gehört Mini Jon und Telegram, der zweite Jon:
 NVIDIA_API_KEY=erster-key-fuer-mini-jon-und-telegram, zweiter-key-fuer-jon
 ```
 
-### 2. Backend
+#### 2. Backend
 
 ```bash
 cd backend
@@ -518,7 +663,7 @@ python -m app.main
 
 Backend: `http://127.0.0.1:8756` — API-Docs: `http://127.0.0.1:8756/docs`.
 
-### 3. Frontend
+#### 3. Frontend
 
 ```bash
 cd frontend

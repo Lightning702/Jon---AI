@@ -88,7 +88,7 @@ async def perform_update():
 
     if not git_dir.exists():
         yield "Hinweis: Keine Git-Umgebung gefunden.\n"
-        yield "Bitte lade die neueste Version manuell von der Website herunter: https://getjon.netlify.app\n"
+        yield "Bitte lade die neueste Version manuell von der Website herunter: https://getjon.info\n"
         return
 
     yield "Schritt 2: Erstelle Backup...\n"

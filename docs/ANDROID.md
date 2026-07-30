@@ -1,7 +1,7 @@
 # Handy-App (Android/PWA)
 
 Die Handy-App liegt unter `website/app/` und läuft als installierbare PWA im Browser:
-[getjon.netlify.app/app](https://getjon.netlify.app/app/). Sie braucht kein Backend — sie
+[getjon.info/app](https://getjon.info/app/). Sie braucht kein Backend — sie
 spricht die Provider-APIs direkt an. Der API-Key bleibt ausschließlich lokal
 (`localStorage`).
 
