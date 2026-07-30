@@ -90,7 +90,8 @@ Alle nennenswerten Änderungen an Jon.
 - Website: neuer Abschnitt **„Zusammen spielen"** mit Ablauf, Lobby-Vorschau und sechs
   Kacheln zur Technik, Koop-Link in der Navigation, aktualisierte Spielkarten und das
   neue Blockwelt-Icon.
-- 156 Tests grün (27 neue in `backend/tests/test_multiplayer.py`).
+- 157 Tests grün (28 neue in `backend/tests/test_multiplayer.py`), darunter ein Test, der
+  die Multiplayer-Routen gegen die echte `create_app()` prüft.
 
 ## [3.32.0] — 2026-07-28
 

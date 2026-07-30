@@ -477,6 +477,51 @@ def test_abgelehnte_aktion_meldet_koordinaten(service):
     asyncio.run(run())
 
 
+def test_rest_api_ist_in_der_echten_app_verdrahtet(monkeypatch, tmp_path):
+    import httpx
+
+    monkeypatch.setattr(mp, "MP_DIR", tmp_path / "multiplayer")
+    monkeypatch.setattr(mp, "_service", None, raising=False)
+
+    from app.main import create_app
+
+    app = create_app()
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            info = await client.get("/api/mp/info")
+            assert info.status_code == 200
+            assert info.json()["tcp_port"] == 8759
+            assert "blockwelt" in info.json()["games"]
+
+            created = await client.post(
+                "/api/mp/create", json={"game": "blockwelt", "name": "Felix"}
+            )
+            assert created.status_code == 200
+            code = created.json()["code"]
+            assert len(code) == mp.CODE_LENGTH
+            assert created.json()["token"]
+
+            joined = await client.post("/api/mp/join", json={"code": code, "name": "Jonas"})
+            assert joined.status_code == 200
+
+            lobby = await client.get(f"/api/mp/lobby/{code}")
+            assert lobby.status_code == 200
+            assert len(lobby.json()["players"]) == 2
+
+            assert (await client.get("/api/mp/lobby/ZZZZZZ")).status_code == 404
+            assert (
+                await client.post("/api/mp/create", json={"game": "quake", "name": "X"})
+            ).status_code == 400
+
+            status = await client.get("/api/mp/status")
+            assert status.status_code == 200
+            assert status.json()["lobbies"] >= 1
+
+    asyncio.run(run())
+
+
 def test_spielprofile_grenzen_sich_ab():
     assert set(mp.GAMES) == {"blockwelt", "aetheria", "echo"}
     assert mp.GAMES["blockwelt"].edit_range >= 8.0
