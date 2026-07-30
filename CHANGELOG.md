@@ -2,6 +2,96 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.33.0] — 2026-07-30
+
+### Neu — Online-Multiplayer für alle drei Spiele
+- **Serverautoritativer Koop-Server im Jon-Backend**
+  (`backend/app/services/multiplayer_service.py`): Lobbys mit 6-stelligem
+  Freundschaftscode (Alphabet ohne `O/0/I/1`), 20-Hz-Tick, delta-komprimierte
+  Snapshots, zuverlässige Event-Liste mit Cursor-Ack, Heartbeat/Ping, Paketverlust-
+  Schätzung, Reconnect-Fenster von 150 s und Persistenz nach
+  `DATA_DIR/multiplayer/<CODE>.json` — eine Sitzung übersteht einen Backend-Neustart.
+- **Zwei Transporte, ein Protokoll**: WebSocket `/api/mp/ws` für die Blockwelt im
+  Browser, roher TCP-Port **8759** (4-Byte-Längenpräfix + JSON) für ECHO und AETHERIA.
+  REST daneben: `/api/mp/create`, `/api/mp/join`, `/api/mp/lobby/{code}`,
+  `/api/mp/status`, `/api/mp/info`.
+- **Server hat die Autorität**: Bewegung wird gegen ein Spielprofil geprüft
+  (Höchstgeschwindigkeit, Fallgeschwindigkeit, Weltgrenzen) — unmögliche Sprünge werden
+  mit `correct` zurückgesetzt, nach 40 Verstößen fliegt der Client. Blöcke, Türen,
+  Hebel, Schalter, Rätsel, Items, NPCs, Quests, Lichter, Timer und Checkpoints landen
+  nur über geprüfte `act`-Nachrichten im Weltzustand (Reichweite, Whitelist,
+  Token-Bucket-Ratenbegrenzung). Inventare bleiben privat, geteilt wird nur der
+  Weltzustand.
+- **Gleichzeitiger Start**: Host drückt Start → alle laden → jeder meldet
+  `scene ready` → der Server gibt `spawn` frei. Niemand läuft allein los.
+  Szenenwechsel und Wiedereinstieg laufen über dieselbe Barriere; wer mitten im Spiel
+  wieder reinkommt, spawnt sofort an seiner letzten Position.
+
+### Neu — Blockwelt: Koop im Browser
+- **Online-Menü** (Knopf im Startbildschirm oder `O`): Spiel erstellen, Spiel
+  beitreten, Lobby mit Code, Spielerliste, Ready, Start, Ping, freie Plätze.
+  Beitreten akzeptiert `AB39KD` und `AB39KD@host:8756`.
+- **Eigenes 3D-Modell pro Spieler**: acht Paletten × vier Kopfbedeckungen, Gesicht als
+  Pixel-Textur, Namensschild mit Ping-Punkt. Animationen für Idle, Laufen, Rennen,
+  Ducken, Springen, Fallen, Schwimmen, Abbauen und Platzieren — interpoliert mit 110 ms
+  Puffer, Extrapolation bis 280 ms, kein Teleportieren.
+- **Gemeinsame Welt**: Blockänderungen, TNT-Zündung, Explosionen, Enderperlen,
+  Team-Chat (`Z`) und Jons Bauaufträge werden synchronisiert. Jon ist
+  host-autoritativ — Gäste schicken ihm ihre Wünsche, er baut, alle sehen es.
+  Der Weltgenerator ist jetzt seedbar, beide Spieler bekommen dieselbe Landschaft.
+- **Neu: Ducken mit Strg** (langsamer, tiefere Kameraposition) — auch synchronisiert.
+- **Eigenes Icon**, im Code gezeichnet: isometrischer Grasblock mit Jons Goldkristall.
+  Als Favicon und Apple-Touch-Icon in `blockwelt.html` (Canvas) und als PNG über
+  `scripts/blockwelt_icon.py` für Website und PWA.
+
+### Neu — ECHO & AETHERIA: Koop im Spiel
+- **Netzwerk-Schicht in C++** unter `ECHO/src/net/`: eigener JSON-Parser/Writer
+  (`Json.*`), WinSock-Client mit eigenem Thread und Längenpräfix-Frames
+  (`NetClient.*`), Sitzungslogik mit Snapshot-Interpolation, Weltzustand, Reconnect
+  und Backoff (`CoopSession.*`) sowie die Lobby-Oberfläche (`CoopUI.*`).
+  `build.bat` linkt jetzt `ws2_32.lib`.
+- **Menüpunkt „ONLINE KOOP"** in ECHO (Haupt- und Pausemenü) und
+  **„ONLINE SPIELEN"** in AETHERIA: Code erstellen oder eintippen, Namenswahl,
+  Spielerliste mit Ping, Bereit/Start, Lobby schließen. Im Spiel zeigt eine Ecke
+  oben rechts alle Mitspieler mit Ping; bei Abbruch blinkt ein Reconnect-Banner.
+- **Mitspieler sichtbar**: Remote-Spieler nutzen das vorhandene Menschen-Rig mit
+  eigenem Typ pro Slot, Pose je Animationszustand und Blick zum Zuhörer.
+- **Synchronisiert**: ECHO überträgt Türen, Lichtschalter, Items und Checkpoints;
+  AETHERIA Ernten, Dorfbesuche, Quests, Kampftreffer und den Tag-Nacht-Zyklus
+  (Host gibt die Zeit vor). Fortschritt wird alle 45–60 s als Checkpoint gesichert.
+- **Diagnose**: `bin/ECHO.exe -nettest 127.0.0.1:8759 [CODE]` verbindet sich headless,
+  legt eine Lobby an bzw. tritt bei und schreibt das Ergebnis in `echo.log`.
+
+### Neu — ECHO: Jumpscares mit eigenen Modellen
+- **Neues Kreaturen-Rig** (`ECHO/src/world/Horror.*`): 19 Teile, überlanger Schädel mit
+  tiefen Augenhöhlen, aufgerissener Kiefer mit Zähnen, freiliegender Rippenbogen,
+  überlange Arme mit Krallenhänden, vier Archetypen (`GAUNT`, `CRAWLER`, `BANDAGED`,
+  `LONGARM`) und Animationsmodi Starren, Zucken, Zuschlagen, Kriechen, Schreien, Hängen.
+- **Garantiert mindestens ein Schreck pro Flur** (`ECHO/src/ai/Jumpscare.cpp`): jeder
+  Korridor wird genau einmal benutzt, dann gemerkt. Sechs Auslöser — Rennen aus der
+  Tiefe des Flurs, Auftauchen im Rücken beim Umdrehen, Herausbrechen aus einer Seitentür,
+  Fall von der Decke, Kriechen über den Boden, Lauern an der Wandkante.
+- **Und es wird laut**: fünf neue synthetisierte Klänge (`SFX_SCREAM`, `SFX_SCREECH`,
+  `SFX_SLAM_HIT`, `SFX_BREATH_CLOSE`, `SFX_BONE_CRACK`) — verzerrter Schrei mit
+  Formantfiltern, Bass-Drop mit Metallnachhall, nasses Atmen direkt am Ohr. Dazu
+  Licht aus im ganzen Raum, Taschenlampen-Ausfall, harter Kamerawackler, Blickzwang zur
+  Kreatur, roter Blitz und Tinnitus-Ton.
+
+### Neu — ECHO: Wegweiser mit H
+- **`H` öffnet und schließt** den direkten Weg zum Ziel (`ECHO/src/game/Guide.*`):
+  Breitensuche über den Raum-Graph zum Kampagnenziel, sonst zum nächsten Aufzug oder
+  Treppenhaus. Der Pfad wird als Markerkette durch die Türen gezeichnet, der nächste
+  Abschnitt hervorgehoben, Treppen gelb, Aufzüge grün. Oben mittig Ziel, Restdistanz
+  und Zahl der Abschnitte; ohne offenen Weg sagt er das auch.
+
+### Geändert
+- FelWorks Game Collection auf **1.1.0**, `ECHO/jon-spiele.json` beschreibt Koop,
+  Jumpscares und die H-Taste.
+- Website: neuer Abschnitt **„Zusammen spielen"** mit Ablauf, Lobby-Vorschau und sechs
+  Kacheln zur Technik, Koop-Link in der Navigation, aktualisierte Spielkarten und das
+  neue Blockwelt-Icon.
+- 156 Tests grün (27 neue in `backend/tests/test_multiplayer.py`).
+
 ## [3.32.0] — 2026-07-28
 
 ### Neu — Jon macht PowerPoints

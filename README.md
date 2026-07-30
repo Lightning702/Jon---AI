@@ -24,6 +24,7 @@ wie das geht. Er hat auch bisschen geholfen.)
 - [Konten & Modelle](#konten--modelle)
 - [Nutzung /usage](#nutzung-usage)
 - [Handy-App](#handy-app)
+- [Spiele & Online-Koop](#spiele--online-koop)
 - [Setup](#setup)
 - [Dokumentation](#dokumentation)
 - [Sicherheit](#sicherheit)
@@ -402,6 +403,64 @@ PC und Pi sind zwei getrennte Jons mit eigenen Einstellungen und eigenem Gedäch
 dem Pi fehlen nur die PC-Steuerungs-Tools (Fenster, Maus/Tastatur, Screenshots,
 Zwischenablage) — alles andere (Chat, Web-Suche, Erinnerungen, Telegram, Freunde-Chat,
 Wissensbasis …) läuft dort genauso.
+
+---
+
+## Spiele & Online-Koop
+
+Jon bringt die **FelWorks Game Collection** mit (Werkzeuge → Spiele): **ECHO**
+(Psychological Horror), **AETHERIA** (Open-World-RPG) und die **Blockwelt** im Browser.
+Seit v3.33.0 haben alle drei einen echten Online-Koop über einen Freundschaftscode.
+
+### So spielt ihr zusammen
+
+1. Einer klickt **Spiel erstellen** — der Server legt eine Lobby an und nennt einen
+   6-stelligen Code, z. B. `AB39KD`.
+2. Der andere klickt **Spiel beitreten** und tippt den Code ein.
+3. Gast auf **Bereit**, Host auf **Starten** — beide spawnen gleichzeitig in dieselbe Welt.
+
+Der Server ist Jon selbst und läuft schon, sobald `start-jon.bat` oder `Jon.exe` gestartet
+ist. Es braucht keinen extra Dienst.
+
+| Was | Wo |
+| --- | --- |
+| Blockwelt (Browser) | WebSocket auf Port **8756** (`/api/mp/ws`) |
+| ECHO & AETHERIA | TCP auf Port **8759** |
+| Lobby-Status ansehen | `GET /api/mp/status`, `GET /api/mp/lobby/<CODE>` |
+
+### Weltweit statt nur LAN
+
+Beide Spieler verbinden sich mit **derselben Jon-Adresse**:
+
+- **Heimnetz**: die LAN-IP genügt (`JON_LAN=1` in der `.env`).
+- **Übers Internet**: Portfreigabe für 8756 (Browser) und 8759 (ECHO/AETHERIA) auf dem
+  Rechner des Gastgebers — oder ein öffentlich erreichbarer Jon-Server, dann reicht der
+  Code allein.
+- Im Beitreten-Feld sind beide Formen erlaubt: `AB39KD` und `AB39KD@meinserver.de:8759`.
+
+### Technik in Kurzform
+
+- **Serverautoritativ**: Positionen, Blöcke, Türen, Hebel, Rätsel, Items, NPCs, Quests
+  und Checkpoints werden serverseitig geprüft. Unmögliche Bewegung wird korrigiert,
+  Items lassen sich nicht erfinden, Ratenbegrenzung pro Spieler.
+- **20-Hz-Snapshots mit Delta-Kompression** — nur Änderungen gehen über die Leitung,
+  gegen den letzten bestätigten Snapshot des jeweiligen Clients.
+- **Interpolation (110 ms Puffer), Extrapolation bis 280 ms, Client-Prediction** für den
+  eigenen Charakter und Lag-Kompensation über einen Positionsverlauf pro Spieler.
+- **Heartbeat, Ping, Paketverlust, automatischer Reconnect** — die Sitzung bleibt 150 s
+  reserviert und wird auf Platte gesichert, übersteht also auch einen Backend-Neustart.
+
+### Neu in ECHO
+
+- **Jumpscares mit eigenen Modellen**: In jedem Flur wartet genau ein Schreck — sechs
+  Varianten (aus der Tiefe rennend, im Rücken, aus der Seitentür, von der Decke, über
+  den Boden kriechend, an der Wandkante lauernd), vier Kreatur-Archetypen, dazu Licht
+  aus, Taschenlampen-Ausfall, Kamerawackler und fünf neue, laute Klänge.
+- **`H` blendet den direkten Weg ein** — Markerkette durch die Türen zum Kampagnenziel,
+  sonst zum nächsten Aufzug oder Treppenhaus, mit Restdistanz. Nochmal `H` schließt ihn.
+- Diagnose für den Koop: `ECHO/bin/ECHO.exe -nettest 127.0.0.1:8759` schreibt das
+  Ergebnis nach `ECHO/echo.log`.
+
 
 ---
 

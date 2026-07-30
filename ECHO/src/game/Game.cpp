@@ -17,8 +17,8 @@ const Vec4 kDim(0.52f, 0.55f, 0.58f, 1.0f);
 const Vec4 kAccent(0.62f, 0.86f, 0.78f, 1.0f);
 const Vec4 kShade(0.02f, 0.025f, 0.03f, 0.88f);
 
-const char* kMenuItems[] = { "NEUES SPIEL", "FORTSETZEN", "OPTIONEN", "ZUR COLLECTION" };
-const int kMenuCount = 4;
+const char* kMenuItems[] = { "NEUES SPIEL", "FORTSETZEN", "ONLINE KOOP", "OPTIONEN", "ZUR COLLECTION" };
+const int kMenuCount = 5;
 
 const char* kOptionNames[] = { "LAUTSTAERKE", "MAUSEMPFINDLICHKEIT", "Y INVERTIEREN", "UNTERTITEL", "TUTORIAL", "GRAFIK", "VOLLBILD", "ZURUECK" };
 const int kOptionCount = 8;
@@ -91,6 +91,8 @@ bool Game::init(Window* w, int forcedPreset, bool startWindowed) {
 
     propLib.build();
     humanRig.build();
+    coop.init("echo", &humanRig);
+    coopMenu.init(&coop, window, ui, audio);
     story.build();
     if (ownsSystems) audio->init();
     audio->setMasterVolume(settings.masterVolume);
@@ -131,6 +133,8 @@ bool Game::initShared(Window* w, Renderer* sharedRenderer, UIRenderer* sharedUi,
 
     propLib.build();
     humanRig.build();
+    coop.init("echo", &humanRig);
+    coopMenu.init(&coop, window, ui, audio);
     story.build();
     audio->setMasterVolume(settings.masterVolume);
 
@@ -190,6 +194,8 @@ void Game::renderFrame() {
         if (state != GameState::Cutscene && flashlight.glowIntensity() > 0.01f) renderer->submitLight(flashlight.buildLight());
         world.collectRender(*renderer, cam, 44.0f);
         director.submitPresences(*renderer);
+        jumpscare.submit(*renderer);
+        coop.submitRemotes(*renderer);
         renderer->render();
     } else if (menuBackdrop) {
         updateMenuCamera(0.016f);
@@ -207,6 +213,15 @@ void Game::renderFrame() {
 
 void Game::drawOverlay() {
     hitRects.clear();
+
+    if (coopMenu.visible()) {
+        coopMenu.draw(globalTime);
+        if (fadeAmount > 0.001f) {
+            ui->rect(0, 0, (float)window->width(), (float)window->height(), Vec4(0, 0, 0, fadeAmount));
+        }
+        return;
+    }
+    coopMenu.drawHudBadge(globalTime);
 
     switch (state) {
     case GameState::Splash: drawSplash(); break;
@@ -240,8 +255,10 @@ void Game::shutdown() {
         ui->shutdown();
         renderer->shutdown();
     }
+    coop.shutdown();
     world.destroy();
     humanRig.destroy();
+    horrorRig.destroy();
     propLib.destroy();
 }
 
@@ -383,8 +400,9 @@ void Game::activateMenuItem(int index) {
         if (hasSave) loadGame("quicksave");
         else addToast("Kein Spielstand vorhanden");
         break;
-    case 2: optionIndex = 0; setState(GameState::Options); break;
-    case 3:
+    case 2: coopMenu.open(); break;
+    case 3: optionIndex = 0; setState(GameState::Options); break;
+    case 4:
         if (ownsSystems) quitRequested = true;
         else collectionRequested = true;
         break;
@@ -395,8 +413,9 @@ void Game::activatePauseItem(int index) {
     switch (index) {
     case 0: setState(GameState::Playing); break;
     case 1: saveGame("quicksave"); break;
-    case 2: optionIndex = 0; setState(GameState::Options); break;
-    case 3: returnToMainMenu(); break;
+    case 2: coopMenu.open(); break;
+    case 3: optionIndex = 0; setState(GameState::Options); break;
+    case 4: returnToMainMenu(); break;
     }
 }
 
@@ -644,6 +663,13 @@ void Game::startNewGame(u64 seed) {
     addItem(ITEM_WRISTBAND);
 
     director.init(&world, audio, &humanRig, seed);
+    if (!horrorRig.ready()) horrorRig.build();
+    jumpscare.init(&world, audio, &horrorRig, seed);
+    guide.init(&world);
+    guideTargetCache = em::Vec3(0, -9999, 0);
+    guideLabelCache.clear();
+    scareFlash = 0.0f;
+    scareRing = 0.0f;
     campaign.init(&world, seed);
     cutscene.stop();
     tutorial.reset(settings.tutorial);
@@ -845,6 +871,13 @@ void Game::loadGame(const std::string& slot) {
     placeStoryContent();
 
     director.init(&world, audio, &humanRig, seed);
+    if (!horrorRig.ready()) horrorRig.build();
+    jumpscare.init(&world, audio, &horrorRig, seed);
+    guide.init(&world);
+    guideTargetCache = em::Vec3(0, -9999, 0);
+    guideLabelCache.clear();
+    scareFlash = 0.0f;
+    scareRing = 0.0f;
     campaign.init(&world, seed);
     cutscene.stop();
     tutorial.reset(false);
@@ -926,6 +959,7 @@ void Game::handleInteraction() {
             addToast("Aufgeschlossen");
         }
         world.toggleDoor(it.targetId);
+        coop.sendInteract("door", std::to_string(it.targetId), d.targetOpen > 0.5f ? 1.0 : 0.0, d.center);
         audio->playAt(d.targetOpen > 0.5f ? SFX_DOOR_OPEN : SFX_DOOR_CLOSE, d.center, 0.65f, 0.95f + (float)(it.targetId % 7) * 0.012f);
         director.notifyInteract(INTERACT_DOOR, it.targetId, d.center);
         break;
@@ -937,6 +971,7 @@ void Game::handleInteraction() {
         bool anyOn = false;
         for (int lid : room.lights) if (world.lights()[(size_t)lid].on && !world.lights()[(size_t)lid].broken) anyOn = true;
         world.setRoomLights(roomId, !anyOn, true);
+        coop.sendInteract("switch", std::to_string(roomId), anyOn ? 0.0 : 1.0, it.position);
         audio->playAt(SFX_SWITCH, it.position, 0.55f, 1.0f);
         break;
     }
@@ -1052,6 +1087,18 @@ void Game::updateAtmosphere(float dt) {
     post.chromatic = lerpf(0.0008f, 0.0032f, director.distortion());
     post.pulse = tension > 0.6f ? (tension - 0.6f) * 0.6f : 0.0f;
     post.exposure = lerpf(2.35f, 2.0f, tension) * settings.brightness;
+
+    if (scareFlash > 0.01f) {
+        post.saturation = lerpf(post.saturation, 1.45f, scareFlash);
+        post.contrast = lerpf(post.contrast, 1.42f, scareFlash);
+        post.vignette = lerpf(post.vignette, 1.55f, scareFlash);
+        post.grain = lerpf(post.grain, 0.20f, scareFlash);
+        post.chromatic = lerpf(post.chromatic, 0.010f, scareFlash);
+        post.pulse = std::max(post.pulse, scareFlash * 1.35f);
+        post.distortion = std::max(post.distortion, scareFlash * 0.75f);
+        post.exposure *= 1.0f + scareFlash * 0.55f;
+        atmos.dust = std::max(atmos.dust, scareFlash * 0.85f);
+    }
 
     float breath = player.breathLevel();
     atmos.warp = Vec4(player.position().x, player.position().z, 0.02f, director.distortion() * 0.35f);
@@ -1332,7 +1379,12 @@ void Game::updatePlaying(float dt) {
     pin.jump = in.keyPressed(KEY_SPACE);
     pin.interact = in.keyPressed(KEY_E) || in.mousePressed(MOUSE_LEFT);
     player.update(pin, world.physics(), dt);
-    flashlight.disturb(director.flashlightDisturb * dt * 2.0f);
+    if (in.keyPressed(KEY_H)) {
+        guide.toggle();
+        audio->play2D(SFX_SWITCH, 0.22f, guide.visible() ? 1.25f : 0.85f);
+        addToast(guide.visible() ? "Wegweiser an — H schliesst ihn" : "Wegweiser aus", 2.4f);
+    }
+    flashlight.disturb((director.flashlightDisturb + jumpscare.flashlightKill * 3.2f) * dt * 2.0f);
     flashlight.update(player.eyePosition(), player.forward(), player.right(), dt, globalTime, player.speed());
 
     hoverInteractable = world.findNearestInteractable(player.eyePosition(), player.forward(), 2.9f, 0.62f);
@@ -1356,7 +1408,16 @@ void Game::updatePlaying(float dt) {
     updateElevator(dt);
     world.setObserver(player.eyePosition(), player.forward());
     world.update(dt, globalTime, player.position());
+    pushCoopState();
     director.update(player, dt, globalTime);
+    jumpscare.update(player, dt, globalTime, 1.0f);
+    if (jumpscare.forcedLookStrength > 0.01f) {
+        player.forceLookAt(jumpscare.forcedLookTarget, jumpscare.forcedLookStrength * dt * 9.0f);
+    }
+    scareFlash = std::max(scareFlash * std::exp(-dt * 2.2f), jumpscare.bloodFlash);
+    scareRing = std::max(scareRing * std::exp(-dt * 1.1f), jumpscare.deafen);
+    refreshGuideTarget();
+    guide.update(player, dt, globalTime);
     campaign.update(player, dt, globalTime);
     updateFootsteps(dt);
     updateAtmosphere(dt);
@@ -1396,6 +1457,10 @@ void Game::updatePlaying(float dt) {
         subtitleText = sub;
         subtitleTimer = dur;
     }
+    while (jumpscare.consumeSubtitle(sub, dur)) {
+        subtitleText = sub;
+        subtitleTimer = dur;
+    }
     if (subtitleTimer > 0.0f) subtitleTimer -= dt;
 
     autosaveTimer -= dt;
@@ -1411,8 +1476,8 @@ void Game::updatePaused(float dt) {
     Input& in = window->input();
     if (in.keyPressed(KEY_ESCAPE)) { setState(GameState::Playing); return; }
 
-    if (in.keyPressed(KEY_DOWN) || in.keyPressed(KEY_S)) menuIndex = (menuIndex + 1) % 4;
-    if (in.keyPressed(KEY_UP) || in.keyPressed(KEY_W)) menuIndex = (menuIndex + 3) % 4;
+    if (in.keyPressed(KEY_DOWN) || in.keyPressed(KEY_S)) menuIndex = (menuIndex + 1) % 5;
+    if (in.keyPressed(KEY_UP) || in.keyPressed(KEY_W)) menuIndex = (menuIndex + 4) % 5;
     if (in.keyPressed(KEY_ENTER) || in.keyPressed(KEY_E)) activatePauseItem(menuIndex);
 }
 
@@ -1503,6 +1568,9 @@ void Game::update(float dt) {
     globalTime += dt;
     fadeAmount = moveTowards(fadeAmount, fadeTarget, dt * 1.6f);
 
+    updateCoop(dt);
+    if (coopMenu.visible()) return;
+
     if (state != GameState::Playing) updateMouseUi();
 
     for (auto it = toasts.begin(); it != toasts.end();) {
@@ -1555,6 +1623,8 @@ void Game::render() {
         if (state != GameState::Cutscene && flashlight.glowIntensity() > 0.01f) renderer->submitLight(flashlight.buildLight());
         world.collectRender(*renderer, cam, 44.0f);
         director.submitPresences(*renderer);
+        jumpscare.submit(*renderer);
+        coop.submitRemotes(*renderer);
         renderer->render();
     } else if (menuBackdrop) {
         updateMenuCamera(0.016f);
@@ -1672,6 +1742,209 @@ void Game::drawWaypoint(const Vec3& worldPos, const Vec4& color, const std::stri
     if (!label.empty()) {
         ui->textShadow(label, sx, sy + h * 0.024f, h * 0.017f, Vec4(color.x, color.y, color.z, color.w * 0.85f), ALIGN_CENTER);
     }
+}
+
+void Game::pushCoopState() {
+    CoopLocalState state;
+    state.position = player.position();
+    state.velocity = player.velocityVec();
+    state.yaw = player.yawAngle();
+    state.pitch = player.pitchAngle();
+    state.health = 100;
+    u32 flags = 0;
+    if (player.isGrounded()) flags |= CFLAG_GROUND;
+    if (player.isSprinting()) flags |= CFLAG_SPRINT;
+    if (player.isCrouching()) flags |= CFLAG_CROUCH;
+    if (flashlight.isOn()) flags |= CFLAG_LIGHT;
+    if (hoverInteractable >= 0) flags |= CFLAG_INTERACT;
+    state.flags = flags;
+
+    if (!player.isGrounded()) state.anim = player.velocityVec().y > 0.6f ? CANIM_JUMP : CANIM_FALL;
+    else if (!player.isMoving()) state.anim = player.isCrouching() ? CANIM_CROUCH : CANIM_IDLE;
+    else if (player.isCrouching()) state.anim = CANIM_SNEAK;
+    else state.anim = player.isSprinting() ? CANIM_RUN : CANIM_WALK;
+
+    coop.pushLocal(state);
+}
+
+void Game::applyCoopEvents() {
+    std::string kind, key;
+    double value = 0.0;
+    while (coop.consumeWorldEvent(kind, key, value)) {
+        size_t colon = key.find(':');
+        int id = colon == std::string::npos ? -1 : std::atoi(key.c_str() + colon + 1);
+        if (kind == "door" && id >= 0 && id < (int)world.doors().size()) {
+            world.setDoorOpen(id, value != 0.0);
+            continue;
+        }
+        if (kind == "light" && id >= 0 && id < (int)world.lights().size()) {
+            world.setLightOn(id, value != 0.0, false);
+            continue;
+        }
+        if (kind == "item" && id >= 0) {
+            addToast("Mitspieler hat etwas aufgenommen", 2.6f);
+            continue;
+        }
+        if (kind == "puzzle" || kind == "lever" || kind == "switch") {
+            addToast("Mitspieler hat einen Mechanismus benutzt", 2.6f);
+            continue;
+        }
+        if (kind == "save") {
+            addToast("Koop-Fortschritt gesichert", 2.6f);
+            continue;
+        }
+    }
+}
+
+void Game::updateCoop(float dt) {
+    coop.update(dt);
+
+    if (coopMenu.visible()) {
+        coopMenu.update(dt);
+        if (coopMenu.consumeLaunch()) coopStarting = true;
+        coopMenu.consumeExit();
+    }
+
+    if (coop.phase() == COOP_LOADING && !coopReported) {
+        if (!inGameSession()) {
+            startNewGame(coop.worldSeed() ? coop.worldSeed() : 20260730ULL);
+        }
+        coopReported = true;
+        coop.reportLoaded();
+    }
+    if (coop.phase() != COOP_LOADING) coopReported = false;
+
+    if (coopStarting && coop.playing()) {
+        coopStarting = false;
+        if (!inGameSession()) startNewGame(coop.worldSeed() ? coop.worldSeed() : 20260730ULL);
+        if (coop.spawnReady()) {
+            em::Vec3 point = coop.spawnPoint();
+            if (lengthSq(point) > 0.01f) player.setPosition(point);
+        }
+        setState(GameState::Playing);
+        coopMenu.close();
+        addToast("Koop laeuft — bleibt zusammen", 4.0f);
+    }
+
+    if (coop.consumeSpawnSignal() && coop.playing() && coop.spawnReady()) {
+        em::Vec3 point = coop.spawnPoint();
+        if (lengthSq(point) > 0.01f) player.setPosition(point);
+    }
+
+    applyCoopEvents();
+    if (coop.inSession()) coop.updateRemotes(dt, globalTime, player.eyePosition());
+
+    if (coop.playing()) {
+        coopSaveTimer -= dt;
+        if (coopSaveTimer <= 0.0f) {
+            coopSaveTimer = 60.0f;
+            js::Value blob = js::Value::object();
+            blob.set("chapter", campaign.chapterName());
+            blob.set("objective", campaign.objective());
+            blob.set("floor", campaign.playerFloor());
+            coop.sendCheckpoint(blob);
+        }
+    }
+}
+
+void Game::refreshGuideTarget() {
+    Vec3 want;
+    std::string label;
+    bool have = false;
+
+    if (campaign.hasGuide()) {
+        want = campaign.guide();
+        label = campaign.guideIsStairs() ? "TREPPENHAUS" : "ZIEL";
+        have = true;
+    } else {
+        float best = 1e9f;
+        int bestRoom = -1;
+        int floorIndex = world.floorAt(player.position().y);
+        const std::vector<int> shafts = world.roomsOfType(ROOM_ELEVATOR);
+        for (int id : shafts) {
+            if (id < 0 || id >= (int)world.rooms().size()) continue;
+            const Room& room = world.rooms()[(size_t)id];
+            if (room.floor != floorIndex) continue;
+            float d = distance(world.roomCenter(id), player.position());
+            if (d < best) {
+                best = d;
+                bestRoom = id;
+            }
+        }
+        if (bestRoom < 0) {
+            const std::vector<int> stairs = world.roomsOfType(ROOM_STAIRWELL);
+            for (int id : stairs) {
+                if (id < 0 || id >= (int)world.rooms().size()) continue;
+                float d = distance(world.roomCenter(id), player.position());
+                if (d < best) {
+                    best = d;
+                    bestRoom = id;
+                }
+            }
+            if (bestRoom >= 0) label = "TREPPENHAUS";
+        } else {
+            label = "AUFZUG";
+        }
+        if (bestRoom >= 0) {
+            want = world.roomCenter(bestRoom);
+            have = true;
+        }
+    }
+
+    if (!have) {
+        if (guide.hasTarget()) guide.clearTarget();
+        return;
+    }
+    if (guide.hasTarget() && label == guideLabelCache && distance(want, guideTargetCache) < 0.75f) return;
+    guideTargetCache = want;
+    guideLabelCache = label;
+    guide.setTarget(want, label);
+}
+
+void Game::drawGuide() {
+    if (!guide.visible() || state != GameState::Playing) return;
+    float w = (float)window->width(), h = (float)window->height();
+
+    Vec4 head(0.42f, 0.92f, 1.0f, 0.95f);
+    Vec4 trail(0.36f, 0.82f, 0.98f, 0.55f);
+
+    if (!guide.reachable()) {
+        ui->rect(w * 0.5f - h * 0.20f, h * 0.032f, h * 0.40f, h * 0.044f, Vec4(0.05f, 0.05f, 0.07f, 0.72f));
+        ui->text("WEGWEISER: " + guide.status(), w * 0.5f, h * 0.048f, h * 0.020f,
+                 Vec4(0.98f, 0.62f, 0.55f, 0.92f), ALIGN_CENTER, h * 0.004f);
+        return;
+    }
+
+    const std::vector<GuideNode>& nodes = guide.nodes();
+    int start = guide.nextIndex();
+    for (int i = (int)nodes.size() - 1; i >= start; i--) {
+        const GuideNode& node = nodes[(size_t)i];
+        bool isNext = i == start;
+        float fade = isNext ? 1.0f : clampf(1.0f - (float)(i - start) * 0.16f, 0.22f, 0.8f);
+        Vec4 col = isNext ? head : Vec4(trail.x, trail.y, trail.z, trail.w * fade);
+        if (node.stairs) col = Vec4(0.98f, 0.82f, 0.42f, col.w);
+        if (node.elevator) col = Vec4(0.62f, 0.98f, 0.72f, col.w);
+        std::string tag;
+        if (isNext) {
+            tag = node.stairs ? "TREPPE" : (node.elevator ? "AUFZUG" : (i == (int)nodes.size() - 1 ? guide.status() : "WEITER"));
+        }
+        Vec3 lift = node.position + Vec3(0, isNext ? 1.35f : 1.05f, 0);
+        drawWaypoint(lift, col, tag, node.stairs);
+    }
+
+    float pulse = 0.62f + 0.38f * guide.pulse();
+    float barW = h * 0.44f;
+    ui->rect(w * 0.5f - barW * 0.5f, h * 0.030f, barW, h * 0.050f, Vec4(0.04f, 0.05f, 0.07f, 0.70f));
+    ui->rect(w * 0.5f - barW * 0.5f, h * 0.030f, barW * 0.004f + 2.0f, h * 0.050f,
+             Vec4(head.x, head.y, head.z, pulse));
+    char buf[96];
+    int segments = (int)nodes.size() - start;
+    std::snprintf(buf, sizeof(buf), "DIREKTER WEG  %s   %d M   %d ABSCHNITTE",
+                  guide.status().c_str(), (int)guide.remainingDistance(), segments < 0 ? 0 : segments);
+    ui->text(buf, w * 0.5f, h * 0.049f, h * 0.019f,
+             Vec4(head.x, head.y, head.z, 0.92f * pulse), ALIGN_CENTER, h * 0.004f);
+    ui->text("H schliesst den Wegweiser", w * 0.5f, h * 0.070f, h * 0.014f,
+             Vec4(kDim.x, kDim.y, kDim.z, 0.55f), ALIGN_CENTER, h * 0.003f);
 }
 
 void Game::drawObjective() {
@@ -1898,6 +2171,7 @@ void Game::drawHud() {
     }
 
     drawObjective();
+    drawGuide();
     drawRide();
     drawTutorial();
     drawSubtitles();
@@ -1906,6 +2180,21 @@ void Game::drawHud() {
     if (tension > 0.55f) {
         float a = (tension - 0.55f) * 0.35f * (0.6f + 0.4f * std::sin(globalTime * 5.0f));
         ui->rect(0, 0, w, h, Vec4(0.35f, 0.02f, 0.03f, a * 0.12f));
+    }
+
+    if (scareFlash > 0.02f) {
+        float a = scareFlash;
+        ui->rect(0, 0, w, h, Vec4(0.62f, 0.02f, 0.03f, a * 0.34f));
+        float inset = h * (0.02f + 0.10f * (1.0f - a));
+        ui->rectOutline(inset, inset, w - inset * 2.0f, h - inset * 2.0f, h * 0.05f * a,
+                        Vec4(0.08f, 0.0f, 0.0f, a * 0.55f));
+    }
+    if (scareRing > 0.03f) {
+        float a = scareRing;
+        float jitter = std::sin(globalTime * 41.0f) * h * 0.002f * a;
+        ui->rect(0, h * 0.5f + jitter - h * 0.0012f, w, h * 0.0024f,
+                 Vec4(0.9f, 0.9f, 0.95f, a * 0.06f));
+        ui->text("...", w * 0.5f, h * 0.93f, h * 0.03f, Vec4(0.85f, 0.85f, 0.9f, a * 0.30f), ALIGN_CENTER);
     }
 }
 
@@ -1960,10 +2249,10 @@ void Game::drawPause() {
     ui->text("PAUSE", w * 0.5f, h * 0.24f, h * 0.06f, kInk, ALIGN_CENTER, h * 0.014f);
     ui->text(formatTime(playTime), w * 0.5f, h * 0.33f, h * 0.022f, Vec4(kDim.x, kDim.y, kDim.z, 0.7f), ALIGN_CENTER);
 
-    const char* items[] = { "WEITER", "SPEICHERN", "OPTIONEN", "HAUPTMENUE" };
+    const char* items[] = { "WEITER", "SPEICHERN", "ONLINE KOOP", "OPTIONEN", "HAUPTMENUE" };
     float size = h * 0.032f;
-    float y = h * 0.44f;
-    for (int i = 0; i < 4; i++) {
+    float y = h * 0.42f;
+    for (int i = 0; i < 5; i++) {
         bool selected = i == menuIndex;
         float bw = std::max(ui->font().measure(items[i], size * 1.1f, size * 0.1f) + h * 0.09f, h * 0.26f);
         float bx = w * 0.5f - bw * 0.5f;

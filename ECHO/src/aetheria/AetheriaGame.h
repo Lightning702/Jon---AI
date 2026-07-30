@@ -8,6 +8,8 @@
 #include "../audio/AudioEngine.h"
 #include "../game/Player.h"
 #include "../game/Flashlight.h"
+#include "../net/CoopSession.h"
+#include "../net/CoopUI.h"
 
 namespace aeth {
 
@@ -61,6 +63,8 @@ public:
     const AetheriaWorld& world() const { return land; }
     AetheriaWorld& world() { return land; }
     echo::CameraData camera(float aspect) const;
+    echo::CoopSession& session() { return coop; }
+    bool onlineActive() const { return coop.inSession(); }
     bool wantsExit() const { return exitRequested; }
     void clearExit() { exitRequested = false; }
     void setMapOpen(bool open) { mapOpen = open; }
@@ -91,12 +95,24 @@ private:
     int menuItemCount() const;
     const char* menuItemLabel(int index) const;
     void refreshObjective();
+    void updateCoop(float dt, float time);
+    void pushCoopState();
+    void applyCoopEvents();
+    void syncCoopWorld(float dt);
     bool projectToScreen(const em::Vec3& world, float w, float h, em::Vec2& out, bool& behind) const;
 
     echo::Window* window = nullptr;
     echo::Renderer* renderer = nullptr;
     echo::UIRenderer* ui = nullptr;
     echo::AudioEngine* audio = nullptr;
+
+    echo::CoopSession coop;
+    echo::CoopMenu coopMenu;
+    echo::HumanRig coopRig;
+    float coopSyncTimer = 0.0f;
+    float coopSaveTimer = 0.0f;
+    bool coopStarting = false;
+    bool coopReported = false;
 
     AetheriaWorld land;
     QuestLog quests;

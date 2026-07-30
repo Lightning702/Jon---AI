@@ -424,6 +424,140 @@ void genSting(SoundClip& c, int sr, Rng& rng, float dur, float baseFreq, bool ri
     normalize(c, 0.85f);
 }
 
+float saturate(float x, float drive) {
+    return std::tanh(x * drive) / std::tanh(drive);
+}
+
+void genScream(SoundClip& c, int sr, Rng& rng) {
+    const float dur = 2.05f;
+    allocate(c, sr, dur);
+    int n = (int)c.samples.size();
+    Biquad f1, f2, f3, air;
+    f1.bandpass(720.0f, 5.5f, (float)sr);
+    f2.bandpass(1580.0f, 6.5f, (float)sr);
+    f3.bandpass(3050.0f, 7.5f, (float)sr);
+    air.highpass(180.0f, 0.8f, (float)sr);
+    float phase = 0.0f, subPhase = 0.0f, rasp = 0.0f;
+    for (int i = 0; i < n; i++) {
+        float t = (float)i / sr;
+        float u = t / dur;
+        float base = 340.0f + 470.0f * std::pow(1.0f - u, 0.6f);
+        float vib = std::sin(TAU * 7.4f * t) * 26.0f + std::sin(TAU * 23.0f * t) * 9.0f;
+        phase += (base + vib) / sr;
+        if (phase > 1.0f) phase -= 1.0f;
+        subPhase += (base * 0.5f) / sr;
+        if (subPhase > 1.0f) subPhase -= 1.0f;
+        float saw = phase * 2.0f - 1.0f;
+        float sub = subPhase * 2.0f - 1.0f;
+        rasp = rasp * 0.72f + rng.range(-1.0f, 1.0f) * 0.28f;
+        float src = saw * 0.75f + sub * 0.35f + rasp * 0.55f;
+        float voiced = f1.process(src) * 1.0f + f2.process(src) * 0.72f + f3.process(src) * 0.48f;
+        float breath = air.process(rng.range(-1.0f, 1.0f)) * 0.22f;
+        float env = std::pow(clampf(u / 0.035f, 0.0f, 1.0f), 0.5f) *
+                    (1.0f - smoothstepf(0.72f, 1.0f, u));
+        c.samples[(size_t)i] = saturate(voiced * 1.5f + breath, 3.4f) * env;
+    }
+    fadeEdges(c, 0.004f, 0.16f);
+    normalize(c, 1.0f);
+}
+
+void genScreech(SoundClip& c, int sr, Rng& rng) {
+    const float dur = 1.35f;
+    allocate(c, sr, dur);
+    int n = (int)c.samples.size();
+    Biquad bp, hp;
+    bp.bandpass(2600.0f, 3.0f, (float)sr);
+    hp.highpass(900.0f, 0.9f, (float)sr);
+    for (int i = 0; i < n; i++) {
+        float t = (float)i / sr;
+        float u = t / dur;
+        float f = 1750.0f * (1.0f + u * 1.9f);
+        float v = std::sin(TAU * f * t + std::sin(TAU * f * 0.37f * t) * 5.5f);
+        v += std::sin(TAU * f * 1.497f * t) * 0.6f;
+        v += rng.range(-1.0f, 1.0f) * 0.34f;
+        float env = std::pow(clampf(u / 0.02f, 0.0f, 1.0f), 0.4f) * std::exp(-u * 2.6f);
+        c.samples[(size_t)i] = saturate(hp.process(bp.process(v) + v * 0.4f) * 1.8f, 2.6f) * env;
+    }
+    fadeEdges(c, 0.003f, 0.2f);
+    normalize(c, 0.98f);
+}
+
+void genSlamHit(SoundClip& c, int sr, Rng& rng) {
+    const float dur = 2.6f;
+    allocate(c, sr, dur);
+    int n = (int)c.samples.size();
+    Biquad lp, ring, crack;
+    lp.lowpass(160.0f, 0.9f, (float)sr);
+    ring.bandpass(430.0f, 12.0f, (float)sr);
+    crack.highpass(2600.0f, 0.8f, (float)sr);
+    float phase = 0.0f;
+    for (int i = 0; i < n; i++) {
+        float t = (float)i / sr;
+        float u = t / dur;
+        float f = 96.0f * std::exp(-t * 3.4f) + 26.0f;
+        phase += f / sr;
+        if (phase > 1.0f) phase -= 1.0f;
+        float boom = std::sin(TAU * phase) * std::exp(-t * 2.2f);
+        float noise = rng.range(-1.0f, 1.0f);
+        float snap = crack.process(noise) * std::exp(-t * 46.0f) * 0.9f;
+        float metal = ring.process(noise) * std::exp(-t * 3.1f) * 0.5f;
+        float body = lp.process(noise) * std::exp(-t * 7.0f) * 0.8f;
+        c.samples[(size_t)i] = saturate(boom * 1.4f + body + metal + snap, 2.0f) *
+                               (1.0f - smoothstepf(0.86f, 1.0f, u));
+    }
+    fadeEdges(c, 0.001f, 0.22f);
+    normalize(c, 1.0f);
+}
+
+void genCloseBreath(SoundClip& c, int sr, Rng& rng) {
+    const float dur = 3.1f;
+    allocate(c, sr, dur);
+    int n = (int)c.samples.size();
+    Biquad bp, wet, lp;
+    bp.bandpass(380.0f, 0.9f, (float)sr);
+    wet.bandpass(1450.0f, 2.6f, (float)sr);
+    lp.lowpass(3600.0f, 0.8f, (float)sr);
+    float rattle = 0.0f;
+    for (int i = 0; i < n; i++) {
+        float t = (float)i / sr;
+        float u = t / dur;
+        float cycle = std::fmod(u * 2.0f, 1.0f);
+        float inhale = std::exp(-std::pow((cycle - 0.24f) * 7.0f, 2.0f));
+        float exhale = std::exp(-std::pow((cycle - 0.70f) * 4.6f, 2.0f));
+        float noise = rng.range(-1.0f, 1.0f);
+        rattle = rattle * 0.86f + noise * 0.14f;
+        float grind = std::sin(TAU * 47.0f * t) * rattle * 0.7f;
+        float v = bp.process(noise) * (inhale * 1.05f + exhale * 1.25f) +
+                  wet.process(noise) * exhale * 0.5f + grind * (inhale + exhale) * 0.6f;
+        c.samples[(size_t)i] = lp.process(saturate(v * 1.4f, 1.8f));
+    }
+    fadeEdges(c, 0.02f, 0.18f);
+    normalize(c, 0.92f);
+}
+
+void genBoneCrack(SoundClip& c, int sr, Rng& rng) {
+    const float dur = 1.1f;
+    allocate(c, sr, dur);
+    int n = (int)c.samples.size();
+    Biquad bp;
+    bp.bandpass(1250.0f, 2.2f, (float)sr);
+    float next = 0.0f;
+    float level = 0.0f;
+    for (int i = 0; i < n; i++) {
+        float t = (float)i / sr;
+        if (t >= next) {
+            level = 1.0f;
+            next = t + rng.range(0.045f, 0.14f);
+        }
+        level *= 0.9982f;
+        float noise = rng.range(-1.0f, 1.0f);
+        float snap = bp.process(noise) * std::pow(level, 5.0f);
+        c.samples[(size_t)i] = saturate(snap * 2.2f, 2.4f) * (1.0f - t / dur);
+    }
+    fadeEdges(c, 0.002f, 0.14f);
+    normalize(c, 0.9f);
+}
+
 }
 
 void SoundBank::generate(int sampleRate) {
@@ -474,6 +608,11 @@ void SoundBank::generate(int sampleRate) {
     genSting(clips[SFX_STING_LOW], sampleRate, rng, 3.6f, 38.0f, false);
     genSting(clips[SFX_STING_HIGH], sampleRate, rng, 2.4f, 210.0f, true);
     genLobbyMusic(clips[SFX_MUSIC_LOBBY], sampleRate, rng);
+    genScream(clips[SFX_SCREAM], sampleRate, rng);
+    genScreech(clips[SFX_SCREECH], sampleRate, rng);
+    genSlamHit(clips[SFX_SLAM_HIT], sampleRate, rng);
+    genCloseBreath(clips[SFX_BREATH_CLOSE], sampleRate, rng);
+    genBoneCrack(clips[SFX_BONE_CRACK], sampleRate, rng);
 
     size_t total = 0;
     for (int i = 0; i < SFX_COUNT; i++) total += clips[i].samples.size();

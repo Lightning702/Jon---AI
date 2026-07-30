@@ -41,10 +41,15 @@ bool AetheriaGame::init(Window* w, Renderer* r, UIRenderer* u, AudioEngine* a) {
     renderer = r;
     ui = u;
     audio = a;
+    coopRig.build();
+    coop.init("aetheria", &coopRig);
+    coopMenu.init(&coop, window, ui, audio);
     return true;
 }
 
 void AetheriaGame::shutdown() {
+    coop.shutdown();
+    coopRig.destroy();
     map.destroy();
     weapon.destroy();
     quests.clear();
@@ -402,6 +407,7 @@ void AetheriaGame::updateDiscovery(float dt) {
         addToast(land.settlements()[(size_t)v].name + " entdeckt");
         hero.grantXp(80);
         rebuildMarkers();
+        coop.sendInteract("npc", std::to_string(v), 1.0, position);
     }
 
     int lm = land.landmarkAt(position, 0.0f);
@@ -501,6 +507,7 @@ void AetheriaGame::updateInteraction(float dt) {
     if (hoverFlora >= 0) {
         int type = land.floraTypeOf(hoverFlora);
         Vec3 at = land.floraPosition(hoverFlora);
+        coop.sendInteract("harvest", std::to_string(hoverFlora), 1.0, at);
         land.harvest(hoverFlora);
         satchel[clampi(type, 0, FLORA_COUNT - 1)]++;
         hero.gathered++;
@@ -551,6 +558,13 @@ void AetheriaGame::updateCombat(float dt) {
 
         Vec3 origin = position + Vec3(0, eyeHeight, 0);
         StrikeResult r = land.strike(origin, sphericalDir(yaw, pitch), 3.2f, 24.0f + hero.level * 4.0f);
+        if (r.hit && coop.playing()) {
+            js::Value fx = js::Value::object();
+            fx.set("x", r.point.x);
+            fx.set("y", r.point.y);
+            fx.set("z", r.point.z);
+            coop.sendEffect("hit", fx);
+        }
         if (r.hit) {
             PlayParams p;
             p.position = r.point;
@@ -621,15 +635,17 @@ void AetheriaGame::pushHit(float x, float y, float w, float h, int index) {
 }
 
 int AetheriaGame::menuItemCount() const {
-    if (screen == AETH_PAUSED) return 3;
-    return runStarted ? 3 : 2;
+    if (screen == AETH_PAUSED) return 4;
+    return runStarted ? 4 : 3;
 }
 
 const char* AetheriaGame::menuItemLabel(int index) const {
+    const char* online = coop.inSession() ? "ONLINE: LOBBY OEFFNEN" : "ONLINE SPIELEN";
     if (screen == AETH_PAUSED) {
         switch (index) {
         case 0: return "WEITER";
         case 1: return "NEUES ABENTEUER";
+        case 2: return online;
         default: return "ZUR COLLECTION";
         }
     }
@@ -637,37 +653,34 @@ const char* AetheriaGame::menuItemLabel(int index) const {
         switch (index) {
         case 0: return "WEITERSPIELEN";
         case 1: return "NEUES ABENTEUER";
+        case 2: return online;
         default: return "ZUR COLLECTION";
         }
     }
-    return index == 0 ? "ABENTEUER BEGINNEN" : "ZUR COLLECTION";
+    switch (index) {
+    case 0: return "ABENTEUER BEGINNEN";
+    case 1: return online;
+    default: return "ZUR COLLECTION";
+    }
 }
 
 void AetheriaGame::activateMenuItem(int index) {
     audio->play2D(SFX_SWITCH, 0.26f, 1.1f);
-    if (screen == AETH_PAUSED) {
+    if (screen == AETH_PAUSED || runStarted) {
         if (index == 0) {
             screen = AETH_PLAYING;
             window->setCursorLocked(true);
         } else if (index == 1) {
             beginRun();
-        } else {
-            exitRequested = true;
-        }
-        return;
-    }
-    if (runStarted) {
-        if (index == 0) {
-            screen = AETH_PLAYING;
-            window->setCursorLocked(true);
-        } else if (index == 1) {
-            beginRun();
+        } else if (index == 2) {
+            coopMenu.open();
         } else {
             exitRequested = true;
         }
         return;
     }
     if (index == 0) beginRun();
+    else if (index == 1) coopMenu.open();
     else exitRequested = true;
 }
 
@@ -750,8 +763,150 @@ void AetheriaGame::updateMenu(float dt) {
     post.gain = Vec3(1.05f, 1.02f, 0.96f);
 }
 
+void AetheriaGame::pushCoopState() {
+    CoopLocalState state;
+    state.position = position;
+    state.velocity = velocity;
+    state.yaw = yaw;
+    state.pitch = pitch;
+    state.health = (int)hero.health;
+    u32 flags = 0;
+    if (grounded) flags |= CFLAG_GROUND;
+    if (sprinting) flags |= CFLAG_SPRINT;
+    if (lamp.isOn()) flags |= CFLAG_LIGHT;
+    if (swing > 0.01f) flags |= CFLAG_ATTACK;
+    state.flags = flags;
+
+    float speed = length(Vec2(velocity.x, velocity.z));
+    if (swing > 0.01f) state.anim = CANIM_ATTACK;
+    else if (!grounded) state.anim = velocity.y > 0.6f ? CANIM_JUMP : CANIM_FALL;
+    else if (speed < 0.35f) state.anim = CANIM_IDLE;
+    else state.anim = sprinting ? CANIM_RUN : CANIM_WALK;
+
+    coop.pushLocal(state);
+}
+
+void AetheriaGame::applyCoopEvents() {
+    std::string kind, key;
+    double value = 0.0;
+    while (coop.consumeWorldEvent(kind, key, value)) {
+        if (kind == "harvest") {
+            size_t colon = key.find(':');
+            int index = colon == std::string::npos ? -1 : std::atoi(key.c_str() + colon + 1);
+            if (index >= 0 && index < land.floraCount()) land.harvest(index);
+            continue;
+        }
+        if (kind == "quest") {
+            size_t colon = key.find(':');
+            int id = colon == std::string::npos ? -1 : std::atoi(key.c_str() + colon + 1);
+            if (id >= 0) {
+                quests.revealVillage(id);
+                addToast("Mitspieler bringt die Quest voran");
+            }
+            continue;
+        }
+        if (kind == "npc") {
+            size_t colon = key.find(':');
+            int id = colon == std::string::npos ? -1 : std::atoi(key.c_str() + colon + 1);
+            if (id >= 0 && id < (int)land.settlements().size()) {
+                land.settlements()[(size_t)id].visited = true;
+                quests.revealVillage(id);
+            }
+            continue;
+        }
+        if (kind == "strike") {
+            addToast("Mitspieler kaempft");
+            continue;
+        }
+        if (kind == "save") {
+            addToast("Fortschritt gesichert");
+            continue;
+        }
+    }
+}
+
+void AetheriaGame::syncCoopWorld(float dt) {
+    if (!coop.playing()) return;
+
+    coopSyncTimer -= dt;
+    if (coopSyncTimer <= 0.0f) {
+        coopSyncTimer = 1.0f;
+        if (coop.isHost()) {
+            coop.sendInteract("timer", "sky", (double)land.clock().timeOfDay, position);
+        } else if (coop.hasWorldValue("timer:sky")) {
+            float wanted = (float)coop.worldValue("timer:sky", (double)land.clock().timeOfDay);
+            float diff = wanted - land.clock().timeOfDay;
+            if (std::fabs(diff) > 0.004f) land.clock().timeOfDay += diff * 0.35f;
+        }
+    }
+
+    coopSaveTimer -= dt;
+    if (coopSaveTimer <= 0.0f) {
+        coopSaveTimer = 45.0f;
+        js::Value blob = js::Value::object();
+        blob.set("checkpoint", regionLabel);
+        blob.set("level", hero.level);
+        blob.set("discovered", hero.discovered);
+        blob.set("gold", hero.gold);
+        coop.sendCheckpoint(blob);
+    }
+}
+
+void AetheriaGame::updateCoop(float dt, float time) {
+    coop.update(dt);
+
+    if (coopMenu.visible()) {
+        coopMenu.update(dt);
+        if (coopMenu.consumeLaunch()) {
+            coopStarting = true;
+        }
+        if (coopMenu.consumeExit() && screen == AETH_PLAYING) {
+            window->setCursorLocked(true);
+        }
+    }
+
+    if (coop.phase() == COOP_LOADING && !coopReported) {
+        if (!worldReady || land.settlements().empty()) {
+            open(coop.worldSeed() ? coop.worldSeed() : 0xAE71EA1AULL);
+        }
+        coopReported = true;
+        coop.reportLoaded();
+    }
+    if (coop.phase() != COOP_LOADING) coopReported = false;
+
+    if (coopStarting && coop.playing()) {
+        coopStarting = false;
+        beginRun();
+        if (coop.spawnReady()) {
+            Vec3 point = coop.spawnPoint();
+            point.y = land.groundHeight(point.x, point.z) + 0.2f;
+            position = point;
+            velocity = Vec3(0, 0, 0);
+        }
+        screen = AETH_PLAYING;
+        window->setCursorLocked(true);
+        coopMenu.close();
+        addToast("Koop gestartet — viel Glueck!");
+    }
+
+    if (coop.consumeSpawnSignal() && coop.playing() && runStarted && coop.spawnReady()) {
+        Vec3 point = coop.spawnPoint();
+        point.y = land.groundHeight(point.x, point.z) + 0.2f;
+        position = point;
+        velocity = Vec3(0, 0, 0);
+    }
+
+    applyCoopEvents();
+    if (coop.inSession()) {
+        coop.updateRemotes(dt, time, position + Vec3(0, eyeHeight, 0));
+    }
+}
+
 void AetheriaGame::update(float dt, float time) {
     if (!running) return;
+
+    updateCoop(dt, time);
+    if (coopMenu.visible()) return;
 
     if (screen != AETH_PLAYING) {
         updateMenu(dt);
@@ -817,6 +972,9 @@ void AetheriaGame::update(float dt, float time) {
         refreshObjective();
     }
 
+    pushCoopState();
+    syncCoopWorld(dt);
+
     land.applySky(*renderer);
 
     PostParams& post = renderer->post();
@@ -854,6 +1012,7 @@ void AetheriaGame::render(float time) {
         renderer->submitLight(beam);
     }
     land.collectRender(*renderer, cam, viewDistance);
+    coop.submitRemotes(*renderer);
 
     if (weapon.valid()) {
         float t = clampf(swing / 0.42f, 0.0f, 1.0f);
@@ -1174,6 +1333,13 @@ void AetheriaGame::drawHud() {
     if (!running) return;
     float w = (float)window->width(), h = (float)window->height();
     char buf[96];
+
+    if (coopMenu.visible()) {
+        if (screen == AETH_MENU) drawMenu(w, h);
+        coopMenu.draw(menuTime);
+        return;
+    }
+    coopMenu.drawHudBadge(menuTime);
 
     if (screen == AETH_MENU) {
         drawMenu(w, h);

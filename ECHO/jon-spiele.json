@@ -1,7 +1,7 @@
 {
   "sammlung": "FelWorks Game Collection",
   "herausgeber": "FelWorks",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "bauen": "build.bat",
   "spiele": [
     {
@@ -10,12 +10,15 @@
       "genre": "Psychological Horror",
       "icon": "🕯️",
       "kurz": "Ein Krankenhaus, das sich erinnert.",
-      "beschreibung": "First-Person-Horror in einem seit Jahren geschlossenen Krankenhaus: 4 Etagen, 464 Räume, eine Regie, die auf dein Verhalten reagiert, und fünf Enden. In C++ geschrieben, ohne Engine, alle Texturen und Klänge entstehen zur Laufzeit.",
-      "steuerung": "WASD laufen · Maus umsehen · F Taschenlampe · E benutzen · Tab Tagebuch · Esc Pause",
+      "beschreibung": "First-Person-Horror in einem seit Jahren geschlossenen Krankenhaus: 4 Etagen, 464 Raeume, eine Regie, die auf dein Verhalten reagiert, und fuenf Enden. NEU: In jedem Flur wartet mindestens ein Jumpscare mit eigenem Kreaturen-Modell, H blendet den direkten Weg zum Ziel ein, und ueber einen Freundschaftscode spielt ihr das Krankenhaus zu zweit. In C++ geschrieben, ohne Engine, alle Texturen und Klaenge entstehen zur Laufzeit.",
+      "steuerung": "WASD laufen · Maus umsehen · F Taschenlampe · E benutzen · H Wegweiser zum Ziel · Tab Tagebuch · Esc Pause",
       "vorschau": "vorschau/echo.jpg",
       "exe": "bin/ECHO.exe",
-      "args": ["-play", "0"],
-      "version": "1.0.0"
+      "args": [
+        "-play",
+        "0"
+      ],
+      "version": "1.1.0"
     },
     {
       "id": "aetheria",
@@ -23,12 +26,15 @@
       "genre": "Fantasy Open World RPG",
       "icon": "🗡️",
       "kurz": "Eine Welt, die auf dich gewartet hat.",
-      "beschreibung": "Offene Fantasy-Welt mit sechs Dörfern, Bewohnern, Aufträgen, Stufenaufstieg, Tag- und Nachtwechsel und einer Weltkarte. Wald, Moor, Hochland und Schnee werden bei jedem Start neu erzeugt.",
-      "steuerung": "WASD laufen · Maus umsehen · E sprechen und sammeln · Tab Karte · Q Aufträge · F Laterne · Esc Pause",
+      "beschreibung": "Offene Fantasy-Welt mit sechs Doerfern, Bewohnern, Auftraegen, Stufenaufstieg, Tag- und Nachtwechsel und einer Weltkarte. NEU: Online-Koop ueber Freundschaftscode — zwei Reisende, eine Welt, gemeinsame Quests. Wald, Moor, Hochland und Schnee werden bei jedem Start neu erzeugt.",
+      "steuerung": "WASD laufen · Maus umsehen · E sprechen und sammeln · Tab Karte · Q Auftraege · F Laterne · Esc Pause",
       "vorschau": "vorschau/aetheria.jpg",
       "exe": "bin/ECHO.exe",
-      "args": ["-play", "1"],
-      "version": "1.0.0"
+      "args": [
+        "-play",
+        "1"
+      ],
+      "version": "1.1.0"
     }
   ]
 }

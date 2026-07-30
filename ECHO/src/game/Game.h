@@ -4,11 +4,16 @@
 #include "../render/Renderer.h"
 #include "../world/World.h"
 #include "../world/Human.h"
+#include "../world/Horror.h"
 #include "../audio/AudioEngine.h"
 #include "../ai/Director.h"
+#include "../ai/Jumpscare.h"
 #include "../ui/UIRenderer.h"
 #include "../save/SaveSystem.h"
 #include "Player.h"
+#include "Guide.h"
+#include "../net/CoopSession.h"
+#include "../net/CoopUI.h"
 #include "Flashlight.h"
 #include "Story.h"
 #include "Campaign.h"
@@ -107,6 +112,11 @@ private:
     void applyCampaignEvent(int id);
     void drawCutscene();
     void drawObjective();
+    void drawGuide();
+    void updateCoop(float dt);
+    void pushCoopState();
+    void applyCoopEvents();
+    void refreshGuideTarget();
     void drawTutorial();
     void drawWaypoint(const em::Vec3& worldPos, const em::Vec4& color, const std::string& label, bool stairs);
     void updateElevator(float dt);
@@ -161,7 +171,15 @@ private:
     World world;
     PropLibrary propLib;
     HumanRig humanRig;
+    HorrorRig horrorRig;
     Director director;
+    JumpscareDirector jumpscare;
+    RouteGuide guide;
+    CoopSession coop;
+    CoopMenu coopMenu;
+    float coopSaveTimer = 0.0f;
+    bool coopStarting = false;
+    bool coopReported = false;
     StoryDatabase story;
     Campaign campaign;
     Tutorial tutorial;
@@ -217,6 +235,11 @@ private:
     int hoverAction = UI_NONE;
     int hoverValue = -1;
     em::Vec2 mousePos;
+
+    em::Vec3 guideTargetCache;
+    std::string guideLabelCache;
+    float scareFlash = 0.0f;
+    float scareRing = 0.0f;
 
     CameraData lastCamera;
     CameraData menuCam;

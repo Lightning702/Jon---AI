@@ -47,6 +47,11 @@ enum SoundId {
     SFX_TAPE_HISS,
     SFX_CLICK,
     SFX_MUSIC_LOBBY,
+    SFX_SCREAM,
+    SFX_SCREECH,
+    SFX_SLAM_HIT,
+    SFX_BREATH_CLOSE,
+    SFX_BONE_CRACK,
     SFX_COUNT
 };
 

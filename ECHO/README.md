@@ -29,6 +29,7 @@ bin\ECHO.exe       Startet direkt
 | `-windowed` | Fenstermodus statt Vollbild |
 | `-console` | Konsole mit Log sichtbar lassen |
 | `-preset 0..3` | Grafik erzwingen (0 niedrig, 3 ultra) |
+| `-nettest <host:port> [CODE]` | Koop-Verbindung headless pruefen, Ergebnis in `echo.log` |
 
 ---
 
@@ -44,6 +45,7 @@ bin\ECHO.exe       Startet direkt
 | E / Linksklick | Interagieren |
 | Rechtsklick | Fokussieren (langsamer, ruhiger) |
 | **F** | Taschenlampe an/aus |
+| **H** | Wegweiser zum Ziel ein/aus (direkter Weg zum Aufzug bzw. Kampagnenziel) |
 | R | Batterie wechseln |
 | Tab | Tagebuch (Inventar, Dokumente, Aufnahmen) |
 | Esc | Pause |
@@ -79,12 +81,34 @@ src/render/      Renderer, Shader, Meshes, Texturen, Materialien
 src/physics/     Kollision, Physikwelt
 src/world/       Krankenhausgenerierung, Props, Charaktere
 src/audio/       WASAPI-Gerät, Synthese, 3D-Mixer
-src/ai/          Verhaltensanalyse, Regie, Mutationen, Schreckmomente
+src/ai/          Verhaltensanalyse, Regie, Mutationen, Jumpscares
+src/net/         JSON, WinSock-Client, Koop-Sitzung, Lobby-Oberflaeche
 src/ui/          Schrift, 2D-Renderer, HUD, Menüs
-src/game/        Spieler, Taschenlampe, Story, Spielschleife
+src/game/        Spieler, Taschenlampe, Story, Wegweiser, Spielschleife
 src/save/        Speicherstände
 shaders/         GLSL
 ```
+
+---
+
+## Online-Koop
+
+Beide Spiele haben einen serverautoritativen Koop ueber einen Freundschaftscode. Der
+Server ist das Jon-Backend (`start-jon.bat` oder `Jon.exe` startet es mit) und hoert auf
+TCP-Port **8759**.
+
+1. Menue **ONLINE KOOP** (ECHO) bzw. **ONLINE SPIELEN** (AETHERIA) oeffnen.
+2. **SPIEL ERSTELLEN** — der Server nennt einen 6-stelligen Code, z. B. `AB39KD`.
+3. Der andere waehlt **SPIEL BEITRETEN** und tippt den Code ein. Fuer einen fremden
+   Server: `AB39KD@meinserver.de:8759`.
+4. Gast auf **BEREIT**, Host auf **SPIEL STARTEN** — beide spawnen gleichzeitig.
+
+Technisch: 20-Hz-Snapshots mit Delta-Kompression, Interpolation mit 110 ms Puffer,
+Extrapolation bis 280 ms, Heartbeat mit Ping-Anzeige, automatischer Reconnect mit
+Backoff. Der Server prueft Bewegung und Interaktionen; unmoegliche Sprünge werden
+korrigiert. Synchronisiert werden Position, Blickrichtung, Animationszustand, Tueren,
+Lichtschalter, Items, Ernten, Dorfbesuche, Quests, Kampftreffer, der Tag-Nacht-Zyklus
+und der Checkpoint.
 
 ---
 

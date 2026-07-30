@@ -69,6 +69,26 @@ h2{text-align:center;font-size:clamp(28px,5vw,42px);font-weight:800;letter-spaci
 .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-size:13px;border-top:1px solid rgba(255,255,255,.06);margin-top:40px}
 .note{max-width:720px;margin:30px auto 0;padding:16px 20px;border-radius:14px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);font-size:13px;color:rgba(255,255,255,.65);text-align:center}
+.mp-hero{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:center;margin-top:44px}
+@media(max-width:860px){.mp-hero{grid-template-columns:1fr}}
+.mp-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.mp-steps li{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px 18px}
+.mp-steps b{display:block;margin-bottom:3px}
+.mp-steps .num{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:rgba(212,175,55,.16);border:1px solid rgba(212,175,55,.5);color:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.mp-steps p{margin:0;font-size:14px;color:rgba(255,255,255,.62);line-height:1.5}
+.mp-card{border-radius:20px;background:rgba(8,11,20,.72);border:1px solid rgba(212,175,55,.32);padding:22px 24px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.mp-code{display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(212,175,55,.09);border:1px dashed rgba(212,175,55,.5);border-radius:14px;padding:14px 18px;margin-bottom:16px}
+.mp-code small{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:3px}
+.mp-code b{font-size:30px;letter-spacing:9px;color:var(--gold-light)}
+.mp-row{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.045);margin-bottom:8px;font-size:14px}
+.mp-dot{width:9px;height:9px;border-radius:50%;background:#8fe28f;flex:0 0 auto}
+.mp-row .who{flex:1;font-weight:600}
+.mp-tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:rgba(143,226,143,.16);color:#a8e9b4;border:1px solid rgba(143,226,143,.35)}
+.mp-row .ms{font-size:12px;color:rgba(255,255,255,.4);font-variant-numeric:tabular-nums}
+.mp-feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;margin-top:34px}
+.mp-feat div{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px 18px}
+.mp-feat h4{margin:0 0 6px;font-size:15px}
+.mp-feat p{margin:0;font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.55}
 .games{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;margin-top:48px}
 .game{border-radius:20px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);transition:transform .2s,border-color .2s}
 .game:hover{transform:translateY(-4px);border-color:rgba(212,175,55,.3)}
@@ -120,6 +140,7 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 <a href="#install">Installation</a>
 <a href="#app">Handy-App</a>
 <a href="#games">Spiele</a>
+<a href="#multiplayer">Koop</a>
 <a href="#about">Über mich</a>
 <a href="#download">Download</a>
 <a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
@@ -155,7 +176,7 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 
 <section id="features">
 <h2>Was Jon <span class="gold">kann</span></h2>
-<p class="sub">Nicht nur ein Chat — ein echter Assistent, der handelt. Neu in v3.32.0: Jon Code bleibt im geöffneten Projektordner und schreibt direkt in die Datei, die du nennst — und Jon baut dir fertige PowerPoint-Präsentationen.</p>
+<p class="sub">Nicht nur ein Chat — ein echter Assistent, der handelt. Neu in v3.33.0: <b>Online-Multiplayer</b> für alle drei Spiele — Freundschaftscode eingeben und zu zweit spielen. Dazu neue Jumpscares in ECHO und ein Wegweiser auf Tastendruck.</p>
 <div class="grid">
 <div class="card"><div class="ic">🙂</div><h3>Mini Jon</h3><p>Jons kleiner Sohn <b>Emil</b> lebt als niedlicher Kreis auf deinem Bildschirm — immer da, beim Hochfahren schon wach. Sag „Emil" oder „Mini Jon", er hört durchgehend zu, redet mit dir (mit lippensynchronem Mund), merkt sich euer Gespräch und kann alles, was Jon kann. Auch fürs Handy verfügbar. Farben und Gesicht frei anpassbar.</p></div>
 <div class="card"><div class="ic">👨‍💻</div><h3>Jon Code</h3><p>Ein Coding-Agent wie in einem Editor: Dateibaum, Code-Editor und Jon, der <b>ausschließlich im geöffneten Projektordner</b> arbeitet. Sag „schreib mir in index.html ein Login-Formular" — der Code landet direkt in dieser Datei, modern gestaltet mit Liquid Glass statt grauem Standard.</p></div>
@@ -172,7 +193,7 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 <div class="card"><div class="ic">📚</div><h3>Skills &amp; eigenes Prompt</h3><p>Bearbeitbare Anleitungen (Web-Design, PowerPoint, Spiele …) und ein eigenes System-Prompt — bring Jon deine Arbeitsweise bei.</p></div>
 <div class="card"><div class="ic">🔑</div><h3>Konten &amp; Modelle</h3><p>OpenAI, Anthropic, Gemini, OpenRouter, Groq, xAI &amp; mehr per API-Key. Jon erkennt alle Modelle automatisch.</p></div>
 <div class="card"><div class="ic">📊</div><h3>Nutzung /usage</h3><p>Sieh real gemessene Tokens, Anfragen und Antwortzeiten pro Anbieter.</p></div>
-<div class="card"><div class="ic">🕹️</div><h3>Spiele eingebaut</h3><p>Die <a href="#games" style="color:var(--gold-light)">FelWorks Game Collection</a> gehört dazu: <b>ECHO</b> (Horror), <b>AETHERIA</b> (Open-World-RPG) und die <b>Blockwelt</b>. Zu finden unter Werkzeuge → Spiele, gestartet wird erst auf Klick.</p></div>
+<div class="card"><div class="ic">🕹️</div><h3>Spiele eingebaut</h3><p>Die <a href="#games" style="color:var(--gold-light)">FelWorks Game Collection</a> gehört dazu: <b>ECHO</b> (Horror), <b>AETHERIA</b> (Open-World-RPG) und die <b>Blockwelt</b>. Zu finden unter Werkzeuge → Spiele, gestartet wird erst auf Klick. Alle drei haben jetzt <a href="#multiplayer" style="color:var(--gold-light)">Online-Koop</a> über Freundschaftscode.</p></div>
 <div class="card"><div class="ic">📱</div><h3>Handy-App</h3><p>Chatten, Apps öffnen, teilen, vorlesen, zuhören und Bilder analysieren — mit eigenem API-Key.</p></div>
 </div>
 </section>
@@ -223,8 +244,8 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <div class="body">
 <h3>🕯️ ECHO</h3>
 <div class="genre">Psychological Horror · FelWorks</div>
-<p>First-Person-Horror in einem seit Jahren geschlossenen Krankenhaus: 4 Etagen, 464 Räume, eine Regie, die auf dein Verhalten reagiert, und fünf Enden. In C++ geschrieben, ohne Engine — Texturen, Räume und Klänge entstehen zur Laufzeit.</p>
-<div class="keys">WASD laufen · Maus umsehen · F Taschenlampe · Tab Tagebuch</div>
+<p>First-Person-Horror in einem seit Jahren geschlossenen Krankenhaus: 4 Etagen, 464 Räume, eine Regie, die auf dein Verhalten reagiert, und fünf Enden. <b>Neu:</b> in jedem Flur wartet mindestens ein Jumpscare mit eigenem Kreaturen-Modell, <b>H</b> blendet den direkten Weg zum Ziel ein — und zu zweit im Koop.</p>
+<div class="keys">WASD laufen · F Taschenlampe · H Wegweiser · Tab Tagebuch · 👥 Online-Koop</div>
 </div>
 </div>
 <div class="game">
@@ -232,21 +253,47 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <div class="body">
 <h3>🗡️ AETHERIA</h3>
 <div class="genre">Fantasy Open World RPG · FelWorks</div>
-<p>Offene Fantasy-Welt mit sechs Dörfern, Bewohnern, Aufträgen, Stufenaufstieg, Tag- und Nachtwechsel und einer Weltkarte. Wald, Moor, Hochland und Schnee werden bei jedem Start neu erzeugt.</p>
-<div class="keys">WASD laufen · E sprechen &amp; sammeln · Tab Karte · Q Aufträge</div>
+<p>Offene Fantasy-Welt mit sechs Dörfern, Bewohnern, Aufträgen, Stufenaufstieg, Tag- und Nachtwechsel und einer Weltkarte. <b>Neu:</b> Online-Koop über Freundschaftscode — zwei Reisende, eine Welt, gemeinsame Quests und ein geteilter Tag-Nacht-Zyklus.</p>
+<div class="keys">WASD laufen · E sprechen &amp; sammeln · Tab Karte · Q Aufträge · 👥 Online-Koop</div>
 </div>
 </div>
 <div class="game">
 <img src="spiele/block.png" alt="Screenshot aus der Blockwelt" loading="lazy">
 <div class="body">
-<h3>🧱 Blockwelt</h3>
+<h3><img src="spiele/blockwelt-icon-192.png" alt="" width="26" height="26" style="width:26px;height:26px;display:inline-block;border-radius:7px;vertical-align:-5px;margin-right:8px" loading="lazy">Blockwelt</h3>
 <div class="genre">Sandbox im Browser · FelWorks</div>
-<p>Die Voxel-Sandbox, in der Jon selbst mitspielt: Drück T und sag ihm, was er bauen soll — Häuser, Türme, Brücken, ein ganzes Dorf. Er läuft hin und setzt Block für Block.</p>
-<div class="keys">WASD laufen · Leertaste springen · T mit Jon reden</div>
+<p>Die Voxel-Sandbox, in der Jon selbst mitspielt: Drück T und sag ihm, was er bauen soll — Häuser, Türme, Brücken, ein ganzes Dorf. <b>Neu:</b> „Online spielen“ öffnet eine Lobby, dein Freund tritt mit dem Code bei und ihr baut dieselbe Welt gemeinsam um.</p>
+<div class="keys">WASD laufen · Leertaste springen · Strg ducken · T mit Jon reden · Z Chat · 👥 Online-Koop</div>
 </div>
 </div>
 </div>
 <div class="note">Alle drei Spiele sind im Download enthalten und starten erst, wenn du in Jon auf <b>Starten</b> klickst. ECHO und AETHERIA öffnen sich in einem eigenen Fenster, die Blockwelt in einem neuen Tab.</div>
+</section>
+
+<section id="multiplayer">
+<h2>Zusammen <span class="gold">spielen</span></h2>
+<p class="sub">Neu in v3.33.0: ECHO, AETHERIA und die Blockwelt haben einen echten Online-Koop — serverautoritativ, mit Freundschaftscode, Lobby, Ping-Anzeige und automatischem Reconnect. Der Server ist Jon selbst: er läuft schon, wenn du <b>start-jon.bat</b> oder die <b>Jon.exe</b> startest.</p>
+<div class="mp-hero">
+<ol class="mp-steps">
+<li><span class="num">1</span><div><b>Spiel erstellen</b><p>Ein Klick — der Server legt eine Lobby an und würfelt einen 6-stelligen Freundschaftscode.</p></div></li>
+<li><span class="num">2</span><div><b>Code weitergeben</b><p>Zum Beispiel <b style="color:var(--gold-light);letter-spacing:3px">AB39KD</b>. Für Spiele über das Internet reicht <b>AB39KD@meinserver.de</b> — Code und Adresse in einem Feld.</p></div></li>
+<li><span class="num">3</span><div><b>Beitreten und bereit</b><p>Dein Freund gibt den Code ein, setzt sich auf „Bereit“, der Host startet — beide spawnen gleichzeitig in dieselbe Welt.</p></div></li>
+</ol>
+<div class="mp-card">
+<div class="mp-code"><div><small>Freundschaftscode</small><b>AB39KD</b></div><span class="mp-tag">Lobby offen</span></div>
+<div class="mp-row"><span class="mp-dot"></span><span class="who">Felix</span><span class="mp-tag">Host</span><span class="ms">14 ms</span></div>
+<div class="mp-row"><span class="mp-dot"></span><span class="who">Jonas</span><span class="mp-tag">Bereit</span><span class="ms">28 ms</span></div>
+<div class="mp-row" style="opacity:.45"><span class="mp-dot" style="background:#3a4152"></span><span class="who">Freier Platz</span></div>
+</div>
+</div>
+<div class="mp-feat">
+<div><h4>🌍 Weltweit, nicht nur LAN</h4><p>Im Heimnetz reicht die LAN-Adresse. Übers Internet: Portfreigabe für <b>8756</b> (Browser) und <b>8759</b> (ECHO/AETHERIA) — oder ein öffentlich erreichbarer Jon-Server, dann genügt der Code allein.</p></div>
+<div><h4>🛡️ Server hat das letzte Wort</h4><p>Positionen, Blöcke, Türen, Rätsel, Quests und der Spielstand werden serverseitig geprüft. Wer sich unmöglich bewegt, wird zurückgesetzt — Items lassen sich nicht herbeizaubern.</p></div>
+<div><h4>🎯 Flüssig statt ruckelig</h4><p>Delta-komprimierte Snapshots mit 20 Hz, Interpolation, Client-Prediction und Lag-Kompensation. Keine Teleports, kein Gummiband.</p></div>
+<div><h4>🔌 Verbindung abgerissen?</h4><p>Heartbeat, Ping, Paketverlust-Anzeige und automatischer Reconnect. Deine Sitzung bleibt auf dem Server erhalten — auch wenn Jon neu startet.</p></div>
+<div><h4>🧑‍🤝‍🧑 Eigener Charakter</h4><p>Jeder bekommt eine eigene PlayerID, ein eigenes Modell und ein Namensschild mit Ping. Laufen, rennen, ducken, springen, fallen, angreifen — alles synchron.</p></div>
+<div><h4>🧱 Gemeinsame Welt</h4><p>Ein Blockwechsel, eine Tür, ein Hebel, ein gelöstes Rätsel, ein NPC-Gespräch: was einer tut, sieht der andere sofort. Auch Jons Bauaufträge in der Blockwelt.</p></div>
+</div>
 </section>
 
 <section id="about">
@@ -285,7 +332,7 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <a href="agb.html">AGB</a>
 <button class="cookie-link" onclick="jonShowCookieBanner()">Cookie-Einstellungen</button>
 </div>
-<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.32.0 · Läuft lokal auf deinem Rechner</div>
+<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.33.0 · Läuft lokal auf deinem Rechner</div>
 </footer>
 
 <div id="cookie-banner" role="dialog" aria-label="Cookie-Hinweis">

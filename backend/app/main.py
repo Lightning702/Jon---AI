@@ -12,6 +12,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.api.multiplayer_routes import MP_TCP_PORT
+from app.api.multiplayer_routes import router as multiplayer_router
 from app.api.p2p_routes import create_chat_app
 from app.api.p2p_routes import router as p2p_router
 from app.api.routes import accounts, providers, router
@@ -218,9 +220,19 @@ async def _chat_server() -> None:
         return
 
 
+async def _multiplayer_server() -> None:
+    from app.services.multiplayer_service import get_multiplayer_service
+
+    service = get_multiplayer_service()
+    await service.start()
+    await service.serve_stream("0.0.0.0", MP_TCP_PORT)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("STEP init_db", flush=True)
     init_db()
+    print("STEP init_db ok", flush=True)
     from app.services.trash_service import get_trash_service
 
     with suppress(Exception):
@@ -228,6 +240,7 @@ async def lifespan(app: FastAPI):
     from app.services.p2p_service import get_p2p_service
 
     p2p = get_p2p_service()
+    print("STEP p2p service ok", flush=True)
     warmup = asyncio.create_task(_warm_caches())
     dream_task = asyncio.create_task(_dream_watcher())
     clipboard_task = asyncio.create_task(_clipboard_watcher())
@@ -241,6 +254,7 @@ async def lifespan(app: FastAPI):
     autofile_task = asyncio.create_task(_autofile_watcher())
     appusage_task = asyncio.create_task(_appusage_watcher())
     chat_task = asyncio.create_task(_chat_server())
+    multiplayer_task = asyncio.create_task(_multiplayer_server())
     announce_task = asyncio.create_task(p2p.announce_loop())
     listen_task = asyncio.create_task(p2p.listen_loop())
 
@@ -253,8 +267,10 @@ async def lifespan(app: FastAPI):
 
     from app.services.relay_service import get_relay_service
 
+    print("STEP tasks ok", flush=True)
     relay_task = asyncio.create_task(get_relay_service().start())
     outbox_task = asyncio.create_task(p2p.outbox_loop())
+    print("STEP vor yield", flush=True)
     yield
     relay_task.cancel()
     outbox_task.cancel()
@@ -271,6 +287,7 @@ async def lifespan(app: FastAPI):
     autofile_task.cancel()
     appusage_task.cancel()
     chat_task.cancel()
+    multiplayer_task.cancel()
     announce_task.cancel()
     listen_task.cancel()
 
@@ -292,6 +309,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(system_router)
     app.include_router(p2p_router)
+    app.include_router(multiplayer_router)
 
     from pathlib import Path
 
