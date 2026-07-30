@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import asyncio
 import json
-import socket
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -10,6 +10,14 @@ from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
+from app.services.coop_lan_service import (
+    DISCOVERY_PORT,
+    ensure_firewall,
+    firewall_state,
+    interfaces,
+    invite_host,
+    local_addresses,
+)
 from app.services.multiplayer_service import (
     GAMES,
     PROTOCOL_VERSION,
@@ -21,6 +29,7 @@ router = APIRouter(prefix="/api/mp", tags=["multiplayer"])
 
 MP_TCP_PORT = 8759
 MP_WS_PORT = 8760
+MP_UDP_PORT = DISCOVERY_PORT
 GAME_PAGE = Path(__file__).resolve().parents[1] / "static" / "blockwelt.html"
 
 
@@ -39,24 +48,6 @@ class JoinIn(BaseModel):
     model: str = "default"
 
 
-def _local_addresses() -> list[str]:
-    hosts: list[str] = []
-    try:
-        hostname = socket.gethostname()
-        for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
-            address = info[4][0]
-            if address not in hosts and not address.startswith("127."):
-                hosts.append(address)
-    except Exception:
-        pass
-    return hosts
-
-
-def _invite_host() -> str:
-    addresses = _local_addresses()
-    return addresses[0] if addresses else "127.0.0.1"
-
-
 @router.get("/status")
 async def mp_status() -> dict:
     settings = get_settings()
@@ -66,10 +57,11 @@ async def mp_status() -> dict:
         "version": settings.app_version,
         "tcp_port": MP_TCP_PORT,
         "ws_port": MP_WS_PORT,
+        "udp_port": MP_UDP_PORT,
         "http_port": settings.port,
         "lan": settings.jon_lan,
-        "addresses": _local_addresses(),
-        "invite_host": _invite_host(),
+        "addresses": local_addresses(),
+        "invite_host": invite_host(),
     }
 
 
@@ -82,17 +74,82 @@ async def mp_info() -> dict:
         "http_port": settings.port,
         "tcp_port": MP_TCP_PORT,
         "ws_port": MP_WS_PORT,
-        "addresses": _local_addresses(),
-        "invite_host": _invite_host(),
+        "udp_port": MP_UDP_PORT,
+        "addresses": local_addresses(),
+        "invite_host": invite_host(),
+        "firewall": await asyncio.to_thread(firewall_state),
         "hint": (
-            "Weltweit spielen: Der Gastgeber gibt CODE@adresse weiter. Der "
-            f"Koop-Port {MP_WS_PORT} (Browser) und {MP_TCP_PORT} "
-            "(ECHO/AETHERIA) sind im Netzwerk erreichbar, ohne dass der Rest "
-            "von Jon offen ist. Ueber das Internet braucht der Gastgeber eine "
-            "Portfreigabe fuer diese zwei Ports. Im Beitrittsfeld sind CODE "
-            "und CODE@host:port erlaubt."
+            "Im gleichen Netzwerk reicht der Freundschaftscode: Jon sucht den "
+            "Gastgeber selbst und verbindet dorthin. Von aussen geht "
+            f"CODE@adresse — Browser ueber Port {MP_WS_PORT}, ECHO und AETHERIA "
+            f"ueber {MP_TCP_PORT}. Ueber das Internet braucht der Gastgeber eine "
+            "Portfreigabe fuer diese zwei Ports."
         ),
     }
+
+
+@router.get("/network")
+async def mp_network(refresh: bool = False) -> dict:
+    from app.services.coop_lan_service import get_coop_beacon
+
+    settings = get_settings()
+    beacon = get_coop_beacon()
+    return {
+        "addresses": local_addresses(),
+        "invite_host": invite_host(),
+        "interfaces": interfaces(),
+        "discovery": beacon.online,
+        "findable": beacon.findable,
+        "tcp_port": MP_TCP_PORT,
+        "ws_port": MP_WS_PORT,
+        "udp_port": MP_UDP_PORT,
+        "http_port": settings.port,
+        "firewall": await asyncio.to_thread(firewall_state, refresh),
+    }
+
+
+@router.post("/firewall")
+async def mp_firewall() -> dict:
+    result = await asyncio.to_thread(
+        ensure_firewall, [MP_TCP_PORT, MP_WS_PORT], [MP_UDP_PORT]
+    )
+    state = await asyncio.to_thread(firewall_state, True)
+    return {**result, "firewall": state}
+
+
+@router.get("/find/{code}")
+async def mp_find(code: str) -> dict:
+    service = get_multiplayer_service()
+    wanted = str(code or "").strip().upper()
+    if service.knows_code(wanted):
+        return {
+            "where": "local",
+            "code": wanted,
+            "lobby": service.lobby_info(wanted),
+            **service.invite_info(wanted),
+        }
+    remote = await service.find_remote(wanted)
+    if remote is None:
+        raise HTTPException(status_code=404, detail="Code nicht gefunden")
+    return {"where": "remote", "code": wanted, **remote}
+
+
+@router.get("/scan")
+async def mp_scan() -> dict:
+    service = get_multiplayer_service()
+    found = await service.scan_remote()
+    local = [
+        {
+            **entry,
+            "host": "127.0.0.1",
+            "tcp_port": MP_TCP_PORT,
+            "ws_port": MP_WS_PORT,
+            "origin": "",
+            "local": True,
+        }
+        for entry in service.beacon_list()
+    ]
+    return {"lobbies": local + found}
 
 
 @router.post("/create")
@@ -115,6 +172,10 @@ async def mp_create(payload: CreateIn) -> dict:
 @router.post("/join")
 async def mp_join(payload: JoinIn) -> dict:
     service = get_multiplayer_service()
+    if not service.knows_code(payload.code):
+        remote = await service.find_remote(payload.code)
+        if remote is not None:
+            return {"redirect": remote}
     try:
         lobby, member = service.join_lobby(payload.code, payload.name, payload.model)
     except ValueError as error:

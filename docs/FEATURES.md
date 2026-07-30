@@ -89,8 +89,12 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Aktionsprotokoll aller Tool-Aufrufe mit Quelle; `/log` mit Filter; Abwesenheits-Bericht
   im Briefing
 - Mit `JON_LAN=1` ist Jon für Handy und Smartwatch im eigenen WLAN erreichbar
-- Der Online-Koop hat eigene Ports (8760 Browser, 8759 ECHO/AETHERIA), die im Netzwerk
-  offen sind — ohne dass Chat, Dateien oder PC-Steuerung (8756) das Gerät verlassen
+- Der Online-Koop hat eigene Ports (8760 Browser, 8759 ECHO/AETHERIA, UDP 8761 für die
+  Lobby-Suche), die im Netzwerk offen sind — ohne dass Chat, Dateien oder PC-Steuerung
+  (8756) das Gerät verlassen
+- Im Heimnetz genügt der Freundschaftscode: Kennt das Jon des Gastes den Code nicht,
+  sucht es den Gastgeber per Broadcast und leitet den Spieler direkt dorthin weiter
+  (`redirect`); fehlende Firewall-Regeln legt ein Knopf in der Lobby an
 - Jon beenden schließt auch das Backend — über `POST /api/system/shutdown` auch dann,
   wenn es aus `start-jon.bat` oder dem Autostart kam und die App es nicht selbst
   gestartet hat; ein Parent-Watchdog (`JON_PARENT_PID`) fährt es selbst dann herunter,

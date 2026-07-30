@@ -237,6 +237,21 @@ async def _multiplayer_server() -> None:
         return
 
 
+async def _coop_beacon() -> None:
+    from app.services.coop_lan_service import DISCOVERY_PORT, get_coop_beacon
+    from app.services.multiplayer_service import get_multiplayer_service
+
+    beacon = get_coop_beacon()
+    beacon.bind(get_multiplayer_service(), MP_TCP_PORT, MP_WS_PORT)
+    try:
+        await beacon.serve(MP_TCP_PORT, MP_WS_PORT)
+    except asyncio.CancelledError:
+        raise
+    except (SystemExit, Exception):
+        print(f"Koop-Suche auf {DISCOVERY_PORT} nicht moeglich", flush=True)
+        return
+
+
 async def _coop_web_server() -> None:
     config = uvicorn.Config(
         create_coop_app(),
@@ -317,6 +332,7 @@ async def lifespan(app: FastAPI):
     chat_task = asyncio.create_task(_chat_server())
     multiplayer_task = asyncio.create_task(_multiplayer_server())
     coop_web_task = asyncio.create_task(_coop_web_server())
+    coop_beacon_task = asyncio.create_task(_coop_beacon())
     watchdog_task = asyncio.create_task(_parent_watchdog())
     announce_task = asyncio.create_task(p2p.announce_loop())
     listen_task = asyncio.create_task(p2p.listen_loop())
@@ -352,6 +368,7 @@ async def lifespan(app: FastAPI):
     chat_task.cancel()
     multiplayer_task.cancel()
     coop_web_task.cancel()
+    coop_beacon_task.cancel()
     watchdog_task.cancel()
     announce_task.cancel()
     listen_task.cancel()

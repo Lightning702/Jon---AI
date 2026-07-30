@@ -640,6 +640,186 @@ def test_zweiter_versuch_auf_derselben_leitung_klappt(service):
     asyncio.run(run())
 
 
+def _lan_module():
+    from app.services import coop_lan_service as lan
+
+    return lan
+
+
+def _fake_cards(monkeypatch, cards):
+    lan = _lan_module()
+    monkeypatch.setattr(lan, "_cache", {"at": 0.0, "items": []})
+    monkeypatch.setattr(lan, "_windows_interfaces", lambda: list(cards))
+    monkeypatch.setattr(lan, "_fallback_interfaces", lambda: list(cards))
+    return lan
+
+
+def test_lan_adresse_bevorzugt_echte_netzwerkkarte(monkeypatch):
+    cards = [
+        {"ip": "192.168.56.1", "prefix": 24, "name": "Ethernet 3", "type": 6, "up": True,
+         "gateway": "", "dhcp": False},
+        {"ip": "10.2.0.2", "prefix": 32, "name": "ProTUN", "type": 53, "up": True,
+         "gateway": "", "dhcp": False},
+        {"ip": "10.0.0.253", "prefix": 24, "name": "WLAN", "type": 71, "up": True,
+         "gateway": "10.0.0.138", "dhcp": True},
+        {"ip": "192.168.176.1", "prefix": 20, "name": "vEthernet (Default Switch)", "type": 6,
+         "up": True, "gateway": "", "dhcp": False},
+    ]
+    lan = _fake_cards(monkeypatch, cards)
+
+    assert lan.invite_host() == "10.0.0.253"
+    assert lan.local_addresses()[0] == "10.0.0.253"
+    assert lan.address_for_peer("10.0.0.42") == "10.0.0.253"
+    assert lan.address_for_peer("192.168.56.9") == "192.168.56.1"
+    assert "10.0.0.255" in lan.broadcast_targets()
+    assert "255.255.255.255" in lan.broadcast_targets()
+
+
+def test_beacon_findet_lobby_und_listet_offene_spiele(monkeypatch, tmp_path):
+    lan = _lan_module()
+    monkeypatch.setattr(lan, "DISCOVERY_PORT", 8791)
+    monkeypatch.setattr(lan, "broadcast_targets", lambda: ["127.0.0.1"])
+    monkeypatch.setattr(lan, "address_for_peer", lambda peer: "127.0.0.1")
+    monkeypatch.setattr(lan, "local_addresses", lambda: ["127.0.0.1"])
+    monkeypatch.setattr(mp, "MP_DIR", tmp_path / "multiplayer")
+
+    gastgeber = mp.MultiplayerService()
+    gast = mp.MultiplayerService()
+    lobby, _ = gastgeber.create_lobby("echo", "Felix", max_players=4)
+
+    async def run():
+        server = lan.CoopBeacon()
+        client = lan.CoopBeacon()
+        server.bind(gastgeber, 8759, 8760)
+        client.bind(gast, 8759, 8760)
+        tasks = [
+            asyncio.create_task(server.serve(8759, 8760)),
+            asyncio.create_task(client.serve(8759, 8760)),
+        ]
+        await asyncio.sleep(0.3)
+        try:
+            assert server.online and client.online
+            found = await client.find(lobby.code, timeout=3.0)
+            assert found is not None
+            assert found["code"] == lobby.code
+            assert found["tcp_port"] == 8759
+            assert found["ws_port"] == 8760
+            assert found["origin"] == "http://127.0.0.1:8760"
+            assert found["host_name"] == "Felix"
+
+            assert await client.find("ZZZZZZ", timeout=0.8) is None
+
+            offen = await client.scan(timeout=1.0)
+            assert [entry["code"] for entry in offen] == [lobby.code]
+        finally:
+            for task in tasks:
+                task.cancel()
+
+    asyncio.run(run())
+
+
+def test_join_wird_zum_gastgeber_im_netzwerk_weitergeleitet(service, monkeypatch):
+    async def fake_find(code, timeout=1.8):
+        assert code == "AB39KD"
+        return {
+            "code": "AB39KD",
+            "host": "10.0.0.7",
+            "tcp_port": 8759,
+            "ws_port": 8760,
+            "origin": "http://10.0.0.7:8760",
+        }
+
+    monkeypatch.setattr(service, "find_remote", fake_find)
+
+    async def run():
+        transport = FakeTransport()
+        assert await service.handshake({"t": "join", "code": "AB39KD"}, transport) is None
+        weiter = transport.last("redirect")
+        assert weiter["host"] == "10.0.0.7"
+        assert weiter["tcp_port"] == 8759
+        assert weiter["ws_port"] == 8760
+        assert transport.redirected is True
+        assert transport.last("error") is None
+
+    asyncio.run(run())
+
+
+def test_ohne_netzwerkfund_bleibt_es_beim_fehler(service):
+    async def run():
+        transport = FakeTransport()
+        assert await service.handshake({"t": "join", "code": "ZZZZZZ"}, transport) is None
+        assert transport.last("redirect") is None
+        assert transport.last("error")["code"] == "join"
+        assert transport.redirected is False
+
+    asyncio.run(run())
+
+
+def test_welcome_nennt_einladung_mit_adresse(service, monkeypatch):
+    lan = _lan_module()
+    monkeypatch.setattr(lan, "invite_host", lambda: "10.0.0.253")
+    monkeypatch.setattr(lan, "local_addresses", lambda: ["10.0.0.253"])
+
+    async def run():
+        transport = FakeTransport()
+        lobby, host = service.create_lobby("blockwelt", "Host")
+        await service.attach(lobby, host, transport)
+        welcome = transport.last("welcome")
+        assert welcome["invite"] == f"{lobby.code}@10.0.0.253:8760"
+        assert welcome["invite_tcp"] == f"{lobby.code}@10.0.0.253:8759"
+        assert welcome["addresses"] == ["10.0.0.253"]
+
+    asyncio.run(run())
+
+
+def test_such_und_netzwerk_endpunkte(monkeypatch, tmp_path):
+    import httpx
+
+    monkeypatch.setattr(mp, "MP_DIR", tmp_path / "multiplayer")
+    monkeypatch.setattr(mp, "_service", None, raising=False)
+
+    from app.api import multiplayer_routes as routes
+
+    monkeypatch.setattr(
+        routes, "firewall_state", lambda refresh=False: {"supported": True, "ok": False, "rules": []}
+    )
+    monkeypatch.setattr(routes, "local_addresses", lambda: ["10.0.0.253"])
+    monkeypatch.setattr(routes, "invite_host", lambda: "10.0.0.253")
+
+    app = routes.create_coop_app()
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            created = await client.post("/api/mp/create", json={"game": "echo", "name": "Host"})
+            code = created.json()["code"]
+
+            hier = await client.get(f"/api/mp/find/{code}")
+            assert hier.status_code == 200
+            assert hier.json()["where"] == "local"
+            assert hier.json()["invite"].endswith("@10.0.0.253:8760")
+
+            assert (await client.get("/api/mp/find/ZZZZZZ")).status_code == 404
+
+            scan = (await client.get("/api/mp/scan")).json()["lobbies"]
+            assert [entry["code"] for entry in scan] == [code]
+            assert scan[0]["local"] is True
+
+            netz = (await client.get("/api/mp/network")).json()
+            assert netz["firewall"]["ok"] is False
+            assert netz["udp_port"] == routes.MP_UDP_PORT
+            assert netz["addresses"] == ["10.0.0.253"]
+
+    asyncio.run(run())
+
+
+def test_koop_ports_sind_alle_verschieden():
+    from app.api.multiplayer_routes import MP_TCP_PORT, MP_UDP_PORT, MP_WS_PORT
+    from app.core.config import get_settings
+
+    assert len({get_settings().port, MP_TCP_PORT, MP_WS_PORT, MP_UDP_PORT}) == 4
+
+
 def test_spielprofile_grenzen_sich_ab():
     assert set(mp.GAMES) == {"blockwelt", "aetheria", "echo"}
     assert mp.GAMES["blockwelt"].edit_range >= 8.0

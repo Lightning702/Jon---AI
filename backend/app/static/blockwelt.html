@@ -1362,7 +1362,8 @@ enabled:false,sock:null,origin:'',intent:null,token:'',playerId:'',lobby:null,
 phase:'offline',seed:1337,spawn:null,world:new Map(),remotes:new Map(),
 timeOffset:0,ping:0,loss:0,ack:0,evCursor:0,sendAcc:0,npcAcc:0,tries:0,retryAt:0,
 error:'',syncText:'',dirty:new Set(),flushAcc:0,batch:[],lastSent:null,
-correction:null,corrections:0,manualClose:false,wsPort:MP_WS_PORT,inviteHost:''
+correction:null,corrections:0,manualClose:false,wsPort:MP_WS_PORT,inviteHost:'',
+invite:'',firewall:null,found:[],scanning:false,resolving:false
 };
 
 function paletteFor(id){
@@ -1397,6 +1398,7 @@ return{code,origin};
 }
 function inviteText(){
 if(!NET.lobby)return '';
+if(NET.invite)return NET.invite;
 const host=NET.inviteHost||location.hostname||'127.0.0.1';
 return NET.lobby.code+'@'+host+':'+NET.wsPort;
 }
@@ -1407,8 +1409,60 @@ if(!res.ok)return;
 const info=await res.json();
 if(info.ws_port)NET.wsPort=info.ws_port;
 if(info.invite_host)NET.inviteHost=info.invite_host;
+if(info.firewall)NET.firewall=info.firewall;
 renderMp();
 }catch(e){}
+}
+async function refreshFirewall(){
+try{
+const res=await fetch('/api/mp/network?refresh=true');
+if(!res.ok)return;
+const info=await res.json();
+if(info.firewall)NET.firewall=info.firewall;
+if(info.invite_host)NET.inviteHost=info.invite_host;
+renderMp();
+}catch(e){}
+}
+async function openFirewall(){
+try{
+const res=await fetch('/api/mp/firewall',{method:'POST'});
+if(res.ok){const data=await res.json();if(data.firewall)NET.firewall=data.firewall;}
+}catch(e){}
+renderMp();
+setTimeout(refreshFirewall,4000);
+}
+async function scanLan(){
+if(NET.scanning)return;
+NET.scanning=true;
+renderMp();
+try{
+const res=await fetch('/api/mp/scan');
+NET.found=res.ok?((await res.json()).lobbies||[]):[];
+}catch(e){NET.found=[];}
+NET.scanning=false;
+renderMp();
+}
+async function resolveOrigin(code){
+try{
+const res=await fetch('/api/mp/find/'+encodeURIComponent(code));
+if(!res.ok)return '';
+const data=await res.json();
+if(data.where==='remote')return data.origin||('http://'+data.host+':'+(data.ws_port||NET.wsPort));
+}catch(e){}
+return '';
+}
+async function startJoin(code,origin){
+NET.error='';
+if(origin){netConnect({mode:'join',code,origin,name:mpName||'Spieler 2',model:'blau'});return;}
+NET.resolveId=(NET.resolveId||0)+1;
+const ticket=NET.resolveId;
+NET.resolving=true;
+NET.phase='connecting';
+renderMp();
+const found=await resolveOrigin(code);
+if(ticket!==NET.resolveId)return;
+NET.resolving=false;
+netConnect({mode:'join',code,origin:found,name:mpName||'Spieler 2',model:'blau'});
 }
 
 function netSend(msg){
@@ -1481,6 +1535,8 @@ sock.onerror=()=>{};
 function netLeave(){
 NET.manualClose=true;
 NET.enabled=false;
+NET.resolveId=(NET.resolveId||0)+1;
+NET.resolving=false;
 try{netSend({t:'leave'});}catch(e){}
 netDropSocket();
 NET.phase='offline';
@@ -1502,11 +1558,23 @@ netConnect({mode:'resume',name:NET.intent&&NET.intent.name,model:NET.intent&&NET
 
 function handleNet(msg){
 const t=msg.t;
+if(t==='redirect'){
+const port=msg.ws_port||NET.wsPort;
+const origin=msg.origin||(msg.host?'http://'+msg.host+':'+port:'');
+if(!origin){NET.phase='error';NET.error='Gastgeber nicht erreichbar.';renderMp();return;}
+const code=(msg.code||(NET.intent&&NET.intent.code)||'').toUpperCase();
+NET.error='';
+netConnect({mode:'join',code,origin,name:(NET.intent&&NET.intent.name)||mpName||'Spieler 2',model:(NET.intent&&NET.intent.model)||'blau'});
+return;
+}
 if(t==='welcome'){
 NET.enabled=true;
 NET.token=msg.token||NET.token;
 NET.playerId=msg.player_id;
 NET.lobby=msg.lobby;
+NET.invite=msg.invite||'';
+if(msg.ws_port)NET.wsPort=msg.ws_port;
+if(msg.invite_host)NET.inviteHost=msg.invite_host;
 NET.spawn=msg.spawn;
 NET.seed=msg.lobby&&msg.lobby.seed||NET.seed;
 NET.phase=NET.lobby&&NET.lobby.phase==='playing'?'loading':'lobby';
@@ -2153,7 +2221,7 @@ if(mpOverlay.className!=='on')return;
 let html='';
 const err=NET.error?'<p class="mperr">'+escapeHtml(NET.error)+'</p>':'<p class="mperr"></p>';
 if(NET.phase==='connecting'){
-html='<h2>VERBINDE</h2><p class="sub">Suche die Lobby …</p><div class="mpspin"></div>'+err+
+html='<h2>VERBINDE</h2><p class="sub">'+(NET.resolving?'Suche den Gastgeber im Netzwerk …':'Verbinde mit der Lobby …')+'</p><div class="mpspin"></div>'+err+
 '<div class="mpfoot"><button class="mpbtn ghost" data-a="cancel">Abbrechen</button></div>';
 }else if(NET.phase==='lost'){
 html='<h2>VERBINDUNG WEG</h2><p class="sub">Jon versucht automatisch, die Sitzung wiederherzustellen. Dein Fortschritt bleibt auf dem Server.</p><div class="mpspin"></div>'+
@@ -2169,12 +2237,12 @@ const host=netIsHost();
 const players=NET.lobby.players||[];
 const everyone=players.filter(p=>!p.host).every(p=>p.ready);
 const me=players.find(p=>p.id===NET.playerId);
-html='<h2>LOBBY</h2><p class="sub">Am selben PC reicht der Code. Ein Freund an einem anderen PC braucht die Einladung mit Adresse.</p>'+
+html='<h2>LOBBY</h2><p class="sub">Im gleichen Netzwerk reicht der Code — dein Freund tippt ihn an seinem PC ein und Jon findet dich von selbst. Fuer das Internet gibt es die Einladung mit Adresse.</p>'+
 '<div class="mpcode"><div><small>Freundschaftscode</small><b>'+escapeHtml(NET.lobby.code)+'</b></div>'+
 '<button class="mpbtn ghost" data-a="copy">Code kopieren</button></div>'+
-'<div class="mpcode"><div><small>Einladung fuer andere PCs</small><b style="font-size:1.05rem">'+escapeHtml(inviteText())+'</b></div>'+
+'<div class="mpcode"><div><small>Einladung mit Adresse</small><b style="font-size:1.05rem">'+escapeHtml(inviteText())+'</b></div>'+
 '<button class="mpbtn ghost" data-a="copyinvite">Einladung kopieren</button></div>'+
-lobbyListHtml()+
+lobbyListHtml()+firewallHtml()+
 '<p class="mpnote">Verbunden mit: '+escapeHtml(netOrigin())+'</p>'+
 err+'<div class="mpfoot">'+
 (host?'<button class="mpbtn go" data-a="start"'+(players.length>1&&everyone?'':' disabled')+'>Spiel starten</button>'+
@@ -2184,10 +2252,11 @@ err+'<div class="mpfoot">'+
 }else if(NET.phase==='error'){
 html='<h2>GETRENNT</h2>'+err+'<div class="mpfoot"><button class="mpbtn" data-a="home">Zurueck</button></div>';
 }else if(mpView==='join'){
-html='<h2>SPIEL BEITRETEN</h2><p class="sub">Am selben PC reicht <b>AB39KD</b>. Von einem anderen PC die ganze Einladung des Gastgebers eintragen, z. B. <b>AB39KD@192.168.1.20:'+NET.wsPort+'</b>.</p>'+
-'<label class="mpfield"><span>Freundschaftscode</span><input id="mpcodeinput" maxlength="20" placeholder="AB39KD" autocomplete="off"></label>'+
+html='<h2>SPIEL BEITRETEN</h2><p class="sub">Der Code reicht — egal ob der Gastgeber am selben PC sitzt oder an einem anderen Rechner im gleichen Netzwerk. Ueber das Internet die ganze Einladung eintragen, z. B. <b>AB39KD@84.12.9.3:'+NET.wsPort+'</b>.</p>'+
+'<label class="mpfield"><span>Freundschaftscode</span><input id="mpcodeinput" maxlength="24" placeholder="AB39KD" autocomplete="off"></label>'+
 '<label class="mpfield"><span>Dein Name</span><input id="mpnameinput" maxlength="20" value="'+escapeHtml(mpName)+'" placeholder="Spieler 2"></label>'+
-err+'<div class="mpfoot"><button class="mpbtn ghost" data-a="home">Zurueck</button><button class="mpbtn go" data-a="dojoin">Beitreten</button></div>';
+foundHtml()+
+err+'<div class="mpfoot"><button class="mpbtn ghost" data-a="home">Zurueck</button><button class="mpbtn ghost" data-a="scan">'+(NET.scanning?'Suche …':'Netzwerk durchsuchen')+'</button><button class="mpbtn go" data-a="dojoin">Beitreten</button></div>';
 }else if(mpView==='create'){
 html='<h2>SPIEL ERSTELLEN</h2><p class="sub">Der Server legt eine Lobby an und wuerfelt einen Freundschaftscode. Die Welt wird aus dem Lobby-Seed erzeugt — bei beiden identisch.</p>'+
 '<label class="mpfield"><span>Dein Name</span><input id="mpnameinput" maxlength="20" value="'+escapeHtml(mpName)+'" placeholder="Gastgeber"></label>'+
@@ -2199,12 +2268,30 @@ html='<h2>ONLINE</h2><p class="sub">Zusammen bauen, sprengen und Jon Befehle geb
 '<li><span class="mpav" style="background:linear-gradient(135deg,#8fd05a,#5f9c38)"></span><span class="mpname">Spiel erstellen<i>Lobby anlegen und Code teilen</i></span><button class="mpbtn go" data-a="create">Erstellen</button></li>'+
 '<li><span class="mpav" style="background:linear-gradient(135deg,#74c0ff,#2b6fb5)"></span><span class="mpname">Spiel beitreten<i>Code vom Freund eingeben</i></span><button class="mpbtn" data-a="join">Beitreten</button></li>'+
 '</ul>'+
-'<p class="mpnote">Der Gastgeber gibt seine Einladung weiter (<b>CODE@adresse:'+NET.wsPort+'</b>). Im Heimnetz funktioniert das sofort — Jon haelt nur den Koop-Port offen, nicht den Rest. Ueber das Internet braucht der Gastgeber eine Portfreigabe fuer '+NET.wsPort+'.</p>'+
+'<p class="mpnote">Im Heimnetz genuegt der Freundschaftscode: Jon sucht den Gastgeber im Netzwerk und verbindet direkt zu ihm — Laptop und PC finden sich von allein. Ueber das Internet gibt der Gastgeber <b>CODE@adresse:'+NET.wsPort+'</b> weiter und braucht eine Portfreigabe fuer '+NET.wsPort+'.</p>'+
+firewallHtml()+
 err+'<div class="mpfoot"><button class="mpbtn ghost" data-a="dismiss">Allein weiterspielen</button></div>';
 }
 mpCard.innerHTML=html;
 const codeBox=document.getElementById('mpcodeinput');
 if(codeBox)setTimeout(()=>codeBox.focus(),30);
+}
+function firewallHtml(){
+const fw=NET.firewall;
+if(!fw||!fw.supported||fw.ok)return '';
+return '<div class="mpcode"><div><small>Windows-Firewall</small><b style="font-size:.95rem">Andere Geraete werden noch geblockt</b></div>'+
+'<button class="mpbtn" data-a="fixfw">Netzwerk freigeben</button></div>';
+}
+function foundHtml(){
+if(NET.scanning)return '<p class="mpnote">Suche offene Spiele im Netzwerk …</p>';
+if(!NET.found.length)return '';
+const rows=NET.found.map(l=>{
+const where=l.local?'auf diesem PC':escapeHtml(l.host||'');
+return '<li><span class="mpav" style="background:linear-gradient(135deg,#74c0ff,#2b6fb5)"></span>'+
+'<span class="mpname">'+escapeHtml(l.code||'')+'<i>'+escapeHtml(l.host_name||'Gastgeber')+' · '+(l.players||1)+'/'+(l.max_players||2)+' · '+where+'</i></span>'+
+'<button class="mpbtn go" data-a="joinfound" data-code="'+escapeHtml(l.code||'')+'" data-origin="'+escapeHtml(l.local?'':(l.origin||''))+'">Beitreten</button></li>';
+});
+return '<ul class="mplist">'+rows.join('')+'</ul>';
 }
 function lobbyListHtml(){
 if(!NET.lobby)return '';
@@ -2229,14 +2316,20 @@ const nameBox=document.getElementById('mpnameinput');
 if(nameBox){mpName=nameBox.value.trim().slice(0,20);localStorage.setItem('bw_name',mpName);}
 if(action==='home'){NET.error='';mpView='home';renderMp();return;}
 if(action==='create'){NET.error='';mpView='create';renderMp();return;}
-if(action==='join'){NET.error='';mpView='join';renderMp();return;}
+if(action==='join'){NET.error='';mpView='join';renderMp();scanLan();return;}
+if(action==='scan'){scanLan();return;}
+if(action==='fixfw'){openFirewall();return;}
+if(action==='joinfound'){
+startJoin((btn.getAttribute('data-code')||'').toUpperCase(),btn.getAttribute('data-origin')||'');
+return;
+}
 if(action==='dismiss'){closeMp();return;}
 if(action==='docreate'){netConnect({mode:'create',name:mpName||'Gastgeber',model:'gold',max:4});return;}
 if(action==='dojoin'){
 const box=document.getElementById('mpcodeinput');
 const parsed=parseInvite(box?box.value:'');
 if(!parsed){NET.error='Der Code besteht aus 6 Zeichen, z. B. AB39KD.';renderMp();return;}
-netConnect({mode:'join',code:parsed.code,origin:parsed.origin,name:mpName||'Spieler 2',model:'blau'});
+startJoin(parsed.code,parsed.origin);
 return;
 }
 if(action==='copy'||action==='copyinvite'){
@@ -2296,6 +2389,7 @@ Object.assign(window.__dbg,{NET,drawIcon,initNoise,parseInvite,inviteText,handle
 updateRemotes,dropRemote,netSetBlock,generatedBlock,localAnim,localFlags,netIsHost,netActive,
 renderMp,openMp,closeMp,lobbyListHtml,makeAvatar,paletteFor,applySnapshot,applyFullState,
 applyEvent,applyFx,netApplyWorld,placeAtSpawn,revertBlock,netSend,sendAct,sendFx,pushChat,hudRefresh,
+resolveOrigin,startJoin,scanLan,foundHtml,firewallHtml,
 setView:(y,p)=>{yaw=y;pitch=p||0;},view:()=>({yaw,pitch}),playEmote,EMOTES});
 
 let frames=0,fpsAcc=0,fpsText='';

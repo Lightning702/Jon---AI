@@ -281,7 +281,7 @@ void CoopMenu::draw(float time) {
         const char* labels[] = { "SPIEL ERSTELLEN", "SPIEL BEITRETEN", "NAME AENDERN", "ZURUECK" };
         const char* hints[] = {
             "Server legt eine Lobby an und nennt dir den Code",
-            "Code des Gastgebers eingeben",
+            "Code des Gastgebers eingeben — auch von einem anderen PC",
             "",
             "Zurueck ins Menue"
         };
@@ -300,8 +300,9 @@ void CoopMenu::draw(float time) {
             pushHit(x, ry, rowW, itemH, kHomeItems[i]);
             ry += itemH + h * 0.012f;
         }
-        char buf[160];
-        std::snprintf(buf, sizeof(buf), "Server %s:%d   —   fuer Internet-Spiele Portfreigabe oder oeffentlichen Jon-Server nutzen",
+        char buf[200];
+        std::snprintf(buf, sizeof(buf),
+                      "Server %s:%d   —   im Heimnetz genuegt der Code, ueber das Internet braucht der Gastgeber eine Portfreigabe",
                       coop->serverHost().c_str(), coop->serverPort());
         ui->text(buf, x, py + panelH - h * 0.038f, h * 0.016f, Vec4(kDim.x, kDim.y, kDim.z, 0.65f), ALIGN_LEFT);
         return;
@@ -310,7 +311,8 @@ void CoopMenu::draw(float time) {
     if (view == CVIEW_JOIN || view == CVIEW_NAME) {
         bool codeMode = view == CVIEW_JOIN;
         heading(codeMode ? "SPIEL BEITRETEN" : "NAME AENDERN",
-                codeMode ? "Erlaubt: AB39KD oder AB39KD@server:8759" : "So sehen dich die anderen im Spiel.",
+                codeMode ? "Code reicht — der Gastgeber im Netzwerk wird gefunden. Von aussen: AB39KD@adresse:8759"
+                         : "So sehen dich die anderen im Spiel.",
                 x, y, rowW, h);
         float boxY = y + h * 0.14f;
         ui->rect(x, boxY, rowW, h * 0.085f, Vec4(0.02f, 0.024f, 0.034f, 0.95f));
@@ -370,7 +372,7 @@ void CoopMenu::draw(float time) {
         return;
     }
 
-    heading("LOBBY", "Gib den Code weiter. Der Gastgeber startet, wenn alle bereit sind.", x, y, rowW, h);
+    heading("LOBBY", "Gib den Code weiter — im gleichen Netzwerk reicht er. Der Gastgeber startet, wenn alle bereit sind.", x, y, rowW, h);
 
     float codeY = y + h * 0.115f;
     ui->rect(x, codeY, rowW, h * 0.095f, Vec4(kGold.x, kGold.y, kGold.z, 0.09f));

@@ -22,7 +22,7 @@ typedef double   f64;
 
 #define ECHO_TITLE "ECHO"
 #define ECHO_STUDIO "FelWorks"
-#define ECHO_VERSION "1.0.0"
+#define ECHO_VERSION "1.1.0"
 
 template <typename T> using Ref = std::shared_ptr<T>;
 template <typename T> using Scope = std::unique_ptr<T>;

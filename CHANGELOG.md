@@ -2,6 +2,49 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.36.3] — 2026-07-30
+
+### Fix — Koop ging nur auf demselben Gerät
+
+Der Freundschaftscode existierte immer nur in dem Jon, das die Lobby angelegt hat. Tippte
+man ihn am zweiten Rechner ein, fragte dieses Jon **sich selbst** — und antwortete
+„Code nicht gefunden". Funktioniert hat nur die lange Einladung `CODE@adresse:8760`, und
+selbst deren Adresse war oft falsch: Jon nahm einfach den ersten Eintrag von
+`socket.gethostname()`, und das war auf diesem Rechner die VPN-Adresse (`10.2.0.2`) statt
+der echten WLAN-Adresse. Laptop gegen PC war damit praktisch unspielbar.
+
+- **Lobby-Suche im Netzwerk** (neu `coop_lan_service.py`): Jeder Jon horcht auf
+  **UDP 8761**. Kennt das Jon des Gastes den Code nicht, fragt es per Broadcast „wer hat
+  `AB39KD`?" — der Gastgeber antwortet mit Adresse, Ports und Lobby-Infos. Gesucht wird
+  auf allen Netzwerkkarten (255.255.255.255 **und** die Broadcast-Adresse jedes Subnetzes),
+  damit ein aktives VPN die Suche nicht verschluckt.
+- **`redirect` im Koop-Protokoll**: Statt eines Fehlers schickt der Server jetzt
+  `{"t":"redirect","host":…,"tcp_port":…,"ws_port":…}`. Browser (`blockwelt.html`) und
+  C++-Spiele (`CoopSession`) verbinden sich daraufhin neu zum Gastgeber — maximal drei
+  Weiterleitungen, danach eine ehrliche Fehlermeldung.
+- **Richtige LAN-Adresse in der Einladung**: Die Adapter kommen über
+  `GetAdaptersAddresses`. Sortiert wird nach Gateway, DHCP, Adaptertyp und Name —
+  VPN-, Hyper-V-, VirtualBox-, WSL- und Docker-Adapter landen hinten. In der Antwort an
+  einen Sucher nennt der Gastgeber gezielt die Adresse der Netzwerkkarte, die in dessen
+  Subnetz liegt. Aus `10.2.0.2` wird so `10.0.0.253`.
+- **Windows-Firewall**: `GET /api/mp/network` sagt, ob die Koop-Regeln fehlen; in der
+  Lobby erscheint dann **Netzwerk freigeben** (`POST /api/mp/firewall`). Das legt nach
+  einer Windows-Rückfrage genau zwei Regeln an — TCP 8759/8760 und UDP 8761.
+- **Blockwelt**: Im Beitreten-Fenster listet **Netzwerk durchsuchen** alle offenen Spiele
+  im Heimnetz mit Gastgeber, Spielerzahl und Adresse zum Anklicken (`GET /api/mp/scan`).
+  Die Lobby zeigt die Einladung so an, wie der Server sie kennt.
+- **ECHO/AETHERIA**: Der Code allein genügt jetzt auch hier. Ein Beitritt setzt Adresse
+  und Port vorher auf das lokale Jon zurück, damit nach einem Fremdspiel kein alter
+  Gastgeber hängen bleibt; die angezeigte Einladung kommt vom Server (`invite_tcp`).
+
+Verifiziert mit zwei getrennten Jon-Instanzen (eigene Datenordner, eigene Ports): Der
+Gast kennt den Code nicht, findet die Lobby über die Netzwerksuche, wird weitergeleitet
+und steht danach mit dem Gastgeber in derselben Lobby — einmal als ECHO-Client über TCP,
+einmal als Browser über WebSocket.
+
+### Spiele 1.1.0
+`ECHO_VERSION` steht jetzt auf **1.1.0**, passend zur Sammlung in `jon-spiele.json`.
+
 ## [3.35.0] — 2026-07-30
 
 ### Fix — der Beenden-Knopf ließ das Backend doch weiterlaufen

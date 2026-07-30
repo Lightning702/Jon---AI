@@ -476,9 +476,12 @@ Seit v3.33.0 haben alle drei einen echten Online-Koop über einen Freundschaftsc
 
 1. Einer klickt **Spiel erstellen** — der Server legt eine Lobby an und nennt einen
    6-stelligen Code, z. B. `AB39KD`, plus eine **Einladung mit Adresse** wie
-   `AB39KD@192.168.1.20:8760`.
-2. Der andere klickt **Spiel beitreten**: am selben PC genügt der Code, von einem
-   anderen PC die ganze Einladung.
+   `AB39KD@192.168.1.20:8760` für Spiele über das Internet.
+2. Der andere klickt **Spiel beitreten** und tippt den Code ein. Seit v3.36.3 genügt der
+   Code auch **von einem anderen Rechner im selben Netzwerk**: Jon fragt per
+   UDP-Broadcast (Port 8761), wer die Lobby hat, und verbindet direkt dorthin —
+   Laptop und PC finden sich also von allein. In der Blockwelt zeigt
+   **Netzwerk durchsuchen** alle offenen Spiele im Heimnetz zum Anklicken.
 3. Gast auf **Bereit**, Host auf **Starten** — beide spawnen gleichzeitig in dieselbe Welt.
 
 In der Blockwelt: **O** öffnet die Lobby, **Z** ist der Team-Chat, **B** spielt ein Emote,
@@ -491,21 +494,32 @@ ist. Es braucht keinen extra Dienst.
 | --- | --- |
 | Blockwelt (Browser) | WebSocket auf Port **8760** (`/api/mp/ws`), im Netzwerk erreichbar |
 | ECHO & AETHERIA | TCP auf Port **8759**, im Netzwerk erreichbar |
+| Lobby im Netzwerk finden | UDP **8761** (Broadcast-Suche nach Freundschaftscodes) |
 | Blockwelt für Gäste ohne Jon | `http://<adresse>:8760/blockwelt` |
 | Lobby-Status ansehen | `GET /api/mp/status`, `GET /api/mp/lobby/<CODE>` |
+| Code im Netzwerk suchen | `GET /api/mp/find/<CODE>`, alle offenen Spiele: `GET /api/mp/scan` |
+| Netzwerk-Diagnose | `GET /api/mp/network` (Adressen, Ports, Firewall-Status) |
 
-### Weltweit statt nur LAN
+### Heimnetz und Internet
 
-Seit v3.34.0 hört Jon für den Koop auf **eigenen Ports (8760 und 8759)**, die im Netzwerk
+Jon hört für den Koop auf **eigenen Ports (8760, 8759 und UDP 8761)**, die im Netzwerk
 erreichbar sind — der Rest von Jon (Chat, Dateien, PC-Steuerung auf 8756) bleibt weiter
-nur auf deinem Rechner. `JON_LAN` brauchst du dafür **nicht** mehr.
+nur auf deinem Rechner. `JON_LAN` brauchst du dafür **nicht**.
 
-- **Heimnetz**: die Einladung des Gastgebers weitergeben, fertig.
+- **Heimnetz**: nur den Code weitergeben. Kennt das Jon des Gastes den Code nicht, sucht
+  es den Gastgeber im Netzwerk und schickt den Spieler mit einer `redirect`-Antwort
+  direkt dorthin — im Browser wie in ECHO und AETHERIA.
+- **Windows-Firewall**: blockt sie die Koop-Ports, steht in der Lobby ein Hinweis mit
+  dem Knopf **Netzwerk freigeben** (`POST /api/mp/firewall`). Der legt nach einer
+  Windows-Rückfrage die zwei Regeln „Jon Koop" an — nur für diese drei Ports.
 - **Übers Internet**: Portfreigabe für 8760 (Browser) und 8759 (ECHO/AETHERIA) auf dem
   Rechner des Gastgebers — oder ein öffentlich erreichbarer Jon-Server, dann reicht der
   Code allein.
 - Im Beitreten-Feld sind beide Formen erlaubt: `AB39KD` und `AB39KD@meinserver.de:8760`
   (in ECHO/AETHERIA `AB39KD@meinserver.de:8759`).
+- Die Einladung nennt die **echte LAN-Adresse**: Jon liest die Netzwerkkarten über
+  `GetAdaptersAddresses` aus und sortiert VPN-, Hyper-V-, VirtualBox- und WSL-Adapter
+  nach hinten, statt einfach die erste Adresse des Rechnernamens zu nehmen.
 
 ### Technik in Kurzform
 
@@ -622,7 +636,7 @@ sein willst.
 | --- | --- |
 | „Backend nicht erreichbar" | Das Backend braucht beim allerersten Start ein paar Sekunden. Bleibt es dabei: Jon einmal ganz beenden (X) und neu starten |
 | Port 8756 belegt | Ein altes Backend läuft noch. Jon räumt das beim Beenden selbst auf; sonst im Task-Manager `jon-backend.exe` beenden |
-| Freund kann dem Koop nicht beitreten | Er braucht die **Einladung mit Adresse** (`AB39KD@192.168.1.20:8760`), nicht nur den Code. Über das Internet zusätzlich Portfreigabe für 8760 und 8759 |
+| Freund kann dem Koop nicht beitreten | Im selben Netzwerk genügt der Code — findet Jon den Gastgeber nicht, blockt meist die Firewall: in der Lobby **Netzwerk freigeben** klicken (Ports 8759, 8760, UDP 8761). Über das Internet die **Einladung mit Adresse** (`AB39KD@84.12.9.3:8760`) plus Portfreigabe beim Gastgeber |
 | SmartScreen erscheint erneut | Nach jedem Update einmal normal, siehe Schritt 2 |
 
 ---

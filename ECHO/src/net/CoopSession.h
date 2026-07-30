@@ -153,6 +153,7 @@ private:
     void dropRemote(const std::string& id);
     void sendHandshake();
     void beginConnect();
+    bool applyRedirect();
     void attemptReconnect(float dt);
     double netNow() const;
     static em::Vec3 readVec(const js::Value& v);
@@ -162,12 +163,15 @@ private:
     std::string gameId = "echo";
     std::string host = "127.0.0.1";
     int port = 8759;
+    std::string homeHost = "127.0.0.1";
+    int homePort = 8759;
     std::string playerName = "Spieler";
     std::string playerModel = "default";
     std::string playerId;
     std::string token;
     std::string lobbyCode;
     std::string inviteText;
+    std::string serverInvite;
     std::string lastError;
     std::string statusLine;
     std::string pendingCode;
@@ -181,6 +185,11 @@ private:
     std::vector<std::string> eventKeys;
     std::vector<double> eventValues;
     js::Value saveBlob;
+
+    std::string redirectHost;
+    int redirectPort = 0;
+    bool hasRedirect = false;
+    int redirectHops = 0;
 
     int currentPhase = COOP_OFF;
     int intent = 0;

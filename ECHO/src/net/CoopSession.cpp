@@ -58,8 +58,14 @@ void CoopSession::shutdown() {
 }
 
 void CoopSession::setServer(const std::string& newHost, int newPort) {
-    if (!newHost.empty()) host = newHost;
-    if (newPort > 0 && newPort < 65536) port = newPort;
+    if (!newHost.empty()) {
+        host = newHost;
+        homeHost = newHost;
+    }
+    if (newPort > 0 && newPort < 65536) {
+        port = newPort;
+        homePort = newPort;
+    }
 }
 
 double CoopSession::netNow() const {
@@ -83,6 +89,26 @@ void CoopSession::beginConnect() {
     client.connect(host, port);
 }
 
+bool CoopSession::applyRedirect() {
+    if (!hasRedirect) return false;
+    hasRedirect = false;
+    host = redirectHost;
+    port = redirectPort > 0 ? redirectPort : port;
+    token.clear();
+    playerId.clear();
+    lastError.clear();
+    roster.clear();
+    others.clear();
+    intent = kIntentJoin;
+    wantHost = false;
+    reconnectTries = 0;
+    reconnectTimer = 0.0f;
+    currentPhase = COOP_CONNECTING;
+    statusLine = "Verbinde mit " + host + " ...";
+    beginConnect();
+    return true;
+}
+
 void CoopSession::hostGame(const std::string& name, u64 worldSeedValue, const Vec3& spawnPoint) {
     playerName = name.empty() ? std::string("Gastgeber") : name;
     playerModel = "host";
@@ -90,11 +116,16 @@ void CoopSession::hostGame(const std::string& name, u64 worldSeedValue, const Ve
     spawn = spawnPoint;
     wantHost = true;
     intent = kIntentHost;
+    host = homeHost;
+    port = homePort;
     token.clear();
     playerId.clear();
     lastError.clear();
     lobbyCode.clear();
     inviteText.clear();
+    serverInvite.clear();
+    hasRedirect = false;
+    redirectHops = 0;
     roster.clear();
     others.clear();
     reconnectTries = 0;
@@ -107,6 +138,8 @@ void CoopSession::hostGame(const std::string& name, u64 worldSeedValue, const Ve
 void CoopSession::joinGame(const std::string& inviteCode, const std::string& name) {
     std::string text = trim(inviteCode);
     std::string codePart = text;
+    host = homeHost;
+    port = homePort;
     size_t at = text.find('@');
     if (at != std::string::npos) {
         codePart = text.substr(0, at);
@@ -144,6 +177,9 @@ void CoopSession::joinGame(const std::string& inviteCode, const std::string& nam
     lastError.clear();
     lobbyCode.clear();
     inviteText.clear();
+    serverInvite.clear();
+    hasRedirect = false;
+    redirectHops = 0;
     roster.clear();
     others.clear();
     reconnectTries = 0;
@@ -167,6 +203,11 @@ void CoopSession::leave() {
     chatLines.clear();
     lobbyCode.clear();
     inviteText.clear();
+    serverInvite.clear();
+    hasRedirect = false;
+    redirectHops = 0;
+    host = homeHost;
+    port = homePort;
     token.clear();
     playerId.clear();
     hasSpawn = false;
@@ -336,7 +377,8 @@ void CoopSession::applyRoster(const js::Value& lobby) {
     if (!lobby.isObject()) return;
     if (lobby.has("code")) {
         lobbyCode = lobby.get("code").asString();
-        inviteText = lobbyCode + "@" + host + ":" + std::to_string(port);
+        inviteText = serverInvite.empty() ? lobbyCode + "@" + host + ":" + std::to_string(port)
+                                          : serverInvite;
     }
     if (lobby.has("seed")) seed = (u64)lobby.get("seed").asNumber(0.0);
 
@@ -545,9 +587,34 @@ void CoopSession::applySnapshot(const js::Value& msg) {
 void CoopSession::handle(const js::Value& msg) {
     std::string type = msg.get("t").asString();
 
+    if (type == "redirect") {
+        if (redirectHops >= 3) {
+            lastError = "Gastgeber nicht erreichbar";
+            currentPhase = COOP_ERROR;
+            return;
+        }
+        std::string target = msg.get("host").asString();
+        int targetPort = msg.get("tcp_port").asInt(0);
+        if (target.empty()) {
+            lastError = "Gastgeber nicht erreichbar";
+            currentPhase = COOP_ERROR;
+            return;
+        }
+        std::string newCode = msg.get("code").asString(pendingCode);
+        if (!newCode.empty()) pendingCode = upper(newCode);
+        redirectHops++;
+        redirectHost = target;
+        redirectPort = targetPort > 0 ? targetPort : port;
+        hasRedirect = true;
+        statusLine = "Gastgeber gefunden — verbinde ...";
+        return;
+    }
+
     if (type == "welcome") {
         playerId = msg.get("player_id").asString();
         token = msg.get("token").asString(token);
+        serverInvite = msg.get("invite_tcp").asString(serverInvite);
+        redirectHops = 0;
         applyRoster(msg.get("lobby"));
         if (msg.has("spawn")) {
             spawn = readVec(msg.get("spawn"));
@@ -688,6 +755,10 @@ void CoopSession::update(float dt) {
     }
 
     if (netStatus == NET_FAILED) {
+        js::Value pending;
+        int drained = 0;
+        while (client.poll(pending) && drained++ < 128) handle(pending);
+        if (applyRedirect()) return;
         if (currentPhase == COOP_CONNECTING && token.empty()) {
             lastError = client.lastError();
             statusLine = lastError.empty() ? "Jon-Server nicht erreichbar" : lastError;
@@ -715,6 +786,8 @@ void CoopSession::update(float dt) {
     js::Value msg;
     int guard = 0;
     while (client.poll(msg) && guard++ < 256) handle(msg);
+
+    if (applyRedirect()) return;
 
     if (currentPhase != COOP_PLAYING) return;
 

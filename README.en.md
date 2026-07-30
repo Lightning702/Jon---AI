@@ -42,7 +42,8 @@ design.
 ## 🕹️ Three games. Two players. One friend code.
 
 The **FelWorks Game Collection** ships inside Jon — and since v3.34 you play all of it
-together over a six-character code.
+together over a six-character code. Since v3.36.3 that code is all you need on a home
+network: Jon looks for the host on the LAN and connects your laptop to your PC by itself.
 
 <table>
 <tr>

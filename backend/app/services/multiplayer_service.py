@@ -173,6 +173,8 @@ class Bucket:
 
 
 class Transport:
+    redirected: bool = False
+
     async def send(self, payload: dict) -> None:
         raise NotImplementedError
 
@@ -483,6 +485,72 @@ class MultiplayerService:
             return None
         return lobby.summary()
 
+    @staticmethod
+    def _beacon_entry(lobby: Lobby) -> dict:
+        host = lobby.host()
+        return {
+            "code": lobby.code,
+            "game": lobby.game,
+            "phase": lobby.phase,
+            "players": len(lobby.participants),
+            "max_players": lobby.max_players,
+            "host_name": host.name if host is not None else "",
+            "free": max(0, lobby.max_players - len(lobby.participants)),
+        }
+
+    def beacon_lookup(self, code: str) -> dict | None:
+        lobby = self._lobbies.get(str(code or "").upper().strip())
+        if lobby is None or lobby.phase == "ended":
+            return None
+        return self._beacon_entry(lobby)
+
+    def beacon_list(self) -> list[dict]:
+        entries = []
+        for lobby in self._lobbies.values():
+            if lobby.phase == "ended" or not lobby.participants:
+                continue
+            if len(lobby.participants) >= lobby.max_players:
+                continue
+            entries.append(self._beacon_entry(lobby))
+        return entries
+
+    def knows_code(self, code: str) -> bool:
+        return str(code or "").upper().strip() in self._lobbies
+
+    def invite_info(self, code: str) -> dict:
+        from app.services.coop_lan_service import get_coop_beacon, invite_host, local_addresses
+
+        beacon = get_coop_beacon()
+        host = invite_host()
+        return {
+            "invite": f"{str(code or '').upper()}@{host}:{beacon.ws_port}",
+            "invite_tcp": f"{str(code or '').upper()}@{host}:{beacon.tcp_port}",
+            "invite_host": host,
+            "addresses": local_addresses(),
+            "tcp_port": beacon.tcp_port,
+            "ws_port": beacon.ws_port,
+            "discovery": beacon.online,
+            "findable": beacon.findable,
+        }
+
+    async def find_remote(self, code: str, timeout: float = 1.8) -> dict | None:
+        from app.services.coop_lan_service import get_coop_beacon
+
+        if self.knows_code(code):
+            return None
+        try:
+            return await get_coop_beacon().find(code, timeout)
+        except Exception:
+            return None
+
+    async def scan_remote(self, timeout: float = 1.4) -> list[dict]:
+        from app.services.coop_lan_service import get_coop_beacon
+
+        try:
+            return await get_coop_beacon().scan(timeout)
+        except Exception:
+            return []
+
     # ------------------------------------------------------------- lobby core
 
     def _new_code(self) -> str:
@@ -668,6 +736,7 @@ class MultiplayerService:
                 "lobby": lobby.summary(),
                 "state": lobby.full_state(),
                 "save": lobby.save,
+                **self.invite_info(lobby.code),
             },
         )
         self._emit(lobby, "presence", {"id": member.player_id, "online": True})
@@ -1316,9 +1385,10 @@ class MultiplayerService:
                     if lobby is None or member is None:
                         pair = await self.handshake(message, transport)
                         if pair is None:
-                            await transport.send(
-                                {"t": "error", "code": "handshake", "msg": "Anmeldung fehlgeschlagen"}
-                            )
+                            if not transport.redirected:
+                                await transport.send(
+                                    {"t": "error", "code": "handshake", "msg": "Anmeldung fehlgeschlagen"}
+                                )
                             break
                         lobby, member = pair
                         continue
@@ -1384,8 +1454,28 @@ class MultiplayerService:
             return lobby, member
 
         if kind == "join":
+            code = str(message.get("code", ""))
+            if not self.knows_code(code):
+                remote = await self.find_remote(code)
+                if remote is not None:
+                    transport.redirected = True
+                    try:
+                        await transport.send(
+                            {
+                                "t": "redirect",
+                                "code": str(remote.get("code", code)).upper(),
+                                "host": remote.get("host", ""),
+                                "tcp_port": remote.get("tcp_port", 0),
+                                "ws_port": remote.get("ws_port", 0),
+                                "origin": remote.get("origin", ""),
+                                "msg": "Gastgeber im Netzwerk gefunden",
+                            }
+                        )
+                    except Exception:
+                        pass
+                    return None
             try:
-                lobby, member = self.join_lobby(str(message.get("code", "")), name, model)
+                lobby, member = self.join_lobby(code, name, model)
             except ValueError as error:
                 await fail("join", str(error))
                 return None
