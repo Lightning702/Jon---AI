@@ -720,13 +720,13 @@ class MultiplayerService:
                 "vz": _num(body.get("vz"), 0.0),
                 "anim": str(body.get("anim", "idle"))[:16],
                 "flags": _int(body.get("flags"), 0),
-                "emote": _int(body.get("emote"), 0),
-                "face": _int(body.get("face"), 0),
-                "layer": _int(body.get("layer"), 0),
-                "hp": max(0, min(9999, _int(body.get("hp"), 100))),
-                "act": _int(body.get("act"), 0),
             }
         )
+        for field, limit in (("emote", 64), ("face", 64), ("layer", 8), ("act", 64)):
+            if field in body:
+                member.state[field] = max(0, min(limit, _int(body.get(field))))
+        if "hp" in body:
+            member.state["hp"] = max(0, min(9999, _int(body.get("hp"), 100)))
         member.history.append((now, dict(member.state)))
         if len(member.history) > 40:
             del member.history[: len(member.history) - 40]

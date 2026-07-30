@@ -415,6 +415,52 @@ def test_lag_kompensation_nutzt_verlauf(service):
     asyncio.run(run())
 
 
+def test_emote_ueberlebt_bewegungspakete(service):
+    async def run():
+        lobby, host, guest, ht, gt = await _pair(service)
+        lobby.phase = "playing"
+        base = dict(host.spawn)
+        await service.handle(
+            lobby, host, {"t": "input", "x": base["x"], "y": base["y"], "z": base["z"]}
+        )
+        await service.handle(lobby, host, {"t": "emote", "id": 4})
+        assert host.state["emote"] == 4
+        for step in range(5):
+            await service.handle(
+                lobby,
+                host,
+                {
+                    "t": "input",
+                    "x": base["x"] + 0.1 * step,
+                    "y": base["y"],
+                    "z": base["z"],
+                    "anim": "walk",
+                },
+            )
+        assert ht.last("correct") is None
+        assert host.state["emote"] == 4
+        assert host.state["hp"] == 100
+        await service._tick_lobby(lobby)
+        snap = gt.last("snap")
+        assert snap["players"][host.player_id]["emote"] == 4
+        await service.handle(
+            lobby,
+            host,
+            {"t": "input", "x": base["x"] + 0.5, "y": base["y"], "z": base["z"], "emote": 0},
+        )
+        assert host.state["emote"] == 0
+        await service.handle(lobby, host, {"t": "emote", "id": 9999})
+        assert host.state["emote"] == 9999
+        await service.handle(
+            lobby,
+            host,
+            {"t": "input", "x": base["x"] + 0.6, "y": base["y"], "z": base["z"], "emote": 9999},
+        )
+        assert host.state["emote"] == 64
+
+    asyncio.run(run())
+
+
 def test_pause_erlaubt_keinen_sprung(service):
     async def run():
         lobby, host, guest, ht, gt = await _pair(service)

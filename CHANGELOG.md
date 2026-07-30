@@ -40,6 +40,8 @@ Alle nennenswerten Änderungen an Jon.
   host-autoritativ — Gäste schicken ihm ihre Wünsche, er baut, alle sehen es.
   Der Weltgenerator ist jetzt seedbar, beide Spieler bekommen dieselbe Landschaft.
 - **Neu: Ducken mit Strg** (langsamer, tiefere Kameraposition) — auch synchronisiert.
+- **Emotes mit `B`** (Winken, Nicken, Zeigen, Jubeln, Kopfschütteln): der Mitspieler sieht
+  die Bewegung am Avatar, nicht nur einen Text.
 - **Eigenes Icon**, im Code gezeichnet: isometrischer Grasblock mit Jons Goldkristall.
   Als Favicon und Apple-Touch-Icon in `blockwelt.html` (Canvas) und als PNG über
   `scripts/blockwelt_icon.py` für Website und PWA.
@@ -85,6 +87,10 @@ Alle nennenswerten Änderungen an Jon.
   und Zahl der Abschnitte; ohne offenen Weg sagt er das auch.
 
 ### Behoben
+- **Emote, Blickrichtung, Animations-Layer und Trefferpunkte gingen sofort wieder verloren**:
+  der Server hat sie bei jedem Bewegungspaket auf den Standardwert zurückgesetzt, weil das
+  Paket diese Felder nicht mitschickt. Jetzt werden nur Felder überschrieben, die im Paket
+  wirklich enthalten sind — mit Wertegrenzen pro Feld.
 - **Backend starb, wenn Port 8758 belegt war**: uvicorn beendet sich bei einem fehlgeschlagenen
   Bind mit `sys.exit(3)`, und `SystemExit` ist keine `Exception` — das `except Exception`
   im P2P-Chat-Server hat es also nicht gefangen und der ganze Prozess starb beim Start.

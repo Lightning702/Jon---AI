@@ -96,6 +96,7 @@ canvas{display:block}
 <p>Leertaste — Springen / Schwimmen &nbsp;|&nbsp; Shift — Sprinten / Tauchen &nbsp;|&nbsp; Strg — Ducken</p>
 <p>Linksklick — Abbauen &nbsp;|&nbsp; Rechtsklick — Platzieren</p>
 <p>Mausrad oder 1–9, 0 — Block wechseln &nbsp;|&nbsp; ESC — Menü</p>
+<p style="color:#8fd0ff">Online: <b>O</b> Lobby · <b>Z</b> Team-Chat · <b>B</b> Emote</p>
 <p style="color:#f0d98a">T — Mit Jon reden: „Bau mir ein Haus“ · „Grab einen Pool“ · „Folg mir“ · „Spreng den Berg“</p>
 <div class="hint">Klicken zum Spielen</div>
 <div id="mpopen"><button class="mpbtn" id="btnonline">🌐 Online spielen</button></div>
@@ -1315,6 +1316,11 @@ e.preventDefault();
 openChat('team');
 return;
 }
+if(locked&&e.code==='KeyB'&&netActive()){
+e.preventDefault();
+playEmote(emoteIndex+1);
+return;
+}
 if(e.code==='KeyO'&&!locked){
 e.preventDefault();
 openMp(NET.lobby?undefined:'home');
@@ -1872,12 +1878,42 @@ group.add(tag.sprite);
 scene.add(group);
 return{group,head,torso,armL,armR,legL,legR,tag};
 }
+const EMOTES=['','Winken','Nicken','Zeigen','Jubeln','Kopfschuetteln'];
+let emoteIndex=0;
+function playEmote(next){
+emoteIndex=next%EMOTES.length;
+if(emoteIndex===0)emoteIndex=1;
+netSend({t:'emote',id:emoteIndex});
+itemnameDiv.textContent='Emote: '+EMOTES[emoteIndex];
+itemnameDiv.style.opacity=1;
+clearTimeout(nameTimer);
+nameTimer=setTimeout(()=>{itemnameDiv.style.opacity=0;},1400);
+}
+function emotePose(v,kind,t){
+const k=Math.min(1,t/0.12);
+if(kind===1){
+v.armR.rotation.x=-2.6*k;
+v.armR.rotation.z=Math.sin(t*13)*0.55*k;
+}else if(kind===2){
+v.head.rotation.x+=Math.sin(t*9)*0.35*k;
+}else if(kind===3){
+v.armR.rotation.x=-1.55*k;
+v.armR.rotation.z=0;
+}else if(kind===4){
+v.armL.rotation.x=-2.8*k;
+v.armR.rotation.x=-2.8*k;
+v.armL.rotation.z=-0.35*k;
+v.armR.rotation.z=0.35*k;
+}else if(kind===5){
+v.head.rotation.y=Math.sin(t*10)*0.5*k;
+}
+}
 function feedRemote(id,patch,stamp){
 let r=NET.remotes.get(id);
 if(!r){
 r={id,name:patch.name||'Spieler',model:patch.model||'default',ping:patch.ping||0,online:patch.online!==0,
 buf:[],cur:{x:patch.x||0,y:patch.y||0,z:patch.z||0,yaw:patch.yaw||0,pitch:0},
-anim:'idle',flags:0,phase:0,swing:0,visual:null,lastTag:''};
+anim:'idle',flags:0,phase:0,swing:0,visual:null,lastTag:'',emote:0,emoteTimer:0};
 r.visual=makeAvatar(id,r.name,r.model);
 NET.remotes.set(id,r);
 hudRefresh();
@@ -1885,6 +1921,10 @@ hudRefresh();
 if(patch.name&&patch.name!==r.name){r.name=patch.name;r.lastTag='';}
 if(typeof patch.ping==='number')r.ping=patch.ping;
 if(patch.online!==undefined)r.online=patch.online!==0;
+if(patch.emote!==undefined&&patch.emote!==r.emote){
+r.emote=patch.emote|0;
+r.emoteTimer=r.emote>0?1.8:0;
+}
 const prev=r.buf.length?r.buf[r.buf.length-1]:r.cur;
 const entry={
 t:stamp||(performance.now()+NET.timeOffset),
@@ -1979,6 +2019,10 @@ v.torso.rotation.x=crouched?0.42:(anim==='swim'?0.9:0);
 v.head.rotation.x=Math.max(-1.2,Math.min(1.2,-(s.pitch||0)));
 v.head.position.y=crouched?1.34:1.56;
 v.torso.position.y=crouched?0.74:0.9;
+if(r.emoteTimer>0){
+r.emoteTimer-=dt;
+emotePose(v,r.emote,1.8-r.emoteTimer);
+}
 const tagKey=r.name+'|'+Math.round(r.ping/10)+'|'+(r.online?1:0);
 if(tagKey!==r.lastTag){
 r.lastTag=tagKey;
@@ -2222,7 +2266,7 @@ Object.assign(window.__dbg,{NET,drawIcon,initNoise,parseInvite,handleNet,feedRem
 updateRemotes,dropRemote,netSetBlock,generatedBlock,localAnim,localFlags,netIsHost,netActive,
 renderMp,openMp,closeMp,lobbyListHtml,makeAvatar,paletteFor,applySnapshot,applyFullState,
 applyEvent,applyFx,netApplyWorld,placeAtSpawn,revertBlock,netSend,sendAct,sendFx,pushChat,hudRefresh,
-setView:(y,p)=>{yaw=y;pitch=p||0;},view:()=>({yaw,pitch})});
+setView:(y,p)=>{yaw=y;pitch=p||0;},view:()=>({yaw,pitch}),playEmote,EMOTES});
 
 let frames=0,fpsAcc=0,fpsText='';
 const clock=new THREE.Clock();
