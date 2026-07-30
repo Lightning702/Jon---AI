@@ -675,9 +675,17 @@ def test_lan_adresse_bevorzugt_echte_netzwerkkarte(monkeypatch):
     assert "255.255.255.255" in lan.broadcast_targets()
 
 
+def _freier_udp_port() -> int:
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
+
+
 def test_beacon_findet_lobby_und_listet_offene_spiele(monkeypatch, tmp_path):
     lan = _lan_module()
-    monkeypatch.setattr(lan, "DISCOVERY_PORT", 8791)
+    monkeypatch.setattr(lan, "DISCOVERY_PORT", _freier_udp_port())
     monkeypatch.setattr(lan, "broadcast_targets", lambda: ["127.0.0.1"])
     monkeypatch.setattr(lan, "address_for_peer", lambda peer: "127.0.0.1")
     monkeypatch.setattr(lan, "local_addresses", lambda: ["127.0.0.1"])
@@ -698,7 +706,7 @@ def test_beacon_findet_lobby_und_listet_offene_spiele(monkeypatch, tmp_path):
         ]
         await asyncio.sleep(0.3)
         try:
-            assert server.online and client.online
+            assert server.findable and client.online
             found = await client.find(lobby.code, timeout=3.0)
             assert found is not None
             assert found["code"] == lobby.code
@@ -780,11 +788,13 @@ def test_such_und_netzwerk_endpunkte(monkeypatch, tmp_path):
 
     from app.api import multiplayer_routes as routes
 
+    lan = _lan_module()
     monkeypatch.setattr(
         routes, "firewall_state", lambda refresh=False: {"supported": True, "ok": False, "rules": []}
     )
-    monkeypatch.setattr(routes, "local_addresses", lambda: ["10.0.0.253"])
-    monkeypatch.setattr(routes, "invite_host", lambda: "10.0.0.253")
+    for modul in (routes, lan):
+        monkeypatch.setattr(modul, "local_addresses", lambda: ["10.0.0.253"])
+        monkeypatch.setattr(modul, "invite_host", lambda: "10.0.0.253")
 
     app = routes.create_coop_app()
 
