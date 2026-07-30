@@ -1350,10 +1350,17 @@ class MultiplayerService:
         model = str(message.get("model", "default"))
         game = str(message.get("game", "blockwelt"))
 
+        async def fail(code: str, text: str) -> None:
+            try:
+                await transport.send({"t": "error", "code": code, "msg": text})
+            except Exception:
+                pass
+
         if kind == "hello":
             token = str(message.get("token", ""))
             found = self.resume(token)
             if found is None:
+                await fail("resume", "Sitzung ist abgelaufen")
                 return None
             lobby, member = found
             member.name = _clean_name(name, member.name)
@@ -1370,7 +1377,8 @@ class MultiplayerService:
                     max_players=_int(message.get("max_players"), 2),
                     spawn=message.get("spawn") if isinstance(message.get("spawn"), dict) else None,
                 )
-            except ValueError:
+            except ValueError as error:
+                await fail("create", str(error))
                 return None
             await self.attach(lobby, member, transport)
             return lobby, member
@@ -1379,14 +1387,12 @@ class MultiplayerService:
             try:
                 lobby, member = self.join_lobby(str(message.get("code", "")), name, model)
             except ValueError as error:
-                try:
-                    await transport.send({"t": "error", "code": "join", "msg": str(error)})
-                except Exception:
-                    pass
+                await fail("join", str(error))
                 return None
             await self.attach(lobby, member, transport)
             return lobby, member
 
+        await fail("handshake", "Anmeldung fehlgeschlagen")
         return None
 
 

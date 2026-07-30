@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.multiplayer_routes import MP_TCP_PORT
+from app.api.multiplayer_routes import MP_TCP_PORT, MP_WS_PORT, create_coop_app
 from app.api.multiplayer_routes import router as multiplayer_router
 from app.api.p2p_routes import create_chat_app
 from app.api.p2p_routes import router as p2p_router
@@ -237,6 +237,58 @@ async def _multiplayer_server() -> None:
         return
 
 
+async def _coop_web_server() -> None:
+    config = uvicorn.Config(
+        create_coop_app(),
+        host="0.0.0.0",
+        port=MP_WS_PORT,
+        log_level="warning",
+        access_log=False,
+    )
+    server = uvicorn.Server(config)
+    try:
+        await server.serve()
+    except asyncio.CancelledError:
+        raise
+    except (SystemExit, Exception):
+        print(f"Koop-Port {MP_WS_PORT} belegt - Browser-Koop nur lokal", flush=True)
+        return
+
+
+def _parent_alive(pid: int) -> bool:
+    if os.name == "nt":
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(0x00100000, False, pid)
+        if not handle:
+            return False
+        try:
+            return kernel32.WaitForSingleObject(handle, 0) != 0
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+async def _parent_watchdog() -> None:
+    raw = os.environ.get("JON_PARENT_PID", "").strip()
+    if not raw.isdigit():
+        return
+    pid = int(raw)
+    if pid <= 0 or pid == os.getpid():
+        return
+    while True:
+        await asyncio.sleep(2)
+        if await asyncio.to_thread(_parent_alive, pid):
+            continue
+        print("Jon-App beendet - Backend faehrt herunter", flush=True)
+        os._exit(0)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("STEP init_db", flush=True)
@@ -264,6 +316,8 @@ async def lifespan(app: FastAPI):
     appusage_task = asyncio.create_task(_appusage_watcher())
     chat_task = asyncio.create_task(_chat_server())
     multiplayer_task = asyncio.create_task(_multiplayer_server())
+    coop_web_task = asyncio.create_task(_coop_web_server())
+    watchdog_task = asyncio.create_task(_parent_watchdog())
     announce_task = asyncio.create_task(p2p.announce_loop())
     listen_task = asyncio.create_task(p2p.listen_loop())
 
@@ -297,6 +351,8 @@ async def lifespan(app: FastAPI):
     appusage_task.cancel()
     chat_task.cancel()
     multiplayer_task.cancel()
+    coop_web_task.cancel()
+    watchdog_task.cancel()
     announce_task.cancel()
     listen_task.cancel()
 

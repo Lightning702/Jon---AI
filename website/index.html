@@ -153,7 +153,7 @@ nav a.hot::after{content:"NEU";display:inline-block;margin-left:6px;font-size:9p
 </nav>
 
 <header>
-<a class="newbadge" href="#multiplayer"><b>NEU 3.33</b> 👥 Online-Koop für alle drei Spiele — mit Freundschaftscode</a>
+<a class="newbadge" href="#multiplayer"><b>NEU 3.34</b> 👥 Online-Koop im Heimnetz ohne Einrichtung — Einladung kopieren, fertig</a>
 <h1>Dein <span class="gold">KI-Desktop</span><br>Assistent für Windows</h1>
 <p>Jon steuert deinen gesamten Computer intelligent. Multi-Provider-KI mit GPT-OSS 120B über NVIDIA, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis und voller Systemsteuerung — in einem eleganten Black-&-Gold-Design.</p>
 <div class="cta">
@@ -183,7 +183,7 @@ nav a.hot::after{content:"NEU";display:inline-block;margin-left:6px;font-size:9p
 
 <section id="features">
 <h2>Was Jon <span class="gold">kann</span></h2>
-<p class="sub">Nicht nur ein Chat — ein echter Assistent, der handelt. Neu in v3.33.0: <b>Online-Multiplayer</b> für alle drei Spiele — Freundschaftscode eingeben und zu zweit spielen. Dazu neue Jumpscares in ECHO und ein Wegweiser auf Tastendruck.</p>
+<p class="sub">Nicht nur ein Chat — ein echter Assistent, der handelt. Neu in v3.34.0: der <b>Online-Koop verbindet endlich zuverlässig</b> — eigener Koop-Port im Heimnetz, Einladung mit Adresse zum Kopieren. Dazu: Jon beenden stoppt jetzt auch das Backend, und in ECHO steigst du an jeder Aufzugtür wirklich ein.</p>
 <div class="grid">
 <div class="card"><div class="ic">👥</div><h3>Online-Koop <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>ECHO, AETHERIA und die Blockwelt spielt ihr jetzt zu zweit: <b>Spiel erstellen</b>, 6-stelligen Freundschaftscode weitergeben, <b>beitreten</b> — fertig. Serverautoritativ, mit Lobby, Ping, Reconnect und geteilter Welt. <a href="#multiplayer" style="color:var(--gold-light)">So funktioniert es</a></p></div>
 <div class="card"><div class="ic">🙂</div><h3>Mini Jon</h3><p>Jons kleiner Sohn <b>Emil</b> lebt als niedlicher Kreis auf deinem Bildschirm — immer da, beim Hochfahren schon wach. Sag „Emil" oder „Mini Jon", er hört durchgehend zu, redet mit dir (mit lippensynchronem Mund), merkt sich euer Gespräch und kann alles, was Jon kann. Auch fürs Handy verfügbar. Farben und Gesicht frei anpassbar.</p></div>
@@ -280,11 +280,11 @@ cd frontend &amp;&amp; npm install</code></div></div>
 
 <section id="multiplayer">
 <h2>Zusammen <span class="gold">spielen</span></h2>
-<p class="sub">Neu in v3.33.0: ECHO, AETHERIA und die Blockwelt haben einen echten Online-Koop — serverautoritativ, mit Freundschaftscode, Lobby, Ping-Anzeige und automatischem Reconnect. Der Server ist Jon selbst: er läuft schon, wenn du <b>start-jon.bat</b> oder die <b>Jon.exe</b> startest.</p>
+<p class="sub">ECHO, AETHERIA und die Blockwelt haben einen echten Online-Koop — serverautoritativ, mit Freundschaftscode, Lobby, Ping-Anzeige und automatischem Reconnect. Der Server ist Jon selbst: er läuft schon, wenn du <b>start-jon.bat</b> oder die <b>Jon.exe</b> startest. Seit v3.34.0 ist er im Heimnetz sofort erreichbar — ohne eine einzige Einstellung.</p>
 <div class="mp-hero">
 <ol class="mp-steps">
 <li><span class="num">1</span><div><b>Spiel erstellen</b><p>Ein Klick — der Server legt eine Lobby an und würfelt einen 6-stelligen Freundschaftscode.</p></div></li>
-<li><span class="num">2</span><div><b>Code weitergeben</b><p>Zum Beispiel <b style="color:var(--gold-light);letter-spacing:3px">AB39KD</b>. Für Spiele über das Internet reicht <b>AB39KD@meinserver.de</b> — Code und Adresse in einem Feld.</p></div></li>
+<li><span class="num">2</span><div><b>Code weitergeben</b><p>Zum Beispiel <b style="color:var(--gold-light);letter-spacing:3px">AB39KD</b>. Für einen Freund an einem anderen PC gibt es die Einladung mit Adresse: <b>AB39KD@192.168.1.20:8760</b> — Code und Adresse in einem Feld, ein Klick zum Kopieren.</p></div></li>
 <li><span class="num">3</span><div><b>Beitreten und bereit</b><p>Dein Freund gibt den Code ein, setzt sich auf „Bereit“, der Host startet — beide spawnen gleichzeitig in dieselbe Welt.</p></div></li>
 </ol>
 <div class="mp-card">
@@ -295,7 +295,7 @@ cd frontend &amp;&amp; npm install</code></div></div>
 </div>
 </div>
 <div class="mp-feat">
-<div><h4>🌍 Weltweit, nicht nur LAN</h4><p>Im Heimnetz reicht die LAN-Adresse. Übers Internet: Portfreigabe für <b>8756</b> (Browser) und <b>8759</b> (ECHO/AETHERIA) — oder ein öffentlich erreichbarer Jon-Server, dann genügt der Code allein.</p></div>
+<div><h4>🌍 Weltweit, nicht nur LAN</h4><p>Im Heimnetz genügt die Einladung des Gastgebers — Jon hält dafür nur die Koop-Ports <b>8760</b> (Browser) und <b>8759</b> (ECHO/AETHERIA) offen, Chat, Dateien und PC-Steuerung bleiben auf deinem Rechner. Übers Internet: Portfreigabe für diese zwei Ports.</p></div>
 <div><h4>🛡️ Server hat das letzte Wort</h4><p>Positionen, Blöcke, Türen, Rätsel, Quests und der Spielstand werden serverseitig geprüft. Wer sich unmöglich bewegt, wird zurückgesetzt — Items lassen sich nicht herbeizaubern.</p></div>
 <div><h4>🎯 Flüssig statt ruckelig</h4><p>Delta-komprimierte Snapshots mit 20 Hz, Interpolation, Client-Prediction und Lag-Kompensation. Keine Teleports, kein Gummiband.</p></div>
 <div><h4>🔌 Verbindung abgerissen?</h4><p>Heartbeat, Ping, Paketverlust-Anzeige und automatischer Reconnect. Deine Sitzung bleibt auf dem Server erhalten — auch wenn Jon neu startet.</p></div>
@@ -340,7 +340,7 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <a href="agb.html">AGB</a>
 <button class="cookie-link" onclick="jonShowCookieBanner()">Cookie-Einstellungen</button>
 </div>
-<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.33.0 · Läuft lokal auf deinem Rechner</div>
+<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.34.0 · Läuft lokal auf deinem Rechner</div>
 </footer>
 
 <div id="cookie-banner" role="dialog" aria-label="Cookie-Hinweis">

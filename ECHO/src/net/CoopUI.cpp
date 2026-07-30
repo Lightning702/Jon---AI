@@ -154,9 +154,12 @@ void CoopMenu::activate(int action) {
         view = CVIEW_HOME;
         break;
     case ACT_RETRY:
+        coop->leave();
         view = CVIEW_HOME;
+        index = 0;
         break;
     case ACT_BACK:
+        if (coop->phase() == COOP_ERROR) coop->leave();
         view = CVIEW_HOME;
         break;
     case ACT_CLOSE:
@@ -171,10 +174,8 @@ void CoopMenu::activate(int action) {
 void CoopMenu::update(float dt) {
     if (!shown || coop == nullptr || window == nullptr) return;
     blink += dt;
-    if (inputGuard > 0.0f) {
-        inputGuard -= dt;
-        return;
-    }
+    bool locked = inputGuard > 0.0f;
+    if (locked) inputGuard -= dt;
 
     int phase = coop->phase();
     if (phase == COOP_PLAYING) {
@@ -187,6 +188,21 @@ void CoopMenu::update(float dt) {
     else if (phase == COOP_LOBBY) view = CVIEW_LOBBY;
 
     Input& in = window->input();
+
+    std::string chatLine;
+    while (coop->consumeChat(chatLine)) {
+        for (int i = 3; i > 0; i--) {
+            chatFeed[i] = chatFeed[i - 1];
+            chatTimer[i] = chatTimer[i - 1];
+        }
+        chatFeed[0] = chatLine;
+        chatTimer[0] = 9.0f;
+    }
+    for (int i = 0; i < 4; i++) {
+        if (chatTimer[i] > 0.0f) chatTimer[i] -= dt;
+    }
+
+    if (locked) return;
 
     if (view == CVIEW_JOIN) typeInto(codeInput, 24, true);
     if (view == CVIEW_NAME) typeInto(playerName, 18, false);
@@ -222,22 +238,10 @@ void CoopMenu::update(float dt) {
     }
 
     if (in.keyPressed(KEY_ESCAPE)) {
-        if (view == CVIEW_JOIN || view == CVIEW_NAME || view == CVIEW_PROBLEM) view = CVIEW_HOME;
+        if (view == CVIEW_PROBLEM) activate(ACT_RETRY);
+        else if (view == CVIEW_JOIN || view == CVIEW_NAME) view = CVIEW_HOME;
         else if (view == CVIEW_LOBBY || view == CVIEW_WAIT) close();
         else activate(ACT_CLOSE);
-    }
-
-    std::string line;
-    while (coop->consumeChat(line)) {
-        for (int i = 3; i > 0; i--) {
-            chatFeed[i] = chatFeed[i - 1];
-            chatTimer[i] = chatTimer[i - 1];
-        }
-        chatFeed[0] = line;
-        chatTimer[0] = 9.0f;
-    }
-    for (int i = 0; i < 4; i++) {
-        if (chatTimer[i] > 0.0f) chatTimer[i] -= dt;
     }
 }
 

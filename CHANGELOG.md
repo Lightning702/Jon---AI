@@ -2,6 +2,96 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.34.0] — 2026-07-30
+
+### Fix — Multiplayer: „man kann sich nicht verbinden"
+
+Der Koop aus 3.33.0 funktionierte nur in Sonderfällen. Vier echte Ursachen, alle
+gefunden und behoben:
+
+- **Der Server war für Mitspieler gar nicht erreichbar.** Uvicorn lauschte auf
+  `127.0.0.1`, solange nicht `JON_LAN=1` in der `.env` stand — und diese Datei gab es
+  gar nicht. Ein Freund am zweiten PC lief also immer ins Leere, obwohl das Menü die
+  LAN-IP versprach. Jetzt hat der Koop einen **eigenen Port 8760 auf `0.0.0.0`**
+  (`create_coop_app()` in `multiplayer_routes.py`, gestartet als `_coop_web_server()` —
+  nach dem Muster des P2P-Chats, inkl. „Port belegt"-Abfangen). Dieser Port liefert
+  ausschließlich `/api/mp/*` und `/blockwelt`; Chat, Dateien, Konten und PC-Steuerung
+  bleiben auf 8756 und damit lokal. `JON_LAN` braucht man für Koop nicht mehr.
+  Ein Gast ohne eigenes Jon kann sogar direkt `http://<adresse>:8760/blockwelt` öffnen.
+- **ECHO/AETHERIA schickten den Handshake nur einmal pro Programmstart.**
+  `CoopSession::update()` hing an einem `everSent`-Flag, das nie zurückgesetzt wurde.
+  Der erste Versuch klappte; jeder weitere — nach einem Tippfehler im Code, nach
+  „Lobby verlassen", nach einem Serverfehler — verband die Leitung, sagte aber nie
+  „hallo" und blieb für immer auf **VERBINDE** stehen. Ersetzt durch `handshakeSent`,
+  das `beginConnect()` bei jedem Verbindungsaufbau löscht.
+- **Der Fehlerbildschirm war eine Sackgasse.** `ZURUECK ZUM MENUE` setzte nur die
+  Ansicht zurück, die Sitzung blieb im Zustand `COOP_ERROR` — und `update()` sprang
+  sofort wieder in den Fehlerbildschirm. Jetzt räumt `ACT_RETRY` die Sitzung sauber auf.
+- **Abgelehnte Verbindungen wurden nicht erkannt.** `NetClient` prüfte beim
+  nicht-blockierenden `connect()` nur `writefds`, nie `exceptfds` oder `SO_ERROR` — ein
+  geschlossener Port lief 6 s pro Adresse in den Timeout, bei IPv6+IPv4 also 12 s
+  scheinbares Hängen. Jetzt sofortige Erkennung mit klarer Meldung
+  („Kein Jon-Server auf host:port" statt „Verbindung abgelehnt").
+
+Dazu aufgeräumt:
+
+- Der Handshake meldet **jeden** Fehlgrund an den Client (`resume`, `create`, `join`,
+  `handshake`) statt nur beim Beitreten; die WebSocket-Route schickt keine doppelte
+  Fehlermeldung mehr.
+- Die Blockwelt schließt den alten Socket, bevor sie einen neuen öffnet, und ignoriert
+  Ereignisse veralteter Verbindungen — vorher konnte das `onclose` eines toten Sockets
+  die frische Verbindung wieder auf „verloren" setzen.
+- Die Lobby zeigt jetzt **zwei** Felder: den Code für denselben PC und die
+  **Einladung mit Adresse** (`AB39KD@192.168.1.20:8760`) für andere PCs, beide mit
+  Kopierknopf. Adresse und Port holt die Seite aus `/api/mp/info`
+  (neu: `ws_port`, `invite_host`).
+- Das Koop-Menü in ECHO verarbeitet den Team-Chat auch während der 0,22-s-Eingabesperre
+  nach dem Öffnen; die Sperre blockiert nur noch Tasten und Klicks, nicht die
+  Serverantworten.
+- `jon-backend.spec` nimmt `websockets` vollständig mit, damit der WebSocket-Koop auch
+  in der gepackten `jon-backend.exe` läuft.
+
+Verifiziert: zwei Browser-Kontexte über die echte Netzwerkadresse (10.2.0.2) bis
+`phase=playing` inkl. Ping und Team-Chat, ohne JS-Fehler; ECHO verbindet sich nach einem
+absichtlich fehlgeschlagenen ersten Versuch im selben Prozess und taucht im Roster des
+Gastgebers auf.
+
+### Neu — Jon beenden stoppt auch das Backend
+
+Das X der App versteckte das Fenster nur; `jon-backend.exe` lief unbemerkt weiter.
+
+- **X beendet Jon jetzt wirklich** (`quitJon()`): Backend stoppen, Fenster schließen,
+  Tray-Symbol entfernen. Wer Jon nur wegklicken will, hat dafür einen neuen Knopf
+  in der Titelleiste (⌄, „In den Hintergrund") und den Tray-Eintrag
+  „Im Hintergrund weiterlaufen" — Strg+Alt+J holt ihn zurück.
+- **`stopBackend()`** killt den Prozessbaum und räumt danach übrig gebliebene Listener
+  auf 8756/8758/8759/8760 ab, damit kein Backend einer vorherigen Sitzung stehen bleibt.
+- **Parent-Watchdog im Backend**: Electron gibt seine PID als `JON_PARENT_PID` mit;
+  `_parent_watchdog()` prüft alle 2 s, ob die App noch lebt, und fährt das Backend
+  sonst selbst herunter. Damit bleibt auch nach einem Absturz der App nichts hängen.
+
+### Fix — ECHO: Aufzugtür führte vor eine Wand
+
+Die Aufzugkabine steht im hinteren Teil des Schachtraums und öffnet nach vorn. Die
+Eingangstür vom Flur landet aber je nach Grundriss irgendwo an der Raumwand — ein
+kopfloser Durchlauf über 40 Seeds zeigt: **168 von 328 Aufzugtüren (51 %)** öffneten
+auf die Stahlwand der Kabine statt auf ihren Eingang.
+
+Wer jetzt eine Aufzugtür öffnet, **steigt direkt in die Kabine ein** (`Game::enterCab()`):
+Tür auf, Spieler in die Kabine, Blick zur Kabinentür, Ding — und das Etagenpanel
+(1 – 4) hat 6 s Zeit, bevor der Aufzug von selbst losfährt. Neu dafür:
+`World::cabInRoom()` und `World::cabForDoor()`.
+
+### Tests & Werkzeuge
+- 4 neue Tests in `test_multiplayer.py`: Koop-Port liefert Lobby und Spielseite und
+  eben **nicht** den Rest der API; die drei Ports sind verschieden; jeder Handshake-
+  Fehler nennt seinen Grund; ein zweiter Versuch auf derselben Leitung klappt.
+  Gesamt **162 Tests grün**.
+- `ECHO.exe -nettest <adresse> [CODE]` prüft jetzt zwei Versuche hintereinander
+  (erst absichtlich auf einen geschlossenen Port, dann richtig) und fällt damit auf
+  genau den behobenen Handshake-Fehler herein, falls er zurückkommt.
+- `ECHO.exe -seeds N` zählt Aufzugtüren, Kabinen und blockierte Zugänge.
+
 ## [3.33.0] — 2026-07-30
 
 ### Neu — Online-Multiplayer für alle drei Spiele

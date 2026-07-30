@@ -6,6 +6,7 @@ declare global {
       minimize: () => void;
       maximize: () => void;
       close: () => void;
+      hide?: () => void;
       moveBy?: (dx: number, dy: number) => void;
       platform: string;
     };
@@ -58,18 +59,30 @@ export default function TitleBar() {
         <div className="no-drag flex items-center gap-1">
           <button
             onClick={() => api.minimize()}
+            title="Minimieren"
             className="w-8 h-8 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition"
           >
             &#8211;
           </button>
           <button
             onClick={() => api.maximize()}
+            title="Vollbild"
             className="w-8 h-8 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition"
           >
             &#9633;
           </button>
+          {api.hide && (
+            <button
+              onClick={() => api.hide?.()}
+              title="In den Hintergrund — Jon bleibt im Infobereich aktiv (Strg+Alt+J)"
+              className="w-8 h-8 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition"
+            >
+              &#8964;
+            </button>
+          )}
           <button
             onClick={() => api.close()}
+            title="Jon beenden — schliesst auch das Backend"
             className="w-8 h-8 rounded-lg hover:bg-red-500/70 text-white/60 hover:text-white transition"
           >
             &#10005;

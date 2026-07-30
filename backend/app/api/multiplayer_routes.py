@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import json
 import socket
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
@@ -17,6 +20,8 @@ from app.services.multiplayer_service import (
 router = APIRouter(prefix="/api/mp", tags=["multiplayer"])
 
 MP_TCP_PORT = 8759
+MP_WS_PORT = 8760
+GAME_PAGE = Path(__file__).resolve().parents[1] / "static" / "blockwelt.html"
 
 
 class CreateIn(BaseModel):
@@ -47,6 +52,11 @@ def _local_addresses() -> list[str]:
     return hosts
 
 
+def _invite_host() -> str:
+    addresses = _local_addresses()
+    return addresses[0] if addresses else "127.0.0.1"
+
+
 @router.get("/status")
 async def mp_status() -> dict:
     settings = get_settings()
@@ -55,9 +65,11 @@ async def mp_status() -> dict:
         **service.status(),
         "version": settings.app_version,
         "tcp_port": MP_TCP_PORT,
+        "ws_port": MP_WS_PORT,
         "http_port": settings.port,
         "lan": settings.jon_lan,
         "addresses": _local_addresses(),
+        "invite_host": _invite_host(),
     }
 
 
@@ -69,13 +81,16 @@ async def mp_info() -> dict:
         "games": sorted(GAMES),
         "http_port": settings.port,
         "tcp_port": MP_TCP_PORT,
+        "ws_port": MP_WS_PORT,
         "addresses": _local_addresses(),
+        "invite_host": _invite_host(),
         "hint": (
-            "Weltweit spielen: Beide Spieler verbinden sich mit derselben "
-            "Jon-Adresse. Entweder Portfreigabe fuer Port "
-            f"{settings.port} (Browser) und {MP_TCP_PORT} (ECHO/AETHERIA), "
-            "oder ein oeffentlich erreichbarer Jon-Server. Im Beitrittsfeld "
-            "sind CODE und CODE@host:port erlaubt."
+            "Weltweit spielen: Der Gastgeber gibt CODE@adresse weiter. Der "
+            f"Koop-Port {MP_WS_PORT} (Browser) und {MP_TCP_PORT} "
+            "(ECHO/AETHERIA) sind im Netzwerk erreichbar, ohne dass der Rest "
+            "von Jon offen ist. Ueber das Internet braucht der Gastgeber eine "
+            "Portfreigabe fuer diese zwei Ports. Im Beitrittsfeld sind CODE "
+            "und CODE@host:port erlaubt."
         ),
     }
 
@@ -135,9 +150,6 @@ async def mp_socket(socket: WebSocket) -> None:
             if lobby is None or member is None:
                 pair = await service.handshake(message, transport)
                 if pair is None:
-                    await transport.send(
-                        {"t": "error", "code": "handshake", "msg": "Anmeldung fehlgeschlagen"}
-                    )
                     continue
                 lobby, member = pair
                 continue
@@ -149,3 +161,24 @@ async def mp_socket(socket: WebSocket) -> None:
     finally:
         if lobby is not None and member is not None and member.transport is transport:
             await service.detach(lobby, member)
+
+
+def create_coop_app() -> FastAPI:
+    app = FastAPI(title="Jon Koop", docs_url=None, redoc_url=None)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.include_router(router)
+
+    @app.get("/")
+    async def coop_root() -> RedirectResponse:
+        return RedirectResponse("/blockwelt")
+
+    @app.get("/blockwelt")
+    async def coop_blockwelt() -> FileResponse:
+        return FileResponse(GAME_PAGE, media_type="text/html")
+
+    return app

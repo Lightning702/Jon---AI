@@ -1134,6 +1134,29 @@ int World::cabOnFloor(int shaft, int floor) const {
     return -1;
 }
 
+int World::cabInRoom(int room) const {
+    if (room < 0) return -1;
+    for (const auto& cab : cabList) {
+        if (cab.room == room) return cab.id;
+    }
+    return -1;
+}
+
+int World::cabForDoor(int doorId) const {
+    if (doorId < 0 || doorId >= (int)doorList.size()) return -1;
+    const Door& door = doorList[(size_t)doorId];
+    if (door.kind != DOOR_ELEVATOR) return -1;
+    int rooms[2] = { door.roomA, door.roomB };
+    for (int i = 0; i < 2; i++) {
+        int room = rooms[i];
+        if (room < 0 || room >= (int)roomList.size()) continue;
+        if (roomList[(size_t)room].type != ROOM_ELEVATOR) continue;
+        int cab = cabInRoom(room);
+        if (cab >= 0) return cab;
+    }
+    return -1;
+}
+
 int World::doorBetween(int roomA, int roomB) const {
     for (const auto& d : doorList) {
         if ((d.roomA == roomA && d.roomB == roomB) || (d.roomA == roomB && d.roomB == roomA)) return d.id;

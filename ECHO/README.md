@@ -42,7 +42,8 @@ bin\ECHO.exe       Startet direkt
 | Shift | Sprinten |
 | Strg | Ducken |
 | Leertaste | Springen |
-| E / Linksklick | Interagieren |
+| E / Linksklick | Interagieren (an der Aufzugtuer: einsteigen) |
+| 1 – 4 | Im Aufzug: Etage waehlen |
 | Rechtsklick | Fokussieren (langsamer, ruhiger) |
 | **F** | Taschenlampe an/aus |
 | **H** | Wegweiser zum Ziel ein/aus (direkter Weg zum Aufzug bzw. Kampagnenziel) |
@@ -102,6 +103,11 @@ TCP-Port **8759**.
 3. Der andere waehlt **SPIEL BEITRETEN** und tippt den Code ein. Fuer einen fremden
    Server: `AB39KD@meinserver.de:8759`.
 4. Gast auf **BEREIT**, Host auf **SPIEL STARTEN** — beide spawnen gleichzeitig.
+
+Port 8759 ist im Netzwerk erreichbar, ohne dass der Rest von Jon geoeffnet wird. Klappt
+eine Verbindung nicht, nennt der Bildschirm **VERBINDUNG FEHLGESCHLAGEN** jetzt den
+konkreten Grund (kein Server, keine Antwort, Code nicht gefunden); **ZURUECK ZUM MENUE**
+setzt die Sitzung sauber zurueck, sodass der naechste Versuch sofort geht.
 
 Technisch: 20-Hz-Snapshots mit Delta-Kompression, Interpolation mit 110 ms Puffer,
 Extrapolation bis 280 ms, Heartbeat mit Ping-Anzeige, automatischer Reconnect mit

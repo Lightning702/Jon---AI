@@ -568,6 +568,78 @@ def test_rest_api_ist_in_der_echten_app_verdrahtet(monkeypatch, tmp_path):
     asyncio.run(run())
 
 
+def test_koop_port_liefert_lobby_und_spielseite(monkeypatch, tmp_path):
+    import httpx
+
+    monkeypatch.setattr(mp, "MP_DIR", tmp_path / "multiplayer")
+    monkeypatch.setattr(mp, "_service", None, raising=False)
+
+    from app.api.multiplayer_routes import MP_WS_PORT, create_coop_app
+
+    app = create_coop_app()
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://freund") as client:
+            info = (await client.get("/api/mp/info")).json()
+            assert info["ws_port"] == MP_WS_PORT
+            assert info["invite_host"]
+
+            created = await client.post("/api/mp/create", json={"game": "blockwelt", "name": "Host"})
+            assert created.status_code == 200
+            code = created.json()["code"]
+            joined = await client.post("/api/mp/join", json={"code": code, "name": "Gast"})
+            assert joined.status_code == 200
+            assert len(joined.json()["lobby"]["players"]) == 2
+
+            page = await client.get("/blockwelt")
+            assert page.status_code == 200
+            assert "MP_WS_PORT" in page.text
+
+            assert (await client.get("/api/settings")).status_code == 404
+            assert (await client.get("/api/chat")).status_code == 404
+
+    asyncio.run(run())
+
+
+def test_koop_port_ist_getrennt_vom_haupt_port():
+    from app.api.multiplayer_routes import MP_TCP_PORT, MP_WS_PORT
+    from app.core.config import get_settings
+
+    ports = {get_settings().port, MP_TCP_PORT, MP_WS_PORT}
+    assert len(ports) == 3
+
+
+def test_fehlgeschlagener_handshake_nennt_den_grund(service):
+    async def run():
+        unknown = FakeTransport()
+        assert await service.handshake({"t": "quatsch"}, unknown) is None
+        assert unknown.last("error")["code"] == "handshake"
+
+        stale = FakeTransport()
+        assert await service.handshake({"t": "hello", "token": "weg"}, stale) is None
+        assert stale.last("error")["code"] == "resume"
+
+        wrong = FakeTransport()
+        assert await service.handshake({"t": "create", "game": "quake"}, wrong) is None
+        assert wrong.last("error")["code"] == "create"
+
+    asyncio.run(run())
+
+
+def test_zweiter_versuch_auf_derselben_leitung_klappt(service):
+    async def run():
+        transport = FakeTransport()
+        lobby, _ = service.create_lobby("blockwelt", "Host", max_players=2)
+        assert await service.handshake({"t": "join", "code": "ZZZZZZ"}, transport) is None
+        assert transport.last("error")["code"] == "join"
+        pair = await service.handshake({"t": "join", "code": lobby.code, "name": "Gast"}, transport)
+        assert pair is not None
+        assert transport.last("welcome")["lobby"]["code"] == lobby.code
+
+    asyncio.run(run())
+
+
 def test_spielprofile_grenzen_sich_ab():
     assert set(mp.GAMES) == {"blockwelt", "aetheria", "echo"}
     assert mp.GAMES["blockwelt"].edit_range >= 8.0

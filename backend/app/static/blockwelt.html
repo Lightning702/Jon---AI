@@ -1356,12 +1356,13 @@ const PALETTES=[
 ];
 const HEADGEAR=['crown','cap','band','none'];
 
+const MP_WS_PORT=8760;
 const NET={
 enabled:false,sock:null,origin:'',intent:null,token:'',playerId:'',lobby:null,
 phase:'offline',seed:1337,spawn:null,world:new Map(),remotes:new Map(),
 timeOffset:0,ping:0,loss:0,ack:0,evCursor:0,sendAcc:0,npcAcc:0,tries:0,retryAt:0,
 error:'',syncText:'',dirty:new Set(),flushAcc:0,batch:[],lastSent:null,
-correction:null,corrections:0,manualClose:false
+correction:null,corrections:0,manualClose:false,wsPort:MP_WS_PORT,inviteHost:''
 };
 
 function paletteFor(id){
@@ -1386,7 +1387,7 @@ code=text.slice(0,at);
 let host=text.slice(at+1).trim();
 if(host){
 if(!/^https?:\/\//i.test(host))host=(location.protocol==='https:'?'https://':'http://')+host;
-if(!/:\d+$/.test(host)&&!/^https/i.test(host))host=host+':8756';
+if(!/:\d+$/.test(host.replace(/^https?:\/\//i,''))&&!/^https/i.test(host))host=host+':'+NET.wsPort;
 origin=host.replace(/\/+$/,'');
 }
 }
@@ -1396,8 +1397,18 @@ return{code,origin};
 }
 function inviteText(){
 if(!NET.lobby)return '';
-const host=location.host;
-return NET.lobby.code+'@'+host;
+const host=NET.inviteHost||location.hostname||'127.0.0.1';
+return NET.lobby.code+'@'+host+':'+NET.wsPort;
+}
+async function loadMpInfo(){
+try{
+const res=await fetch('/api/mp/info');
+if(!res.ok)return;
+const info=await res.json();
+if(info.ws_port)NET.wsPort=info.ws_port;
+if(info.invite_host)NET.inviteHost=info.invite_host;
+renderMp();
+}catch(e){}
 }
 
 function netSend(msg){
@@ -1413,9 +1424,20 @@ if(NET.phase!=='playing')return;
 netSend({t:'fx',kind,data:data||{}});
 }
 
+function netDropSocket(){
+const old=NET.sock;
+NET.sock=null;
+if(!old)return;
+old.onopen=null;
+old.onmessage=null;
+old.onclose=null;
+old.onerror=null;
+try{old.close();}catch(e){}
+}
 function netConnect(intent){
 NET.intent=intent||NET.intent;
 if(!NET.intent)return;
+netDropSocket();
 NET.origin=NET.intent.origin||'';
 NET.manualClose=false;
 NET.error='';
@@ -1426,6 +1448,7 @@ try{sock=new WebSocket(netSocketUrl());}
 catch(e){NET.phase='error';NET.error='Verbindung nicht moeglich.';renderMp();return;}
 NET.sock=sock;
 sock.onopen=()=>{
+if(NET.sock!==sock){try{sock.close();}catch(e){}return;}
 NET.tries=0;
 const name=NET.intent.name||'Spieler';
 const model=NET.intent.model||'default';
@@ -1437,11 +1460,13 @@ return;
 netSend({t:'join',code:NET.intent.code,name,model});
 };
 sock.onmessage=ev=>{
+if(NET.sock!==sock)return;
 let msg;
 try{msg=JSON.parse(ev.data);}catch(e){return;}
 handleNet(msg);
 };
 sock.onclose=()=>{
+if(NET.sock!==sock)return;
 NET.sock=null;
 for(const r of NET.remotes.values())r.online=false;
 if(NET.manualClose||!NET.enabled){NET.phase='offline';renderMp();return;}
@@ -1456,8 +1481,8 @@ sock.onerror=()=>{};
 function netLeave(){
 NET.manualClose=true;
 NET.enabled=false;
-if(NET.sock){try{netSend({t:'leave'});NET.sock.close();}catch(e){}}
-NET.sock=null;
+try{netSend({t:'leave'});}catch(e){}
+netDropSocket();
 NET.phase='offline';
 NET.lobby=null;
 NET.token='';
@@ -2110,11 +2135,13 @@ const mpOverlay=document.getElementById('mp');
 const mpCard=document.getElementById('mpcard');
 let mpView='home';
 let mpName=(localStorage.getItem('bw_name')||'').slice(0,20);
+let mpInfoLoaded=false;
 function openMp(view){
 if(view)mpView=view;
 mpOverlay.className='on';
 startDiv.style.display='none';
 if(document.pointerLockElement)document.exitPointerLock();
+if(!mpInfoLoaded){mpInfoLoaded=true;loadMpInfo();}
 renderMp();
 }
 function closeMp(){
@@ -2142,11 +2169,13 @@ const host=netIsHost();
 const players=NET.lobby.players||[];
 const everyone=players.filter(p=>!p.host).every(p=>p.ready);
 const me=players.find(p=>p.id===NET.playerId);
-html='<h2>LOBBY</h2><p class="sub">Gib den Code weiter — dein Freund traegt ihn unter „Spiel beitreten“ ein.</p>'+
+html='<h2>LOBBY</h2><p class="sub">Am selben PC reicht der Code. Ein Freund an einem anderen PC braucht die Einladung mit Adresse.</p>'+
 '<div class="mpcode"><div><small>Freundschaftscode</small><b>'+escapeHtml(NET.lobby.code)+'</b></div>'+
-'<button class="mpbtn ghost" data-a="copy">Kopieren</button></div>'+
+'<button class="mpbtn ghost" data-a="copy">Code kopieren</button></div>'+
+'<div class="mpcode"><div><small>Einladung fuer andere PCs</small><b style="font-size:1.05rem">'+escapeHtml(inviteText())+'</b></div>'+
+'<button class="mpbtn ghost" data-a="copyinvite">Einladung kopieren</button></div>'+
 lobbyListHtml()+
-'<p class="mpnote">Server: '+escapeHtml(netOrigin())+'<br>Einladung mit Adresse: <b>'+escapeHtml(inviteText())+'</b></p>'+
+'<p class="mpnote">Verbunden mit: '+escapeHtml(netOrigin())+'</p>'+
 err+'<div class="mpfoot">'+
 (host?'<button class="mpbtn go" data-a="start"'+(players.length>1&&everyone?'':' disabled')+'>Spiel starten</button>'+
 '<button class="mpbtn bad" data-a="close">Lobby schliessen</button>':
@@ -2155,7 +2184,7 @@ err+'<div class="mpfoot">'+
 }else if(NET.phase==='error'){
 html='<h2>GETRENNT</h2>'+err+'<div class="mpfoot"><button class="mpbtn" data-a="home">Zurueck</button></div>';
 }else if(mpView==='join'){
-html='<h2>SPIEL BEITRETEN</h2><p class="sub">Code vom Gastgeber eingeben. Erlaubt sind <b>AB39KD</b> und <b>AB39KD@server:8756</b> fuer einen fremden Server.</p>'+
+html='<h2>SPIEL BEITRETEN</h2><p class="sub">Am selben PC reicht <b>AB39KD</b>. Von einem anderen PC die ganze Einladung des Gastgebers eintragen, z. B. <b>AB39KD@192.168.1.20:'+NET.wsPort+'</b>.</p>'+
 '<label class="mpfield"><span>Freundschaftscode</span><input id="mpcodeinput" maxlength="20" placeholder="AB39KD" autocomplete="off"></label>'+
 '<label class="mpfield"><span>Dein Name</span><input id="mpnameinput" maxlength="20" value="'+escapeHtml(mpName)+'" placeholder="Spieler 2"></label>'+
 err+'<div class="mpfoot"><button class="mpbtn ghost" data-a="home">Zurueck</button><button class="mpbtn go" data-a="dojoin">Beitreten</button></div>';
@@ -2170,7 +2199,7 @@ html='<h2>ONLINE</h2><p class="sub">Zusammen bauen, sprengen und Jon Befehle geb
 '<li><span class="mpav" style="background:linear-gradient(135deg,#8fd05a,#5f9c38)"></span><span class="mpname">Spiel erstellen<i>Lobby anlegen und Code teilen</i></span><button class="mpbtn go" data-a="create">Erstellen</button></li>'+
 '<li><span class="mpav" style="background:linear-gradient(135deg,#74c0ff,#2b6fb5)"></span><span class="mpname">Spiel beitreten<i>Code vom Freund eingeben</i></span><button class="mpbtn" data-a="join">Beitreten</button></li>'+
 '</ul>'+
-'<p class="mpnote">Weltweit spielen: Beide verbinden sich mit derselben Jon-Adresse. Im Heimnetz reicht die LAN-IP, ueber das Internet eine Portfreigabe fuer 8756 oder ein oeffentlich erreichbarer Jon-Server.</p>'+
+'<p class="mpnote">Der Gastgeber gibt seine Einladung weiter (<b>CODE@adresse:'+NET.wsPort+'</b>). Im Heimnetz funktioniert das sofort — Jon haelt nur den Koop-Port offen, nicht den Rest. Ueber das Internet braucht der Gastgeber eine Portfreigabe fuer '+NET.wsPort+'.</p>'+
 err+'<div class="mpfoot"><button class="mpbtn ghost" data-a="dismiss">Allein weiterspielen</button></div>';
 }
 mpCard.innerHTML=html;
@@ -2210,11 +2239,12 @@ if(!parsed){NET.error='Der Code besteht aus 6 Zeichen, z. B. AB39KD.';renderMp()
 netConnect({mode:'join',code:parsed.code,origin:parsed.origin,name:mpName||'Spieler 2',model:'blau'});
 return;
 }
-if(action==='copy'){
-const text=NET.lobby?NET.lobby.code:'';
+if(action==='copy'||action==='copyinvite'){
+const text=action==='copyinvite'?inviteText():(NET.lobby?NET.lobby.code:'');
+const label=btn.textContent;
 if(navigator.clipboard)navigator.clipboard.writeText(text).catch(()=>{});
 btn.textContent='Kopiert!';
-setTimeout(()=>{btn.textContent='Kopieren';},1400);
+setTimeout(()=>{btn.textContent=label;},1400);
 return;
 }
 if(action==='ready'){
@@ -2262,7 +2292,7 @@ updateRemotes(dt);
 updateGhostPearls(dt);
 }
 
-Object.assign(window.__dbg,{NET,drawIcon,initNoise,parseInvite,handleNet,feedRemote,sampleRemote,
+Object.assign(window.__dbg,{NET,drawIcon,initNoise,parseInvite,inviteText,handleNet,feedRemote,sampleRemote,
 updateRemotes,dropRemote,netSetBlock,generatedBlock,localAnim,localFlags,netIsHost,netActive,
 renderMp,openMp,closeMp,lobbyListHtml,makeAvatar,paletteFor,applySnapshot,applyFullState,
 applyEvent,applyFx,netApplyWorld,placeAtSpawn,revertBlock,netSend,sendAct,sendFx,pushChat,hudRefresh,

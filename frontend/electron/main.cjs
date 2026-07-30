@@ -15,6 +15,7 @@ const fs = require("node:fs");
 const { spawn, spawnSync } = require("node:child_process");
 
 const isDev = !app.isPackaged;
+const BACKEND_PORTS = [8756, 8758, 8759, 8760];
 let mainWindow = null;
 let petWindow = null;
 let quickWindow = null;
@@ -224,6 +225,24 @@ function togglePet() {
   else createPet();
 }
 
+function quitJon() {
+  if (quitting) return;
+  quitting = true;
+  stopBackend();
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.destroy();
+  }
+  if (tray && !tray.isDestroyed()) {
+    tray.destroy();
+    tray = null;
+  }
+  app.quit();
+}
+
+function hideWindow() {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+}
+
 function toggleWindow() {
   if (!mainWindow) return;
   if (mainWindow.isVisible() && !mainWindow.isMinimized() && mainWindow.isFocused()) {
@@ -284,11 +303,14 @@ async function startBackend() {
   if (fs.existsSync(bundledExe)) {
     backendProcess = spawn(bundledExe, [], {
       cwd: path.dirname(bundledExe),
-      env: { ...process.env },
+      env: { ...process.env, JON_PARENT_PID: String(process.pid) },
       stdio: ["ignore", out, out],
       windowsHide: true,
     });
     backendProcess.on("error", () => {});
+    backendProcess.on("exit", () => {
+      backendProcess = null;
+    });
     return;
   }
 
@@ -297,7 +319,7 @@ async function startBackend() {
   const py = resolvePython();
   const cmd = py[0];
   const pre = py.slice(1);
-  const env = { ...process.env };
+  const env = { ...process.env, JON_PARENT_PID: String(process.pid) };
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.NODE_OPTIONS;
   const depCheck =
@@ -323,6 +345,9 @@ async function startBackend() {
     windowsHide: true,
   });
   backendProcess.on("error", () => {});
+  backendProcess.on("exit", () => {
+    backendProcess = null;
+  });
 }
 
 function clearPrivateData() {
@@ -422,10 +447,9 @@ function createWindow() {
   mainWindow.once("ready-to-show", () => mainWindow.show());
 
   mainWindow.on("close", (event) => {
-    if (!quitting) {
-      event.preventDefault();
-      mainWindow.hide();
-    }
+    if (quitting) return;
+    event.preventDefault();
+    quitJon();
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -466,7 +490,8 @@ ipcMain.handle("window:maximize", () => {
   if (mainWindow.isMaximized()) mainWindow.unmaximize();
   else mainWindow.maximize();
 });
-ipcMain.handle("window:close", () => mainWindow && mainWindow.close());
+ipcMain.handle("window:close", () => quitJon());
+ipcMain.handle("window:hide", () => hideWindow());
 ipcMain.handle("window:moveBy", (_event, dx, dy) => {
   if (!mainWindow) return;
   if (mainWindow.isMaximized()) {
@@ -568,13 +593,8 @@ app.whenReady().then(() => {
       { label: "Mini Jon ein/aus", click: togglePet },
       { label: "Privater Browser (Strg+Alt+P)", click: openPrivateInApp },
       { type: "separator" },
-      {
-        label: "Beenden",
-        click: () => {
-          quitting = true;
-          app.quit();
-        },
-      },
+      { label: "Im Hintergrund weiterlaufen", click: hideWindow },
+      { label: "Jon beenden (auch das Backend)", click: quitJon },
     ])
   );
   tray.on("click", toggleWindow);
@@ -593,9 +613,29 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
+function freeBackendPorts() {
+  if (process.platform !== "win32") return;
+  const ports = BACKEND_PORTS.join(",");
+  const script =
+    `Get-NetTCPConnection -LocalPort ${ports} -State Listen ` +
+    "-ErrorAction SilentlyContinue | " +
+    "Select-Object -ExpandProperty OwningProcess -Unique | " +
+    `Where-Object { $_ -ne ${process.pid} } | ` +
+    "ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }";
+  try {
+    spawnSync(
+      "powershell",
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      { windowsHide: true, timeout: 8000, stdio: "ignore" }
+    );
+  } catch (e) {}
+}
+
+let backendStopped = false;
 function stopBackend() {
-  if (!backendProcess) return;
-  const pid = backendProcess.pid;
+  if (backendStopped) return;
+  backendStopped = true;
+  const pid = backendProcess ? backendProcess.pid : 0;
   backendProcess = null;
   try {
     if (process.platform === "win32" && pid) {
@@ -606,6 +646,7 @@ function stopBackend() {
       process.kill(pid);
     }
   } catch (e) {}
+  if (app.isPackaged) freeBackendPorts();
 }
 
 app.on("before-quit", stopBackend);

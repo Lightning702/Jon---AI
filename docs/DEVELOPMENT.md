@@ -15,6 +15,9 @@ python -m app.main
 ```
 
 - Läuft auf `http://127.0.0.1:8756`, Docs unter `/docs`.
+- Ports: 8756 API (nur lokal), 8757 Geräte-Discovery, 8758 P2P-Chat,
+  8759 Koop-TCP (ECHO/AETHERIA), 8760 Koop-WebSocket + `/blockwelt` — die letzten beiden
+  lauschen auf `0.0.0.0`, damit Mitspieler ohne `JON_LAN` verbinden können.
 - Tests: `python -m pytest tests -q`
 - Konfiguration über `.env` (siehe `.env.example`) oder Umgebungsvariablen.
 

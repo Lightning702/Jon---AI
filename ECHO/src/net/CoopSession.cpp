@@ -77,6 +77,12 @@ bool CoopSession::isHost() const {
     return wantHost;
 }
 
+void CoopSession::beginConnect() {
+    handshakeSent = false;
+    client.disconnect();
+    client.connect(host, port);
+}
+
 void CoopSession::hostGame(const std::string& name, u64 worldSeedValue, const Vec3& spawnPoint) {
     playerName = name.empty() ? std::string("Gastgeber") : name;
     playerModel = "host";
@@ -85,11 +91,17 @@ void CoopSession::hostGame(const std::string& name, u64 worldSeedValue, const Ve
     wantHost = true;
     intent = kIntentHost;
     token.clear();
+    playerId.clear();
     lastError.clear();
     lobbyCode.clear();
+    inviteText.clear();
+    roster.clear();
+    others.clear();
+    reconnectTries = 0;
+    reconnectTimer = 0.0f;
     currentPhase = COOP_CONNECTING;
     statusLine = "Lobby wird erstellt ...";
-    client.connect(host, port);
+    beginConnect();
 }
 
 void CoopSession::joinGame(const std::string& inviteCode, const std::string& name) {
@@ -128,10 +140,17 @@ void CoopSession::joinGame(const std::string& inviteCode, const std::string& nam
     wantHost = false;
     intent = kIntentJoin;
     token.clear();
+    playerId.clear();
     lastError.clear();
+    lobbyCode.clear();
+    inviteText.clear();
+    roster.clear();
+    others.clear();
+    reconnectTries = 0;
+    reconnectTimer = 0.0f;
     currentPhase = COOP_CONNECTING;
     statusLine = "Suche Lobby " + pendingCode + " ...";
-    client.connect(host, port);
+    beginConnect();
 }
 
 void CoopSession::leave() {
@@ -154,11 +173,17 @@ void CoopSession::leave() {
     spawnSignal = false;
     intent = 0;
     reconnectTries = 0;
+    reconnectTimer = 0.0f;
+    handshakeSent = false;
+    forceSend = false;
+    eventCursor = 0;
+    lastSnapshot = 0;
     currentPhase = COOP_OFF;
     statusLine = "Nicht verbunden";
 }
 
 void CoopSession::sendHandshake() {
+    handshakeSent = true;
     js::Value msg = js::Value::object();
     msg.set("name", playerName);
     msg.set("model", playerModel);
@@ -584,6 +609,7 @@ void CoopSession::handle(const js::Value& msg) {
         currentPhase = COOP_PLAYING;
         statusLine = "Koop laeuft";
         spawnSignal = true;
+        forceSend = true;
         return;
     }
     if (type == "snap") {
@@ -647,7 +673,7 @@ void CoopSession::attemptReconnect(float dt) {
     reconnectTimer = std::min(8.0f, 1.2f * (float)reconnectTries);
     intent = kIntentResume;
     statusLine = "Verbindung wird wiederhergestellt ...";
-    client.connect(host, port);
+    beginConnect();
 }
 
 void CoopSession::update(float dt) {
@@ -658,14 +684,13 @@ void CoopSession::update(float dt) {
     if (currentPhase == COOP_OFF || currentPhase == COOP_ERROR) {
         js::Value drop;
         while (client.poll(drop)) {}
-        if (currentPhase == COOP_ERROR && netStatus == NET_ONLINE) sendHandshake();
         return;
     }
 
     if (netStatus == NET_FAILED) {
         if (currentPhase == COOP_CONNECTING && token.empty()) {
             lastError = client.lastError();
-            statusLine = lastError;
+            statusLine = lastError.empty() ? "Jon-Server nicht erreichbar" : lastError;
             currentPhase = COOP_ERROR;
             return;
         }
@@ -684,13 +709,8 @@ void CoopSession::update(float dt) {
         return;
     }
 
-    static const int kHandshakeSent = 1;
-    if (netStatus == NET_ONLINE && !everSent) {
-        everSent = true;
-        sendHandshake();
-    }
     if (netStatus != NET_ONLINE) return;
-    (void)kHandshakeSent;
+    if (!handshakeSent) sendHandshake();
 
     js::Value msg;
     int guard = 0;
@@ -702,7 +722,8 @@ void CoopSession::update(float dt) {
     if (sendTimer < 1.0f / kSendRate) return;
     sendTimer = 0.0f;
 
-    bool changed = !everSent;
+    bool changed = forceSend;
+    forceSend = false;
     if (distanceSq(local.position, lastSent.position) > 0.000004f) changed = true;
     if (std::fabs(wrapAngle(local.yaw - lastSent.yaw)) > 0.004f) changed = true;
     if (std::fabs(local.pitch - lastSent.pitch) > 0.004f) changed = true;

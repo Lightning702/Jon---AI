@@ -415,8 +415,10 @@ Seit v3.33.0 haben alle drei einen echten Online-Koop über einen Freundschaftsc
 ### So spielt ihr zusammen
 
 1. Einer klickt **Spiel erstellen** — der Server legt eine Lobby an und nennt einen
-   6-stelligen Code, z. B. `AB39KD`.
-2. Der andere klickt **Spiel beitreten** und tippt den Code ein.
+   6-stelligen Code, z. B. `AB39KD`, plus eine **Einladung mit Adresse** wie
+   `AB39KD@192.168.1.20:8760`.
+2. Der andere klickt **Spiel beitreten**: am selben PC genügt der Code, von einem
+   anderen PC die ganze Einladung.
 3. Gast auf **Bereit**, Host auf **Starten** — beide spawnen gleichzeitig in dieselbe Welt.
 
 In der Blockwelt: **O** öffnet die Lobby, **Z** ist der Team-Chat, **B** spielt ein Emote,
@@ -427,19 +429,23 @@ ist. Es braucht keinen extra Dienst.
 
 | Was | Wo |
 | --- | --- |
-| Blockwelt (Browser) | WebSocket auf Port **8756** (`/api/mp/ws`) |
-| ECHO & AETHERIA | TCP auf Port **8759** |
+| Blockwelt (Browser) | WebSocket auf Port **8760** (`/api/mp/ws`), im Netzwerk erreichbar |
+| ECHO & AETHERIA | TCP auf Port **8759**, im Netzwerk erreichbar |
+| Blockwelt für Gäste ohne Jon | `http://<adresse>:8760/blockwelt` |
 | Lobby-Status ansehen | `GET /api/mp/status`, `GET /api/mp/lobby/<CODE>` |
 
 ### Weltweit statt nur LAN
 
-Beide Spieler verbinden sich mit **derselben Jon-Adresse**:
+Seit v3.34.0 hört Jon für den Koop auf **eigenen Ports (8760 und 8759)**, die im Netzwerk
+erreichbar sind — der Rest von Jon (Chat, Dateien, PC-Steuerung auf 8756) bleibt weiter
+nur auf deinem Rechner. `JON_LAN` brauchst du dafür **nicht** mehr.
 
-- **Heimnetz**: die LAN-IP genügt (`JON_LAN=1` in der `.env`).
-- **Übers Internet**: Portfreigabe für 8756 (Browser) und 8759 (ECHO/AETHERIA) auf dem
+- **Heimnetz**: die Einladung des Gastgebers weitergeben, fertig.
+- **Übers Internet**: Portfreigabe für 8760 (Browser) und 8759 (ECHO/AETHERIA) auf dem
   Rechner des Gastgebers — oder ein öffentlich erreichbarer Jon-Server, dann reicht der
   Code allein.
-- Im Beitreten-Feld sind beide Formen erlaubt: `AB39KD` und `AB39KD@meinserver.de:8759`.
+- Im Beitreten-Feld sind beide Formen erlaubt: `AB39KD` und `AB39KD@meinserver.de:8760`
+  (in ECHO/AETHERIA `AB39KD@meinserver.de:8759`).
 
 ### Technik in Kurzform
 

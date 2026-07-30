@@ -152,6 +152,7 @@ private:
     RemotePlayer* findRemote(const std::string& id);
     void dropRemote(const std::string& id);
     void sendHandshake();
+    void beginConnect();
     void attemptReconnect(float dt);
     double netNow() const;
     static em::Vec3 readVec(const js::Value& v);
@@ -199,7 +200,8 @@ private:
     int eventCursor = 0;
     CoopLocalState local;
     CoopLocalState lastSent;
-    bool everSent = false;
+    bool handshakeSent = false;
+    bool forceSend = false;
 };
 
 }

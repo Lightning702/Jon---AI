@@ -129,6 +129,7 @@ void NetClient::threadMain(std::string host, int port) {
 
     status.store(NET_CONNECTING);
     SOCKET sock = INVALID_SOCKET;
+    bool refused = false;
     for (addrinfo* it = result; it != nullptr; it = it->ai_next) {
         sock = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
         if (sock == INVALID_SOCKET) continue;
@@ -137,21 +138,37 @@ void NetClient::threadMain(std::string host, int port) {
         ioctlsocket(sock, FIONBIO, &nonBlocking);
         ::connect(sock, it->ai_addr, (int)it->ai_addrlen);
 
-        fd_set writeSet;
+        fd_set writeSet, errorSet;
         FD_ZERO(&writeSet);
+        FD_ZERO(&errorSet);
         FD_SET(sock, &writeSet);
+        FD_SET(sock, &errorSet);
         timeval timeout;
-        timeout.tv_sec = 6;
+        timeout.tv_sec = 5;
         timeout.tv_usec = 0;
-        int ready = select(0, nullptr, &writeSet, nullptr, &timeout);
-        if (ready > 0) break;
+        int ready = select(0, nullptr, &writeSet, &errorSet, &timeout);
+        bool ok = false;
+        if (ready > 0 && FD_ISSET(sock, &writeSet)) {
+            int soError = 0;
+            int len = (int)sizeof(soError);
+            if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&soError, &len) == 0 && soError == 0) {
+                ok = true;
+            }
+        }
+        if (ok) break;
+        if (ready > 0) refused = true;
         closesocket(sock);
         sock = INVALID_SOCKET;
+        if (stopFlag.load()) break;
     }
     freeaddrinfo(result);
 
     if (sock == INVALID_SOCKET) {
-        setError("Verbindung abgelehnt (" + host + ")");
+        char portInfo[24];
+        std::snprintf(portInfo, sizeof(portInfo), ":%d", port);
+        setError(refused
+                     ? "Kein Jon-Server auf " + host + portInfo
+                     : "Keine Antwort von " + host + portInfo);
         status.store(NET_FAILED);
         winsockRelease();
         return;

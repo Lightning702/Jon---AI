@@ -4,6 +4,30 @@
 #include "launcher/Collection.h"
 #include "net/CoopSession.h"
 
+static int netTestAttempt(echo::CoopSession& session, const std::string& host, int port,
+                          const std::string& code, const char* label) {
+    session.setServer(host, port);
+    if (code.empty()) session.hostGame("NetTest", 4242, em::Vec3(0, 0, 0));
+    else session.joinGame(code, "NetTest");
+
+    for (int i = 0; i < 600; i++) {
+        session.update(0.05f);
+        if (session.phase() == echo::COOP_LOBBY && !session.code().empty()) {
+            LOG_INFO("NetTest %s OK: code=%s players=%d ping=%.0fms invite=%s",
+                     label, session.code().c_str(), session.playerCount(), session.ping(),
+                     session.invite().c_str());
+            return 0;
+        }
+        if (session.phase() == echo::COOP_ERROR) {
+            LOG_INFO("NetTest %s Fehler: %s", label, session.errorText().c_str());
+            return 3;
+        }
+        Sleep(50);
+    }
+    LOG_ERROR("NetTest %s TIMEOUT (phase %d)", label, session.phase());
+    return 4;
+}
+
 static int runNetTest(const std::string& address, const std::string& code) {
     echo::fs::init();
     echo::logInit("echo.log");
@@ -18,35 +42,26 @@ static int runNetTest(const std::string& address, const std::string& code) {
 
     echo::CoopSession session;
     session.init("echo", nullptr);
-    session.setServer(host, port);
-    if (code.empty()) session.hostGame("NetTest", 4242, em::Vec3(0, 0, 0));
-    else session.joinGame(code, "NetTest");
 
-    for (int i = 0; i < 600; i++) {
-        session.update(0.05f);
-        if (session.phase() == echo::COOP_LOBBY && !session.code().empty()) {
-            LOG_INFO("NetTest OK: code=%s players=%d ping=%.0fms invite=%s",
-                     session.code().c_str(), session.playerCount(), session.ping(),
-                     session.invite().c_str());
-            for (int k = 0; k < 60; k++) session.update(0.05f);
-            LOG_INFO("NetTest roster=%d ping=%.0fms", session.playerCount(), session.ping());
-            session.leave();
-            session.shutdown();
-            echo::logShutdown();
-            return 0;
-        }
-        if (session.phase() == echo::COOP_ERROR) {
-            LOG_ERROR("NetTest FAILED: %s", session.errorText().c_str());
-            session.shutdown();
-            echo::logShutdown();
-            return 3;
-        }
-        Sleep(50);
+    int closedPort = port > 40000 ? port - 1 : port + 9000;
+    int first = netTestAttempt(session, host, closedPort, code, "Fehlversuch");
+    if (first == 0) {
+        LOG_ERROR("NetTest: Port %d haette geschlossen sein sollen", closedPort);
+        session.shutdown();
+        echo::logShutdown();
+        return 5;
     }
-    LOG_ERROR("NetTest TIMEOUT (phase %d)", session.phase());
+    session.leave();
+
+    int second = netTestAttempt(session, host, port, code, "Zweitversuch");
+    if (second == 0) {
+        for (int k = 0; k < 60; k++) session.update(0.05f);
+        LOG_INFO("NetTest roster=%d ping=%.0fms", session.playerCount(), session.ping());
+        session.leave();
+    }
     session.shutdown();
     echo::logShutdown();
-    return 4;
+    return second;
 }
 
 int main(int argc, char** argv) {

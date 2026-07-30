@@ -89,6 +89,10 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Aktionsprotokoll aller Tool-Aufrufe mit Quelle; `/log` mit Filter; Abwesenheits-Bericht
   im Briefing
 - Mit `JON_LAN=1` ist Jon für Handy und Smartwatch im eigenen WLAN erreichbar
+- Der Online-Koop hat eigene Ports (8760 Browser, 8759 ECHO/AETHERIA), die im Netzwerk
+  offen sind — ohne dass Chat, Dateien oder PC-Steuerung (8756) das Gerät verlassen
+- Jon beenden schließt auch das Backend; ein Parent-Watchdog (`JON_PARENT_PID`) fährt es
+  selbst dann herunter, wenn die App abstürzt
 
 ## Auto-Update & Installer
 

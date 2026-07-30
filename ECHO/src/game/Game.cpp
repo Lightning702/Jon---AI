@@ -958,6 +958,15 @@ void Game::handleInteraction() {
             d.locked = false;
             addToast("Aufgeschlossen");
         }
+        int entryCab = d.roomA != d.roomB ? world.cabForDoor(it.targetId) : -1;
+        if (entryCab >= 0) {
+            world.setDoorOpen(it.targetId, true);
+            coop.sendInteract("door", std::to_string(it.targetId), 1.0, d.center);
+            audio->playAt(SFX_DOOR_OPEN, d.center, 0.65f, 0.95f);
+            director.notifyInteract(INTERACT_DOOR, it.targetId, d.center);
+            enterCab(entryCab);
+            break;
+        }
         world.toggleDoor(it.targetId);
         coop.sendInteract("door", std::to_string(it.targetId), d.targetOpen > 0.5f ? 1.0 : 0.0, d.center);
         audio->playAt(d.targetOpen > 0.5f ? SFX_DOOR_OPEN : SFX_DOOR_CLOSE, d.center, 0.65f, 0.95f + (float)(it.targetId % 7) * 0.012f);
@@ -1267,6 +1276,38 @@ void Game::updateElevator(float dt) {
     }
 
     player.addShake(0.035f, 0.2f);
+}
+
+void Game::enterCab(int cabId) {
+    if (cabId < 0 || cabId >= (int)world.cabs().size()) return;
+    const ElevatorCab& cab = world.cabs()[(size_t)cabId];
+    if (world.cabContaining(player.position()) == cabId) return;
+
+    if (cab.doorId >= 0 && cab.doorId < (int)world.doors().size()) {
+        Door& cabDoor = world.doors()[(size_t)cab.doorId];
+        cabDoor.jammed = false;
+        cabDoor.locked = false;
+        cabDoor.targetOpen = 1.0f;
+        cabDoor.openAmount = 1.0f;
+    }
+
+    Vec3 inside = cab.interior + Vec3(0, 0.06f, 0);
+    float lookYaw = std::atan2(cab.doorCenter.x - inside.x, inside.z - cab.doorCenter.z);
+    player.setMovementLock(false);
+    player.setPosition(inside);
+    player.setOrientation(lookYaw, 0.0f);
+    lastSafePos = player.position();
+
+    riding = false;
+    rideCab = cabId;
+    panelFloor = cabId;
+    rideTargetFloor = -1;
+    rideTimer = 0.0f;
+    rideCooldown = 0.0f;
+    rideAutoTimer = 6.0f;
+
+    audio->play2D(SFX_ELEVATOR_DING, 0.5f, 1.0f);
+    addToast("Im Aufzug — 1 bis 4 waehlt die Etage", 4.5f);
 }
 
 void Game::beginRide(int cabId, int requestedFloor) {

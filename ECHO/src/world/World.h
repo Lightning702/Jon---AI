@@ -48,6 +48,8 @@ public:
     std::vector<ElevatorCab>& cabs() { return cabList; }
     int cabContaining(const em::Vec3& p) const;
     int cabOnFloor(int shaft, int floor) const;
+    int cabInRoom(int room) const;
+    int cabForDoor(int doorId) const;
     int shaftCount() const { return 2; }
 
     int roomAt(const em::Vec3& position) const;

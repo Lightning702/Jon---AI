@@ -550,13 +550,30 @@ void Collection::run() {
     int frameCount = 0;
 
     if (seedTest > 0) {
+        int entryDoors = 0, withCab = 0, blocked = 0;
         for (int i = 0; i < seedTest; i++) {
             WorldConfig cfg;
             cfg.seed = hashCombine(0xEC4055EED5ULL, (u64)(i + 1) * 2654435761ULL);
             echoPreview.generate(cfg, props);
             Campaign probe;
             probe.init(&echoPreview, cfg.seed);
+
+            const std::vector<Door>& doors = echoPreview.doors();
+            for (size_t d = 0; d < doors.size(); d++) {
+                const Door& door = doors[d];
+                if (door.removed || door.kind != DOOR_ELEVATOR || door.roomA == door.roomB) continue;
+                entryDoors++;
+                int cabId = echoPreview.cabForDoor((int)d);
+                if (cabId < 0) continue;
+                withCab++;
+                const ElevatorCab& cab = echoPreview.cabs()[(size_t)cabId];
+                bool facesOpening = door.center.z < cab.doorCenter.z + 0.05f &&
+                                    std::fabs(door.center.x - cab.doorCenter.x) < cab.width * 0.5f;
+                if (!facesOpening) blocked++;
+            }
         }
+        LOG_INFO("SeedTest: %d Aufzugtueren, %d mit Kabine, %d davon vor einer Wand (jetzt Teleport)",
+                 entryDoors, withCab, blocked);
         return;
     }
 

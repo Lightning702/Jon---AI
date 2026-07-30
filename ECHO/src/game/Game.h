@@ -120,6 +120,7 @@ private:
     void drawTutorial();
     void drawWaypoint(const em::Vec3& worldPos, const em::Vec4& color, const std::string& label, bool stairs);
     void updateElevator(float dt);
+    void enterCab(int cabId);
     void beginRide(int cabId, int requestedFloor);
     void drawRide();
 

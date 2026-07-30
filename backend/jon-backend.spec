@@ -36,7 +36,7 @@ version_info = VSVersionInfo(
                         ),
                         StringStruct("FileVersion", APP_VERSION),
                         StringStruct("InternalName", "jon-backend"),
-                        StringStruct("LegalCopyright", "(c) 2026 Felix, MIT-Lizenz"),
+                        StringStruct("LegalCopyright", "(c) 2026 FelWorks, MIT-Lizenz"),
                         StringStruct("OriginalFilename", "jon-backend.exe"),
                         StringStruct("ProductName", "Jon"),
                         StringStruct("ProductVersion", APP_VERSION),
@@ -79,11 +79,13 @@ for pkg in (
         pass
 
 hiddenimports += collect_submodules("app")
+hiddenimports += collect_submodules("websockets")
 hiddenimports += [
     "uvicorn.logging",
     "uvicorn.loops.auto",
     "uvicorn.protocols.http.auto",
     "uvicorn.protocols.websockets.auto",
+    "uvicorn.protocols.websockets.websockets_impl",
     "uvicorn.lifespan.on",
     "pydantic_settings",
     "sqlalchemy.dialects.sqlite",
