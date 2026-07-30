@@ -69,6 +69,11 @@ h2{text-align:center;font-size:clamp(28px,5vw,42px);font-weight:800;letter-spaci
 .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-size:13px;border-top:1px solid rgba(255,255,255,.06);margin-top:40px}
 .note{max-width:720px;margin:30px auto 0;padding:16px 20px;border-radius:14px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);font-size:13px;color:rgba(255,255,255,.65);text-align:center}
+.newbadge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px 6px 10px;border-radius:30px;background:linear-gradient(90deg,rgba(212,175,55,.20),rgba(143,226,143,.14));border:1px solid rgba(212,175,55,.55);font-size:13px;color:#f4e2ae;margin-bottom:22px;text-decoration:none;transition:.18s}
+.newbadge:hover{border-color:rgba(212,175,55,.9);transform:translateY(-1px)}
+.newbadge b{background:#d4af37;color:#0b0b0f;font-size:10.5px;letter-spacing:.1em;padding:3px 8px;border-radius:20px;font-weight:800}
+nav a.hot{color:#f4e2ae}
+nav a.hot::after{content:"NEU";display:inline-block;margin-left:6px;font-size:9px;letter-spacing:.08em;background:#d4af37;color:#0b0b0f;padding:2px 5px;border-radius:20px;font-weight:800;vertical-align:2px}
 .mp-hero{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:center;margin-top:44px}
 @media(max-width:860px){.mp-hero{grid-template-columns:1fr}}
 .mp-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
@@ -140,7 +145,7 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 <a href="#install">Installation</a>
 <a href="#app">Handy-App</a>
 <a href="#games">Spiele</a>
-<a href="#multiplayer">Koop</a>
+<a class="hot" href="#multiplayer">Koop</a>
 <a href="#about">Über mich</a>
 <a href="#download">Download</a>
 <a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
@@ -148,10 +153,12 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 </nav>
 
 <header>
+<a class="newbadge" href="#multiplayer"><b>NEU 3.33</b> 👥 Online-Koop für alle drei Spiele — mit Freundschaftscode</a>
 <h1>Dein <span class="gold">KI-Desktop</span><br>Assistent für Windows</h1>
 <p>Jon steuert deinen gesamten Computer intelligent. Multi-Provider-KI mit GPT-OSS 120B über NVIDIA, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis und voller Systemsteuerung — in einem eleganten Black-&-Gold-Design.</p>
 <div class="cta">
 <a class="btn btn-primary" href="#download">Jetzt herunterladen</a>
+<a class="btn btn-ghost" href="#multiplayer">👥 Koop ansehen</a>
 <a class="btn btn-ghost" href="#features">Mehr erfahren</a>
 </div>
 
@@ -178,6 +185,7 @@ footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-si
 <h2>Was Jon <span class="gold">kann</span></h2>
 <p class="sub">Nicht nur ein Chat — ein echter Assistent, der handelt. Neu in v3.33.0: <b>Online-Multiplayer</b> für alle drei Spiele — Freundschaftscode eingeben und zu zweit spielen. Dazu neue Jumpscares in ECHO und ein Wegweiser auf Tastendruck.</p>
 <div class="grid">
+<div class="card"><div class="ic">👥</div><h3>Online-Koop <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>ECHO, AETHERIA und die Blockwelt spielt ihr jetzt zu zweit: <b>Spiel erstellen</b>, 6-stelligen Freundschaftscode weitergeben, <b>beitreten</b> — fertig. Serverautoritativ, mit Lobby, Ping, Reconnect und geteilter Welt. <a href="#multiplayer" style="color:var(--gold-light)">So funktioniert es</a></p></div>
 <div class="card"><div class="ic">🙂</div><h3>Mini Jon</h3><p>Jons kleiner Sohn <b>Emil</b> lebt als niedlicher Kreis auf deinem Bildschirm — immer da, beim Hochfahren schon wach. Sag „Emil" oder „Mini Jon", er hört durchgehend zu, redet mit dir (mit lippensynchronem Mund), merkt sich euer Gespräch und kann alles, was Jon kann. Auch fürs Handy verfügbar. Farben und Gesicht frei anpassbar.</p></div>
 <div class="card"><div class="ic">👨‍💻</div><h3>Jon Code</h3><p>Ein Coding-Agent wie in einem Editor: Dateibaum, Code-Editor und Jon, der <b>ausschließlich im geöffneten Projektordner</b> arbeitet. Sag „schreib mir in index.html ein Login-Formular" — der Code landet direkt in dieser Datei, modern gestaltet mit Liquid Glass statt grauem Standard.</p></div>
 <div class="card"><div class="ic">📊</div><h3>PowerPoint</h3><p>„Mach mir eine Präsentation über den Klimawandel." Jon baut eine fertige <b>.pptx</b> mit Titelfolie, Karten, Kennzahlen, Zeitstrahl, Zitaten, Sprechernotizen und elf Farbwelten — und öffnet sie dir.</p></div>
