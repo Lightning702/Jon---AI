@@ -84,6 +84,13 @@ Alle nennenswerten Änderungen an Jon.
   Abschnitt hervorgehoben, Treppen gelb, Aufzüge grün. Oben mittig Ziel, Restdistanz
   und Zahl der Abschnitte; ohne offenen Weg sagt er das auch.
 
+### Behoben
+- **Backend starb, wenn Port 8758 belegt war**: uvicorn beendet sich bei einem fehlgeschlagenen
+  Bind mit `sys.exit(3)`, und `SystemExit` ist keine `Exception` — das `except Exception`
+  im P2P-Chat-Server hat es also nicht gefangen und der ganze Prozess starb beim Start.
+  Trat auf, sobald eine zweite Jon-Instanz lief. Jetzt fangen Chat- und Koop-Server
+  `SystemExit` mit, melden den belegten Port und lassen nur den einen Dienst aus.
+
 ### Geändert
 - FelWorks Game Collection auf **1.1.0**, `ECHO/jon-spiele.json` beschreibt Koop,
   Jumpscares und die H-Taste.

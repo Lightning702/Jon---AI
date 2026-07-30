@@ -216,7 +216,10 @@ async def _chat_server() -> None:
     server = uvicorn.Server(config)
     try:
         await server.serve()
-    except Exception:
+    except asyncio.CancelledError:
+        raise
+    except (SystemExit, Exception):
+        print(f"Chat-Port {CHAT_PORT} belegt - P2P-Chat bleibt aus", flush=True)
         return
 
 
@@ -224,8 +227,14 @@ async def _multiplayer_server() -> None:
     from app.services.multiplayer_service import get_multiplayer_service
 
     service = get_multiplayer_service()
-    await service.start()
-    await service.serve_stream("0.0.0.0", MP_TCP_PORT)
+    try:
+        await service.start()
+        await service.serve_stream("0.0.0.0", MP_TCP_PORT)
+    except asyncio.CancelledError:
+        raise
+    except (SystemExit, Exception):
+        print(f"Koop-Port {MP_TCP_PORT} belegt - Spiele-Server bleibt aus", flush=True)
+        return
 
 
 @asynccontextmanager
