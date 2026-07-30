@@ -2,6 +2,61 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.35.0] — 2026-07-30
+
+### Fix — der Beenden-Knopf ließ das Backend doch weiterlaufen
+
+3.34.0 hat nur den Prozess beendet, den die App **selbst** gestartet hatte. Lief das
+Backend aus `start-jon.bat`, aus dem Autostart oder aus einer vorherigen Sitzung, kannte
+Electron dessen PID nicht — und `jon-backend.exe` blieb im Task-Manager stehen. Im
+Entwicklungsmodus (`npm run dev`) startet die App gar kein Backend, dort hat das
+Aufräumen deshalb nie gegriffen: die Portsuche hing an `app.isPackaged`.
+
+- Neu `POST /api/system/shutdown`: das Backend beendet sich selbst sauber, egal wer es
+  gestartet hat. `quitJon()` fragt zuerst höflich (max. 2 s) und greift erst dann hart
+  durch. Neu `GET /api/system/whoami` (PID + Version) zum Nachprüfen.
+- Das Aufräumen der Ports 8756/8758/8759/8760 läuft jetzt **immer**, nicht nur in der
+  Installer-Version — und tötet nur Prozesse, die auch wirklich `jon-backend`, `python`,
+  `pythonw` oder `py` heißen, statt blind alles auf dem Port.
+
+Verifiziert: sauberes Herunterfahren beendet den Prozess in 0,5 s mit Code 0; ein
+absichtlich fremd gestartetes Backend ohne `JON_PARENT_PID` ist nach dem Aufräumen
+ebenfalls in 0,5 s weg.
+
+### Neu — Update über die .exe funktioniert wirklich
+
+`/update` prüfte zwar auf neue Versionen, brach in der Installer-Version aber mit
+„Bitte lade die neueste Version manuell herunter" ab — ein Update über die App gab es
+schlicht nicht. Jetzt:
+
+- `update_service.py` kennt die Installationsart (`exe` / `git` / `manual`) und liest im
+  EXE-Modus das GitHub-Release samt `Jon-Setup.exe` (Adresse, Größe, Release-Text).
+- **Maßgeblich ist, was installierbar ist**: angeboten wird die Version des fertigen
+  Releases, nicht die Versionsnummer aus dem Quellcode. Ist auf `main` schon eine höhere
+  Version angekündigt, für die es noch kein Installationsprogramm gibt, sagt Jon das —
+  und bietet kein Update an, das dann doch dieselbe Version installieren würde.
+- `download_installer()` lädt mit Fortschrittsanzeige nach `DATA_DIR/updates/` und
+  **prüft, was ankommt**: nur `https`, Mindestgröße, Größe wie im Release angekündigt,
+  und die Datei muss mit `MZ` beginnen (eine HTML-Fehlerseite wird also nicht als
+  Programm gestartet). Halbe Downloads landen in `.part` und werden bei jedem Fehler
+  weggeräumt; alte Installer verschwinden nach dem nächsten erfolgreichen Download.
+- Der Ablauf endet mit `INSTALLER <pfad>`; die App fragt einmal nach, startet das
+  Installationsprogramm losgelöst und beendet Jon danach, damit die Dateien nicht mehr
+  gesperrt sind. Der Installer bringt Jon anschließend selbst zurück
+  (`runAfterFinish`). Electron nimmt dafür nur Pfade der Form
+  `X:\...\Jon-Setup*.exe` an — kein beliebiges Programm.
+- Chats, Konten und Einstellungen liegen unter `DATA_DIR` und werden nicht angefasst.
+
+Für Quellcode-Installationen bleibt alles wie gehabt (`git pull` + bedingtes
+`pip`/`npm`), das wird jetzt nur noch bewusst über `install_mode()` ausgewählt.
+
+### Kleinigkeiten
+- Herausgeber überall FelWorks; `win.publisherName` ist bei electron-builder 25
+  veraltet und liegt jetzt unter `win.signtoolOptions.publisherName`.
+- 10 neue Tests in `test_update.py` (Installationsart, Release-Auswahl, kein Downgrade,
+  Download-Prüfungen, Fortschritt, Aufräumen, kompletter Ablauf bis `INSTALLER`).
+  Gesamt **172 Tests grün**.
+
 ## [3.34.0] — 2026-07-30
 
 ### Fix — Multiplayer: „man kann sich nicht verbinden"

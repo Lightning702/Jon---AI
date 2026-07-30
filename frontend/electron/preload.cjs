@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("jon", {
   maximize: () => ipcRenderer.invoke("window:maximize"),
   close: () => ipcRenderer.invoke("window:close"),
   hide: () => ipcRenderer.invoke("window:hide"),
+  installUpdate: (path) => ipcRenderer.invoke("update:install", path),
   moveBy: (dx, dy) => ipcRenderer.invoke("window:moveBy", dx, dy),
   pickFolder: () => ipcRenderer.invoke("dialog:openFolder"),
   openVscode: (folder) => ipcRenderer.invoke("shell:openVscode", folder),

@@ -1579,6 +1579,11 @@ export async function checkUpdate(): Promise<{
   latest: string;
   update: boolean;
   url: string;
+  mode: "exe" | "git" | "manual";
+  installer_url: string;
+  installer_size: number;
+  can_install: boolean;
+  notes?: string;
 }> {
   const res = await fetch(`${BASE}/update`);
   if (!res.ok) throw new Error("update check failed");

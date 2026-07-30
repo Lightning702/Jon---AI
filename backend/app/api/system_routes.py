@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import mimetypes
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -280,3 +281,22 @@ async def path_info(payload: PathIn) -> dict:
         "is_dir": target.is_dir(),
         "parent": str(target.parent),
     }
+
+
+@router.get("/whoami")
+async def whoami() -> dict:
+    from app.core.config import get_settings
+
+    return {"pid": os.getpid(), "version": get_settings().app_version}
+
+
+async def _exit_soon(delay: float) -> None:
+    await asyncio.sleep(delay)
+    print("Jon-App hat das Herunterfahren angefordert", flush=True)
+    os._exit(0)
+
+
+@router.post("/shutdown")
+async def shutdown() -> dict:
+    asyncio.create_task(_exit_soon(0.35))
+    return {"stopping": True, "pid": os.getpid()}

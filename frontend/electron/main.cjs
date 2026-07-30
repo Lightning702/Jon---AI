@@ -225,9 +225,15 @@ function togglePet() {
   else createPet();
 }
 
-function quitJon() {
+async function quitJon() {
   if (quitting) return;
   quitting = true;
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed() && win.webContents) {
+      win.webContents.send("jon:quitting");
+    }
+  }
+  await askBackendToStop();
   stopBackend();
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) win.destroy();
@@ -449,7 +455,7 @@ function createWindow() {
   mainWindow.on("close", (event) => {
     if (quitting) return;
     event.preventDefault();
-    quitJon();
+    void quitJon();
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -490,8 +496,44 @@ ipcMain.handle("window:maximize", () => {
   if (mainWindow.isMaximized()) mainWindow.unmaximize();
   else mainWindow.maximize();
 });
-ipcMain.handle("window:close", () => quitJon());
+ipcMain.handle("window:close", async () => {
+  await quitJon();
+});
 ipcMain.handle("window:hide", () => hideWindow());
+
+ipcMain.handle("update:install", async (_event, installerPath) => {
+  const file = String(installerPath || "").trim();
+  if (!file || !/^[A-Za-z]:\\.*Jon-Setup.*\.exe$/i.test(file)) {
+    return { ok: false, error: "Unerwarteter Pfad zum Installationsprogramm." };
+  }
+  if (!fs.existsSync(file)) {
+    return { ok: false, error: "Das Installationsprogramm wurde nicht gefunden." };
+  }
+  const options = {
+    type: "question",
+    buttons: ["Jetzt aktualisieren", "Abbrechen"],
+    defaultId: 0,
+    cancelId: 1,
+    title: "Jon aktualisieren",
+    message: "Jon schliesst sich und installiert die neue Version.",
+    detail:
+      "Deine Chats, Konten und Einstellungen bleiben erhalten. Nach der " +
+      "Installation startet Jon von selbst wieder.",
+  };
+  const answer =
+    mainWindow && !mainWindow.isDestroyed()
+      ? await dialog.showMessageBox(mainWindow, options)
+      : await dialog.showMessageBox(options);
+  if (answer.response !== 0) return { ok: false, error: "Abgebrochen." };
+
+  try {
+    spawn(file, [], { detached: true, stdio: "ignore" }).unref();
+  } catch (e) {
+    return { ok: false, error: "Das Installationsprogramm liess sich nicht starten." };
+  }
+  setTimeout(() => void quitJon(), 900);
+  return { ok: true };
+});
 ipcMain.handle("window:moveBy", (_event, dx, dy) => {
   if (!mainWindow) return;
   if (mainWindow.isMaximized()) {
@@ -594,7 +636,7 @@ app.whenReady().then(() => {
       { label: "Privater Browser (Strg+Alt+P)", click: openPrivateInApp },
       { type: "separator" },
       { label: "Im Hintergrund weiterlaufen", click: hideWindow },
-      { label: "Jon beenden (auch das Backend)", click: quitJon },
+      { label: "Jon beenden (auch das Backend)", click: () => void quitJon() },
     ])
   );
   tray.on("click", toggleWindow);
@@ -614,21 +656,47 @@ app.on("window-all-closed", () => {
 });
 
 function freeBackendPorts() {
-  if (process.platform !== "win32") return;
+  if (process.platform !== "win32") return 0;
   const ports = BACKEND_PORTS.join(",");
   const script =
-    `Get-NetTCPConnection -LocalPort ${ports} -State Listen ` +
+    `$mine = ${process.pid}; $names = @('jon-backend','python','pythonw','py'); ` +
+    `$pids = Get-NetTCPConnection -LocalPort ${ports} -State Listen ` +
     "-ErrorAction SilentlyContinue | " +
-    "Select-Object -ExpandProperty OwningProcess -Unique | " +
-    `Where-Object { $_ -ne ${process.pid} } | ` +
-    "ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }";
+    "Select-Object -ExpandProperty OwningProcess -Unique; " +
+    "$killed = 0; " +
+    "foreach ($p in $pids) { " +
+    "  if ($p -eq $mine -or $p -eq 0 -or $p -eq 4) { continue } " +
+    "  $proc = Get-Process -Id $p -ErrorAction SilentlyContinue; " +
+    "  if (-not $proc) { continue } " +
+    "  if ($names -notcontains $proc.ProcessName) { continue } " +
+    "  Stop-Process -Id $p -Force -ErrorAction SilentlyContinue; $killed++ " +
+    "} " +
+    "Write-Output $killed";
   try {
-    spawnSync(
+    const out = spawnSync(
       "powershell",
       ["-NoProfile", "-NonInteractive", "-Command", script],
-      { windowsHide: true, timeout: 8000, stdio: "ignore" }
+      { windowsHide: true, timeout: 10000, encoding: "utf8" }
     );
-  } catch (e) {}
+    return parseInt(String(out.stdout || "0").trim(), 10) || 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function askBackendToStop() {
+  return new Promise((resolve) => {
+    const done = setTimeout(resolve, 2000);
+    fetch(`${API_BASE}/system/shutdown`, { method: "POST" })
+      .then(() => {
+        clearTimeout(done);
+        setTimeout(resolve, 400);
+      })
+      .catch(() => {
+        clearTimeout(done);
+        resolve();
+      });
+  });
 }
 
 let backendStopped = false;
@@ -646,7 +714,7 @@ function stopBackend() {
       process.kill(pid);
     }
   } catch (e) {}
-  if (app.isPackaged) freeBackendPorts();
+  freeBackendPorts();
 }
 
 app.on("before-quit", stopBackend);

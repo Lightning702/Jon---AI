@@ -1180,10 +1180,36 @@ export default function App() {
         }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
+        let collected = "";
+        let pending = "";
+        const flush = (final: boolean) => {
+          const parts = pending.split("\n");
+          pending = final ? "" : (parts.pop() ?? "");
+          const shown = parts.filter((l) => !l.startsWith("INSTALLER "));
+          if (shown.length) appendTo(shown.join("\n") + "\n");
+        };
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          appendTo(decoder.decode(value, { stream: true }));
+          const chunk = decoder.decode(value, { stream: true });
+          collected += chunk;
+          pending += chunk;
+          flush(false);
+        }
+        if (pending) flush(true);
+        const installer = collected.match(/^INSTALLER (.+)$/m);
+        if (installer) {
+          const api = window.jon;
+          if (!api?.installUpdate) {
+            appendTo(
+              `\nℹ️ Starte das Installationsprogramm selbst: ${installer[1].trim()}\n`
+            );
+            return;
+          }
+          const result = await api.installUpdate(installer[1].trim());
+          if (!result?.ok) {
+            appendTo(`\n⚠️ ${result?.error ?? "Installation nicht gestartet."}\n`);
+          }
         }
       } catch (err) {
         appendTo(

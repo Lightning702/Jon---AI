@@ -1,17 +1,24 @@
 from __future__ import annotations
 
+import json
 import re
+import sys
 import time
 import urllib.request
+from pathlib import Path
 
-from app.core.config import get_settings
+from app.core.config import DATA_DIR, ROOT_DIR, get_settings
 
 RAW_CONFIG = (
     "https://raw.githubusercontent.com/Lightning702/Jon---AI/main/"
     "backend/app/core/config.py"
 )
+RELEASES_API = "https://api.github.com/repos/Lightning702/Jon---AI/releases/latest"
 DOWNLOAD = "https://getjon.netlify.app"
+INSTALLER_NAME = "Jon-Setup.exe"
+UPDATE_DIR = DATA_DIR / "updates"
 CACHE_TTL = 1800.0
+ALLOWED_PREFIXES = ("https://",)
 
 _cache: dict = {"at": 0.0, "data": None}
 
@@ -20,24 +27,132 @@ def _parse(version: str) -> tuple:
     return tuple(int(p) for p in re.findall(r"\d+", version)[:3])
 
 
-def check_update() -> dict:
+def is_frozen() -> bool:
+    return bool(getattr(sys, "frozen", False))
+
+
+def install_mode() -> str:
+    if is_frozen():
+        return "exe"
+    return "git" if (ROOT_DIR / ".git").is_dir() else "manual"
+
+
+def _fetch(url: str, timeout: float = 10.0) -> bytes:
+    request = urllib.request.Request(url, headers={"User-Agent": "Jon"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return response.read()
+
+
+def _release() -> dict:
+    try:
+        raw = json.loads(_fetch(RELEASES_API).decode("utf-8", errors="replace"))
+    except Exception:
+        return {}
+    tag = str(raw.get("tag_name") or "").lstrip("vV")
+    asset = None
+    for entry in raw.get("assets") or []:
+        if str(entry.get("name", "")).lower() == INSTALLER_NAME.lower():
+            asset = entry
+            break
+    if asset is None:
+        return {"version": tag}
+    return {
+        "version": tag,
+        "installer_url": asset.get("browser_download_url", ""),
+        "installer_size": int(asset.get("size") or 0),
+        "notes": str(raw.get("body") or "")[:4000],
+    }
+
+
+def check_update(force: bool = False) -> dict:
     settings = get_settings()
     current = settings.app_version
     now = time.monotonic()
-    if _cache["data"] and now - _cache["at"] < CACHE_TTL:
+    if not force and _cache["data"] and now - _cache["at"] < CACHE_TTL:
         return _cache["data"]
-    result = {"current": current, "latest": current, "update": False, "url": DOWNLOAD}
+
+    mode = install_mode()
+    result = {
+        "current": current,
+        "latest": current,
+        "update": False,
+        "url": DOWNLOAD,
+        "mode": mode,
+        "installer_url": "",
+        "installer_size": 0,
+        "can_install": False,
+    }
+    published = ""
     try:
-        request = urllib.request.Request(RAW_CONFIG, headers={"User-Agent": "Jon"})
-        with urllib.request.urlopen(request, timeout=8) as response:
-            text = response.read().decode("utf-8", errors="replace")
+        text = _fetch(RAW_CONFIG, 8.0).decode("utf-8", errors="replace")
         match = re.search(r'app_version:\s*str\s*=\s*"([^"]+)"', text)
         if match:
-            latest = match.group(1)
-            result["latest"] = latest
-            result["update"] = _parse(latest) > _parse(current)
+            published = match.group(1)
+            result["latest"] = published
     except Exception as exc:
         result["error"] = str(exc)
+
+    if mode == "exe":
+        release = _release()
+        installer = release.get("installer_url", "")
+        version = release.get("version", "")
+        result["latest"] = version or published or current
+        result["installer_url"] = installer
+        result["installer_size"] = release.get("installer_size", 0)
+        if release.get("notes"):
+            result["notes"] = release["notes"]
+        if published and version and _parse(published) > _parse(version):
+            result["announced"] = published
+        if not installer:
+            result["latest"] = published or current
+
+    result["update"] = _parse(result["latest"]) > _parse(current)
+    result["can_install"] = bool(
+        result["update"] and (mode == "git" or (mode == "exe" and result["installer_url"]))
+    )
     _cache["at"] = now
     _cache["data"] = result
     return result
+
+
+def installer_path(version: str) -> Path:
+    safe = re.sub(r"[^0-9A-Za-z.\-]", "", version) or "neu"
+    return UPDATE_DIR / f"Jon-Setup-{safe}.exe"
+
+
+def download_installer(url: str, version: str, expected: int = 0, progress=None) -> Path:
+    if not url.startswith(ALLOWED_PREFIXES):
+        raise ValueError("Unerwartete Download-Adresse")
+    UPDATE_DIR.mkdir(parents=True, exist_ok=True)
+    target = installer_path(version)
+    partial = target.with_suffix(".part")
+    request = urllib.request.Request(url, headers={"User-Agent": "Jon"})
+    done = 0
+    with urllib.request.urlopen(request, timeout=60) as response:
+        total = int(response.headers.get("Content-Length") or expected or 0)
+        with partial.open("wb") as handle:
+            while True:
+                chunk = response.read(262_144)
+                if not chunk:
+                    break
+                handle.write(chunk)
+                done += len(chunk)
+                if progress is not None:
+                    progress(done, total)
+    if done < 1_000_000:
+        partial.unlink(missing_ok=True)
+        raise ValueError(f"Download unvollstaendig ({done} Bytes)")
+    if expected and abs(done - expected) > 4096:
+        partial.unlink(missing_ok=True)
+        raise ValueError(f"Groesse passt nicht: {done} statt {expected} Bytes")
+    with partial.open("rb") as handle:
+        magic = handle.read(2)
+    if magic != b"MZ":
+        partial.unlink(missing_ok=True)
+        raise ValueError("Datei ist kein Windows-Programm")
+    target.unlink(missing_ok=True)
+    partial.rename(target)
+    for old in UPDATE_DIR.glob("Jon-Setup-*.exe"):
+        if old != target:
+            old.unlink(missing_ok=True)
+    return target

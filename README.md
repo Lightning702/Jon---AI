@@ -322,7 +322,16 @@ Datenbank, Medien im Ordner `p2p_media`. Löschst du einen Kontakt, verschwindet
   exportieren und auf einem anderen PC wieder einspielen. API-Schlüssel bleiben absichtlich
   draußen
 - **Updates:** Jon prüft beim Start, ob eine neuere Version auf GitHub liegt, und sagt
-  Bescheid
+  Bescheid. `/update` (oder der Update-Knopf) erledigt den Rest:
+  - **Hast du Jon mit `Jon-Setup.exe` installiert**, lädt Jon das neue
+    Installationsprogramm mit Fortschrittsanzeige herunter, prüft es, fragt einmal nach,
+    schließt sich und installiert. Danach startet Jon von selbst wieder — Chats, Konten
+    und Einstellungen bleiben erhalten.
+  - **Arbeitest du mit dem Quellcode**, macht Jon ein Backup von `data/`, ein `git pull`
+    und installiert nur bei Bedarf `pip`/`npm` nach.
+- **Jon beenden** (das X oder Tray → „Jon beenden") schließt auch das Backend. Soll Jon
+  im Hintergrund bleiben, nimm den ⌄-Knopf daneben oder Tray → „Im Hintergrund
+  weiterlaufen"; mit **Strg+Alt+J** holst du ihn zurück
 
 ---
 

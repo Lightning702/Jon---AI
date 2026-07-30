@@ -91,13 +91,22 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Mit `JON_LAN=1` ist Jon für Handy und Smartwatch im eigenen WLAN erreichbar
 - Der Online-Koop hat eigene Ports (8760 Browser, 8759 ECHO/AETHERIA), die im Netzwerk
   offen sind — ohne dass Chat, Dateien oder PC-Steuerung (8756) das Gerät verlassen
-- Jon beenden schließt auch das Backend; ein Parent-Watchdog (`JON_PARENT_PID`) fährt es
-  selbst dann herunter, wenn die App abstürzt
+- Jon beenden schließt auch das Backend — über `POST /api/system/shutdown` auch dann,
+  wenn es aus `start-jon.bat` oder dem Autostart kam und die App es nicht selbst
+  gestartet hat; ein Parent-Watchdog (`JON_PARENT_PID`) fährt es selbst dann herunter,
+  wenn die App abstürzt
 
 ## Auto-Update & Installer
 
-- `/update` und Update-Knopf: Backup von `data/`, `git pull`, bedingtes `pip`/`npm`,
-  Neustart (auf dem Pi `systemctl restart jon`)
+- `/update` und Update-Knopf erkennen, wie Jon installiert ist:
+  - **Installer-Version**: lädt `Jon-Setup.exe` aus dem GitHub-Release mit
+    Fortschrittsanzeige nach `DATA_DIR/updates/`, prüft Größe und Dateityp, fragt einmal
+    nach, schließt Jon und installiert. Danach startet Jon von selbst wieder; Chats,
+    Konten und Einstellungen bleiben unberührt.
+  - **Quellcode-Version**: Backup von `data/`, `git pull`, bedingtes `pip`/`npm`,
+    Neustart (auf dem Pi `systemctl restart jon`)
+- Angeboten wird immer nur eine Version, für die es auch ein fertiges
+  Installationsprogramm gibt — nie ein Update, das dieselbe Version noch einmal einspielt
 - `python scripts/build_installer.py`: PyInstaller-Bundle (`jon-backend.exe`) + NSIS → `Jon-Setup.exe` + portable `Jon-Windows.zip`,
   ohne Python/Node/Terminal beim Endnutzer
 

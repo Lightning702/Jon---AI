@@ -7,6 +7,7 @@ declare global {
       maximize: () => void;
       close: () => void;
       hide?: () => void;
+      installUpdate?: (path: string) => Promise<{ ok: boolean; error?: string }>;
       moveBy?: (dx: number, dy: number) => void;
       platform: string;
     };

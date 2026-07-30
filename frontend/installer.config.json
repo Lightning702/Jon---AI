@@ -20,7 +20,7 @@
   "win": {
     "target": "nsis",
     "icon": "electron/icon.ico",
-    "publisherName": "FelWorks"
+    "signtoolOptions": { "publisherName": "FelWorks" }
   },
   "nsis": {
     "artifactName": "Jon-Setup.exe",
