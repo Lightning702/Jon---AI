@@ -419,6 +419,9 @@ Seit v3.33.0 haben alle drei einen echten Online-Koop über einen Freundschaftsc
 2. Der andere klickt **Spiel beitreten** und tippt den Code ein.
 3. Gast auf **Bereit**, Host auf **Starten** — beide spawnen gleichzeitig in dieselbe Welt.
 
+In der Blockwelt: **O** öffnet die Lobby, **Z** ist der Team-Chat, **B** spielt ein Emote,
+**Strg** duckt.
+
 Der Server ist Jon selbst und läuft schon, sobald `start-jon.bat` oder `Jon.exe` gestartet
 ist. Es braucht keinen extra Dienst.
 
