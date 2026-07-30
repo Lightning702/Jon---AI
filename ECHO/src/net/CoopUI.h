@@ -66,6 +66,7 @@ private:
     bool exitRequested = false;
     bool editingName = false;
     float blink = 0.0f;
+    float inputGuard = 0.0f;
     em::Vec2 lastMouse;
 };
 

@@ -46,6 +46,7 @@ void CoopMenu::init(CoopSession* session, Window* win, UIRenderer* renderer, Aud
 void CoopMenu::open() {
     shown = true;
     hits.clear();
+    inputGuard = 0.22f;
     index = 0;
     hoverAction = 0;
     launchRequested = false;
@@ -170,6 +171,10 @@ void CoopMenu::activate(int action) {
 void CoopMenu::update(float dt) {
     if (!shown || coop == nullptr || window == nullptr) return;
     blink += dt;
+    if (inputGuard > 0.0f) {
+        inputGuard -= dt;
+        return;
+    }
 
     int phase = coop->phase();
     if (phase == COOP_PLAYING) {
