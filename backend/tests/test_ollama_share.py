@@ -143,6 +143,15 @@ def test_widerruf_wirkt_sofort(shares):
     assert shares.users() == []
 
 
+def test_widerruf_macht_alte_einladungen_nicht_wieder_gueltig(shares):
+    shares.update_share({"enabled": True, "visibility": "invited"})
+    invite = shares.create_invite("Anna")
+    shares.join({"code": invite["code"], "name": "Anna"}, "10.0.0.9")
+    shares.revoke_all()
+    with pytest.raises(ShareError):
+        shares.join({"code": invite["code"], "name": "Fremder"}, "10.0.0.11")
+
+
 def test_einzelnen_benutzer_entfernen(shares):
     shares.update_share({"enabled": True, "visibility": "public"})
     code = shares.share()["code"]
@@ -412,6 +421,27 @@ def test_verbinden_ohne_adresse_und_ohne_fund_meldet_sich(shares, monkeypatch):
     with pytest.raises(ShareError) as info:
         asyncio.run(shares.connect("AB39KD12"))
     assert "im Netzwerk gefunden" in str(info.value)
+
+
+def test_netzwerksuche_antwortet_nur_bei_passendem_code(shares):
+    assert shares.answer_query("EGAL") is None
+    shares.update_share({"enabled": True, "visibility": "public"})
+    code = shares.share()["code"]
+    assert shares.answer_query("ZZZZZZZZ") is None
+    reply = shares.answer_query(code)
+    assert reply is not None
+    assert reply["code"] == code
+    assert reply["port"] == shares._port()
+    shares.update_share({"visibility": "private"})
+    assert shares.answer_query(code) is None
+
+
+def test_netzwerksuche_kennt_offene_einladungen(shares):
+    shares.update_share({"enabled": True, "visibility": "invited"})
+    invite = shares.create_invite("Anna")
+    assert shares.answer_query(invite["code"]) is not None
+    shares.join({"code": invite["code"], "name": "Anna"}, "10.0.0.9")
+    assert shares.answer_query(invite["code"]) is None
 
 
 def test_api_endpunkte_der_freigabe(shares):

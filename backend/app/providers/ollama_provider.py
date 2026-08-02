@@ -259,7 +259,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         payload = self._payload(request, config, model)
         tools = request.tools or None
         use_tools = bool(
-            tools and tool_executor and model not in self._no_tool_models
+            tools and tool_executor and wanted not in self._no_tool_models
         )
         if use_tools:
             payload["tools"] = tools
@@ -332,7 +332,7 @@ class OllamaProvider(OpenAICompatibleProvider):
                             and "tool" in text
                             and ("support" in text or "unsupported" in text)
                         ):
-                            self._no_tool_models.add(model)
+                            self._no_tool_models.add(wanted)
                             payload.pop("tools", None)
                             use_tools = False
                             tools = None

@@ -47,9 +47,9 @@ Neues Kapitel „Server für andere freigeben" in [docs/OLLAMA.md](docs/OLLAMA.m
 [getjon.info](https://getjon.info/ollama.html), dazu README (de/en), FEATURES, API, FAQ
 und EXAMPLES.
 
-25 neue Tests decken Sichtbarkeiten, Einladungen, Beitritt, Tokenprüfung, Widerruf,
-Rate-Limit, die Gastgeber-Endpunkte und den Chat über einen fremden Server ab; die
-komplette Suite bleibt grün (217 → 242). Zusätzlich end-to-end gegen einen echten
+28 neue Tests decken Sichtbarkeiten, Einladungen, Beitritt, Tokenprüfung, Widerruf,
+Rate-Limit, Netzwerksuche, die Gastgeber-Endpunkte und den Chat über einen fremden Server
+ab; die komplette Suite bleibt grün (217 → 245). Zusätzlich end-to-end gegen einen echten
 Ollama-Server geprüft: Gastgeber freigeben, Gast verbinden, Antwort streamen, Zugriff
 widerrufen — der Gast bekommt danach sofort eine klare Meldung.
 

@@ -256,8 +256,6 @@ class OllamaShareService:
         with self._lock:
             count = len(self._data["grants"])
             self._data["grants"] = {}
-            for invite in self._data["invites"].values():
-                invite["used_by"] = ""
             self._save()
         self._sessions.clear()
         return count
