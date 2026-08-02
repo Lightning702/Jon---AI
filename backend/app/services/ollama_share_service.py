@@ -262,6 +262,12 @@ class OllamaShareService:
 
     def _rate_limited(self, address: str) -> bool:
         now = _now()
+        if len(self._joins) > 500:
+            self._joins = {
+                key: stamps
+                for key, stamps in self._joins.items()
+                if stamps and now - stamps[-1] < JOIN_WINDOW
+            }
         hits = [t for t in self._joins.get(address, []) if now - t < JOIN_WINDOW]
         hits.append(now)
         self._joins[address] = hits
