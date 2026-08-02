@@ -39,6 +39,10 @@ irgendetwas anderes auf dem fremden PC.
   Dateien, Werkzeuge und PC-Steuerung des Besitzers bleiben unerreichbar. Die Werkzeuge
   eines Gastes laufen weiterhin auf seinem eigenen Rechner.
 - Fehlversuche werden pro Adresse gebremst (10 pro Minute).
+- Anfragen von Gästen werden gefiltert: Sampling-Werte (Temperatur, Top P, Top K, Seed,
+  Stop) gelten, aber **Context Length** und **Max Tokens** deckelt der Gastgeber auf seine
+  eigenen Einstellungen, und sein Keep Alive bleibt gültig — niemand kann den Speicher des
+  Gastgebers mit `num_ctx: 1000000` sprengen.
 - Freigabe aus = alle Tokens sofort ungültig; laufende Streams brechen ab.
 
 ### Dokumentation
@@ -47,9 +51,9 @@ Neues Kapitel „Server für andere freigeben" in [docs/OLLAMA.md](docs/OLLAMA.m
 [getjon.info](https://getjon.info/ollama.html), dazu README (de/en), FEATURES, API, FAQ
 und EXAMPLES.
 
-28 neue Tests decken Sichtbarkeiten, Einladungen, Beitritt, Tokenprüfung, Widerruf,
+30 neue Tests decken Sichtbarkeiten, Einladungen, Beitritt, Tokenprüfung, Widerruf,
 Rate-Limit, Netzwerksuche, die Gastgeber-Endpunkte und den Chat über einen fremden Server
-ab; die komplette Suite bleibt grün (217 → 245). Zusätzlich end-to-end gegen einen echten
+ab; die komplette Suite bleibt grün (217 → 247). Zusätzlich end-to-end gegen einen echten
 Ollama-Server geprüft: Gastgeber freigeben, Gast verbinden, Antwort streamen, Zugriff
 widerrufen — der Gast bekommt danach sofort eine klare Meldung.
 

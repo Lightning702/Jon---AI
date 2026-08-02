@@ -265,6 +265,9 @@ erzeugen** wird der alte Freigabecode ungültig.
 - Die Freigabe hängt am **Chat-Port 8758**, nicht an Jons Steuer-API (127.0.0.1:8756).
   Die Steuer-API bleibt unerreichbar.
 - Zu viele Fehlversuche in Folge werden pro Adresse gebremst.
+- **Der Gast kann deinen Speicher nicht sprengen.** Seine Sampling-Werte (Temperatur,
+  Top P, Top K, Seed, Stop) gelten, aber **Context Length** und **Max Tokens** werden auf
+  deine eigenen Einstellungen gedeckelt, und dein **Keep Alive** bleibt gültig.
 - **Schalter aus = alle draußen.** Deaktivierst du die Freigabe, sind sämtliche Tokens
   augenblicklich ungültig.
 - Gib den Port trotzdem nicht im Router nach außen frei. Für Freunde außerhalb deines

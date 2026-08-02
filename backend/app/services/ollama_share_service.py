@@ -362,6 +362,50 @@ class OllamaShareService:
             session["model"] = model
         session["active"] = max(0, int(session["active"]) + delta)
 
+    @staticmethod
+    def sanitize_payload(payload: Any) -> dict:
+        from app.services.ollama_service import get_ollama_service
+
+        if not isinstance(payload, dict):
+            raise ShareError("Ungültige Anfrage.")
+        model = str(payload.get("model", "")).strip()
+        if not model:
+            raise ShareError("Kein Modell angegeben.")
+        messages = payload.get("messages")
+        if not isinstance(messages, list):
+            raise ShareError("Keine Nachrichten angegeben.")
+        owner = get_ollama_service().config()
+        options: dict[str, Any] = {}
+        raw = payload.get("options")
+        if isinstance(raw, dict):
+            for key in ("temperature", "top_p", "top_k", "seed", "stop", "num_predict"):
+                if key in raw:
+                    options[key] = raw[key]
+        limit = int(owner["context_length"])
+        wanted = options.pop("num_ctx", None)
+        try:
+            options["num_ctx"] = min(int(wanted), limit) if wanted else limit
+        except (TypeError, ValueError):
+            options["num_ctx"] = limit
+        cap = int(owner["max_tokens"])
+        if cap > 0:
+            try:
+                predict = int(options.get("num_predict", cap))
+            except (TypeError, ValueError):
+                predict = cap
+            options["num_predict"] = cap if predict < 0 else min(predict, cap)
+        clean: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "stream": bool(payload.get("stream", True)),
+            "keep_alive": owner["keep_alive"],
+            "options": options,
+        }
+        tools = payload.get("tools")
+        if isinstance(tools, list) and tools:
+            clean["tools"] = tools
+        return clean
+
     def alive(self, grant_id: str) -> bool:
         with self._lock:
             return (

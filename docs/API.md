@@ -156,7 +156,9 @@ Diese laufen im LAN-erreichbaren Chat-Server, **nicht** in der Steuer-API:
 | POST | `/share/api/chat` | Bearer | Chat-Stream (NDJSON), reicht an den lokalen Ollama weiter |
 
 Ohne gültiges Token antworten alle `/share/api/*`-Endpunkte mit **401**. Ein Widerruf
-beendet auch laufende Streams.
+beendet auch laufende Streams. `POST /share/api/chat` übernimmt vom Gast nur `model`,
+`messages`, `stream`, `tools` und die Sampling-Optionen; `num_ctx` und `num_predict` werden
+auf die Werte des Gastgebers gedeckelt, `keep_alive` kommt immer von ihm.
 
 ## Nutzung
 

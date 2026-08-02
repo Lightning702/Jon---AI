@@ -367,6 +367,7 @@ ollama list</code><p>Danach in Jon auf <b>Neu laden</b> klicken — die Liste ko
 <div><h4>🚪 Nur das Modell</h4><p>Freigegeben ist allein das Antworten deines Ollama-Servers. Chats, Dateien, Werkzeuge und PC-Steuerung bleiben unerreichbar — die Werkzeuge des Gastes laufen auf seinem eigenen Rechner.</p></div>
 <div><h4>🧱 Getrennter Port</h4><p>Die Freigabe hängt am Chat-Port 8758, nicht an Jons Steuer-API auf 127.0.0.1:8756.</p></div>
 <div><h4>⏱️ Bremse gegen Raten</h4><p>Zu viele Fehlversuche in Folge werden pro Adresse ausgebremst.</p></div>
+<div><h4>🧠 Dein Speicher bleibt deiner</h4><p>Die Sampling-Werte des Gastes gelten, aber <b>Context Length</b> und <b>Max Tokens</b> werden auf deine eigenen Einstellungen gedeckelt — dein Keep Alive bleibt gültig.</p></div>
 <div><h4>🛑 Aus heißt aus</h4><p>Schaltest du die Freigabe ab, sind alle Tokens augenblicklich ungültig.</p></div>
 </div>
 <div class="note">Gib den Port trotzdem nicht im Router nach außen frei. Für Freunde außerhalb deines Heimnetzes ist Tailscale der richtige Weg. Damit Gäste dich im Heimnetz finden, muss TCP <b>8758</b> offen sein, für die Suche allein per Code zusätzlich UDP <b>8762</b>.</div>
@@ -402,6 +403,9 @@ ollama list</code><p>Danach in Jon auf <b>Neu laden</b> klicken — die Liste ko
 <tr><td>… passt nicht in den Speicher</td><td>Zu wenig RAM oder VRAM</td><td>Kleineres Modell oder Context Length senken</td></tr>
 <tr><td>Ollama ist ausgeschaltet</td><td>Der Schalter steht auf aus</td><td>Zahnrad-Menü, Bereich Ollama, einschalten</td></tr>
 <tr><td>Keine Modelle in der Liste</td><td>Noch keins installiert</td><td><code class="inline">ollama pull llama3.2</code>, dann <b>Neu laden</b></td></tr>
+<tr><td>Kein Server mit diesem Code im Netzwerk gefunden</td><td>Freigabe aus, anderes Netz oder UDP 8762 zu</td><td>Einladungslink mit Adresse nehmen: <code class="inline">CODE@ip:8758</code></td></tr>
+<tr><td>Der Zugriff wurde widerrufen</td><td>Besitzer hat dich entfernt oder die Freigabe abgeschaltet</td><td>Neuen Freigabecode erfragen</td></tr>
+<tr><td>Diese Einladung wurde bereits verwendet</td><td>Einladungen gelten einmalig</td><td>Neue Einladung erstellen lassen</td></tr>
 </table>
 <p class="doc-p">Jon stürzt in keinem dieser Fälle ab: Die Meldung erscheint als Text, und nach der Korrektur genügt <b>Verbindung testen</b>.</p>
 
@@ -415,6 +419,9 @@ ollama list</code><p>Danach in Jon auf <b>Neu laden</b> klicken — die Liste ko
 <div><h4>Kann Jon Bilder ansehen?</h4><p>Ja, mit einem Vision-Modell wie <code class="inline">llava</code> oder <code class="inline">llama3.2-vision</code>.</p></div>
 <div><h4>Wo liegen meine Einstellungen?</h4><p>In <code class="inline">data/ollama.json</code>. Das Backup im Zahnrad-Menü nimmt sie mit.</p></div>
 <div><h4>Welche Schnittstelle nutzt Jon?</h4><p>Die offizielle Ollama-API: <code class="inline">/api/chat</code>, <code class="inline">/api/tags</code> und <code class="inline">/api/version</code>.</p></div>
+<div><h4>Kann jemand über meine Freigabe meinen PC steuern?</h4><p>Nein. Freigegeben ist nur das Antworten des Modells. Werkzeuge, Dateien und PC-Steuerung laufen immer auf dem Rechner des jeweiligen Nutzers.</p></div>
+<div><h4>Sieht der Besitzer meine Chats?</h4><p>Er sieht, was jeder Modellbetreiber sieht: dass angefragt wird, mit welchem Modell und wann. Die Inhalte laufen durch seinen Ollama-Server — teile nichts Vertrauliches über einen fremden Server.</p></div>
+<div><h4>Kostet die Freigabe den Besitzer etwas?</h4><p>Nur Strom und Rechenzeit. Solange jemand über den Server schreibt, ist dessen Grafikkarte beschäftigt.</p></div>
 </div>
 
 <h2 id="sicherheit" class="doc-h">Sicherheit</h2>

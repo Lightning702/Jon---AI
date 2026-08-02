@@ -394,7 +394,7 @@ def create_chat_app() -> FastAPI:
         from fastapi.responses import StreamingResponse
 
         from app.services.ollama_service import get_ollama_service
-        from app.services.ollama_share_service import get_share_service
+        from app.services.ollama_share_service import ShareError, get_share_service
 
         grant = _grant(request)
         shares = get_share_service()
@@ -403,8 +403,11 @@ def create_chat_app() -> FastAPI:
             raise HTTPException(
                 status_code=503, detail="Ollama ist auf diesem Gerät ausgeschaltet."
             )
-        payload = await request.json()
-        model = str(payload.get("model", ""))
+        try:
+            payload = shares.sanitize_payload(await request.json())
+        except ShareError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        model = str(payload["model"])
         shares.touch(grant["id"], model, 1)
         url = ollama.base_url() + "/api/chat"
         timeout = httpx.Timeout(ollama.timeout(), connect=10.0)

@@ -277,6 +277,58 @@ def test_chat_wird_an_den_lokalen_ollama_weitergereicht(
     assert shares.users()[0]["model"] == "llama3.2"
 
 
+def test_gast_kann_den_speicher_des_gastgebers_nicht_sprengen(
+    host, shares, ollama, monkeypatch
+):
+    shares.update_share({"enabled": True, "visibility": "public"})
+    ollama.update({"context_length": 8192, "max_tokens": 4096, "keep_alive": "10m"})
+    gesehen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        gesehen.update(json.loads(request.content))
+        return httpx.Response(
+            200, content=_ndjson([{"message": {"content": "ok"}, "done": True}])
+        )
+
+    _patch_client(monkeypatch, handler)
+    token = host.post(
+        "/share/join", json={"code": shares.share()["code"], "name": "Anna"}
+    ).json()["token"]
+    host.post(
+        "/share/api/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "model": "llama3.2",
+            "messages": [{"role": "user", "content": "Hi"}],
+            "keep_alive": "-1",
+            "options": {
+                "num_ctx": 1000000,
+                "num_predict": 999999,
+                "temperature": 0.2,
+                "top_k": 7,
+            },
+        },
+    )
+    assert gesehen["options"]["num_ctx"] == 8192
+    assert gesehen["options"]["num_predict"] == 4096
+    assert gesehen["options"]["temperature"] == 0.2
+    assert gesehen["options"]["top_k"] == 7
+    assert gesehen["keep_alive"] == "10m"
+
+
+def test_unsinnige_anfrage_wird_abgewiesen(host, shares, ollama):
+    shares.update_share({"enabled": True, "visibility": "public"})
+    token = host.post(
+        "/share/join", json={"code": shares.share()["code"], "name": "Anna"}
+    ).json()["token"]
+    answer = host.post(
+        "/share/api/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": []},
+    )
+    assert answer.status_code == 400
+
+
 def test_widerrufener_zugriff_wird_beim_chat_geblockt(host, shares, ollama):
     shares.update_share({"enabled": True, "visibility": "public"})
     token = host.post(
