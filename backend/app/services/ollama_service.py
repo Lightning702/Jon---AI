@@ -34,7 +34,7 @@ DEFAULTS: dict[str, Any] = {
     "temperature": 0.7,
     "top_p": 0.9,
     "top_k": 40,
-    "max_tokens": 2048,
+    "max_tokens": 32768,
     "context_length": 4096,
     "keep_alive": "5m",
     "seed": -1,
@@ -98,6 +98,22 @@ def _clean_host(value: Any) -> str:
             "192.168.1.50 oder 100.101.102.103."
         )
     return host
+
+
+def _clean_max_tokens(value: Any) -> int:
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        raise OllamaConfigError("max_tokens: Bitte eine Zahl eintragen.") from None
+    if number == -1:
+        return -1
+    low, high = BOUNDS["max_tokens"]
+    if number < low or number > high:
+        raise OllamaConfigError(
+            f"max_tokens: Wert muss zwischen {int(low)} und {int(high)} liegen "
+            "oder -1 für unbegrenzt sein."
+        )
+    return number
 
 
 def _clean_keep_alive(value: Any) -> str:
@@ -218,7 +234,9 @@ class OllamaService:
                 data[key] = scheme
             elif key == "host":
                 data[key] = _clean_host(value)
-            elif key in ("port", "top_k", "max_tokens", "context_length"):
+            elif key == "max_tokens":
+                data[key] = _clean_max_tokens(value)
+            elif key in ("port", "top_k", "context_length"):
                 data[key] = _as_number(key, value, True)
             elif key in ("temperature", "top_p", "timeout"):
                 data[key] = _as_number(key, value, False)
@@ -370,6 +388,10 @@ class OllamaService:
 
     def known_models(self) -> list[str]:
         return list(self._models)
+
+    async def version(self) -> dict:
+        data = await self._fetch("/api/version", PROBE_TIMEOUT)
+        return data if isinstance(data, dict) else {}
 
     async def models(self, refresh: bool = False) -> list[str]:
         if not self.enabled():

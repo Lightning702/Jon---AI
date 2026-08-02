@@ -22,6 +22,7 @@ Jon/
 │       │   ├── skill_service.py   Liest/Schreibt skills/*.md
 │       │   ├── account_service.py Runtime-Keys, Modell-Auswahl, Status
 │       │   ├── ollama_service.py  Ollama-Konfiguration, Status, Modelle (data/ollama.json)
+│       │   ├── ollama_share_service.py  Serverfreigabe: Codes, Tokens, Gaeste, Fremdserver
 │       │   ├── usage_service.py   Nutzungs-Tracking (data/usage.json)
 │       │   ├── approval_service.py Freigabe-Warteschlange für Tools
 │       │   └── voice_service.py   Sprache-zu-Text
@@ -37,7 +38,7 @@ Jon/
 ├── skills/                        Bearbeitbare Markdown-Anleitungen
 ├── website/                       Netlify-Seite + Handy-App (PWA)
 ├── docs/                          Diese Dokumentation
-└── data/                          SQLite-DB, usage.json, accounts.json, ollama.json (git-ignoriert)
+└── data/                          SQLite-DB, usage.json, accounts.json, ollama.json, ollama_share.json (git-ignoriert)
 ```
 
 ## Datenfluss eines Chats

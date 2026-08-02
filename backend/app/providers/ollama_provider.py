@@ -9,6 +9,7 @@ import httpx
 from openai import AsyncOpenAI
 
 from app.providers.base import ChatRequest, ProviderError, StreamChunk, ToolExecutor
+from app.services.ollama_share_service import REMOTE_PREFIX
 from app.providers.openai_compatible import (
     LEAD_GATE,
     MAX_TOOL_ROUNDS,
@@ -43,8 +44,14 @@ class OllamaProvider(OpenAICompatibleProvider):
 
         return get_ollama_service()
 
+    @property
+    def _shares(self):
+        from app.services.ollama_share_service import get_share_service
+
+        return get_share_service()
+
     def available(self) -> bool:
-        return self._service.enabled()
+        return self._service.enabled() or bool(self._shares.remote_models())
 
     def _client(self, slot: str = "jon") -> AsyncOpenAI:
         url = self._service.openai_base_url()
@@ -61,20 +68,21 @@ class OllamaProvider(OpenAICompatibleProvider):
 
     async def list_models(self) -> list[str]:
         service = self._service
+        shared = self._shares.remote_models()
         if not service.enabled():
-            return []
+            return shared
         now = time.monotonic()
         if (
             self._models_cache is not None
             and now - self._models_cached_at < self._models_cache_ttl
         ):
-            return self._models_cache
+            return self._models_cache + shared
         if not service.auto_load_models():
             known = service.known_models()
             selected = service.selected_model()
             if not known and selected:
                 known = [selected]
-            return known
+            return known + shared
         try:
             result = await service.fetch_models()
             ttl = MODELS_CACHE_TTL if result else MODELS_FAIL_TTL
@@ -84,7 +92,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         self._models_cache = result
         self._models_cached_at = now
         self._models_cache_ttl = ttl
-        return result
+        return result + shared
 
     def _payload(self, request: ChatRequest, config: dict, model: str) -> dict:
         messages: list[dict[str, Any]] = [
@@ -111,31 +119,57 @@ class OllamaProvider(OpenAICompatibleProvider):
             "options": options,
         }
 
-    def _error(self, exc: Exception) -> ProviderError:
+    @staticmethod
+    def _label(remote: dict | None) -> str:
+        if remote is None:
+            return "Ollama"
+        return "Ollama-Freigabe " + str(remote.get("name") or remote.get("code", ""))
+
+    def _error(self, exc: Exception, remote: dict | None = None) -> ProviderError:
+        if remote is not None:
+            return ProviderError(
+                f"{self._label(remote)}: Der freigegebene Server unter "
+                f"{remote.get('base', '')} antwortet nicht ({exc})."
+            )
         return ProviderError("Ollama: " + self._service.friendly_error(exc))
 
-    def _status_error(self, status: int, body: str, model: str) -> ProviderError:
+    def _status_error(
+        self, status: int, body: str, model: str, remote: dict | None = None
+    ) -> ProviderError:
         text = body.strip()
         try:
             payload = json.loads(text)
-            if isinstance(payload, dict) and payload.get("error"):
-                text = str(payload["error"])
+            if isinstance(payload, dict):
+                text = str(payload.get("error") or payload.get("detail") or text)
         except Exception:
             pass
+        label = self._label(remote)
         lowered = text.lower()
-        if status == 404 or "not found" in lowered:
+        if remote is not None and status in (401, 403):
             return ProviderError(
-                f"Ollama: Das Modell {model} ist auf dem Server nicht installiert. "
+                f"{label}: Der Zugriff wurde widerrufen. Bitte den Besitzer um einen "
+                "neuen Freigabecode."
+            )
+        if status == 404 or "not found" in lowered:
+            where = "auf dem freigegebenen Server" if remote else "auf dem Server"
+            return ProviderError(
+                f"{label}: Das Modell {model} ist {where} nicht installiert. "
                 f"Dort einmal ausführen: ollama pull {model}"
             )
         if "memory" in lowered or "system memory" in lowered:
             return ProviderError(
-                f"Ollama: {text} — das Modell passt nicht in den Speicher. Nimm ein "
+                f"{label}: {text} — das Modell passt nicht in den Speicher. Nimm ein "
                 "kleineres Modell oder verringere die Context Length."
             )
-        return ProviderError(f"Ollama: {text or f'Fehler {status}'}")
+        return ProviderError(f"{label}: {text or f'Fehler {status}'}")
 
-    async def _open(self, client: httpx.AsyncClient, url: str, payload: dict):
+    async def _open(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        payload: dict,
+        remote: dict | None = None,
+    ):
         tries = RECONNECT_TRIES if self._service.config()["auto_reconnect"] else 1
         last: Exception | None = None
         for attempt in range(tries):
@@ -148,30 +182,39 @@ class OllamaProvider(OpenAICompatibleProvider):
                     await asyncio.sleep(RECONNECT_DELAY * (attempt + 1))
                 continue
             except httpx.HTTPError as exc:
-                raise self._error(exc) from exc
+                raise self._error(exc, remote) from exc
             return context, response
-        raise self._error(last) from last
+        raise self._error(last, remote) from last
 
     async def _lines(
-        self, client: httpx.AsyncClient, url: str, payload: dict, model: str
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        payload: dict,
+        model: str,
+        remote: dict | None = None,
     ) -> AsyncIterator[dict]:
         if not payload["stream"]:
             try:
                 response = await client.post(url, json=payload)
             except httpx.HTTPError as exc:
-                raise self._error(exc) from exc
+                raise self._error(exc, remote) from exc
             if response.status_code >= 400:
-                raise self._status_error(response.status_code, response.text, model)
+                raise self._status_error(
+                    response.status_code, response.text, model, remote
+                )
             try:
                 yield response.json()
             except ValueError as exc:
-                raise ProviderError("Ollama: Unlesbare Antwort vom Server.") from exc
+                raise ProviderError(
+                    f"{self._label(remote)}: Unlesbare Antwort vom Server."
+                ) from exc
             return
-        context, response = await self._open(client, url, payload)
+        context, response = await self._open(client, url, payload, remote)
         try:
             if response.status_code >= 400:
                 body = (await response.aread()).decode("utf-8", "replace")
-                raise self._status_error(response.status_code, body, model)
+                raise self._status_error(response.status_code, body, model, remote)
             async for line in response.aiter_lines():
                 text = line.strip()
                 if not text:
@@ -181,7 +224,7 @@ class OllamaProvider(OpenAICompatibleProvider):
                 except ValueError:
                     continue
         except httpx.HTTPError as exc:
-            raise self._error(exc) from exc
+            raise self._error(exc, remote) from exc
         finally:
             await context.__aexit__(None, None, None)
 
@@ -190,12 +233,24 @@ class OllamaProvider(OpenAICompatibleProvider):
     ) -> AsyncIterator[StreamChunk]:
         service = self._service
         config = service.config()
-        if not config["enabled"]:
-            raise ProviderError(
-                "Ollama ist ausgeschaltet. Schalte es in den Einstellungen unter "
-                "Ollama wieder ein."
-            )
-        model = request.model or str(config["model"])
+        wanted = request.model or str(config["model"])
+        remote, model = self._shares.split_model(wanted)
+        headers: dict[str, str] = {}
+        if wanted.startswith(REMOTE_PREFIX):
+            if remote is None:
+                raise ProviderError(
+                    "Dieser freigegebene Server ist nicht mehr verbunden. Verbinde "
+                    "ihn in den Einstellungen unter Ollama erneut."
+                )
+            headers["Authorization"] = f"Bearer {remote['token']}"
+            url = str(remote["base"]) + "/share/api/chat"
+        else:
+            if not config["enabled"]:
+                raise ProviderError(
+                    "Ollama ist ausgeschaltet. Schalte es in den Einstellungen unter "
+                    "Ollama wieder ein."
+                )
+            url = service.base_url() + "/api/chat"
         if not model:
             raise ProviderError(
                 "Für Ollama ist kein Modell gewählt. Wähle in den Einstellungen "
@@ -208,11 +263,10 @@ class OllamaProvider(OpenAICompatibleProvider):
         )
         if use_tools:
             payload["tools"] = tools
-        url = service.base_url() + "/api/chat"
         timeout = httpx.Timeout(float(config["timeout"]), connect=CONNECT_TIMEOUT)
         rounds = MAX_TOOL_ROUNDS if use_tools else 1
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
             for _ in range(rounds):
                 content_acc: list[str] = []
                 calls: list[dict] = []
@@ -220,14 +274,14 @@ class OllamaProvider(OpenAICompatibleProvider):
                 lead_open = True
                 answered = False
                 while True:
-                    iterator = self._lines(client, url, payload, model)
+                    iterator = self._lines(client, url, payload, model, remote)
                     try:
                         async for data in iterator:
-                            answered = True
                             if data.get("error"):
                                 raise self._status_error(
-                                    400, str(data["error"]), model
+                                    400, str(data["error"]), model, remote
                                 )
+                            answered = True
                             message = data.get("message") or {}
                             thinking = message.get("thinking")
                             if thinking:

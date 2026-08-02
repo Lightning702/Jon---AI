@@ -200,6 +200,86 @@ Nicht jedes lokale Modell kann Werkzeuge aufrufen. Meldet der Server
 antwortet trotzdem — statt mit einem Fehler abzubrechen. Modelle mit Tool-Unterstützung
 sind z. B. `llama3.1`, `llama3.3`, `qwen2.5` und `mistral-nemo`.
 
+## Server für andere freigeben
+
+Läuft auf deinem Rechner eine starke Grafikkarte, kannst du deinen Ollama-Server für
+andere Jon-Nutzer freigeben. Sie chatten dann über dein Modell, ohne selbst etwas
+installieren zu müssen — und ohne Zugriff auf irgendetwas anderes auf deinem PC.
+
+### Freigeben (als Besitzer)
+
+1. **Zahnrad-Menü → Ollama → Server & Modelle …**
+2. Ganz unten im Bereich **Serverfreigabe** den Schalter **Meinen Ollama-Server
+   freigeben** einschalten.
+3. **Freigabename** und **Beschreibung** eintragen — das sehen die anderen.
+4. **Sichtbarkeit** wählen:
+
+   | Einstellung | Bedeutung |
+   |---|---|
+   | **Privat** | Niemand kommt neu herein. Bereits verbundene Benutzer behalten ihren Zugang, bis du ihn widerrufst. |
+   | **Nur Eingeladene** | Nur wer eine persönliche Einladung von dir hat. Jede Einladung gilt für genau einen Benutzer und verfällt nach der ersten Nutzung. |
+   | **Öffentlich** | Jeder mit deinem Freigabecode darf sich verbinden. |
+
+5. **Freigabecode** oder **Einladungslink** kopieren und weitergeben.
+
+Der Code sieht aus wie `AB39KD12`, der Link wie
+`jon://ollama/AB39KD12@192.168.1.50:8758`. Im Heimnetz genügt der Code allein — Jon sucht
+den Server im Netzwerk. Über Tailscale oder von außerhalb nimmt man den Link mit Adresse.
+
+### Verbinden (als Gast)
+
+1. **Zahnrad-Menü → Ollama → Server & Modelle …**
+2. Im Bereich **Freigegebene Server nutzen** den Code oder Link eintragen und auf
+   **Verbinden** klicken.
+3. Fertig: Die Modelle des fremden Servers stehen ab sofort oben in der KI-Auswahl unter
+   dem Anbieter **ollama**, gruppiert unter „Freigabe <Code>".
+
+Im Chat verhält sich alles wie gewohnt: Verlauf, Streaming und deine eigenen
+Ollama-Einstellungen (Temperatur, Top P, Top K, Max Tokens, Context Length, Keep Alive,
+Seed, System Prompt, Timeout) gelten weiter — sie werden bei jeder Anfrage mitgeschickt.
+
+### Verwalten
+
+Unter **Verbundene Benutzer** siehst du für jeden Gast:
+
+- Name und Adresse
+- Verbindungsstatus: **aktiv** (schreibt gerade), **verbunden** oder **offline**
+- das gerade genutzte Modell
+- Anzahl der Sitzungen und Anfragen
+- Zeitpunkt der letzten Aktivität
+
+**entfernen** wirft einen einzelnen Benutzer hinaus, **Allen Zugriff entziehen** alle auf
+einmal. Beides gilt sofort — auch mitten in einer laufenden Antwort. Mit **Neuen Code
+erzeugen** wird der alte Freigabecode ungültig.
+
+### Sicherheit der Freigabe
+
+- **Nichts ist offen zugänglich.** Jeder Gast bekommt beim Beitritt ein eigenes,
+  zufälliges Zugriffstoken (256 Bit). Ohne gültiges Token beantwortet Jon keine einzige
+  Anfrage — auch nicht bei öffentlicher Sichtbarkeit.
+- Tokens werden **nur als Hash** gespeichert (`data/ollama_share.json`) und beim Vergleich
+  zeitkonstant geprüft.
+- Freigegeben wird **ausschließlich das Antworten deines Ollama-Servers**. Der Gast kann
+  weder deine Chats lesen noch Dateien sehen, Programme starten oder Jons Werkzeuge auf
+  deinem PC benutzen — seine Werkzeuge laufen auf seinem eigenen Rechner.
+- Die Freigabe hängt am **Chat-Port 8758**, nicht an Jons Steuer-API (127.0.0.1:8756).
+  Die Steuer-API bleibt unerreichbar.
+- Zu viele Fehlversuche in Folge werden pro Adresse gebremst.
+- **Schalter aus = alle draußen.** Deaktivierst du die Freigabe, sind sämtliche Tokens
+  augenblicklich ungültig.
+- Gib den Port trotzdem nicht im Router nach außen frei. Für Freunde außerhalb deines
+  Heimnetzes ist Tailscale der richtige Weg.
+
+### Freigabe im Netzwerk erreichbar machen
+
+Damit Gäste dich finden, muss auf deinem Rechner der Chat-Port **8758** (TCP) offen sein;
+für die Suche allein per Code zusätzlich **8762** (UDP). Unter Windows:
+
+```bash
+netsh advfirewall firewall add rule name="Jon Ollama-Freigabe" dir=in action=allow protocol=TCP localport=8758
+netsh advfirewall firewall add rule name="Jon Ollama-Suche" dir=in action=allow protocol=UDP localport=8762
+```
+
 ## Einstellungen im Detail
 
 | Einstellung | Bedeutung | Standard |
@@ -211,7 +291,7 @@ sind z. B. `llama3.1`, `llama3.3`, `qwen2.5` und `mistral-nemo`.
 | Temperatur | 0 = nüchtern und gleichbleibend, 2 = sehr kreativ | 0.7 |
 | Top P | Anteil der berücksichtigten Wortwahrscheinlichkeiten | 0.9 |
 | Top K | Wie viele Wortkandidaten pro Schritt betrachtet werden | 40 |
-| Max Tokens | Maximale Länge der Antwort (`num_predict`) | 2048 |
+| Max Tokens | Maximale Länge der Antwort (`num_predict`), `-1` = ohne Limit | 32768 |
 | Context Length | Größe des Gedächtnisfensters (`num_ctx`) | 4096 |
 | Keep Alive | Wie lange das Modell im Speicher bleibt | `5m` |
 | Seed | Feste Zahl = reproduzierbare Antworten, `-1` = zufällig | -1 |
@@ -228,6 +308,10 @@ geladen). Eine größere `Context Length` kostet spürbar Speicher.
 | Meldung | Ursache | Lösung |
 |---|---|---|
 | „Keine Verbindung zu Ollama unter …" | Server läuft nicht oder falsche Adresse | Ollama starten, Host/Port prüfen |
+| „Kein Server mit diesem Code im Netzwerk gefunden" | Freigabe aus, anderes Netz oder Port 8762 zu | Einladungslink mit Adresse verwenden (`CODE@ip:8758`) |
+| „Der Zugriff wurde widerrufen" | Der Besitzer hat dich entfernt oder die Freigabe abgeschaltet | Neuen Freigabecode erfragen |
+| „Diese Freigabe ist privat" | Sichtbarkeit steht auf Privat | Besitzer bittet um Umstellung oder schickt eine Einladung |
+| „Diese Einladung wurde bereits verwendet" | Einladungen gelten einmalig | Neue Einladung erstellen lassen |
 | „… antwortet nicht" | Firewall blockt oder `OLLAMA_HOST` fehlt | `OLLAMA_HOST=0.0.0.0` setzen, Port freigeben |
 | „Das Modell X ist nicht installiert" | Modell fehlt auf dem Server | `ollama pull X` auf dem Server |
 | „Ollama hat zu lange gebraucht" | Modell zu groß für die Hardware | Timeout erhöhen oder kleineres Modell |
@@ -293,8 +377,21 @@ mit Tool-Unterstützung, wenn du PC-Steuerung per Ollama willst.
 Ja, mit einem Vision-Modell wie `llava` oder `llama3.2-vision`.
 
 **Wo liegen meine Einstellungen?**
-In `data/ollama.json` neben Jons übrigen Daten. Ein Backup über das Zahnrad-Menü nimmt sie
-mit.
+In `data/ollama.json` neben Jons übrigen Daten, die Freigabe in `data/ollama_share.json`.
+Ein Backup über das Zahnrad-Menü nimmt sie mit.
+
+**Kann jemand über meine Freigabe meinen PC steuern?**
+Nein. Freigegeben ist nur das Antworten des Modells. Werkzeuge, Dateien und PC-Steuerung
+laufen immer auf dem Rechner des jeweiligen Nutzers, nie auf deinem.
+
+**Sieht der Besitzer meine Chats, wenn ich seinen Server nutze?**
+Er sieht, was jeder Betreiber eines Sprachmodells sieht: dass angefragt wird, mit welchem
+Modell und wann. Die Inhalte laufen durch seinen Ollama-Server — teile also nichts
+Vertrauliches über einen fremden Server.
+
+**Kostet die Freigabe den Besitzer etwas?**
+Nur Strom und Rechenzeit. Solange jemand über den Server schreibt, ist dessen Grafikkarte
+beschäftigt.
 
 ## API
 

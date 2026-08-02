@@ -2,6 +2,57 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.37.2] — 2026-08-02
+
+### 🤝 Ollama-Server über den Jon-Chat freigeben
+
+Wer die stärkere Grafikkarte hat, kann seinen Ollama-Server jetzt für andere Jon-Nutzer
+freigeben. Sie chatten darüber, als wäre es ihr eigenes Modell — ohne Zugriff auf
+irgendetwas anderes auf dem fremden PC.
+
+- **Neuer Bereich „Serverfreigabe"** in den Ollama-Einstellungen: an/aus, Freigabename,
+  Beschreibung, Sichtbarkeit (**Privat**, **Nur Eingeladene**, **Öffentlich**),
+  Freigabecode und Einladungslink zum Kopieren, jederzeit abschaltbar.
+- **Verbinden per Code oder Link**: `AB39KD12` genügt im Heimnetz — Jon sucht den Server
+  per Broadcast (UDP 8762). Über Tailscale oder von außerhalb nimmt man
+  `AB39KD12@100.101.102.103:8758` bzw. `jon://ollama/…`.
+- **Automatisch in der KI-Auswahl**: Modelle eines verbundenen Servers erscheinen unter
+  dem Anbieter `ollama` als eigene Gruppe „Freigabe <Code>". Chatverlauf, Streaming und
+  sämtliche Ollama-Einstellungen (Temperatur, Top P, Top K, Max Tokens, Context Length,
+  Keep Alive, Seed, System Prompt, Timeout) gelten unverändert weiter.
+- **Verwaltung für den Besitzer**: verbundene Benutzer mit Adresse, Verbindungsstatus
+  (aktiv/verbunden/offline), genutztem Modell, Anzahl Sitzungen und Anfragen sowie
+  Zeitpunkt der letzten Aktivität. Einzelne Benutzer entfernen oder allen den Zugriff
+  entziehen — beides wirkt sofort, auch mitten in einer laufenden Antwort.
+- **Einladungen** gelten für genau einen Benutzer und verfallen nach der ersten Nutzung.
+  **Neuen Code erzeugen** macht den alten augenblicklich ungültig.
+
+### Sicherheit
+
+- **Kein offener Zugriff.** Beim Beitritt bekommt jeder Gast ein eigenes Zugriffstoken
+  (256 Bit, `secrets.token_urlsafe`). Ohne gültiges Token antwortet jeder
+  `/share/api/*`-Endpunkt mit **401** — auch bei öffentlicher Sichtbarkeit.
+- Tokens liegen **nur als SHA-256-Hash** in `data/ollama_share.json` und werden
+  zeitkonstant verglichen (`hmac.compare_digest`).
+- Die Freigabe hängt am LAN-Chat-Port **8758**, **nicht** an Jons Steuer-API
+  (127.0.0.1:8756). Freigegeben ist ausschließlich das Antworten des Modells — Chats,
+  Dateien, Werkzeuge und PC-Steuerung des Besitzers bleiben unerreichbar. Die Werkzeuge
+  eines Gastes laufen weiterhin auf seinem eigenen Rechner.
+- Fehlversuche werden pro Adresse gebremst (10 pro Minute).
+- Freigabe aus = alle Tokens sofort ungültig; laufende Streams brechen ab.
+
+### Dokumentation
+
+Neues Kapitel „Server für andere freigeben" in [docs/OLLAMA.md](docs/OLLAMA.md) und auf
+[getjon.info](https://getjon.info/ollama.html), dazu README (de/en), FEATURES, API, FAQ
+und EXAMPLES.
+
+25 neue Tests decken Sichtbarkeiten, Einladungen, Beitritt, Tokenprüfung, Widerruf,
+Rate-Limit, die Gastgeber-Endpunkte und den Chat über einen fremden Server ab; die
+komplette Suite bleibt grün (217 → 242). Zusätzlich end-to-end gegen einen echten
+Ollama-Server geprüft: Gastgeber freigeben, Gast verbinden, Antwort streamen, Zugriff
+widerrufen — der Gast bekommt danach sofort eine klare Meldung.
+
 ## [3.37.0] — 2026-08-02
 
 ### 🦙 Ollama komplett eingebaut
@@ -28,9 +79,10 @@ alle Regler, die Ollama wirklich kennt — und es darf auf einem ganz anderen Re
   Verbindung. Aktualisiert sich alle 15 Sekunden, **Verbindung testen** fragt sofort nach.
 - **Modelle** automatisch laden, neu laden und auswählen — direkt aus `/api/tags`. Die
   Modellwahl im Ollama-Fenster und die oben im Chat bleiben synchron.
-- **Alle Antwort-Einstellungen:** Temperatur, Top P, Top K, Max Tokens, Context Length,
-  Keep Alive, Seed, System Prompt, Streaming an/aus, Timeout und automatische
-  Wiederverbindung. Alles landet in `data/ollama.json` und wird beim Start geladen.
+- **Alle Antwort-Einstellungen:** Temperatur, Top P, Top K, Max Tokens (`-1` = ohne Limit),
+  Context Length, Keep Alive, Seed, System Prompt, Streaming an/aus, Timeout und
+  automatische Wiederverbindung. Alles landet in `data/ollama.json` und wird beim Start
+  geladen.
 - **Fehler statt Absturz:** „Keine Verbindung zu Ollama unter …", „Das Modell X ist auf dem
   Server nicht installiert (ollama pull X)", „Ollama hat zu lange gebraucht", „passt nicht
   in den Speicher" — jeweils mit dem konkreten nächsten Schritt. Falsche Eingaben (Port 0,
@@ -50,9 +102,9 @@ alle Regler, die Ollama wirklich kennt — und es darf auf einem ganz anderen Re
   installieren und wechseln, Fehlerbehebung, FAQ, Sicherheit und Tipps. Dazu die
   Ollama-Seite auf [getjon.info](https://getjon.info).
 
-34 neue Tests decken Konfiguration, Validierung, Status, Modell-Liste, Chat-Optionen,
+38 neue Tests decken Konfiguration, Validierung, Status, Modell-Liste, Chat-Optionen,
 Werkzeug-Runden, Streaming an/aus, Reconnect und alle Fehlerfälle ab; die komplette Suite
-bleibt grün. Zusätzlich gegen einen echten Ollama-Server (0.32.5) gegengeprüft: `num_ctx`
+bleibt grün (211 → 217). Zusätzlich gegen einen echten Ollama-Server (0.32.5) gegengeprüft: `num_ctx`
 und `keep_alive` kommen dort nachweislich an.
 
 ## [3.36.3] — 2026-07-30

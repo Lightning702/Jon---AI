@@ -127,6 +127,21 @@ class OllamaConfigIn(BaseModel):
     auto_load_models: bool | None = None
 
 
+class OllamaShareIn(BaseModel):
+    enabled: bool | None = None
+    name: str | None = None
+    description: str | None = None
+    visibility: str | None = None
+
+
+class OllamaInviteIn(BaseModel):
+    label: str = ""
+
+
+class OllamaRemoteIn(BaseModel):
+    code: str
+
+
 class WatcherIn(BaseModel):
     path: str
     task: str

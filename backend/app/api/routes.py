@@ -38,6 +38,9 @@ from app.schemas import (
     NoteAddIn,
     NoteUpdateIn,
     OllamaConfigIn,
+    OllamaInviteIn,
+    OllamaRemoteIn,
+    OllamaShareIn,
     HumanizeIn,
     KnowledgeLearnIn,
     KnowledgeSearchIn,
@@ -78,6 +81,7 @@ from app.services.clipboard_service import get_clipboard_service
 from app.services.dream_service import get_dream_service
 from app.services.knowledge_service import get_knowledge_service
 from app.services.ollama_service import OllamaConfigError, get_ollama_service
+from app.services.ollama_share_service import ShareError, get_share_service
 from app.services.persona_service import get_persona_service
 from app.services.reminder_service import get_reminder_service
 from app.services.screen_service import get_screen_service
@@ -363,6 +367,86 @@ async def ollama_models(refresh: bool = False) -> dict:
     service = get_ollama_service()
     models = await service.models(refresh=refresh)
     return {"models": models, "count": len(models), "model": service.selected_model()}
+
+
+@router.get("/ollama/share")
+async def ollama_share() -> dict:
+    service = get_share_service()
+    return {"share": service.share(), "users": service.users()}
+
+
+@router.put("/ollama/share")
+async def save_ollama_share(payload: OllamaShareIn) -> dict:
+    try:
+        return get_share_service().update_share(payload.model_dump(exclude_none=True))
+    except ShareError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/ollama/share/code")
+async def new_ollama_share_code() -> dict:
+    return get_share_service().new_code()
+
+
+@router.post("/ollama/share/invites")
+async def create_ollama_invite(payload: OllamaInviteIn) -> dict:
+    return get_share_service().create_invite(payload.label)
+
+
+@router.delete("/ollama/share/invites/{code}")
+async def delete_ollama_invite(code: str) -> dict:
+    return {"deleted": get_share_service().delete_invite(code)}
+
+
+@router.get("/ollama/share/users")
+async def ollama_share_users() -> list[dict]:
+    return get_share_service().users()
+
+
+@router.delete("/ollama/share/users/{grant_id}")
+async def remove_ollama_share_user(grant_id: str) -> dict:
+    return {"removed": get_share_service().remove_user(grant_id)}
+
+
+@router.post("/ollama/share/revoke")
+async def revoke_ollama_share() -> dict:
+    return {"revoked": get_share_service().revoke_all()}
+
+
+@router.get("/ollama/remote")
+async def ollama_remotes() -> list[dict]:
+    return get_share_service().remotes()
+
+
+@router.post("/ollama/remote")
+async def connect_ollama_remote(payload: OllamaRemoteIn) -> dict:
+    try:
+        return await get_share_service().connect(payload.code)
+    except ShareError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/ollama/remote/{code}")
+async def ollama_remote_status(code: str) -> dict:
+    try:
+        return await get_share_service().remote_status(code)
+    except ShareError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.post("/ollama/remote/{code}/refresh")
+async def refresh_ollama_remote(code: str) -> dict:
+    try:
+        entry = await get_share_service().refresh_remote(code)
+    except ShareError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    entry.pop("token", None)
+    return entry
+
+
+@router.delete("/ollama/remote/{code}")
+async def forget_ollama_remote(code: str) -> dict:
+    return {"removed": get_share_service().forget_remote(code)}
 
 
 @router.get("/settings")

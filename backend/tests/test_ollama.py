@@ -89,6 +89,8 @@ def test_tailscale_und_lan_adressen_erlaubt(service):
         {"temperature": 5},
         {"top_p": 2},
         {"context_length": 10},
+        {"max_tokens": 0},
+        {"max_tokens": -5},
         {"timeout": 0},
         {"keep_alive": "fuenf minuten"},
         {"scheme": "ftp"},
@@ -126,6 +128,12 @@ def test_chat_optionen_folgen_den_einstellungen(service):
     assert options["seed"] == 99
     service.update({"seed": -1})
     assert "seed" not in service.chat_options()
+
+
+def test_max_tokens_minus_eins_heisst_unbegrenzt(service):
+    assert service.config()["max_tokens"] == 32768
+    assert service.update({"max_tokens": -1})["max_tokens"] == -1
+    assert service.chat_options()["num_predict"] == -1
 
 
 def test_status_bei_totem_server(service):
@@ -320,6 +328,24 @@ def test_modell_ohne_werkzeuge_antwortet_trotzdem(service, monkeypatch):
     assert len(versuche) == 2
     assert "tools" not in versuche[1]
     assert "".join(c.delta for c in chunks if c.kind == "content") == "Klappt"
+
+
+def test_fehler_mitten_im_stream_bricht_sauber_ab(service, monkeypatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=_ndjson(
+                [
+                    {"message": {"content": "Teil"}, "done": False},
+                    {"error": "unerwarteter Serverfehler"},
+                ]
+            ),
+        )
+
+    _patch_client(monkeypatch, handler)
+    with pytest.raises(ProviderError) as info:
+        _collect(OllamaProvider(), _request())
+    assert "unerwarteter Serverfehler" in str(info.value)
 
 
 def test_fehlendes_modell_gibt_klare_meldung(service, monkeypatch):

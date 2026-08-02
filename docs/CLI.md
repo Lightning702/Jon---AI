@@ -91,6 +91,10 @@ Jon behält Chatverlauf, Projektstruktur und Gedächtnis über die Sitzung hinwe
 OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Ollama, LM Studio, Groq, Together AI,
 DeepSeek, Mistral, xAI (und weitere OpenAI-kompatible).
 
+Mit `/provider ollama` arbeitet der Coding-Agent lokal. Er nutzt dieselbe Konfiguration
+wie die App — Server, Modell, Context Length und Keep Alive stellst du einmal im
+Zahnrad-Menü unter **Ollama** ein (siehe [OLLAMA.md](OLLAMA.md)).
+
 ## Beispiel
 
 ```

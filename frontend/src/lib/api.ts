@@ -2082,3 +2082,146 @@ export async function getOllamaHosts(): Promise<OllamaHost[]> {
   const data = await res.json();
   return data.hosts ?? [];
 }
+
+export type ShareVisibility = "private" | "invited" | "public";
+
+export interface OllamaInvite {
+  code: string;
+  label: string;
+  created_at: string;
+  used_by: string;
+  link?: string;
+}
+
+export interface OllamaShare {
+  enabled: boolean;
+  name: string;
+  description: string;
+  visibility: ShareVisibility;
+  code: string;
+  created_at: string;
+  host: string;
+  port: number;
+  link: string;
+  owner: string;
+  user_count: number;
+  open_invites: OllamaInvite[];
+}
+
+export interface OllamaShareUser {
+  id: string;
+  user: string;
+  user_id: string;
+  address: string;
+  created_at: string;
+  model: string;
+  requests: number;
+  sessions: number;
+  state: string;
+  last_activity: string;
+  invite: string;
+}
+
+export interface OllamaRemote {
+  code: string;
+  host: string;
+  port: number;
+  base: string;
+  grant_id: string;
+  name: string;
+  description: string;
+  owner: string;
+  added_at: string;
+  last_ok: string;
+  models: string[];
+  error: string;
+}
+
+export async function getOllamaShare(): Promise<{
+  share: OllamaShare;
+  users: OllamaShareUser[];
+}> {
+  const res = await fetch(`${BASE}/ollama/share`);
+  if (!res.ok) throw new Error("Freigabe nicht abrufbar.");
+  return res.json();
+}
+
+export async function saveOllamaShare(
+  values: Partial<OllamaShare>
+): Promise<OllamaShare> {
+  const res = await fetch(`${BASE}/ollama/share`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Speichern fehlgeschlagen.");
+  return data;
+}
+
+export async function newOllamaShareCode(): Promise<OllamaShare> {
+  const res = await fetch(`${BASE}/ollama/share/code`, { method: "POST" });
+  if (!res.ok) throw new Error("Neuer Code fehlgeschlagen.");
+  return res.json();
+}
+
+export async function createOllamaInvite(label: string): Promise<OllamaInvite> {
+  const res = await fetch(`${BASE}/ollama/share/invites`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label }),
+  });
+  if (!res.ok) throw new Error("Einladung fehlgeschlagen.");
+  return res.json();
+}
+
+export async function deleteOllamaInvite(code: string): Promise<void> {
+  await fetch(`${BASE}/ollama/share/invites/${code}`, { method: "DELETE" });
+}
+
+export async function getOllamaShareUsers(): Promise<OllamaShareUser[]> {
+  const res = await fetch(`${BASE}/ollama/share/users`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function removeOllamaShareUser(id: string): Promise<void> {
+  await fetch(`${BASE}/ollama/share/users/${id}`, { method: "DELETE" });
+}
+
+export async function revokeOllamaShare(): Promise<number> {
+  const res = await fetch(`${BASE}/ollama/share/revoke`, { method: "POST" });
+  if (!res.ok) return 0;
+  const data = await res.json();
+  return data.revoked ?? 0;
+}
+
+export async function getOllamaRemotes(): Promise<OllamaRemote[]> {
+  const res = await fetch(`${BASE}/ollama/remote`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function connectOllamaRemote(code: string): Promise<OllamaRemote> {
+  const res = await fetch(`${BASE}/ollama/remote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Verbinden fehlgeschlagen.");
+  return data;
+}
+
+export async function refreshOllamaRemote(code: string): Promise<OllamaRemote> {
+  const res = await fetch(`${BASE}/ollama/remote/${code}/refresh`, {
+    method: "POST",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Aktualisieren fehlgeschlagen.");
+  return data;
+}
+
+export async function forgetOllamaRemote(code: string): Promise<void> {
+  await fetch(`${BASE}/ollama/remote/${code}`, { method: "DELETE" });
+}

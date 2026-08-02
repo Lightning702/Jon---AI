@@ -197,6 +197,10 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   Tokens, Context Length, Keep Alive, Seed, System Prompt, Streaming, Timeout). Der Server
   darf auf deinem PC, auf einem zweiten Rechner im Heimnetz oder über Tailscale laufen —
   ganz ohne API-Schlüssel (siehe [docs/OLLAMA.md](docs/OLLAMA.md))
+- **🤝 Ollama-Server freigeben** — gib deinen Server per Freigabecode oder Einladungslink
+  für andere Jon-Nutzer frei (privat, nur Eingeladene oder öffentlich). Bei ihnen taucht er
+  automatisch in der KI-Auswahl auf; du siehst jederzeit, wer verbunden ist, welches Modell
+  läuft und wann er zuletzt aktiv war — und entziehst den Zugriff mit einem Klick
 - **Erinnerungen/Loops**: „Erinnere mich jeden Tag um 13 Uhr ans Trinken" — Jon meldet sich,
   sobald die App offen ist, mit Chat-Nachricht und Browser-Benachrichtigung
 - **Eigenes Prompt & eigene Skills** direkt in der App (Konten → Prompt / Skills)
@@ -311,8 +315,28 @@ Verbindung zu Ollama unter …", „Das Modell X ist auf dem Server nicht instal
 **Verbindung testen**. Kann ein Modell keine Werkzeuge, wiederholt Jon die Anfrage
 automatisch ohne Werkzeuge, statt abzubrechen.
 
-Die komplette Anleitung mit LAN, Tailscale, Modellempfehlungen, Sicherheitshinweisen,
-Fehlerbehebung und FAQ steht in **[docs/OLLAMA.md](docs/OLLAMA.md)**.
+### 🤝 Deinen Server für Freunde freigeben
+
+Hast du die stärkere Grafikkarte, können andere Jon-Nutzer über deinen Ollama-Server
+chatten — ohne selbst etwas zu installieren.
+
+- **Freigeben:** Im Ollama-Fenster unter **Serverfreigabe** einschalten, Namen und
+  Beschreibung eintragen, Sichtbarkeit wählen (**Privat**, **Nur Eingeladene** oder
+  **Öffentlich**) und den **Freigabecode** oder **Einladungslink** weitergeben.
+- **Verbinden:** Der andere trägt Code oder Link unter **Freigegebene Server nutzen** ein.
+  Danach stehen deine Modelle bei ihm oben in der KI-Auswahl — Chat, Verlauf, Streaming
+  und alle Ollama-Einstellungen funktionieren ganz normal.
+- **Verwalten:** Du siehst jeden verbundenen Benutzer mit Status, genutztem Modell,
+  Sitzungen, Anfragen und letzter Aktivität — und wirfst ihn mit einem Klick wieder
+  hinaus. **Allen Zugriff entziehen** wirkt sofort, auch mitten in einer Antwort.
+- **Sicher:** Jeder Gast bekommt ein eigenes Zugriffstoken (nur als Hash gespeichert);
+  ohne gültiges Token geht gar nichts. Freigegeben ist ausschließlich das Antworten des
+  Modells — deine Chats, Dateien und die PC-Steuerung bleiben unerreichbar, denn die
+  Freigabe hängt am Chat-Port 8758 und nicht an Jons Steuer-API.
+
+Die komplette Anleitung mit LAN, Tailscale, Serverfreigabe, Modellempfehlungen,
+Sicherheitshinweisen, Fehlerbehebung und FAQ steht in
+**[docs/OLLAMA.md](docs/OLLAMA.md)**.
 
 ---
 
@@ -765,7 +789,11 @@ Details und Fehlerbehebung: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 ## Sicherheit
 
 - API-Keys werden aus Umgebungsvariablen oder dem lokalen Konten-Speicher (`data/`) geladen,
-  niemals aus dem Quellcode Sie können auch Ollama benutzen.
+  niemals aus dem Quellcode. Ganz ohne Schlüssel geht es mit
+  [Ollama](docs/OLLAMA.md) — dann verlässt kein einziges Wort deinen Rechner.
+- Öffnest du deinen Ollama-Server für andere Geräte (`OLLAMA_HOST=0.0.0.0`), beachte:
+  Ollama kennt keine Passwörter. Gib den Port niemals im Router nach außen frei — für
+  unterwegs ist Tailscale oder ein VPN der richtige Weg.
 - `.env` und der komplette `data/`-Ordner sind über `.gitignore` ausgeschlossen.
 - Die System- und Tool-Aktionen laufen mit den Rechten des angemeldeten Benutzers. Der
   Standardmodus „Zuerst fragen" verlangt vor jeder Aktion eine Freigabe.

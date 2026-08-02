@@ -11,6 +11,7 @@ import {
   saveOllamaConfig,
   testOllama,
 } from "../lib/api";
+import OllamaSharePanel from "./OllamaSharePanel";
 
 interface Props {
   onClose: () => void;
@@ -525,7 +526,7 @@ export default function OllamaModal({ onClose }: Props) {
                     />
                   </div>
                   <div>
-                    <div className={label}>Max Tokens</div>
+                    <div className={label}>Max Tokens (-1 = ohne Limit)</div>
                     <input
                       className={field}
                       value={form.max_tokens}
@@ -600,6 +601,8 @@ export default function OllamaModal({ onClose }: Props) {
                   onClick={() => set("auto_reconnect", !form.auto_reconnect)}
                 />
               </section>
+
+              <OllamaSharePanel onModelsChanged={() => void refresh(true)} />
             </div>
 
             <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-white/10">

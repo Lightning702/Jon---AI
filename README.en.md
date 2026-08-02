@@ -139,6 +139,12 @@ git clone https://github.com/Lightning702/Jon---AI.git
   streaming, timeout and automatic reconnect. The server may live on this PC, on another
   machine on your LAN or on a Tailscale host; Jon talks to it through the official Ollama
   API. Full guide: [docs/OLLAMA.md](docs/OLLAMA.md).
+- **🤝 Share your Ollama server** — Hand out a share code or invite link and other Jon
+  users can chat through your GPU: private, invite-only or public. Their client picks the
+  server up automatically in the model selector, streaming and all Ollama settings
+  included. You see every connected user with status, model, sessions and last activity,
+  and can revoke access instantly. Every request carries a personal token (stored hashed);
+  only model inference is shared — never your chats, files or PC control.
 - **🌍 English & German** — Switch the whole UI and Jon's replies between German and English
   in the gear menu.
 - Plus: knowledge base, automations, reminders, friends chat, Telegram bot (with photo

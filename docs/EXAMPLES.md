@@ -36,12 +36,27 @@ Einrichten im Zahnrad-Menü unter **Ollama** — die komplette Anleitung steht i
 - Kurze, sachliche Antworten: **System Prompt** auf „Antworte kurz, sachlich und ohne
   Einleitung."
 
+Server freigeben und mitbenutzen:
+
+- Freigeben: **Serverfreigabe** einschalten, Sichtbarkeit **Öffentlich**, Code `AB39KD12`
+  weitergeben.
+- Nur für bestimmte Leute: Sichtbarkeit **Nur Eingeladene**, dann pro Person eine
+  Einladung erstellen — jede gilt einmal.
+- Verbinden: Beim anderen unter **Freigegebene Server nutzen** `AB39KD12` eintragen (im
+  Heimnetz) oder `AB39KD12@192.168.1.50:8758` (über Tailscale oder von außerhalb).
+- Danach im Chat Anbieter `ollama` wählen und unter „Freigabe AB39KD12" das Modell nehmen.
+- Zugriff beenden: beim Benutzer auf **entfernen** oder **Allen Zugriff entziehen**.
+
 Über die API geht dasselbe:
 
 ```bash
 curl -X PUT http://127.0.0.1:8756/api/ollama/config   -H "Content-Type: application/json"   -d '{"url":"http://192.168.1.50:11434","model":"llama3.2","keep_alive":"30m"}'
 
 curl -X POST http://127.0.0.1:8756/api/ollama/test
+
+curl -X PUT http://127.0.0.1:8756/api/ollama/share   -H "Content-Type: application/json"   -d '{"enabled":true,"visibility":"public","name":"Werkstatt-PC"}'
+
+curl -X POST http://127.0.0.1:8756/api/ollama/remote   -H "Content-Type: application/json"   -d '{"code":"AB39KD12@192.168.1.50:8758"}'
 ```
 
 ## Web & Recherche

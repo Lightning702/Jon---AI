@@ -113,6 +113,51 @@ gespeicherte Konfiguration bleibt dabei unverändert.
 `POST /api/chat` mit `"provider": "ollama"`; Jon spricht dabei die offizielle Ollama-API
 (`/api/chat`). Ausführliche Anleitung: [OLLAMA.md](OLLAMA.md).
 
+## Ollama-Serverfreigabe
+
+Eigener Server, den andere Jon-Nutzer mitbenutzen dürfen:
+
+| Methode | Pfad | Beschreibung |
+|---------|------|--------------|
+| GET | `/api/ollama/share` | Freigabe-Einstellungen und verbundene Benutzer |
+| PUT | `/api/ollama/share` | `enabled`, `name`, `description`, `visibility` |
+| POST | `/api/ollama/share/code` | Neuen Freigabecode erzeugen (alter wird ungültig) |
+| POST | `/api/ollama/share/invites` | Einmal-Einladung erstellen (`{label}`) |
+| DELETE | `/api/ollama/share/invites/{code}` | Einladung löschen |
+| GET | `/api/ollama/share/users` | Verbundene Benutzer mit Status, Modell, Aktivität |
+| DELETE | `/api/ollama/share/users/{id}` | Einen Benutzer entfernen (wirkt sofort) |
+| POST | `/api/ollama/share/revoke` | Allen Benutzern den Zugriff entziehen |
+
+`visibility` ist `private`, `invited` oder `public`.
+
+Fremde Server, die man selbst nutzt:
+
+| Methode | Pfad | Beschreibung |
+|---------|------|--------------|
+| GET | `/api/ollama/remote` | Verbundene fremde Server (ohne Token) |
+| POST | `/api/ollama/remote` | Verbinden (`{code}`, auch `CODE@host:port` oder `jon://ollama/...`) |
+| GET | `/api/ollama/remote/{code}` | Status: online/offline, Antwortzeit, Modelle |
+| POST | `/api/ollama/remote/{code}/refresh` | Modell-Liste neu holen |
+| DELETE | `/api/ollama/remote/{code}` | Verbindung trennen |
+
+Die Modelle eines verbundenen Servers erscheinen unter dem Anbieter `ollama` als
+`share:<CODE>/<modell>` und lassen sich genauso im Chat verwenden.
+
+### Gastgeber-Endpunkte (Port 8758)
+
+Diese laufen im LAN-erreichbaren Chat-Server, **nicht** in der Steuer-API:
+
+| Methode | Pfad | Auth | Beschreibung |
+|---------|------|------|--------------|
+| GET | `/share/info` | — | Name und Beschreibung, nur wenn freigegeben |
+| POST | `/share/join` | Freigabecode | Liefert ein persönliches Zugriffstoken |
+| GET | `/share/api/version` | Bearer | Ollama-Version des Gastgebers |
+| GET | `/share/api/tags` | Bearer | Installierte Modelle |
+| POST | `/share/api/chat` | Bearer | Chat-Stream (NDJSON), reicht an den lokalen Ollama weiter |
+
+Ohne gültiges Token antworten alle `/share/api/*`-Endpunkte mit **401**. Ein Widerruf
+beendet auch laufende Streams.
+
 ## Nutzung
 
 | Methode | Pfad | Beschreibung |

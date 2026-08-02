@@ -304,6 +304,18 @@ async def _parent_watchdog() -> None:
         os._exit(0)
 
 
+async def _share_beacon() -> None:
+    from app.services.ollama_share_service import DISCOVERY_PORT, get_share_service
+
+    try:
+        await get_share_service().serve_discovery()
+    except asyncio.CancelledError:
+        raise
+    except (SystemExit, Exception):
+        print(f"Ollama-Freigabe-Suche auf {DISCOVERY_PORT} nicht moeglich", flush=True)
+        return
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("STEP init_db", flush=True)
@@ -333,6 +345,7 @@ async def lifespan(app: FastAPI):
     multiplayer_task = asyncio.create_task(_multiplayer_server())
     coop_web_task = asyncio.create_task(_coop_web_server())
     coop_beacon_task = asyncio.create_task(_coop_beacon())
+    share_beacon_task = asyncio.create_task(_share_beacon())
     watchdog_task = asyncio.create_task(_parent_watchdog())
     announce_task = asyncio.create_task(p2p.announce_loop())
     listen_task = asyncio.create_task(p2p.listen_loop())
@@ -369,6 +382,7 @@ async def lifespan(app: FastAPI):
     multiplayer_task.cancel()
     coop_web_task.cancel()
     coop_beacon_task.cancel()
+    share_beacon_task.cancel()
     watchdog_task.cancel()
     announce_task.cancel()
     listen_task.cancel()

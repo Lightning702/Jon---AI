@@ -27,6 +27,15 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Alles dauerhaft in `data/ollama.json`, wird beim Start automatisch geladen
 - Verständliche Fehlermeldungen statt Abstürzen; automatische Wiederverbindung
 - Modelle ohne Werkzeug-Unterstützung antworten trotzdem (automatischer zweiter Versuch)
+- **Serverfreigabe**: eigenen Ollama-Server per Freigabecode oder Einladungslink für
+  andere Jon-Nutzer freigeben — privat, nur für Eingeladene oder öffentlich
+- Freigegebene Server erscheinen beim Gast automatisch in der KI-Auswahl und lassen sich
+  im Chat wie ein eigenes Modell verwenden (inklusive Streaming und aller Einstellungen)
+- Verwaltung für den Besitzer: verbundene Benutzer, aktive Sitzungen, genutztes Modell,
+  Verbindungsstatus, letzte Aktivität, einzelne Benutzer entfernen, Zugriff widerrufen
+- Jede Anfrage braucht ein persönliches Zugriffstoken; es wird nur gehasht gespeichert.
+  Freigegeben ist ausschließlich das Antworten des Modells — kein Zugriff auf PC, Dateien
+  oder Chats des Besitzers
 - Details: [OLLAMA.md](OLLAMA.md)
 
 ## Werkzeuge (Function Calling)

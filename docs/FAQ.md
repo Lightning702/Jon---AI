@@ -47,6 +47,17 @@ Ja. Auf dem Ollama-Rechner `OLLAMA_HOST=0.0.0.0` setzen, Port 11434 in der Firew
 freigeben und in Jon Host und Port eintragen. Über Tailscale klappt das auch über das
 Internet, ohne Portfreigabe im Router.
 
+**Kann ich meinen Ollama-Server für Freunde freigeben?**
+Ja, seit 3.37.2. Im Ollama-Fenster unter **Serverfreigabe** einschalten und den
+Freigabecode weitergeben. Sie chatten dann über deine Grafikkarte, bekommen aber keinerlei
+Zugriff auf deinen PC — nur das Antworten des Modells ist freigegeben. Jede Anfrage braucht
+ein persönliches Zugriffstoken, und ein Widerruf wirkt sofort.
+
+**Sieht der Besitzer eines freigegebenen Servers meine Chats?**
+Er sieht, was jeder Modellbetreiber sieht: dass angefragt wird, mit welchem Modell und wann.
+Die Inhalte laufen durch seinen Ollama-Server — schick also nichts Vertrauliches über einen
+fremden Server.
+
 **Warum ruft mein Ollama-Modell keine Werkzeuge auf?**
 Nicht jedes lokale Modell kann das. Jon erkennt die Meldung `does not support tools` und
 antwortet automatisch ohne Werkzeuge weiter. Modelle wie `llama3.1`, `llama3.3` oder

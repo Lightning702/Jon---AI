@@ -156,6 +156,7 @@ code.inline{font-family:"JetBrains Mono",Consolas,monospace;font-size:12.5px;col
 .doc-body .step>div{min-width:0;flex:1}
 .doc-body .step code{max-width:100%}
 .doc-body .mp-feat p{overflow-wrap:anywhere}
+.doc-sub{text-align:left;font-size:17px;margin:28px 0 6px;color:var(--gold-light);font-weight:700}
 </style>
 </head>
 <body>
@@ -175,12 +176,13 @@ code.inline{font-family:"JetBrains Mono",Consolas,monospace;font-size:12.5px;col
 </nav>
 
 <header style="padding:70px 0 30px">
-<a class="newbadge" href="index.html#download"><b>NEU 3.37.0</b> 🦙 Ollama komplett eingebaut — Server, Modelle und alle Regler in den Einstellungen</a>
+<a class="newbadge" href="#freigabe"><b>NEU 3.37.2</b> 🤝 Serverfreigabe: deinen Ollama-Server per Code für andere Jon-Nutzer freigeben</a>
 <h1>Jon mit <span class="gold">Ollama</span><br>ganz ohne Cloud</h1>
 <p>Kostenlos, privat, offline: Jon lässt seine Antworten auf deiner eigenen Hardware rechnen. Der Ollama-Server darf auf diesem PC laufen, auf einem zweiten Rechner im Heimnetz oder über Tailscale ganz woanders.</p>
 <div class="cta">
 <a class="btn btn-primary" href="https://ollama.com/download" target="_blank" rel="noopener">⬇ Ollama installieren</a>
 <a class="btn btn-ghost" href="#einrichtung">Einrichtung in Jon</a>
+<a class="btn btn-ghost" href="#freigabe">Server freigeben</a>
 <a class="btn btn-ghost" href="#fehler">Fehlerbehebung</a>
 </div>
 </header>
@@ -201,6 +203,7 @@ code.inline{font-family:"JetBrains Mono",Consolas,monospace;font-size:12.5px;col
 <a href="#testen">Verbindung testen</a>
 <a href="#modelle">Modelle installieren</a>
 <a href="#wechseln">Modelle wechseln</a>
+<a href="#freigabe">Server freigeben</a>
 <a href="#einstellungen">Alle Einstellungen</a>
 <a href="#fehler">Fehlerbehebung</a>
 <a href="#faq">FAQ</a>
@@ -322,6 +325,52 @@ ollama list</code><p>Danach in Jon auf <b>Neu laden</b> klicken — die Liste ko
 <p class="doc-p">Zwei Wege, gleiches Ergebnis: im Ollama-Fenster unter <b>Modell</b> auswählen und speichern — oder oben im Chat den Anbieter <b>ollama</b> wählen und daneben das Modell. Jon hält beide Stellen synchron.</p>
 <div class="note">Nicht jedes lokale Modell kann Werkzeuge aufrufen. Meldet der Server <code class="inline">does not support tools</code>, wiederholt Jon die Anfrage automatisch ohne Werkzeuge und antwortet trotzdem. Werkzeuge beherrschen zum Beispiel <b>llama3.1</b>, <b>llama3.3</b>, <b>qwen2.5</b> und <b>mistral-nemo</b>.</div>
 
+<h2 id="freigabe" class="doc-h">Server für andere freigeben</h2>
+<p class="doc-p">Läuft auf deinem Rechner eine starke Grafikkarte, kannst du deinen Ollama-Server für andere Jon-Nutzer freigeben. Sie chatten dann über dein Modell, ohne selbst etwas zu installieren — und ohne Zugriff auf irgendetwas anderes auf deinem PC.</p>
+
+<h3 class="doc-sub">Freigeben (als Besitzer)</h3>
+<div class="steps">
+<div class="step"><div class="n">1</div><div><h4>Bereich öffnen</h4><p><b>Zahnrad-Menü → Ollama → Server &amp; Modelle …</b>, dort ganz unten <b>Serverfreigabe</b>.</p></div></div>
+<div class="step"><div class="n">2</div><div><h4>Einschalten und beschreiben</h4><p>Schalter <b>Meinen Ollama-Server freigeben</b> an, dann <b>Freigabename</b> und <b>Beschreibung</b> eintragen — das sehen die anderen.</p></div></div>
+<div class="step"><div class="n">3</div><div><h4>Sichtbarkeit wählen</h4><p><b>Privat</b>, <b>Nur Eingeladene</b> oder <b>Öffentlich</b> (siehe Tabelle unten).</p></div></div>
+<div class="step"><div class="n">4</div><div><h4>Code weitergeben</h4><p>Der Code sieht aus wie <code class="inline">AB39KD12</code>, der Link wie <code class="inline">jon://ollama/AB39KD12@192.168.1.50:8758</code>. Beides gibt es auf Klick in die Zwischenablage.</p></div></div>
+</div>
+
+<table class="doc-table">
+<tr><th>Sichtbarkeit</th><th>Bedeutung</th></tr>
+<tr><td>Privat</td><td>Niemand kommt neu herein. Bereits verbundene Benutzer behalten ihren Zugang, bis du ihn widerrufst.</td></tr>
+<tr><td>Nur Eingeladene</td><td>Nur wer eine persönliche Einladung von dir hat. Jede Einladung gilt für genau einen Benutzer und verfällt nach der ersten Nutzung.</td></tr>
+<tr><td>Öffentlich</td><td>Jeder mit deinem Freigabecode darf sich verbinden.</td></tr>
+</table>
+
+<h3 class="doc-sub">Verbinden (als Gast)</h3>
+<div class="steps">
+<div class="step"><div class="n">1</div><div><h4>Code eintragen</h4><p>Im selben Fenster unter <b>Freigegebene Server nutzen</b> den Code oder Link einfügen und auf <b>Verbinden</b> klicken.</p></div></div>
+<div class="step"><div class="n">2</div><div><h4>Modell wählen</h4><p>Die Modelle des fremden Servers stehen sofort oben in der KI-Auswahl beim Anbieter <b>ollama</b>, gruppiert unter „Freigabe &lt;Code&gt;".</p></div></div>
+<div class="step"><div class="n">3</div><div><h4>Ganz normal chatten</h4><p>Verlauf, Streaming und deine eigenen Ollama-Einstellungen (Temperatur, Top P, Top K, Max Tokens, Context Length, Keep Alive, Seed, System Prompt, Timeout) gelten weiter.</p></div></div>
+</div>
+<p class="doc-p">Im Heimnetz genügt der Code allein — Jon sucht den Server im Netzwerk. Über Tailscale oder von außerhalb nimmt man den Link mit Adresse.</p>
+
+<h3 class="doc-sub">Verwalten</h3>
+<p class="doc-p">Unter <b>Verbundene Benutzer</b> siehst du zu jedem Gast Name und Adresse, den Verbindungsstatus, das gerade genutzte Modell, Sitzungen und Anfragen sowie die letzte Aktivität:</p>
+<div class="mp-card" style="max-width:560px;margin:22px auto 0">
+<div class="mp-row"><span class="mp-dot"></span><span class="who">Anna</span><span class="mp-tag">aktiv</span><span class="ms">llama3.2</span></div>
+<div class="mp-row"><span class="mp-dot" style="background:#8fe28f;opacity:.6"></span><span class="who">Jonas</span><span class="mp-tag">verbunden</span><span class="ms">qwen2.5-coder</span></div>
+<div class="mp-row" style="opacity:.5"><span class="mp-dot" style="background:#3a4152"></span><span class="who">Lena</span><span class="mp-tag">offline</span><span class="ms">vor 2 Std.</span></div>
+</div>
+<p class="doc-p"><b>entfernen</b> wirft einen einzelnen Benutzer hinaus, <b>Allen Zugriff entziehen</b> alle auf einmal. Beides gilt sofort — auch mitten in einer laufenden Antwort. Mit <b>Neuen Code erzeugen</b> wird der alte Freigabecode ungültig.</p>
+
+<h3 class="doc-sub">Sicherheit der Freigabe</h3>
+<div class="mp-feat">
+<div><h4>🎫 Nichts ist offen zugänglich</h4><p>Jeder Gast bekommt beim Beitritt ein eigenes Zugriffstoken mit 256 Bit. Ohne gültiges Token beantwortet Jon keine einzige Anfrage — auch nicht bei öffentlicher Sichtbarkeit.</p></div>
+<div><h4>🔑 Tokens nur als Hash</h4><p>Gespeichert wird ausschließlich ein SHA-256-Hash, verglichen wird zeitkonstant.</p></div>
+<div><h4>🚪 Nur das Modell</h4><p>Freigegeben ist allein das Antworten deines Ollama-Servers. Chats, Dateien, Werkzeuge und PC-Steuerung bleiben unerreichbar — die Werkzeuge des Gastes laufen auf seinem eigenen Rechner.</p></div>
+<div><h4>🧱 Getrennter Port</h4><p>Die Freigabe hängt am Chat-Port 8758, nicht an Jons Steuer-API auf 127.0.0.1:8756.</p></div>
+<div><h4>⏱️ Bremse gegen Raten</h4><p>Zu viele Fehlversuche in Folge werden pro Adresse ausgebremst.</p></div>
+<div><h4>🛑 Aus heißt aus</h4><p>Schaltest du die Freigabe ab, sind alle Tokens augenblicklich ungültig.</p></div>
+</div>
+<div class="note">Gib den Port trotzdem nicht im Router nach außen frei. Für Freunde außerhalb deines Heimnetzes ist Tailscale der richtige Weg. Damit Gäste dich im Heimnetz finden, muss TCP <b>8758</b> offen sein, für die Suche allein per Code zusätzlich UDP <b>8762</b>.</div>
+
 <h2 id="einstellungen" class="doc-h">Alle Einstellungen</h2>
 <table class="doc-table">
 <tr><th>Einstellung</th><th>Bedeutung</th><th>Standard</th></tr>
@@ -332,7 +381,7 @@ ollama list</code><p>Danach in Jon auf <b>Neu laden</b> klicken — die Liste ko
 <tr><td>Temperatur</td><td>0 ist nüchtern, 2 ist sehr kreativ</td><td>0.7</td></tr>
 <tr><td>Top P</td><td>Anteil der berücksichtigten Wortwahrscheinlichkeiten</td><td>0.9</td></tr>
 <tr><td>Top K</td><td>Wie viele Wortkandidaten pro Schritt betrachtet werden</td><td>40</td></tr>
-<tr><td>Max Tokens</td><td>Maximale Länge der Antwort</td><td>2048</td></tr>
+<tr><td>Max Tokens</td><td>Maximale Länge der Antwort, <code class="inline">-1</code> bedeutet ohne Limit</td><td>32768</td></tr>
 <tr><td>Context Length</td><td>Größe des Gedächtnisfensters</td><td>4096</td></tr>
 <tr><td>Keep Alive</td><td>Wie lange das Modell im Speicher bleibt</td><td><code class="inline">5m</code></td></tr>
 <tr><td>Seed</td><td>Feste Zahl bedeutet reproduzierbare Antworten, <code class="inline">-1</code> ist zufällig</td><td>-1</td></tr>
@@ -404,7 +453,7 @@ ollama list</code><p>Danach in Jon auf <b>Neu laden</b> klicken — die Liste ko
 <a href="https://felworks-impressum.netlify.app/support" target="_blank" rel="noopener">Support</a>
 <a href="agb.html">AGB</a>
 </div>
-<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.37.0 · Läuft lokal auf deinem Rechner</div>
+<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.37.2 · Läuft lokal auf deinem Rechner</div>
 </footer>
 
 </body>

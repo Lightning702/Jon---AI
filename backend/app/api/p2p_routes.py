@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -332,5 +333,102 @@ def create_chat_app() -> FastAPI:
         if "error" in result:
             raise HTTPException(status_code=400, detail=result["error"])
         return result
+
+    def _grant(request: Request) -> dict:
+        from app.services.ollama_share_service import ShareError, get_share_service
+
+        header = request.headers.get("authorization", "")
+        token = header[7:].strip() if header.lower().startswith("bearer ") else ""
+        try:
+            return get_share_service().authorize(token)
+        except ShareError as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+
+    @app.get("/share/info")
+    async def share_info() -> dict:
+        from app.services.ollama_share_service import get_share_service
+
+        return get_share_service().info()
+
+    @app.post("/share/join")
+    async def share_join(request: Request) -> dict:
+        from app.services.ollama_share_service import ShareError, get_share_service
+
+        payload = await request.json()
+        address = request.client.host if request.client else ""
+        try:
+            return get_share_service().join(payload, address)
+        except ShareError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+
+    @app.get("/share/api/version")
+    async def share_version(request: Request) -> dict:
+        from app.services.ollama_service import get_ollama_service
+
+        _grant(request)
+        service = get_ollama_service()
+        try:
+            return await service.version()
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=service.friendly_error(exc))
+
+    @app.get("/share/api/tags")
+    async def share_tags(request: Request) -> dict:
+        from app.services.ollama_service import get_ollama_service
+
+        _grant(request)
+        service = get_ollama_service()
+        if not service.enabled():
+            raise HTTPException(
+                status_code=503, detail="Ollama ist auf diesem Gerät ausgeschaltet."
+            )
+        try:
+            models = await service.fetch_models()
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=service.friendly_error(exc))
+        return {"models": [{"name": name} for name in models]}
+
+    @app.post("/share/api/chat")
+    async def share_chat(request: Request):
+        import httpx
+        from fastapi.responses import StreamingResponse
+
+        from app.services.ollama_service import get_ollama_service
+        from app.services.ollama_share_service import get_share_service
+
+        grant = _grant(request)
+        shares = get_share_service()
+        ollama = get_ollama_service()
+        if not ollama.enabled():
+            raise HTTPException(
+                status_code=503, detail="Ollama ist auf diesem Gerät ausgeschaltet."
+            )
+        payload = await request.json()
+        model = str(payload.get("model", ""))
+        shares.touch(grant["id"], model, 1)
+        url = ollama.base_url() + "/api/chat"
+        timeout = httpx.Timeout(ollama.timeout(), connect=10.0)
+
+        async def pump():
+            client = httpx.AsyncClient(timeout=timeout)
+            try:
+                async with client.stream("POST", url, json=payload) as response:
+                    if response.status_code >= 400:
+                        body = await response.aread()
+                        yield body
+                        return
+                    async for chunk in response.aiter_bytes():
+                        if not shares.alive(grant["id"]):
+                            return
+                        yield chunk
+            except httpx.HTTPError as exc:
+                yield json.dumps(
+                    {"error": ollama.friendly_error(exc)}
+                ).encode("utf-8") + b"\n"
+            finally:
+                shares.touch(grant["id"], model, -1)
+                await client.aclose()
+
+        return StreamingResponse(pump(), media_type="application/x-ndjson")
 
     return app
