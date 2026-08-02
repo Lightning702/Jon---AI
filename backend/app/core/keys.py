@@ -53,6 +53,15 @@ class KeyManager:
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
 
+    @staticmethod
+    def _ollama_key() -> str | None:
+        try:
+            from app.services.ollama_service import get_ollama_service
+
+            return "ollama" if get_ollama_service().enabled() else None
+        except Exception:
+            return "ollama"
+
     def _raw_env(self, provider: str) -> str | None:
         mapping = {
             "openai": self._settings.openai_api_key,
@@ -67,7 +76,7 @@ class KeyManager:
             "groq": self._settings.groq_api_key,
             "together": self._settings.together_api_key,
             "xai": self._settings.xai_api_key,
-            "ollama": "ollama",
+            "ollama": self._ollama_key(),
             "lmstudio": "lmstudio",
         }
         value = mapping.get(provider)

@@ -1973,3 +1973,112 @@ export async function meetingStop(): Promise<{
   const res = await fetch(`${BASE}/meeting/stop`, { method: "POST" });
   return res.json();
 }
+
+export interface OllamaConfig {
+  enabled: boolean;
+  scheme: string;
+  host: string;
+  port: number;
+  url: string;
+  api_base: string;
+  model: string;
+  temperature: number;
+  top_p: number;
+  top_k: number;
+  max_tokens: number;
+  context_length: number;
+  keep_alive: string;
+  seed: number;
+  system_prompt: string;
+  stream: boolean;
+  timeout: number;
+  auto_reconnect: boolean;
+  auto_load_models: boolean;
+  last_success: string;
+}
+
+export type OllamaState = "online" | "offline" | "connecting" | "disabled";
+
+export interface OllamaStatus {
+  state: OllamaState;
+  url: string;
+  host: string;
+  port: number;
+  model: string;
+  models: string[];
+  model_count: number;
+  version: string;
+  response_ms: number;
+  last_success: string;
+  error: string;
+  checked_at: string;
+  ok?: boolean;
+}
+
+export async function getOllamaConfig(): Promise<OllamaConfig> {
+  const res = await fetch(`${BASE}/ollama/config`);
+  if (!res.ok) throw new Error("Ollama-Einstellungen nicht erreichbar.");
+  return res.json();
+}
+
+export async function saveOllamaConfig(
+  values: Partial<OllamaConfig>
+): Promise<OllamaConfig> {
+  const res = await fetch(`${BASE}/ollama/config`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Speichern fehlgeschlagen.");
+  return data;
+}
+
+export async function resetOllamaConfig(): Promise<OllamaConfig> {
+  const res = await fetch(`${BASE}/ollama/reset`, { method: "POST" });
+  if (!res.ok) throw new Error("Zuruecksetzen fehlgeschlagen.");
+  return res.json();
+}
+
+export async function getOllamaStatus(force = false): Promise<OllamaStatus> {
+  const res = await fetch(`${BASE}/ollama/status?force=${force ? "true" : "false"}`);
+  if (!res.ok) throw new Error("Status nicht abrufbar.");
+  return res.json();
+}
+
+export async function testOllama(
+  values: Partial<OllamaConfig> = {}
+): Promise<OllamaStatus> {
+  const res = await fetch(`${BASE}/ollama/test`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Verbindungstest fehlgeschlagen.");
+  return data;
+}
+
+export async function getOllamaModels(
+  refresh = false
+): Promise<{ models: string[]; count: number; model: string }> {
+  const res = await fetch(
+    `${BASE}/ollama/models?refresh=${refresh ? "true" : "false"}`
+  );
+  if (!res.ok) return { models: [], count: 0, model: "" };
+  return res.json();
+}
+
+export interface OllamaHost {
+  label: string;
+  host: string;
+  kind: string;
+  hint: string;
+}
+
+export async function getOllamaHosts(): Promise<OllamaHost[]> {
+  const res = await fetch(`${BASE}/ollama/hosts`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.hosts ?? [];
+}

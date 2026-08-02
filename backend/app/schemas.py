@@ -106,6 +106,27 @@ class SettingsIn(BaseModel):
     language: str | None = None
 
 
+class OllamaConfigIn(BaseModel):
+    enabled: bool | None = None
+    url: str | None = None
+    scheme: str | None = None
+    host: str | None = None
+    port: int | None = None
+    model: str | None = None
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    max_tokens: int | None = None
+    context_length: int | None = None
+    keep_alive: str | None = None
+    seed: int | None = None
+    system_prompt: str | None = None
+    stream: bool | None = None
+    timeout: float | None = None
+    auto_reconnect: bool | None = None
+    auto_load_models: bool | None = None
+
+
 class WatcherIn(BaseModel):
     path: str
     task: str

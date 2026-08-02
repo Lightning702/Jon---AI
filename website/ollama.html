@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ollama in Jon — lokale KI ohne Cloud</title>
+<meta name="description" content="Jon mit Ollama: lokale Modelle kostenlos und privat nutzen. Installation, Server, Port, Host, LAN, Tailscale, Modelle, Fehlerbehebung, FAQ und Sicherheit." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E" />
+<style>
+:root{--gold:#d4af37;--gold-light:#f5d67b;--gold-dark:#9a7b1f;--ink:#050506;--ink2:#0b0b0f}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--gold) #050506}
+::-webkit-scrollbar{width:9px;height:9px;background:#050506}
+::-webkit-scrollbar-track{background:#050506}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--gold-light),var(--gold),var(--gold-dark));border-radius:8px;border:2px solid #050506}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ffe9a8,var(--gold-light),var(--gold))}
+::-webkit-scrollbar-corner{background:#050506}
+body{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#f5f5f7;background:radial-gradient(circle at 20% -10%,#15151f 0%,#050506 55%,#000 100%);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.glow{position:fixed;width:600px;height:600px;border-radius:50%;filter:blur(120px);opacity:.18;pointer-events:none;z-index:0}
+.glow.a{background:var(--gold);top:-200px;right:-150px}
+.glow.b{background:#3a2f8f;bottom:-250px;left:-200px;opacity:.14}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:24px 0}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:2px}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 20px rgba(212,175,55,.6)}
+.gold{background:linear-gradient(90deg,var(--gold-light),var(--gold),var(--gold-dark));-webkit-background-clip:text;background-clip:text;color:transparent}
+nav a{color:rgba(255,255,255,.6);text-decoration:none;margin-left:28px;font-size:14px;transition:color .2s}
+nav a:hover{color:#fff}
+header{text-align:center;padding:90px 0 60px}
+header h1{font-size:clamp(44px,8vw,86px);line-height:1.02;font-weight:800;letter-spacing:-2px}
+header p{margin:26px auto 0;max-width:620px;color:rgba(255,255,255,.55);font-size:clamp(16px,2.4vw,20px);line-height:1.6}
+.cta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:40px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:16px;font-weight:600;text-decoration:none;font-size:16px;transition:transform .15s,filter .15s,background .2s;border:1px solid transparent}
+.btn-primary{background:linear-gradient(90deg,var(--gold-light),var(--gold-dark));color:#000;box-shadow:0 0 30px rgba(212,175,55,.3)}
+.btn-primary:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.btn-ghost{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:#fff;backdrop-filter:blur(12px)}
+.btn-ghost:hover{background:rgba(255,255,255,.1)}
+.mock{margin:70px auto 0;max-width:900px;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:rgba(11,11,15,.6);backdrop-filter:blur(24px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.mock-bar{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.mock-bar span{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.18)}
+.mock-body{display:grid;grid-template-columns:200px 1fr;min-height:300px}
+.mock-side{border-right:1px solid rgba(255,255,255,.06);padding:18px}
+.mock-side .item{height:34px;border-radius:9px;background:rgba(255,255,255,.04);margin-bottom:10px}
+.mock-side .item.active{background:rgba(212,175,55,.14);border:1px solid rgba(212,175,55,.3)}
+.mock-chat{padding:24px;display:flex;flex-direction:column;gap:14px}
+.bubble{max-width:75%;padding:13px 16px;border-radius:16px;font-size:14px;line-height:1.5}
+.bubble.u{align-self:flex-end;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));color:#000;border-bottom-right-radius:5px}
+.bubble.a{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-bottom-left-radius:5px}
+section{padding:70px 0}
+h2{text-align:center;font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-1px}
+.sub{text-align:center;color:rgba(255,255,255,.45);margin-top:14px;max-width:560px;margin-left:auto;margin-right:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:48px}
+.card{padding:28px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-4px);border-color:rgba(212,175,55,.3)}
+.card .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:rgba(212,175,55,.12);margin-bottom:16px}
+.card h3{font-size:18px;margin-bottom:8px}
+.card p{color:rgba(255,255,255,.5);font-size:14px;line-height:1.6}
+.steps{max-width:720px;margin:48px auto 0;display:flex;flex-direction:column;gap:16px}
+.step{display:flex;gap:18px;align-items:flex-start;padding:22px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+.step .n{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#000;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark))}
+.step code{display:block;margin-top:8px;font-family:"JetBrains Mono",Consolas,monospace;font-size:13px;color:var(--gold-light);background:rgba(0,0,0,.4);padding:10px 14px;border-radius:9px;overflow-x:auto}
+.step h4{font-size:16px}
+.step p{color:rgba(255,255,255,.5);font-size:14px;margin-top:4px}
+.req{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:40px}
+.chip{padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:13px;color:rgba(255,255,255,.7)}
+.video-wrap{position:relative;max-width:900px;margin:44px auto 0;border-radius:20px;overflow:hidden;border:2px solid rgba(212,175,55,.25);box-shadow:0 0 50px rgba(212,175,55,.12),0 20px 60px rgba(0,0,0,.5);background:#000}
+.video-wrap::before{content:"";display:block;padding-top:56.25%}
+.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-size:13px;border-top:1px solid rgba(255,255,255,.06);margin-top:40px}
+.note{max-width:720px;margin:30px auto 0;padding:16px 20px;border-radius:14px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);font-size:13px;color:rgba(255,255,255,.65);text-align:center}
+.newbadge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px 6px 10px;border-radius:30px;background:linear-gradient(90deg,rgba(212,175,55,.20),rgba(143,226,143,.14));border:1px solid rgba(212,175,55,.55);font-size:13px;color:#f4e2ae;margin-bottom:22px;text-decoration:none;transition:.18s}
+.newbadge:hover{border-color:rgba(212,175,55,.9);transform:translateY(-1px)}
+.newbadge b{background:#d4af37;color:#0b0b0f;font-size:10.5px;letter-spacing:.1em;padding:3px 8px;border-radius:20px;font-weight:800}
+nav a.hot{color:#f4e2ae}
+nav a.hot::after{content:"NEU";display:inline-block;margin-left:6px;font-size:9px;letter-spacing:.08em;background:#d4af37;color:#0b0b0f;padding:2px 5px;border-radius:20px;font-weight:800;vertical-align:2px}
+.mp-hero{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:center;margin-top:44px}
+@media(max-width:860px){.mp-hero{grid-template-columns:1fr}}
+.mp-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.mp-steps li{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px 18px}
+.mp-steps b{display:block;margin-bottom:3px}
+.mp-steps .num{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:rgba(212,175,55,.16);border:1px solid rgba(212,175,55,.5);color:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.mp-steps p{margin:0;font-size:14px;color:rgba(255,255,255,.62);line-height:1.5}
+.mp-card{border-radius:20px;background:rgba(8,11,20,.72);border:1px solid rgba(212,175,55,.32);padding:22px 24px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.mp-code{display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(212,175,55,.09);border:1px dashed rgba(212,175,55,.5);border-radius:14px;padding:14px 18px;margin-bottom:16px}
+.mp-code small{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:3px}
+.mp-code b{font-size:30px;letter-spacing:9px;color:var(--gold-light)}
+.mp-row{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.045);margin-bottom:8px;font-size:14px}
+.mp-dot{width:9px;height:9px;border-radius:50%;background:#8fe28f;flex:0 0 auto}
+.mp-row .who{flex:1;font-weight:600}
+.mp-tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:rgba(143,226,143,.16);color:#a8e9b4;border:1px solid rgba(143,226,143,.35)}
+.mp-row .ms{font-size:12px;color:rgba(255,255,255,.4);font-variant-numeric:tabular-nums}
+.mp-feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;margin-top:34px}
+.mp-feat div{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px 18px}
+.mp-feat h4{margin:0 0 6px;font-size:15px}
+.mp-feat p{margin:0;font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.55}
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;margin-top:48px}
+.game{border-radius:20px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);transition:transform .2s,border-color .2s}
+.game:hover{transform:translateY(-4px);border-color:rgba(212,175,55,.3)}
+.game img{display:block;width:100%;height:180px;object-fit:cover}
+.game .body{padding:24px}
+.game h3{font-size:19px;margin-bottom:4px}
+.game .genre{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(212,175,55,.8);margin-bottom:12px}
+.game p{color:rgba(255,255,255,.5);font-size:14px;line-height:1.6}
+.game .keys{margin-top:14px;font-size:12.5px;color:rgba(255,255,255,.32)}
+.about-card{max-width:760px;margin:44px auto 0;padding:34px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px)}
+.about-card p{color:rgba(255,255,255,.62);font-size:15px;line-height:1.75}
+.about-card p+p{margin-top:18px}
+.dl-hint{font-size:12.5px;color:rgba(255,255,255,.4);margin-top:14px;text-align:center}
+@media(max-width:640px){.mock-body{grid-template-columns:1fr}.mock-side{display:none}nav a{display:none}.video-wrap{border-radius:14px}}
+#cookie-banner{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100;width:min(680px,calc(100vw - 32px));padding:20px 24px;border-radius:18px;background:rgba(11,11,15,.92);border:1px solid rgba(212,175,55,.3);backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.6);display:none}
+#cookie-banner.show{display:block;animation:cookieIn .35s ease}
+@keyframes cookieIn{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
+#cookie-banner h4{font-size:15px;margin-bottom:6px}
+#cookie-banner p{color:rgba(255,255,255,.55);font-size:13px;line-height:1.55}
+.cookie-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.btn-sm{padding:10px 20px;border-radius:12px;font-size:14px;cursor:pointer;font-family:inherit}
+.cookie-link{background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;font-family:inherit;padding:0;transition:color .2s}
+.cookie-link:hover{color:var(--gold-light)}
+.footer-links{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 22px;margin-bottom:22px}
+.footer-links a,.footer-links .cookie-link{color:rgba(255,255,255,.55);text-decoration:none;font-size:14px;position:relative;transition:color .2s}
+.footer-links a::after{content:"";position:absolute;left:0;bottom:-4px;width:0;height:1px;background:linear-gradient(90deg,var(--gold-light),var(--gold-dark));transition:width .25s}
+.footer-links a:hover{color:var(--gold-light)}
+.footer-links a:hover::after{width:100%}
+.footer-meta{color:rgba(255,255,255,.3);font-size:12.5px}
+::selection{
+    background:#d4af37;
+    color:#050506;
+}
+
+::-moz-selection{
+    background:#d4af37;
+    color:#050506;
+}
+
+.doc{display:grid;grid-template-columns:230px 1fr;gap:40px;align-items:start;padding:20px 0 70px}
+@media(max-width:900px){.doc{grid-template-columns:1fr}.toc{position:static!important;max-height:none!important}}
+.toc{position:sticky;top:24px;display:flex;flex-direction:column;gap:2px;padding:20px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);max-height:calc(100vh - 48px);overflow-y:auto}
+.toc b{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(212,175,55,.8);margin-bottom:8px}
+.toc a{color:rgba(255,255,255,.55);text-decoration:none;font-size:13.5px;padding:5px 8px;border-radius:8px;transition:.18s}
+.toc a:hover{color:#fff;background:rgba(212,175,55,.12)}
+.doc-body{min-width:0}
+.doc-h{text-align:left;font-size:clamp(22px,3.4vw,30px);margin:52px 0 14px;scroll-margin-top:24px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.doc-body>.doc-h:first-child{margin-top:0}
+.doc-p{color:rgba(255,255,255,.62);font-size:15px;line-height:1.75;margin-top:14px}
+.doc-body .steps{margin-top:22px}
+.doc-body .note{text-align:left;margin-left:0;margin-right:0}
+.doc-body .mp-feat{margin-top:22px}
+.doc-table{width:100%;border-collapse:collapse;margin-top:22px;font-size:14px;display:block;overflow-x:auto}
+.doc-table th{text-align:left;padding:11px 14px;color:rgba(212,175,55,.85);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid rgba(212,175,55,.28);white-space:nowrap}
+.doc-table td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.62);line-height:1.55;vertical-align:top}
+.doc-table tr:hover td{background:rgba(255,255,255,.03)}
+code.inline{font-family:"JetBrains Mono",Consolas,monospace;font-size:12.5px;color:var(--gold-light);background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.2);padding:1px 6px;border-radius:6px;white-space:nowrap}
+.doc-body a{color:var(--gold-light)}
+.step .n{font-size:15px}
+.doc-body .step>div{min-width:0;flex:1}
+.doc-body .step code{max-width:100%}
+.doc-body .mp-feat p{overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="glow a"></div>
+<div class="glow b"></div>
+<div class="wrap">
+<nav>
+<a class="brand" href="index.html" style="text-decoration:none;color:inherit"><div class="dot"></div><span class="gold">JON</span></a>
+<div>
+<a href="index.html#features">Funktionen</a>
+<a href="index.html#install">Installation</a>
+<a class="hot" href="ollama.html">Ollama</a>
+<a href="index.html#games">Spiele</a>
+<a href="index.html#download">Download</a>
+<a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
+</div>
+</nav>
+
+<header style="padding:70px 0 30px">
+<a class="newbadge" href="index.html#download"><b>NEU 3.37.0</b> 🦙 Ollama komplett eingebaut — Server, Modelle und alle Regler in den Einstellungen</a>
+<h1>Jon mit <span class="gold">Ollama</span><br>ganz ohne Cloud</h1>
+<p>Kostenlos, privat, offline: Jon lässt seine Antworten auf deiner eigenen Hardware rechnen. Der Ollama-Server darf auf diesem PC laufen, auf einem zweiten Rechner im Heimnetz oder über Tailscale ganz woanders.</p>
+<div class="cta">
+<a class="btn btn-primary" href="https://ollama.com/download" target="_blank" rel="noopener">⬇ Ollama installieren</a>
+<a class="btn btn-ghost" href="#einrichtung">Einrichtung in Jon</a>
+<a class="btn btn-ghost" href="#fehler">Fehlerbehebung</a>
+</div>
+</header>
+
+<div class="doc">
+<aside class="toc">
+<b>Inhalt</b>
+<a href="#was">Was ist Ollama?</a>
+<a href="#voraussetzungen">Voraussetzungen</a>
+<a href="#installation">Installation</a>
+<a href="#einrichtung">Einrichtung in Jon</a>
+<a href="#server">Server konfigurieren</a>
+<a href="#port">Port konfigurieren</a>
+<a href="#host">Host konfigurieren</a>
+<a href="#verbindung">Verbindung zum Server</a>
+<a href="#lan">Nutzung über LAN</a>
+<a href="#tailscale">Nutzung über Tailscale</a>
+<a href="#testen">Verbindung testen</a>
+<a href="#modelle">Modelle installieren</a>
+<a href="#wechseln">Modelle wechseln</a>
+<a href="#einstellungen">Alle Einstellungen</a>
+<a href="#fehler">Fehlerbehebung</a>
+<a href="#faq">FAQ</a>
+<a href="#sicherheit">Sicherheit</a>
+<a href="#tipps">Tipps</a>
+</aside>
+
+<article class="doc-body">
+
+<h2 id="was" class="doc-h">Was ist Ollama?</h2>
+<p class="doc-p">Ollama ist ein kleines, kostenloses Programm, das große Sprachmodelle direkt auf deiner eigenen Hardware ausführt. Du lädst ein Modell einmal herunter und kannst es danach beliebig oft benutzen.</p>
+<div class="mp-feat" style="margin-top:22px">
+<div><h4>💸 Kostenlos</h4><p>Keine Token-Abrechnung, kein Abo, kein Limit. Du zahlst nur den Strom.</p></div>
+<div><h4>🔒 Privat</h4><p>Kein Wort verlässt deinen Rechner oder dein Netzwerk. Kein Anbieter liest mit.</p></div>
+<div><h4>✈️ Offline</h4><p>Ist das Modell einmal geladen, funktioniert Jon auch ohne Internet.</p></div>
+</div>
+<div class="note">Der Preis dafür: Es rechnet deine Grafikkarte statt eines Rechenzentrums. Kleine Modelle sind blitzschnell, große brauchen entsprechend Speicher.</div>
+
+<h2 id="voraussetzungen" class="doc-h">Voraussetzungen</h2>
+<table class="doc-table">
+<tr><th></th><th>Minimum</th><th>Empfohlen</th></tr>
+<tr><td>Arbeitsspeicher</td><td>8 GB</td><td>16 GB und mehr</td></tr>
+<tr><td>Grafikspeicher</td><td>keiner (läuft auf der CPU)</td><td>8 GB VRAM und mehr</td></tr>
+<tr><td>Festplatte</td><td>2 GB je kleinem Modell</td><td>20 GB und mehr</td></tr>
+<tr><td>System</td><td>Windows 10/11, macOS, Linux</td><td>—</td></tr>
+</table>
+<p class="doc-p">Faustregel: Ein Modell braucht ungefähr so viel Speicher, wie seine Datei groß ist. Ein 3B-Modell passt fast überall, ein 70B-Modell braucht eine dicke Grafikkarte.</p>
+
+<h2 id="installation" class="doc-h">Installation</h2>
+<div class="steps">
+<div class="step"><div class="n">1</div><div><h4>Ollama herunterladen</h4><p>Von <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a>, Installer starten — fertig. Ollama läuft danach im Hintergrund auf Port <b>11434</b>.</p></div></div>
+<div class="step"><div class="n">2</div><div><h4>Erstes Modell laden</h4><code>ollama pull llama3.2</code></div></div>
+<div class="step"><div class="n">3</div><div><h4>Kurz prüfen</h4><p>Kommt hier eine Versionsnummer zurück, ist alles bereit:</p><code>curl http://127.0.0.1:11434/api/version</code></div></div>
+</div>
+
+<h2 id="einrichtung" class="doc-h">Einrichtung in Jon</h2>
+<div class="steps">
+<div class="step"><div class="n">1</div><div><h4>Einstellungen öffnen</h4><p>Jon starten, dann <b>Zahnrad-Menü</b> oben rechts und weiter zum Bereich <b>Ollama</b>.</p></div></div>
+<div class="step"><div class="n">2</div><div><h4>Ollama einschalten</h4><p>Schalter <b>Ollama verwenden</b> auf an, dann <b>Server &amp; Modelle …</b> öffnen.</p></div></div>
+<div class="step"><div class="n">3</div><div><h4>Verbinden und Modell wählen</h4><p><b>Verbindung testen</b> drücken — steht oben <b>Online</b>, hat es geklappt. Modell auswählen, <b>Speichern</b>, oben im Chat als Anbieter <b>ollama</b> wählen.</p></div></div>
+</div>
+<p class="doc-p">Alle Einstellungen landen in <code class="inline">data/ollama.json</code> und werden beim Start automatisch geladen.</p>
+
+<h2 id="server" class="doc-h">Server konfigurieren</h2>
+<p class="doc-p">Läuft Ollama auf demselben PC wie Jon, musst du nichts einstellen — <code class="inline">127.0.0.1:11434</code> ist die Voreinstellung.</p>
+<p class="doc-p">Soll Ollama von <b>anderen Geräten</b> erreichbar sein, muss der Server auf allen Netzwerkkarten lauschen. Das stellst du auf dem <b>Ollama-Rechner</b> ein:</p>
+<div class="steps">
+<div class="step"><div class="n">W</div><div><h4>Windows</h4><p>In PowerShell, danach Ollama neu starten:</p><code>setx OLLAMA_HOST 0.0.0.0</code></div></div>
+<div class="step"><div class="n">L</div><div><h4>macOS / Linux</h4><code>export OLLAMA_HOST=0.0.0.0</code><p>Als systemd-Dienst gehört es in <code class="inline">/etc/systemd/system/ollama.service.d/override.conf</code> unter <code class="inline">[Service]</code> als <code class="inline">Environment="OLLAMA_HOST=0.0.0.0"</code>. Danach <code class="inline">systemctl daemon-reload</code> und <code class="inline">systemctl restart ollama</code>.</p></div></div>
+</div>
+
+<h2 id="port" class="doc-h">Port konfigurieren</h2>
+<p class="doc-p">Standard ist <b>11434</b>. Einen anderen Port setzt du auf dem Server über <code class="inline">OLLAMA_HOST=0.0.0.0:11500</code> und trägst ihn in Jon im Feld <b>Port</b> ein.</p>
+<div class="steps"><div class="step"><div class="n">🛡️</div><div><h4>Firewall nicht vergessen</h4><p>Unter Windows auf dem Ollama-Rechner:</p><code>netsh advfirewall firewall add rule name="Ollama" dir=in action=allow protocol=TCP localport=11434</code></div></div></div>
+
+<h2 id="host" class="doc-h">Host konfigurieren</h2>
+<p class="doc-p">Im Ollama-Fenster beschreiben mehrere Felder dieselbe Sache — nimm, was dir lieber ist:</p>
+<table class="doc-table">
+<tr><th>Feld</th><th>Beispiel</th><th>Bedeutung</th></tr>
+<tr><td>Server-URL</td><td><code class="inline">http://192.168.1.50:11434</code></td><td>Komplette Adresse auf einmal</td></tr>
+<tr><td>Host / IP</td><td><code class="inline">192.168.1.50</code></td><td>Nur der Rechner</td></tr>
+<tr><td>Port</td><td><code class="inline">11434</code></td><td>Nur die Nummer</td></tr>
+<tr><td>Protokoll</td><td><code class="inline">http</code> oder <code class="inline">https</code></td><td>Für eigene Server hinter einem Proxy</td></tr>
+</table>
+<p class="doc-p">Tippst du oben eine vollständige URL ein, füllen sich Host, Port und Protokoll von selbst — und umgekehrt. Darunter schlägt Jon die Adressen dieses PCs zum Anklicken vor: <b>localhost</b>, <b>Heimnetz (LAN)</b> und <b>Tailscale</b>.</p>
+
+<h2 id="verbindung" class="doc-h">Verbindung von Jon zum Server</h2>
+<table class="doc-table">
+<tr><th>Szenario</th><th>Host</th><th>Port</th></tr>
+<tr><td>Ollama auf demselben PC</td><td><code class="inline">127.0.0.1</code></td><td>11434</td></tr>
+<tr><td>Anderer PC im Heimnetz</td><td><code class="inline">192.168.x.x</code> oder <code class="inline">10.x.x.x</code></td><td>11434</td></tr>
+<tr><td>Rechner über Tailscale</td><td><code class="inline">100.x.x.x</code></td><td>11434</td></tr>
+<tr><td>Eigener Server mit HTTPS</td><td><code class="inline">ollama.meinedomain.de</code> mit <code class="inline">https</code></td><td>443</td></tr>
+</table>
+
+<h2 id="lan" class="doc-h">Nutzung über LAN</h2>
+<div class="steps">
+<div class="step"><div class="n">1</div><div><h4>Server öffnen</h4><p>Auf dem Ollama-Rechner <code class="inline">OLLAMA_HOST=0.0.0.0</code> setzen und Ollama neu starten.</p></div></div>
+<div class="step"><div class="n">2</div><div><h4>IP-Adresse herausfinden</h4><p>Windows: <code class="inline">ipconfig</code> · macOS und Linux: <code class="inline">ip addr</code></p></div></div>
+<div class="step"><div class="n">3</div><div><h4>Firewall freigeben</h4><p>Port 11434 für eingehende TCP-Verbindungen erlauben.</p></div></div>
+<div class="step"><div class="n">4</div><div><h4>In Jon eintragen</h4><p>Host und Port ins Ollama-Fenster, dann <b>Verbindung testen</b> drücken.</p></div></div>
+</div>
+
+<h2 id="tailscale" class="doc-h">Nutzung über Tailscale</h2>
+<p class="doc-p"><a href="https://tailscale.com" target="_blank" rel="noopener">Tailscale</a> verbindet deine Geräte verschlüsselt, egal wo sie stehen — ohne eine einzige Portfreigabe im Router.</p>
+<div class="steps">
+<div class="step"><div class="n">1</div><div><h4>Auf beiden Geräten installieren</h4><p>Mit demselben Konto anmelden.</p></div></div>
+<div class="step"><div class="n">2</div><div><h4>Ollama öffnen</h4><p>Auf dem Ollama-Rechner <code class="inline">OLLAMA_HOST=0.0.0.0</code> setzen.</p></div></div>
+<div class="step"><div class="n">3</div><div><h4>Tailscale-Adresse ablesen</h4><p>Sie beginnt mit <b>100.</b>:</p><code>tailscale ip -4</code></div></div>
+<div class="step"><div class="n">4</div><div><h4>In Jon eintragen</h4><p>Adresse als <b>Host</b>, Port <b>11434</b>. Damit läuft das Modell zu Hause auf der großen Grafikkarte, während Jon unterwegs auf dem Laptop damit arbeitet.</p></div></div>
+</div>
+
+<h2 id="testen" class="doc-h">Verbindung testen</h2>
+<p class="doc-p">Der Knopf <b>Verbindung testen</b> speichert deine Serverdaten und fragt den Server sofort ab. Oben im Fenster steht danach jederzeit:</p>
+<div class="mp-card" style="max-width:520px;margin:24px auto 0">
+<div class="mp-row"><span class="mp-dot"></span><span class="who">Online</span><span class="mp-tag">http://192.168.1.50:11434</span></div>
+<div class="mp-row"><span class="who">Antwortzeit</span><span class="ms">12 ms</span></div>
+<div class="mp-row"><span class="who">Ollama-Version</span><span class="ms">0.12.0</span></div>
+<div class="mp-row"><span class="who">Gewähltes Modell</span><span class="ms">llama3.2</span></div>
+<div class="mp-row"><span class="who">Installierte Modelle</span><span class="ms">4</span></div>
+<div class="mp-row"><span class="who">Letzte Verbindung</span><span class="ms">02.08.2026, 20:41</span></div>
+</div>
+<p class="doc-p">Der Status aktualisiert sich alle 15 Sekunden von selbst; <b>Status aktualisieren</b> fragt sofort nach. Mögliche Zustände: <b>Online</b>, <b>Offline</b>, <b>Verbinde …</b> und <b>Ausgeschaltet</b>.</p>
+
+<h2 id="modelle" class="doc-h">Modelle installieren</h2>
+<p class="doc-p">Modelle werden immer auf dem <b>Server</b> installiert, nicht in Jon:</p>
+<div class="steps"><div class="step"><div class="n">📦</div><div><h4>Im Terminal des Ollama-Rechners</h4><code>ollama pull llama3.2
+ollama pull qwen2.5-coder:7b
+ollama list</code><p>Danach in Jon auf <b>Neu laden</b> klicken — die Liste kommt frisch vom Server.</p></div></div></div>
+<table class="doc-table">
+<tr><th>Modell</th><th>Größe</th><th>Wofür</th></tr>
+<tr><td><code class="inline">llama3.2</code></td><td>~2 GB</td><td>Allrounder, läuft fast überall</td></tr>
+<tr><td><code class="inline">qwen2.5-coder:7b</code></td><td>~4,7 GB</td><td>Programmieren</td></tr>
+<tr><td><code class="inline">mistral</code></td><td>~4,1 GB</td><td>Schnelle Alltagsantworten</td></tr>
+<tr><td><code class="inline">llama3.3:70b</code></td><td>~40 GB</td><td>Sehr stark, braucht viel VRAM</td></tr>
+</table>
+
+<h2 id="wechseln" class="doc-h">Modelle wechseln</h2>
+<p class="doc-p">Zwei Wege, gleiches Ergebnis: im Ollama-Fenster unter <b>Modell</b> auswählen und speichern — oder oben im Chat den Anbieter <b>ollama</b> wählen und daneben das Modell. Jon hält beide Stellen synchron.</p>
+<div class="note">Nicht jedes lokale Modell kann Werkzeuge aufrufen. Meldet der Server <code class="inline">does not support tools</code>, wiederholt Jon die Anfrage automatisch ohne Werkzeuge und antwortet trotzdem. Werkzeuge beherrschen zum Beispiel <b>llama3.1</b>, <b>llama3.3</b>, <b>qwen2.5</b> und <b>mistral-nemo</b>.</div>
+
+<h2 id="einstellungen" class="doc-h">Alle Einstellungen</h2>
+<table class="doc-table">
+<tr><th>Einstellung</th><th>Bedeutung</th><th>Standard</th></tr>
+<tr><td>Ollama verwenden</td><td>Schaltet Ollama als Anbieter an und aus</td><td>an</td></tr>
+<tr><td>Server-URL, Host, Port, Protokoll</td><td>Wo der Server läuft</td><td><code class="inline">http://127.0.0.1:11434</code></td></tr>
+<tr><td>Modell</td><td>Das Modell, mit dem Jon antwortet</td><td>—</td></tr>
+<tr><td>Modelle automatisch laden</td><td>Modell-Liste selbstständig vom Server holen</td><td>an</td></tr>
+<tr><td>Temperatur</td><td>0 ist nüchtern, 2 ist sehr kreativ</td><td>0.7</td></tr>
+<tr><td>Top P</td><td>Anteil der berücksichtigten Wortwahrscheinlichkeiten</td><td>0.9</td></tr>
+<tr><td>Top K</td><td>Wie viele Wortkandidaten pro Schritt betrachtet werden</td><td>40</td></tr>
+<tr><td>Max Tokens</td><td>Maximale Länge der Antwort</td><td>2048</td></tr>
+<tr><td>Context Length</td><td>Größe des Gedächtnisfensters</td><td>4096</td></tr>
+<tr><td>Keep Alive</td><td>Wie lange das Modell im Speicher bleibt</td><td><code class="inline">5m</code></td></tr>
+<tr><td>Seed</td><td>Feste Zahl bedeutet reproduzierbare Antworten, <code class="inline">-1</code> ist zufällig</td><td>-1</td></tr>
+<tr><td>System Prompt</td><td>Zusatzanweisung für jedes Ollama-Gespräch</td><td>leer</td></tr>
+<tr><td>Streaming</td><td>Antwort live mitschreiben statt am Stück</td><td>an</td></tr>
+<tr><td>Timeout</td><td>Wie lange Jon auf eine Antwort wartet, in Sekunden</td><td>120</td></tr>
+<tr><td>Automatisch neu verbinden</td><td>Bei Abbruch bis zu dreimal erneut versuchen</td><td>an</td></tr>
+</table>
+<p class="doc-p"><b>Keep Alive</b> versteht <code class="inline">5m</code>, <code class="inline">30s</code>, <code class="inline">1h</code>, <code class="inline">0</code> für sofortiges Entladen und <code class="inline">-1</code> für dauerhaft geladen. Eine größere <b>Context Length</b> kostet spürbar Speicher.</p>
+
+<h2 id="fehler" class="doc-h">Fehlerbehebung</h2>
+<table class="doc-table">
+<tr><th>Meldung</th><th>Ursache</th><th>Lösung</th></tr>
+<tr><td>Keine Verbindung zu Ollama unter …</td><td>Server läuft nicht oder falsche Adresse</td><td>Ollama starten, Host und Port prüfen</td></tr>
+<tr><td>… antwortet nicht</td><td>Firewall blockt oder <code class="inline">OLLAMA_HOST</code> fehlt</td><td><code class="inline">OLLAMA_HOST=0.0.0.0</code> setzen, Port freigeben</td></tr>
+<tr><td>Das Modell X ist nicht installiert</td><td>Modell fehlt auf dem Server</td><td><code class="inline">ollama pull X</code> auf dem Server</td></tr>
+<tr><td>Ollama hat zu lange gebraucht</td><td>Modell zu groß für die Hardware</td><td>Timeout erhöhen oder kleineres Modell nehmen</td></tr>
+<tr><td>… passt nicht in den Speicher</td><td>Zu wenig RAM oder VRAM</td><td>Kleineres Modell oder Context Length senken</td></tr>
+<tr><td>Ollama ist ausgeschaltet</td><td>Der Schalter steht auf aus</td><td>Zahnrad-Menü, Bereich Ollama, einschalten</td></tr>
+<tr><td>Keine Modelle in der Liste</td><td>Noch keins installiert</td><td><code class="inline">ollama pull llama3.2</code>, dann <b>Neu laden</b></td></tr>
+</table>
+<p class="doc-p">Jon stürzt in keinem dieser Fälle ab: Die Meldung erscheint als Text, und nach der Korrektur genügt <b>Verbindung testen</b>.</p>
+
+<h2 id="faq" class="doc-h">FAQ</h2>
+<div class="mp-feat">
+<div><h4>Kostet Ollama etwas?</h4><p>Nein. Programm und Modelle sind kostenlos, es gibt keine Token-Abrechnung.</p></div>
+<div><h4>Braucht Jon dann noch einen API-Schlüssel?</h4><p>Für Ollama nicht. Alle anderen Anbieter funktionieren unverändert weiter.</p></div>
+<div><h4>Muss ich online sein?</h4><p>Nur zum Herunterladen der Modelle. Danach läuft alles offline.</p></div>
+<div><h4>Ollama und Cloud parallel?</h4><p>Ja. Der Anbieter oben im Chat ist jederzeit umschaltbar; Mini Jon und Telegram dürfen ein anderes Modell nutzen.</p></div>
+<div><h4>Warum ist es langsamer als die Cloud?</h4><p>Weil es auf deiner Hardware rechnet. Kleine Modelle von 1B bis 8B sind auf einer normalen Grafikkarte trotzdem sehr flott.</p></div>
+<div><h4>Kann Jon Bilder ansehen?</h4><p>Ja, mit einem Vision-Modell wie <code class="inline">llava</code> oder <code class="inline">llama3.2-vision</code>.</p></div>
+<div><h4>Wo liegen meine Einstellungen?</h4><p>In <code class="inline">data/ollama.json</code>. Das Backup im Zahnrad-Menü nimmt sie mit.</p></div>
+<div><h4>Welche Schnittstelle nutzt Jon?</h4><p>Die offizielle Ollama-API: <code class="inline">/api/chat</code>, <code class="inline">/api/tags</code> und <code class="inline">/api/version</code>.</p></div>
+</div>
+
+<h2 id="sicherheit" class="doc-h">Sicherheit</h2>
+<div class="mp-feat">
+<div><h4>🔓 Ollama kennt keine Passwörter</h4><p>Wer den Port erreicht, darf den Server benutzen. Das ist beim Öffnen ins Netzwerk der wichtigste Punkt.</p></div>
+<div><h4>🏠 Nur öffnen, wenn nötig</h4><p>Im Einzelplatzbetrieb bleibt <code class="inline">127.0.0.1</code> die sicherste Wahl.</p></div>
+<div><h4>🚫 Niemals im Router freigeben</h4><p>Für den Zugriff von unterwegs ist Tailscale oder ein VPN der richtige Weg — dort kommen nur deine eigenen Geräte hinein.</p></div>
+<div><h4>🔐 Öffentlich nur mit Proxy</h4><p>Einen Reverse-Proxy mit HTTPS und Passwortschutz davorsetzen und in Jon <b>https</b> als Protokoll wählen.</p></div>
+<div><h4>🙈 Deine Texte bleiben bei dir</h4><p>Die Gespräche laufen zwischen Jon und deinem Ollama-Server. Kein Anbieter bekommt sie zu sehen.</p></div>
+</div>
+
+<h2 id="tipps" class="doc-h">Tipps zur optimalen Nutzung</h2>
+<div class="mp-feat">
+<div><h4>⏱️ Keep Alive hochsetzen</h4><p>Mit <code class="inline">30m</code> bleibt das Modell geladen und die erste Antwort kommt sofort statt nach Ladezeit.</p></div>
+<div><h4>🧠 Context Length nur so groß wie nötig</h4><p>4096 reicht für normale Gespräche; 32768 belegt ein Vielfaches an Speicher.</p></div>
+<div><h4>👨‍💻 Zum Programmieren</h4><p>Ein Coder-Modell wählen wie <code class="inline">qwen2.5-coder</code> und die Temperatur auf 0.2 senken.</p></div>
+<div><h4>🎯 Reproduzierbare Antworten</h4><p>Einen festen Seed setzen und die Temperatur auf 0 stellen.</p></div>
+<div><h4>🖥️ Zwei Rechner nutzen</h4><p>Ollama auf der Maschine mit der starken Grafikkarte, Jon auf dem Laptop — über LAN oder Tailscale.</p></div>
+<div><h4>🔁 Anbieter wechseln beachten</h4><p>Wer strikt lokal bleiben will, schaltet die Ausweich-Automatik im Zahnrad-Menü unter Jon aus.</p></div>
+</div>
+
+<div class="cta" style="margin-top:56px">
+<a class="btn btn-primary" href="index.html#download">⬇ Jon herunterladen</a>
+<a class="btn btn-ghost" href="https://github.com/Lightning702/Jon---AI/blob/main/docs/OLLAMA.md" target="_blank" rel="noopener">Dieselbe Doku auf GitHub</a>
+</div>
+
+</article>
+</div>
+</div>
+
+<footer>
+<div class="footer-links">
+<a href="index.html">Startseite</a>
+<a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener">Impressum</a>
+<a href="https://felworks-impressum.netlify.app/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
+<a href="https://felworks-impressum.netlify.app/support" target="_blank" rel="noopener">Support</a>
+<a href="agb.html">AGB</a>
+</div>
+<div class="footer-meta">Jon — KI-Desktop-Assistent · v3.37.0 · Läuft lokal auf deinem Rechner</div>
+</footer>
+
+</body>
+</html>

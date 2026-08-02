@@ -55,6 +55,64 @@ SSE-Events: `meta`, `content`, `reasoning`, `tool` (mit `args`, `summary`, optio
 Felder wie `plan`, `avatar_url` melden „Über die offizielle API nicht verfügbar", wenn die
 API sie nicht liefert.
 
+## Ollama
+
+| Methode | Pfad | Beschreibung |
+|---------|------|--------------|
+| GET | `/api/ollama/config` | Alle Ollama-Einstellungen inkl. berechneter `url` |
+| PUT | `/api/ollama/config` | Einstellungen ändern (dauerhaft gespeichert) |
+| POST | `/api/ollama/reset` | Auf Standardwerte zurücksetzen |
+| GET | `/api/ollama/status` | Serverstatus (optional `?force=true`) |
+| POST | `/api/ollama/test` | Verbindung sofort testen, optional mit neuen Werten |
+| GET | `/api/ollama/models` | Installierte Modelle (optional `?refresh=true`) |
+| GET | `/api/ollama/hosts` | Vorschläge: localhost, LAN-, Tailscale-Adresse |
+
+### `PUT /api/ollama/config`
+
+```json
+{
+  "enabled": true,
+  "url": "http://192.168.1.50:11434",
+  "model": "llama3.2",
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "top_k": 40,
+  "max_tokens": 2048,
+  "context_length": 8192,
+  "keep_alive": "30m",
+  "seed": -1,
+  "system_prompt": "",
+  "stream": true,
+  "timeout": 120,
+  "auto_reconnect": true,
+  "auto_load_models": true
+}
+```
+
+Alle Felder sind optional. Statt `url` gehen auch `scheme`, `host` und `port` einzeln.
+Ungültige Werte beantwortet die API mit **400** und einer verständlichen Meldung; die
+gespeicherte Konfiguration bleibt dabei unverändert.
+
+### `GET /api/ollama/status`
+
+```json
+{
+  "state": "online",
+  "url": "http://127.0.0.1:11434",
+  "version": "0.12.0",
+  "response_ms": 12,
+  "model": "llama3.2",
+  "models": ["llama3.2", "qwen2.5:7b"],
+  "model_count": 2,
+  "last_success": "2026-08-02T20:41:00",
+  "error": ""
+}
+```
+
+`state` ist `online`, `offline` oder `disabled`. Der Chat selbst läuft ganz normal über
+`POST /api/chat` mit `"provider": "ollama"`; Jon spricht dabei die offizielle Ollama-API
+(`/api/chat`). Ausführliche Anleitung: [OLLAMA.md](OLLAMA.md).
+
 ## Nutzung
 
 | Methode | Pfad | Beschreibung |

@@ -5,6 +5,7 @@ from app.core.keys import KeyManager
 from app.providers.anthropic_provider import AnthropicProvider
 from app.providers.base import LLMProvider, ProviderError
 from app.providers.gemini_provider import GeminiProvider
+from app.providers.ollama_provider import OllamaProvider
 from app.providers.openai_compatible import OpenAICompatibleProvider
 
 
@@ -72,13 +73,7 @@ class ProviderRegistry:
             default_models=["qwen-max", "qwen-plus", "qwen2.5-coder-32b-instruct"],
             timeout=t,
         )
-        self._providers["ollama"] = OpenAICompatibleProvider(
-            name="ollama",
-            base_url=s.ollama_base_url,
-            api_key="ollama",
-            default_models=["llama3.2", "qwen2.5", "mistral"],
-            timeout=t,
-        )
+        self._providers["ollama"] = OllamaProvider(timeout=t)
         self._providers["lmstudio"] = OpenAICompatibleProvider(
             name="lmstudio",
             base_url=s.lmstudio_base_url,

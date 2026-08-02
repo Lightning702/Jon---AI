@@ -131,6 +131,14 @@ git clone https://github.com/Lightning702/Jon---AI.git
   their own window, the **Blockwelt** voxel sandbox opens in a browser tab. Find them under
   Tools → Games; nothing launches on its own, only the **Start** button opens a game and Jon
   stays open. Drop a folder with a `jon-spiele.json` next to Jon to add your own.
+- **🦙 Ollama built in** — Run every answer on your own hardware: free, private, no API key.
+  The gear menu has its own **Ollama** area with server status (online/offline, response
+  time, Ollama version, selected model, number of installed models, last successful
+  connection), a connection test, model management and every knob that matters —
+  temperature, top P, top K, max tokens, context length, keep alive, seed, system prompt,
+  streaming, timeout and automatic reconnect. The server may live on this PC, on another
+  machine on your LAN or on a Tailscale host; Jon talks to it through the official Ollama
+  API. Full guide: [docs/OLLAMA.md](docs/OLLAMA.md).
 - **🌍 English & German** — Switch the whole UI and Jon's replies between German and English
   in the gear menu.
 - Plus: knowledge base, automations, reminders, friends chat, Telegram bot (with photo
@@ -174,6 +182,10 @@ only — never in the repository, never in a cloud.
 > **Tip:** Jon and Mini Jon use separate models. With **one** key they share it. Enter
 > **two keys separated by a comma** and the first belongs to Mini Jon and Telegram, the
 > second to Jon — then they never slow each other down.
+
+**Or skip the key entirely:** install [Ollama](https://ollama.com/download), run
+`ollama pull llama3.2`, then switch it on in **gear menu → Ollama**. Jon answers locally,
+for free, without any account.
 
 **5. Get going**
 

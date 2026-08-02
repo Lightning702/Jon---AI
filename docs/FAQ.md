@@ -37,6 +37,21 @@ Falls ein Modell entkoppelt ist (404), ein anderes wählen.
 **Warum blockiert ein Provider die Handy-App?**
 CORS. NVIDIA läuft über einen Proxy; OpenAI/Gemini/GLM/DeepSeek/Qwen/Mistral gehen direkt.
 
+**Geht Jon auch ganz ohne API-Key und ohne Cloud?**
+Ja, mit Ollama. Ollama installieren, ein Modell laden (`ollama pull llama3.2`), im
+Zahnrad-Menü unter **Ollama** einschalten — fertig. Kostenlos, privat, offline.
+Komplette Anleitung: [OLLAMA.md](OLLAMA.md).
+
+**Kann Ollama auf einem anderen PC laufen?**
+Ja. Auf dem Ollama-Rechner `OLLAMA_HOST=0.0.0.0` setzen, Port 11434 in der Firewall
+freigeben und in Jon Host und Port eintragen. Über Tailscale klappt das auch über das
+Internet, ohne Portfreigabe im Router.
+
+**Warum ruft mein Ollama-Modell keine Werkzeuge auf?**
+Nicht jedes lokale Modell kann das. Jon erkennt die Meldung `does not support tools` und
+antwortet automatisch ohne Werkzeuge weiter. Modelle wie `llama3.1`, `llama3.3` oder
+`qwen2.5` beherrschen Werkzeuge.
+
 **Wie bringe ich Jon etwas bei?**
 Bearbeite einen Skill (Konten → Skills) oder sag es ihm — mit `remember` merkt er sich
 Fakten dauerhaft.

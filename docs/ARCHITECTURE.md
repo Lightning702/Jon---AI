@@ -7,7 +7,8 @@ Jon/
 │       ├── core/                  Konfiguration (config.py) + Key-Manager (keys.py)
 │       ├── providers/             LLM-Provider-Abstraktion
 │       │   ├── base.py            ChatRequest/StreamChunk/LLMProvider
-│       │   ├── openai_compatible.py   NVIDIA/OpenAI/DeepSeek/GLM/Qwen/Mistral/Ollama
+│       │   ├── openai_compatible.py   NVIDIA/OpenAI/DeepSeek/GLM/Qwen/Mistral/LM Studio
+│       │   ├── ollama_provider.py     Ollama über die offizielle Ollama-API
 │       │   ├── anthropic_provider.py  Claude
 │       │   ├── gemini_provider.py     Gemini
 │       │   └── registry.py        Baut Provider, löst Keys dynamisch auf
@@ -20,6 +21,7 @@ Jon/
 │       │   ├── memory_service.py  Langzeitgedächtnis
 │       │   ├── skill_service.py   Liest/Schreibt skills/*.md
 │       │   ├── account_service.py Runtime-Keys, Modell-Auswahl, Status
+│       │   ├── ollama_service.py  Ollama-Konfiguration, Status, Modelle (data/ollama.json)
 │       │   ├── usage_service.py   Nutzungs-Tracking (data/usage.json)
 │       │   ├── approval_service.py Freigabe-Warteschlange für Tools
 │       │   └── voice_service.py   Sprache-zu-Text
@@ -35,7 +37,7 @@ Jon/
 ├── skills/                        Bearbeitbare Markdown-Anleitungen
 ├── website/                       Netlify-Seite + Handy-App (PWA)
 ├── docs/                          Diese Dokumentation
-└── data/                          SQLite-DB, usage.json, accounts.json (git-ignoriert)
+└── data/                          SQLite-DB, usage.json, accounts.json, ollama.json (git-ignoriert)
 ```
 
 ## Datenfluss eines Chats

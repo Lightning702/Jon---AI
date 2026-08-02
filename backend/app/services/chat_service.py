@@ -573,19 +573,40 @@ class ChatService:
                 )
             )
 
+    def _defaults_for(self, provider: str) -> dict:
+        if provider != "ollama":
+            return {}
+        from app.services.ollama_service import get_ollama_service
+
+        config = get_ollama_service().config()
+        seed = int(config["seed"])
+        return {
+            "temperature": float(config["temperature"]),
+            "top_p": float(config["top_p"]),
+            "max_tokens": int(config["max_tokens"]),
+            "seed": seed if seed >= 0 else None,
+        }
+
     async def stream(self, payload: ChatIn) -> AsyncIterator[dict]:
         chosen, model = self.resolve(payload)
         slot = self.slot_for(payload)
+        defaults = self._defaults_for(chosen)
         temperature = (
             payload.temperature
             if payload.temperature is not None
-            else self._settings.default_temperature
+            else defaults.get("temperature", self._settings.default_temperature)
         )
         top_p = (
             payload.top_p
             if payload.top_p is not None
-            else self._settings.default_top_p
+            else defaults.get("top_p", self._settings.default_top_p)
         )
+        max_tokens = (
+            payload.max_tokens
+            if payload.max_tokens is not None
+            else defaults.get("max_tokens")
+        )
+        seed = payload.seed if payload.seed is not None else defaults.get("seed")
         names = await self.route(chosen, model)
         attempts = await self.attempt_plan(chosen, names, model)
         if not attempts:
@@ -682,8 +703,8 @@ class ChatService:
             model=model,
             temperature=temperature,
             top_p=top_p,
-            max_tokens=payload.max_tokens,
-            seed=payload.seed,
+            max_tokens=max_tokens,
+            seed=seed,
             tools=tools,
             slot=slot,
         )
@@ -843,8 +864,8 @@ class ChatService:
                         model=model,
                         temperature=temperature,
                         top_p=top_p,
-                        max_tokens=payload.max_tokens,
-                        seed=payload.seed,
+                        max_tokens=max_tokens,
+                        seed=seed,
                         tools=tools,
                         slot=slot,
                     )

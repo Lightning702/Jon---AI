@@ -2,6 +2,59 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.37.0] — 2026-08-02
+
+### 🦙 Ollama komplett eingebaut
+
+Ollama war bisher nur ein Eintrag in der Anbieterliste mit fester Adresse aus der `.env`.
+Jetzt hat es einen eigenen Bereich in den Einstellungen, einen sichtbaren Serverstatus und
+alle Regler, die Ollama wirklich kennt — und es darf auf einem ganz anderen Rechner laufen.
+
+- **Neuer Einstellungsbereich „Ollama"** im Zahnrad-Menü mit Statuszeile
+  (Online/Offline · Antwortzeit · Modellanzahl) und dem Fenster **Server & Modelle …**.
+  Es gibt **keinen** neuen Anbieter und keine zweite Anbieterseite: Die Anbieterliste ist
+  unverändert, nur der vorhandene `ollama`-Eintrag kann jetzt mehr.
+- **Offizielle Ollama-API** (`/api/chat`, `/api/tags`, `/api/version`) statt der
+  OpenAI-kompatiblen Hilfsschnittstelle. Das war nötig, weil `/v1` **Top K**,
+  **Context Length** (`num_ctx`) und **Keep Alive** stillschweigend verwirft — nachgemessen
+  über `/api/ps`. Über die native API greifen sie wirklich.
+- **Server frei wählbar:** Server-URL, Host/IP, Port und http/https sind einzeln
+  einstellbar und halten sich gegenseitig synchron. Darunter schlägt Jon die Adressen
+  dieses PCs zum Anklicken vor — **localhost**, **Heimnetz (LAN)** und **Tailscale**
+  (erkannt am Bereich 100.64.0.0/10). Damit läuft das Modell auf dem Rechner mit der
+  starken Grafikkarte, während Jon auf dem Laptop sitzt.
+- **Serverstatus jederzeit:** Zustand, Antwortzeit in Millisekunden, Ollama-Version,
+  gewähltes Modell, Anzahl installierter Modelle und Zeitpunkt der letzten erfolgreichen
+  Verbindung. Aktualisiert sich alle 15 Sekunden, **Verbindung testen** fragt sofort nach.
+- **Modelle** automatisch laden, neu laden und auswählen — direkt aus `/api/tags`. Die
+  Modellwahl im Ollama-Fenster und die oben im Chat bleiben synchron.
+- **Alle Antwort-Einstellungen:** Temperatur, Top P, Top K, Max Tokens, Context Length,
+  Keep Alive, Seed, System Prompt, Streaming an/aus, Timeout und automatische
+  Wiederverbindung. Alles landet in `data/ollama.json` und wird beim Start geladen.
+- **Fehler statt Absturz:** „Keine Verbindung zu Ollama unter …", „Das Modell X ist auf dem
+  Server nicht installiert (ollama pull X)", „Ollama hat zu lange gebraucht", „passt nicht
+  in den Speicher" — jeweils mit dem konkreten nächsten Schritt. Falsche Eingaben (Port 0,
+  Host mit Leerzeichen, Temperatur 5) werden mit Klartext abgelehnt und ändern die
+  gespeicherte Konfiguration nicht.
+- **Automatische Wiederverbindung:** Bricht die Verbindung vor der ersten Antwort weg,
+  versucht Jon es bis zu dreimal mit wachsendem Abstand.
+- **Modelle ohne Werkzeuge** (z. B. `gemma3:270m`) antworten trotzdem: Meldet der Server
+  `does not support tools`, wiederholt Jon die Anfrage automatisch ohne Werkzeuge.
+- **Ausschalten heißt ausschalten:** Steht der Schalter auf aus, verschwindet Ollama aus
+  der Anbieterliste und aus dem Konten-Bereich, statt weiter „verbunden" zu behaupten.
+- Neue Endpunkte: `GET/PUT /api/ollama/config`, `POST /api/ollama/reset`,
+  `GET /api/ollama/status`, `POST /api/ollama/test`, `GET /api/ollama/models`,
+  `GET /api/ollama/hosts`.
+- Neue Dokumentation **[docs/OLLAMA.md](docs/OLLAMA.md)**: Was ist Ollama, Voraussetzungen,
+  Installation, Einrichtung, Server/Port/Host, LAN, Tailscale, Verbindung testen, Modelle
+  installieren und wechseln, Fehlerbehebung, FAQ, Sicherheit und Tipps. Dazu die
+  Ollama-Seite auf [getjon.info](https://getjon.info).
+
+34 neue Tests decken Konfiguration, Validierung, Status, Modell-Liste, Chat-Optionen,
+Werkzeug-Runden, Streaming an/aus, Reconnect und alle Fehlerfälle ab; die komplette Suite
+bleibt grün. Zusätzlich gegen einen echten Ollama-Server (0.32.5) gegengeprüft: `num_ctx`
+und `keep_alive` kommen dort nachweislich an.
+
 ## [3.36.3] — 2026-07-30
 
 ### Fix — Koop ging nur auf demselben Gerät

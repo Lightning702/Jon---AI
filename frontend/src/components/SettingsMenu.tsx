@@ -1,17 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  OllamaStatus,
   ToolMode,
   UserSettings,
   backupUrl,
   getAutostart,
+  getOllamaConfig,
+  getOllamaStatus,
   getUserSettings,
   importBackup,
+  saveOllamaConfig,
   saveUserSettings,
   setAutostart,
 } from "../lib/api";
 import { setNaturalVoice } from "../lib/tts";
 import { useT } from "../hooks/useT";
 import ConnectionsModal from "./ConnectionsModal";
+import OllamaModal from "./OllamaModal";
 
 type Theme = "dark" | "light";
 
@@ -133,6 +138,25 @@ export default function SettingsMenu({
   const [wakeSensitivity, setWakeSensitivity] = useState("mittel");
   const [micList, setMicList] = useState<{ id: string; name: string }[]>([]);
   const [selectedMic, setSelectedMic] = useState("default");
+  const [ollamaOpen, setOllamaOpen] = useState(false);
+  const [ollamaOn, setOllamaOn] = useState(false);
+  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null);
+
+  const loadOllama = async () => {
+    try {
+      const config = await getOllamaConfig();
+      setOllamaOn(config.enabled);
+      setOllamaStatus(await getOllamaStatus());
+    } catch {
+      setOllamaStatus(null);
+    }
+  };
+
+  const toggleOllama = () => {
+    const next = !ollamaOn;
+    setOllamaOn(next);
+    void saveOllamaConfig({ enabled: next }).then(() => loadOllama());
+  };
 
   const loadMics = async () => {
     try {
@@ -170,6 +194,7 @@ export default function SettingsMenu({
       setSelectedMic(s.microphone_device || "default");
     });
     void loadMics();
+    void loadOllama();
     navigator.mediaDevices.addEventListener("devicechange", loadMics);
     void (async () => {
       const backend = await getAutostart();
@@ -413,6 +438,45 @@ export default function SettingsMenu({
                 onClick={toggleVoice}
               />
             </div>
+            <Section title="Ollama" />
+            <div className="space-y-1">
+              <Toggle
+                label="Ollama verwenden"
+                hint="Modelle laufen lokal auf deinem PC oder auf einem Server im Netzwerk — kostenlos und ohne Cloud."
+                on={ollamaOn}
+                onClick={toggleOllama}
+              />
+              <div className="flex items-center gap-1.5 px-1 py-0.5">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    !ollamaOn || ollamaStatus?.state === "disabled"
+                      ? "bg-white/25"
+                      : ollamaStatus?.state === "online"
+                      ? "bg-emerald-400"
+                      : "bg-red-400"
+                  }`}
+                />
+                <span className="text-[10px] text-white/45 truncate">
+                  {!ollamaOn || ollamaStatus?.state === "disabled"
+                    ? "Ausgeschaltet"
+                    : ollamaStatus?.state === "online"
+                    ? `Online · ${ollamaStatus.response_ms} ms · ${ollamaStatus.model_count} Modelle`
+                    : "Offline"}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setOllamaOpen(true);
+                  setOpen(false);
+                }}
+                className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <span className="text-[11px] text-white/85">
+                  Server & Modelle …
+                </span>
+                <span className="text-white/40 text-[12px]">›</span>
+              </button>
+            </div>
             <Section title="Mitarbeiten & Fokus" />
             <div className="space-y-1">
               <Toggle
@@ -645,6 +709,14 @@ export default function SettingsMenu({
         <ConnectionsModal
           settings={connections}
           onClose={() => setConnections(null)}
+        />
+      )}
+      {ollamaOpen && (
+        <OllamaModal
+          onClose={() => {
+            setOllamaOpen(false);
+            void loadOllama();
+          }}
         />
       )}
     </div>

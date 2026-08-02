@@ -16,6 +16,34 @@ Konkrete Dinge, die du Jon sagen kannst.
 - „Sperr den Bildschirm."
 - „Was ist gerade in meiner Zwischenablage?"
 
+## Ollama (lokale Modelle)
+
+Einrichten im Zahnrad-Menü unter **Ollama** — die komplette Anleitung steht in
+[OLLAMA.md](OLLAMA.md).
+
+- Ollama auf demselben PC: Host `127.0.0.1`, Port `11434` — Voreinstellung, nichts zu tun.
+- Ollama auf dem Rechner im Arbeitszimmer: Host `192.168.1.50`, Port `11434`, vorher dort
+  `OLLAMA_HOST=0.0.0.0` setzen und den Port freigeben.
+- Ollama über Tailscale vom Laptop aus: Host `100.x.x.x` (aus `tailscale ip -4`), Port
+  `11434`.
+- Modell nachinstallieren (auf dem Server): `ollama pull qwen2.5-coder:7b`, danach in Jon
+  auf **Neu laden**.
+- Sofort-Antworten ohne Ladezeit: **Keep Alive** auf `30m` stellen.
+- Immer gleiche Antwort auf dieselbe Frage: **Seed** auf z. B. `42` und **Temperatur** auf
+  `0`.
+- Langes Dokument zusammenfassen lassen: **Context Length** auf `16384` erhöhen (kostet
+  Speicher).
+- Kurze, sachliche Antworten: **System Prompt** auf „Antworte kurz, sachlich und ohne
+  Einleitung."
+
+Über die API geht dasselbe:
+
+```bash
+curl -X PUT http://127.0.0.1:8756/api/ollama/config   -H "Content-Type: application/json"   -d '{"url":"http://192.168.1.50:11434","model":"llama3.2","keep_alive":"30m"}'
+
+curl -X POST http://127.0.0.1:8756/api/ollama/test
+```
+
 ## Web & Recherche
 
 - „Ruf die Wetterseite ab und sag mir die Aussichten für morgen." (nutzt `http_get`)

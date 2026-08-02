@@ -14,6 +14,21 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Antwortlimit bis 32.768 Tokens mit automatischer Halbierung bei Modellgrenzen
 - Robuste Wiederholung bei transienten 5xx-Fehlern (Backoff)
 
+## Ollama (lokale Modelle)
+
+- Eigener Einstellungsbereich **Ollama** im Zahnrad-Menü, kein zusätzlicher Anbieter
+- Kommunikation über die offizielle Ollama-API (`/api/chat`, `/api/tags`, `/api/version`)
+- Server frei wählbar: localhost, anderer PC im LAN, Tailscale, eigener Server (http/https)
+- Serverstatus jederzeit sichtbar: Online/Offline/Verbinde…, Antwortzeit, Ollama-Version,
+  gewähltes Modell, Anzahl installierter Modelle, letzte erfolgreiche Verbindung
+- Verbindung testen, Modelle automatisch laden, neu laden und auswählen
+- Vollständig einstellbar: Temperatur, Top P, **Top K**, Max Tokens, **Context Length**,
+  **Keep Alive**, Seed, System Prompt, Streaming, Timeout, automatische Wiederverbindung
+- Alles dauerhaft in `data/ollama.json`, wird beim Start automatisch geladen
+- Verständliche Fehlermeldungen statt Abstürzen; automatische Wiederverbindung
+- Modelle ohne Werkzeug-Unterstützung antworten trotzdem (automatischer zweiter Versuch)
+- Details: [OLLAMA.md](OLLAMA.md)
+
 ## Werkzeuge (Function Calling)
 
 - 40+ Tools von Shell über Dateien, Archive, System, Zwischenablage, Screenshot, Web bis

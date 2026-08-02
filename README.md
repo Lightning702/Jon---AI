@@ -192,6 +192,11 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
 - **Multi-Provider-Chat** mit einheitlicher Schnittstelle: NVIDIA, OpenAI, Anthropic,
   Gemini, **Ollama & LM Studio (lokal, gratis)**, OpenRouter, Groq, Together AI, xAI,
   DeepSeek, GLM, Qwen, Mistral
+- **🦙 Ollama komplett eingebaut** — eigener Einstellungsbereich mit Serverstatus,
+  Verbindungstest, Modellverwaltung und allen Reglern (Temperatur, Top P, Top K, Max
+  Tokens, Context Length, Keep Alive, Seed, System Prompt, Streaming, Timeout). Der Server
+  darf auf deinem PC, auf einem zweiten Rechner im Heimnetz oder über Tailscale laufen —
+  ganz ohne API-Schlüssel (siehe [docs/OLLAMA.md](docs/OLLAMA.md))
 - **Erinnerungen/Loops**: „Erinnere mich jeden Tag um 13 Uhr ans Trinken" — Jon meldet sich,
   sobald die App offen ist, mit Chat-Nachricht und Browser-Benachrichtigung
 - **Eigenes Prompt & eigene Skills** direkt in der App (Konten → Prompt / Skills)
@@ -262,6 +267,52 @@ Mitgeliefert:
 - **research** — sauberes Nachschlagen und Zusammenfassen
 
 Mehr dazu in [docs/SKILLS.md](docs/SKILLS.md).
+
+---
+
+## 🦙 Ollama — Jon ganz ohne Cloud
+
+Mit [Ollama](https://ollama.com) antwortet Jon komplett auf deiner eigenen Hardware:
+kostenlos, privat, ohne API-Schlüssel und ohne Internet. Der Ollama-Server darf dabei auf
+demselben PC laufen, auf einem zweiten Rechner im Heimnetz oder über **Tailscale** auf
+einer Maschine ganz woanders. Jon spricht dabei die **offizielle Ollama-API**.
+
+**In drei Schritten:**
+
+1. [Ollama installieren](https://ollama.com/download) und ein Modell laden:
+
+   ```bash
+   ollama pull llama3.2
+   ```
+
+2. In Jon: **Zahnrad-Menü → Ollama → Ollama verwenden** einschalten.
+3. **Server & Modelle …** öffnen, **Verbindung testen** drücken, Modell auswählen,
+   **Speichern**. Oben im Chat als Anbieter `ollama` wählen — fertig.
+
+**Der Ollama-Bereich zeigt und kann:**
+
+| | |
+|---|---|
+| **Serverstatus** | Online / Offline / Verbinde … , Antwortzeit, Ollama-Version, gewähltes Modell, Anzahl installierter Modelle, letzte erfolgreiche Verbindung |
+| **Server** | Server-URL, Host/IP, Port, http oder https — mit Vorschlägen für localhost, Heimnetz und Tailscale zum Anklicken |
+| **Modelle** | automatisch laden, neu laden, auswählen |
+| **Antwortverhalten** | Temperatur, Top P, Top K, Max Tokens, Context Length, Keep Alive, Seed |
+| **Weiteres** | System Prompt, Streaming an/aus, Timeout, automatische Wiederverbindung |
+
+Alles wird dauerhaft in `data/ollama.json` gespeichert und beim Start automatisch geladen.
+
+**Ollama auf einem anderen Gerät:** Auf dem Ollama-Rechner `OLLAMA_HOST=0.0.0.0` setzen,
+Port 11434 in der Firewall freigeben und in Jon Host und Port eintragen — zum Beispiel
+`192.168.1.50:11434` im Heimnetz oder `100.x.x.x:11434` über Tailscale.
+
+**Wenn etwas klemmt:** Jon zeigt statt eines Absturzes eine klare Meldung — „Keine
+Verbindung zu Ollama unter …", „Das Modell X ist auf dem Server nicht installiert
+(ollama pull X)" oder „Ollama hat zu lange gebraucht". Nach der Korrektur genügt
+**Verbindung testen**. Kann ein Modell keine Werkzeuge, wiederholt Jon die Anfrage
+automatisch ohne Werkzeuge, statt abzubrechen.
+
+Die komplette Anleitung mit LAN, Tailscale, Modellempfehlungen, Sicherheitshinweisen,
+Fehlerbehebung und FAQ steht in **[docs/OLLAMA.md](docs/OLLAMA.md)**.
 
 ---
 
@@ -697,6 +748,7 @@ Details und Fehlerbehebung: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 | Dokument | Inhalt |
 |----------|--------|
 | [docs/FEATURES.md](docs/FEATURES.md) | Vollständige Funktionsliste |
+| [docs/OLLAMA.md](docs/OLLAMA.md) | Ollama: lokale Modelle, Server im Netzwerk, Tailscale |
 | [docs/CLI.md](docs/CLI.md) | `jon` Coding-Agent im Terminal |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architekturübersicht |
 | [docs/API.md](docs/API.md) | Komplette API- und Tool-Referenz |

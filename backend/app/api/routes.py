@@ -37,6 +37,7 @@ from app.schemas import (
     MiniJonStatusIn,
     NoteAddIn,
     NoteUpdateIn,
+    OllamaConfigIn,
     HumanizeIn,
     KnowledgeLearnIn,
     KnowledgeSearchIn,
@@ -76,6 +77,7 @@ from app.services.chat_service import ChatService
 from app.services.clipboard_service import get_clipboard_service
 from app.services.dream_service import get_dream_service
 from app.services.knowledge_service import get_knowledge_service
+from app.services.ollama_service import OllamaConfigError, get_ollama_service
 from app.services.persona_service import get_persona_service
 from app.services.reminder_service import get_reminder_service
 from app.services.screen_service import get_screen_service
@@ -271,14 +273,19 @@ async def accounts() -> list[dict]:
     account = get_account_service()
     settings = get_settings()
     timeout = settings.models_timeout
+    ollama = get_ollama_service()
     local_urls = {
-        "ollama": settings.ollama_base_url,
+        "ollama": ollama.base_url(),
         "lmstudio": settings.lmstudio_base_url,
     }
 
     async def build(name: str) -> dict:
         env_configured = keys.env_key_for(name) is not None
         if name in LOCAL_PROVIDERS:
+            if name == "ollama" and not ollama.enabled():
+                status = account.status(name, env_configured, False)
+                status["models"] = []
+                return status
             probe = await _local_status(local_urls[name])
             status = account.status(name, env_configured, probe["reachable"])
             status["models"] = probe["models"]
@@ -310,6 +317,54 @@ async def disconnect_account(provider: str) -> dict:
     return {"disconnected": get_account_service().disconnect(provider)}
 
 
+@router.get("/ollama/config")
+async def ollama_config() -> dict:
+    return get_ollama_service().config()
+
+
+@router.put("/ollama/config")
+async def save_ollama_config(payload: OllamaConfigIn) -> dict:
+    try:
+        config = get_ollama_service().update(payload.model_dump(exclude_none=True))
+    except OllamaConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    settings_service = get_settings_service()
+    if payload.model and settings_service.selection()[0] == "ollama":
+        settings_service.update({"model": payload.model})
+    return config
+
+
+@router.post("/ollama/reset")
+async def reset_ollama_config() -> dict:
+    return get_ollama_service().reset()
+
+
+@router.get("/ollama/status")
+async def ollama_status(force: bool = False) -> dict:
+    return await get_ollama_service().status(force=force)
+
+
+@router.post("/ollama/test")
+async def ollama_test(payload: OllamaConfigIn | None = None) -> dict:
+    values = payload.model_dump(exclude_none=True) if payload else {}
+    try:
+        return await get_ollama_service().test(values)
+    except OllamaConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/ollama/hosts")
+async def ollama_hosts() -> dict:
+    return {"hosts": await asyncio.to_thread(get_ollama_service().host_suggestions)}
+
+
+@router.get("/ollama/models")
+async def ollama_models(refresh: bool = False) -> dict:
+    service = get_ollama_service()
+    models = await service.models(refresh=refresh)
+    return {"models": models, "count": len(models), "model": service.selected_model()}
+
+
 @router.get("/settings")
 async def get_user_settings() -> dict:
     return get_settings_service().get()
@@ -317,7 +372,10 @@ async def get_user_settings() -> dict:
 
 @router.put("/settings")
 async def update_user_settings(payload: SettingsIn) -> dict:
-    return get_settings_service().update(payload.model_dump(exclude_none=True))
+    result = get_settings_service().update(payload.model_dump(exclude_none=True))
+    if payload.model and result.get("provider") == "ollama":
+        get_ollama_service().update({"model": payload.model})
+    return result
 
 
 @router.get("/reminders")
