@@ -43,9 +43,13 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 
 ## Mini Jon & Haustier
 
-- **3D-Modus** (Zahnrad-Menü): Mini Jon, Katze und Hund mit Kugelform, Glanzlicht,
-  Abschattung, sanfter Eigendrehung und Bodenschatten — abschaltbar, aus sieht alles aus
-  wie zuvor
+- **Echte 3D-Modelle** (Schalter in „Mini Jon anpassen"): eigener WebGL-Renderer ohne
+  Fremdbibliothek (`frontend/electron/pet3d.js`) mit erzeugter Geometrie, Normalen,
+  gerichtetem Licht, Glanzlicht und Tiefentest
+- Mini Jon als Kugel mit goldenem Ring, Augen und einem Mund, der sich beim Sprechen
+  öffnet; Katze und Hund mit Kopf, Ohren, Schnauze, Nase und Schwanz
+- Live-Vorschau im Anpassen-Dialog, umschaltbar zwischen Mini Jon, Katze und Hund
+- Ohne WebGL fällt Jon automatisch auf eine plastische CSS-Darstellung zurück
 - Haustier wahlweise Katze (Minka) oder Hund (Rocky), frei laufend, mit Schlafzustand
 - Farbe, Gesicht, Augenform und Größe frei anpassbar
 

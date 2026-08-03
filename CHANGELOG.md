@@ -2,6 +2,40 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.32.9] — 2026-08-02
+
+### 🧊 Echte 3D-Modelle für Mini Jon, Katze und Hund
+
+Aus der Schattierung von 3.38.0 sind jetzt richtige 3D-Modelle geworden. Neu ist
+`frontend/electron/pet3d.js`: ein eigener **WebGL-Renderer ohne jede Fremdbibliothek** —
+nichts wird nachgeladen, alles läuft offline im Mini-Jon-Fenster.
+
+- **Echte Geometrie** statt Zeichnung: Kugeln, Ellipsoide, Kegel und ein Torus werden zur
+  Laufzeit erzeugt, mit Normalen pro Vertex.
+- **Echte Beleuchtung**: gerichtetes Licht, Ambient, Blinn-Phong-Glanzlicht und ein
+  Rim-Light, alles pro Pixel im Fragment-Shader. Tiefentest an, damit sich Teile richtig
+  verdecken.
+- **Mini Jon** ist eine Kugel in deiner Gesichtsfarbe mit goldenem Ring, zwei Augen und
+  einem Mund, der sich beim Sprechen wirklich öffnet — Lippensynchronität und Blinzeln
+  steuern jetzt das 3D-Modell.
+- **Die Katze** hat Körper, Kopf, zwei Ohren mit rosa Innenseite, Schnauze, Nase,
+  Schnurrhaare und einen geschwungenen Schwanz. **Der Hund** hat Körper, Kopf, Schnauze,
+  feuchte Nase, Schlappohren und Rute. Beide drehen sich sanft, wippen und schlafen
+  sichtbar ein; die Laufrichtung dreht das Modell mit.
+- **Fällt WebGL aus**, schaltet Jon automatisch auf die plastische CSS-Darstellung von
+  3.38.0 zurück statt gar nichts zu zeigen.
+
+### Der Schalter sitzt jetzt dort, wo er hingehört
+
+Der 3D-Schalter ist aus dem Zahnrad-Menü **in „Mini Jon anpassen"** umgezogen — direkt
+neben Farbe, Augen und Größe. Dort gibt es auch eine **Live-Vorschau in 3D** mit
+Umschalter zwischen Mini Jon, Katze und Hund; Farbwechsel sind sofort am Modell zu sehen.
+
+Nachgemessen im Browser: Mini Jon füllt 68 % der Fläche mit 822 verschiedenen
+Farbwerten, Katze und Hund liegen bei 346 bzw. 783 — das ist echte Schattierung auf
+gekrümmten Flächen, keine Flächenfüllung. Ausschalten stellt exakt die alte flache
+Darstellung wieder her.
+
 ## [3.38.0] — 2026-08-02
 
 ### 🧊 3D-Modus für Mini Jon, Katze und Hund

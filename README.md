@@ -197,9 +197,10 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   Tokens, Context Length, Keep Alive, Seed, System Prompt, Streaming, Timeout). Der Server
   darf auf deinem PC, auf einem zweiten Rechner im Heimnetz oder über Tailscale laufen —
   ganz ohne API-Schlüssel (siehe [docs/OLLAMA.md](docs/OLLAMA.md))
-- **🧊 3D-Modus für Mini Jon** — ein Schalter im Zahnrad-Menü, und Mini Jon, Katze und
-  Hund bekommen Kugelform mit Glanzlicht, Abschattung, sanfter Eigendrehung und
-  Bodenschatten
+- **🧊 Echte 3D-Modelle für Mini Jon** — ein Schalter in **Mini Jon anpassen**, und Mini
+  Jon, Katze und Hund werden zu richtigen 3D-Modellen: eigener WebGL-Renderer ohne
+  Fremdbibliothek, echte Geometrie mit Licht, Glanzlicht und Tiefe, sprechender Mund,
+  Blinzeln und sichtbares Einschlafen — inklusive Live-Vorschau im Dialog
 - **🤝 Ollama-Server freigeben** — gib deinen Server per Freigabecode oder Einladungslink
   für andere Jon-Nutzer frei (privat, nur Eingeladene oder öffentlich). Bei ihnen taucht er
   automatisch in der KI-Auswahl auf; du siehst jederzeit, wer verbunden ist, welches Modell

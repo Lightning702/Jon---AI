@@ -453,6 +453,44 @@
       #petPal.asleep {
         filter: brightness(0.6);
       }
+      #jonCanvas,
+      #petCanvas {
+        display: none;
+      }
+      #jonCanvas {
+        position: absolute;
+        inset: 0;
+        width: 120px;
+        height: 120px;
+        pointer-events: none;
+      }
+      #petCanvas {
+        position: absolute;
+        left: 14px;
+        bottom: 4px;
+        width: 74px;
+        height: 74px;
+        pointer-events: auto;
+        cursor: pointer;
+        z-index: 3;
+      }
+      body.model3d #jonCanvas {
+        display: block;
+      }
+      body.model3d #petCanvas.show {
+        display: block;
+      }
+      body.model3d #jon svg,
+      body.model3d #jonShine,
+      body.model3d #petPal {
+        display: none !important;
+      }
+      body.model3d #jon::after {
+        animation: none;
+      }
+      #petCanvas.asleep {
+        filter: brightness(0.62);
+      }
       body.threeD #petPal.asleep {
         filter: brightness(0.6) drop-shadow(0 9px 11px rgba(0, 0, 0, 0.6));
       }
@@ -462,6 +500,7 @@
     <div id="stage">
       <div id="bubble"></div>
       <svg id="petPal" viewBox="0 0 64 64"></svg>
+      <canvas id="petCanvas" width="66" height="66"></canvas>
       <div id="petZzz">z</div>
       <div id="petHeart">❤</div>
       <div id="petSpeech"></div>
@@ -537,10 +576,12 @@
             />
           </svg>
           <div id="jonShine"></div>
+          <canvas id="jonCanvas" width="120" height="120"></canvas>
         </div>
       </div>
     </div>
 
+    <script src="pet3d.js"></script>
     <script>
       const BASE = "http://127.0.0.1:8756/api";
       const jon = document.getElementById("jon");
@@ -557,6 +598,31 @@
       const closeBtn = document.getElementById("close");
       const micBtn = document.getElementById("mic");
       const stopBtn = document.getElementById("stopBtn");
+      const jonCanvas = document.getElementById("jonCanvas");
+      const petCanvas = document.getElementById("petCanvas");
+      let jonView = null;
+      let petView = null;
+
+      function ensureViews(on) {
+        if (!window.Jon3D) return false;
+        if (!on) {
+          if (jonView) jonView.stop();
+          if (petView) petView.stop();
+          return false;
+        }
+        if (!jonView) jonView = window.Jon3D.create(jonCanvas);
+        if (!petView) petView = window.Jon3D.create(petCanvas);
+        if (jonView) {
+          jonView.setKind("jon");
+          jonView.start();
+        }
+        if (petView) petView.start();
+        return Boolean(jonView);
+      }
+
+      function spatial() {
+        return cfg.pet_3d === true && Boolean(jonView);
+      }
 
       let cfg = {
         theme: "dark",
@@ -680,11 +746,14 @@
         cheeks.style.display = cfg.pet_cheeks ? "block" : "none";
         renderEyes(cfg.pet_eyes || "round");
         jonWrap.style.transform = "scale(" + (cfg.pet_scale || 1) + ")";
-        const spatial = cfg.pet_3d === true;
-        const wasSpatial = document.body.classList.contains("threeD");
-        document.body.classList.toggle("threeD", spatial);
+        const want3d = cfg.pet_3d === true;
+        const wasSpatial = document.body.classList.contains("model3d");
+        const ready = ensureViews(want3d);
+        document.body.classList.toggle("model3d", want3d && ready);
+        document.body.classList.toggle("threeD", want3d && !ready);
+        if (jonView) jonView.setColors({ accent: accent, face: cfg.pet_face, light: light });
         const nextPet = cfg.pet_companion || "none";
-        if (nextPet !== petKind || spatial !== wasSpatial) {
+        if (nextPet !== petKind || want3d !== wasSpatial) {
           petKind = nextPet;
           renderPet(petKind, accent);
           if (petKind !== "none") setPetSleep(petAsleep);
@@ -716,6 +785,7 @@
         smile.style.display = a > 0.05 ? "none" : "block";
         mouth.style.display = a > 0.05 ? "block" : "none";
         mouth.setAttribute("ry", (2 + a * 9).toFixed(1));
+        if (jonView) jonView.setMouth(a);
       }
       function stopMouth() {
         if (mouthTimer) clearInterval(mouthTimer);
@@ -989,6 +1059,7 @@
       function eyeTransform(scaleY) {
         const s = scaleY == null ? 1 : scaleY;
         eyesG.style.transform = `translate(${lookX}px, ${lookY}px) scaleY(${s})`;
+        if (jonView) jonView.setEyes(s);
       }
       function blink() {
         eyeTransform(0.12);
@@ -2911,6 +2982,16 @@
       }
 
       function renderPet(kind, accent) {
+        if (petView) {
+          petView.setKind(kind);
+          petView.setColors({ accent: accent, light: cfg.theme === "light" });
+        }
+        petCanvas.classList.toggle("show", kind !== "none");
+        if (kind !== "none" && spatial()) {
+          petPal.classList.remove("show");
+          petPal.style.setProperty("--dir", palFacing);
+          return;
+        }
         if (kind !== "none" && cfg.pet_3d) {
           petPal.innerHTML = renderPet3d(kind);
           petPal.classList.add("show");
@@ -2960,6 +3041,8 @@
         petAsleep = sleep;
         petZzz.classList.toggle("show", sleep);
         petPal.classList.toggle("asleep", sleep);
+        petCanvas.classList.toggle("asleep", sleep);
+        if (petView) petView.setSleep(sleep);
       }
 
       let palX = 14;
@@ -2972,6 +3055,8 @@
           petPal.style.setProperty("--dir", palFacing);
           petPal.style.transform = "scaleX(" + palFacing + ")";
           petPal.style.left = palX + "px";
+          petCanvas.style.left = palX + "px";
+          if (petView) petView.setFacing(palFacing);
         }
       }
 

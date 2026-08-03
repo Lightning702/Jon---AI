@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import "../../electron/pet3d.js";
 import { motion } from "framer-motion";
 import {
   ProviderStatus,
@@ -8,6 +9,17 @@ import {
 } from "../lib/api";
 
 type Eyes = "round" | "happy" | "sleepy";
+
+interface Jon3DView {
+  setKind: (kind: string) => void;
+  setColors: (colors: { accent?: string; face?: string; light?: boolean }) => void;
+  start: () => void;
+  stop: () => void;
+}
+
+interface Jon3DApi {
+  create: (canvas: HTMLCanvasElement) => Jon3DView | null;
+}
 
 interface Cfg {
   pet_accent: string;
@@ -58,6 +70,9 @@ function Eyes({ style, color }: { style: Eyes; color: string }) {
 
 export default function PetConfig({ onClose }: { onClose: () => void }) {
   const [cfg, setCfg] = useState<Cfg>(DEFAULT);
+  const [preview, setPreview] = useState<"jon" | "cat" | "dog">("jon");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const viewRef = useRef<Jon3DView | null>(null);
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
   const [mainProvider, setMainProvider] = useState("");
 
@@ -79,6 +94,26 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
       .then(setProviders)
       .catch(() => setProviders([]));
   }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const maker = (window as unknown as { Jon3D?: Jon3DApi }).Jon3D;
+    if (!canvas || !maker || !cfg.pet_3d) {
+      viewRef.current?.stop();
+      return;
+    }
+    if (!viewRef.current) viewRef.current = maker.create(canvas);
+    const view = viewRef.current;
+    if (!view) return;
+    view.setKind(preview);
+    view.setColors({
+      accent: cfg.pet_accent,
+      face: cfg.pet_face,
+      light: document.documentElement.classList.contains("light"),
+    });
+    view.start();
+    return () => view.stop();
+  }, [cfg.pet_3d, cfg.pet_accent, cfg.pet_face, preview]);
 
   const update = (patch: Partial<Cfg>) => {
     const next = { ...cfg, ...patch };
@@ -125,6 +160,17 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
         </div>
         <div className="overflow-y-auto px-5 py-5 flex flex-col items-center gap-5">
           <div className="relative" style={{ width: 140, height: 140 }}>
+          <canvas
+            ref={canvasRef}
+            width={140}
+            height={140}
+            style={{
+              width: 140,
+              height: 140,
+              display: cfg.pet_3d ? "block" : "none",
+            }}
+          />
+          {!cfg.pet_3d && (
           <svg width={140} height={140} viewBox="0 0 120 120">
             <circle cx={60} cy={60} r={52} fill={cfg.pet_face} />
             <circle
@@ -150,23 +196,53 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               strokeLinecap="round"
             />
           </svg>
-          {cfg.pet_3d && (
-            <div
-              className="absolute pointer-events-none"
-              style={{
-                left: 10,
-                top: 10,
-                right: 10,
-                bottom: 10,
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.14) 17%, rgba(255,255,255,0) 44%), radial-gradient(circle at 72% 80%, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 34%, rgba(0,0,0,0) 64%)",
-              }}
-            />
           )}
           </div>
 
+          {cfg.pet_3d && (
+            <div className="flex gap-1 -mt-2">
+              {([
+                { value: "jon", label: "Mini Jon" },
+                { value: "cat", label: "🐱 Katze" },
+                { value: "dog", label: "🐶 Hund" },
+              ] as const).map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => setPreview(o.value)}
+                  className={`px-2.5 py-1 rounded-lg text-[12px] border transition ${
+                    preview === o.value
+                      ? "border-gold/50 bg-gold/15 text-gold"
+                      : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 pr-3">
+                <div className="text-[13px] text-white/80">3D-Modell</div>
+                <div className="text-[11px] text-white/40 leading-snug">
+                  Mini Jon, Katze und Hund als echte 3D-Modelle mit Licht und
+                  Tiefe statt flacher Zeichnung.
+                </div>
+              </div>
+              <button
+                onClick={() => update({ pet_3d: !cfg.pet_3d })}
+                className={`w-11 h-6 shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
+                  cfg.pet_3d ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                    cfg.pet_3d ? "translate-x-5" : ""
+                  }`}
+                />
+              </button>
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-white/80">Farbe</span>
               <input

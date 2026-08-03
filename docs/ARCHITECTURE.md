@@ -31,7 +31,7 @@ Jon/
 │       │   └── system_routes.py   Direkte System-Endpoints + Transkription
 │       └── main.py                App-Factory + Uvicorn
 ├── frontend/                      Electron + Vite + React + TypeScript
-│   ├── electron/                  Main- und Preload-Prozess
+│   ├── electron/                  Main- und Preload-Prozess, Mini-Jon-Fenster, pet3d.js (WebGL)
 │   └── src/
 │       ├── components/            UI (Chat, Composer, Dialoge, Konten, Einstellungen)
 │       └── lib/                   API-Client, Voice, TTS, Tool-Infos
