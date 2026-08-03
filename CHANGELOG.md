@@ -2,6 +2,51 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.33.0] — 2026-08-03
+
+### 🤝 „KI teilen" ist jetzt verständlich
+
+Das Freigabe-Fenster war eine Wand aus Fachbegriffen. Jetzt fragt es zuerst das
+Einfachste: **Gebe ich meine KI frei — oder nutze ich die von jemandem?** Danach kommen
+nummerierte Schritte statt Optionen.
+
+- Ganz oben steht in einem Satz, was Teilen überhaupt bedeutet: Ein Freund schickt seine
+  Fragen an **deine** KI, braucht selbst keinen Schlüssel und sieht von deinem PC nichts
+  außer den Antworten.
+- Aus „Sichtbarkeit: privat / eingeladen / öffentlich" wurde die Frage **Wer darf
+  mitschreiben?** mit den Antworten *Jeder mit meinem Code*, *Nur wen ich einlade* und
+  *Gerade niemand* — jede mit einem Satz Erklärung.
+- Der Code steht groß da, mit **Code kopieren** und **Link kopieren** und dem Hinweis,
+  wann man was braucht (gleiches WLAN oder nicht).
+- Aus „Verbundene Benutzer" wurde **Wer gerade verbunden ist** mit Klartext:
+  *schreibt gerade*, *verbunden*, *gerade offline* — und **rauswerfen** statt „entfernen".
+- Läuft Ollama gar nicht, sagt das Fenster das sofort, statt dich raten zu lassen.
+- Name, Beschreibung und „neuer Code" sind unter **Details** eingeklappt.
+
+Der Knopf sitzt jetzt im **Freunde-Chat** links unter deinem Jon-Code — dort, wo man
+sowieso ist, wenn man etwas mit Freunden teilen will. Aus der Chat-Kopfzeile ist er raus.
+
+### 🪪 Jon-Code neben jedem Namen
+
+In der Freundesliste steht unter jedem Namen sein **Jon-Code**, und im Chat-Kopf des
+offenen Gesprächs ebenso. Ein Klick kopiert ihn — praktisch, wenn du einen Freund an
+jemand anderen weiterreichen willst.
+
+### 🎮 ECHO: Sprung nach vorn mit Q
+
+**Q** teleportiert dich **3 Meter in Blickrichtung**, danach **10 Sekunden Abklingzeit**.
+Der Sprung prüft vorher per Strahl, ob der Weg frei ist, hält vor Wänden an, setzt dich
+sauber auf den Boden und bricht ab, wenn am Ziel kein Platz ist („Kein Platz zum
+Springen"). Während die Abklingzeit läuft, zeigt Jon die Restsekunden an.
+
+### 🧭 Mitspieler schauen in die richtige Richtung
+
+In der **Blockwelt** saß die Gesichtstextur auf der falschen Seite des Kopfes: Die
+Spielfiguren blickten exakt entgegengesetzt zu ihrer Laufrichtung, weil das Gesicht auf
+der **+Z**-Seite lag, die Blickrichtung im Spiel aber **−Z** ist. Gesicht und Kopfneigung
+sitzen jetzt richtig — auch bei Jon selbst. ECHO und AETHERIA waren bereits korrekt
+(dort zeigt das Modell mit Nase und Augenbrauen nach −Z).
+
 ## [4.32.9] — 2026-08-02
 
 ### 🧊 Echte 3D-Modelle für Mini Jon, Katze und Hund

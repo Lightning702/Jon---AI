@@ -12,10 +12,9 @@ export default function OllamaShareModal({
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[92vw] max-h-[86vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div>
-            <div className="text-white/90 font-semibold">🤝 Ollama teilen</div>
+            <div className="text-white/90 font-semibold">🤝 KI mit Freunden teilen</div>
             <div className="text-[11px] text-white/40">
-              Gib deinen Ollama-Server frei oder verbinde dich mit dem eines
-              anderen. Freigegeben wird nur das Antworten des Modells.
+              Deine KI für Freunde freigeben — oder die eines Freundes mitbenutzen.
             </div>
           </div>
           <button

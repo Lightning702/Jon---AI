@@ -4,6 +4,7 @@ import {
   OllamaRemote,
   OllamaShare,
   OllamaShareUser,
+  OllamaStatus,
   ShareVisibility,
   connectOllamaRemote,
   createOllamaInvite,
@@ -11,6 +12,7 @@ import {
   forgetOllamaRemote,
   getOllamaRemotes,
   getOllamaShare,
+  getOllamaStatus,
   newOllamaShareCode,
   refreshOllamaRemote,
   removeOllamaShareUser,
@@ -20,59 +22,48 @@ import {
 
 const field =
   "w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50";
-const label = "text-[11px] text-white/45 px-0.5";
-const section = "text-[11px] uppercase tracking-wide text-gold/70";
 const chip =
-  "text-[11px] px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-white/65 hover:bg-white/10 transition disabled:opacity-40";
+  "text-[11px] px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 transition disabled:opacity-40";
+const gold =
+  "text-[12px] px-3 py-1.5 rounded-lg border border-gold/35 bg-gold/12 text-gold/90 hover:bg-gold/20 transition disabled:opacity-40";
 
-const VISIBILITIES: { value: ShareVisibility; text: string; hint: string }[] = [
+const WER_DARF: { value: ShareVisibility; text: string; hint: string }[] = [
   {
-    value: "private",
-    text: "Privat",
-    hint: "Niemand kann sich verbinden. Bestehende Zugänge bleiben, bis du sie widerrufst.",
+    value: "public",
+    text: "Jeder mit meinem Code",
+    hint: "Wer deinen Code kennt, darf mitschreiben. Am einfachsten für Freunde.",
   },
   {
     value: "invited",
-    text: "Nur Eingeladene",
-    hint: "Nur wer eine persönliche Einladung von dir hat, kommt herein.",
+    text: "Nur wen ich einlade",
+    hint: "Du erstellst pro Person eine Einladung. Sie gilt genau einmal.",
   },
   {
-    value: "public",
-    text: "Öffentlich",
-    hint: "Jeder mit deinem Freigabecode darf sich verbinden.",
+    value: "private",
+    text: "Gerade niemand",
+    hint: "Pause: Es kommt niemand Neues dazu. Wer schon verbunden ist, bleibt es, bis du ihn entfernst.",
   },
 ];
 
-function Switch({
-  text,
-  hint,
-  on,
-  onClick,
+function Step({
+  n,
+  title,
+  children,
 }: {
-  text: string;
-  hint: string;
-  on: boolean;
-  onClick: () => void;
+  n: number;
+  title: string;
+  children?: React.ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
-      title={hint}
-      className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-left"
-    >
-      <span className="text-[12px] text-white/90">{text}</span>
-      <span
-        className={`w-9 h-5 shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
-          on ? "bg-gold/70" : "bg-white/15"
-        }`}
-      >
-        <span
-          className={`w-4 h-4 rounded-full bg-white transition-transform ${
-            on ? "translate-x-4" : ""
-          }`}
-        />
-      </span>
-    </button>
+    <div className="flex gap-3">
+      <div className="w-6 h-6 shrink-0 rounded-full bg-gold/15 border border-gold/35 text-gold text-[11px] flex items-center justify-center">
+        {n}
+      </div>
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="text-[12.5px] text-white/90">{title}</div>
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -93,15 +84,18 @@ export default function OllamaSharePanel({
 }: {
   onModelsChanged?: () => void;
 }) {
+  const [mode, setMode] = useState<"geben" | "nutzen">("geben");
   const [share, setShare] = useState<OllamaShare | null>(null);
   const [users, setUsers] = useState<OllamaShareUser[]>([]);
   const [remotes, setRemotes] = useState<OllamaRemote[]>([]);
+  const [status, setStatus] = useState<OllamaStatus | null>(null);
   const [inviteLabel, setInviteLabel] = useState("");
   const [freshInvite, setFreshInvite] = useState<OllamaInvite | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [details, setDetails] = useState(false);
   const alive = useRef(true);
 
   const load = async () => {
@@ -114,7 +108,16 @@ export default function OllamaSharePanel({
       if (alive.current) setError(err instanceof Error ? err.message : String(err));
     }
     const list = await getOllamaRemotes();
-    if (alive.current) setRemotes(list);
+    if (alive.current) {
+      setRemotes(list);
+      if (list.length > 0) setMode((m) => m);
+    }
+    try {
+      const next = await getOllamaStatus();
+      if (alive.current) setStatus(next);
+    } catch {
+      if (alive.current) setStatus(null);
+    }
   };
 
   useEffect(() => {
@@ -155,7 +158,7 @@ export default function OllamaSharePanel({
   const copy = async (text: string, what: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      say(`${what} kopiert ✓`);
+      say(`${what} kopiert — jetzt deinem Freund schicken`);
     } catch {
       say(text);
     }
@@ -165,7 +168,7 @@ export default function OllamaSharePanel({
     setBusy(true);
     try {
       setShare(await newOllamaShareCode());
-      say("Neuer Freigabecode erzeugt — der alte gilt nicht mehr");
+      say("Neuer Code — der alte funktioniert nicht mehr");
     } catch (err) {
       fail(err);
     } finally {
@@ -181,7 +184,7 @@ export default function OllamaSharePanel({
       setFreshInvite(created);
       setInviteLabel("");
       await load();
-      say("Einladung erstellt");
+      say("Einladung fertig");
     } catch (err) {
       fail(err);
     } finally {
@@ -200,7 +203,7 @@ export default function OllamaSharePanel({
     try {
       await removeOllamaShareUser(id);
       await load();
-      say(`${name} hat keinen Zugriff mehr`);
+      say(`${name} kann jetzt nicht mehr mitschreiben`);
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -211,11 +214,7 @@ export default function OllamaSharePanel({
     try {
       const count = await revokeOllamaShare();
       await load();
-      say(
-        count > 0
-          ? `Zugriff für ${count} Benutzer widerrufen`
-          : "Es war niemand verbunden"
-      );
+      say(count > 0 ? `${count} Person(en) entfernt` : "Es war niemand verbunden");
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -245,7 +244,7 @@ export default function OllamaSharePanel({
       const entry = await refreshOllamaRemote(code);
       await load();
       onModelsChanged?.();
-      say(`${entry.models.length} Modelle von ${entry.name}`);
+      say(`${entry.name} ist erreichbar`);
     } catch (err) {
       fail(err);
     } finally {
@@ -267,312 +266,418 @@ export default function OllamaSharePanel({
 
   if (!share) return null;
 
+  const bereit = status?.state === "online";
+  const modell = share.shared_model || status?.model || "";
+
   return (
-    <>
-      <section className="space-y-2">
-        <div className={section}>Serverfreigabe</div>
-        <Switch
-          text="Meinen Ollama-Server freigeben"
-          hint="Andere Jon-Benutzer dürfen dann über deinen Server antworten lassen. Sie bekommen keinen Zugriff auf deinen PC."
-          on={share.enabled}
-          onClick={() => void patch({ enabled: !share.enabled })}
-        />
-        {share.enabled && (
-          <>
-            <div>
-              <div className={label}>Freigabename</div>
-              <input
-                className={field}
-                placeholder={`Ollama von ${share.owner || "mir"}`}
-                value={share.name}
-                onChange={(e) => setShare({ ...share, name: e.target.value })}
-                onBlur={() => void patch({ name: share.name })}
-              />
-            </div>
-            <div>
-              <div className={label}>Beschreibung</div>
-              <input
-                className={field}
-                placeholder="z. B. RTX 4090, llama3.3 und qwen2.5-coder"
-                value={share.description}
-                onChange={(e) =>
-                  setShare({ ...share, description: e.target.value })
-                }
-                onBlur={() => void patch({ description: share.description })}
-              />
-            </div>
-            <div>
-              <div className={label}>Sichtbarkeit</div>
-              <div className="flex gap-1">
-                {VISIBILITIES.map((item) => (
-                  <button
-                    key={item.value}
-                    title={item.hint}
-                    onClick={() => void patch({ visibility: item.value })}
-                    className={`flex-1 text-[11px] py-1.5 rounded-lg border transition-colors ${
-                      share.visibility === item.value
-                        ? "border-gold/40 bg-gold/15 text-gold"
-                        : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
-                    }`}
-                  >
-                    {item.text}
-                  </button>
-                ))}
-              </div>
-              <div className="text-[10.5px] text-white/40 px-0.5 mt-1 leading-snug">
-                {VISIBILITIES.find((v) => v.value === share.visibility)?.hint}
-              </div>
-            </div>
+    <div className="space-y-4">
+      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+        <div className="text-[12px] text-white/80 leading-relaxed">
+          <b className="text-gold/90">Was ist das?</b> Ollama ist die KI, die auf
+          deinem eigenen Computer rechnet. Teilen heißt: Ein Freund darf seine Fragen
+          an <b>deine</b> KI schicken. Er braucht dann selbst keine KI und keinen
+          Schlüssel — und sieht von deinem PC nichts außer den Antworten.
+        </div>
+      </div>
 
-            <div className="rounded-xl border border-gold/25 bg-gold/5 px-3 py-2 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-wider text-white/40">
-                    Freigabecode
-                  </div>
-                  <div className="text-[18px] tracking-[4px] text-gold/90 truncate">
-                    {share.code}
-                  </div>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button
-                    className={chip}
-                    onClick={() => void copy(share.code, "Code")}
-                  >
-                    Code kopieren
-                  </button>
-                  <button
-                    className={chip}
-                    onClick={() => void copy(share.link, "Einladungslink")}
-                  >
-                    Link kopieren
-                  </button>
-                </div>
-              </div>
-              <div className="text-[10.5px] text-white/40 break-all">
-                {share.link}
-              </div>
-              <button className={chip} disabled={busy} onClick={() => void rollCode()}>
-                Neuen Code erzeugen
-              </button>
-            </div>
+      <div className="flex gap-1">
+        <button
+          onClick={() => setMode("geben")}
+          className={`flex-1 px-3 py-2 rounded-xl border text-left transition ${
+            mode === "geben"
+              ? "border-gold/40 bg-gold/12"
+              : "border-white/10 bg-white/5 hover:bg-white/10"
+          }`}
+        >
+          <div
+            className={`text-[12.5px] ${
+              mode === "geben" ? "text-gold" : "text-white/85"
+            }`}
+          >
+            📤 Ich gebe meine KI frei
+          </div>
+          <div className="text-[10.5px] text-white/45 mt-0.5">
+            Freunde dürfen über meinen PC schreiben
+          </div>
+        </button>
+        <button
+          onClick={() => setMode("nutzen")}
+          className={`flex-1 px-3 py-2 rounded-xl border text-left transition ${
+            mode === "nutzen"
+              ? "border-gold/40 bg-gold/12"
+              : "border-white/10 bg-white/5 hover:bg-white/10"
+          }`}
+        >
+          <div
+            className={`text-[12.5px] ${
+              mode === "nutzen" ? "text-gold" : "text-white/85"
+            }`}
+          >
+            📥 Ich nutze die KI von jemandem
+          </div>
+          <div className="text-[10.5px] text-white/45 mt-0.5">
+            Ich habe einen Code bekommen
+          </div>
+        </button>
+      </div>
 
-            {share.visibility === "invited" && (
-              <div className="space-y-2">
-                <div className={label}>Einladungen</div>
-                <div className="flex gap-2">
-                  <input
-                    className={field}
-                    placeholder="Für wen? (z. B. Anna)"
-                    value={inviteLabel}
-                    onChange={(e) => setInviteLabel(e.target.value)}
-                  />
-                  <button
-                    className={chip}
-                    disabled={busy}
-                    onClick={() => void invite()}
-                  >
-                    Erstellen
-                  </button>
-                </div>
-                {freshInvite && (
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                    <div className="text-[11px] text-white/80">
-                      {freshInvite.label || "Einladung"}: {freshInvite.code}
-                    </div>
-                    <div className="text-[10.5px] text-white/40 break-all">
-                      {freshInvite.link}
-                    </div>
+      {mode === "geben" ? (
+        <div className="space-y-4">
+          {!bereit && (
+            <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[11.5px] text-amber-200/90 leading-relaxed">
+              Dafür muss Ollama auf deinem PC laufen. Öffne im Zahnrad-Menü den
+              Bereich <b>Ollama</b> und drücke dort <b>Verbindung testen</b> — steht
+              da <b>Online</b>, kann es losgehen.
+            </div>
+          )}
+
+          <Step n={1} title="Freigabe einschalten">
+            <button
+              onClick={() => void patch({ enabled: !share.enabled })}
+              disabled={busy}
+              className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl border transition ${
+                share.enabled
+                  ? "border-emerald-400/35 bg-emerald-400/10"
+                  : "border-white/10 bg-white/5 hover:bg-white/10"
+              }`}
+            >
+              <span className="text-[12px] text-white/90">
+                {share.enabled ? "Ist eingeschaltet" : "Ist aus"}
+              </span>
+              <span
+                className={`w-9 h-5 shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
+                  share.enabled ? "bg-emerald-400/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    share.enabled ? "translate-x-4" : ""
+                  }`}
+                />
+              </span>
+            </button>
+          </Step>
+
+          {share.enabled && (
+            <>
+              <Step n={2} title="Wer darf mitschreiben?">
+                <div className="space-y-1">
+                  {WER_DARF.map((item) => (
                     <button
-                      className={`${chip} mt-1`}
-                      onClick={() =>
-                        void copy(freshInvite.link ?? freshInvite.code, "Einladung")
-                      }
+                      key={item.value}
+                      onClick={() => void patch({ visibility: item.value })}
+                      disabled={busy}
+                      className={`w-full text-left px-3 py-2 rounded-xl border transition ${
+                        share.visibility === item.value
+                          ? "border-gold/40 bg-gold/12"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
                     >
-                      Einladung kopieren
-                    </button>
-                  </div>
-                )}
-                {share.open_invites.map((item) => (
-                  <div
-                    key={item.code}
-                    className="flex items-center justify-between gap-2 text-[11px] text-white/60 px-1"
-                  >
-                    <span className="truncate">
-                      {item.label || "Ohne Namen"} · {item.code}
-                    </span>
-                    <button
-                      className="text-white/35 hover:text-red-300"
-                      onClick={() => void dropInvite(item.code)}
-                    >
-                      löschen
-                    </button>
-                  </div>
-                ))}
-                {share.open_invites.length === 0 && !freshInvite && (
-                  <div className="text-[10.5px] text-white/35 px-0.5">
-                    Noch keine offenen Einladungen. Jede Einladung gilt für genau
-                    einen Benutzer und verfällt nach der ersten Nutzung.
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <div className={label}>Verbundene Benutzer ({users.length})</div>
-                {users.length > 0 && (
-                  <button
-                    className="text-[11px] text-red-300/80 hover:text-red-300"
-                    disabled={busy}
-                    onClick={() => void revokeAll()}
-                  >
-                    Allen Zugriff entziehen
-                  </button>
-                )}
-              </div>
-              {users.length === 0 ? (
-                <div className="text-[10.5px] text-white/35 px-0.5">
-                  Noch niemand verbunden. Gib deinen Freigabecode weiter.
-                </div>
-              ) : (
-                users.map((user) => (
-                  <div
-                    key={user.id}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span
-                          className={`w-2 h-2 rounded-full shrink-0 ${
-                            user.state === "aktiv"
-                              ? "bg-emerald-400 animate-pulse"
-                              : user.state === "verbunden"
-                              ? "bg-emerald-400/60"
-                              : "bg-white/25"
-                          }`}
-                        />
-                        <span className="text-[12px] text-white/90 truncate">
-                          {user.user}
-                        </span>
-                        <span className="text-[10.5px] text-white/35 truncate">
-                          {user.address}
-                        </span>
-                      </div>
-                      <button
-                        className="text-[11px] text-white/40 hover:text-red-300 shrink-0"
-                        disabled={busy}
-                        onClick={() => void kick(user.id, user.user)}
+                      <div
+                        className={`text-[12px] ${
+                          share.visibility === item.value
+                            ? "text-gold"
+                            : "text-white/85"
+                        }`}
                       >
-                        entfernen
+                        {item.text}
+                      </div>
+                      <div className="text-[10.5px] text-white/45 mt-0.5 leading-snug">
+                        {item.hint}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </Step>
+
+              {share.visibility === "public" && (
+                <Step n={3} title="Diesen Code deinem Freund schicken">
+                  <div className="rounded-xl border border-gold/25 bg-gold/5 px-3 py-3 text-center">
+                    <div className="text-[24px] tracking-[6px] text-gold/90 break-all">
+                      {share.code}
+                    </div>
+                    <div className="flex gap-2 justify-center mt-2">
+                      <button
+                        className={gold}
+                        onClick={() => void copy(share.code, "Code")}
+                      >
+                        Code kopieren
+                      </button>
+                      <button
+                        className={chip}
+                        onClick={() => void copy(share.link, "Link")}
+                      >
+                        Link kopieren
                       </button>
                     </div>
-                    <div className="text-[10.5px] text-white/45 mt-1">
-                      {user.state}
-                      {user.model ? ` · ${user.model}` : ""}
-                      {user.sessions > 0 ? ` · ${user.sessions} Sitzung(en)` : ""}
-                      {` · ${user.requests} Anfragen · zuletzt ${moment(
-                        user.last_activity
-                      )}`}
+                    <div className="text-[10.5px] text-white/40 mt-2 leading-snug">
+                      Im selben WLAN reicht der Code. Ist dein Freund woanders,
+                      schick ihm den Link — da steht deine Adresse mit drin.
                     </div>
                   </div>
-                ))
+                </Step>
               )}
-            </div>
-            <p className="text-[11px] text-white/40 leading-relaxed">
-              Andere erreichen dich unter <code>{share.host}:{share.port}</code>.
-              Freigegeben wird ausschließlich das Antworten deines Ollama-Servers —
-              deine Chats, Dateien und die PC-Steuerung bleiben unerreichbar. Jede
-              Anfrage muss ein gültiges Zugriffstoken haben; entziehst du den
-              Zugriff, gilt das sofort.
-            </p>
-          </>
-        )}
-      </section>
 
-      <section className="space-y-2">
-        <div className={section}>Freigegebene Server nutzen</div>
-        <div className="flex gap-2">
-          <input
-            className={field}
-            placeholder="Freigabecode oder Einladungslink"
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void join();
-            }}
-          />
-          <button className={chip} disabled={busy} onClick={() => void join()}>
-            Verbinden
-          </button>
-        </div>
-        {remotes.length === 0 ? (
-          <div className="text-[10.5px] text-white/35 px-0.5">
-            Noch kein fremder Server verbunden. Nach dem Verbinden erscheinen seine
-            Modelle oben in deiner KI-Auswahl.
-          </div>
-        ) : (
-          remotes.map((entry) => (
-            <div
-              key={entry.code}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="text-[12px] text-white/90 truncate">
-                    {entry.name}
+              {share.visibility === "invited" && (
+                <Step n={3} title="Für jede Person eine Einladung erstellen">
+                  <div className="flex gap-2">
+                    <input
+                      className={field}
+                      placeholder="Für wen? z. B. Anna"
+                      value={inviteLabel}
+                      onChange={(e) => setInviteLabel(e.target.value)}
+                    />
+                    <button className={gold} disabled={busy} onClick={() => void invite()}>
+                      Erstellen
+                    </button>
                   </div>
-                  <div className="text-[10.5px] text-white/40 truncate">
-                    {entry.owner ? `${entry.owner} · ` : ""}
-                    {entry.base} · {entry.models.length} Modelle
+                  {freshInvite && (
+                    <div className="rounded-xl border border-gold/25 bg-gold/5 px-3 py-2">
+                      <div className="text-[11px] text-white/70">
+                        Einladung für {freshInvite.label || "deinen Freund"}
+                      </div>
+                      <div className="text-[16px] tracking-[3px] text-gold/90 break-all">
+                        {freshInvite.code}
+                      </div>
+                      <button
+                        className={`${gold} mt-1`}
+                        onClick={() =>
+                          void copy(freshInvite.link ?? freshInvite.code, "Einladung")
+                        }
+                      >
+                        Einladung kopieren
+                      </button>
+                    </div>
+                  )}
+                  {share.open_invites.map((item) => (
+                    <div
+                      key={item.code}
+                      className="flex items-center justify-between gap-2 text-[11px] text-white/55 px-1"
+                    >
+                      <span className="truncate">
+                        Offen: {item.label || "ohne Namen"} · {item.code}
+                      </span>
+                      <button
+                        className="text-white/35 hover:text-red-300"
+                        onClick={() => void dropInvite(item.code)}
+                      >
+                        löschen
+                      </button>
+                    </div>
+                  ))}
+                </Step>
+              )}
+
+              {share.visibility === "private" && (
+                <div className="text-[11.5px] text-white/50 px-1 leading-relaxed">
+                  Gerade kommt niemand Neues dazu. Wähle oben „Jeder mit meinem Code"
+                  oder „Nur wen ich einlade", wenn du wieder jemanden hereinlassen
+                  willst.
+                </div>
+              )}
+
+              <Step
+                n={share.visibility === "private" ? 3 : 4}
+                title={`Wer gerade verbunden ist (${users.length})`}
+              >
+                {users.length === 0 ? (
+                  <div className="text-[11.5px] text-white/45 leading-relaxed">
+                    Noch niemand. Sobald dein Freund den Code eingetragen hat, taucht
+                    er hier auf — mit dem, was er gerade macht.
                   </div>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button
-                    className={chip}
-                    disabled={busy}
-                    onClick={() => void refreshRemote(entry.code)}
-                  >
-                    Aktualisieren
-                  </button>
-                  <button
-                    className="text-[11px] text-white/40 hover:text-red-300 px-1"
-                    disabled={busy}
-                    onClick={() => void forget(entry.code)}
-                  >
-                    trennen
-                  </button>
-                </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {users.map((user) => (
+                      <div
+                        key={user.id}
+                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className={`w-2 h-2 rounded-full shrink-0 ${
+                                user.state === "aktiv"
+                                  ? "bg-emerald-400 animate-pulse"
+                                  : user.state === "verbunden"
+                                  ? "bg-emerald-400/60"
+                                  : "bg-white/25"
+                              }`}
+                            />
+                            <span className="text-[12px] text-white/90 truncate">
+                              {user.user}
+                            </span>
+                          </div>
+                          <button
+                            className="text-[11px] text-white/40 hover:text-red-300 shrink-0"
+                            disabled={busy}
+                            onClick={() => void kick(user.id, user.user)}
+                          >
+                            rauswerfen
+                          </button>
+                        </div>
+                        <div className="text-[10.5px] text-white/45 mt-1">
+                          {user.state === "aktiv"
+                            ? "schreibt gerade"
+                            : user.state === "verbunden"
+                            ? "verbunden"
+                            : "gerade offline"}
+                          {user.requests > 0 ? ` · ${user.requests} Fragen` : ""}
+                          {` · zuletzt ${moment(user.last_activity)}`}
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      className="text-[11px] text-red-300/80 hover:text-red-300 px-1"
+                      disabled={busy}
+                      onClick={() => void revokeAll()}
+                    >
+                      Alle rauswerfen
+                    </button>
+                  </div>
+                )}
+              </Step>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11.5px] text-white/55 leading-relaxed">
+                <b className="text-white/80">Was dein Freund darf:</b> Fragen an dein
+                Modell {modell ? <>(<span className="text-gold/80">{modell}</span>)</> : null}{" "}
+                stellen und die Antworten lesen.{" "}
+                <b className="text-white/80">Was er nicht darf:</b> deine Chats lesen,
+                deine Dateien sehen oder deinen PC steuern. Das geht technisch nicht —
+                freigegeben ist nur das Antworten. Und du kannst jeden jederzeit mit
+                einem Klick rauswerfen.
               </div>
-              {entry.description && (
-                <div className="text-[10.5px] text-white/45 mt-1">
-                  {entry.description}
+
+              <button
+                onClick={() => setDetails((v) => !v)}
+                className="text-[11px] text-white/40 hover:text-white/70"
+              >
+                {details ? "Weniger anzeigen" : "Name, Beschreibung & neuer Code …"}
+              </button>
+              {details && (
+                <div className="space-y-2">
+                  <input
+                    className={field}
+                    placeholder={`Name der Freigabe (optional), z. B. „PC von ${share.owner}"`}
+                    value={share.name}
+                    onChange={(e) => setShare({ ...share, name: e.target.value })}
+                    onBlur={() => void patch({ name: share.name })}
+                  />
+                  <input
+                    className={field}
+                    placeholder="Kurze Beschreibung (optional), z. B. große Grafikkarte"
+                    value={share.description}
+                    onChange={(e) =>
+                      setShare({ ...share, description: e.target.value })
+                    }
+                    onBlur={() => void patch({ description: share.description })}
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10.5px] text-white/40 leading-snug">
+                      Adresse: {share.host}:{share.port}
+                    </span>
+                    <button className={chip} disabled={busy} onClick={() => void rollCode()}>
+                      Neuen Code erzeugen
+                    </button>
+                  </div>
                 </div>
               )}
-              {entry.error && (
-                <div className="text-[10.5px] text-amber-300/90 mt-1">
-                  {entry.error}
-                </div>
-              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Step n={1} title="Code oder Link von deinem Freund einfügen">
+            <div className="flex gap-2">
+              <input
+                className={field}
+                placeholder="z. B. AB39KD12"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void join();
+                }}
+              />
+              <button className={gold} disabled={busy} onClick={() => void join()}>
+                Verbinden
+              </button>
             </div>
-          ))
-        )}
-        <p className="text-[11px] text-white/40 leading-relaxed">
-          Im Chat wählst du oben den Anbieter <b>ollama</b> und dann das Modell des
-          freigegebenen Servers. Verlauf, Streaming und deine Ollama-Einstellungen
-          gelten dabei ganz normal weiter.
-        </p>
-      </section>
+            <div className="text-[10.5px] text-white/40 leading-snug">
+              Seid ihr im selben WLAN, reicht der Code. Ist dein Freund woanders,
+              brauchst du seinen Link (der sieht so aus:
+              <code className="text-white/60"> AB39KD12@192.168.1.50:8758</code>).
+            </div>
+          </Step>
+
+          <Step n={2} title="Oben im Chat auswählen">
+            <div className="text-[11.5px] text-white/55 leading-relaxed">
+              Nach dem Verbinden steht oben links im Chat bei den Anbietern zusätzlich{" "}
+              <b className="text-gold/80">„Ollama von …"</b>. Wähle das aus — das
+              Modell stellt dein Freund ein, du musst nichts weiter tun. Dann schreibt
+              Jon über seinen Computer.
+            </div>
+          </Step>
+
+          {remotes.length === 0 ? (
+            <div className="text-[11.5px] text-white/45 px-1">
+              Noch nichts verbunden.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="text-[11px] text-white/45 px-1">
+                Verbunden mit ({remotes.length})
+              </div>
+              {remotes.map((entry) => (
+                <div
+                  key={entry.code}
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[12px] text-white/90 truncate">
+                        {entry.owner ? `Ollama von ${entry.owner}` : entry.name}
+                      </div>
+                      <div className="text-[10.5px] text-white/40 truncate">
+                        Modell: {entry.model || entry.models[0] || "—"}
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        className={chip}
+                        disabled={busy}
+                        onClick={() => void refreshRemote(entry.code)}
+                      >
+                        Prüfen
+                      </button>
+                      <button
+                        className="text-[11px] text-white/40 hover:text-red-300 px-1"
+                        disabled={busy}
+                        onClick={() => void forget(entry.code)}
+                      >
+                        trennen
+                      </button>
+                    </div>
+                  </div>
+                  {entry.error && (
+                    <div className="text-[10.5px] text-amber-300/90 mt-1">
+                      {entry.error}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {(note || error) && (
         <div
-          className={`text-[11px] ${
+          className={`text-[11.5px] ${
             error ? "text-red-300/90" : "text-emerald-300/80"
           }`}
         >
           {error || note}
         </div>
       )}
-    </>
+    </div>
   );
 }

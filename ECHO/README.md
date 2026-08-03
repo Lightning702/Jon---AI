@@ -45,6 +45,7 @@ bin\ECHO.exe       Startet direkt
 | E / Linksklick | Interagieren (an der Aufzugtuer: einsteigen) |
 | 1 – 4 | Im Aufzug: Etage waehlen |
 | Rechtsklick | Fokussieren (langsamer, ruhiger) |
+| **Q** | Sprung: 3 Meter nach vorn in Blickrichtung, danach 10 Sekunden Abklingzeit |
 | **F** | Taschenlampe an/aus |
 | **H** | Wegweiser zum Ziel ein/aus (direkter Weg zum Aufzug bzw. Kampagnenziel) |
 | R | Batterie wechseln |

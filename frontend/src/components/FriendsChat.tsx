@@ -37,6 +37,7 @@ interface Props {
   identity: P2PIdentity;
   initialPeerId?: string | null;
   onEditProfile: () => void;
+  onShareOllama: () => void;
   onClose: () => void;
 }
 
@@ -44,6 +45,7 @@ export default function FriendsChat({
   identity,
   initialPeerId,
   onEditProfile,
+  onShareOllama,
   onClose,
 }: Props) {
   const [peers, setPeers] = useState<P2PPeer[]>([]);
@@ -64,6 +66,7 @@ export default function FriendsChat({
   const [groupName, setGroupName] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState<string | null>(null);
   const [invites, setInvites] = useState<P2PGroupInvite[]>([]);
   const [replyTo, setReplyTo] = useState<P2PMessage | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -313,6 +316,14 @@ export default function FriendsChat({
     setGroups(await getGroups());
   };
 
+  const copyPeerCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {}
+    setCodeCopied(code);
+    window.setTimeout(() => setCodeCopied(null), 1500);
+  };
+
   const copyCode = () => {
     void navigator.clipboard.writeText(identity.code);
     setCopied(true);
@@ -344,6 +355,21 @@ export default function FriendsChat({
               className="mt-2 w-full text-left text-[10px] text-white/40 hover:text-gold transition font-mono border border-white/10 rounded-lg px-2 py-1"
             >
               {copied ? "✓ kopiert" : `Jon-Code: ${identity.code}`}
+            </button>
+            <button
+              onClick={onShareOllama}
+              title="Deine KI mit Freunden teilen — sie schreiben dann über deinen PC, ohne eigenen Schlüssel"
+              className="mt-2 w-full flex items-center gap-2 px-2 py-1.5 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 transition text-left"
+            >
+              <span className="text-[13px] leading-none">🤝</span>
+              <span className="min-w-0">
+                <span className="block text-[11.5px] text-gold/90 truncate">
+                  KI mit Freunden teilen
+                </span>
+                <span className="block text-[9.5px] text-white/40 truncate">
+                  Ollama freigeben oder beitreten
+                </span>
+              </span>
             </button>
           </div>
 
@@ -476,6 +502,16 @@ export default function FriendsChat({
                   <span className="block text-[13px] text-white/85 truncate">
                     {p.name} {p.encrypted && <span title="Ende-zu-Ende verschlüsselt">🔒</span>}
                   </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void copyPeerCode(p.id);
+                    }}
+                    title={`Jon-Code von ${p.name} — antippen zum Kopieren, damit du ihn weitergeben kannst`}
+                    className="block text-[9.5px] font-mono text-white/30 hover:text-gold transition truncate"
+                  >
+                    {codeCopied === p.id ? "✓ Code kopiert" : p.id}
+                  </button>
                   <span className="block text-[10px] text-white/35">
                     {p.typing || isTyping(p.id) ? (
                       <span className="text-gold/80">tippt …</span>
@@ -664,6 +700,13 @@ export default function FriendsChat({
                       🔒
                     </span>
                   )}
+                  <button
+                    onClick={() => void copyPeerCode(peer.id)}
+                    title={`Jon-Code von ${peer.name} — antippen zum Kopieren`}
+                    className="text-[10px] font-mono px-1.5 py-0.5 rounded-md border border-white/10 text-white/35 hover:text-gold hover:border-gold/30 transition"
+                  >
+                    {codeCopied === peer.id ? "✓ kopiert" : peer.id}
+                  </button>
                 </span>
               ) : (
                 <span className="text-white/40">💬 Freunde-Chat</span>

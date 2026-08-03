@@ -143,6 +143,7 @@ private:
     void updateFootsteps(float dt);
     void updateAtmosphere(float dt);
     void addToast(const std::string& text, float duration = 3.2f);
+    void blinkForward();
     void setState(GameState s);
     void returnToMainMenu();
     bool inGameSession() const;
@@ -212,6 +213,7 @@ private:
     float endingTimer = 0.0f;
 
     int hoverInteractable = -1;
+    float blinkCooldown = 0.0f;
     float interactHold = 0.0f;
     float footstepTimer = 0.0f;
     float autosaveTimer = 0.0f;

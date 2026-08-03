@@ -5,6 +5,7 @@
 #include "../core/ImageWriter.h"
 
 #include <cstdio>
+#include <algorithm>
 
 using namespace em;
 
@@ -617,6 +618,40 @@ void Game::setState(GameState s) {
     } else if (audio->isPlaying(musicHandle)) {
         audio->stop(musicHandle, 1.8f);
     }
+}
+
+void Game::blinkForward() {
+    const float kBlinkRange = 3.0f;
+    const float kBlinkCooldown = 10.0f;
+    Vec3 eye = player.eyePosition();
+    Vec3 dir = player.forward();
+    float reach = kBlinkRange;
+    RayHit hit = world.physics().raycast(eye, dir, kBlinkRange + 0.35f);
+    if (hit.hit) reach = std::max(0.0f, hit.distance - 0.4f);
+    if (reach < 0.35f) {
+        addToast("Kein Platz zum Springen", 1.8f);
+        audio->play2D(SFX_CLICK, 0.25f, 0.7f);
+        return;
+    }
+    Vec3 aim = eye + dir * reach;
+    bool found = false;
+    float floorY = world.physics().floorHeightAt(aim, 1.4f, 4.0f, found);
+    Vec3 dest(aim.x, found ? floorY : player.position().y, aim.z);
+    Vec3 groundNormal(0, 1, 0);
+    bool grounded = false;
+    dest = world.physics().resolveCapsule(dest, player.capsuleRadius(), player.capsuleHeight(), 5, groundNormal, grounded);
+    Vec3 base = dest + Vec3(0, player.capsuleRadius() + 0.02f, 0);
+    Vec3 top = dest + Vec3(0, player.capsuleHeight() - player.capsuleRadius() - 0.02f, 0);
+    if (world.physics().overlapCapsule(base, top, player.capsuleRadius() * 0.92f)) {
+        addToast("Kein Platz zum Springen", 1.8f);
+        audio->play2D(SFX_CLICK, 0.25f, 0.7f);
+        return;
+    }
+    player.setPosition(dest);
+    player.addShake(0.35f, 0.22f);
+    blinkCooldown = kBlinkCooldown;
+    audio->play2D(SFX_CLICK, 0.5f, 1.7f);
+    addToast("Sprung", 1.2f);
 }
 
 void Game::addToast(const std::string& text, float duration) {
@@ -1420,6 +1455,16 @@ void Game::updatePlaying(float dt) {
     pin.jump = in.keyPressed(KEY_SPACE);
     pin.interact = in.keyPressed(KEY_E) || in.mousePressed(MOUSE_LEFT);
     player.update(pin, world.physics(), dt);
+    if (blinkCooldown > 0.0f) blinkCooldown = std::max(0.0f, blinkCooldown - dt);
+    if (in.keyPressed(KEY_Q) && !player.movementLocked_()) {
+        if (blinkCooldown > 0.0f) {
+            char wait[64];
+            std::snprintf(wait, sizeof(wait), "Sprung bereit in %.0f s", std::ceil(blinkCooldown));
+            addToast(wait, 1.4f);
+        } else {
+            blinkForward();
+        }
+    }
     if (in.keyPressed(KEY_H)) {
         guide.toggle();
         audio->play2D(SFX_SWITCH, 0.22f, guide.visible() ? 1.25f : 0.85f);

@@ -1527,14 +1527,6 @@ export default function App() {
                 </div>
               )}
               <button
-                onClick={() => setShareOpen(true)}
-                title="Ollama teilen — gib deinen Server frei oder nutze den eines anderen"
-                className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <span className="text-[12px] leading-none">🤝</span>
-                <span className="text-[11px] font-medium">Ollama teilen</span>
-              </button>
-              <button
                 onClick={() => setCalendarOpen(true)}
                 title="Jons Kalender — Termine, Tasks und Erinnerungen"
                 className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
@@ -1821,6 +1813,7 @@ export default function App() {
           identity={identity}
           initialPeerId={friendsPeer}
           onEditProfile={() => setProfileOpen(true)}
+          onShareOllama={() => setShareOpen(true)}
           onClose={() => {
             setFriendsOpen(false);
             setFriendsPeer(null);

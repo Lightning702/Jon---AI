@@ -51,6 +51,8 @@ public:
     float breathLevel() const { return breath; }
     float noiseLevel() const { return noise; }
     float eyeHeight() const { return currentEye; }
+    float capsuleRadius() const { return radius; }
+    float capsuleHeight() const { return currentHeight; }
 
     bool consumeFootstep(FootstepEvent& out);
     void addShake(float amount, float duration);

@@ -36,7 +36,7 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Jede Anfrage braucht ein persönliches Zugriffstoken; es wird nur gehasht gespeichert.
   Freigegeben ist ausschließlich das Antworten des Modells — kein Zugriff auf PC, Dateien
   oder Chats des Besitzers
-- **Teilen-Knopf im Chat** (🤝) für Freigabe und Verbindung in einem Fenster
+- **Teilen-Knopf im Freunde-Chat** (🤝) mit geführtem Ablauf: erst die Frage „gebe ich frei oder nutze ich?", dann nummerierte Schritte in Alltagssprache
 - Freigegebene Server erscheinen als eigener Anbieter **„Ollama von &lt;Name&gt;"** in der
   Anbieterauswahl; das Modell gibt der Besitzer vor und ist beim Gast gesperrt
 - Details: [OLLAMA.md](OLLAMA.md)
@@ -170,10 +170,13 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - **Werkzeuge → Spiele** (`/spiele`) — Übersicht mit Vorschaubild, Beschreibung, Steuerung,
   Version und Status (bereit, läuft, wird gebaut, Fehler); gestartet wird erst per Klick
 - **ECHO** (`/echo`) — First-Person-Psychological-Horror, 4 Etagen, 464 Räume, adaptive
-  Regie, fünf Enden; startet als eigenes Fenster, Jon bleibt offen
+  Regie, fünf Enden; startet als eigenes Fenster, Jon bleibt offen. **Q** springt 3 Meter
+  in Blickrichtung nach vorn (10 Sekunden Abklingzeit, hält vor Wänden an)
 - **AETHERIA** (`/aetheria`) — Fantasy-Open-World-RPG mit sechs Dörfern, Aufträgen,
   Stufenaufstieg, Tag/Nacht und Weltkarte
 - **Blockwelt** (`/spiel`) — Voxel-Sandbox im Browser-Tab, Jon baut auf Zuruf (Taste T)
+- Mitspieler-Figuren schauen in allen drei Spielen in die Richtung, in die sie wirklich
+  blicken — inklusive Kopfneigung nach oben und unten
 - **Eigene Spiele nachrüsten** — Ordner mit `jon-spiele.json` neben Jon (oder in `games/`)
   legen: Titel, Beschreibung, Icon, Vorschaubild, Exe, Startparameter und optionales
   Bau-Skript; Jon findet ihn beim nächsten Öffnen der Liste ohne Code-Änderung

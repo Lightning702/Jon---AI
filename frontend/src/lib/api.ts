@@ -2111,6 +2111,7 @@ export interface OllamaShare {
   owner: string;
   user_count: number;
   open_invites: OllamaInvite[];
+  shared_model: string;
 }
 
 export interface OllamaShareUser {
@@ -2139,6 +2140,7 @@ export interface OllamaRemote {
   added_at: string;
   last_ok: string;
   models: string[];
+  model: string;
   error: string;
 }
 
