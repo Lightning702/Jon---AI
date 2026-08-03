@@ -11,6 +11,7 @@ import SettingsMenu from "./components/SettingsMenu";
 import AccountsModal from "./components/AccountsModal";
 import CodeAgent from "./components/CodeAgent";
 import PetConfig from "./components/PetConfig";
+import OllamaShareModal from "./components/OllamaShareModal";
 import ProfileModal from "./components/ProfileModal";
 import FriendsChat from "./components/FriendsChat";
 import FriendRequestPopup from "./components/FriendRequestPopup";
@@ -201,6 +202,7 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [clipboardOpen, setClipboardOpen] = useState(false);
   const [identity, setIdentity] = useState<P2PIdentity | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -332,7 +334,9 @@ export default function App() {
       );
       if (saved.provider && saved.model && savedProv) {
         setProvider(saved.provider);
-        setModel(saved.model);
+        setModel(
+          savedProv.locked ? savedProv.models[0] ?? saved.model : saved.model
+        );
       } else {
         const preferred = provs.find(
           (p) => p.provider === health.default_provider && p.configured
@@ -1523,6 +1527,14 @@ export default function App() {
                 </div>
               )}
               <button
+                onClick={() => setShareOpen(true)}
+                title="Ollama teilen — gib deinen Server frei oder nutze den eines anderen"
+                className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+              >
+                <span className="text-[12px] leading-none">🤝</span>
+                <span className="text-[11px] font-medium">Ollama teilen</span>
+              </button>
+              <button
                 onClick={() => setCalendarOpen(true)}
                 title="Jons Kalender — Termine, Tasks und Erinnerungen"
                 className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
@@ -1786,6 +1798,15 @@ export default function App() {
         />
       )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
+      {shareOpen && (
+        <OllamaShareModal
+          onClose={() => {
+            setShareOpen(false);
+            void getProviders().then(setProviders);
+          }}
+          onChanged={() => void getProviders().then(setProviders)}
+        />
+      )}
       {clipboardOpen && (
         <ClipboardPanel
           onClose={() => setClipboardOpen(false)}

@@ -15,6 +15,7 @@ export default function ModelPicker({
 }: Props) {
   const active = providers.find((p) => p.provider === provider);
   const models = active?.models ?? [];
+  const locked = active?.locked === true;
   const own = models.filter((m) => !m.startsWith("share:"));
   const shared = models.filter((m) => m.startsWith("share:"));
   const groups = shared.reduce<Record<string, string[]>>((acc, entry) => {
@@ -41,45 +42,55 @@ export default function ModelPicker({
             disabled={!p.configured}
             className="bg-ink-800"
           >
-            {p.provider}
+            {p.label || p.provider}
             {p.configured ? "" : " (kein Key)"}
           </option>
         ))}
       </select>
-      <select
-        value={model}
-        onChange={(e) => onChange(provider, e.target.value)}
-        className="glass rounded-lg px-3 py-1.5 text-sm text-white/90 outline-none cursor-pointer max-w-[240px]"
-      >
-        {shared.length === 0
-          ? models.map((m) => (
-              <option key={m} value={m} className="bg-ink-800">
-                {m}
-              </option>
-            ))
-          : [
-              <optgroup key="lokal" label="Auf diesem PC" className="bg-ink-800">
-                {own.map((m) => (
-                  <option key={m} value={m} className="bg-ink-800">
-                    {m}
-                  </option>
-                ))}
-              </optgroup>,
-              ...Object.entries(groups).map(([code, entries]) => (
-                <optgroup
-                  key={code}
-                  label={`Freigabe ${code}`}
-                  className="bg-ink-800"
-                >
-                  {entries.map((m) => (
+      {locked ? (
+        <div
+          title={`${active?.label || "Freigegebener Server"} — der Besitzer gibt das Modell vor`}
+          className="glass rounded-lg px-3 py-1.5 text-sm text-white/60 max-w-[240px] truncate flex items-center gap-1.5"
+        >
+          <span className="text-gold/70">🔒</span>
+          <span className="truncate">{model || models[0] || "—"}</span>
+        </div>
+      ) : (
+        <select
+          value={model}
+          onChange={(e) => onChange(provider, e.target.value)}
+          className="glass rounded-lg px-3 py-1.5 text-sm text-white/90 outline-none cursor-pointer max-w-[240px]"
+        >
+          {shared.length === 0
+            ? models.map((m) => (
+                <option key={m} value={m} className="bg-ink-800">
+                  {m}
+                </option>
+              ))
+            : [
+                <optgroup key="lokal" label="Auf diesem PC" className="bg-ink-800">
+                  {own.map((m) => (
                     <option key={m} value={m} className="bg-ink-800">
-                      {m.slice(m.indexOf("/") + 1)}
+                      {m}
                     </option>
                   ))}
-                </optgroup>
-              )),
-            ]}
-      </select>
+                </optgroup>,
+                ...Object.entries(groups).map(([code, entries]) => (
+                  <optgroup
+                    key={code}
+                    label={`Freigabe ${code}`}
+                    className="bg-ink-800"
+                  >
+                    {entries.map((m) => (
+                      <option key={m} value={m} className="bg-ink-800">
+                        {m.slice(m.indexOf("/") + 1)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )),
+              ]}
+        </select>
+      )}
     </div>
   );
 }

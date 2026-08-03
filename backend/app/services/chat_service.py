@@ -503,6 +503,20 @@ class ChatService:
             return payload.slot
         return "emil" if payload.persona == "junior" else "jon"
 
+    @staticmethod
+    def _share_route(provider: str, model: str) -> tuple[str, str]:
+        from app.services.ollama_share_service import REMOTE_PREFIX, get_share_service
+
+        if not provider.startswith(REMOTE_PREFIX):
+            return provider, model
+        code = provider[len(REMOTE_PREFIX):]
+        entry = get_share_service().remote(code) or {}
+        shared = str(entry.get("model") or "")
+        if not shared:
+            models = entry.get("models") or []
+            shared = str(models[0]) if models else model
+        return "ollama", f"{REMOTE_PREFIX}{code.upper()}/{shared}"
+
     def resolve(self, payload: ChatIn) -> tuple[str, str]:
         settings_service = get_settings_service()
         saved_provider, saved_model = settings_service.selection()
@@ -521,7 +535,7 @@ class ChatService:
                 payload.provider or saved_provider or self._settings.default_provider
             )
             model = payload.model or saved_model or self._settings.jon_model
-        return provider, model
+        return self._share_route(provider, model)
 
     def _ensure_conversation(self, payload: ChatIn, provider: str, model: str) -> str:
         with session_scope() as session:

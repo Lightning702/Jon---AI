@@ -17,6 +17,7 @@ interface Cfg {
   pet_eyes: Eyes;
   pet_provider: string;
   pet_model: string;
+  pet_3d: boolean;
 }
 
 const DEFAULT: Cfg = {
@@ -25,6 +26,7 @@ const DEFAULT: Cfg = {
   pet_cheeks: false,
   pet_scale: 1,
   pet_eyes: "round",
+  pet_3d: false,
   pet_provider: "",
   pet_model: "openai/gpt-oss-20b",
 };
@@ -67,6 +69,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
         pet_cheeks: s.pet_cheeks !== false,
         pet_scale: s.pet_scale || 1,
         pet_eyes: (s.pet_eyes as Eyes) || "round",
+        pet_3d: s.pet_3d === true,
         pet_provider: s.pet_provider || "",
         pet_model: s.pet_model || DEFAULT.pet_model,
       });
@@ -121,6 +124,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <div className="overflow-y-auto px-5 py-5 flex flex-col items-center gap-5">
+          <div className="relative" style={{ width: 140, height: 140 }}>
           <svg width={140} height={140} viewBox="0 0 120 120">
             <circle cx={60} cy={60} r={52} fill={cfg.pet_face} />
             <circle
@@ -146,6 +150,21 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               strokeLinecap="round"
             />
           </svg>
+          {cfg.pet_3d && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: 10,
+                top: 10,
+                right: 10,
+                bottom: 10,
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.14) 17%, rgba(255,255,255,0) 44%), radial-gradient(circle at 72% 80%, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 34%, rgba(0,0,0,0) 64%)",
+              }}
+            />
+          )}
+          </div>
 
           <div className="w-full space-y-4">
             <div className="flex items-center justify-between">

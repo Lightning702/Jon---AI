@@ -14,6 +14,9 @@ export interface ProviderStatus {
   configured: boolean;
   env_var: string;
   models: string[];
+  label?: string;
+  locked?: boolean;
+  owner?: string;
 }
 
 export interface ConversationSummary {
@@ -266,6 +269,7 @@ export interface UserSettings {
   pet_companion: string;
   wake_sensitivity: string;
   pet_wellness: boolean;
+  pet_3d: boolean;
   autofile_enabled: boolean;
   app_usage_enabled: boolean;
   language: string;
@@ -329,6 +333,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       pet_companion: "none",
       wake_sensitivity: "mittel",
       pet_wellness: true,
+      pet_3d: false,
       autofile_enabled: false,
       app_usage_enabled: false,
       language: "de",

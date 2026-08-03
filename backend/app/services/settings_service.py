@@ -64,6 +64,7 @@ DEFAULTS = {
     "pet_companion": "none",
     "wake_sensitivity": "mittel",
     "pet_wellness": True,
+    "pet_3d": False,
     "autofile_enabled": False,
     "app_usage_enabled": False,
     "language": "de",

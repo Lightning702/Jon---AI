@@ -142,6 +142,16 @@ class OllamaShareService:
 
         return CHAT_PORT
 
+    def shared_model(self) -> str:
+        from app.services.ollama_service import get_ollama_service
+
+        service = get_ollama_service()
+        chosen = service.selected_model()
+        if chosen:
+            return chosen
+        known = service.known_models()
+        return known[0] if known else ""
+
     def share(self) -> dict:
         with self._lock:
             share = dict(self._data["share"])
@@ -158,7 +168,8 @@ class OllamaShareService:
         share["link"] = f"{LINK_SCHEME}{share['code']}@{host}:{port}"
         share["user_count"] = grants
         share["open_invites"] = invites
-        share["owner"] = self._identity()["name"]
+        share["owner"] = self._identity()["name"] or "Jon-Nutzer"
+        share["shared_model"] = self.shared_model()
         return share
 
     def update_share(self, values: dict) -> dict:
@@ -285,6 +296,28 @@ class OllamaShareService:
             "owner": share["owner"],
         }
 
+    def providers(self) -> list[dict]:
+        found: list[dict] = []
+        with self._lock:
+            entries = [dict(item) for item in self._data["remotes"].values()]
+        for entry in entries:
+            model = str(entry.get("model") or "")
+            if not model:
+                models = entry.get("models") or []
+                model = str(models[0]) if models else ""
+            if not model:
+                continue
+            owner = str(entry.get("owner") or "").strip()
+            found.append(
+                {
+                    "provider": f"{REMOTE_PREFIX}{entry['code']}",
+                    "label": f"Ollama von {owner or entry['code']}",
+                    "owner": owner,
+                    "model": model,
+                }
+            )
+        return found
+
     def join(self, payload: dict, address: str) -> dict:
         raw = str(payload.get("code", "")).strip().upper()
         user = str(payload.get("name", "")).strip()[:48] or "Unbekannt"
@@ -330,12 +363,14 @@ class OllamaShareService:
             name = share["name"]
             description = share["description"]
             self._save()
+        owner = self._identity()["name"] or "Jon-Nutzer"
         return {
             "token": token,
             "grant_id": grant_id,
-            "name": name or f"Ollama von {self._identity()['name']}",
+            "name": name or f"Ollama von {owner}",
             "description": description,
-            "owner": self._identity()["name"],
+            "owner": owner,
+            "model": self.shared_model(),
         }
 
     def authorize(self, token: str) -> dict:
@@ -593,7 +628,7 @@ class OllamaShareService:
                 if response.status_code >= 400:
                     raise ShareError(_detail(response))
                 data = response.json()
-                models = await _remote_models(client, base, data["token"])
+                models, shared = await _remote_models(client, base, data["token"])
         except ShareError:
             raise
         except httpx.HTTPError as exc:
@@ -613,6 +648,7 @@ class OllamaShareService:
             "added_at": _stamp(),
             "last_ok": _stamp(),
             "models": models,
+            "model": str(data.get("model") or shared or (models[0] if models else "")),
             "error": "",
         }
         return self.store_remote(entry)
@@ -623,7 +659,9 @@ class OllamaShareService:
             raise ShareError("Dieser Server ist nicht verbunden.")
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
-                models = await _remote_models(client, entry["base"], entry["token"])
+                models, shared = await _remote_models(
+                    client, entry["base"], entry["token"]
+                )
         except ShareError as exc:
             self.update_remote(code, {"error": str(exc)})
             raise
@@ -631,7 +669,10 @@ class OllamaShareService:
             message = f"{entry['base']} ist nicht erreichbar."
             self.update_remote(code, {"error": message})
             raise ShareError(message) from exc
-        self.update_remote(code, {"models": models, "last_ok": _stamp(), "error": ""})
+        values = {"models": models, "last_ok": _stamp(), "error": ""}
+        if shared:
+            values["model"] = shared
+        self.update_remote(code, values)
         return self.remote(code) or {}
 
     async def remote_status(self, code: str) -> dict:
@@ -644,9 +685,14 @@ class OllamaShareService:
         models: list[str] = list(entry.get("models", []))
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
-                models = await _remote_models(client, entry["base"], entry["token"])
+                models, shared = await _remote_models(
+                    client, entry["base"], entry["token"]
+                )
             state = "online"
-            self.update_remote(code, {"models": models, "last_ok": _stamp(), "error": ""})
+            values = {"models": models, "last_ok": _stamp(), "error": ""}
+            if shared:
+                values["model"] = shared
+            self.update_remote(code, values)
         except ShareError as exc:
             error = str(exc)
             self.update_remote(code, {"error": error})
@@ -677,7 +723,9 @@ def _detail(response: httpx.Response) -> str:
     return str(payload)[:200]
 
 
-async def _remote_models(client: httpx.AsyncClient, base: str, token: str) -> list[str]:
+async def _remote_models(
+    client: httpx.AsyncClient, base: str, token: str
+) -> tuple[list[str], str]:
     response = await client.get(
         base + "/share/api/tags", headers={"Authorization": f"Bearer {token}"}
     )
@@ -690,7 +738,8 @@ async def _remote_models(client: httpx.AsyncClient, base: str, token: str) -> li
         for item in items
         if isinstance(item, dict)
     ]
-    return sorted(name for name in names if name)
+    shared = str(data.get("model", "")).strip() if isinstance(data, dict) else ""
+    return sorted(name for name in names if name), shared
 
 
 _service: OllamaShareService | None = None

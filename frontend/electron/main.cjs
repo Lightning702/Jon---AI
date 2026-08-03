@@ -635,7 +635,7 @@ app.whenReady().then(() => {
       { label: "Mini Jon ein/aus", click: togglePet },
       { label: "Privater Browser (Strg+Alt+P)", click: openPrivateInApp },
       { type: "separator" },
-      { label: "Im Hintergrund weiterlaufen", click: hideWindow },
+      { label: "Fenster ausblenden (Jon laeuft weiter)", click: hideWindow },
       { label: "Jon beenden (auch das Backend)", click: () => void quitJon() },
     ])
   );
@@ -700,6 +700,24 @@ function askBackendToStop() {
 }
 
 let backendStopped = false;
+function closeBackendConsole() {
+  if (process.platform !== "win32") return;
+  const script =
+    `$mine = ${process.pid}; ` +
+    "$hits = Get-CimInstance Win32_Process | Where-Object { " +
+    "  $_.CommandLine -and $_.ProcessId -ne $mine -and " +
+    "  $_.Name -in @('cmd.exe','powershell.exe','conhost.exe','jon-backend.exe') -and " +
+    "  ($_.CommandLine -match 'start-jon' -or $_.CommandLine -match 'jon-backend' -or " +
+    "   $_.CommandLine -match 'app\.main' -or $_.CommandLine -match 'autostart-jon') }; " +
+    "foreach ($h in $hits) { Stop-Process -Id $h.ProcessId -Force -ErrorAction SilentlyContinue }";
+  try {
+    spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], {
+      windowsHide: true,
+      timeout: 6000,
+    });
+  } catch (e) {}
+}
+
 function stopBackend() {
   if (backendStopped) return;
   backendStopped = true;
@@ -715,6 +733,7 @@ function stopBackend() {
     }
   } catch (e) {}
   freeBackendPorts();
+  closeBackendConsole();
 }
 
 app.on("before-quit", stopBackend);

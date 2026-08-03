@@ -72,15 +72,13 @@ export default function TitleBar() {
           >
             &#9633;
           </button>
-          {api.hide && (
-            <button
-              onClick={() => api.hide?.()}
-              title="In den Hintergrund — Jon bleibt im Infobereich aktiv (Strg+Alt+J)"
-              className="w-8 h-8 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition"
-            >
-              &#8964;
-            </button>
-          )}
+          <button
+            onClick={() => api.close()}
+            title="Jon komplett stoppen — Fenster, Mini Jon, Backend und Konsolenfenster"
+            className="w-8 h-8 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition"
+          >
+            &#8964;
+          </button>
           <button
             onClick={() => api.close()}
             title="Jon beenden — schliesst auch das Backend"

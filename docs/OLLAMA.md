@@ -226,13 +226,19 @@ Der Code sieht aus wie `AB39KD12`, der Link wie
 `jon://ollama/AB39KD12@192.168.1.50:8758`. Im Heimnetz genügt der Code allein — Jon sucht
 den Server im Netzwerk. Über Tailscale oder von außerhalb nimmt man den Link mit Adresse.
 
+Schneller geht es über den Knopf **🤝 Ollama teilen** oben im Chat — er öffnet Freigabe
+und Verbindung in einem Fenster.
+
 ### Verbinden (als Gast)
 
-1. **Zahnrad-Menü → Ollama → Server & Modelle …**
+1. Knopf **🤝 Ollama teilen** im Chat (oder Zahnrad-Menü → Ollama → Server & Modelle …).
 2. Im Bereich **Freigegebene Server nutzen** den Code oder Link eintragen und auf
    **Verbinden** klicken.
-3. Fertig: Die Modelle des fremden Servers stehen ab sofort oben in der KI-Auswahl unter
-   dem Anbieter **ollama**, gruppiert unter „Freigabe <Code>".
+3. Fertig: In der **Anbieterauswahl** oben im Chat steht jetzt zusätzlich
+   **„Ollama von <Name>"**. Wählst du sie, ist das **Modell fest vorgegeben** — es ist
+   genau das, was der Besitzer teilt, erkennbar am Schloss statt der Modell-Liste.
+   Die einzelnen Modelle des Servers findest du zusätzlich unter dem Anbieter **ollama**,
+   gruppiert unter „Freigabe <Code>".
 
 Im Chat verhält sich alles wie gewohnt: Verlauf, Streaming und deine eigenen
 Ollama-Einstellungen (Temperatur, Top P, Top K, Max Tokens, Context Length, Keep Alive,

@@ -36,7 +36,18 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Jede Anfrage braucht ein persönliches Zugriffstoken; es wird nur gehasht gespeichert.
   Freigegeben ist ausschließlich das Antworten des Modells — kein Zugriff auf PC, Dateien
   oder Chats des Besitzers
+- **Teilen-Knopf im Chat** (🤝) für Freigabe und Verbindung in einem Fenster
+- Freigegebene Server erscheinen als eigener Anbieter **„Ollama von &lt;Name&gt;"** in der
+  Anbieterauswahl; das Modell gibt der Besitzer vor und ist beim Gast gesperrt
 - Details: [OLLAMA.md](OLLAMA.md)
+
+## Mini Jon & Haustier
+
+- **3D-Modus** (Zahnrad-Menü): Mini Jon, Katze und Hund mit Kugelform, Glanzlicht,
+  Abschattung, sanfter Eigendrehung und Bodenschatten — abschaltbar, aus sieht alles aus
+  wie zuvor
+- Haustier wahlweise Katze (Minka) oder Hund (Rocky), frei laufend, mit Schlafzustand
+- Farbe, Gesicht, Augenform und Größe frei anpassbar
 
 ## Werkzeuge (Function Calling)
 

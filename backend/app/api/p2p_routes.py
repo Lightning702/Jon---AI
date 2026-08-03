@@ -375,6 +375,7 @@ def create_chat_app() -> FastAPI:
     @app.get("/share/api/tags")
     async def share_tags(request: Request) -> dict:
         from app.services.ollama_service import get_ollama_service
+        from app.services.ollama_share_service import get_share_service
 
         _grant(request)
         service = get_ollama_service()
@@ -386,7 +387,10 @@ def create_chat_app() -> FastAPI:
             models = await service.fetch_models()
         except Exception as exc:
             raise HTTPException(status_code=502, detail=service.friendly_error(exc))
-        return {"models": [{"name": name} for name in models]}
+        return {
+            "models": [{"name": name} for name in models],
+            "model": get_share_service().shared_model(),
+        }
 
     @app.post("/share/api/chat")
     async def share_chat(request: Request):

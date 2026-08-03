@@ -101,6 +101,7 @@ class SettingsIn(BaseModel):
     pet_companion: str | None = None
     wake_sensitivity: str | None = None
     pet_wellness: bool | None = None
+    pet_3d: bool | None = None
     autofile_enabled: bool | None = None
     app_usage_enabled: bool | None = None
     language: str | None = None
@@ -390,6 +391,9 @@ class ProviderStatus(BaseModel):
     configured: bool
     env_var: str
     models: list[str] = []
+    label: str = ""
+    locked: bool = False
+    owner: str = ""
 
 
 class HealthOut(BaseModel):

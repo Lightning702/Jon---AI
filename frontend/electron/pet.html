@@ -351,6 +351,111 @@
       body.light .petBtn {
         background: rgba(255, 255, 255, 0.9);
       }
+      #jonShine {
+        display: none;
+      }
+      body.threeD #jon {
+        position: relative;
+        filter: drop-shadow(0 15px 24px rgba(0, 0, 0, 0.65));
+      }
+      body.threeD #jonWrap {
+        perspective: 540px;
+      }
+      body.threeD #jon svg {
+        transform-origin: 50% 56%;
+        animation: sway3d 7s ease-in-out infinite;
+      }
+      body.threeD #jonShine {
+        display: block;
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        pointer-events: none;
+        background: radial-gradient(
+            circle at 32% 26%,
+            rgba(255, 255, 255, 0.45) 0%,
+            rgba(255, 255, 255, 0.14) 17%,
+            rgba(255, 255, 255, 0) 44%
+          ),
+          radial-gradient(
+            circle at 72% 80%,
+            rgba(0, 0, 0, 0.6) 0%,
+            rgba(0, 0, 0, 0.2) 34%,
+            rgba(0, 0, 0, 0) 64%
+          );
+      }
+      body.threeD.light #jonShine {
+        background: radial-gradient(
+            circle at 32% 26%,
+            rgba(255, 255, 255, 0.85) 0%,
+            rgba(255, 255, 255, 0.3) 18%,
+            rgba(255, 255, 255, 0) 46%
+          ),
+          radial-gradient(
+            circle at 72% 80%,
+            rgba(0, 0, 0, 0.3) 0%,
+            rgba(0, 0, 0, 0.1) 34%,
+            rgba(0, 0, 0, 0) 64%
+          );
+      }
+      body.threeD #jon::after {
+        content: "";
+        position: absolute;
+        left: 16%;
+        right: 16%;
+        bottom: -4px;
+        height: 13px;
+        border-radius: 50%;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(0, 0, 0, 0.55),
+          rgba(0, 0, 0, 0) 70%
+        );
+        animation: shadow3d 7s ease-in-out infinite;
+      }
+      @keyframes sway3d {
+        0%,
+        100% {
+          transform: rotateY(-13deg) rotateX(5deg);
+        }
+        50% {
+          transform: rotateY(13deg) rotateX(-4deg);
+        }
+      }
+      @keyframes shadow3d {
+        0%,
+        100% {
+          transform: translateX(4px) scaleX(0.92);
+          opacity: 0.75;
+        }
+        50% {
+          transform: translateX(-4px) scaleX(0.92);
+          opacity: 0.75;
+        }
+      }
+      body.threeD #petPal {
+        filter: drop-shadow(0 9px 11px rgba(0, 0, 0, 0.6));
+        animation: petSway3d 5.5s ease-in-out infinite;
+      }
+      @keyframes petSway3d {
+        0%,
+        100% {
+          transform: scaleX(var(--dir, 1)) perspective(340px) rotateY(-12deg);
+        }
+        50% {
+          transform: scaleX(var(--dir, 1)) perspective(340px) rotateY(12deg);
+        }
+      }
+      body.threeD #petPal.happy {
+        animation: palHop 0.6s ease;
+      }
+      #petPal.asleep {
+        filter: brightness(0.6);
+      }
+      body.threeD #petPal.asleep {
+        filter: brightness(0.6) drop-shadow(0 9px 11px rgba(0, 0, 0, 0.6));
+      }
     </style>
   </head>
   <body>
@@ -431,6 +536,7 @@
               style="display: none"
             />
           </svg>
+          <div id="jonShine"></div>
         </div>
       </div>
     </div>
@@ -464,6 +570,7 @@
         pet_provider: "",
         pet_model: "",
         pet_wellness: true,
+        pet_3d: false,
       };
       let bubbleTimer = null;
       let busy = false;
@@ -573,8 +680,11 @@
         cheeks.style.display = cfg.pet_cheeks ? "block" : "none";
         renderEyes(cfg.pet_eyes || "round");
         jonWrap.style.transform = "scale(" + (cfg.pet_scale || 1) + ")";
+        const spatial = cfg.pet_3d === true;
+        const wasSpatial = document.body.classList.contains("threeD");
+        document.body.classList.toggle("threeD", spatial);
         const nextPet = cfg.pet_companion || "none";
-        if (nextPet !== petKind) {
+        if (nextPet !== petKind || spatial !== wasSpatial) {
           petKind = nextPet;
           renderPet(petKind, accent);
           if (petKind !== "none") setPetSleep(petAsleep);
@@ -2716,7 +2826,97 @@
       let petAsleep = false;
       let palFacing = 1;
 
+      function petDefs(kind) {
+        if (kind === "cat") {
+          return (
+            "<defs>" +
+            '<radialGradient id="pBody" cx="34%" cy="28%" r="78%">' +
+            '<stop offset="0%" stop-color="#8e8e9c"/><stop offset="55%" stop-color="#5a5a64"/>' +
+            '<stop offset="100%" stop-color="#31313a"/></radialGradient>' +
+            '<radialGradient id="pHead" cx="32%" cy="26%" r="76%">' +
+            '<stop offset="0%" stop-color="#a5a5b2"/><stop offset="52%" stop-color="#6d6d78"/>' +
+            '<stop offset="100%" stop-color="#3b3b45"/></radialGradient>' +
+            '<radialGradient id="pEar" cx="40%" cy="30%" r="80%">' +
+            '<stop offset="0%" stop-color="#7c7c88"/><stop offset="100%" stop-color="#43434d"/>' +
+            "</radialGradient>" +
+            '<radialGradient id="pGround" cx="50%" cy="50%" r="50%">' +
+            '<stop offset="0%" stop-color="rgba(0,0,0,0.55)"/>' +
+            '<stop offset="100%" stop-color="rgba(0,0,0,0)"/></radialGradient>' +
+            "</defs>"
+          );
+        }
+        return (
+          "<defs>" +
+          '<radialGradient id="pBody" cx="34%" cy="28%" r="78%">' +
+          '<stop offset="0%" stop-color="#e0b483"/><stop offset="55%" stop-color="#b98a55"/>' +
+          '<stop offset="100%" stop-color="#7d5a31"/></radialGradient>' +
+          '<radialGradient id="pHead" cx="32%" cy="26%" r="76%">' +
+          '<stop offset="0%" stop-color="#efcb9c"/><stop offset="52%" stop-color="#caa06a"/>' +
+          '<stop offset="100%" stop-color="#8e6a3c"/></radialGradient>' +
+          '<radialGradient id="pEar" cx="40%" cy="30%" r="80%">' +
+          '<stop offset="0%" stop-color="#a97a45"/><stop offset="100%" stop-color="#6a4726"/>' +
+          "</radialGradient>" +
+          '<radialGradient id="pGround" cx="50%" cy="50%" r="50%">' +
+          '<stop offset="0%" stop-color="rgba(0,0,0,0.55)"/>' +
+          '<stop offset="100%" stop-color="rgba(0,0,0,0)"/></radialGradient>' +
+          "</defs>"
+        );
+      }
+
+      function renderPet3d(kind) {
+        const ground =
+          '<ellipse cx="32" cy="59" rx="19" ry="4.5" fill="url(#pGround)"/>';
+        if (kind === "cat") {
+          return (
+            petDefs("cat") +
+            ground +
+            '<path d="M50 52 Q62 47 57 38" fill="none" stroke="url(#pBody)" stroke-width="6.5" stroke-linecap="round"/>' +
+            '<ellipse cx="32" cy="46" rx="18" ry="14" fill="url(#pBody)"/>' +
+            '<ellipse cx="26" cy="41" rx="9" ry="6" fill="rgba(255,255,255,0.13)"/>' +
+            '<path d="M18 30 L14 16 L26 26 Z" fill="url(#pEar)"/>' +
+            '<path d="M46 30 L50 16 L38 26 Z" fill="url(#pEar)"/>' +
+            '<path d="M19 29 L17 21 L24 27 Z" fill="#ffb3c1"/>' +
+            '<path d="M45 29 L47 21 L40 27 Z" fill="#ffb3c1"/>' +
+            '<circle cx="32" cy="34" r="15" fill="url(#pHead)"/>' +
+            '<ellipse cx="26" cy="27" rx="7" ry="5" fill="rgba(255,255,255,0.18)"/>' +
+            '<circle cx="26" cy="32" r="2.9" fill="#0d0d12"/>' +
+            '<circle cx="25.2" cy="31.1" r="0.9" fill="#fff" opacity="0.85"/>' +
+            '<circle cx="38" cy="32" r="2.9" fill="#0d0d12"/>' +
+            '<circle cx="37.2" cy="31.1" r="0.9" fill="#fff" opacity="0.85"/>' +
+            '<path d="M30 37 Q32 39 34 37" fill="none" stroke="#111" stroke-width="1.6" stroke-linecap="round"/>' +
+            '<path d="M32 36 l0 2" stroke="#ffb3c1" stroke-width="1.6"/>' +
+            '<path d="M20 36 h-9 M20 39 h-8" stroke="#2c2c34" stroke-width="1.2" stroke-linecap="round"/>' +
+            '<path d="M44 36 h9 M44 39 h8" stroke="#2c2c34" stroke-width="1.2" stroke-linecap="round"/>'
+          );
+        }
+        return (
+          petDefs("dog") +
+          ground +
+          '<path d="M50 50 Q62 43 55 36" fill="none" stroke="url(#pBody)" stroke-width="6.5" stroke-linecap="round"/>' +
+          '<ellipse cx="32" cy="46" rx="19" ry="14" fill="url(#pBody)"/>' +
+          '<ellipse cx="26" cy="41" rx="9" ry="6" fill="rgba(255,255,255,0.14)"/>' +
+          '<ellipse cx="16" cy="34" rx="7" ry="12" fill="url(#pEar)"/>' +
+          '<ellipse cx="48" cy="34" rx="7" ry="12" fill="url(#pEar)"/>' +
+          '<circle cx="32" cy="34" r="15" fill="url(#pHead)"/>' +
+          '<ellipse cx="26" cy="27" rx="7" ry="5" fill="rgba(255,255,255,0.2)"/>' +
+          '<ellipse cx="32" cy="40" rx="8" ry="6" fill="#f4e6cf"/>' +
+          '<circle cx="26" cy="31" r="3" fill="#0d0d12"/>' +
+          '<circle cx="25.2" cy="30.1" r="0.9" fill="#fff" opacity="0.85"/>' +
+          '<circle cx="38" cy="31" r="3" fill="#0d0d12"/>' +
+          '<circle cx="37.2" cy="30.1" r="0.9" fill="#fff" opacity="0.85"/>' +
+          '<ellipse cx="32" cy="38" rx="3.2" ry="2.4" fill="#2e2116"/>' +
+          '<ellipse cx="31.2" cy="37.4" rx="1" ry="0.7" fill="#fff" opacity="0.6"/>' +
+          '<path d="M32 40 Q32 44 28 44" fill="none" stroke="#7a5a34" stroke-width="1.6" stroke-linecap="round"/>'
+        );
+      }
+
       function renderPet(kind, accent) {
+        if (kind !== "none" && cfg.pet_3d) {
+          petPal.innerHTML = renderPet3d(kind);
+          petPal.classList.add("show");
+          petPal.style.setProperty("--dir", palFacing);
+          return;
+        }
         if (kind === "cat") {
           petPal.innerHTML =
             '<ellipse cx="32" cy="46" rx="18" ry="14" fill="#5a5a64"/>' +
@@ -2759,7 +2959,7 @@
         if (petKind === "none") return;
         petAsleep = sleep;
         petZzz.classList.toggle("show", sleep);
-        petPal.style.filter = sleep ? "brightness(0.6)" : "none";
+        petPal.classList.toggle("asleep", sleep);
       }
 
       let palX = 14;

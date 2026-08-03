@@ -2,6 +2,44 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [3.38.0] — 2026-08-02
+
+### 🧊 3D-Modus für Mini Jon, Katze und Hund
+
+Ein Schalter im Zahnrad-Menü unter **Mini Jon & Haustier** — und alle drei bekommen Tiefe:
+
+- **Mini Jon** wird zur Kugel statt zur Scheibe: ein Glanzlicht oben links, Abschattung
+  unten rechts, dazu eine sanfte Drehung um die eigene Achse (`rotateY`/`rotateX` mit
+  Perspektive) und ein mitwandernder Bodenschatten.
+- **Katze und Hund** bekommen plastische Verläufe für Körper, Kopf und Ohren, Glanzlichter
+  in den Augen, eine feuchte Nase, einen weichen Bodenschatten und dieselbe leichte
+  Drehung. Ihre Laufrichtung bleibt dabei erhalten.
+- Der Schatten überlebt jetzt auch das Schlafen: `setPetSleep` arbeitet mit einer
+  CSS-Klasse statt einem Inline-Filter, der den Schatten vorher überschrieben hätte.
+- Aus bleibt aus: Ohne den Schalter sieht alles exakt so aus wie bisher.
+
+### 🤝 Ollama teilen direkt aus dem Chat
+
+- Neuer Knopf **🤝 Ollama teilen** in der Chat-Kopfzeile. Er öffnet Freigabe und
+  Verbindungsaufbau in einem Fenster — Server freigeben, Code kopieren oder den Code eines
+  anderen eintragen.
+- **Neuer Eintrag in der Anbieterauswahl**: Sobald dir jemand seinen Server freigegeben
+  hat, steht dort **„Ollama von &lt;Name&gt;"** — nur dann, sonst nicht.
+- Wählst du ihn, ist **das Modell fest vorgegeben**: Es ist genau das, was der Besitzer
+  teilt. Statt der Modell-Auswahl steht ein Schloss mit dem Modellnamen; ändern kann man
+  es nicht. Wechselt der Besitzer sein Modell, zieht die Anzeige beim nächsten
+  Aktualisieren nach.
+
+### 🛑 Der Knopf neben dem X beendet jetzt wirklich alles
+
+Der Pfeil-nach-unten in der Titelleiste hat Jon bisher nur ausgeblendet — Backend und
+Konsolenfenster liefen weiter. Jetzt stoppt er **alles**: Jon-Fenster, Mini Jon, das
+Backend und das zugehörige Konsolenfenster (`start-jon.bat`, `jon-backend.exe`,
+`app.main`). Wer Jon weiter im Hintergrund laufen lassen will, nimmt den Eintrag
+**Fenster ausblenden (Jon läuft weiter)** im Infobereich.
+
+Die komplette Suite bleibt grün (247 → 251).
+
 ## [3.37.2] — 2026-08-02
 
 ### 🤝 Ollama-Server über den Jon-Chat freigeben

@@ -197,6 +197,9 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   Tokens, Context Length, Keep Alive, Seed, System Prompt, Streaming, Timeout). Der Server
   darf auf deinem PC, auf einem zweiten Rechner im Heimnetz oder über Tailscale laufen —
   ganz ohne API-Schlüssel (siehe [docs/OLLAMA.md](docs/OLLAMA.md))
+- **🧊 3D-Modus für Mini Jon** — ein Schalter im Zahnrad-Menü, und Mini Jon, Katze und
+  Hund bekommen Kugelform mit Glanzlicht, Abschattung, sanfter Eigendrehung und
+  Bodenschatten
 - **🤝 Ollama-Server freigeben** — gib deinen Server per Freigabecode oder Einladungslink
   für andere Jon-Nutzer frei (privat, nur Eingeladene oder öffentlich). Bei ihnen taucht er
   automatisch in der KI-Auswahl auf; du siehst jederzeit, wer verbunden ist, welches Modell
@@ -323,9 +326,11 @@ chatten — ohne selbst etwas zu installieren.
 - **Freigeben:** Im Ollama-Fenster unter **Serverfreigabe** einschalten, Namen und
   Beschreibung eintragen, Sichtbarkeit wählen (**Privat**, **Nur Eingeladene** oder
   **Öffentlich**) und den **Freigabecode** oder **Einladungslink** weitergeben.
-- **Verbinden:** Der andere trägt Code oder Link unter **Freigegebene Server nutzen** ein.
-  Danach stehen deine Modelle bei ihm oben in der KI-Auswahl — Chat, Verlauf, Streaming
-  und alle Ollama-Einstellungen funktionieren ganz normal.
+- **Verbinden:** Der andere trägt Code oder Link unter **Freigegebene Server nutzen** ein —
+  am schnellsten über den Knopf **🤝 Ollama teilen** oben im Chat. Danach steht bei ihm in
+  der Anbieterauswahl zusätzlich **„Ollama von <dein Name>"**; wählt er sie, ist dein
+  geteiltes Modell fest eingestellt und nicht änderbar. Chat, Verlauf, Streaming und alle
+  Ollama-Einstellungen funktionieren ganz normal.
 - **Verwalten:** Du siehst jeden verbundenen Benutzer mit Status, genutztem Modell,
   Sitzungen, Anfragen und letzter Aktivität — und wirfst ihn mit einem Klick wieder
   hinaus. **Allen Zugriff entziehen** wirkt sofort, auch mitten in einer Antwort.

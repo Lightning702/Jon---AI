@@ -148,7 +148,7 @@ async def providers() -> list[ProviderStatus]:
             for status in statuses
         )
     )
-    return [
+    found = [
         ProviderStatus(
             provider=status.provider,
             configured=status.configured,
@@ -157,6 +157,19 @@ async def providers() -> list[ProviderStatus]:
         )
         for status, models in zip(statuses, model_lists)
     ]
+    for entry in get_share_service().providers():
+        found.append(
+            ProviderStatus(
+                provider=entry["provider"],
+                configured=True,
+                env_var="",
+                models=[entry["model"]],
+                label=entry["label"],
+                owner=entry["owner"],
+                locked=True,
+            )
+        )
+    return found
 
 
 @router.get("/providers/{name}/models", response_model=list[str])

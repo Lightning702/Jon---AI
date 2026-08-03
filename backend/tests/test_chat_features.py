@@ -493,3 +493,14 @@ def test_timeout_wird_nicht_wiederholt():
     assert APIConnectionError in STALL_ERRORS
     assert APITimeoutError not in TRANSIENT_ERRORS
     assert InternalServerError in TRANSIENT_ERRORS
+
+
+def test_3d_modus_wird_dauerhaft_gespeichert(tmp_path, monkeypatch):
+    from app.services import settings_service as ss
+
+    monkeypatch.setattr(ss, "SETTINGS_FILE", tmp_path / "settings.json")
+    service = ss.SettingsService()
+    assert service.get()["pet_3d"] is False
+    service.update({"pet_3d": True})
+    monkeypatch.setattr(ss, "SETTINGS_FILE", tmp_path / "settings.json")
+    assert ss.SettingsService().get()["pet_3d"] is True

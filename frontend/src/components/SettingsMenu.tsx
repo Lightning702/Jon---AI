@@ -133,6 +133,7 @@ export default function SettingsMenu({
   const [routine, setRoutine] = useState(true);
   const [petRoam, setPetRoam] = useState(false);
   const [petWellness, setPetWellness] = useState(true);
+  const [pet3d, setPet3d] = useState(false);
   const [petCompanion, setPetCompanion] = useState("none");
   const [connections, setConnections] = useState<UserSettings | null>(null);
   const [wakeSensitivity, setWakeSensitivity] = useState("mittel");
@@ -189,6 +190,7 @@ export default function SettingsMenu({
       setRoutine(s.routine_enabled !== false);
       setPetRoam(s.pet_roam === true);
       setPetWellness(s.pet_wellness !== false);
+      setPet3d(s.pet_3d === true);
       setPetCompanion(s.pet_companion || "none");
       setWakeSensitivity(s.wake_sensitivity || "mittel");
       setSelectedMic(s.microphone_device || "default");
@@ -292,6 +294,12 @@ export default function SettingsMenu({
     const next = !petRoam;
     setPetRoam(next);
     void saveUserSettings({ pet_roam: next });
+  };
+
+  const togglePet3d = () => {
+    const next = !pet3d;
+    setPet3d(next);
+    void saveUserSettings({ pet_3d: next });
   };
 
   const togglePetWellness = () => {
@@ -618,6 +626,12 @@ export default function SettingsMenu({
                 hint="Mini Jon wandert am unteren Rand herum statt fest in der Ecke zu stehen. Schläft, wenn du weg bist."
                 on={petRoam}
                 onClick={togglePetRoam}
+              />
+              <Toggle
+                label="3D-Modus"
+                hint="Mini Jon, Katze und Hund bekommen Tiefe: Kugelform mit Licht und Schatten, sanfte Drehung und Bodenschatten."
+                on={pet3d}
+                onClick={togglePet3d}
               />
               <Toggle
                 label="Trink- & Steh-Erinnerungen"

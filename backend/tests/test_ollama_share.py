@@ -496,6 +496,61 @@ def test_netzwerksuche_kennt_offene_einladungen(shares):
     assert shares.answer_query(invite["code"]) is None
 
 
+def test_geteilter_server_wird_ein_eigener_anbieter(shares, ollama, monkeypatch):
+    monkeypatch.setattr(share_mod, "_service", shares)
+    _remote(shares, models=("llama3.2", "mistral"))
+    shares.update_remote("AB39KD12", {"model": "llama3.2", "owner": "Felix"})
+    eintraege = shares.providers()
+    assert eintraege == [
+        {
+            "provider": "share:AB39KD12",
+            "label": "Ollama von Felix",
+            "owner": "Felix",
+            "model": "llama3.2",
+        }
+    ]
+    liste = client.get("/api/providers").json()
+    geteilt = [p for p in liste if p["provider"] == "share:AB39KD12"]
+    assert geteilt and geteilt[0]["label"] == "Ollama von Felix"
+    assert geteilt[0]["models"] == ["llama3.2"]
+    assert geteilt[0]["locked"] is True
+    assert geteilt[0]["configured"] is True
+
+
+def test_anbieter_der_freigabe_waehlt_das_geteilte_modell(shares, ollama, monkeypatch):
+    monkeypatch.setattr(share_mod, "_service", shares)
+    _remote(shares, models=("llama3.2", "mistral"))
+    shares.update_remote("AB39KD12", {"model": "mistral"})
+    from app.schemas import ChatIn, MessageIn
+    from app.services.chat_service import ChatService
+
+    payload = ChatIn(
+        messages=[MessageIn(role="user", content="Hi")],
+        provider="share:AB39KD12",
+        model="egal",
+        persist=False,
+    )
+    assert ChatService().resolve(payload) == ("ollama", "share:AB39KD12/mistral")
+
+
+def test_gastgeber_nennt_sein_geteiltes_modell(host, shares, ollama, monkeypatch):
+    shares.update_share({"enabled": True, "visibility": "public"})
+    ollama.update({"model": "llama3.2"})
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"models": [{"name": "llama3.2"}]})
+
+    _patch_client(monkeypatch, handler)
+    joined = host.post(
+        "/share/join", json={"code": shares.share()["code"], "name": "Anna"}
+    ).json()
+    assert joined["model"] == "llama3.2"
+    tags = host.get(
+        "/share/api/tags", headers={"Authorization": f"Bearer {joined['token']}"}
+    ).json()
+    assert tags["model"] == "llama3.2"
+
+
 def test_api_endpunkte_der_freigabe(shares):
     assert client.get("/api/ollama/share").status_code == 200
     res = client.put(
