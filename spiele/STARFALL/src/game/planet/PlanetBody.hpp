@@ -30,6 +30,7 @@ public:
     f64 atmosphereTopRadius() const { return planet.radiusMeters + atmosphereThickness; }
 
     f64 elevationAt(const DVec3& unitDirection) const;
+    f64 elevationAtDetail(const DVec3& unitDirection, u32 detailLevel) const;
     f64 radiusAt(const DVec3& unitDirection) const;
     DVec3 surfacePoint(const DVec3& unitDirection) const;
     DVec3 upAt(const DVec3& localPosition) const;

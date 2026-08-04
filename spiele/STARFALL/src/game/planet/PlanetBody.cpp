@@ -14,7 +14,11 @@ void PlanetBody::configure(const PlanetProfile& profile, const DVec3& systemLoca
 }
 
 f64 PlanetBody::elevationAt(const DVec3& unitDirection) const {
-    return PlanetGenerator::surfaceHeightAt(planet, unitDirection) * amplitude;
+    return PlanetGenerator::surfaceHeightAt(planet, unitDirection, 3) * amplitude;
+}
+
+f64 PlanetBody::elevationAtDetail(const DVec3& unitDirection, u32 detailLevel) const {
+    return PlanetGenerator::surfaceHeightAt(planet, unitDirection, detailLevel) * amplitude;
 }
 
 f64 PlanetBody::radiusAt(const DVec3& unitDirection) const {

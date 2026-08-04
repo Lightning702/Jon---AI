@@ -1,5 +1,6 @@
 #include "TerrainChunk.hpp"
 
+#include "../../engine/job/ParallelFor.hpp"
 #include "../../engine/math/Scalar.hpp"
 #include "../../engine/math/SphericalCoords.hpp"
 
@@ -12,8 +13,8 @@ void generateTerrainGeometry(const PlanetBody& body, u32 face, f64 originU, f64 
 
     out.vertices.clear();
     out.indices.clear();
-    out.vertices.reserve(vertexCount + resolution * 4);
     out.indices.reserve((resolution - 1) * (resolution - 1) * 6 + resolution * 24);
+    (void)vertexCount;
 
     const DVec3 centerDirection = cubeFaceDirection(face, originU + size * 0.5, originV + size * 0.5);
     const DVec3 centerPoint = centerDirection * body.radiusAt(centerDirection);
@@ -24,26 +25,33 @@ void generateTerrainGeometry(const PlanetBody& body, u32 face, f64 originU, f64 
 
     const u32 borderedResolution = resolution + 2;
     const f64 step = size / static_cast<f64>(resolution - 1);
+    const f64 chunkWorldSize = size * body.seaLevelRadius() * 1.7;
+    const u32 detailLevel = PlanetGenerator::detailLevelForChunkSize(chunkWorldSize);
+
     std::vector<DVec3> directions(static_cast<usize>(borderedResolution) * borderedResolution);
     std::vector<f64> radii(directions.size());
     std::vector<f64> elevations(directions.size());
 
-    for (u32 row = 0; row < borderedResolution; ++row) {
+    const PlanetBody* bodyPointer = &body;
+    parallelFor(borderedResolution, 4, [&](usize row) {
         for (u32 column = 0; column < borderedResolution; ++column) {
             const f64 u = originU + step * (static_cast<f64>(column) - 1.0);
             const f64 v = originV + step * (static_cast<f64>(row) - 1.0);
-            const usize index = static_cast<usize>(row) * borderedResolution + column;
+            const usize index = row * borderedResolution + column;
             directions[index] = cubeFaceDirection(face, u, v);
-            elevations[index] = body.elevationAt(directions[index]);
-            radii[index] = hasWater && elevations[index] < 0.0 ? body.seaLevelRadius()
-                                                               : body.seaLevelRadius() + elevations[index];
+            elevations[index] = bodyPointer->elevationAtDetail(directions[index], detailLevel);
+            radii[index] = hasWater && elevations[index] < 0.0
+                               ? bodyPointer->seaLevelRadius()
+                               : bodyPointer->seaLevelRadius() + elevations[index];
         }
-    }
+    });
 
-    f64 maximumDistance = 0.0;
-    for (u32 row = 0; row < resolution; ++row) {
+    out.vertices.resize(static_cast<usize>(resolution) * resolution);
+    std::vector<f64> rowMaxima(resolution, 0.0);
+
+    parallelFor(resolution, 4, [&](usize row) {
         for (u32 column = 0; column < resolution; ++column) {
-            const u32 borderedRow = row + 1;
+            const u32 borderedRow = static_cast<u32>(row) + 1;
             const u32 borderedColumn = column + 1;
             const usize index = static_cast<usize>(borderedRow) * borderedResolution + borderedColumn;
             const DVec3 direction = directions[index];
@@ -74,10 +82,13 @@ void generateTerrainGeometry(const PlanetBody& body, u32 face, f64 originU, f64 
             vertex.slope = static_cast<f32>(slope * 0.84);
             vertex.water = (hasWater && elevations[index] < 0.0) ? 1.0f : 0.0f;
 
-            out.vertices.push_back(vertex);
-            maximumDistance = maxValue(maximumDistance, length(relative));
+            out.vertices[row * resolution + column] = vertex;
+            rowMaxima[row] = maxValue(rowMaxima[row], length(relative));
         }
-    }
+    });
+
+    f64 maximumDistance = 0.0;
+    for (f64 rowMaximum : rowMaxima) maximumDistance = maxValue(maximumDistance, rowMaximum);
 
     for (u32 row = 0; row + 1 < resolution; ++row) {
         for (u32 column = 0; column + 1 < resolution; ++column) {

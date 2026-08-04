@@ -130,7 +130,8 @@ public:
                                    const PlanetProfile& planet);
     static const char* planetClassName(PlanetClass value);
     static const char* biomeName(BiomeType value);
-    static f64 surfaceHeightAt(const PlanetProfile& planet, const DVec3& unitDirection);
+    static f64 surfaceHeightAt(const PlanetProfile& planet, const DVec3& unitDirection, u32 detailLevel = 3);
+    static u32 detailLevelForChunkSize(f64 chunkWorldSizeMeters);
 };
 
 }

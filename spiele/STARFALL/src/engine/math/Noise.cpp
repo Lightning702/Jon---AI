@@ -237,11 +237,34 @@ WorleyResult worleyNoise3(u64 seed, const DVec3& position) {
     return result;
 }
 
-f64 craterField(u64 seed, const DVec3& unitDirection, f64 density, f64 depth) {
+f64 worleyNearestDistance(u64 seed, const DVec3& position) {
+    const i64 baseX = floorToInt(position.x);
+    const i64 baseY = floorToInt(position.y);
+    const i64 baseZ = floorToInt(position.z);
+    f64 nearest = 1.0e30;
+
+    for (i64 offsetZ = -1; offsetZ <= 1; ++offsetZ) {
+        for (i64 offsetY = -1; offsetY <= 1; ++offsetY) {
+            for (i64 offsetX = -1; offsetX <= 1; ++offsetX) {
+                const i64 cellX = baseX + offsetX;
+                const i64 cellY = baseY + offsetY;
+                const i64 cellZ = baseZ + offsetZ;
+                const u64 cellHash = hashCoordinate(seed, cellX, cellY, cellZ);
+                const DVec3 feature(static_cast<f64>(cellX) + unitFromHash(cellHash),
+                                    static_cast<f64>(cellY) + unitFromHash(splitMix64(cellHash)),
+                                    static_cast<f64>(cellZ) + unitFromHash(splitMix64(cellHash + 7919ull)));
+                nearest = minValue(nearest, lengthSquared(feature - position));
+            }
+        }
+    }
+    return std::sqrt(nearest);
+}
+
+f64 craterField(u64 seed, const DVec3& unitDirection, f64 density, f64 depth, u32 layers) {
     f64 total = 0.0;
     f64 scale = density;
     f64 weight = depth;
-    for (u32 layer = 0; layer < 4; ++layer) {
+    for (u32 layer = 0; layer < layers; ++layer) {
         const WorleyResult cells = worleyNoise3(hashCombine(seed, layer + 811u), unitDirection * scale);
         const f64 radius = 0.28 + unitFromHash(cells.cellHash) * 0.30;
         const f64 normalized = cells.nearestDistance / radius;

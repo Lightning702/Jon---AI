@@ -341,37 +341,50 @@ const char* PlanetGenerator::biomeName(BiomeType value) {
     }
 }
 
-f64 PlanetGenerator::surfaceHeightAt(const PlanetProfile& planet, const DVec3& unitDirection) {
+u32 PlanetGenerator::detailLevelForChunkSize(f64 chunkWorldSizeMeters) {
+    if (chunkWorldSizeMeters > 260000.0) return 0;
+    if (chunkWorldSizeMeters > 26000.0) return 1;
+    if (chunkWorldSizeMeters > 2600.0) return 2;
+    return 3;
+}
+
+f64 PlanetGenerator::surfaceHeightAt(const PlanetProfile& planet, const DVec3& unitDirection, u32 detailLevel) {
+    const u32 detail = clampValue(detailLevel, 0u, 3u);
+
     FractalSettings continental;
-    continental.octaves = 6;
+    continental.octaves = detail == 0 ? 3u : (detail == 1 ? 4u : 6u);
     continental.frequency = 1.15;
     continental.lacunarity = 2.07;
     continental.gain = 0.52;
 
-    const DVec3 warped = domainWarp3(planet.seed, unitDirection, 0.32, 1.7);
-    const f64 continents = fractalNoise3(planet.seed, warped, continental);
+    const DVec3 warped = detail == 0 ? unitDirection : domainWarp3(planet.seed, unitDirection, 0.32, 1.7);
+    f64 height = fractalNoise3(planet.seed, warped, continental) * 0.55;
 
-    const WorleyResult plates = worleyNoise3(planet.seed ^ 0x504C4154ull, unitDirection * 2.6);
-    const f64 plateBoundary = clampValue(1.0 - (plates.secondDistance - plates.nearestDistance) * 3.4, 0.0, 1.0);
+    if (detail >= 1 && planet.mountainRuggedness > 0.02) {
+        const WorleyResult plates = worleyNoise3(planet.seed ^ 0x504C4154ull, unitDirection * 2.6);
+        const f64 plateBoundary = clampValue(1.0 - (plates.secondDistance - plates.nearestDistance) * 3.4, 0.0, 1.0);
 
-    FractalSettings mountains;
-    mountains.octaves = 7;
-    mountains.frequency = 4.2;
-    mountains.lacunarity = 2.11;
-    mountains.gain = 0.48;
-    const f64 ridges = ridgedMultifractal3(planet.seed ^ 0x4D4E54ull, unitDirection, mountains);
+        FractalSettings mountains;
+        mountains.octaves = detail == 1 ? 4u : 7u;
+        mountains.frequency = 4.2;
+        mountains.lacunarity = 2.11;
+        mountains.gain = 0.48;
+        const f64 ridges = ridgedMultifractal3(planet.seed ^ 0x4D4E54ull, unitDirection, mountains);
+        height += ridges * plateBoundary * planet.mountainRuggedness * 0.62;
+    }
 
-    const f64 volcanicHotspots = planet.volcanism *
-                                 clampValue(1.0 - worleyNoise3(planet.seed ^ 0x564F4Cull, unitDirection * 3.1).nearestDistance * 2.6, 0.0, 1.0);
+    if (detail >= 2 && planet.volcanism > 0.02) {
+        const f64 hotspot = clampValue(
+            1.0 - worleyNearestDistance(planet.seed ^ 0x564F4Cull, unitDirection * 3.1) * 2.6, 0.0, 1.0);
+        height += planet.volcanism * hotspot * 0.34;
+    }
 
-    const f64 craters = craterField(planet.seed ^ 0x435241ull, unitDirection, 7.5, planet.craterDensity * 0.55);
+    if (detail >= 2 && planet.craterDensity > 0.03) {
+        const u32 layers = detail >= 3 ? 4u : 2u;
+        height += craterField(planet.seed ^ 0x435241ull, unitDirection, 7.5, planet.craterDensity * 0.55, layers);
+    }
 
-    f64 height = continents * 0.55;
-    height += ridges * plateBoundary * planet.mountainRuggedness * 0.62;
-    height += volcanicHotspots * 0.34;
-    height += craters;
     height *= 1.0 - planet.erosionFactor * 0.34;
-
     if (planet.features.oceanWorld) height -= 0.32;
     return height;
 }

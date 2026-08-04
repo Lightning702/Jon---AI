@@ -75,6 +75,46 @@ Intel UHD 620, 1280×720, Menüszene bei T+68 s (Nahumkreisung, teuerster Moment
 Im normalen Flug ohne das Schwarze Loch im Bild liegt der Sparmodus auf derselben Hardware
 über 60 fps.
 
+## Terrain auf der Oberfläche
+
+Der zweite teure Pfad ist die Kachelerzeugung. Jede Kachel wertet ein 27×27-Randgitter aus,
+jeder Punkt kostet in voller Detailstufe rund 16 Simplex- und 162 Worley-Zellauswertungen.
+
+Drei Maßnahmen:
+
+1. **Normalen aus dem Gitter.** Vorher wurden je Vertex vier zusätzliche volle
+   Höhenfeldauswertungen für die Normale gemacht. Jetzt entstehen die Normalen aus
+   Differenzen der bereits berechneten Nachbarhöhen im Randgitter. Faktor 5 auf den
+   Höhenfeldanteil.
+2. **Detailstufe nach Kachelgröße.** `PlanetGenerator::detailLevelForChunkSize` schaltet
+   Oktaven und Feature-Schichten nach Weltgröße der Kachel:
+
+   | Kachelgröße | Kontinent-Oktaven | Gebirge | Vulkanismus | Krater |
+   |---|---|---|---|---|
+   | > 260 km | 3, ohne Domain-Warp | aus | aus | aus |
+   | > 26 km | 4 | 4 Oktaven | aus | aus |
+   | > 2,6 km | 6 | 7 Oktaven | an | 2 Schichten |
+   | sonst | 6 | 7 Oktaven | an | 4 Schichten |
+
+   Kollisionsabfragen (`elevationAt`) laufen immer in voller Detailstufe, damit der Spieler
+   nicht einsinkt oder schwebt. In Spielernähe ist die Kachel ohnehin auf der feinsten
+   Stufe, dort stimmen Mesh und Kollision exakt überein.
+3. **Parallelisierung.** Rand- und Vertexgitter laufen über `parallelFor` auf dem
+   Work-Stealing-Scheduler. Die Punkte sind voneinander unabhängig, das Ergebnis bleibt
+   bitidentisch.
+
+Gemessen auf Intel UHD 620, 1280×720, gelandet:
+
+| | vorher | nachher |
+|---|---|---|
+| Bildrate auf der Oberfläche | ~14 fps | ~42 fps |
+| Vorladen beim Landen | 3,4 s | 1,5 s |
+| 450 Bilder gesamt | — | 11,9 s |
+
+Damit ist das 60-fps-Ziel auf dieser Notebook-Grafik weiter nicht erreicht, aber die
+Oberfläche ist spielbar. Der nächste Schritt wäre asynchrone Kachelerzeugung: die Kachel
+im Hintergrundjob bauen und erst beim Fertigwerden hochladen, statt den Frame zu blockieren.
+
 ## Speicher
 
 `MemoryTracker` führt Budgets je Kategorie und meldet Überschreitungen beim Beenden.

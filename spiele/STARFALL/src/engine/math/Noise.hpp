@@ -30,6 +30,7 @@ struct WorleyResult {
 };
 
 WorleyResult worleyNoise3(u64 seed, const DVec3& position);
-f64 craterField(u64 seed, const DVec3& unitDirection, f64 density, f64 depth);
+f64 worleyNearestDistance(u64 seed, const DVec3& position);
+f64 craterField(u64 seed, const DVec3& unitDirection, f64 density, f64 depth, u32 layers);
 
 }
