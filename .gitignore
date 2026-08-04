@@ -34,3 +34,10 @@ ECHO/bin/*.ilk
 /vk_swiftshader_icd.json
 /locales/
 /resources/
+
+# STARFALL
+spiele/STARFALL/saves/
+spiele/STARFALL/settings.cfg
+spiele/STARFALL/bin/*.pdb
+spiele/STARFALL/bin/*.ilk
+spiele/STARFALL/vorschau/*.ppm
