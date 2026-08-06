@@ -1,21 +1,21 @@
 {
   "sammlung": "FelWorks Game Collection",
   "herausgeber": "FelWorks",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "bauen": "build.bat",
   "spiele": [
     {
       "id": "starfall",
-      "titel": "STARFALL: BEYOND THE VOID",
-      "genre": "Sci-Fi Open World",
-      "icon": "🌌",
-      "kurz": "Ein Universum, ein Schwarzes Loch, kein Weg zurueck.",
-      "beschreibung": "Prozedurales Sci-Fi-Universum in C++ ohne Engine: deterministisch aus einem Seed erzeugte Galaxien, Sternsysteme und Planeten, 6-DOF-Newtonflug mit echter Orbitalmechanik, Hyperraum mit Routenplanung und eine Galaxiekarte ueber sechs Zoomstufen. Du kannst landen, aussteigen und zu Fuss ueber die Kugeloberflaeche laufen: Rohstoffe abbauen, Anzug und Ueberleben verwalten, Rezepte herstellen, Flora und Fauna scannen und benennen, eine Basis aus acht Kategorien bauen und an Handelsposten kaufen und verkaufen. Im Zentrum steht THE VOID HEART, ein supermassives Schwarzes Loch mit 4,1 Millionen Sonnenmassen: der Ereignishorizont wird pro Pixel durch Integration von Nullgeodaeten in der Kerr-Metrik gerendert, mit Gravitationslinse, Photonenring, Akkretionsscheibe mit Doppler-Beaming und Rotverschiebung, relativistischen Jets und echter Zeitdilatation. Jon fliegt als KI-Begleiter mit, offline vollstaendig spielbar. Ein Sparmodus erkennt schwache Grafik automatisch.",
-      "steuerung": "SCHIFF: W/S Schub · A/D Gieren · Q/E Rollen · Maus Nick/Gier · Shift Nachbrenner · Strg Bremsen · L Landen · H Hyperantrieb · M Galaxiekarte || ZU FUSS: WASD laufen · Shift Sprint · Strg Ducken · Leertaste Springen/Jetpack · LMB Werkzeug · Q Werkzeug wechseln · Tab Inventar · X Herstellung · B Baumodus · T Handel · K Entdeckungen · E Schiff besteigen || F5/F6 Grafikstufe · F7 Auto · F8 Sparmodus · F11 Vollbild · J Jon · Esc Menue",
+      "titel": "STARFALL Schwarzloch-Simulation",
+      "genre": "Physik-Simulation",
+      "icon": "🕳️",
+      "kurz": "Ein echtes Schwarzes Loch, Lichtstrahl fuer Lichtstrahl gerechnet.",
+      "beschreibung": "Echtzeit-Simulation eines rotierenden Schwarzen Lochs in C++ ohne Engine. Fuer jeden Bildpunkt wird eine Nullgeodaete in der Kerr-Metrik integriert: daraus entstehen Gravitationslinse, Photonenring und die Akkretionsscheibe, die durch die Lichtkruemmung gleichzeitig ueber und unter dem Horizont erscheint. Die Scheibe folgt dem Temperaturprofil T proportional r hoch minus drei Viertel mit Doppler-Beaming und Gravitationsrotverschiebung, dazu relativistische Jets entlang der Spinachse. Sechs Objekte zur Auswahl, darunter Sagittarius A*, M87* und Cygnus X-1, alle Kennzahlen live berechnet: Horizont, Ergosphaere, Photonensphaere, ISCO, Zeitdilatation, Hawking-Temperatur. Masse, Spin und Scheibe lassen sich waehrend der Simulation verstellen. Ein Sparmodus erkennt schwache Grafik automatisch.",
+      "steuerung": "1-6 Objekt waehlen · Linksziehen drehen · Mausrad Abstand · V Ansicht (Orbit/Freiflug/Kamerafahrt) · Pfeile hoch/runter Regler waehlen · Pfeile links/rechts Wert aendern · Shift schneller · C Regler aus · Tab Anzeige aus · P Bild speichern · R zuruecksetzen · F5/F6 Grafikstufe · F7 Automatik · F8 Sparmodus · F11 Vollbild · Esc Beenden",
       "vorschau": "vorschau/starfall.jpg",
       "exe": "bin/STARFALL.exe",
       "args": [],
-      "version": "0.1.0"
+      "version": "1.0.0"
     }
   ]
 }

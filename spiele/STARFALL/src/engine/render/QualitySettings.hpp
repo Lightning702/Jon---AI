@@ -22,18 +22,11 @@ struct QualitySettings {
     u32 blackHoleMaximumSteps = 320;
     f32 blackHoleStepFraction = 0.024f;
     i32 blackHoleIntegratorOrder = 2;
-    f32 blackHoleJetStrength = 1.0f;
     i32 skyDetail = 2;
-    u32 sphereSubdivisions = 5;
-    bool atmosphereEnabled = true;
-    bool ringsEnabled = true;
     bool bloomEnabled = true;
     u32 bloomLevels = 5;
     f32 filmGrain = 0.016f;
     f32 chromaticAberration = 0.0014f;
-    u32 maximumVisibleBodies = 64;
-    u32 mapStarBudget = 900;
-    bool verticalSyncRecommended = true;
 
     static QualitySettings fromPreset(QualityPreset preset);
     static const char* presetName(QualityPreset preset);

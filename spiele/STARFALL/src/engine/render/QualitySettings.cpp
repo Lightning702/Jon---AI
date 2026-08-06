@@ -29,17 +29,11 @@ QualitySettings QualitySettings::fromPreset(QualityPreset preset) {
             settings.blackHoleMaximumSteps = 96;
             settings.blackHoleStepFraction = 0.062f;
             settings.blackHoleIntegratorOrder = 1;
-            settings.blackHoleJetStrength = 0.0f;
             settings.skyDetail = 0;
-            settings.sphereSubdivisions = 2;
-            settings.atmosphereEnabled = false;
-            settings.ringsEnabled = false;
             settings.bloomEnabled = false;
             settings.bloomLevels = 0;
             settings.filmGrain = 0.0f;
             settings.chromaticAberration = 0.0f;
-            settings.maximumVisibleBodies = 12;
-            settings.mapStarBudget = 180;
             break;
         case QualityPreset::Niedrig:
             settings.sceneResolutionScale = 0.80f;
@@ -47,17 +41,11 @@ QualitySettings QualitySettings::fromPreset(QualityPreset preset) {
             settings.blackHoleMaximumSteps = 160;
             settings.blackHoleStepFraction = 0.042f;
             settings.blackHoleIntegratorOrder = 1;
-            settings.blackHoleJetStrength = 0.55f;
             settings.skyDetail = 1;
-            settings.sphereSubdivisions = 3;
-            settings.atmosphereEnabled = true;
-            settings.ringsEnabled = false;
             settings.bloomEnabled = true;
             settings.bloomLevels = 2;
             settings.filmGrain = 0.008f;
             settings.chromaticAberration = 0.0008f;
-            settings.maximumVisibleBodies = 24;
-            settings.mapStarBudget = 360;
             break;
         case QualityPreset::Mittel:
             settings.sceneResolutionScale = 1.0f;
@@ -65,12 +53,8 @@ QualitySettings QualitySettings::fromPreset(QualityPreset preset) {
             settings.blackHoleMaximumSteps = 280;
             settings.blackHoleStepFraction = 0.028f;
             settings.blackHoleIntegratorOrder = 2;
-            settings.blackHoleJetStrength = 1.0f;
             settings.skyDetail = 2;
-            settings.sphereSubdivisions = 4;
             settings.bloomLevels = 4;
-            settings.maximumVisibleBodies = 48;
-            settings.mapStarBudget = 700;
             break;
         case QualityPreset::Hoch:
             settings.sceneResolutionScale = 1.0f;
@@ -78,12 +62,8 @@ QualitySettings QualitySettings::fromPreset(QualityPreset preset) {
             settings.blackHoleMaximumSteps = 400;
             settings.blackHoleStepFraction = 0.020f;
             settings.blackHoleIntegratorOrder = 2;
-            settings.blackHoleJetStrength = 1.0f;
             settings.skyDetail = 2;
-            settings.sphereSubdivisions = 5;
             settings.bloomLevels = 5;
-            settings.maximumVisibleBodies = 72;
-            settings.mapStarBudget = 900;
             break;
         case QualityPreset::Ultra:
             settings.sceneResolutionScale = 1.0f;
@@ -91,14 +71,10 @@ QualitySettings QualitySettings::fromPreset(QualityPreset preset) {
             settings.blackHoleMaximumSteps = 520;
             settings.blackHoleStepFraction = 0.014f;
             settings.blackHoleIntegratorOrder = 2;
-            settings.blackHoleJetStrength = 1.0f;
             settings.skyDetail = 2;
-            settings.sphereSubdivisions = 6;
             settings.bloomLevels = 5;
             settings.filmGrain = 0.020f;
             settings.chromaticAberration = 0.0018f;
-            settings.maximumVisibleBodies = 128;
-            settings.mapStarBudget = 1400;
             break;
         default:
             break;

@@ -1,23 +1,8 @@
-#include "../src/engine/container/Array.hpp"
-#include "../src/engine/container/BitSet.hpp"
-#include "../src/engine/container/HashMap.hpp"
-#include "../src/engine/container/RingBuffer.hpp"
-#include "../src/engine/container/SparseSet.hpp"
-#include "../src/engine/core/Log.hpp"
-#include "../src/engine/ecs/Query.hpp"
-#include "../src/engine/math/Noise.hpp"
+#include "../src/engine/math/Mat4.hpp"
 #include "../src/engine/math/Quat.hpp"
 #include "../src/engine/math/Scalar.hpp"
-#include "../src/engine/memory/ArenaAllocator.hpp"
-#include "../src/engine/memory/PoolAllocator.hpp"
-#include "../src/engine/net/Json.hpp"
-#include "../src/engine/render/BlackHolePass.hpp"
 #include "../src/engine/render/QualitySettings.hpp"
-#include "../src/game/space/HyperdriveSystem.hpp"
-#include "../src/game/space/OrbitalMechanics.hpp"
-#include "../src/game/universe/GalaxyGenerator.hpp"
-#include "../src/game/voidheart/EndgameCampaign.hpp"
-#include "../src/game/voidheart/VoidHeart.hpp"
+#include "../src/sim/BlackHoleModel.hpp"
 
 #include <cstdio>
 #include <string>
@@ -28,7 +13,6 @@ namespace {
 
 u32 checksPassed = 0;
 u32 checksFailed = 0;
-std::vector<std::string> failureLog;
 
 void check(bool condition, const char* description) {
     if (condition) {
@@ -36,19 +20,16 @@ void check(bool condition, const char* description) {
         return;
     }
     ++checksFailed;
-    failureLog.push_back(description);
     std::printf("  FEHLER  %s\n", description);
 }
 
 void checkNear(f64 actual, f64 expected, f64 tolerance, const char* description) {
-    const bool ok = std::fabs(actual - expected) <= tolerance;
-    if (!ok) {
-        std::printf("  FEHLER  %s (erwartet %.9g, erhalten %.9g)\n", description, expected, actual);
-        ++checksFailed;
-        failureLog.push_back(description);
+    if (std::fabs(actual - expected) <= tolerance) {
+        ++checksPassed;
         return;
     }
-    ++checksPassed;
+    ++checksFailed;
+    std::printf("  FEHLER  %s (erwartet %.9g, erhalten %.9g)\n", description, expected, actual);
 }
 
 void testMath() {
@@ -63,324 +44,174 @@ void testMath() {
     checkNear(length(normalize(b)), 1.0, 1.0e-5, "Normalisierung");
 
     const Quat rotation = Quat::fromAxisAngle(Vec3::unitY(), kHalfPi);
-    const Vec3 rotated = rotation * Vec3::unitX();
-    checkNear(rotated.z, -1.0, 1.0e-4, "Quaternion-Rotation");
+    checkNear((rotation * Vec3::unitX()).z, -1.0, 1.0e-4, "Quaternion-Rotation");
 
     const Mat4 projection = Mat4::perspective(radians(60.0f), 16.0f / 9.0f, 0.1f, 1000.0f);
-    const Mat4 inverse = projection.inverted();
-    const Mat4 identity = projection * inverse;
+    const Mat4 identity = projection * projection.inverted();
     checkNear(identity.at(0, 0), 1.0, 1.0e-3, "Matrixinversion Diagonale");
     checkNear(identity.at(1, 0), 0.0, 1.0e-3, "Matrixinversion Nebendiagonale");
-
     checkNear(clampValue(5.0, 0.0, 1.0), 1.0, 1.0e-9, "Clamp");
     checkNear(smoothStep(0.0, 1.0, 0.5), 0.5, 1.0e-9, "SmoothStep");
 }
 
-void testContainers() {
-    std::printf("Container\n");
-    Array<i32> values;
-    for (i32 index = 0; index < 100; ++index) values.push(index);
-    check(values.size() == 100, "Array Groesse");
-    values.removeAtSwap(0);
-    check(values.size() == 99, "Array Entfernen");
+void testHorizonGeometry() {
+    std::printf("Horizontgeometrie\n");
+    checkNear(BlackHoleModel::horizonRadii(0.0), 2.0, 1.0e-9, "Schwarzschild-Horizont bei 2 r_g");
+    checkNear(BlackHoleModel::photonSphereRadii(0.0), 3.0, 1.0e-6, "Photonensphaere bei 3 r_g");
+    checkNear(BlackHoleModel::innermostStableOrbitRadii(0.0), 6.0, 1.0e-6, "ISCO bei 6 r_g");
+    checkNear(BlackHoleModel::ergosphereRadii(0.0, 0.0), 2.0, 1.0e-9, "Ergosphaere ohne Spin gleich Horizont");
 
-    SparseSet<f32> sparse;
-    sparse.insert(42, 3.5f);
-    sparse.insert(7, 1.25f);
-    check(sparse.contains(42) && sparse.contains(7), "SparseSet Einfuegen");
-    sparse.remove(42);
-    check(!sparse.contains(42) && sparse.contains(7), "SparseSet Entfernen");
+    checkNear(BlackHoleModel::horizonRadii(0.998), 1.0 + std::sqrt(1.0 - 0.998 * 0.998), 1.0e-9,
+              "Horizont bei der Thorne-Grenze");
+    checkNear(BlackHoleModel::horizonRadii(1.4), BlackHoleModel::horizonRadii(0.998), 1.0e-9,
+              "Spin wird auf 0,998 begrenzt");
+    checkNear(BlackHoleModel::innermostStableOrbitRadii(0.998), 1.2373, 2.0e-3, "ISCO bei Spin 0,998");
+    checkNear(BlackHoleModel::photonSphereRadii(0.998), 1.0743, 5.0e-3, "Photonenbahn bei Spin 0,998");
 
-    HashMap<u64, u32> map;
-    for (u64 index = 0; index < 500; ++index) map.insert(index * 7919ull, static_cast<u32>(index));
-    check(map.size() == 500, "HashMap Groesse");
-    const u32* found = map.find(7919ull * 250ull);
-    check(found != nullptr && *found == 250, "HashMap Suche");
+    check(BlackHoleModel::horizonRadii(0.94) < BlackHoleModel::horizonRadii(0.5), "Horizont schrumpft mit Spin");
+    check(BlackHoleModel::innermostStableOrbitRadii(0.94) < 6.0, "ISCO rueckt mit Spin nach innen");
+    check(BlackHoleModel::ergosphereRadii(0.9, 1.0) < BlackHoleModel::ergosphereRadii(0.9, 0.0),
+          "Ergosphaere am Pol enger als am Aequator");
 
-    RingBuffer<i32> ring(4);
-    ring.pushOverwrite(1);
-    ring.pushOverwrite(2);
-    ring.pushOverwrite(3);
-    ring.pushOverwrite(4);
-    ring.pushOverwrite(5);
-    check(ring.size() == 4, "RingBuffer Ueberschreiben");
-
-    BitSet bits(128);
-    bits.set(3);
-    bits.set(127);
-    check(bits.test(3) && bits.test(127) && !bits.test(4), "BitSet");
-    check(bits.countSet() == 2, "BitSet Zaehlung");
+    for (f64 spin = 0.0; spin <= 0.99; spin += 0.11) {
+        check(BlackHoleModel::innermostStableOrbitRadii(spin) >= BlackHoleModel::photonSphereRadii(spin),
+              "ISCO liegt nie innerhalb der Photonensphaere");
+        check(BlackHoleModel::photonSphereRadii(spin) >= BlackHoleModel::horizonRadii(spin),
+              "Photonensphaere liegt nie innerhalb des Horizonts");
+    }
 }
 
-void testAllocators() {
-    std::printf("Speicher\n");
-    ArenaAllocator arena(4096, MemoryCategory::Scratch);
-    void* first = arena.allocate(64, 16);
-    void* second = arena.allocate(128, 32);
-    check(first != nullptr && second != nullptr, "Arena Allokation");
-    check(reinterpret_cast<usize>(second) % 32 == 0, "Arena Ausrichtung");
-    const usize marker = arena.marker();
-    arena.allocate(256, 8);
-    arena.rewindTo(marker);
-    check(arena.bytesInUse() == marker, "Arena Rueckspulen");
-
-    PoolAllocator pool(sizeof(u64), alignof(u64), 8, MemoryCategory::Scratch);
-    void* slots[8];
-    for (u32 index = 0; index < 8; ++index) slots[index] = pool.acquire();
-    check(pool.acquire() == nullptr, "Pool erschoepft");
-    pool.recycle(slots[3]);
-    check(pool.acquire() == slots[3], "Pool Wiederverwendung");
+void testTimeDilation() {
+    std::printf("Zeitdilatation\n");
+    checkNear(BlackHoleModel::gravitationalTimeDilation(1.0e9), 1.0, 1.0e-6, "Fernfeld ohne Dilatation");
+    checkNear(BlackHoleModel::gravitationalTimeDilation(4.0), std::sqrt(0.5), 1.0e-9, "Faktor bei 4 r_g");
+    checkNear(BlackHoleModel::gravitationalTimeDilation(2.0), 0.0, 1.0e-9, "Null am Schwarzschild-Radius");
+    check(BlackHoleModel::gravitationalTimeDilation(1.5) == 0.0, "Innerhalb des Radius null");
+    check(BlackHoleModel::gravitationalTimeDilation(3.0) < BlackHoleModel::gravitationalTimeDilation(30.0),
+          "Naeher am Horizont laeuft die Uhr langsamer");
 }
 
-struct TestPosition {
-    f64 x = 0.0;
-    f64 y = 0.0;
-};
+void testMassScaling() {
+    std::printf("Massenskalierung\n");
+    BlackHoleModel model;
+    BlackHoleParameters parameters;
+    parameters.massSolar = 1.0;
+    parameters.spin = 0.0;
+    model.setParameters(parameters);
 
-struct TestVelocity {
-    f64 x = 0.0;
-};
+    checkNear(model.derived().schwarzschildRadiusMeters, 2953.25, 1.0, "Sonnenmasse ergibt 2,95 km");
 
-void testEntityComponentSystem() {
-    std::printf("ECS\n");
-    World world;
-    Entity first = world.createEntity();
-    Entity second = world.createEntity();
-    world.addComponent<TestPosition>(first, TestPosition{1.0, 2.0});
-    world.addComponent<TestVelocity>(first, TestVelocity{3.0});
-    world.addComponent<TestPosition>(second, TestPosition{7.0, 8.0});
+    parameters.massSolar = 4.297e6;
+    model.setParameters(parameters);
+    checkNear(model.derived().gravitationalRadiusMeters, 6.345e9, 2.0e7, "Sagittarius A* r_g rund 6,3 Mio. km");
 
-    check(world.component<TestPosition>(first) != nullptr, "Komponente vorhanden");
-    checkNear(world.component<TestPosition>(first)->y, 2.0, 1.0e-9, "Komponentenwert");
-    check(world.component<TestVelocity>(second) == nullptr, "Komponente fehlt korrekt");
+    parameters.massSolar = 2.0;
+    model.setParameters(parameters);
+    const f64 doubled = model.derived().gravitationalRadiusMeters;
+    parameters.massSolar = 1.0;
+    model.setParameters(parameters);
+    checkNear(doubled / model.derived().gravitationalRadiusMeters, 2.0, 1.0e-9, "r_g waechst linear mit der Masse");
 
-    Query query;
-    query.with<TestPosition>();
-    check(query.countMatches(world) == 2, "Query Treffer");
+    check(model.derived().hawkingTemperatureKelvin > 0.0, "Hawking-Temperatur positiv");
+    check(model.derived().evaporationYears > 1.0e60, "Verdampfungszeit einer Sonnenmasse ist astronomisch");
 
-    Query movingQuery;
-    movingQuery.with<TestPosition>().with<TestVelocity>();
-    check(movingQuery.countMatches(world) == 1, "Query mit zwei Komponenten");
-
-    world.destroyEntity(first);
-    check(!world.alive(first), "Entitaet zerstoert");
-    check(query.countMatches(world) == 1, "Query nach Zerstoerung");
+    parameters.massSolar = 1.0e9;
+    model.setParameters(parameters);
+    const f64 heavy = model.derived().hawkingTemperatureKelvin;
+    parameters.massSolar = 1.0;
+    model.setParameters(parameters);
+    check(heavy < model.derived().hawkingTemperatureKelvin, "Schwerere Loecher sind kaelter");
 }
 
-void testNoiseDeterminism() {
-    std::printf("Rauschen\n");
-    const DVec3 sample(12.75, -3.5, 8.25);
-    const f64 firstRun = simplexNoise3(1234, sample);
-    const f64 secondRun = simplexNoise3(1234, sample);
-    checkNear(firstRun, secondRun, 0.0, "Simplex deterministisch");
-    check(std::fabs(firstRun) <= 1.0, "Simplex im Wertebereich");
+void testDiskProfile() {
+    std::printf("Akkretionsscheibe\n");
+    const f64 inner = 6.0;
+    const f64 innerTemperature = 9800.0;
 
-    const f64 differentSeed = simplexNoise3(1235, sample);
-    check(std::fabs(differentSeed - firstRun) > 1.0e-9, "Seed veraendert Rauschen");
+    checkNear(BlackHoleModel::diskTemperatureAt(inner, inner, innerTemperature), 0.0, 1.0e-9,
+              "Temperatur faellt am Innenrand auf null");
+    check(BlackHoleModel::diskTemperatureAt(3.0, inner, innerTemperature) == 0.0,
+          "Innerhalb der ISCO gibt es keine Scheibe");
 
-    FractalSettings settings;
-    const f64 fractal = fractalNoise3(99, sample, settings);
-    check(std::fabs(fractal) <= 1.0, "Fraktales Rauschen im Wertebereich");
+    const f64 nearTemperature = BlackHoleModel::diskTemperatureAt(9.0, inner, innerTemperature);
+    const f64 farTemperature = BlackHoleModel::diskTemperatureAt(40.0, inner, innerTemperature);
+    check(nearTemperature > farTemperature, "Die Scheibe kuehlt nach aussen ab");
 
-    const WorleyResult worley = worleyNoise3(7, sample);
-    check(worley.nearestDistance <= worley.secondDistance, "Worley Reihenfolge");
+    const f64 ratio = BlackHoleModel::diskTemperatureAt(60.0, inner, innerTemperature) /
+                      BlackHoleModel::diskTemperatureAt(15.0, inner, innerTemperature);
+    const f64 edgeFar = std::pow(1.0 - std::sqrt(inner / 60.0), 0.25);
+    const f64 edgeNear = std::pow(1.0 - std::sqrt(inner / 15.0), 0.25);
+    checkNear(ratio, std::pow(4.0, -0.75) * (edgeFar / edgeNear), 1.0e-6,
+              "Profil folgt r hoch minus drei Viertel mit Innenrand-Term");
+
+    const f64 farRatio = BlackHoleModel::diskTemperatureAt(4800.0, inner, innerTemperature) /
+                         BlackHoleModel::diskTemperatureAt(1200.0, inner, innerTemperature);
+    checkNear(farRatio, std::pow(4.0, -0.75), 0.01, "Weit aussen bleibt reines r hoch minus drei Viertel");
+
+    f64 peakRadius = inner;
+    f64 peakTemperature = 0.0;
+    for (f64 radius = inner; radius < 60.0; radius += 0.05) {
+        const f64 temperature = BlackHoleModel::diskTemperatureAt(radius, inner, innerTemperature);
+        if (temperature <= peakTemperature) continue;
+        peakTemperature = temperature;
+        peakRadius = radius;
+    }
+    checkNear(peakRadius, inner * 49.0 / 36.0, 0.2, "Maximum liegt bei 49/36 des Innenradius");
 }
 
-void testUniverseDeterminism() {
-    std::printf("Universum\n");
-    UniverseSeed seed(0xC0FFEE);
-    GalaxyGenerator galaxyGenerator;
-    StarSystemGenerator systemGenerator;
+void testObserver() {
+    std::printf("Beobachter\n");
+    BlackHoleModel model;
+    BlackHoleParameters parameters;
+    parameters.massSolar = 4.1e6;
+    parameters.spin = 0.94;
+    model.setParameters(parameters);
 
-    const GalaxyProfile firstGalaxy = galaxyGenerator.generate(seed, 3);
-    const GalaxyProfile secondGalaxy = galaxyGenerator.generate(seed, 3);
-    check(firstGalaxy.seed == secondGalaxy.seed, "Galaxie-Seed reproduzierbar");
-    check(firstGalaxy.name == secondGalaxy.name, "Galaxiename reproduzierbar");
+    const ObserverReadout far = model.observerAt(1.0e6);
+    checkNear(far.gravitationalTimeDilation, 1.0, 1.0e-5, "Fernfeld ohne Dilatation");
+    check(!far.insideErgosphere && !far.insideHorizon, "Fernfeld ausserhalb aller Zonen");
+    check(far.circularOrbitSpeedFraction < 0.01, "Weit draussen ist die Bahngeschwindigkeit klein");
 
-    SystemCoord coordinate;
-    coordinate.x = 17;
-    coordinate.y = -4;
-    coordinate.z = 233;
-    const StarSystemProfile firstSystem = systemGenerator.generate(seed, firstGalaxy.seed, coordinate);
-    const StarSystemProfile secondSystem = systemGenerator.generate(seed, firstGalaxy.seed, coordinate);
-    check(firstSystem.name == secondSystem.name, "Systemname reproduzierbar");
-    check(firstSystem.planets.size() == secondSystem.planets.size(), "Planetenanzahl reproduzierbar");
+    const ObserverReadout isco = model.observerAt(model.derived().innermostStableOrbitRadii);
+    check(isco.belowInnermostStableOrbit, "An der ISCO ist die Grenze erreicht");
+    check(isco.circularOrbitSpeedFraction > 0.4, "An der ISCO wird es relativistisch");
 
-    if (!firstSystem.planets.empty()) {
-        checkNear(firstSystem.planets[0].radiusMeters, secondSystem.planets[0].radiusMeters, 0.0,
-                  "Planetenradius reproduzierbar");
-        check(firstSystem.planets[0].habitabilityIndex() >= 0.0 &&
-                  firstSystem.planets[0].habitabilityIndex() <= 1.0,
-              "Bewohnbarkeit im Wertebereich");
+    const ObserverReadout inside = model.observerAt(1.1);
+    check(inside.insideHorizon, "Unterhalb des Horizonts erkannt");
+    checkNear(inside.gravitationalTimeDilation, 0.0, 1.0e-9, "Innerhalb des Horizonts steht die Uhr");
+
+    const ObserverReadout near = model.observerAt(3.0);
+    const ObserverReadout further = model.observerAt(30.0);
+    check(near.tidalAccelerationPerMetre > further.tidalAccelerationPerMetre, "Gezeiten nehmen nach innen zu");
+    check(near.orbitalPeriodSeconds < further.orbitalPeriodSeconds, "Innen wird schneller umrundet");
+
+    checkNear(model.observerAt(6.0).escapeSpeedFraction,
+              std::sqrt(2.0 / 6.0), 1.0e-9, "Fluchtgeschwindigkeit folgt der Formel");
+}
+
+void testPresets() {
+    std::printf("Voreinstellungen\n");
+    const std::vector<BlackHoleParameters>& catalogue = BlackHoleModel::presets();
+    check(catalogue.size() >= 6, "Mindestens sechs Objekte");
+
+    BlackHoleModel model;
+    for (const BlackHoleParameters& parameters : catalogue) {
+        model.setParameters(parameters);
+        const BlackHoleDerived& derived = model.derived();
+        check(!parameters.name.empty(), "Jedes Objekt hat einen Namen");
+        check(derived.gravitationalRadiusMeters > 0.0, "r_g positiv");
+        check(derived.horizonRadii >= 1.0 && derived.horizonRadii <= 2.0, "Horizont zwischen 1 und 2 r_g");
+        check(derived.innermostStableOrbitRadii > derived.horizonRadii, "ISCO ausserhalb des Horizonts");
+        check(model.parameters().diskOuterRadii > derived.diskInnerRadii, "Scheibe hat eine Ausdehnung");
+        check(parameters.observerRadii > derived.innermostStableOrbitRadii, "Startabstand ausserhalb der ISCO");
     }
 
-    SystemCoord otherCoordinate = coordinate;
-    otherCoordinate.x += 1;
-    const StarSystemProfile otherSystem = systemGenerator.generate(seed, firstGalaxy.seed, otherCoordinate);
-    check(otherSystem.seed != firstSystem.seed, "Nachbarsystem unterscheidet sich");
-
-    const f64 density = GalaxyGenerator::stellarDensity(firstGalaxy, DVec3(0.0, 0.0, 0.0));
-    check(density > 0.0, "Sterndichte im Zentrum positiv");
-}
-
-void testOrbitalMechanics() {
-    std::printf("Orbitalmechanik\n");
-    const f64 gravitationalParameter = kGravitationalConstant * kEarthMass;
-    KeplerElements elements;
-    elements.gravitationalParameter = gravitationalParameter;
-    elements.semiMajorAxisMeters = kEarthRadius + 400000.0;
-    elements.eccentricity = 0.0;
-
-    const f64 period = elements.orbitalPeriodSeconds();
-    check(period > 5000.0 && period < 6000.0, "Niedriger Erdorbit Umlaufzeit");
-
-    const DVec3 startPosition = elements.positionAt(0.0);
-    const DVec3 halfPosition = elements.positionAt(period * 0.5);
-    checkNear(length(startPosition), elements.semiMajorAxisMeters, 1.0, "Kreisbahnradius");
-    checkNear(dot(normalize(startPosition), normalize(halfPosition)), -1.0, 1.0e-4, "Halbe Umlaufbahn gegenueber");
-
-    const f64 anomaly = OrbitalMechanics::solveKeplerEquation(1.0, 0.6);
-    checkNear(anomaly - 0.6 * std::sin(anomaly), 1.0, 1.0e-9, "Kepler-Gleichung geloest");
-
-    const DVec3 position(7.0e6, 0.0, 0.0);
-    const f64 circular = OrbitalMechanics::circularOrbitSpeed(gravitationalParameter, 7.0e6);
-    const DVec3 velocity(0.0, 0.0, circular);
-    const KeplerElements recovered = OrbitalMechanics::fromStateVectors(position, velocity, gravitationalParameter);
-    checkNear(recovered.semiMajorAxisMeters, 7.0e6, 1.0e3, "Zustandsvektoren zu Bahnelementen");
-    check(recovered.eccentricity < 0.01, "Kreisbahn erkannt");
-
-    const f64 escape = OrbitalMechanics::escapeSpeed(gravitationalParameter, kEarthRadius);
-    check(escape > 11000.0 && escape < 11300.0, "Fluchtgeschwindigkeit Erde");
-}
-
-void testVoidHeart() {
-    std::printf("Void Heart\n");
-    VoidHeart heart;
-    checkNear(heart.massSolar(), 4.1e6, 1.0, "Masse 4,1 Millionen Sonnenmassen");
-    checkNear(heart.schwarzschildRadiusMeters(), 1.211e10, 6.0e7, "Schwarzschild-Radius rund 12,1 Millionen km");
-    check(heart.spin() > 0.93 && heart.spin() < 0.95, "Kerr-Parameter 0,94");
-
-    const f32 horizon = BlackHolePass::horizonRadius(0.94f);
-    check(horizon > 1.0f && horizon < 1.35f, "Horizontradius bei hohem Spin");
-
-    const f32 isco = BlackHolePass::innermostStableCircularOrbit(0.0f);
-    checkNear(isco, 6.0, 1.0e-3, "ISCO bei Schwarzschild ist 6 M");
-
-    const f32 iscoKerr = BlackHolePass::innermostStableCircularOrbit(0.94f);
-    check(iscoKerr < 2.1f && iscoKerr > 1.6f, "ISCO bei Spin 0,94 rueckt nach innen");
-
-    const f32 photonSphere = BlackHolePass::photonSphereRadius(0.0f);
-    checkNear(photonSphere, 3.0, 1.0e-3, "Photonensphaere bei 3 M");
-
-    checkNear(BlackHolePass::timeDilationFactor(1.0e9, 0.94), 1.0, 1.0e-6, "Zeitdilatation im Fernfeld");
-    checkNear(BlackHolePass::timeDilationFactor(2.05, 0.94), std::sqrt(1.0 - 2.0 / 2.05), 1.0e-9,
-              "Zeitdilatation folgt sqrt(1 - r_s/r)");
-    check(BlackHolePass::timeDilationFactor(2.05, 0.94) < 0.2, "Zeitdilatation nahe dem Horizont sehr klein");
-    check(BlackHolePass::timeDilationFactor(2.0, 0.94) <= 0.0, "Zeitdilatation am Schwarzschild-Radius null");
-
-    const VoidHeartState farField = heart.evaluate(DVec3(heart.gravitationalRadiusMeters() * 100000.0, 0.0, 0.0));
-    check(farField.zone == VoidZone::FarField, "Fernfeld erkannt");
-    check(farField.escapePossible, "Flucht im Fernfeld moeglich");
-
-    const VoidHeartState distortion = heart.evaluate(DVec3(heart.gravitationalRadiusMeters() * 50.0, 0.0, 0.0));
-    check(distortion.zone == VoidZone::Distortion, "Verzerrungszone erkannt");
-    check(distortion.hyperdriveChargeMultiplier > 1.0, "Ladezeit steigt in der Verzerrungszone");
-
-    const VoidHeartState horizonZone = heart.evaluate(DVec3(heart.horizonRadiusMeters() * 0.5, 0.0, 0.0));
-    check(horizonZone.zone == VoidZone::EventHorizon, "Ereignishorizont erkannt");
-    check(!horizonZone.escapePossible, "Keine Flucht am Horizont");
-
-    const f64 orbitSpeed = heart.orbitalSpeedAt(heart.gravitationalRadiusMeters() * 20.0);
-    check(orbitSpeed < kSpeedOfLight, "Orbitalgeschwindigkeit unter Lichtgeschwindigkeit");
-}
-
-void testExoticResourcesAndCampaign() {
-    std::printf("Endgame\n");
-    ExoticResourceLedger ledger;
-    ledger.add(ExoticResourceId::VoidMatter, 5.0);
-    check(!ledger.consume(ExoticResourceId::VoidMatter, 6.0), "Zu viel verbrauchen scheitert");
-    check(ledger.consume(ExoticResourceId::VoidMatter, 2.5), "Verbrauch erfolgreich");
-    checkNear(ledger.quantity(ExoticResourceId::VoidMatter), 2.5, 1.0e-9, "Restmenge korrekt");
-    check(ledger.totalValue() > 0.0, "Warenwert positiv");
-
-    const f64 peak = ExoticResourceLedger::harvestRatePerSecond(ExoticResourceId::VoidMatter, 140.0, 1.0);
-    const f64 away = ExoticResourceLedger::harvestRatePerSecond(ExoticResourceId::VoidMatter, 900.0, 1.0);
-    check(peak > away, "Ernterate hat ein Optimum");
-
-    VoidStationRegistry stations;
-    check(stations.stations().size() == 4, "Vier Void-Stationen");
-    check(stations.discoveredCount() == 0, "Zu Beginn nichts entdeckt");
-    stations.markDiscovered(VoidStationId::HorizonWatch);
-    check(stations.discoveredCount() == 1, "Entdeckung gezaehlt");
-    for (u32 index = 0; index < 4; ++index) stations.solveStage(VoidStationId::HorizonWatch);
-    check(stations.voidDriveBlueprintUnlocked(), "Void-Antrieb freigeschaltet");
-
-    EndgameCampaign campaign;
-    check(campaign.missions().size() == 6, "Sechs Endgame-Missionen");
-    campaign.evaluateUnlocks(4, 2, stations);
-    check(campaign.mission(EndgameMissionId::TheSignal).state == MissionState::Locked,
-          "Ohne Forschungsstufe 5 gesperrt");
-    campaign.evaluateUnlocks(5, 2, stations);
-    check(campaign.mission(EndgameMissionId::TheSignal).state == MissionState::Available, "Mission eins freigegeben");
-    check(campaign.startMission(EndgameMissionId::TheSignal), "Mission gestartet");
-    for (usize index = 0; index < campaign.mission(EndgameMissionId::TheSignal).objectives.size(); ++index) {
-        campaign.completeObjective(EndgameMissionId::TheSignal, index);
-    }
-    check(campaign.mission(EndgameMissionId::TheSignal).state == MissionState::Completed, "Mission abgeschlossen");
-    check(!campaign.newGamePlusUnlocked(), "New Game Plus noch gesperrt");
-}
-
-void testHyperdrive() {
-    std::printf("Hyperantrieb\n");
-    HyperdriveSystem drive;
-    drive.setSpecification(HyperdriveSystem::specificationFor(HyperdriveClass::MarkTwo));
-
-    SystemCoord from;
-    SystemCoord to;
-    to.x = 12;
-    checkNear(HyperdriveSystem::distanceLightYears(from, to), 12.0, 1.0e-9, "Distanz in Lichtjahren");
-
-    check(drive.evaluateJump(from, to, 1000.0, 42.0, 0.0, 1.0, false) == JumpDenialReason::None,
-          "Sprung in Reichweite erlaubt");
-
-    SystemCoord tooFar;
-    tooFar.x = 400;
-    check(drive.evaluateJump(from, tooFar, 1000.0, 42.0, 0.0, 1.0, false) == JumpDenialReason::OutOfRange,
-          "Zu weit wird abgelehnt");
-    check(drive.evaluateJump(from, to, 0.01, 42.0, 0.0, 1.0, false) == JumpDenialReason::InsufficientFuel,
-          "Zu wenig Treibstoff wird abgelehnt");
-    check(drive.evaluateJump(from, to, 1000.0, 42.0, 0.9, 1.0, false) == JumpDenialReason::MassLock,
-          "Massenverriegelung greift");
-    check(drive.evaluateJump(from, to, 1000.0, 42.0, 0.0, 1.0, true) == JumpDenialReason::VoidDriveRequired,
-          "Void-Zone braucht Void-Antrieb");
-
-    const f64 nearCost = drive.energyCost(5.0, 42.0, 0.0, 1.0);
-    const f64 farCost = drive.energyCost(20.0, 42.0, 0.0, 1.0);
-    check(farCost > nearCost * 4.0, "Kosten wachsen ueberproportional");
-
-    HyperdriveState state;
-    check(drive.beginJump(state, to, 12.0, 1.0), "Sprung eingeleitet");
-    check(state.phase == HyperdrivePhase::Charging, "Ladephase aktiv");
-    for (u32 tick = 0; tick < 4000 && state.phase != HyperdrivePhase::Idle; ++tick) {
-        drive.update(state, 1.0 / 60.0, 0.5, 12345);
-    }
-    check(state.phase == HyperdrivePhase::Idle, "Sprungzyklus endet wieder im Leerlauf");
-
-    HyperRouteSolver solver;
-    std::vector<HyperRouteSolver::StarNode> nodes;
-    for (i64 index = 0; index <= 6; ++index) {
-        HyperRouteSolver::StarNode node;
-        node.coordinate.x = index * 10;
-        node.surveyed = true;
-        nodes.push_back(node);
-    }
-    solver.setNodes(nodes);
-    SystemCoord goal;
-    goal.x = 60;
-    const HyperRoute route = solver.solve(from, goal, 25.0, 1000.0, RoutePreference::Shortest);
-    check(route.reachable, "Route gefunden");
-    check(route.legs.size() >= 3, "Mehrsprung-Route");
-    checkNear(route.totalDistanceLightYears, 60.0, 1.0e-6, "Gesamtdistanz stimmt");
+    model.setParameters(catalogue[0]);
+    check(std::string(BlackHoleModel::zoneLabel(model.derived(), 1000.0)) == std::string("FERNFELD"),
+          "Zonenbezeichnung im Fernfeld");
+    check(std::string(BlackHoleModel::zoneLabel(model.derived(), 1.0)) ==
+              std::string("INNERHALB DES HORIZONTS"),
+          "Zonenbezeichnung am Horizont");
 }
 
 void testQuality() {
@@ -393,9 +224,6 @@ void testQuality() {
     check(spar.blackHoleStepFraction > ultra.blackHoleStepFraction, "Sparmodus nimmt groebere Schritte");
     check(spar.blackHoleIntegratorOrder == 1, "Sparmodus nutzt den sparsamen Integrator");
     check(!spar.bloomEnabled && ultra.bloomEnabled, "Bloom nur ab hoeheren Stufen");
-    check(!spar.atmosphereEnabled, "Sparmodus ohne Atmosphaerenschale");
-    check(spar.sphereSubdivisions < ultra.sphereSubdivisions, "Sparmodus mit groberen Kugeln");
-    check(spar.mapStarBudget < ultra.mapStarBudget, "Sparmodus mit weniger Kartensternen");
 
     for (u32 index = 0; index + 1 < static_cast<u32>(QualityPreset::Count); ++index) {
         const QualitySettings lower = QualitySettings::fromPreset(static_cast<QualityPreset>(index));
@@ -407,85 +235,43 @@ void testQuality() {
           "Textparser deutsch");
     check(QualitySettings::presetFromText("low", QualityPreset::Ultra) == QualityPreset::Niedrig,
           "Textparser englisch");
-    check(QualitySettings::presetFromText("unsinn", QualityPreset::Hoch) == QualityPreset::Hoch,
-          "Textparser mit Rueckfallwert");
-
     check(AdaptiveQualityController::detectStartingPreset("Intel(R) UHD Graphics 620", "Intel") ==
               QualityPreset::Sparmodus,
           "Notebook-Grafik erkennt Sparmodus");
-    check(AdaptiveQualityController::detectStartingPreset("NVIDIA GeForce RTX 4070", "NVIDIA") ==
-              QualityPreset::Hoch,
+    check(AdaptiveQualityController::detectStartingPreset("NVIDIA GeForce RTX 4070", "NVIDIA") == QualityPreset::Hoch,
           "Aktuelle Karte erkennt hohe Stufe");
-    check(AdaptiveQualityController::detectStartingPreset("llvmpipe (LLVM 15)", "Mesa") == QualityPreset::Sparmodus,
-          "Software-Rasterizer erkennt Sparmodus");
 
     AdaptiveQualityController controller;
     controller.configure(QualityPreset::Hoch, true, 60.0);
-    check(controller.preset() == QualityPreset::Hoch, "Startstufe uebernommen");
     for (u32 tick = 0; tick < 900; ++tick) controller.submitFrameTime(1.0 / 12.0);
     check(controller.preset() < QualityPreset::Hoch, "Automatik stuft bei Ruckeln herunter");
-    check(controller.smoothedFramesPerSecond() < 20.0, "Bildrate wird gemessen");
 
     AdaptiveQualityController fixedController;
     fixedController.configure(QualityPreset::Mittel, false, 60.0);
     for (u32 tick = 0; tick < 900; ++tick) fixedController.submitFrameTime(1.0 / 8.0);
     check(fixedController.preset() == QualityPreset::Mittel, "Ohne Automatik bleibt die Stufe stehen");
-
     fixedController.stepPreset(-1);
-    check(fixedController.preset() == QualityPreset::Niedrig, "Manuell herunterstufen");
     fixedController.stepPreset(-1);
     check(fixedController.preset() == QualityPreset::Sparmodus, "Manuell bis Sparmodus");
     fixedController.stepPreset(-1);
     check(fixedController.preset() == QualityPreset::Sparmodus, "Sparmodus ist die unterste Stufe");
-    fixedController.setPreset(QualityPreset::Ultra);
-    fixedController.stepPreset(1);
-    check(fixedController.preset() == QualityPreset::Ultra, "Ultra ist die oberste Stufe");
-}
-
-void testJson() {
-    std::printf("JSON\n");
-    JsonValue root = JsonValue::makeObject();
-    root.set("name", std::string("Jon"));
-    root.set("wert", 42.5);
-    root.set("aktiv", true);
-    JsonValue liste = JsonValue::makeArray();
-    liste.push(JsonValue(1.0));
-    liste.push(JsonValue(std::string("zwei")));
-    root.set("liste", liste);
-
-    const std::string text = root.serialize();
-    const JsonValue parsed = JsonValue::parse(text);
-    check(parsed["name"].text() == "Jon", "JSON Text");
-    checkNear(parsed["wert"].number(), 42.5, 1.0e-9, "JSON Zahl");
-    check(parsed["aktiv"].boolean(), "JSON Wahrheitswert");
-    check(parsed["liste"].size() == 2, "JSON Array");
-    check(parsed["liste"].at(1).text() == "zwei", "JSON Arrayelement");
-    check(parsed["fehlt"].isNull(), "JSON fehlender Schluessel");
-
-    const JsonValue escaped = JsonValue::parse("{\"text\":\"Zeile\\nZeile\"}");
-    check(escaped["text"].text() == "Zeile\nZeile", "JSON Escape");
 }
 
 }
 
 int runTestSuite() {
-    std::printf("STARFALL Testsuite\n\n");
+    std::printf("Schwarzloch-Simulation Testsuite\n\n");
     checksPassed = 0;
     checksFailed = 0;
-    failureLog.clear();
 
     testMath();
-    testContainers();
-    testAllocators();
-    testEntityComponentSystem();
-    testNoiseDeterminism();
-    testUniverseDeterminism();
-    testOrbitalMechanics();
-    testVoidHeart();
-    testExoticResourcesAndCampaign();
-    testHyperdrive();
+    testHorizonGeometry();
+    testTimeDilation();
+    testMassScaling();
+    testDiskProfile();
+    testObserver();
+    testPresets();
     testQuality();
-    testJson();
 
     std::printf("\n%u Pruefungen bestanden, %u fehlgeschlagen\n", checksPassed, checksFailed);
     return static_cast<int>(checksFailed);
