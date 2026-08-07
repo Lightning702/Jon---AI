@@ -105,6 +105,33 @@ class SettingsIn(BaseModel):
     autofile_enabled: bool | None = None
     app_usage_enabled: bool | None = None
     language: str | None = None
+    phone_enabled: bool | None = None
+    phone_sip_user: str | None = None
+    phone_sip_password: str | None = None
+    phone_sip_realm: str | None = None
+    phone_sip_port: int | None = None
+    phone_bind_host: str | None = None
+    phone_advertise_host: str | None = None
+    phone_caller_name: str | None = None
+    phone_voice: str | None = None
+    phone_timezone: str | None = None
+    phone_keep_transcript: bool | None = None
+    phone_max_seconds: int | None = None
+
+
+class PhoneCallIn(BaseModel):
+    when: str | None = None
+    message: str | None = None
+    reason: str | None = None
+    recurrence: str | None = None
+    duration: int | None = None
+
+
+class PhoneUpdateIn(BaseModel):
+    when: str | None = None
+    message: str | None = None
+    reason: str | None = None
+    recurrence: str | None = None
 
 
 class OllamaConfigIn(BaseModel):

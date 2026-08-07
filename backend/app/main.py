@@ -16,6 +16,7 @@ from app.api.multiplayer_routes import MP_TCP_PORT, MP_WS_PORT, create_coop_app
 from app.api.multiplayer_routes import router as multiplayer_router
 from app.api.p2p_routes import create_chat_app
 from app.api.p2p_routes import router as p2p_router
+from app.api.phone_routes import router as phone_router
 from app.api.routes import accounts, providers, router
 from app.api.system_routes import router as system_router
 from app.core.config import ROOT_DIR, get_settings
@@ -120,6 +121,24 @@ async def _morning_watcher() -> None:
         await asyncio.sleep(60)
         try:
             await service.morning_tick()
+        except Exception:
+            continue
+
+
+async def _phone_watcher() -> None:
+    from app.services.phone_service import get_phone_service
+
+    service = get_phone_service()
+    try:
+        await service.start()
+    except Exception:
+        pass
+    while True:
+        await asyncio.sleep(15)
+        try:
+            if service.enabled() and not service.status()["running"]:
+                await service.start()
+            await service.run_due()
         except Exception:
             continue
 
@@ -337,6 +356,7 @@ async def lifespan(app: FastAPI):
     group_bots_task = asyncio.create_task(_group_bots_watcher())
     morning_task = asyncio.create_task(_morning_watcher())
     companion_task = asyncio.create_task(_companion_watcher())
+    phone_task = asyncio.create_task(_phone_watcher())
     routine_task = asyncio.create_task(_routine_timeline_watcher())
     files_task = asyncio.create_task(_file_watcher())
     autofile_task = asyncio.create_task(_autofile_watcher())
@@ -374,6 +394,11 @@ async def lifespan(app: FastAPI):
     group_bots_task.cancel()
     morning_task.cancel()
     companion_task.cancel()
+    phone_task.cancel()
+    with suppress(Exception):
+        from app.services.phone_service import get_phone_service
+
+        await get_phone_service().stop()
     routine_task.cancel()
     files_task.cancel()
     autofile_task.cancel()
@@ -406,6 +431,7 @@ def create_app() -> FastAPI:
     app.include_router(system_router)
     app.include_router(p2p_router)
     app.include_router(multiplayer_router)
+    app.include_router(phone_router)
 
     from pathlib import Path
 

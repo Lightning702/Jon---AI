@@ -70,6 +70,18 @@ DEFAULTS = {
     "language": "de",
     "microphone_device": "default",
     "microphone_name": "",
+    "phone_enabled": False,
+    "phone_sip_user": "",
+    "phone_sip_password": "",
+    "phone_sip_realm": "jon",
+    "phone_sip_port": 5060,
+    "phone_bind_host": "0.0.0.0",
+    "phone_advertise_host": "",
+    "phone_caller_name": "Jon",
+    "phone_voice": "",
+    "phone_timezone": "Europe/Vienna",
+    "phone_keep_transcript": False,
+    "phone_max_seconds": 600,
 }
 
 

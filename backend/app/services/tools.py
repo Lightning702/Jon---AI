@@ -34,6 +34,7 @@ SAFE_TOOLS = {
     "read_skill",
     "list_reminders",
     "list_alarms",
+    "list_scheduled_calls",
     "web_search",
     "get_weather",
     "journal",
@@ -331,6 +332,28 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
         {"clipboard_history"},
         ("kopiert", "zwischenablage", "clipboard", "verlauf", "eingefuegt"),
     ),
+    "phone": (
+        {
+            "call_user",
+            "schedule_call",
+            "list_scheduled_calls",
+            "cancel_call",
+            "update_call",
+        },
+        (
+            "ruf mich",
+            "ruf mich an",
+            "anruf",
+            "anrufen",
+            "telefon",
+            "telefonier",
+            "melde dich",
+            "klingel",
+            "handy",
+            "testanruf",
+            "call",
+        ),
+    ),
     "tasks": (
         {"add_task", "list_tasks", "delete_task"},
         (
@@ -502,7 +525,35 @@ def _shorten(value: Any, limit: int = 120) -> str:
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
+def _phone_when(value: str) -> str:
+    from datetime import datetime
+
+    try:
+        moment = datetime.fromisoformat(value)
+    except ValueError:
+        return value
+    today = datetime.now(moment.tzinfo).date()
+    delta = (moment.date() - today).days
+    clock = moment.strftime("%H:%M")
+    if delta == 0:
+        return f"heute um {clock}"
+    if delta == 1:
+        return f"morgen um {clock}"
+    return moment.strftime("%d.%m.%Y um %H:%M")
+
+
 def describe_tool(name: str, args: dict[str, Any]) -> str:
+    if name == "call_user":
+        when = str(args.get("datetime", "")).strip()
+        return f"Ruft dich an ({when})." if when else "Ruft dich jetzt auf dem Handy an."
+    if name == "schedule_call":
+        return f"Plant einen Anruf für {str(args.get('datetime', '')).strip()}."
+    if name == "list_scheduled_calls":
+        return "Zeigt deine geplanten Anrufe."
+    if name == "cancel_call":
+        return "Sagt einen geplanten Anruf ab."
+    if name == "update_call":
+        return "Ändert einen geplanten Anruf."
     if name == "run_powershell":
         return "Führt einen PowerShell-Befehl auf deinem PC aus."
     if name == "run_cmd":
@@ -1720,6 +1771,65 @@ class ToolBox:
                 {"query": _STR, "day": _STR},
                 [],
             ),
+            _tool(
+                "call_user",
+                "Ruft den Nutzer auf seinem Handy an. Ohne datetime klingelt es "
+                "SOFORT. Mit datetime wird der Anruf geplant: entweder ISO "
+                "(2026-08-09T18:00:00+02:00) oder Alltagssprache wie 'in 20 Minuten', "
+                "'heute um 18 Uhr', 'morgen um 9', 'naechsten Montag um 17 Uhr'. "
+                "message = der erste Satz, den Jon am Telefon sagt. reason = worum es "
+                "geht. recurrence = 'taeglich', 'woechentlich' oder ein Wochentag fuer "
+                "wiederkehrende Anrufe. duration = Gespraechslaenge in Sekunden.",
+                {
+                    "datetime": _STR,
+                    "message": _STR,
+                    "reason": _STR,
+                    "recurrence": _STR,
+                    "duration": _INT,
+                },
+                [],
+            ),
+            _tool(
+                "schedule_call",
+                "Plant einen Telefonanruf zu einem spaeteren Zeitpunkt. Gleiche "
+                "Parameter wie call_user, aber datetime ist Pflicht.",
+                {
+                    "datetime": _STR,
+                    "message": _STR,
+                    "reason": _STR,
+                    "recurrence": _STR,
+                    "duration": _INT,
+                },
+                ["datetime"],
+            ),
+            _tool(
+                "list_scheduled_calls",
+                "Zeigt alle geplanten Telefonanrufe mit Zeitpunkt, Grund und ID.",
+                {},
+                [],
+            ),
+            _tool(
+                "cancel_call",
+                "Sagt einen geplanten Anruf ab. call = ID, Uhrzeit ('18:00') oder "
+                "ein Wort aus dem Grund. Ohne Angabe wird der naechste Anruf "
+                "abgesagt.",
+                {"call": _STR},
+                [],
+            ),
+            _tool(
+                "update_call",
+                "Aendert einen geplanten Anruf. call = ID, Uhrzeit oder Stichwort. "
+                "datetime = neuer Zeitpunkt, message = neuer Text, reason = neuer "
+                "Grund, recurrence = neue Wiederholung.",
+                {
+                    "call": _STR,
+                    "datetime": _STR,
+                    "message": _STR,
+                    "reason": _STR,
+                    "recurrence": _STR,
+                },
+                [],
+            ),
         ]
 
     async def execute(
@@ -1746,7 +1856,127 @@ class ToolBox:
             return json.dumps(result, ensure_ascii=False)
         if name in ("list_friends", "send_friend_message", "read_friend_messages"):
             return await self._friends(name, args)
+        if name in (
+            "call_user",
+            "schedule_call",
+            "list_scheduled_calls",
+            "cancel_call",
+            "update_call",
+        ):
+            return await self._phone(name, args)
         return await asyncio.to_thread(self._execute, name, args)
+
+    async def _phone(self, name: str, args: dict[str, Any]) -> str:
+        from app.services.phone_service import get_phone_service
+
+        service = get_phone_service()
+
+        def fail(message: str) -> str:
+            return json.dumps({"error": message}, ensure_ascii=False)
+
+        if name == "list_scheduled_calls":
+            calls = service.list()
+            if not calls:
+                return json.dumps(
+                    {"anrufe": [], "hinweis": "Es ist kein Anruf geplant."},
+                    ensure_ascii=False,
+                )
+            return json.dumps(
+                {
+                    "anrufe": [
+                        {
+                            "id": c["id"],
+                            "wann": _phone_when(c["scheduled_at"]),
+                            "grund": c.get("reason", ""),
+                            "nachricht": c.get("message", ""),
+                            "wiederholung": c.get("recurrence", "") or "einmal",
+                        }
+                        for c in calls
+                    ]
+                },
+                ensure_ascii=False,
+            )
+
+        if name in ("cancel_call", "update_call"):
+            call = service.find(str(args.get("call", "")))
+            if call is None:
+                return fail(
+                    "Ich finde keinen passenden geplanten Anruf. Frag mit "
+                    "list_scheduled_calls nach, welche es gibt."
+                )
+            if name == "cancel_call":
+                service.cancel(call["id"])
+                return json.dumps(
+                    {
+                        "abgesagt": _phone_when(call["scheduled_at"]),
+                        "grund": call.get("reason", ""),
+                    },
+                    ensure_ascii=False,
+                )
+            try:
+                updated = service.update(
+                    call["id"],
+                    when=str(args.get("datetime", "")),
+                    message=str(args.get("message", "")),
+                    reason=str(args.get("reason", "")),
+                    recurrence=str(args.get("recurrence", "")),
+                )
+            except ValueError as exc:
+                return fail(str(exc))
+            if updated is None:
+                return fail("Der Anruf laesst sich nicht mehr aendern.")
+            return json.dumps(
+                {"geaendert": _phone_when(updated["scheduled_at"])}, ensure_ascii=False
+            )
+
+        when = str(args.get("datetime", "")).strip()
+        message = str(args.get("message", ""))
+        reason = str(args.get("reason", ""))
+        recurrence = str(args.get("recurrence", ""))
+        duration = int(args.get("duration") or 600)
+        if not service.enabled():
+            return fail(
+                "Die Telefonfunktion ist ausgeschaltet. Sie laesst sich in den "
+                "Einstellungen unter Telefon einschalten."
+            )
+        if name == "schedule_call" and not when:
+            return fail("Fuer einen geplanten Anruf brauche ich einen Zeitpunkt.")
+        if not when:
+            status = service.status()
+            if not status["device"]["registered"]:
+                return fail(
+                    "Dein Handy ist gerade nicht bei Jon angemeldet. Oeffne die "
+                    "SIP-App und pruefe, ob sie verbunden ist."
+                )
+            result = await service.place_call(
+                message=message, reason=reason, duration=duration
+            )
+            return json.dumps(
+                {
+                    "status": result["status"],
+                    "grund": result.get("reason", ""),
+                    "dauer_sekunden": result.get("duration", 0),
+                },
+                ensure_ascii=False,
+            )
+        try:
+            call = service.schedule(
+                when=when,
+                message=message,
+                reason=reason,
+                recurrence=recurrence,
+                duration=duration,
+            )
+        except ValueError as exc:
+            return fail(str(exc))
+        return json.dumps(
+            {
+                "geplant": _phone_when(call["scheduled_at"]),
+                "id": call["id"],
+                "wiederholung": call.get("recurrence", "") or "einmal",
+            },
+            ensure_ascii=False,
+        )
 
     async def _friends(self, name: str, args: dict[str, Any]) -> str:
         from app.services.p2p_service import get_p2p_service

@@ -12,6 +12,7 @@ import AccountsModal from "./components/AccountsModal";
 import CodeAgent from "./components/CodeAgent";
 import PetConfig from "./components/PetConfig";
 import OllamaShareModal from "./components/OllamaShareModal";
+import PhoneCalls from "./components/PhoneCalls";
 import ProfileModal from "./components/ProfileModal";
 import FriendsChat from "./components/FriendsChat";
 import FriendRequestPopup from "./components/FriendRequestPopup";
@@ -203,6 +204,7 @@ export default function App() {
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
   const [petConfigOpen, setPetConfigOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const [clipboardOpen, setClipboardOpen] = useState(false);
   const [identity, setIdentity] = useState<P2PIdentity | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -976,6 +978,15 @@ export default function App() {
       setExplainOpen(true);
       return;
     }
+    if (
+      command === "/telefon" ||
+      command === "/anruf" ||
+      command === "/anrufe" ||
+      command === "/phone"
+    ) {
+      setPhoneOpen(true);
+      return;
+    }
     if (command === "/notizen" || command === "/notes") {
       setNotesOpen(true);
       return;
@@ -1564,6 +1575,7 @@ export default function App() {
                             { icon: "</>", label: "Jon Code", act: () => setCodeOpen(true) },
                             { icon: "✍️", label: "Humanisierer", act: () => setHumanizerOpen(true) },
                             { icon: "📌", label: "Haftnotizen", act: () => setNotesOpen(true) },
+                            { icon: "📞", label: "Telefonanrufe", act: () => setPhoneOpen(true) },
                             { icon: "🔒", label: "Passwort-Tresor", act: () => setVaultOpen(true) },
                             { icon: "📔", label: "Sprach-Tagebuch", act: () => setJournalOpen(true) },
                             { icon: "🎴", label: "Lern-Karteikarten", act: () => setFlashcardsOpen(true) },
@@ -1790,6 +1802,7 @@ export default function App() {
         />
       )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
+      {phoneOpen && <PhoneCalls onClose={() => setPhoneOpen(false)} />}
       {shareOpen && (
         <OllamaShareModal
           onClose={() => {

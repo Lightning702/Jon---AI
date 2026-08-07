@@ -275,6 +275,14 @@ export interface UserSettings {
   language: string;
   microphone_device?: string;
   microphone_name?: string;
+  phone_enabled?: boolean;
+  phone_sip_user?: string;
+  phone_sip_port?: number;
+  phone_advertise_host?: string;
+  phone_caller_name?: string;
+  phone_timezone?: string;
+  phone_keep_transcript?: boolean;
+  phone_max_seconds?: number;
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -337,6 +345,7 @@ export async function getUserSettings(): Promise<UserSettings> {
       autofile_enabled: false,
       app_usage_enabled: false,
       language: "de",
+      phone_enabled: false,
     };
   return res.json();
 }
@@ -2231,4 +2240,149 @@ export async function refreshOllamaRemote(code: string): Promise<OllamaRemote> {
 
 export async function forgetOllamaRemote(code: string): Promise<void> {
   await fetch(`${BASE}/ollama/remote/${code}`, { method: "DELETE" });
+}
+
+export interface PhoneDevice {
+  registered: boolean;
+  contact: string;
+  user_agent: string;
+  source: string;
+  expires_in: number;
+}
+
+export interface PhoneStatus {
+  enabled: boolean;
+  running: boolean;
+  status: string;
+  error: string;
+  sip_user: string;
+  sip_port: number;
+  realm: string;
+  server: string;
+  timezone: string;
+  device: PhoneDevice;
+  recognizer: { ready: boolean; error: string };
+  ffmpeg: { ready: boolean; error: string };
+  active_call: { id: string; status: string; reason: string; duration: number } | null;
+  scheduled: number;
+}
+
+export interface PhoneCall {
+  id: string;
+  scheduled_at: string;
+  timezone: string;
+  reason: string;
+  message: string;
+  status: string;
+  recurrence: string;
+  duration: number;
+  created_at: string;
+}
+
+export interface PhoneSetup {
+  server: string;
+  port: number;
+  username: string;
+  password: string;
+  realm: string;
+  transport: string;
+  app: string;
+  app_url: string;
+}
+
+export interface PhoneCheck {
+  name: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface PhoneLogEntry {
+  id: string;
+  status: string;
+  reason: string;
+  message: string;
+  started_at: string;
+  duration: number;
+  transcript: { who: string; text: string; at: string }[];
+}
+
+async function phoneJson(path: string, init?: RequestInit) {
+  const res = await fetch(`${BASE}/phone${path}`, init);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Telefonfunktion nicht erreichbar.");
+  return data;
+}
+
+export async function getPhoneStatus(): Promise<PhoneStatus> {
+  return phoneJson("/status");
+}
+
+export async function getPhoneDiagnostics(): Promise<{
+  ready: boolean;
+  checks: PhoneCheck[];
+}> {
+  return phoneJson("/diagnostics");
+}
+
+export async function getPhoneSetup(): Promise<PhoneSetup> {
+  return phoneJson("/setup");
+}
+
+export async function newPhonePassword(): Promise<PhoneSetup> {
+  return phoneJson("/credentials/new", { method: "POST" });
+}
+
+export async function restartPhone(): Promise<PhoneStatus> {
+  return phoneJson("/start", { method: "POST" });
+}
+
+export async function getPhoneCalls(includeDone = false): Promise<PhoneCall[]> {
+  const data = await phoneJson(`/calls?include_done=${includeDone}`);
+  return data.calls ?? [];
+}
+
+export async function schedulePhoneCall(values: {
+  when: string;
+  message?: string;
+  reason?: string;
+  recurrence?: string;
+  duration?: number;
+}): Promise<PhoneCall> {
+  return phoneJson("/calls", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+}
+
+export async function updatePhoneCall(
+  id: string,
+  values: { when?: string; message?: string; reason?: string; recurrence?: string }
+): Promise<PhoneCall> {
+  return phoneJson(`/calls/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+}
+
+export async function deletePhoneCall(id: string): Promise<void> {
+  await phoneJson(`/calls/${id}`, { method: "DELETE" });
+}
+
+export async function testPhoneCall(): Promise<PhoneLogEntry> {
+  return phoneJson("/test", { method: "POST" });
+}
+
+export async function hangupPhoneCall(): Promise<void> {
+  await phoneJson("/hangup", { method: "POST" });
+}
+
+export async function getPhoneHistory(limit = 25): Promise<PhoneLogEntry[]> {
+  const data = await phoneJson(`/history?limit=${limit}`);
+  return data.calls ?? [];
+}
+
+export async function clearPhoneHistory(): Promise<void> {
+  await phoneJson("/history", { method: "DELETE" });
 }

@@ -2,6 +2,51 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.33.7] — 2026-08-08
+
+### 📞 Jon ruft dich auf dem Handy an
+
+Sag „Jon, ruf mich in 15 Minuten an" — und 15 Minuten später klingelt dein Handy. Nicht
+eine Benachrichtigung, sondern ein **echter eingehender Anruf** mit Annehmen und
+Ablehnen. Du hebst ab, Jon sagt „Hey Felix!", und ihr redet.
+
+**Ohne Anbieter, ohne Kosten.** Kein Twilio, kein Vonage, keine Telefonie-API. Jon ist
+selbst die Telefonanlage: ein SIP-Registrar und ein SIP-Endpunkt direkt im Backend, dazu
+ein eigener RTP-Sprachkanal. Dein Handy meldet sich mit einer kostenlosen SIP-App
+(Linphone) bei Jon an, alles läuft über dein eigenes Netz.
+
+- **Natürliche Zeitangaben**: „jetzt", „in 20 Minuten", „heute um 18 Uhr", „morgen um 9",
+  „nächsten Montag um 17 Uhr" — und für Wiederkehrendes „jeden Montag um 18 Uhr".
+  Zeitpunkte werden mit Zeitzone gespeichert, Sommer- und Winterzeit sind abgedeckt.
+- **Echtes Gespräch**: Jon hört durchgehend zu, merkt an einer mitlaufenden
+  Sprecherkennung, wann du fertig gesprochen hast, und antwortet satzweise — der erste
+  Ton kommt, bevor der ganze Satz fertig berechnet ist.
+- **Unterbrechen geht**: Sagst du „warte" oder „stopp", während Jon redet, bricht er
+  mitten im Wort ab und hört zu.
+- **Telefonstimme statt Chatbot**: Am Telefon gilt ein eigener Systemprompt — kurze
+  gesprochene Sätze, kein Markdown, keine Aufzählungen, keine Emojis.
+- **Neue Werkzeuge**: `call_user`, `schedule_call`, `list_scheduled_calls`,
+  `cancel_call`, `update_call`. „Welche Anrufe sind geplant?", „Lösch den um 18 Uhr",
+  „Verschieb ihn auf 19 Uhr" funktionieren im Chat.
+- **Eigener Bereich** unter Werkzeuge → 📞 Telefonanrufe: Ampel für SIP, Handy und
+  Bereitschaft, Einrichtungsassistent mit den fertigen Zugangsdaten, geplante Anrufe zum
+  Bearbeiten, Testanruf-Knopf und Gesprächsverlauf.
+
+**Alles lokal**: Spracherkennung mit faster-whisper auf deinem Rechner, Sprachausgabe mit
+Jons gewohnter Stimme, und das Sprachmodell ist das, was du in Jon eingestellt hast —
+auch Ollama. Audio wird nur im Arbeitsspeicher verarbeitet und danach verworfen; ein
+Gesprächsprotokoll entsteht nur, wenn du es einschaltest.
+
+**Sicherheit**: Das SIP-Passwort erzeugt Jon zufällig, angemeldet wird per Digest, und
+Jon nimmt selbst keine eingehenden Anrufe an. Für unterwegs gehört der Port nicht ins
+Internet, sondern in ein VPN — die Anleitung für Tailscale steht in `docs/TELEFON.md`.
+
+Warum kein Asterisk, obwohl es dafür gemacht ist: Asterisk gibt es für Windows nicht. Es
+bräuchte WSL2 oder Docker, und deren NAT-Netz macht gerade die dynamischen RTP-Ports
+unzuverlässig. Der eingebaute Stack startet einfach mit `start-jon.bat` mit.
+
+35 neue Tests, 286 insgesamt.
+
 ## [4.33.6] — 2026-08-07
 
 ### 🕳️ STARFALL rechnet die Scheibe jetzt relativistisch
