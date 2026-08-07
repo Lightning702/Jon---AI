@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Jon — Motion Graphics (9:16)</title>
+<meta name="description" content="Cinematisches 20-Sekunden-Motion-Graphics-Video fuer Jon. 1080x1920, 60 FPS, direkt im Browser gerendert und aufnehmbar." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="view" width="1080" height="1920"></canvas>
+  <div id="boot">
+    <div class="boot-ring"></div>
+    <p>Szene wird vorbereitet …</p>
+  </div>
+</div>
+
+<aside id="ui">
+  <header>
+    <span class="dot"></span>
+    <div>
+      <strong>JON — Motion Graphics</strong>
+      <small>1080 × 1920 · 60 FPS · 20 s</small>
+    </div>
+  </header>
+
+  <div class="transport">
+    <button id="btnPlay" class="primary" title="Leertaste">▶ Abspielen</button>
+    <button id="btnRestart" title="R">⟲</button>
+    <button id="btnMute" title="M">🔊</button>
+  </div>
+
+  <label class="scrub">
+    <input id="scrub" type="range" min="0" max="20" step="0.01" value="0" />
+    <span id="tcode">00:00.00 / 00:20.00</span>
+  </label>
+
+  <div class="rec">
+    <button id="btnMp4" class="go" title="Rendert Bild fuer Bild und schreibt eine fertige MP4-Datei mit Ton – exakt 60 FPS, unabhaengig von der Leistung des Rechners.">⬇ MP4 exportieren <em>60 FPS + Ton</em></button>
+    <button id="btnLive" class="rec-btn" title="Nimmt in Echtzeit auf. Schnell, aber die Bildrate haengt an der Rechenleistung.">● Live-Aufnahme</button>
+    <div class="two">
+      <button id="btnFrames" title="Schreibt 1200 Einzelbilder in einen Ordner – fuer Schnittprogramme.">▦ Bildfolge</button>
+      <button id="btnWav" title="Tonspur separat als WAV">♪ WAV</button>
+    </div>
+  </div>
+
+  <div id="recBar" hidden><div id="recFill"></div><span id="recTxt"></span></div>
+
+  <details class="opts">
+    <summary>Optionen &amp; Export</summary>
+    <label class="row"><span>Qualitaet</span>
+      <select id="quality">
+        <option value="1">Master 1080 × 1920</option>
+        <option value="0.667">Vorschau 720 × 1280</option>
+        <option value="0.5">Schnell 540 × 960</option>
+      </select>
+    </label>
+    <label class="row"><span>Datenrate</span>
+      <select id="bitrate">
+        <option value="20000000">20 Mbit/s (Standard)</option>
+        <option value="32000000">32 Mbit/s (Master)</option>
+        <option value="12000000">12 Mbit/s (klein)</option>
+      </select>
+    </label>
+    <label class="row"><span>Bloom</span><input id="bloom" type="range" min="0" max="2" step="0.05" value="1"></label>
+    <label class="row"><span>Korn</span><input id="grain" type="range" min="0" max="2" step="0.05" value="1"></label>
+    <p class="hint"><b>MP4 exportieren</b> liefert die sendefertige Datei – ohne ffmpeg. Der Export laeuft langsamer als Echtzeit, weil jedes Bild einzeln codiert wird.</p>
+    <p class="hint">Nur falls die Live-Aufnahme als WebM herauskommt:</p>
+    <code>ffmpeg -i jon-live.webm -c:v libx264 -crf 17 -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k jon.mp4</code>
+    <p class="hint">Bildfolge + Tonspur zusammenfuehren:</p>
+    <code>ffmpeg -framerate 60 -i frame_%05d.jpg -i jon-ton.wav -c:v libx264 -crf 16 -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k -shortest jon.mp4</code>
+    <p class="hint">Tastatur: <b>Leertaste</b> Play/Pause · <b>R</b> Neustart · <b>M</b> Ton · <b>1–5</b> Szene anspringen · <b>H</b> UI ausblenden</p>
+  </details>
+
+  <footer><span id="fps">–</span> · <span id="res">1080×1920</span></footer>
+</aside>
+
+<div id="fatal" hidden>
+  <h1>Bibliotheken konnten nicht geladen werden</h1>
+  <p>Diese Seite laedt <b>three.js</b> und <b>GSAP</b> ueber ein CDN und braucht dafuer beim ersten Start eine Internetverbindung.</p>
+</div>
+
+<script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5/build/mp4-muxer.min.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/gfx.js"></script>
+<script src="js/objects.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/timeline.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/recorder.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

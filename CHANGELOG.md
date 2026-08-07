@@ -2,6 +2,51 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.33.6] — 2026-08-07
+
+### 🕳️ STARFALL rechnet die Scheibe jetzt relativistisch
+
+Die Schwarzloch-Simulation zeigt nicht mehr eine hübsche Näherung, sondern das, was
+Astrophysiker rechnen. Fünf Änderungen bringen das Bild näher an das Beobachtbare:
+
+- Das Strahlungsprofil der Akkretionsscheibe folgt dem relativistischen Fluss nach
+  **Page und Thorne (1974)** statt der newtonschen Näherung. Der Fluss verschwindet
+  exakt an der ISCO und fällt weit außen mit `r⁻³`. Für Schwarzschild liegt das
+  Maximum bei 8,39 r_g statt bei 8,17 r_g; mit Spin wandert die Scheibe nach innen
+  und wird heißer.
+- **Chandrasekhar-Randverdunklung** für streuungsdominierte Scheibenatmosphären.
+- **Endliche Schichtdicke**: die optische Tiefe folgt der tatsächlichen Weglänge durch
+  die Schicht, dazu Kantenaufhellung am Innenrand.
+- **Differentielle Scherung** im Turbulenzmuster — Strukturen werden zu Spiralfäden
+  ausgezogen, statt rund zu bleiben.
+- **Zeitliche Akkumulation**: Steht die Kamera still, friert die Simulationszeit ein
+  und das Bild baut sich in voller Auflösung über bis zu 192 Halton-versetzte
+  Abtastungen auf. Vorher lief der Raymarch dauerhaft in 28 bis 70 Prozent Auflösung
+  — genau das hat den Photonenring verwaschen.
+
+Die angezeigten Kennzahlen kommen aus demselben Page-Thorne-Profil wie das Bild,
+damit Anzeige und Darstellung nicht auseinanderlaufen.
+
+### 📦 STARFALL ist im Windows-Paket dabei
+
+Setup und portable ZIP nehmen den STARFALL-Ordner jetzt mit — wer Jon installiert, hat
+alle vier Titel der FelWorks Game Collection sofort unter Werkzeuge → Spiele. Saves,
+Einstellungen und die Logdatei bleiben dabei außen vor.
+
+### 🎬 Werbespot direkt im Browser
+
+Neuer Ordner `motion/`: ein 20-Sekunden-Spot für Jon im Hochformat 1080 × 1920 bei
+60 FPS, der komplett zur Laufzeit entsteht — jedes Pixel aus WebGL-Shadern, jeder Ton
+aus Oszillatoren, keine einzige Bild- oder Videodatei als Vorlage. `index.html`
+öffnen, **MP4 exportieren** drücken, fertige Datei hochladen. Kein After Effects,
+kein ffmpeg.
+
+### ⬇️ Website: eigener Abschnitt zum Downloader
+
+Die Website erklärt jetzt, was der eingebaute Downloader kann: Vorabprüfung mit Titel,
+Kanal, Dauer und Vorschaubild, vier Qualitätsstufen oder MP3, Fortschritt in Klartext
+— und der Hinweis, dass alles lokal auf dem eigenen PC läuft.
+
 ## [4.33.0] — 2026-08-03
 
 ### 🤝 „KI teilen" ist jetzt verständlich
