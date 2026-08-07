@@ -54,6 +54,11 @@
         "from": "../ECHO",
         "to": "ECHO",
         "filter": ["jon-spiele.json", "README.md", "bin/**/*", "shaders/**/*", "vorschau/**/*"]
+      },
+      {
+        "from": "../spiele/STARFALL",
+        "to": "STARFALL",
+        "filter": ["jon-spiele.json", "README.md", "docs/**/*", "bin/**/*", "vorschau/**/*"]
       }
     ],
     "directories": { "output": "release" },
