@@ -58,7 +58,7 @@
       {
         "from": "../spiele/STARFALL",
         "to": "STARFALL",
-        "filter": ["jon-spiele.json", "README.md", "docs/**/*", "bin/**/*", "vorschau/**/*"]
+        "filter": ["jon-spiele.json", "README.md", "docs/**/*", "bin/**/*", "!bin/*.log", "vorschau/**/*"]
       }
     ],
     "directories": { "output": "release" },
