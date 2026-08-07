@@ -80,11 +80,39 @@ f64 BlackHoleModel::evaporationYears(f64 massKilograms) {
     return seconds / kSecondsPerYear;
 }
 
-f64 BlackHoleModel::diskTemperatureAt(f64 radiusRadii, f64 innerRadii, f64 innerTemperature) {
-    if (radiusRadii <= innerRadii) return 0.0;
-    const f64 ratio = innerRadii / radiusRadii;
-    const f64 edgeFalloff = 1.0 - std::sqrt(clampValue(ratio, 0.0, 1.0));
-    return innerTemperature * std::pow(ratio, 0.75) * std::pow(maxValue(edgeFalloff, 1.0e-6), 0.25) * 1.85;
+f64 BlackHoleModel::pageThorneFlux(f64 radiusRadii, f64 innerRadii, f64 spin) {
+    const f64 x = std::sqrt(maxValue(radiusRadii, 1.0e-6));
+    const f64 x0 = std::sqrt(maxValue(innerRadii, 1.0e-6));
+    if (x <= x0) return 0.0;
+
+    const f64 clampedSpin = clampValue(spin, 0.0, 0.998);
+    const f64 third = std::acos(clampedSpin) / 3.0;
+    const f64 x1 = 2.0 * std::cos(third - kPiDouble / 3.0);
+    const f64 x2 = 2.0 * std::cos(third + kPiDouble / 3.0);
+    const f64 x3 = -2.0 * std::cos(third);
+
+    const f64 denominator = x * x * x - 3.0 * x + 2.0 * clampedSpin;
+    if (denominator <= 1.0e-9) return 0.0;
+
+    const f64 term1 = 3.0 * (x1 - clampedSpin) * (x1 - clampedSpin) / (x1 * (x1 - x2) * (x1 - x3));
+    const f64 term2 = 3.0 * (x2 - clampedSpin) * (x2 - clampedSpin) / (x2 * (x2 - x1) * (x2 - x3));
+    const f64 term3 = 3.0 * (x3 - clampedSpin) * (x3 - clampedSpin) / (x3 * (x3 - x1) * (x3 - x2));
+
+    f64 bracket = x - x0 - 1.5 * clampedSpin * std::log(x / x0);
+    bracket -= term1 * std::log(maxValue((x - x1) / (x0 - x1), 1.0e-12));
+    bracket -= term2 * std::log(maxValue((x - x2) / (x0 - x2), 1.0e-12));
+    bracket -= term3 * std::log(maxValue((x - x3) / (x0 - x3), 1.0e-12));
+
+    const f64 flux = 3.0 * bracket / (std::pow(x, 7.0) * denominator);
+    return maxValue(flux, 0.0);
+}
+
+f64 BlackHoleModel::diskTemperatureAt(f64 radiusRadii, f64 innerRadii, f64 innerTemperature, f64 spin) {
+    const f64 flux = pageThorneFlux(radiusRadii, innerRadii, spin);
+    if (flux <= 0.0) return 0.0;
+    const f64 reference = pageThorneFlux(innerRadii * 49.0 / 36.0, innerRadii, spin);
+    if (reference <= 0.0) return 0.0;
+    return innerTemperature * std::pow(flux / reference, 0.25);
 }
 
 f64 BlackHoleModel::keplerianOrbitalPeriodSeconds(f64 radiusRadii, f64 spin, f64 gravitationalRadiusMeters) {

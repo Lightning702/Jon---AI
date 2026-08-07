@@ -88,6 +88,10 @@ using GLintptr = std::ptrdiff_t;
 #define GL_CLIP_DISTANCE0 0x3000
 #define GL_PROGRAM_POINT_SIZE 0x8642
 #define GL_FRAMEBUFFER_SRGB 0x8DB9
+#define GL_CONSTANT_COLOR 0x8001
+#define GL_ONE_MINUS_CONSTANT_COLOR 0x8002
+#define GL_CONSTANT_ALPHA 0x8003
+#define GL_ONE_MINUS_CONSTANT_ALPHA 0x8004
 
 namespace sf {
 
@@ -148,6 +152,7 @@ using PFN_glDrawArraysInstanced = void(APIENTRY*)(GLenum, GLint, GLsizei, GLsize
 using PFN_glDrawElementsInstanced = void(APIENTRY*)(GLenum, GLsizei, GLenum, const void*, GLsizei);
 using PFN_glBlendFuncSeparate = void(APIENTRY*)(GLenum, GLenum, GLenum, GLenum);
 using PFN_glBlendEquation = void(APIENTRY*)(GLenum);
+using PFN_glBlendColor = void(APIENTRY*)(GLfloat, GLfloat, GLfloat, GLfloat);
 using PFN_glGetStringi = const GLubyte*(APIENTRY*)(GLenum, GLuint);
 using PFN_glDispatchCompute = void(APIENTRY*)(GLuint, GLuint, GLuint);
 using PFN_glMemoryBarrier = void(APIENTRY*)(GLbitfield);
@@ -210,6 +215,7 @@ struct GLApi {
     PFN_glDrawElementsInstanced drawElementsInstanced = nullptr;
     PFN_glBlendFuncSeparate blendFuncSeparate = nullptr;
     PFN_glBlendEquation blendEquation = nullptr;
+    PFN_glBlendColor blendColor = nullptr;
     PFN_glGetStringi getStringi = nullptr;
     PFN_glDispatchCompute dispatchCompute = nullptr;
     PFN_glMemoryBarrier memoryBarrier = nullptr;

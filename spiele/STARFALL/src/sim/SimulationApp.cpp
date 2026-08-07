@@ -214,8 +214,42 @@ void SimulationApp::handleInput(f64 stepSeconds) {
     }
 }
 
+bool SimulationApp::sceneChanged() {
+    const BlackHoleParameters& parameters = model.parameters();
+    const DVec3 observerRadii = observer.positionInRadii();
+    const Quat orientation = observer.orientation();
+    const f64 fieldOfView = observer.fieldOfViewDegrees();
+
+    const f64 signature = parameters.massSolar * 1.000001 + parameters.spin * 7919.0 +
+                          parameters.accretionRate * 104729.0 + parameters.diskInnerTemperatureKelvin * 13.0 +
+                          parameters.diskOuterRadii * 999983.0 + parameters.diskThickness * 6700417.0 +
+                          parameters.jetStrength * 15485863.0;
+    const u32 qualityKey = static_cast<u32>(quality.preset()) * 131u +
+                           static_cast<u32>(quality.settings().blackHoleMaximumSteps);
+
+    const f64 positionDelta = length(observerRadii - lastObserverRadii);
+    const f64 rotationDelta = 1.0 - std::fabs(static_cast<f64>(dot(orientation, lastOrientation)));
+
+    const bool moved = positionDelta > length(observerRadii) * 1.0e-5 || rotationDelta > 1.0e-7 ||
+                       std::fabs(fieldOfView - lastFieldOfView) > 1.0e-5 ||
+                       std::fabs(signature - lastParameterSignature) > 1.0e-6 || qualityKey != lastQualityKey ||
+                       observer.currentMode() == ObserverMode::Cinematic;
+
+    lastObserverRadii = observerRadii;
+    lastOrientation = orientation;
+    lastFieldOfView = fieldOfView;
+    lastParameterSignature = signature;
+    lastQualityKey = qualityKey;
+    return moved;
+}
+
 void SimulationApp::renderFrame() {
-    if (window.resizedThisFrame()) applyQualitySettings();
+    if (window.resizedThisFrame()) {
+        applyQualitySettings();
+        blackHolePass.resetAccumulation();
+        converging = false;
+        stillSeconds = 0.0;
+    }
 
     const QualitySettings& settings = quality.settings();
     const BlackHoleDerived& derived = model.derived();
@@ -255,7 +289,10 @@ void SimulationApp::renderFrame() {
     blackHole.diskBrightness = 26.0f;
     blackHole.jetStrength = static_cast<f32>(parameters.jetStrength);
     blackHole.accretionRate = static_cast<f32>(parameters.accretionRate);
-    blackHole.elapsedSeconds = static_cast<f32>(elapsedSeconds);
+    blackHole.elapsedSeconds = static_cast<f32>(converging ? frozenSeconds : elapsedSeconds);
+    blackHole.accumulationResolutionScale = maxValue(settings.blackHoleResolutionScale, 1.0f);
+    blackHole.accumulationLimit = settings.preset == QualityPreset::Sparmodus ? 96u : 192u;
+    blackHole.accumulate = converging;
     blackHole.resolutionScale = settings.blackHoleResolutionScale;
     blackHole.maximumSteps = settings.blackHoleMaximumSteps;
     blackHole.stepFraction = settings.blackHoleStepFraction;
@@ -291,9 +328,13 @@ void SimulationApp::renderFrame() {
     window.present();
     ++renderedFrames;
 
-    if (!launch.screenshotPath.empty() && !screenshotTaken && renderedFrames > 3) {
-        captureScreenshot(launch.screenshotPath);
-        screenshotTaken = true;
+    if (!launch.screenshotPath.empty() && !screenshotTaken) {
+        const bool converged = converging && blackHolePass.converged();
+        const bool outOfFrames = launch.frameLimit > 0 && renderedFrames + 1 >= launch.frameLimit;
+        if (converged || outOfFrames) {
+            captureScreenshot(launch.screenshotPath);
+            screenshotTaken = true;
+        }
     }
 }
 
@@ -311,6 +352,21 @@ void SimulationApp::drawInterface() {
     userInterface.drawText(corner, width - 24.0f, 24.0f, 1.3f, style.textDim, TextAlign::Right);
     userInterface.drawText(ObserverController::modeName(observer.currentMode()), width - 24.0f, 44.0f, 1.4f,
                            style.accent, TextAlign::Right);
+
+    if (converging) {
+        char sharpen[96];
+        if (blackHolePass.converged()) {
+            std::snprintf(sharpen, sizeof(sharpen), "SCHARF  %u BILDER", blackHolePass.accumulatedSamples());
+        } else {
+            std::snprintf(sharpen, sizeof(sharpen), "SCHAERFT NACH  %u", blackHolePass.accumulatedSamples());
+        }
+        userInterface.drawText(sharpen, width - 24.0f, 64.0f, 1.2f,
+                               blackHolePass.converged() ? style.accent : style.textDim, TextAlign::Right);
+        if (!blackHolePass.converged()) {
+            userInterface.drawProgressBar(width - 148.0f, 80.0f, 124.0f, 5.0f, blackHolePass.convergenceFraction(),
+                                          style.accentDim, style.accentDim);
+        }
+    }
 
     drawPhysicsPanel();
     drawScalePanel();
@@ -508,6 +564,20 @@ void SimulationApp::run() {
 
         handleInput(delta);
         observer.update(window.input(), delta, true);
+
+        if (sceneChanged()) {
+            blackHolePass.resetAccumulation();
+            converging = false;
+            stillSeconds = 0.0;
+        } else {
+            stillSeconds += delta;
+            if (!converging && stillSeconds > 0.30) {
+                converging = true;
+                frozenSeconds = elapsedSeconds;
+                blackHolePass.resetAccumulation();
+            }
+        }
+
         renderFrame();
 
         if (launch.frameLimit > 0 && renderedFrames >= launch.frameLimit) break;

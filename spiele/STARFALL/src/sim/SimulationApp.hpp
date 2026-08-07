@@ -68,9 +68,19 @@ private:
     ObserverReadout readout;
     SimulationOptions launch;
 
+    bool sceneChanged();
+
     std::string noticeText;
     f64 noticeTimer = 0.0;
     f64 elapsedSeconds = 0.0;
+    f64 frozenSeconds = 0.0;
+    f64 stillSeconds = 0.0;
+    DVec3 lastObserverRadii = DVec3(1.0e30, 0.0, 0.0);
+    Quat lastOrientation;
+    f64 lastFieldOfView = 0.0;
+    f64 lastParameterSignature = 0.0;
+    u32 lastQualityKey = 0;
+    bool converging = false;
     u64 renderedFrames = 0;
     u32 activePreset = 0;
     u32 selectedControl = 0;

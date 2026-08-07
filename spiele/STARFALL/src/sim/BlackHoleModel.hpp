@@ -67,7 +67,8 @@ public:
     static f64 gravitationalTimeDilation(f64 radiusRadii);
     static f64 hawkingTemperature(f64 massKilograms);
     static f64 evaporationYears(f64 massKilograms);
-    static f64 diskTemperatureAt(f64 radiusRadii, f64 innerRadii, f64 innerTemperature);
+    static f64 pageThorneFlux(f64 radiusRadii, f64 innerRadii, f64 spin);
+    static f64 diskTemperatureAt(f64 radiusRadii, f64 innerRadii, f64 innerTemperature, f64 spin);
     static f64 keplerianOrbitalPeriodSeconds(f64 radiusRadii, f64 spin, f64 gravitationalRadiusMeters);
 
     static const std::vector<BlackHoleParameters>& presets();

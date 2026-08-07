@@ -33,6 +33,7 @@ uniform float uStepFraction;
 uniform int uMaximumSteps;
 uniform int uIntegratorOrder;
 uniform int uSkyDetail;
+uniform vec2 uPixelJitter;
 
 const float kEscapeRadius = 4200.0;
 
@@ -76,23 +77,62 @@ void geodesicDerivatives(float radius, float theta, float momentumRadial, float 
     derivativeMomentumPolar = -polarTerm * polarTermDerivative;
 }
 
-float diskTemperatureAt(float radius, float innerRadius, float innerTemperature) {
-    float ratio = max(innerRadius / max(radius, 1.0e-3), 1.0e-4);
-    float edgeFalloff = 1.0 - sqrt(clamp(innerRadius / max(radius, innerRadius), 0.0, 1.0));
-    return innerTemperature * pow(ratio, 0.75) * pow(max(edgeFalloff, 1.0e-3), 0.25) * 1.85;
+float pageThorneFlux(float radius, float innerRadius, float spin) {
+    float x = sqrt(max(radius, 1.0e-4));
+    float x0 = sqrt(max(innerRadius, 1.0e-4));
+    if (x <= x0) return 0.0;
+
+    float third = acos(clamp(spin, -1.0, 1.0)) / 3.0;
+    float x1 = 2.0 * cos(third - 1.0471975512);
+    float x2 = 2.0 * cos(third + 1.0471975512);
+    float x3 = -2.0 * cos(third);
+
+    float denominator = x * x * x - 3.0 * x + 2.0 * spin;
+    if (denominator <= 1.0e-5) return 0.0;
+
+    float term1 = 3.0 * (x1 - spin) * (x1 - spin) / (x1 * (x1 - x2) * (x1 - x3));
+    float term2 = 3.0 * (x2 - spin) * (x2 - spin) / (x2 * (x2 - x1) * (x2 - x3));
+    float term3 = 3.0 * (x3 - spin) * (x3 - spin) / (x3 * (x3 - x1) * (x3 - x2));
+
+    float bracket = x - x0 - 1.5 * spin * log(x / x0);
+    bracket -= term1 * log(max((x - x1) / (x0 - x1), 1.0e-6));
+    bracket -= term2 * log(max((x - x2) / (x0 - x2), 1.0e-6));
+    bracket -= term3 * log(max((x - x3) / (x0 - x3), 1.0e-6));
+
+    float flux = bracket / (x * x * x * x * x * x * x * denominator) * 3.0;
+    return max(flux, 0.0);
+}
+
+float diskTemperatureAt(float radius, float innerRadius, float innerTemperature, float spin) {
+    float flux = pageThorneFlux(radius, innerRadius, spin);
+    if (flux <= 0.0) return 0.0;
+    float reference = pageThorneFlux(innerRadius * 1.3611111, innerRadius, spin);
+    if (reference <= 0.0) return 0.0;
+    return innerTemperature * pow(flux / reference, 0.25);
+}
+
+float limbDarkening(float cosineEmission) {
+    float mu = clamp(cosineEmission, 0.0, 1.0);
+    return (1.0 + 2.06 * mu) / 3.06;
 }
 
 float diskDensityPattern(float radius, float phi, float spin, float time) {
     float orbitalRate = 1.0 / (pow(max(radius, 1.0e-3), 1.5) + spin);
     float trailingPhi = phi - orbitalRate * time * 46.0;
-    vec3 samplePoint = vec3(cos(trailingPhi), sin(trailingPhi), 0.0) * (radius * 0.42);
-    samplePoint.z = log(max(radius, 1.0e-3)) * 3.1;
+    float logRadius = log(max(radius, 1.0e-3));
 
-    float filaments = skyFractal(samplePoint * 2.4, 4);
-    float fineStructure = skyFractal(samplePoint * 9.7 + 13.0, 3);
-    float spiralWave = 0.5 + 0.5 * sin(trailingPhi * 2.0 + log(max(radius, 1.0e-3)) * 5.4);
-    float turbulence = mix(filaments, fineStructure, 0.42);
-    return clamp(0.32 + turbulence * 1.35 * (0.55 + 0.45 * spiralWave), 0.0, 2.0);
+    float shear = orbitalRate * 1.5 / max(radius, 1.0e-3);
+    float shearedPhi = trailingPhi + shear * logRadius * 220.0;
+
+    vec2 azimuthal = vec2(cos(shearedPhi), sin(shearedPhi));
+    vec3 coarse = vec3(azimuthal * (radius * 0.16), logRadius * 6.4);
+    vec3 fine = vec3(azimuthal * (radius * 0.90), logRadius * 22.0);
+
+    float filaments = skyFractal(coarse, 4);
+    float fineStructure = skyFractal(fine, 3);
+    float spiralWave = 0.5 + 0.5 * sin(shearedPhi * 2.0 + logRadius * 5.4);
+    float turbulence = mix(filaments, fineStructure, 0.38);
+    return clamp(0.30 + turbulence * 1.42 * (0.52 + 0.48 * spiralWave), 0.0, 2.0);
 }
 
 vec3 jetEmissionAt(vec3 position, float spin, float time) {
@@ -115,7 +155,7 @@ vec3 jetEmissionAt(vec3 position, float spin, float time) {
 }
 
 void main() {
-    vec2 normalizedScreen = vScreenUv * 2.0 - 1.0;
+    vec2 normalizedScreen = (vScreenUv + uPixelJitter) * 2.0 - 1.0;
     vec3 viewDirection = normalize(uCameraForward +
                                    uCameraRight * (normalizedScreen.x * uTanHalfFieldOfView * uAspectRatio) +
                                    uCameraUp * (normalizedScreen.y * uTanHalfFieldOfView));
@@ -258,22 +298,31 @@ void main() {
                     float emittedEnergy = energy * orbitTime - angularMomentum * orbitAzimuth;
                     float shift = 1.0 / max(abs(emittedEnergy), 1.0e-4);
 
-                    float restTemperature = diskTemperatureAt(crossingRadius, diskInner, uDiskInnerTemperature) *
+                    float restTemperature = diskTemperatureAt(crossingRadius, diskInner, uDiskInnerTemperature, spin) *
                                             pow(max(uAccretionRate, 1.0e-3), 0.25);
-                    float observedTemperature = restTemperature * shift;
-                    float density = diskDensityPattern(crossingRadius, crossingPhi, spin, uTime);
-                    float radialFade = smoothstep(uDiskOuterRadius, uDiskOuterRadius * 0.72, crossingRadius);
-                    float innerFade = smoothstep(diskInner, diskInner * 1.06, crossingRadius);
-                    float beaming = pow(shift, 4.0);
-                    float opticalDepth = 1.0 - exp(-density * uDiskThickness * 34.0);
-                    float normalizedTemperature = restTemperature / max(uDiskInnerTemperature, 1.0);
-                    float radiance = pow(normalizedTemperature, 4.0) * beaming * opticalDepth * radialFade *
-                                     innerFade * uDiskBrightness;
+                    if (restTemperature > 1.0) {
+                        float observedTemperature = restTemperature * shift;
+                        float density = diskDensityPattern(crossingRadius, crossingPhi, spin, uTime);
+                        float radialFade = smoothstep(uDiskOuterRadius, uDiskOuterRadius * 0.72, crossingRadius);
 
-                    diskColor = blackBodyRadiance(observedTemperature, radiance) * uDiskOpacity;
-                    diskHit = true;
-                    accumulated += diskColor;
-                    break;
+                        vec3 travel = normalize(currentCartesian - previousCartesian);
+                        float cosineEmission = abs(travel.y);
+                        float scaleHeight = max(uDiskThickness * crossingRadius, 1.0e-4);
+                        float slabPath = scaleHeight / max(cosineEmission, 0.02);
+                        float opticalDepth = 1.0 - exp(-density * slabPath * 2.2);
+                        float rim = smoothstep(0.30, 0.02, cosineEmission) *
+                                    smoothstep(diskInner * 2.6, diskInner * 1.02, crossingRadius);
+
+                        float beaming = pow(shift, 4.0);
+                        float normalizedTemperature = restTemperature / max(uDiskInnerTemperature, 1.0);
+                        float radiance = pow(normalizedTemperature, 4.0) * beaming * opticalDepth * radialFade *
+                                         limbDarkening(cosineEmission) * (1.0 + rim * 0.85) * uDiskBrightness;
+
+                        diskColor = blackBodyRadiance(observedTemperature, radiance) * uDiskOpacity;
+                        diskHit = true;
+                        accumulated += diskColor;
+                        break;
+                    }
                 }
             }
         }
@@ -328,15 +377,37 @@ void BlackHolePass::release() {
     triangle.release();
 }
 
+namespace {
+
+f32 haltonSequence(u32 index, u32 base) {
+    f32 result = 0.0f;
+    f32 fraction = 1.0f / static_cast<f32>(base);
+    u32 cursor = index;
+    while (cursor > 0) {
+        result += static_cast<f32>(cursor % base) * fraction;
+        cursor /= base;
+        fraction /= static_cast<f32>(base);
+    }
+    return result;
+}
+
+}
+
 void BlackHolePass::render(const Camera& camera, const BlackHoleRenderParameters& parameters, u32 targetWidth,
                            u32 targetHeight) {
     if (!shader.valid()) return;
-    const f32 scale = clampValue(parameters.resolutionScale, 0.25f, 1.0f);
+
+    convergenceLimit = parameters.accumulate ? maxValue(parameters.accumulationLimit, 1u) : 1u;
+    const f32 scale = parameters.accumulate ? clampValue(parameters.accumulationResolutionScale, 0.25f, 1.0f)
+                                            : clampValue(parameters.resolutionScale, 0.25f, 1.0f);
     const u32 width = maxValue<u32>(64, static_cast<u32>(static_cast<f32>(targetWidth) * scale));
     const u32 height = maxValue<u32>(64, static_cast<u32>(static_cast<f32>(targetHeight) * scale));
     if (!target.valid() || target.width() != width || target.height() != height) {
         target.create(width, height, GL_RGBA16F, false);
+        sampleIndex = 0;
     }
+    if (!parameters.accumulate) sampleIndex = 0;
+    if (sampleIndex >= convergenceLimit) return;
 
     const DVec3 offset = camera.position() - parameters.centerWorldPosition;
     const f64 inverseRadius = 1.0 / parameters.gravitationalRadiusMeters;
@@ -349,13 +420,29 @@ void BlackHolePass::render(const Camera& camera, const BlackHoleRenderParameters
                                 : innermostStableCircularOrbit(parameters.spinParameter);
 
     target.bindForDrawing();
-    target.clear(0.0f, 0.0f, 0.0f, 1.0f, false);
-
     glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
     glDisable(GL_CULL_FACE);
 
+    if (sampleIndex == 0) {
+        target.clear(0.0f, 0.0f, 0.0f, 1.0f, false);
+        glDisable(GL_BLEND);
+    } else if (gl().blendColor) {
+        const f32 weight = 1.0f / static_cast<f32>(sampleIndex + 1);
+        glEnable(GL_BLEND);
+        gl().blendColor(0.0f, 0.0f, 0.0f, weight);
+        glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+    } else {
+        target.clear(0.0f, 0.0f, 0.0f, 1.0f, false);
+        glDisable(GL_BLEND);
+    }
+
+    const f32 jitterX = sampleIndex == 0 ? 0.0f
+                                         : (haltonSequence(sampleIndex, 2) - 0.5f) / static_cast<f32>(width);
+    const f32 jitterY = sampleIndex == 0 ? 0.0f
+                                         : (haltonSequence(sampleIndex, 3) - 0.5f) / static_cast<f32>(height);
+
     shader.bind();
+    shader.setVec2("uPixelJitter", jitterX, jitterY);
     shader.setVec3("uCameraRight", camera.right());
     shader.setVec3("uCameraUp", camera.up());
     shader.setVec3("uCameraForward", camera.forward());
@@ -379,6 +466,8 @@ void BlackHolePass::render(const Camera& camera, const BlackHoleRenderParameters
     shader.setInt("uSkyDetail", parameters.skyDetail);
 
     triangle.draw();
+    glDisable(GL_BLEND);
+    ++sampleIndex;
 }
 
 f32 BlackHolePass::horizonRadius(f32 spin) {

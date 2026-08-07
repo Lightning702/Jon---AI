@@ -97,6 +97,7 @@ bool loadGLApi() {
     bindProcedure(api.drawElementsInstanced, "glDrawElementsInstanced");
     bindProcedure(api.blendFuncSeparate, "glBlendFuncSeparate");
     bindProcedure(api.blendEquation, "glBlendEquation");
+    bindProcedure(api.blendColor, "glBlendColor");
     bindProcedure(api.getStringi, "glGetStringi");
     bindProcedure(api.dispatchCompute, "glDispatchCompute");
     bindProcedure(api.memoryBarrier, "glMemoryBarrier");

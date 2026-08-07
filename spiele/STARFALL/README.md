@@ -9,6 +9,16 @@ sieht — die Gravitationslinse, der Photonenring, die Scheibe, die durch die Li
 gleichzeitig über und unter dem Horizont erscheint — entsteht aus dieser Integration und
 ist nicht nachgestellt.
 
+Die Scheibe strahlt nach dem relativistischen Flussprofil von Page und Thorne, mit
+Chandrasekhar-Randverdunklung, endlicher Schichtdicke und differentieller Scherung.
+Doppler-Beaming und Gravitationsrotverschiebung stecken in einem einzigen Faktor
+`g = 1/(E u^t − L u^φ)` — dass die zulaufende Seite heller und blauer erscheint, folgt
+daraus, es ist nicht hineingemalt.
+
+**Nachschärfen:** Beim Bewegen läuft der Raymarch in reduzierter Auflösung. Steht die
+Kamera still, friert die Zeit ein und das Bild wird über bis zu 192 versetzte Abtastungen
+in voller Auflösung aufgebaut. Der Photonenring wird dabei von weich zu gestochen scharf.
+
 By FelWorks.
 
 ## Bauen und starten

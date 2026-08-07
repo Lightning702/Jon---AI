@@ -124,39 +124,48 @@ void testMassScaling() {
 }
 
 void testDiskProfile() {
-    std::printf("Akkretionsscheibe\n");
+    std::printf("Akkretionsscheibe nach Page-Thorne\n");
     const f64 inner = 6.0;
     const f64 innerTemperature = 9800.0;
 
-    checkNear(BlackHoleModel::diskTemperatureAt(inner, inner, innerTemperature), 0.0, 1.0e-9,
-              "Temperatur faellt am Innenrand auf null");
-    check(BlackHoleModel::diskTemperatureAt(3.0, inner, innerTemperature) == 0.0,
+    checkNear(BlackHoleModel::pageThorneFlux(inner, inner, 0.0), 0.0, 1.0e-12,
+              "Fluss verschwindet am Innenrand");
+    check(BlackHoleModel::pageThorneFlux(3.0, inner, 0.0) == 0.0, "Innerhalb der ISCO gibt es keinen Fluss");
+    check(BlackHoleModel::diskTemperatureAt(3.0, inner, innerTemperature, 0.0) == 0.0,
           "Innerhalb der ISCO gibt es keine Scheibe");
 
-    const f64 nearTemperature = BlackHoleModel::diskTemperatureAt(9.0, inner, innerTemperature);
-    const f64 farTemperature = BlackHoleModel::diskTemperatureAt(40.0, inner, innerTemperature);
+    for (f64 radius = inner + 0.01; radius < 400.0; radius *= 1.15) {
+        check(BlackHoleModel::pageThorneFlux(radius, inner, 0.0) >= 0.0, "Fluss ist nie negativ");
+    }
+
+    const f64 nearTemperature = BlackHoleModel::diskTemperatureAt(9.0, inner, innerTemperature, 0.0);
+    const f64 farTemperature = BlackHoleModel::diskTemperatureAt(40.0, inner, innerTemperature, 0.0);
     check(nearTemperature > farTemperature, "Die Scheibe kuehlt nach aussen ab");
 
-    const f64 ratio = BlackHoleModel::diskTemperatureAt(60.0, inner, innerTemperature) /
-                      BlackHoleModel::diskTemperatureAt(15.0, inner, innerTemperature);
-    const f64 edgeFar = std::pow(1.0 - std::sqrt(inner / 60.0), 0.25);
-    const f64 edgeNear = std::pow(1.0 - std::sqrt(inner / 15.0), 0.25);
-    checkNear(ratio, std::pow(4.0, -0.75) * (edgeFar / edgeNear), 1.0e-6,
-              "Profil folgt r hoch minus drei Viertel mit Innenrand-Term");
-
-    const f64 farRatio = BlackHoleModel::diskTemperatureAt(4800.0, inner, innerTemperature) /
-                         BlackHoleModel::diskTemperatureAt(1200.0, inner, innerTemperature);
-    checkNear(farRatio, std::pow(4.0, -0.75), 0.01, "Weit aussen bleibt reines r hoch minus drei Viertel");
-
     f64 peakRadius = inner;
-    f64 peakTemperature = 0.0;
-    for (f64 radius = inner; radius < 60.0; radius += 0.05) {
-        const f64 temperature = BlackHoleModel::diskTemperatureAt(radius, inner, innerTemperature);
-        if (temperature <= peakTemperature) continue;
-        peakTemperature = temperature;
+    f64 peakFlux = 0.0;
+    for (f64 radius = inner; radius < 60.0; radius += 0.01) {
+        const f64 flux = BlackHoleModel::pageThorneFlux(radius, inner, 0.0);
+        if (flux <= peakFlux) continue;
+        peakFlux = flux;
         peakRadius = radius;
     }
-    checkNear(peakRadius, inner * 49.0 / 36.0, 0.2, "Maximum liegt bei 49/36 des Innenradius");
+    checkNear(peakRadius, 8.39, 0.15, "Maximum des Schwarzschild-Flusses bei rund 8,39 r_g");
+    check(peakRadius > inner * 49.0 / 36.0,
+          "Relativistisches Maximum liegt weiter aussen als das newtonsche bei 49/36");
+    checkNear(BlackHoleModel::diskTemperatureAt(inner * 49.0 / 36.0, inner, innerTemperature, 0.0),
+              innerTemperature, 1.0e-6, "Referenzradius traegt die eingestellte Temperatur");
+
+    const f64 outerRatio = BlackHoleModel::pageThorneFlux(4000.0, inner, 0.0) /
+                           BlackHoleModel::pageThorneFlux(1000.0, inner, 0.0);
+    checkNear(outerRatio, std::pow(4.0, -3.0), 0.06, "Weit aussen faellt der Fluss mit r hoch minus drei");
+
+    const f64 spinning = BlackHoleModel::innermostStableOrbitRadii(0.94);
+    check(BlackHoleModel::pageThorneFlux(spinning * 2.0, spinning, 0.94) >
+              BlackHoleModel::pageThorneFlux(12.0, 6.0, 0.0),
+          "Rotierendes Loch heizt die Scheibe staerker");
+    check(BlackHoleModel::diskTemperatureAt(spinning * 1.02, spinning, innerTemperature, 0.94) < innerTemperature,
+          "Direkt an der ISCO bleibt es kuehl");
 }
 
 void testObserver() {

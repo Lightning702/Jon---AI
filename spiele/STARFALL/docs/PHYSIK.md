@@ -76,12 +76,32 @@ Geometrisch dünn, optisch dick, von r_isco bis zum einstellbaren Außenrand. De
 mit der Äquatorebene wird zwischen zwei Integrationsschritten über den Vorzeichenwechsel
 von cos θ linear interpoliert.
 
-Temperaturprofil nach Shakura-Sunyaev/Novikov-Thorne:
+Das Strahlungsprofil folgt dem relativistischen Fluss nach Page und Thorne (1974), nicht
+der newtonschen Näherung. Mit `x = √r`, `x₀ = √r_isco` und den Wurzeln von `x³ − 3x + 2a = 0`
+
 ```
-T(r) = T_innen · (r_in/r)^{3/4} · (1 − √(r_in/r))^{1/4}
+x₁ = 2 cos( (1/3) arccos(a) − π/3 )
+x₂ = 2 cos( (1/3) arccos(a) + π/3 )
+x₃ = −2 cos( (1/3) arccos(a) )
 ```
-Der zweite Faktor sorgt dafür, dass die Temperatur am Innenrand auf null fällt. Das
-Maximum liegt bei `r = (49/36) r_in` — die Testsuite prüft genau das.
+
+gilt
+
+```
+F(r) ∝ 1 / ( x⁷ (x³ − 3x + 2a) ) ·
+       [ x − x₀ − (3a/2) ln(x/x₀)
+         − 3(x₁−a)² / (x₁(x₁−x₂)(x₁−x₃)) · ln((x−x₁)/(x₀−x₁))
+         − 3(x₂−a)² / (x₂(x₂−x₁)(x₂−x₃)) · ln((x−x₂)/(x₀−x₂))
+         − 3(x₃−a)² / (x₃(x₃−x₁)(x₃−x₂)) · ln((x−x₃)/(x₀−x₃)) ]
+```
+
+und `T(r) ∝ F(r)^{1/4}`. Der Fluss verschwindet exakt an der ISCO und fällt weit außen mit
+`r⁻³`, die Temperatur damit mit `r^{−3/4}`.
+
+Für Schwarzschild (a = 0, r_isco = 6) liegt das Maximum bei **8,39 r_g** — etwas weiter
+außen als die newtonsche Näherung mit `(49/36) r_in = 8,17 r_g`. Genau diese relativistische
+Verschiebung prüft die Testsuite. Mit Spin wandert die ganze Scheibe nach innen und wird
+heißer, weil die ISCO näher an den Horizont rückt.
 
 Für eine prograde Kreisbahn in der Äquatorebene gilt
 ```
@@ -98,8 +118,28 @@ folgt ohne Zusatzregel, dass die auf den Betrachter zulaufende Scheibenseite hel
 blauer erscheint als die abgewandte.
 
 Die Farbe entsteht aus der Planckschen Kurve: Temperatur → Planckscher Ort in CIE-xy →
-XYZ → lineares sRGB. Die Temperatur am Innenrand ist ein Regler, damit die Scheibe im
-Bild lesbar bleibt; Profilform, Verschiebung und Beaming bleiben davon unberührt.
+XYZ → lineares sRGB. Der Reglerwert „Scheibentemperatur" verankert die Skala am Radius
+`(49/36) r_in`; Profilform, Verschiebung und Beaming bleiben davon unberührt.
+
+**Randverdunklung.** Die Emission ist nicht isotrop. Für eine streuungsdominierte
+Scheibenatmosphäre gilt Chandrasekhars Gesetz
+
+```
+I(μ) ∝ (1 + 2,06 μ) / 3,06
+```
+
+mit μ als Kosinus des Abstrahlwinkels zur Scheibennormalen. Flach gesehene Bereiche
+erscheinen dadurch dunkler als senkrecht gesehene — bei steiler Blickrichtung auf die
+Scheibe ein sichtbarer Unterschied.
+
+**Endliche Dicke.** Die Scheibe hat eine Skalenhöhe `h = d · r`. Die optische Tiefe entlang
+des Strahls folgt der tatsächlichen Weglänge durch die Schicht, `L = h / |cos θ_Strahl|`.
+Bei streifendem Einfall wird die Schicht dadurch länger durchlaufen und die Scheibe
+erscheint dicker; am Innenrand kommt eine Kantenaufhellung dazu.
+
+**Scherung.** Reale Scheiben rotieren differentiell: innen schneller als außen. Das
+Turbulenzmuster wird entsprechend in Umfangsrichtung geschert abgetastet, sodass Strukturen
+zu Spiralfäden ausgezogen werden statt rund zu bleiben.
 
 ## Beobachterkennzahlen
 
@@ -134,6 +174,23 @@ korrekt aus denselben Formeln gerechnet wie alles andere.
   Helligkeit mit der vierten Potenz skaliert.
 - **Relativistische Jets** entlang der Spinachse, volumetrisch entlang des Strahlwegs
   akkumuliert, mit Schockknoten aus einer logarithmischen Phasenfunktion.
+
+## Zeitliche Akkumulation
+
+Der Raymarch läuft beim Bewegen in reduzierter Auflösung, damit die Kamera reagiert. Sobald
+0,3 Sekunden lang nichts mehr verändert wird — Kamera, Regler, Grafikstufe —, friert die
+Simulationszeit ein und das Bild wird in **voller Auflösung** aufgebaut: jedes Bild wird mit
+einem Subpixel-Versatz aus einer Halton-Folge (Basen 2 und 3) abgetastet und als laufender
+Mittelwert dazugerechnet.
+
+```
+Akkumulation ← (1/(n+1)) · aktuelles Bild + (n/(n+1)) · Akkumulation
+```
+
+Nach 192 Bildern (96 im Sparmodus) ist das Ergebnis konvergiert. Das ist der Unterschied
+zwischen einem weichen Photonenring und einem gestochen scharfen: bei 28 % Auflösung ist der
+Ring nur wenige Pixel breit, akkumuliert steht er sauber im Bild. Jede Änderung setzt den
+Zähler zurück und die Animation läuft weiter.
 
 ## Was nicht simuliert wird
 
