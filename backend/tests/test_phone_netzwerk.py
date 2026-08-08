@@ -148,3 +148,22 @@ def test_diagnose_bietet_firewall_befehl_an(tmp_path, monkeypatch):
     firewall = next(c for c in report["checks"] if c["name"] == "Firewall")
     assert firewall["ok"] is False
     assert firewall["fix"].startswith("New-NetFirewallRule")
+
+
+def test_firewall_befehl_hebt_rechte_selbst_an():
+    from app.services.phone_service import firewall_command
+
+    cmd = firewall_command(5060)
+    assert cmd.startswith("Start-Process powershell -Verb RunAs")
+    assert "'-NoProfile','-Command'" in cmd
+    assert cmd.count('"') == 2
+    assert "\\" not in cmd
+    assert "-LocalPort 5060" in cmd
+    assert "-LocalPort 16384-32768" in cmd
+    assert cmd.count("-Profile Any") == 2
+
+
+def test_firewall_befehl_nimmt_eigenen_port():
+    from app.services.phone_service import firewall_command
+
+    assert "-LocalPort 5070" in firewall_command(5070)

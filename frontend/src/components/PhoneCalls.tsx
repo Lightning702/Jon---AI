@@ -378,11 +378,22 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                             {check.fix}
                           </div>
                           <button
-                            onClick={() => navigator.clipboard?.writeText(check.fix ?? "")}
+                            onClick={() => {
+                              navigator.clipboard?.writeText(check.fix ?? "");
+                              setNote(
+                                "Befehl kopiert. In PowerShell einfügen, Enter — dann fragt " +
+                                  "Windows einmal nach Administratorrechten. Auf „Ja“ klicken."
+                              );
+                            }}
                             className="mt-1 text-[10px] text-white/50 hover:text-white/90"
                           >
-                            Befehl kopieren — in PowerShell als Administrator ausführen
+                            Befehl kopieren
                           </button>
+                          {check.fix_hint ? (
+                            <div className="text-[10px] text-white/35 mt-0.5">
+                              {check.fix_hint}
+                            </div>
+                          ) : null}
                         </div>
                       ) : null}
                     </div>
@@ -468,20 +479,101 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                   </button>
                 </li>
                 <li>
-                  <b className="text-white/90">3. Verbindung prüfen</b>
-                  <div className="text-white/50">
-                    {device?.registered
-                      ? `Angemeldet: ${device.user_agent || "Gerät"} über ${device.source}`
-                      : "Sobald die App verbunden ist, erscheint dein Gerät hier."}
+                  <b className="text-white/90">3. In Linphone eintragen</b>
+                  <div className="text-white/50 mb-1">
+                    Beim ersten Start <b className="text-white/70">„SIP-Konto verwenden“</b> —
+                    nicht „Konto erstellen“. Später über Menü ☰ → Einstellungen → Konten →
+                    Konto hinzufügen.
+                  </div>
+                  <table className="w-full text-[12px] border border-white/10 rounded-lg overflow-hidden">
+                    <tbody>
+                      {[
+                        ["Benutzername", setup?.username ?? "…"],
+                        ["Passwort", setup?.password ?? "…"],
+                        [
+                          "Domain",
+                          setup ? `${setup.server}:${setup.port}` : "…",
+                        ],
+                        ["Transport", "UDP"],
+                      ].map(([label, value]) => (
+                        <tr key={label} className="border-b border-white/5 last:border-0">
+                          <td className="px-2 py-1 text-white/50 w-32">{label}</td>
+                          <td className="px-2 py-1 font-mono text-white/90 break-all">
+                            {value}
+                          </td>
+                          <td className="px-2 py-1 w-8">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard?.writeText(String(value));
+                                setNote(`${label} kopiert.`);
+                              }}
+                              className="text-white/40 hover:text-white/90"
+                              title="kopieren"
+                            >
+                              ⧉
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="text-[11px] text-amber-200/70 mt-1">
+                    Achtung bei der Autokorrektur des Handys — sie macht aus dem ersten
+                    Zeichen gern einen Großbuchstaben. Lieber kopieren und einfügen.
                   </div>
                 </li>
                 <li>
-                  <b className="text-white/90">4. Testanruf</b>
+                  <b className="text-white/90">4. Android am Einschlafen hindern</b>
+                  <div className="text-white/50">
+                    Einstellungen → Apps → Linphone → <b className="text-white/70">Akku</b> →
+                    „Uneingeschränkt“. Sonst schläft der SIP-Dienst ein und es klingelt
+                    nicht. In Linphone zusätzlich Einstellungen → Netzwerk →
+                    „Dienst im Vordergrund“ einschalten.
+                  </div>
+                </li>
+                <li>
+                  <b className="text-white/90">5. Verbindung prüfen</b>
+                  <div className="text-white/50">
+                    {device?.registered
+                      ? `🟢 Angemeldet: ${device.user_agent || "Gerät"} über ${device.source}`
+                      : "Linphone zeigt oben „Verbunden“ in Grün — dann erscheint dein Gerät hier."}
+                  </div>
+                </li>
+                <li>
+                  <b className="text-white/90">6. Testanruf</b>
                   <div className="text-white/50">
                     Oben auf „Testanruf“ — dein Handy muss klingeln.
                   </div>
                 </li>
               </ol>
+
+              <details className="text-[12px] text-white/60">
+                <summary className="cursor-pointer text-white/70">
+                  Linphone hängt auf „Verbindung wird hergestellt“?
+                </summary>
+                <ol className="mt-2 space-y-1.5 pl-4 list-decimal text-white/50">
+                  <li>
+                    <b className="text-white/70">Erreicht das Handy den PC?</b> Im
+                    Handy-Browser{" "}
+                    <span className="font-mono text-white/70">
+                      http://{setup?.server ?? "…"}:8756/api/health
+                    </span>{" "}
+                    aufrufen. Kommt nichts, liegt es am Netzwerk — gleiches WLAN? Gast-WLAN?
+                    Manche Router trennen Geräte voneinander („AP-Isolation“).
+                  </li>
+                  <li>
+                    <b className="text-white/70">Stimmt die Adresse?</b> Oben die
+                    WLAN-Adresse wählen, keine VPN- oder virtuelle.
+                  </li>
+                  <li>
+                    <b className="text-white/70">Firewall?</b> Den Befehl aus der Ampel
+                    ausführen.
+                  </li>
+                  <li>
+                    <b className="text-white/70">Passwort exakt?</b> Kopieren statt tippen.
+                  </li>
+                </ol>
+              </details>
 
               <div className="text-[11px] text-white/40 border-t border-white/10 pt-3">
                 Nicht im selben WLAN? Dann Jon und Handy über Tailscale oder WireGuard

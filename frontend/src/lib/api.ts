@@ -2304,6 +2304,7 @@ export interface PhoneCheck {
   ok: boolean;
   detail: string;
   fix?: string;
+  fix_hint?: string;
 }
 
 export interface PhoneLogEntry {

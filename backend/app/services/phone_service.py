@@ -206,6 +206,21 @@ def next_occurrence(rule: str, after: datetime) -> datetime | None:
     return None
 
 
+def firewall_command(port: int = 5060) -> str:
+    inner = (
+        "New-NetFirewallRule -DisplayName 'Jon Telefon (SIP)' "
+        f"-Direction Inbound -Protocol UDP -LocalPort {port} -Action Allow "
+        "-Profile Any; "
+        "New-NetFirewallRule -DisplayName 'Jon Telefon (RTP)' "
+        "-Direction Inbound -Protocol UDP -LocalPort 16384-32768 -Action Allow "
+        "-Profile Any"
+    )
+    return (
+        "Start-Process powershell -Verb RunAs -ArgumentList "
+        f"'-NoProfile','-Command',\"{inner}\""
+    )
+
+
 class PhoneService:
     def __init__(self) -> None:
         self._lock = threading.RLock()
@@ -352,10 +367,11 @@ class PhoneService:
                 f"Keine Firewallregel fuer UDP {port}. Ohne sie blockt Windows die "
                 "Anmeldung deines Handys stillschweigend."
             ),
-            "fix": (
-                'New-NetFirewallRule -DisplayName "Jon Telefon (SIP)" '
-                f"-Direction Inbound -Protocol UDP -LocalPort {port} -Action Allow "
-                "-Profile Any"
+            "fix": firewall_command(port),
+            "fix_hint": (
+                "In PowerShell einfuegen und Enter druecken. Windows fragt einmal "
+                "nach Administratorrechten - das ist noetig, ein normales Fenster "
+                "bekommt 'Zugriff verweigert'."
             ),
         }
 

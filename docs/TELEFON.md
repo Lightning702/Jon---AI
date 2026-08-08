@@ -52,21 +52,33 @@ Windows blockt eingehende UDP-Pakete stillschweigend — kein Fehler, es passier
 einfach nichts. Besonders streng ist es, wenn dein WLAN als **öffentliches Netzwerk**
 eingestuft ist.
 
-Der Einrichtungs-Tab zeigt den passenden Befehl mit Kopierknopf. Führe ihn in
-**PowerShell als Administrator** aus:
+Firewallregeln anzulegen braucht **Administratorrechte**. In einem normalen
+PowerShell-Fenster scheitert es mit `Zugriff verweigert`. Woran du das erkennst: ein
+Administrator-Fenster startet in `C:\Windows\system32`, ein normales in
+`C:\Users\<name>`.
+
+Der Einrichtungs-Tab zeigt einen Befehl mit Kopierknopf, der die Rechte **selbst
+anfordert**. Einfach in ein ganz normales PowerShell-Fenster einfügen und Enter drücken —
+Windows fragt einmal nach, du klickst auf *Ja*:
+
+```powershell
+Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile','-Command',"New-NetFirewallRule -DisplayName 'Jon Telefon (SIP)' -Direction Inbound -Protocol UDP -LocalPort 5060 -Action Allow -Profile Any; New-NetFirewallRule -DisplayName 'Jon Telefon (RTP)' -Direction Inbound -Protocol UDP -LocalPort 16384-32768 -Action Allow -Profile Any"
+```
+
+Lieber von Hand? Dann Windows-Taste drücken, `powershell` tippen, mit
+**Strg + Umschalt + Enter** als Administrator starten und diese beiden Zeilen ausführen:
 
 ```powershell
 New-NetFirewallRule -DisplayName "Jon Telefon (SIP)" -Direction Inbound -Protocol UDP -LocalPort 5060 -Action Allow -Profile Any
-```
-
-Für den Sprachkanal zusätzlich:
-
-```powershell
 New-NetFirewallRule -DisplayName "Jon Telefon (RTP)" -Direction Inbound -Protocol UDP -LocalPort 16384-32768 -Action Allow -Profile Any
 ```
 
 `-Profile Any` ist wichtig: ohne das gilt die Regel nur im privaten Profil, und dein
-WLAN läuft womöglich als öffentlich.
+WLAN läuft womöglich als öffentlich. Prüfen kannst du das mit
+`Get-NetConnectionProfile`.
+
+Die zweite Regel für 16384–32768 ist der Sprachkanal. Fehlt sie, klingelt es zwar, aber
+ihr hört einander nicht.
 
 ### 3. App aufs Handy
 
