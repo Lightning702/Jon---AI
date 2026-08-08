@@ -167,3 +167,20 @@ def test_firewall_befehl_nimmt_eigenen_port():
     from app.services.phone_service import firewall_command
 
     assert "-LocalPort 5070" in firewall_command(5070)
+
+
+def test_taubheit_wird_gemeldet():
+    from app.services.phone.conversation import DEAF_NOTICE
+
+    assert "hoere dich" in DEAF_NOTICE.lower()
+    assert "firewall" in DEAF_NOTICE.lower()
+
+
+def test_sip_bindet_mit_reuseaddr():
+    import inspect
+
+    from app.services.phone.stack import SipStack
+
+    quelle = inspect.getsource(SipStack.start)
+    assert "SO_REUSEADDR" in quelle
+    assert "reuse_address=True" in quelle

@@ -206,6 +206,27 @@ def next_occurrence(rule: str, after: datetime) -> datetime | None:
     return None
 
 
+def _port_holder(port: int) -> str:
+    if sys.platform != "win32":
+        return ""
+    script = (
+        f"$p = (Get-NetUDPEndpoint -LocalPort {port} -ErrorAction SilentlyContinue |"
+        " Select-Object -First 1).OwningProcess; "
+        "if ($p) { $pr = Get-Process -Id $p -ErrorAction SilentlyContinue; "
+        "if ($pr) { \"$($pr.ProcessName) (PID $p)\" } }"
+    )
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True,
+            timeout=8,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return result.stdout.decode("utf-8", "replace").strip()
+    except Exception:
+        return ""
+
+
 def firewall_command(port: int = 5060) -> str:
     inner = (
         "New-NetFirewallRule -DisplayName 'Jon Telefon (SIP)' "
@@ -296,9 +317,16 @@ class PhoneService:
             self._status = "waiting"
             self._error = ""
         except OSError as exc:
+            port = self.settings().get("phone_sip_port", 5060)
+            holder = _port_holder(int(port or 5060))
             self._error = (
-                f"SIP-Port {self.settings().get('phone_sip_port', 5060)} ist belegt "
-                f"oder gesperrt: {exc}"
+                f"SIP-Port {port} ist belegt oder gesperrt: {exc}."
+                + (
+                    f" Er gehoert gerade {holder}. Meist ist das ein alter "
+                    "Jon-Prozess, der nach dem Schliessen noch laeuft."
+                    if holder
+                    else ""
+                )
             )
             self._status = "error"
         except Exception as exc:
@@ -738,8 +766,23 @@ class PhoneService:
             )
             transcript = await conversation.run()
             record["transcript"] = transcript if keep else []
+            record["rtp_in"] = handle.rtp.packets_received
+            record["rtp_out"] = handle.rtp.packets_sent
             record["status"] = "completed"
-            record["reason"] = "Gespraech beendet"
+            heard = any(line["who"] == "user" for line in transcript)
+            if handle.rtp.packets_received == 0:
+                record["reason"] = (
+                    "Bei Jon kam kein Ton an. Fast immer fehlt die Firewallregel "
+                    "fuer UDP 16384-32768 - dann hoert Jon dich nicht, egal was du "
+                    "sagst."
+                )
+            elif not heard:
+                record["reason"] = (
+                    "Ton kam an, aber es wurde nichts verstanden. Sprich etwas "
+                    "lauter oder pruefe das Mikrofon am Handy."
+                )
+            else:
+                record["reason"] = "Gespraech beendet"
         except _CallEnded as ended:
             record["status"] = ended.state
             record["reason"] = ended.reason

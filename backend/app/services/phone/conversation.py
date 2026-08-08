@@ -48,6 +48,10 @@ GOODBYE_WORDS = (
     "das war's",
 )
 SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
+DEAF_NOTICE = (
+    "Ich hoere dich gerade nicht. Bei mir kommt kein Ton an. "
+    "Wahrscheinlich fehlt die Firewallregel fuer die Sprachpakete."
+)
 _whisper_model = None
 _whisper_error = ""
 
@@ -204,6 +208,7 @@ class PhoneConversation:
             self._log("jon", self.opening)
             await self._speaker.say(self.opening)
         idle_since = time.monotonic()
+        deaf_warned = False
         while self.call.active:
             if time.monotonic() - started > self.max_seconds:
                 await self._speaker.say("Ich lass dich weitermachen. Bis später!")
@@ -215,6 +220,16 @@ class PhoneConversation:
                 ):
                     self.call.reason = "Verbindung abgebrochen"
                     break
+                if (
+                    not deaf_warned
+                    and self.call.rtp.packets_received == 0
+                    and time.monotonic() - started > 6.0
+                ):
+                    deaf_warned = True
+                    self._log("jon", DEAF_NOTICE)
+                    await self._speaker.say(DEAF_NOTICE)
+                    idle_since = time.monotonic()
+                    continue
                 if time.monotonic() - idle_since > 25.0:
                     await self._speaker.say("Bist du noch dran?")
                     idle_since = time.monotonic()

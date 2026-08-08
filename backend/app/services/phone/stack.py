@@ -47,6 +47,11 @@ class Binding:
         return time.time() < self.expires_at
 
 
+async def _flush(writer: asyncio.StreamWriter) -> None:
+    with suppress(Exception):
+        await writer.drain()
+
+
 @dataclass
 class Attempt:
     at: float
@@ -169,13 +174,14 @@ class SipStack(asyncio.DatagramProtocol):
         if self._running:
             return
         loop = asyncio.get_running_loop()
-        transport, _ = await loop.create_datagram_endpoint(
-            lambda: self, local_addr=(self.host, self.port), reuse_port=False
-        )
+        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        udp.bind((self.host, self.port))
+        transport, _ = await loop.create_datagram_endpoint(lambda: self, sock=udp)
         self._transport = transport
         try:
             self._tcp_server = await asyncio.start_server(
-                self._handle_tcp, self.host, self.port
+                self._handle_tcp, self.host, self.port, reuse_address=True
             )
         except OSError as exc:
             self._tcp_server = None
@@ -272,12 +278,17 @@ class SipStack(asyncio.DatagramProtocol):
         data = message.encode()
         if transport == "tcp":
             writer = self._tcp_writers.get((addr[0], addr[1]))
-            if writer is not None:
-                try:
-                    writer.write(data)
-                    return
-                except Exception as exc:
-                    self._last_error = str(exc)
+            if writer is None:
+                self._last_error = (
+                    f"Keine offene TCP-Verbindung zu {addr[0]}:{addr[1]} - "
+                    "Antwort konnte nicht zugestellt werden."
+                )
+                return
+            try:
+                writer.write(data)
+                asyncio.get_running_loop().create_task(_flush(writer))
+            except Exception as exc:
+                self._last_error = str(exc)
             return
         if self._transport is None:
             return
