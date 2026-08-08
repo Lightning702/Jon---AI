@@ -312,6 +312,8 @@ class PhoneService:
                 realm=data.get("phone_sip_realm", "jon") or "jon",
                 advertise=data.get("phone_advertise_host", ""),
             )
+            stack.accept_incoming = bool(data.get("phone_accept_incoming", True))
+            stack.on_incoming = self._handle_incoming
             await stack.start()
             self._stack = stack
             self._status = "waiting"
@@ -355,18 +357,29 @@ class PhoneService:
     def addresses(self) -> list[dict]:
         from app.services.phone.netinfo import describe, interfaces
 
+        pinned = self.settings().get("phone_advertise_host", "")
         chosen = self.local_ip()
-        return [
+        items = [
+            {
+                "ip": "",
+                "label": "Automatisch - passend zum Anrufer (WLAN oder Tailscale)",
+                "kind": "auto",
+                "usable": True,
+                "selected": not pinned,
+            }
+        ]
+        items.extend(
             {
                 "ip": entry["ip"],
                 "label": describe(entry),
                 "kind": entry["kind"],
                 "usable": entry["usable"],
-                "selected": entry["ip"] == chosen,
+                "selected": bool(pinned) and entry["ip"] == chosen,
             }
             for entry in interfaces()
             if entry["score"] > -100
-        ]
+        )
+        return items
 
     def firewall_state(self) -> dict:
         if sys.platform != "win32":
@@ -452,7 +465,7 @@ class PhoneService:
         firewall = self.firewall_state()
         addresses = self.addresses()
         chosen = next((a for a in addresses if a["selected"]), None)
-        address_ok = bool(chosen and chosen["kind"] in ("lan", "mesh"))
+        address_ok = bool(chosen and chosen["kind"] in ("lan", "mesh", "auto"))
         if chosen and chosen["kind"] == "vpn":
             address_detail = (
                 f"Jon sagt {chosen['ip']} an - das ist ein VPN-Tunnel, den dein Handy "
@@ -462,6 +475,11 @@ class PhoneService:
             address_detail = (
                 f"Jon sagt {chosen['ip']} an - das ist ein virtueller Adapter. "
                 "Waehle unten die WLAN-Adresse."
+            )
+        elif chosen and chosen["kind"] == "auto":
+            address_detail = (
+                "Automatisch - Jon nennt jedem Anrufer die Adresse, ueber die er "
+                f"ihn erreicht (im Heimnetz {self.local_ip()})."
             )
         elif chosen:
             address_detail = f"{chosen['ip']} - {chosen['label']}"
@@ -510,8 +528,21 @@ class PhoneService:
                 "detail": f"{status['scheduled']} Anrufe geplant",
             },
         ]
+        mesh = [a for a in addresses if a["kind"] == "mesh"]
+        checks.append(
+            {
+                "name": "Von unterwegs erreichbar",
+                "ok": bool(mesh),
+                "detail": (
+                    f"ueber {mesh[0]['ip']} ({mesh[0]['label']})"
+                    if mesh
+                    else "Nur im Heimnetz. Fuer Mobilfunk Tailscale einrichten - "
+                    "siehe docs/TELEFON.md."
+                ),
+            }
+        )
         return {
-            "ready": all(c["ok"] for c in checks),
+            "ready": all(c["ok"] for c in checks if c["name"] != "Von unterwegs erreichbar"),
             "checks": checks,
             "addresses": addresses,
         }
@@ -806,6 +837,62 @@ class PhoneService:
                     call_id, record["status"], record["reason"], record["duration"]
                 )
         return record
+
+    async def _handle_incoming(self, call) -> None:
+        from app.services.phone.conversation import PhoneConversation
+        from app.services.voice_service import JON_VOICE
+
+        if self._active is not None:
+            await call.hangup("Es laeuft bereits ein Anruf")
+            return
+        data = self.settings()
+        greeting = data.get("phone_greeting", "") or "Hey Felix! Was gibt es?"
+        record = {
+            "id": uuid.uuid4().hex[:12],
+            "status": "active",
+            "direction": "in",
+            "reason": "",
+            "message": greeting,
+            "started_at": now_local().isoformat(timespec="seconds"),
+            "answered_at": now_local().isoformat(timespec="seconds"),
+            "duration": 0,
+            "transcript": [],
+        }
+        self._active = record
+        self._status = "active"
+        started = time.time()
+        try:
+            conversation = PhoneConversation(
+                call=call,
+                opening=greeting,
+                persona=await _persona("", False),
+                voice=data.get("phone_voice", "") or JON_VOICE,
+                language=(data.get("language", "de") or "de")[:2],
+                max_seconds=max(int(data.get("phone_max_seconds", 600) or 600), 30),
+            )
+            transcript = await conversation.run()
+            record["transcript"] = (
+                transcript if data.get("phone_keep_transcript", False) else []
+            )
+            record["rtp_in"] = call.rtp.packets_received
+            record["rtp_out"] = call.rtp.packets_sent
+            record["status"] = "completed"
+            record["reason"] = (
+                "Bei Jon kam kein Ton an. Fehlt die Firewallregel fuer UDP "
+                "16384-32768?"
+                if call.rtp.packets_received == 0
+                else "Gespraech beendet"
+            )
+        except Exception as exc:
+            record["status"] = "failed"
+            record["reason"] = str(exc)
+            log.exception("Eingehender Anruf fehlgeschlagen")
+        finally:
+            record["duration"] = int(time.time() - started)
+            record["ended_at"] = now_local().isoformat(timespec="seconds")
+            self._active = None
+            self._status = "waiting" if self._stack else "offline"
+            self.record(dict(record))
 
     async def run_due(self) -> None:
         if not self.enabled():

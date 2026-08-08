@@ -549,3 +549,114 @@ async def _falscher_benutzername_wird_protokolliert():
     finally:
         sock.close()
         await stack.stop()
+
+
+def test_eingehender_anruf_wird_angenommen():
+    asyncio.run(_eingehender_anruf())
+
+
+async def _eingehender_anruf():
+    from app.services.phone.rtp import open_port
+
+    stack = SipStack("jon-phone", "geheim", host="127.0.0.1", port=_free_port())
+    gefuehrt = asyncio.Event()
+    gesehen = {}
+
+    async def on_incoming(call):
+        gesehen["state"] = call.state
+        gesehen["direction"] = call.direction
+        gefuehrt.set()
+
+    stack.on_incoming = on_incoming
+    await stack.start()
+    sock = _client_socket()
+    rtp_sock, rtp_port = open_port("127.0.0.1")
+    try:
+        first = await _exchange(sock, _invite_message(stack.port, rtp_port), stack.port)
+        assert first.status == 401
+        challenge = parse_auth(first.header("www-authenticate"))
+        auth = authorization_header(
+            "jon-phone", "geheim", challenge, "INVITE", f"sip:jon-phone@127.0.0.1:{stack.port}"
+        )
+        loop = asyncio.get_running_loop()
+        await loop.sock_sendto(
+            sock, _invite_message(stack.port, rtp_port, auth), ("127.0.0.1", stack.port)
+        )
+        stati = []
+        antwort = None
+        for _ in range(4):
+            data, _addr = await asyncio.wait_for(loop.sock_recvfrom(sock, 4096), 3.0)
+            antwort = sipmsg.parse(data)
+            stati.append(antwort.status)
+            if antwort.status == 200:
+                break
+        assert 180 in stati
+        assert antwort.status == 200
+        sdp = parse_sdp(antwort.body)
+        assert sdp["port"] > 0
+        await loop.sock_sendto(
+            sock, _ack_message(stack.port, antwort.to_tag()), ("127.0.0.1", stack.port)
+        )
+        await asyncio.wait_for(gefuehrt.wait(), 3.0)
+        assert gesehen["state"] == "active"
+        assert gesehen["direction"] == "in"
+    finally:
+        sock.close()
+        rtp_sock.close()
+        await stack.stop()
+
+
+def test_eingehender_anruf_kann_abgeschaltet_werden():
+    asyncio.run(_eingehender_anruf_abgeschaltet())
+
+
+async def _eingehender_anruf_abgeschaltet():
+    from app.services.phone.rtp import open_port
+
+    stack = SipStack("jon-phone", "geheim", host="127.0.0.1", port=_free_port())
+    stack.accept_incoming = False
+    await stack.start()
+    sock = _client_socket()
+    rtp_sock, rtp_port = open_port("127.0.0.1")
+    try:
+        antwort = await _exchange(sock, _invite_message(stack.port, rtp_port), stack.port)
+        assert antwort.status == 486
+    finally:
+        sock.close()
+        rtp_sock.close()
+        await stack.stop()
+
+
+def _invite_message(port: int, rtp_port: int, auth: str = "") -> bytes:
+    body = (
+        "v=0\r\no=handy 1 1 IN IP4 127.0.0.1\r\ns=-\r\nc=IN IP4 127.0.0.1\r\n"
+        f"t=0 0\r\nm=audio {rtp_port} RTP/AVP 0\r\na=rtpmap:0 PCMU/8000\r\n"
+    )
+    lines = [
+        f"INVITE sip:jon-phone@127.0.0.1:{port} SIP/2.0",
+        "Via: SIP/2.0/UDP 127.0.0.1:6000;branch=z9hG4bKinv",
+        "From: <sip:jon-phone@127.0.0.1>;tag=handy",
+        f"To: <sip:jon-phone@127.0.0.1:{port}>",
+        "Call-ID: incoming-1",
+        "CSeq: 2 INVITE",
+        "Contact: <sip:jon-phone@127.0.0.1:6000>",
+        "User-Agent: Linphone",
+    ]
+    if auth:
+        lines.append(f"Authorization: {auth}")
+    lines.append("Content-Type: application/sdp")
+    lines.append(f"Content-Length: {len(body)}")
+    return (CRLF.join(lines) + CRLF + CRLF + body).encode()
+
+
+def _ack_message(port: int, to_tag: str) -> bytes:
+    lines = [
+        f"ACK sip:jon-phone@127.0.0.1:{port} SIP/2.0",
+        "Via: SIP/2.0/UDP 127.0.0.1:6000;branch=z9hG4bKack",
+        "From: <sip:jon-phone@127.0.0.1>;tag=handy",
+        f"To: <sip:jon-phone@127.0.0.1:{port}>;tag={to_tag}",
+        "Call-ID: incoming-1",
+        "CSeq: 2 ACK",
+        "Content-Length: 0",
+    ]
+    return (CRLF.join(lines) + CRLF + CRLF).encode()

@@ -82,6 +82,8 @@ DEFAULTS = {
     "phone_timezone": "Europe/Vienna",
     "phone_keep_transcript": False,
     "phone_max_seconds": 600,
+    "phone_accept_incoming": True,
+    "phone_greeting": "",
 }
 
 

@@ -134,17 +134,64 @@ Zeitpunkte werden mit Zeitzone gespeichert (Standard `Europe/Vienna`), Sommer- u
 Winterzeit sind damit abgedeckt. Geplante Anrufe überleben einen Neustart — sie liegen in
 `data/phone_calls.json`.
 
-## Nicht im selben WLAN
+## Von überall telefonieren, auch mit mobilen Daten
 
-Den SIP-Port **nicht** im Router freigeben. Stattdessen ein VPN:
+Im Heimnetz reicht die WLAN-Adresse. Unterwegs — Mobilfunk, fremdes WLAN, Urlaub —
+brauchst du einen Weg zu deinem PC. Den SIP-Port im Router freizugeben wäre der falsche:
+er stünde offen im Internet. Richtig ist ein **Mesh-VPN**, und das ist für dich
+kostenlos.
 
-1. [Tailscale](https://tailscale.com/download) auf dem PC und auf dem Handy
-   installieren, beide mit demselben Konto anmelden.
-2. Auf dem PC `tailscale ip -4` — das ergibt eine Adresse wie `100.x.y.z`.
-3. Diese Adresse in Jon unter **Einstellungen → phone_advertise_host** eintragen und in
-   Linphone als Domain verwenden.
+### Tailscale einrichten
 
-Dann läuft der Anruf verschlüsselt durchs Tailnet, ohne offenen Port nach außen.
+1. **Auf dem PC**: [Tailscale herunterladen](https://tailscale.com/download/windows),
+   installieren, mit einem Konto anmelden (Google oder GitHub genügt).
+2. **Auf dem Handy**: Tailscale aus dem Play Store, **mit demselben Konto** anmelden.
+3. Fertig. Beide Geräte sind jetzt dauerhaft in deinem privaten Netz („Tailnet"), egal
+   wo sie sind.
+
+Deine Tailscale-Adresse zeigt auf dem PC:
+
+```powershell
+tailscale ip -4
+```
+
+Das ergibt etwas wie `100.83.12.4`.
+
+### In Jon und Linphone eintragen
+
+In Jon steht die Serveradresse standardmäßig auf **Automatisch**. Damit nennt Jon jedem
+Anrufer genau die Adresse, über die dieser ihn erreicht hat — im WLAN die WLAN-Adresse,
+über Tailscale die Tailscale-Adresse. Du musst also **nichts umstellen**, wenn du das
+Haus verlässt.
+
+In Linphone trägst du als Domain die **Tailscale-Adresse** ein: `100.83.12.4:5060`. Die
+funktioniert auch zu Hause, weil Tailscale dort ebenfalls läuft. Ein Konto für alles.
+
+> Willst du zwei getrennte Konten (eins fürs WLAN, eins für unterwegs), geht das auch —
+> Linphone kann mehrere SIP-Konten gleichzeitig führen.
+
+### Warum kein offener Port im Router
+
+Ein ins Internet freigegebener SIP-Port wird binnen Stunden von automatisierten
+Scannern gefunden. Die versuchen dann pausenlos, sich anzumelden. Über Tailscale ist Jon
+nur für **deine eigenen Geräte** erreichbar, der Verkehr ist verschlüsselt, und im Router
+muss gar nichts geändert werden.
+
+## Jon anrufen
+
+Es geht auch andersherum: Ruf in Linphone einfach **deinen eigenen SIP-Benutzernamen**
+an, also `jon-phone` beziehungsweise den Namen aus dem Einrichtungs-Tab. Jon hebt ab und
+begrüßt dich.
+
+Damit ist Jon ein Telefonassistent, den du unterwegs einfach anrufen kannst — er hat
+dabei denselben Zugriff wie im Chat.
+
+Der Begrüßungssatz lässt sich mit der Einstellung `phone_greeting` ändern; leer bedeutet
+„Hey Felix! Was gibt es?". Wer das nicht will, schaltet eingehende Anrufe mit
+`phone_accept_incoming` ab — dann antwortet Jon mit „besetzt".
+
+Eingehende Anrufe verlangen dieselbe Anmeldung wie ausgehende. Ohne gültiges SIP-Passwort
+nimmt Jon nichts an.
 
 ## Was im Gespräch passiert
 
@@ -191,6 +238,8 @@ jederzeit löschen.
 | `phone_timezone` | `Europe/Vienna` | Zeitzone für geplante Anrufe |
 | `phone_keep_transcript` | `false` | Gesprächsprotokoll speichern |
 | `phone_max_seconds` | `600` | Höchstdauer eines Gesprächs |
+| `phone_accept_incoming` | `true` | Darf man Jon anrufen? |
+| `phone_greeting` | leer | Jons erster Satz bei einem eingehenden Anruf |
 
 ## Wenn etwas nicht geht
 

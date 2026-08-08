@@ -427,11 +427,18 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                           })
                         }
                       />
-                      <span className="font-mono text-white/90">{address.ip}</span>
+                      <span className="font-mono text-white/90">
+                        {address.ip || "auto"}
+                      </span>
                       <span className="text-white/40">{address.label}</span>
                       {address.kind === "vpn" || address.kind === "virtual" ? (
                         <span className="ml-auto text-[10px] text-amber-300/80">
                           vom Handy nicht erreichbar
+                        </span>
+                      ) : null}
+                      {address.kind === "mesh" ? (
+                        <span className="ml-auto text-[10px] text-emerald-300/80">
+                          auch mit mobilen Daten
                         </span>
                       ) : null}
                     </label>
@@ -610,10 +617,29 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                 </ol>
               </details>
 
-              <div className="text-[11px] text-white/40 border-t border-white/10 pt-3">
-                Nicht im selben WLAN? Dann Jon und Handy über Tailscale oder WireGuard
-                verbinden und die Tailscale-Adresse als Server eintragen. Den SIP-Port
-                niemals ungeschützt ins Internet freigeben.
+              <div className="border-t border-white/10 pt-3 space-y-2">
+                <div className="text-[12px] text-white/70">
+                  <b className="text-white/90">📱 Von unterwegs, mit mobilen Daten</b>
+                  <div className="text-white/50">
+                    Installiere <a className="text-[#f7e4a8]" href="https://tailscale.com/download/windows" target="_blank" rel="noreferrer">Tailscale</a>{" "}
+                    auf dem PC und auf dem Handy, beide mit demselben Konto. Dann trägst
+                    du in Linphone die Tailscale-Adresse als Domain ein — die gilt zu
+                    Hause genauso wie unterwegs. Steht die Adresse oben auf
+                    „Automatisch“, musst du beim Verlassen des Hauses nichts umstellen.
+                    Gib den SIP-Port <b>niemals</b> im Router frei.
+                  </div>
+                </div>
+                <div className="text-[12px] text-white/70">
+                  <b className="text-white/90">☎️ Jon anrufen</b>
+                  <div className="text-white/50">
+                    Ruf in Linphone einfach{" "}
+                    <span className="font-mono text-white/80">
+                      {setup?.username ?? "…"}
+                    </span>{" "}
+                    an — Jon hebt ab und begrüßt dich. Ohne gültiges SIP-Passwort nimmt
+                    er nichts an.
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}

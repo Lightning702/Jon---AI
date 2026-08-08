@@ -117,6 +117,8 @@ class SettingsIn(BaseModel):
     phone_timezone: str | None = None
     phone_keep_transcript: bool | None = None
     phone_max_seconds: int | None = None
+    phone_accept_incoming: bool | None = None
+    phone_greeting: str | None = None
 
 
 class PhoneCallIn(BaseModel):

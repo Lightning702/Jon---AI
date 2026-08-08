@@ -80,10 +80,12 @@ class CallHandle:
     finished: asyncio.Event = field(default_factory=asyncio.Event)
     invite_headers: list[tuple[str, str]] = field(default_factory=list)
     invite_branch: str = ""
+    direction: str = "out"
+    transport: str = "udp"
 
     @property
     def active(self) -> bool:
-        return self.state in ("calling", "ringing", "active")
+        return self.state in ("calling", "ringing", "answering", "active")
 
     @property
     def duration(self) -> float:
@@ -122,6 +124,8 @@ class SipStack(asyncio.DatagramProtocol):
         self._running = False
         self._last_error = ""
         self._registrations = 0
+        self.accept_incoming = True
+        self.on_incoming = None
         self._tcp_server: asyncio.Server | None = None
         self._tcp_writers: dict[tuple[str, int], asyncio.StreamWriter] = {}
         self._attempts: list[Attempt] = []
@@ -169,6 +173,24 @@ class SipStack(asyncio.DatagramProtocol):
         if self.host not in ("0.0.0.0", "", "::"):
             return self.host
         return best_address()
+
+    def address_for(self, peer: str) -> str:
+        if self._advertise:
+            return self._advertise
+        if self.host not in ("0.0.0.0", "", "::"):
+            return self.host
+        if peer:
+            probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                probe.connect((peer, self.port))
+                chosen = probe.getsockname()[0]
+                if chosen and not chosen.startswith("0."):
+                    return chosen
+            except OSError:
+                pass
+            finally:
+                probe.close()
+        return self.local_ip()
 
     async def start(self) -> None:
         if self._running:
@@ -374,18 +396,9 @@ class SipStack(asyncio.DatagramProtocol):
         elif method in ("BYE", "CANCEL"):
             self._on_bye(message, addr)
         elif method == "ACK":
-            return
+            self._on_ack(message)
         elif method == "INVITE":
-            self._send(
-                build_response(
-                    message,
-                    486,
-                    "Busy Here",
-                    extra=[("Server", USER_AGENT)],
-                    to_tag=new_tag(),
-                ),
-                addr,
-            )
+            self._on_invite(message, addr, transport)
         else:
             self._send(
                 build_response(
@@ -475,6 +488,121 @@ class SipStack(asyncio.DatagramProtocol):
             to_tag=new_tag(),
         )
         self._send(response, addr, transport)
+
+    def _on_ack(self, message: SipMessage) -> None:
+        call = self._calls.get(message.header("call-id"))
+        if call is None or call.state != "answering":
+            return
+        call.state = "active"
+        call.answered_at = time.time()
+        call.answered.set()
+        if self.on_incoming is not None:
+            asyncio.create_task(self._run_incoming(call))
+
+    async def _run_incoming(self, call: CallHandle) -> None:
+        try:
+            await self.on_incoming(call)
+        except Exception as exc:
+            self._last_error = str(exc)
+            log.exception("Eingehender Anruf fehlgeschlagen")
+        finally:
+            with suppress(Exception):
+                await self.hangup(call, call.reason or "Gespraech beendet")
+
+    def _on_invite(
+        self, message: SipMessage, addr: tuple[str, int], transport: str = "udp"
+    ) -> None:
+        if not self.accept_incoming:
+            self._send(
+                build_response(
+                    message,
+                    486,
+                    "Busy Here",
+                    extra=[("Server", USER_AGENT)],
+                    to_tag=new_tag(),
+                ),
+                addr,
+                transport,
+            )
+            return
+        if self._calls:
+            self._send(
+                build_response(
+                    message, 486, "Busy Here", extra=[("Server", USER_AGENT)],
+                    to_tag=new_tag(),
+                ),
+                addr,
+                transport,
+            )
+            self._note(addr, transport, "Anruf abgelehnt, es laeuft schon einer")
+            return
+        if not self._check_auth(message):
+            self._note(addr, transport, "eingehender Anruf, Anmeldung noetig")
+            self._challenge(message, addr, transport)
+            return
+        sdp = parse_sdp(message.body)
+        if not sdp["host"] or not sdp["port"]:
+            self._send(
+                build_response(
+                    message, 488, "Not Acceptable Here", to_tag=new_tag()
+                ),
+                addr,
+                transport,
+            )
+            return
+        payload = 0
+        for candidate in sdp["payloads"]:
+            if candidate in (0, 8):
+                payload = candidate
+                break
+        local_ip = self.address_for(addr[0])
+        sock, rtp_port = open_port("0.0.0.0")
+        rtp = RtpSession(sock, rtp_port, payload_type=payload)
+        rtp.set_remote(sdp["host"], sdp["port"])
+        rtp.start()
+        call_id = message.header("call-id")
+        local_tag = new_tag()
+        contact = message.header("contact")
+        call = CallHandle(
+            call_id=call_id,
+            stack=self,
+            remote=parse_uri(contact) if contact else parse_uri(message.header("from")),
+            local_tag=local_tag,
+            rtp=rtp,
+            state="answering",
+            remote_tag=message.from_tag(),
+            from_uri=message.header("to"),
+            to_uri=message.header("from"),
+            direction="in",
+            transport=transport,
+        )
+        call.remote_target = call.remote
+        self._calls[call_id] = call
+        self._note(addr, transport, "eingehender Anruf angenommen")
+        self._send(
+            build_response(message, 100, "Trying", to_tag=local_tag), addr, transport
+        )
+        self._send(
+            build_response(message, 180, "Ringing", to_tag=local_tag), addr, transport
+        )
+        body = build_sdp(local_ip, rtp_port, [payload], int(time.time()))
+        self._send(
+            build_response(
+                message,
+                200,
+                "OK",
+                extra=[
+                    ("Contact", f"<sip:{self.username}@{local_ip}:{self.port}>"),
+                    ("Server", USER_AGENT),
+                    ("Allow", "INVITE, ACK, BYE, CANCEL, OPTIONS"),
+                ],
+                body=body,
+                content_type="application/sdp",
+                to_tag=local_tag,
+            ),
+            addr,
+            transport,
+        )
 
     def _on_bye(self, message: SipMessage, addr: tuple[str, int]) -> None:
         call_id = message.header("call-id")
@@ -567,8 +695,8 @@ class SipStack(asyncio.DatagramProtocol):
                 "Dein Telefon ist gerade nicht bei Jon angemeldet. "
                 "Oeffne die SIP-App und pruefe die Verbindung."
             )
-        local_ip = self.local_ip()
-        sock, rtp_port = open_port(self.host if self.host != "0.0.0.0" else "0.0.0.0")
+        local_ip = self.address_for(binding.source[0] if binding.source else "")
+        sock, rtp_port = open_port("0.0.0.0")
         rtp = RtpSession(sock, rtp_port, payload_type=0)
         call_id = new_call_id(local_ip)
         local_tag = new_tag()

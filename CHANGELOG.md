@@ -2,6 +2,39 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.33.8] — 2026-08-08
+
+### ☎️ Jon anrufen — und von überall telefonieren
+
+Bisher rief nur Jon an. Jetzt geht es in beide Richtungen, und zwar von überall.
+
+- **Jon anrufen**: In der SIP-App einfach den eigenen Benutzernamen wählen. Jon hebt ab,
+  begrüßt dich und redet mit dir — mit demselben Zugriff wie im Chat. Der Begrüßungssatz
+  ist über `phone_greeting` frei wählbar, und wer das nicht will, schaltet eingehende
+  Anrufe mit `phone_accept_incoming` ab. Ohne gültiges SIP-Passwort nimmt Jon nichts an.
+- **Von unterwegs, mit mobilen Daten**: Die Serveradresse steht jetzt auf
+  **Automatisch** — Jon nennt jedem Anrufer die Adresse, über die dieser ihn tatsächlich
+  erreicht hat. Zu Hause die WLAN-Adresse, unterwegs die Tailscale-Adresse. Beim
+  Verlassen des Hauses muss nichts umgestellt werden. Die Anleitung für Tailscale steht
+  in `docs/TELEFON.md`; der SIP-Port gehört weiterhin **nicht** in den Router.
+
+### 🔇 Jon sagt jetzt, wenn er nichts hört
+
+Kam beim Anruf kein Ton an, wartete Jon stumm. Jetzt sagt er es nach sechs Sekunden ins
+Telefon, und der Anrufeintrag nennt den Grund statt pauschal „Gespräch beendet" —
+meistens fehlt die Firewallregel für die Sprachpakete.
+
+### 🔌 SIP kommt nach einem Neustart wieder hoch
+
+Hielt nach dem Schließen der App noch der alte Prozess den Port, blieb die
+Telefonfunktion stumm und wirkte wie vergessen. Die Sockets binden jetzt mit
+`SO_REUSEADDR`, und schlägt es trotzdem fehl, nennt die Meldung den Prozess, dem der Port
+gehört.
+
+Dazu: SIP läuft zusätzlich über **TCP** — manche SIP-Apps sprechen kein UDP und meldeten
+sonst nur „IOError". Jeder Anmeldeversuch wird mit Quelle, Transport und Grund
+protokolliert und im Einrichtungs-Tab angezeigt.
+
 ## [4.33.7] — 2026-08-08
 
 ### 📞 Jon ruft dich auf dem Handy an
