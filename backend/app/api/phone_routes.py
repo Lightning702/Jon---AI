@@ -47,7 +47,19 @@ async def setup() -> dict:
         "transport": "UDP",
         "app": "Linphone",
         "app_url": "https://f-droid.org/packages/org.linphone/",
+        "addresses": service.addresses(),
     }
+
+
+@router.post("/address")
+async def set_address(payload: dict) -> dict:
+    from app.services.settings_service import get_settings_service
+
+    address = str(payload.get("ip", "")).strip()
+    get_settings_service().update({"phone_advertise_host": address})
+    service = get_phone_service()
+    await service.restart()
+    return await setup()
 
 
 @router.post("/credentials/new")

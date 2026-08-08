@@ -24,36 +24,82 @@ Docker, und beides steckt hinter einem NAT-Netz, durch das SIP und vor allem die
 dynamischen RTP-Ports nur mit Portproxy- und Firewall-Basteleien kommen. Der eingebaute
 Stack startet einfach mit dem Backend mit.
 
-## Einrichtung
+## Einrichtung Schritt für Schritt
 
-In Jon: **Werkzeuge → 📞 Telefonanrufe → Einrichtung**. Dort stehen alle Werte, die du
-brauchst, und eine Ampel zeigt, was noch fehlt.
+In Jon: **Werkzeuge → 📞 Telefonanrufe → Einrichtung**. Dort stehen deine echten Werte
+und eine Ampel für jeden Baustein. Diese Anleitung erklärt jeden Schritt genau.
 
-### 1. App aufs Handy
+### 1. Die richtige Serveradresse wählen
 
-[Linphone](https://f-droid.org/packages/org.linphone/) — quelloffen, kostenlos, in
+**Das ist der häufigste Stolperstein.** Ein PC hat meist mehrere Netzwerkadressen —
+WLAN, LAN, dazu virtuelle Adapter von VirtualBox oder Hyper-V und VPN-Tunnel. Dein Handy
+erreicht **nur** die Adresse aus dem Netz, in dem es selbst hängt.
+
+Läuft auf dem PC ein VPN (Proton, NordVPN, Mullvad …), ist dessen Adresse die
+„Standardroute" — und genau die ist für dein Handy **wertlos**.
+
+Im Einrichtungs-Tab stehen deshalb alle gefundenen Adressen zur Auswahl. Jon markiert
+selbst die richtige, VPN- und virtuelle Adapter sind als *„vom Handy nicht erreichbar"*
+gekennzeichnet. Nimm die Adresse deines **WLAN**-Adapters.
+
+> **Tipp:** Diese Adresse kommt vom Router per DHCP und kann sich nach einem Neustart
+> ändern. Dann klingelt nichts mehr. Vergib im Router eine feste Adresse für deinen PC
+> (oft „DHCP-Reservierung" oder „statische Zuordnung").
+
+### 2. Firewall öffnen
+
+Windows blockt eingehende UDP-Pakete stillschweigend — kein Fehler, es passiert
+einfach nichts. Besonders streng ist es, wenn dein WLAN als **öffentliches Netzwerk**
+eingestuft ist.
+
+Der Einrichtungs-Tab zeigt den passenden Befehl mit Kopierknopf. Führe ihn in
+**PowerShell als Administrator** aus:
+
+```powershell
+New-NetFirewallRule -DisplayName "Jon Telefon (SIP)" -Direction Inbound -Protocol UDP -LocalPort 5060 -Action Allow -Profile Any
+```
+
+Für den Sprachkanal zusätzlich:
+
+```powershell
+New-NetFirewallRule -DisplayName "Jon Telefon (RTP)" -Direction Inbound -Protocol UDP -LocalPort 16384-32768 -Action Allow -Profile Any
+```
+
+`-Profile Any` ist wichtig: ohne das gilt die Regel nur im privaten Profil, und dein
+WLAN läuft womöglich als öffentlich.
+
+### 3. App aufs Handy
+
+[Linphone](https://f-droid.org/packages/org.linphone/) — quelloffen und kostenlos, in
 F-Droid und im Play Store.
 
-### 2. Konto eintragen
+### 4. Konto in Linphone eintragen
 
-| Feld | Wert |
+Beim ersten Start: **Assistent → „SIP-Konto verwenden"** (nicht „Konto erstellen"!).
+Läuft der Assistent nicht mehr: *Menü → Einstellungen → Konten → Konto hinzufügen*.
+
+| Feld in Linphone | Was hinein muss |
 |---|---|
-| Benutzername | `jon-phone` (steht im Einrichtungs-Tab) |
-| Passwort | wird von Jon erzeugt, im Tab ablesbar |
-| Domain / Server | die IP deines PCs, z. B. `192.168.0.42:5060` |
-| Transport | UDP |
+| **Benutzername** | `jon-phone` |
+| **Passwort** | das lange Passwort aus dem Einrichtungs-Tab |
+| **Domain** | die gewählte Adresse **mit Port**, z. B. `10.0.0.253:5060` |
+| **Anzeigename** | frei, z. B. `Jon` |
+| **Transport** | **UDP** |
 
-In Linphone: *Assistent → SIP-Konto verwenden*. Benutzername, Passwort und Domain
-eintragen, Transport auf UDP.
+Ist die Verbindung da, zeigt Linphone oben **„Verbunden"** in Grün — und in Jon springt
+die Ampel **Handy** auf 🟢.
 
-### 3. Telefonfunktion einschalten
+### 5. Android am Einschlafen hindern
 
-Im Modal oben den Schalter **Eingeschaltet** setzen. Jon öffnet dann Port 5060/UDP.
-Beim ersten Mal fragt die Windows-Firewall — **Zugriff zulassen** für private Netzwerke.
+Android schläfert Hintergrund-Apps ein; dann klingelt es nicht. Zwei Einstellungen:
 
-### 4. Testanruf
+- **Akku:** *Android-Einstellungen → Apps → Linphone → Akku → „Nicht optimiert"* bzw.
+  „Uneingeschränkt".
+- **Linphone:** *Einstellungen → Netzwerk* → „Dienst im Vordergrund" aktivieren.
 
-Knopf **Testanruf**. Dein Handy muss klingeln, und nach dem Abheben sagt Jon:
+### 6. Testanruf
+
+In Jon auf **Testanruf**. Dein Handy muss klingeln, und nach dem Abheben sagt Jon:
 
 > „Hey Felix! Das ist ein Testanruf von Jon. Deine Telefonfunktion funktioniert."
 
@@ -145,6 +191,29 @@ Der Einrichtungs-Tab zeigt für jeden Baustein eine Ampel. Häufige Fälle:
 | Spracherkennung fehlt | `pip install faster-whisper` |
 | Sprachausgabe fehlt | ffmpeg fehlt im PATH |
 | Es wurde nicht abgenommen | Handy stumm, oder Linphone läuft im Hintergrund nicht |
+
+### Linphone bleibt auf „Verbindung wird hergestellt"
+
+Das heißt: Die Pakete kommen bei Jon nicht an. In dieser Reihenfolge prüfen —
+
+1. **Erreicht dein Handy den PC überhaupt?** Im Handy-Browser
+   `http://<Adresse>:8756/api/health` aufrufen. Kommt dort nichts, ist es das Netzwerk,
+   nicht die Telefonfunktion: gleiches WLAN? Gast-WLAN? Manche Router trennen Geräte
+   voneinander („AP-Isolation" oder „Client-Isolation") — das muss aus.
+2. **Stimmt die Adresse?** Steht im Einrichtungs-Tab noch eine VPN-Adresse (`10.2.x.x`
+   bei Proton) oder eine virtuelle (`192.168.56.x` von VirtualBox, `172.30.x.x` von
+   Hyper-V), dann die WLAN-Adresse auswählen.
+3. **Firewall?** Der Befehl aus Schritt 2 — mit `-Profile Any`.
+4. **Läuft der Dienst?** Ampel *SIP* im Modal. Auf dem PC gegenprüfen:
+   `Get-NetUDPEndpoint -LocalPort 5060`.
+5. **Passwort exakt?** Es enthält Groß- und Kleinbuchstaben, Ziffern, Binde- und
+   Unterstriche. Autokorrektur des Handys schreibt gern den ersten Buchstaben groß.
+   Notfalls im Tab ein neues erzeugen.
+
+### Es klingelt, aber niemand hört etwas
+
+SIP steht dann, nur der Sprachkanal (RTP) kommt nicht durch: die RTP-Firewallregel für
+UDP 16384–32768 aus Schritt 2 fehlt.
 
 Klingelt das Handy gar nicht, obwohl es angemeldet ist: In Linphone unter
 *Einstellungen → Netzwerk* prüfen, ob Push aktiv ist, und die App von der

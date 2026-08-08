@@ -5,6 +5,8 @@ import json
 import logging
 import secrets
 import socket
+import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -301,19 +303,61 @@ class PhoneService:
         await self.start()
 
     def local_ip(self) -> str:
+        from app.services.phone.netinfo import best_address
+
         if self._stack is not None:
             return self._stack.local_ip()
-        advertise = self.settings().get("phone_advertise_host", "")
-        if advertise:
-            return advertise
-        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return best_address(self.settings().get("phone_advertise_host", ""))
+
+    def addresses(self) -> list[dict]:
+        from app.services.phone.netinfo import describe, interfaces
+
+        chosen = self.local_ip()
+        return [
+            {
+                "ip": entry["ip"],
+                "label": describe(entry),
+                "kind": entry["kind"],
+                "usable": entry["usable"],
+                "selected": entry["ip"] == chosen,
+            }
+            for entry in interfaces()
+            if entry["score"] > -100
+        ]
+
+    def firewall_state(self) -> dict:
+        if sys.platform != "win32":
+            return {"ok": True, "detail": "nur unter Windows relevant"}
+        port = int(self.settings().get("phone_sip_port", 5060) or 5060)
+        script = (
+            "$r = Get-NetFirewallRule -DisplayName 'Jon Telefon*' "
+            "-ErrorAction SilentlyContinue; "
+            "if ($r) { 'ja' } else { 'nein' }"
+        )
         try:
-            probe.connect(("8.8.8.8", 80))
-            return probe.getsockname()[0]
-        except OSError:
-            return "127.0.0.1"
-        finally:
-            probe.close()
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                capture_output=True,
+                timeout=8,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            exists = result.stdout.decode("utf-8", "replace").strip() == "ja"
+        except Exception:
+            return {"ok": True, "detail": "liess sich nicht pruefen"}
+        if exists:
+            return {"ok": True, "detail": f"Regel fuer UDP {port} vorhanden"}
+        return {
+            "ok": False,
+            "detail": (
+                f"Keine Firewallregel fuer UDP {port}. Ohne sie blockt Windows die "
+                "Anmeldung deines Handys stillschweigend."
+            ),
+            "fix": (
+                'New-NetFirewallRule -DisplayName "Jon Telefon (SIP)" '
+                f"-Direction Inbound -Protocol UDP -LocalPort {port} -Action Allow "
+                "-Profile Any"
+            ),
+        }
 
     def status(self) -> dict:
         data = self.settings()
@@ -359,11 +403,40 @@ class PhoneService:
 
     def diagnostics(self) -> dict:
         status = self.status()
+        firewall = self.firewall_state()
+        addresses = self.addresses()
+        chosen = next((a for a in addresses if a["selected"]), None)
+        address_ok = bool(chosen and chosen["kind"] in ("lan", "mesh"))
+        if chosen and chosen["kind"] == "vpn":
+            address_detail = (
+                f"Jon sagt {chosen['ip']} an - das ist ein VPN-Tunnel, den dein Handy "
+                "im WLAN nicht erreicht. Waehle unten die WLAN-Adresse."
+            )
+        elif chosen and chosen["kind"] == "virtual":
+            address_detail = (
+                f"Jon sagt {chosen['ip']} an - das ist ein virtueller Adapter. "
+                "Waehle unten die WLAN-Adresse."
+            )
+        elif chosen:
+            address_detail = f"{chosen['ip']} - {chosen['label']}"
+        else:
+            address_detail = "Keine brauchbare Netzwerkadresse gefunden."
         checks = [
             {
                 "name": "SIP-Dienst",
                 "ok": status["running"],
                 "detail": status["error"] or f"laeuft auf Port {status['sip_port']}",
+            },
+            {
+                "name": "Serveradresse",
+                "ok": address_ok,
+                "detail": address_detail,
+            },
+            {
+                "name": "Firewall",
+                "ok": firewall["ok"],
+                "detail": firewall["detail"],
+                "fix": firewall.get("fix", ""),
             },
             {
                 "name": "Telefon angemeldet",
@@ -392,7 +465,11 @@ class PhoneService:
                 "detail": f"{status['scheduled']} Anrufe geplant",
             },
         ]
-        return {"ready": all(c["ok"] for c in checks), "checks": checks}
+        return {
+            "ready": all(c["ok"] for c in checks),
+            "checks": checks,
+            "addresses": addresses,
+        }
 
     def active_call(self) -> dict | None:
         call = self._active

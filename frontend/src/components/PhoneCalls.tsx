@@ -11,6 +11,7 @@ import {
   newPhonePassword,
   restartPhone,
   schedulePhoneCall,
+  setPhoneAddress,
   testPhoneCall,
   updatePhoneCall,
   saveUserSettings,
@@ -368,13 +369,63 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                 {checks.map((check) => (
                   <div key={check.name} className="flex items-start gap-2 text-[12px]">
                     <Dot ok={check.ok} />
-                    <div>
+                    <div className="flex-1">
                       <span className="text-white/80">{check.name}</span>
                       <span className="text-white/40"> — {check.detail}</span>
+                      {check.fix ? (
+                        <div className="mt-1">
+                          <div className="font-mono text-[10.5px] text-amber-200/80 bg-black/40 rounded px-2 py-1 break-all">
+                            {check.fix}
+                          </div>
+                          <button
+                            onClick={() => navigator.clipboard?.writeText(check.fix ?? "")}
+                            className="mt-1 text-[10px] text-white/50 hover:text-white/90"
+                          >
+                            Befehl kopieren — in PowerShell als Administrator ausführen
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ))}
               </div>
+
+              {setup?.addresses?.length ? (
+                <div className="space-y-1">
+                  <div className="text-[12px] text-white/50">
+                    Welche Adresse soll Jon deinem Handy nennen?
+                  </div>
+                  {setup.addresses.map((address) => (
+                    <label
+                      key={address.ip}
+                      className={`flex items-center gap-2 text-[12px] rounded-lg border px-2 py-1.5 cursor-pointer ${
+                        address.selected
+                          ? "border-[#d4af37]/40 bg-[#d4af37]/10"
+                          : "border-white/10 bg-white/5"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="phone-address"
+                        checked={address.selected}
+                        onChange={() =>
+                          guard("addr", async () => {
+                            setSetup(await setPhoneAddress(address.ip));
+                            await load();
+                          })
+                        }
+                      />
+                      <span className="font-mono text-white/90">{address.ip}</span>
+                      <span className="text-white/40">{address.label}</span>
+                      {address.kind === "vpn" || address.kind === "virtual" ? (
+                        <span className="ml-auto text-[10px] text-amber-300/80">
+                          vom Handy nicht erreichbar
+                        </span>
+                      ) : null}
+                    </label>
+                  ))}
+                </div>
+              ) : null}
 
               <ol className="space-y-3 text-[13px] text-white/70">
                 <li>

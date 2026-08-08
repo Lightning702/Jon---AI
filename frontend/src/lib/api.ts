@@ -2279,6 +2279,14 @@ export interface PhoneCall {
   created_at: string;
 }
 
+export interface PhoneAddress {
+  ip: string;
+  label: string;
+  kind: string;
+  usable: boolean;
+  selected: boolean;
+}
+
 export interface PhoneSetup {
   server: string;
   port: number;
@@ -2288,12 +2296,14 @@ export interface PhoneSetup {
   transport: string;
   app: string;
   app_url: string;
+  addresses: PhoneAddress[];
 }
 
 export interface PhoneCheck {
   name: string;
   ok: boolean;
   detail: string;
+  fix?: string;
 }
 
 export interface PhoneLogEntry {
@@ -2320,8 +2330,17 @@ export async function getPhoneStatus(): Promise<PhoneStatus> {
 export async function getPhoneDiagnostics(): Promise<{
   ready: boolean;
   checks: PhoneCheck[];
+  addresses: PhoneAddress[];
 }> {
   return phoneJson("/diagnostics");
+}
+
+export async function setPhoneAddress(ip: string): Promise<PhoneSetup> {
+  return phoneJson("/address", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ip }),
+  });
 }
 
 export async function getPhoneSetup(): Promise<PhoneSetup> {

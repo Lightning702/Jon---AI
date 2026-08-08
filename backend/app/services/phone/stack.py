@@ -127,18 +127,13 @@ class SipStack(asyncio.DatagramProtocol):
         return None
 
     def local_ip(self) -> str:
+        from app.services.phone.netinfo import best_address
+
         if self._advertise:
             return self._advertise
         if self.host not in ("0.0.0.0", "", "::"):
             return self.host
-        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            probe.connect(("8.8.8.8", 80))
-            return probe.getsockname()[0]
-        except OSError:
-            return "127.0.0.1"
-        finally:
-            probe.close()
+        return best_address()
 
     async def start(self) -> None:
         if self._running:
