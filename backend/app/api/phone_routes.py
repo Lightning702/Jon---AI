@@ -63,14 +63,27 @@ async def set_address(payload: dict) -> dict:
 
 
 @router.post("/credentials/new")
-async def new_credentials() -> dict:
+async def new_credentials(payload: dict | None = None) -> dict:
+    import re
     import secrets
 
     from app.services.settings_service import get_settings_service
 
-    get_settings_service().update(
-        {"phone_sip_password": secrets.token_urlsafe(18)}
-    )
+    values = {"phone_sip_password": secrets.token_urlsafe(18)}
+    wanted = str((payload or {}).get("username", "")).strip().lower()
+    if wanted:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,31}", wanted):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Der Benutzername darf nur Kleinbuchstaben, Ziffern, Punkt, "
+                    "Bindestrich und Unterstrich enthalten, 3 bis 32 Zeichen."
+                ),
+            )
+        values["phone_sip_user"] = wanted
+    else:
+        values["phone_sip_user"] = f"jon-{secrets.token_hex(3)}"
+    get_settings_service().update(values)
     service = get_phone_service()
     await service.restart()
     return await setup()

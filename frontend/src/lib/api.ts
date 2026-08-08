@@ -2248,6 +2248,14 @@ export interface PhoneDevice {
   user_agent: string;
   source: string;
   expires_in: number;
+  transport?: string;
+}
+
+export interface PhoneAttempt {
+  at: number;
+  source: string;
+  transport: string;
+  detail: string;
 }
 
 export interface PhoneStatus {
@@ -2263,6 +2271,7 @@ export interface PhoneStatus {
   device: PhoneDevice;
   recognizer: { ready: boolean; error: string };
   ffmpeg: { ready: boolean; error: string };
+  attempts: PhoneAttempt[];
   active_call: { id: string; status: string; reason: string; duration: number } | null;
   scheduled: number;
 }
@@ -2348,8 +2357,12 @@ export async function getPhoneSetup(): Promise<PhoneSetup> {
   return phoneJson("/setup");
 }
 
-export async function newPhonePassword(): Promise<PhoneSetup> {
-  return phoneJson("/credentials/new", { method: "POST" });
+export async function newPhoneCredentials(username?: string): Promise<PhoneSetup> {
+  return phoneJson("/credentials/new", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: username ?? "" }),
+  });
 }
 
 export async function restartPhone(): Promise<PhoneStatus> {

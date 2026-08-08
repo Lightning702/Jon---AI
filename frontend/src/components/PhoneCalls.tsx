@@ -8,7 +8,7 @@ import {
   getPhoneSetup,
   getPhoneStatus,
   hangupPhoneCall,
-  newPhonePassword,
+  newPhoneCredentials,
   restartPhone,
   schedulePhoneCall,
   setPhoneAddress,
@@ -72,6 +72,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
   const [recurrence, setRecurrence] = useState("");
   const [editing, setEditing] = useState<string>("");
   const [editWhen, setEditWhen] = useState("");
+  const [newUser, setNewUser] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -466,17 +467,31 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                   ) : (
                     <div className="text-white/40">wird geladen…</div>
                   )}
-                  <button
-                    onClick={() =>
-                      guard("pw", async () => {
-                        setSetup(await newPhonePassword());
-                        setNote("Neues Passwort erzeugt — bitte im Handy neu eintragen.");
-                      })
-                    }
-                    className="mt-2 px-3 py-1.5 rounded-lg text-[11px] bg-white/10 border border-white/15 text-white/70"
-                  >
-                    Neues Passwort erzeugen
-                  </button>
+                  <div className="mt-2 flex gap-2 items-center flex-wrap">
+                    <input
+                      value={newUser}
+                      onChange={(e) => setNewUser(e.target.value)}
+                      placeholder="neuer Benutzername"
+                      className="w-44 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[12px] text-white/90 outline-none focus:border-white/25"
+                    />
+                    <button
+                      onClick={() =>
+                        guard("pw", async () => {
+                          setSetup(await newPhoneCredentials(newUser.trim()));
+                          setNewUser("");
+                          setNote(
+                            "Neue Zugangsdaten erzeugt — im Handy beide Felder neu eintragen."
+                          );
+                        })
+                      }
+                      className="px-3 py-1.5 rounded-lg text-[11px] bg-white/10 border border-white/15 text-white/70"
+                    >
+                      Neu erzeugen
+                    </button>
+                    <span className="text-[10px] text-white/35">
+                      leer lassen = Jon würfelt einen Namen aus
+                    </span>
+                  </div>
                 </li>
                 <li>
                   <b className="text-white/90">3. In Linphone eintragen</b>
@@ -535,9 +550,29 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                   <b className="text-white/90">5. Verbindung prüfen</b>
                   <div className="text-white/50">
                     {device?.registered
-                      ? `🟢 Angemeldet: ${device.user_agent || "Gerät"} über ${device.source}`
+                      ? `🟢 Angemeldet: ${device.user_agent || "Gerät"} über ${device.source} (${(device.transport ?? "").toUpperCase()})`
                       : "Linphone zeigt oben „Verbunden“ in Grün — dann erscheint dein Gerät hier."}
                   </div>
+                  {status?.attempts?.length ? (
+                    <div className="mt-1 rounded-lg border border-white/10 bg-black/30 px-2 py-1.5">
+                      <div className="text-[11px] text-white/50 mb-0.5">
+                        Was bei Jon ankommt:
+                      </div>
+                      {status.attempts.slice(0, 4).map((attempt, index) => (
+                        <div key={index} className="text-[11px] text-white/60">
+                          <span className="font-mono text-white/45">{attempt.source}</span>{" "}
+                          <span className="text-white/35">{attempt.transport.toUpperCase()}</span>{" "}
+                          {attempt.detail}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-[11px] text-amber-200/70">
+                      Bei Jon ist bisher kein einziger Versuch angekommen — dein Handy
+                      erreicht ihn also gar nicht. Das ist Netzwerk oder Firewall, nicht
+                      Linphone.
+                    </div>
+                  )}
                 </li>
                 <li>
                   <b className="text-white/90">6. Testanruf</b>

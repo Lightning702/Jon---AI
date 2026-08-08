@@ -4,6 +4,7 @@ import asyncio
 import logging
 import socket
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 from app.services.phone import sipmsg
@@ -38,11 +39,20 @@ class Binding:
     source: tuple[str, int]
     expires_at: float
     user_agent: str = ""
+    transport: str = "udp"
     registered_at: float = field(default_factory=time.time)
 
     @property
     def alive(self) -> bool:
         return time.time() < self.expires_at
+
+
+@dataclass
+class Attempt:
+    at: float
+    source: str
+    transport: str
+    detail: str
 
 
 @dataclass
@@ -107,6 +117,26 @@ class SipStack(asyncio.DatagramProtocol):
         self._running = False
         self._last_error = ""
         self._registrations = 0
+        self._tcp_server: asyncio.Server | None = None
+        self._tcp_writers: dict[tuple[str, int], asyncio.StreamWriter] = {}
+        self._attempts: list[Attempt] = []
+
+    def attempts(self, limit: int = 8) -> list[dict]:
+        return [
+            {
+                "at": item.at,
+                "source": item.source,
+                "transport": item.transport,
+                "detail": item.detail,
+            }
+            for item in self._attempts[:limit]
+        ]
+
+    def _note(self, source: tuple[str, int], transport: str, detail: str) -> None:
+        self._attempts.insert(
+            0, Attempt(time.time(), f"{source[0]}:{source[1]}", transport, detail)
+        )
+        del self._attempts[20:]
 
     @property
     def running(self) -> bool:
@@ -143,9 +173,58 @@ class SipStack(asyncio.DatagramProtocol):
             lambda: self, local_addr=(self.host, self.port), reuse_port=False
         )
         self._transport = transport
+        try:
+            self._tcp_server = await asyncio.start_server(
+                self._handle_tcp, self.host, self.port
+            )
+        except OSError as exc:
+            self._tcp_server = None
+            self._last_error = f"SIP ueber TCP nicht moeglich: {exc}"
         self._running = True
-        self._last_error = ""
-        log.info("SIP laeuft auf %s:%s", self.host, self.port)
+        log.info("SIP laeuft auf %s:%s (UDP%s)", self.host, self.port,
+                 " und TCP" if self._tcp_server else "")
+
+    async def _handle_tcp(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
+        peer = writer.get_extra_info("peername") or ("", 0)
+        self._tcp_writers[(peer[0], peer[1])] = writer
+        buffer = b""
+        try:
+            while self._running:
+                chunk = await reader.read(4096)
+                if not chunk:
+                    break
+                buffer += chunk
+                while True:
+                    head, sep, rest = buffer.partition(b"\r\n\r\n")
+                    if not sep:
+                        break
+                    length = 0
+                    for line in head.decode("utf-8", "replace").split("\r\n"):
+                        if line.lower().startswith("content-length:"):
+                            raw = line.split(":", 1)[1].strip()
+                            length = int(raw) if raw.isdigit() else 0
+                    if len(rest) < length:
+                        break
+                    payload = head + sep + rest[:length]
+                    buffer = rest[length:]
+                    message = sipmsg.parse(payload)
+                    if message is None:
+                        continue
+                    try:
+                        if message.is_request:
+                            self._on_request(message, (peer[0], peer[1]), "tcp")
+                        else:
+                            self._on_response(message, (peer[0], peer[1]))
+                    except Exception as exc:
+                        self._last_error = str(exc)
+        except (asyncio.CancelledError, OSError):
+            pass
+        finally:
+            self._tcp_writers.pop((peer[0], peer[1]), None)
+            with suppress(Exception):
+                writer.close()
 
     async def stop(self) -> None:
         self._running = False
@@ -154,6 +233,15 @@ class SipStack(asyncio.DatagramProtocol):
                 await self.hangup(call, "Jon wurde beendet")
             except Exception:
                 pass
+        if self._tcp_server is not None:
+            self._tcp_server.close()
+            with suppress(Exception):
+                await self._tcp_server.wait_closed()
+            self._tcp_server = None
+        for writer in list(self._tcp_writers.values()):
+            with suppress(Exception):
+                writer.close()
+        self._tcp_writers.clear()
         if self._transport:
             self._transport.close()
             self._transport = None
@@ -167,21 +255,34 @@ class SipStack(asyncio.DatagramProtocol):
     def datagram_received(self, data: bytes, addr: tuple[str, int]) -> None:
         message = sipmsg.parse(data)
         if message is None:
+            self._note(addr, "udp", "unverstaendliches Paket")
             return
         try:
             if message.is_request:
-                self._on_request(message, addr)
+                self._on_request(message, addr, "udp")
             else:
                 self._on_response(message, addr)
         except Exception as exc:
             self._last_error = str(exc)
             log.exception("SIP-Nachricht fehlgeschlagen")
 
-    def _send(self, message: SipMessage, addr: tuple[str, int]) -> None:
+    def _send(
+        self, message: SipMessage, addr: tuple[str, int], transport: str = "udp"
+    ) -> None:
+        data = message.encode()
+        if transport == "tcp":
+            writer = self._tcp_writers.get((addr[0], addr[1]))
+            if writer is not None:
+                try:
+                    writer.write(data)
+                    return
+                except Exception as exc:
+                    self._last_error = str(exc)
+            return
         if self._transport is None:
             return
         try:
-            self._transport.sendto(message.encode(), addr)
+            self._transport.sendto(data, addr)
         except OSError as exc:
             self._last_error = str(exc)
 
@@ -229,7 +330,9 @@ class SipStack(asyncio.DatagramProtocol):
         )
         return expected == challenge.get("response", "")
 
-    def _challenge(self, message: SipMessage, addr: tuple[str, int]) -> None:
+    def _challenge(
+        self, message: SipMessage, addr: tuple[str, int], transport: str = "udp"
+    ) -> None:
         nonce = self._fresh_nonce()
         header = (
             f'Digest realm="{self.realm}", nonce="{nonce}", '
@@ -242,12 +345,14 @@ class SipStack(asyncio.DatagramProtocol):
             extra=[("WWW-Authenticate", header), ("Server", USER_AGENT)],
             to_tag=new_tag(),
         )
-        self._send(response, addr)
+        self._send(response, addr, transport)
 
-    def _on_request(self, message: SipMessage, addr: tuple[str, int]) -> None:
+    def _on_request(
+        self, message: SipMessage, addr: tuple[str, int], transport: str = "udp"
+    ) -> None:
         method = message.method
         if method == "REGISTER":
-            self._on_register(message, addr)
+            self._on_register(message, addr, transport)
         elif method == "OPTIONS":
             self._send(
                 build_response(
@@ -282,15 +387,33 @@ class SipStack(asyncio.DatagramProtocol):
                 addr,
             )
 
-    def _on_register(self, message: SipMessage, addr: tuple[str, int]) -> None:
+    def _on_register(
+        self, message: SipMessage, addr: tuple[str, int], transport: str = "udp"
+    ) -> None:
         target = parse_uri(message.header("to"))
+        agent = message.header("user-agent") or "unbekannt"
         if target.user and target.user != self.username:
+            self._note(
+                addr,
+                transport,
+                f"falscher Benutzername '{target.user}' (erwartet '{self.username}')",
+            )
             self._send(
-                build_response(message, 404, "Not Found", to_tag=new_tag()), addr
+                build_response(message, 404, "Not Found", to_tag=new_tag()),
+                addr,
+                transport,
             )
             return
         if not self._check_auth(message):
-            self._challenge(message, addr)
+            has_auth = bool(
+                message.header("authorization") or message.header("proxy-authorization")
+            )
+            self._note(
+                addr,
+                transport,
+                "falsches Passwort" if has_auth else f"Anmeldung begonnen ({agent})",
+            )
+            self._challenge(message, addr, transport)
             return
         contact_raw = message.header("contact")
         expires = message.header("expires")
@@ -311,7 +434,9 @@ class SipStack(asyncio.DatagramProtocol):
                     to_tag=new_tag(),
                 ),
                 addr,
+                transport,
             )
+            self._note(addr, transport, "abgemeldet")
             return
         seconds = max(seconds, REGISTER_MIN)
         contact = parse_uri(contact_raw)
@@ -322,8 +447,10 @@ class SipStack(asyncio.DatagramProtocol):
             source=addr,
             expires_at=time.time() + seconds,
             user_agent=message.header("user-agent"),
+            transport=transport,
         )
         self._registrations += 1
+        self._note(addr, transport, f"angemeldet ({agent})")
         response = build_response(
             message,
             200,
@@ -336,7 +463,7 @@ class SipStack(asyncio.DatagramProtocol):
             ],
             to_tag=new_tag(),
         )
-        self._send(response, addr)
+        self._send(response, addr, transport)
 
     def _on_bye(self, message: SipMessage, addr: tuple[str, int]) -> None:
         call_id = message.header("call-id")
@@ -468,7 +595,7 @@ class SipStack(asyncio.DatagramProtocol):
             "INVITE", str(binding.contact), headers, sdp, "application/sdp"
         )
         destination = binding.source or binding.contact.address
-        self._send(invite, destination)
+        self._send(invite, destination, binding.transport)
         asyncio.create_task(self._retransmit(invite, destination, handle))
         try:
             await asyncio.wait_for(handle.answered.wait(), timeout=timeout)

@@ -480,3 +480,72 @@ def _register_message(port: int, auth: str = "") -> bytes:
         lines.append(f"Authorization: {auth}")
     lines.append("Content-Length: 0")
     return ("\r\n".join(lines) + "\r\n\r\n").encode()
+
+
+def test_registrierung_ueber_tcp():
+    asyncio.run(_registrierung_ueber_tcp())
+
+
+async def _registrierung_ueber_tcp():
+    stack = SipStack("jon-phone", "geheim", host="127.0.0.1", port=_free_port())
+    await stack.start()
+    try:
+        reader, writer = await asyncio.open_connection("127.0.0.1", stack.port)
+        writer.write(_register_message(stack.port))
+        await writer.drain()
+        first = sipmsg.parse(await asyncio.wait_for(reader.read(4096), timeout=3.0))
+        assert first is not None
+        assert first.status == 401
+        challenge = parse_auth(first.header("www-authenticate"))
+        auth = authorization_header(
+            "jon-phone", "geheim", challenge, "REGISTER", f"sip:127.0.0.1:{stack.port}"
+        )
+        writer.write(_register_message(stack.port, auth))
+        await writer.drain()
+        second = sipmsg.parse(await asyncio.wait_for(reader.read(4096), timeout=3.0))
+        assert second is not None
+        assert second.status == 200
+        assert stack.binding is not None
+        assert stack.binding.transport == "tcp"
+        writer.close()
+    finally:
+        await stack.stop()
+
+
+def test_versuche_werden_protokolliert():
+    asyncio.run(_versuche_werden_protokolliert())
+
+
+async def _versuche_werden_protokolliert():
+    stack = SipStack("jon-phone", "geheim", host="127.0.0.1", port=_free_port())
+    await stack.start()
+    sock = _client_socket()
+    try:
+        await _exchange(sock, _register_message(stack.port), stack.port)
+        eintraege = stack.attempts()
+        assert eintraege
+        assert eintraege[0]["transport"] == "udp"
+        assert "Anmeldung begonnen" in eintraege[0]["detail"]
+        assert "Linphone" in eintraege[0]["detail"]
+    finally:
+        sock.close()
+        await stack.stop()
+
+
+def test_falscher_benutzername_wird_protokolliert():
+    asyncio.run(_falscher_benutzername_wird_protokolliert())
+
+
+async def _falscher_benutzername_wird_protokolliert():
+    stack = SipStack("jon-neu", "geheim", host="127.0.0.1", port=_free_port())
+    await stack.start()
+    sock = _client_socket()
+    try:
+        antwort = await _exchange(sock, _register_message(stack.port), stack.port)
+        assert antwort.status == 404
+        eintraege = stack.attempts()
+        assert "falscher Benutzername" in eintraege[0]["detail"]
+        assert "jon-neu" in eintraege[0]["detail"]
+    finally:
+        sock.close()
+        await stack.stop()

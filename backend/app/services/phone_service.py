@@ -395,7 +395,9 @@ class PhoneService:
                 "user_agent": binding.user_agent if binding else "",
                 "source": f"{binding.source[0]}:{binding.source[1]}" if binding else "",
                 "expires_in": int(binding.expires_at - time.time()) if binding else 0,
+                "transport": binding.transport if binding else "",
             },
+            "attempts": self._stack.attempts() if self._stack else [],
             "recognizer": recognizer,
             "ffmpeg": self._ffmpeg_state(),
             "active_call": self.active_call(),
@@ -457,8 +459,7 @@ class PhoneService:
             {
                 "name": "Telefon angemeldet",
                 "ok": status["device"]["registered"],
-                "detail": status["device"]["contact"]
-                or "Noch kein Geraet registriert - SIP-App einrichten.",
+                "detail": self._device_detail(status),
             },
             {
                 "name": "Spracherkennung",
@@ -486,6 +487,22 @@ class PhoneService:
             "checks": checks,
             "addresses": addresses,
         }
+
+    def _device_detail(self, status: dict) -> str:
+        device = status["device"]
+        if device["registered"]:
+            return f"{device['contact']} ueber {device['transport'].upper()}"
+        attempts = status.get("attempts") or []
+        if not attempts:
+            return (
+                "Noch kein Versuch angekommen. Jon sieht dein Handy gar nicht - "
+                "pruefe Netzwerk, Serveradresse und Firewall."
+            )
+        newest = attempts[0]
+        return (
+            f"Letzter Versuch von {newest['source']} ueber "
+            f"{newest['transport'].upper()}: {newest['detail']}"
+        )
 
     def active_call(self) -> dict | None:
         call = self._active
