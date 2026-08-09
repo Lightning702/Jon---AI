@@ -2,6 +2,60 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.33.9] — 2026-08-09
+
+### 🏝️ Harmonische Inseln — ein neues Spiel zum Runterkommen
+
+Ein schwebendes Archipel in der Abendsonne, in echter isometrischer Schrägsicht, als
+eigenes Programm neben ECHO, AETHERIA und STARFALL.
+
+- Vier Inseln, durch Holzbrücken verbunden: die Herzinsel mit Markt, runder Werkstatt und
+  Gildenhalle, dazu Farm, Steinmutter und Werft.
+- Korn, Stein und Bretter sammeln und zum unfertigen Leuchtturm bringen — er wächst in
+  sechs Stufen, bis sein Licht brennt.
+- Die Bewohner leben ihr eigenes Leben: sie wandern über die Brücken, tragen selbst
+  Bretter zur Baustelle, haben Haustiere dabei und jubeln mit, wenn der Turm wächst.
+- Alpakas, Schafe und Capybaras auf der Weide, Blätter im Wind, Gischt an den Ufern, ein
+  Regenbogen über dem Berg und weiche Schatten unter allem.
+- In C++ ohne Engine geschrieben; Gelände, Häuser, Figuren und Klänge entstehen zur
+  Laufzeit. Läuft mit rund 150 Bildern je Sekunde auf einer Intel-UHD-620.
+
+### 🧱 Blockwelt läuft jetzt als eigenes Spiel
+
+Die Voxel-Sandbox startet nicht mehr im Browser, sondern wie ECHO als eigenes Fenster aus
+dem Spiele-Tab.
+
+- Neu in C++ geschrieben: Landschaft mit Hügeln, Stränden, Seen, Wäldern und Höhlen,
+  weiche Kantenverschattung, Tag- und Nachtwechsel mit Sternen.
+- Abbauen, setzen, graben, schwimmen, fliegen — und **Mini Jon schwebt mit**: Auf `T`
+  baut er dir Haus, Turm, Brücke, Baum oder Leuchtfeuer, Block für Block zum Zuschauen.
+- Änderungen werden gespeichert und beim nächsten Start wieder eingesetzt.
+
+### 🌸 Cozy — ein dritter Modus in Weiß und Rosa
+
+Neben Hell und Dunkel gibt es jetzt **Cozy**: zartes Rosa auf Weiß, für Jon und für Mini
+Jon. Der Goldton der ganzen Oberfläche hängt jetzt an einer einzigen Stelle, deshalb
+färbt sich alles mit — Knöpfe, Ränder, Verläufe, Bildlaufleisten.
+
+### 👀 Mini Jon und sein Haustier sehen endlich aus wie gedacht
+
+In den 3D-Modellen wurden Teile in falscher Reihenfolge verkettet — Ohren, Augen, Nase
+und Beine rutschten dabei ins Innere des Körpers, übrig blieb eine glatte Kugel. Jetzt
+sitzt alles am richtigen Platz:
+
+- Katze und Hund haben Ohren mit Innenohr, Augen mit Iris und Lichtpunkt, Schnauze,
+  Beine mit Pfoten und einen Schweif, der sich bewegt.
+- Mini Jon hat glänzende Augen und ein Lächeln aus dem Goldton.
+- Neue Beleuchtung mit Haupt-, Fülllicht und Fellschimmer.
+
+### 🖊️ Kleinigkeiten
+
+- Haustierauswahl umgezogen: sie steht jetzt bei „Mini Jon anpassen" zwischen Farbe,
+  Augen und Größe, nicht mehr im Einstellungsmenü.
+- Heller und Cozy-Modus sind etwas abgetönt — auf Weiß in Weiß war zu wenig zu erkennen.
+- Lange Texte brechen sauber um: im Spiele-Tab werden Beschreibungen gekürzt („mehr
+  lesen" klappt sie auf), und in den Haftnotizen läuft kein Wort mehr aus dem Zettel.
+
 ## [4.33.8] — 2026-08-08
 
 ### ☎️ Jon anrufen — und von überall telefonieren

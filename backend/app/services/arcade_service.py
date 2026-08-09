@@ -13,27 +13,8 @@ MANIFEST_NAMEN = ("jon-spiele.json", "jon-games.json")
 CACHE_SEKUNDEN = 5.0
 START_PRUEFUNG = 0.6
 BAU_TIMEOUT = 900
-STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
 
-EINGEBAUTE_SPIELE = [
-    {
-        "id": "blockwelt",
-        "titel": "Blockwelt",
-        "genre": "Sandbox",
-        "icon": "🧱",
-        "kurz": "Bauen mit Jon als Spielfigur.",
-        "beschreibung": (
-            "Voxel-Sandbox direkt im Browser. Drück T und sag Jon, was er bauen "
-            "soll — er läuft hin und setzt Häuser, Türme, Brücken oder Bäume."
-        ),
-        "steuerung": "WASD laufen · Maus umsehen · Leertaste springen · T mit Jon reden",
-        "typ": "web",
-        "pfad": "/blockwelt",
-        "version": "1.0",
-        "herausgeber": "FelWorks",
-        "vorschau": STATIC_DIR / "blockwelt.jpg",
-    }
-]
+EINGEBAUTE_SPIELE: list[dict] = []
 
 
 class SpielFehler(RuntimeError):

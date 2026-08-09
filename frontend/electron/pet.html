@@ -351,6 +351,48 @@
       body.light .petBtn {
         background: rgba(255, 255, 255, 0.9);
       }
+      body.cozy #bubble {
+        background: rgba(255, 252, 253, 0.96);
+        border-color: rgba(226, 138, 175, 0.45);
+        color: #4e2f3d;
+        box-shadow: 0 10px 30px rgba(214, 150, 178, 0.28);
+      }
+      body.cozy #bubble::-webkit-scrollbar-thumb {
+        background: rgba(226, 138, 175, 0.5);
+      }
+      body.cozy #field {
+        background: rgba(255, 252, 253, 0.96);
+        border-color: rgba(226, 138, 175, 0.5);
+        color: #4e2f3d;
+      }
+      body.cozy #field::placeholder {
+        color: rgba(78, 47, 61, 0.42);
+      }
+      body.cozy .petBtn {
+        background: rgba(255, 250, 252, 0.92);
+        border-color: rgba(226, 138, 175, 0.5);
+        color: #c16a91;
+      }
+      body.cozy #close {
+        color: rgba(78, 47, 61, 0.5);
+      }
+      body.cozy #pomo {
+        background: rgba(255, 252, 253, 0.94);
+        border-color: rgba(226, 138, 175, 0.5);
+        color: #c16a91;
+        text-shadow: none;
+      }
+      body.cozy #petSpeech {
+        color: #c16a91;
+        text-shadow: 0 1px 4px rgba(255, 255, 255, 0.9);
+      }
+      body.cozy #jon {
+        filter: drop-shadow(0 8px 20px rgba(214, 150, 178, 0.45));
+      }
+      body.cozy #bubble.dream {
+        color: #8a6a99;
+        border-color: rgba(190, 150, 220, 0.45);
+      }
       #jonShine {
         display: none;
       }
@@ -729,9 +771,12 @@
         if (json === lastCfgJson) return;
         lastCfgJson = json;
         cfg = next;
-        const accent = cfg.pet_accent || "#d4af37";
-        const light = cfg.theme === "light";
+        const cozy = cfg.theme === "cozy";
+        const gewaehlt = cfg.pet_accent || "#d4af37";
+        const accent = cozy && gewaehlt.toLowerCase() === "#d4af37" ? "#e28aaf" : gewaehlt;
+        const light = cfg.theme === "light" || cozy;
         document.body.classList.toggle("light", light);
+        document.body.classList.toggle("cozy", cozy);
         const stops = grad.children;
         if (light) {
           stops[0].setAttribute("stop-color", accent);
@@ -742,7 +787,10 @@
           stops[1].setAttribute("stop-color", accent);
           stops[2].setAttribute("stop-color", shade(accent, -0.3));
         }
-        faceCircle.setAttribute("fill", light ? "#ffffff" : cfg.pet_face || "#0a0a0e");
+        faceCircle.setAttribute(
+          "fill",
+          cozy ? "#fffafc" : light ? "#ffffff" : cfg.pet_face || "#0a0a0e"
+        );
         cheeks.style.display = cfg.pet_cheeks ? "block" : "none";
         renderEyes(cfg.pet_eyes || "round");
         jonWrap.style.transform = "scale(" + (cfg.pet_scale || 1) + ")";
@@ -751,7 +799,13 @@
         const ready = ensureViews(want3d);
         document.body.classList.toggle("model3d", want3d && ready);
         document.body.classList.toggle("threeD", want3d && !ready);
-        if (jonView) jonView.setColors({ accent: accent, face: cfg.pet_face, light: light });
+        if (jonView)
+          jonView.setColors({
+            accent: accent,
+            face: cfg.pet_face,
+            light: light,
+            cozy: cozy,
+          });
         const nextPet = cfg.pet_companion || "none";
         if (nextPet !== petKind || want3d !== wasSpatial) {
           petKind = nextPet;
@@ -2984,7 +3038,11 @@
       function renderPet(kind, accent) {
         if (petView) {
           petView.setKind(kind);
-          petView.setColors({ accent: accent, light: cfg.theme === "light" });
+          petView.setColors({
+            accent: accent,
+            light: cfg.theme === "light" || cfg.theme === "cozy",
+            cozy: cfg.theme === "cozy",
+          });
         }
         petCanvas.classList.toggle("show", kind !== "none");
         if (kind !== "none" && spatial()) {

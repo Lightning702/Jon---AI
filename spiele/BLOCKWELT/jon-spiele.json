@@ -1,0 +1,21 @@
+{
+  "sammlung": "FelWorks Game Collection",
+  "herausgeber": "FelWorks",
+  "version": "2.0.0",
+  "bauen": "build.bat",
+  "spiele": [
+    {
+      "id": "blockwelt",
+      "titel": "Blockwelt",
+      "genre": "Sandbox",
+      "icon": "🧱",
+      "kurz": "Bauen mit Mini Jon an deiner Seite.",
+      "beschreibung": "Voxel-Sandbox als eigenes Programm — kein Browser, kein Tab. Eine Welt aus 192 mal 192 Blöcken mit Hügeln, Stränden, Seen, Wäldern und Höhlen entsteht bei jedem Startwert neu. Abbauen, setzen, graben, schwimmen, fliegen. Mini Jon schwebt neben dir her: Drück T, und er sucht sich einen Platz und baut dir ein Haus, einen Turm, eine Brücke, einen Baum oder ein Leuchtfeuer, Block für Block. Tag und Nacht ziehen vorbei, nachts kommen die Sterne. Deine Änderungen werden gespeichert und beim nächsten Start wieder eingesetzt. In C++ ohne Engine geschrieben.",
+      "steuerung": "Maus umsehen · WASD laufen · Shift rennen · Leertaste springen · Linksklick abbauen · Rechtsklick setzen · 1-9 Block wählen · Mausrad blättern · T Mini Jon beauftragen · F fliegen · H Anzeige · F5/F6 Sichtweite · F11 Vollbild · P Bild · Esc Maus frei",
+      "vorschau": "vorschau/blockwelt.jpg",
+      "exe": "bin/BLOCKWELT.exe",
+      "args": [],
+      "version": "2.0.0"
+    }
+  ]
+}

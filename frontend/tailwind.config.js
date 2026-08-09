@@ -5,9 +5,9 @@ export default {
     extend: {
       colors: {
         gold: {
-          DEFAULT: "#d4af37",
-          light: "#f5d67b",
-          dark: "#9a7b1f",
+          DEFAULT: "rgb(var(--gold-rgb) / <alpha-value>)",
+          light: "rgb(var(--gold-light-rgb) / <alpha-value>)",
+          dark: "rgb(var(--gold-dark-rgb) / <alpha-value>)",
         },
         ink: {
           900: "#050506",

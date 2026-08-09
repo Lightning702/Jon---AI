@@ -4,6 +4,12 @@
 
 :root {
   color-scheme: dark;
+  --gold-rgb: 212 175 55;
+  --gold-light-rgb: 245 214 123;
+  --gold-dark-rgb: 154 123 31;
+  --ink-rgb: 15 15 20;
+  --tint-rgb: 0 0 0;
+  --sheet-rgb: 240 238 230;
 }
 
 html,
@@ -25,7 +31,7 @@ body {
   width: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.35);
+  background: rgb(var(--gold-rgb) / 0.35);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-track {
@@ -40,7 +46,12 @@ body {
     @apply bg-black/40 backdrop-blur-2xl border border-white/10;
   }
   .gold-text {
-    background: linear-gradient(90deg, #f5d67b, #d4af37, #9a7b1f);
+    background: linear-gradient(
+      90deg,
+      rgb(var(--gold-light-rgb)),
+      rgb(var(--gold-rgb)),
+      rgb(var(--gold-dark-rgb))
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -58,26 +69,32 @@ html.light {
 }
 
 html.light body {
-  background: radial-gradient(circle at 20% 0%, #ffffff 0%, #f3f1ea 55%, #e9e6dc 100%);
-  color: #17171c;
+  background: radial-gradient(circle at 20% -4%, #eae7dc 0%, #d6d2c2 52%, #c2beac 100%);
+  color: rgb(var(--ink-rgb));
 }
 
 html.light ::-webkit-scrollbar-thumb {
-  background: rgba(154, 123, 31, 0.45);
+  background: rgb(var(--gold-dark-rgb) / 0.55);
 }
 
 html.light .glass {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(252, 251, 246, 0.9);
+  border-color: rgb(var(--tint-rgb) / 0.18);
+  box-shadow: 0 10px 32px rgba(60, 54, 40, 0.16);
 }
 
 html.light .glass-strong {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(250, 248, 242, 0.95);
+  border-color: rgb(var(--tint-rgb) / 0.2);
 }
 
 html.light .gold-text {
-  background: linear-gradient(90deg, #b8901f, #9a7b1f, #7a611a);
+  background: linear-gradient(
+    90deg,
+    rgb(var(--gold-rgb)),
+    rgb(var(--gold-dark-rgb)),
+    rgb(var(--gold-dark-rgb) / 0.85)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -85,86 +102,120 @@ html.light .gold-text {
 
 html.light .text-white,
 html.light .text-white\/90 {
-  color: rgba(15, 15, 20, 0.92);
+  color: rgb(var(--ink-rgb) / 0.92);
 }
 html.light .text-white\/85 {
-  color: rgba(15, 15, 20, 0.87);
+  color: rgb(var(--ink-rgb) / 0.87);
 }
 html.light .text-white\/80 {
-  color: rgba(15, 15, 20, 0.82);
+  color: rgb(var(--ink-rgb) / 0.82);
 }
 html.light .text-white\/75 {
-  color: rgba(15, 15, 20, 0.77);
+  color: rgb(var(--ink-rgb) / 0.77);
 }
 html.light .text-white\/70 {
-  color: rgba(15, 15, 20, 0.72);
+  color: rgb(var(--ink-rgb) / 0.72);
 }
 html.light .text-white\/60 {
-  color: rgba(15, 15, 20, 0.62);
+  color: rgb(var(--ink-rgb) / 0.72);
 }
 html.light .text-white\/50 {
-  color: rgba(15, 15, 20, 0.55);
+  color: rgb(var(--ink-rgb) / 0.68);
 }
 html.light .text-white\/45 {
-  color: rgba(15, 15, 20, 0.5);
+  color: rgb(var(--ink-rgb) / 0.66);
 }
 html.light .text-white\/40 {
-  color: rgba(15, 15, 20, 0.48);
+  color: rgb(var(--ink-rgb) / 0.64);
 }
 html.light .text-white\/35 {
-  color: rgba(15, 15, 20, 0.42);
+  color: rgb(var(--ink-rgb) / 0.62);
 }
 html.light .text-white\/30 {
-  color: rgba(15, 15, 20, 0.38);
+  color: rgb(var(--ink-rgb) / 0.58);
 }
 html.light .hover\:text-white\/70:hover {
-  color: rgba(15, 15, 20, 0.72);
+  color: rgb(var(--ink-rgb) / 0.72);
 }
 html.light .placeholder-white\/30::placeholder {
-  color: rgba(15, 15, 20, 0.35);
+  color: rgb(var(--ink-rgb) / 0.55);
 }
 
 html.light .bg-white\/5 {
-  background-color: rgba(0, 0, 0, 0.045);
+  background-color: rgb(var(--tint-rgb) / 0.08);
 }
 html.light .bg-white\/10 {
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgb(var(--tint-rgb) / 0.13);
 }
 html.light .bg-white\/20 {
-  background-color: rgba(0, 0, 0, 0.16);
+  background-color: rgb(var(--tint-rgb) / 0.2);
 }
 html.light .bg-white\/25 {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgb(var(--tint-rgb) / 0.24);
 }
 html.light .bg-white\/40 {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgb(var(--tint-rgb) / 0.34);
 }
 html.light .hover\:bg-white\/5:hover {
-  background-color: rgba(0, 0, 0, 0.045);
+  background-color: rgb(var(--tint-rgb) / 0.08);
 }
 html.light .hover\:bg-white\/10:hover {
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgb(var(--tint-rgb) / 0.13);
 }
 
 html.light .bg-black\/20 {
-  background-color: rgba(255, 255, 255, 0.55);
+  background-color: rgb(var(--sheet-rgb) / 0.55);
 }
 html.light .bg-black\/30 {
-  background-color: rgba(255, 255, 255, 0.65);
+  background-color: rgb(var(--sheet-rgb) / 0.65);
 }
 html.light .bg-black\/40 {
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: rgb(var(--sheet-rgb) / 0.75);
 }
 html.light .bg-black\/60 {
-  background-color: rgba(240, 238, 230, 0.85);
+  background-color: rgb(var(--sheet-rgb) / 0.85);
 }
 html.light .bg-black\/70 {
-  background-color: rgba(240, 238, 230, 0.92);
+  background-color: rgb(var(--sheet-rgb) / 0.92);
 }
 
 html.light .border-white\/10 {
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: rgb(var(--tint-rgb) / 0.16);
+}
+html.light .border-white\/12 {
+  border-color: rgb(var(--tint-rgb) / 0.18);
 }
 html.light .border-white\/15 {
-  border-color: rgba(0, 0, 0, 0.14);
+  border-color: rgb(var(--tint-rgb) / 0.22);
+}
+html.light .border-white\/20 {
+  border-color: rgb(var(--tint-rgb) / 0.26);
+}
+
+html.cozy {
+  --gold-rgb: 214 118 160;
+  --gold-light-rgb: 240 176 204;
+  --gold-dark-rgb: 176 88 126;
+  --ink-rgb: 68 38 52;
+  --tint-rgb: 182 92 134;
+  --sheet-rgb: 253 240 246;
+}
+
+html.cozy body {
+  background: radial-gradient(circle at 22% -6%, #f8e2ec 0%, #eecfdd 48%, #dfb8cd 100%);
+}
+
+html.cozy .glass {
+  background: rgba(255, 250, 252, 0.9);
+  border-color: rgb(var(--tint-rgb) / 0.22);
+  box-shadow: 0 10px 32px rgba(178, 118, 146, 0.22);
+}
+
+html.cozy .glass-strong {
+  background: rgba(255, 248, 251, 0.95);
+  border-color: rgb(var(--tint-rgb) / 0.24);
+}
+
+html.cozy ::-webkit-scrollbar-thumb {
+  background: rgb(var(--gold-rgb) / 0.55);
 }

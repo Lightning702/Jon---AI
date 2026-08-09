@@ -79,10 +79,10 @@ export default function Notes({ onClose }: { onClose: () => void }) {
           {notes.length === 0 && <div className="text-center text-[12.5px] text-white/30 py-8">Noch keine Notizen. Schreib deine erste.</div>}
           <div className="grid grid-cols-2 gap-2.5">
             {notes.map((n) => (
-              <div key={n.id} className={`rounded-xl border px-3 py-2.5 ${COLORS[n.color] ?? COLORS.gold} ${n.done ? "opacity-45" : ""}`}>
+              <div key={n.id} className={`rounded-xl border px-3 py-2.5 min-w-0 overflow-hidden ${COLORS[n.color] ?? COLORS.gold} ${n.done ? "opacity-45" : ""}`}>
                 <div className="flex items-start gap-1.5">
                   <button onClick={() => void patch(n.id, { done: !n.done })} className="mt-0.5 text-[13px] shrink-0">{n.done ? "☑" : "☐"}</button>
-                  <div className={`flex-1 text-[13px] text-white/90 leading-snug whitespace-pre-wrap break-words ${n.done ? "line-through" : ""}`}>{n.text}</div>
+                  <div className={`flex-1 min-w-0 text-[13px] text-white/90 leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] hyphens-auto ${n.done ? "line-through" : ""}`}>{n.text}</div>
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 justify-end">
                   <button onClick={() => void patch(n.id, { pinned: !n.pinned })} title="Anheften" className={`text-[12px] ${n.pinned ? "text-gold" : "text-white/30 hover:text-white/60"}`}>📌</button>

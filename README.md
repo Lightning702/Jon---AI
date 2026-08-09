@@ -40,7 +40,7 @@ wie das geht. Er hat auch bisschen geholfen.)
 
 ---
 
-## 🕹️ Drei Spiele. Zwei Spieler. Ein Freundschaftscode.
+## 🕹️ Fünf Spiele. Zwei Spieler. Ein Freundschaftscode.
 
 Die **FelWorks Game Collection** steckt direkt in Jon — und seit v3.34 spielt ihr alles
 zu zweit über einen 6-stelligen Code.
@@ -59,7 +59,7 @@ zu zweit über einen 6-stelligen Code.
 <tr>
 <td width="50%" align="center">
 <img src="website/spiele/block.png" alt="Blockwelt — Voxel-Sandbox" width="100%">
-<br><b>Blockwelt</b><br><sub>Voxel-Sandbox, in der Jon für dich baut</sub>
+<br><b>Blockwelt</b><br><sub>Voxel-Sandbox, in der Mini Jon für dich baut</sub>
 </td>
 <td width="50%" align="center">
 <img src="docs/img/koop-blockwelt.png" alt="Online-Koop in der Blockwelt" width="100%">
@@ -121,17 +121,19 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   direkt auf deinem Desktop: immer im Vordergrund, verschiebbar, beim Windows-Start schon da.
   Er begrüßt dich mit Updates, **hört durchgehend zu** (sag einmal „Jon", dann redest du
   einfach weiter), **spricht mit lippensynchronem Mund**, und **kann alles, was der große Jon
-  kann** (Web-Suche, Dateien, PC-Steuerung …). Sein Gesicht, seine Farben, Augen und Größe
-  sind frei anpassbar (🎨-Knopf), und im hellen Modus wird auch er weiß. Er hat — wie der
-  große Jon — seine eigene Persönlichkeit und Familiengeschichte. Ein-/Ausblenden mit
-  `Strg+Alt+K`
+  kann** (Web-Suche, Dateien, PC-Steuerung …). Sein Gesicht, seine Farben, Augen, Größe und
+  sein Haustier sind frei anpassbar (🎨-Knopf); im hellen Modus wird auch er weiß, im
+  Cozy-Modus rosa. Er hat — wie der große Jon — seine eigene Persönlichkeit und
+  Familiengeschichte. Ein-/Ausblenden mit `Strg+Alt+K`
 - **🕹️ Spiele (FelWorks Game Collection)** — **ECHO** (First-Person-Psychological-Horror,
   4 Etagen, 464 Räume, fünf Enden), **AETHERIA** (Fantasy-Open-World-RPG mit Dörfern,
-  Aufträgen und Weltkarte) und die **Blockwelt** (Voxel-Sandbox, in der Jon für dich baut)
-  stecken direkt in Jon: **Werkzeuge → Spiele → Starten** oder `/spiele`. Nichts startet von
-  allein — erst der Klick öffnet das Spiel, ECHO und AETHERIA in einem eigenen Fenster, die
-  Blockwelt in einem neuen Tab. Jon läuft dabei normal weiter. Weitere Spiele kommen dazu,
-  indem man einen Ordner mit einer `jon-spiele.json` neben Jon legt
+  Aufträgen und Weltkarte), **STARFALL** (Echtzeit-Simulation eines rotierenden Schwarzen
+  Lochs), die **Harmonischen Inseln** (ruhiges Aufbauspiel auf einem schwebenden Archipel)
+  und die **Blockwelt** (Voxel-Sandbox, in der Mini Jon für dich baut) stecken direkt in
+  Jon: **Werkzeuge → Spiele → Starten** oder `/spiele`. Nichts startet von allein — erst
+  der Klick öffnet das Spiel, jedes in einem eigenen Fenster. Jon läuft dabei normal
+  weiter. Weitere Spiele kommen dazu, indem man einen Ordner mit einer `jon-spiele.json`
+  neben Jon legt
 - **Persönlichkeit & eigenes Gedächtnis** — Jon ist kein neutraler Bot: eigener Charakter,
   Stimmungen, Lebensgeschichte und eine eigene `MEMORY.md`, in die er selbst schreibt
 - **KI-Team, Simulationen, Zeitreise & Dream Mode** — `/team`, `/simulate`, `/snapshot(s)`,
@@ -550,8 +552,10 @@ Wissensbasis …) läuft dort genauso.
 ## Spiele & Online-Koop
 
 Jon bringt die **FelWorks Game Collection** mit (Werkzeuge → Spiele): **ECHO**
-(Psychological Horror), **AETHERIA** (Open-World-RPG) und die **Blockwelt** im Browser.
-Seit v3.33.0 haben alle drei einen echten Online-Koop über einen Freundschaftscode.
+(Psychological Horror), **AETHERIA** (Open-World-RPG), **STARFALL** (Schwarzloch-Simulation),
+die **Harmonischen Inseln** (cozy Aufbauspiel) und die **Blockwelt** (Voxel-Sandbox).
+Seit v3.33.0 haben ECHO, AETHERIA und die Blockwelt einen echten Online-Koop über einen
+Freundschaftscode.
 
 ### So spielt ihr zusammen
 

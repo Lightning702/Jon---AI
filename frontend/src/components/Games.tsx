@@ -39,6 +39,7 @@ export default function Games({ onClose, fokus }: { onClose: () => void; fokus?:
   const [busy, setBusy] = useState("");
   const [meldungen, setMeldungen] = useState<Record<string, string>>({});
   const [fehlerJeSpiel, setFehlerJeSpiel] = useState<Record<string, string>>({});
+  const [offen, setOffen] = useState("");
   const fokusRef = useRef<HTMLDivElement | null>(null);
 
   const laden_ = useCallback(async (frisch = false) => {
@@ -137,10 +138,36 @@ export default function Games({ onClose, fokus }: { onClose: () => void; fokus?:
           </div>
         </div>
 
-        <div className="p-3.5 flex flex-col gap-2 flex-1">
-          {spiel.kurz && <div className="text-[12px] text-gold/80 italic">{spiel.kurz}</div>}
-          <div className="text-[12px] text-white/60 leading-relaxed">{spiel.beschreibung}</div>
-          {spiel.steuerung && <div className="text-[10.5px] text-white/35 leading-relaxed">{spiel.steuerung}</div>}
+        <div className="p-3.5 flex flex-col gap-2 flex-1 min-w-0">
+          {spiel.kurz && (
+            <div className="text-[12px] text-gold/80 italic break-words [overflow-wrap:anywhere]">
+              {spiel.kurz}
+            </div>
+          )}
+          <div
+            className={`text-[12px] text-white/60 leading-relaxed break-words [overflow-wrap:anywhere] ${
+              offen === spiel.id ? "" : "line-clamp-[7]"
+            }`}
+          >
+            {spiel.beschreibung}
+          </div>
+          {spiel.beschreibung.length > 260 && (
+            <button
+              onClick={() => setOffen(offen === spiel.id ? "" : spiel.id)}
+              className="self-start text-[10.5px] text-gold/70 hover:text-gold transition"
+            >
+              {offen === spiel.id ? "weniger" : "mehr lesen"}
+            </button>
+          )}
+          {spiel.steuerung && (
+            <div
+              className={`text-[10.5px] text-white/35 leading-relaxed break-words [overflow-wrap:anywhere] ${
+                offen === spiel.id ? "" : "line-clamp-3"
+              }`}
+            >
+              {spiel.steuerung}
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-white/30 mt-auto pt-1">
             {spiel.version && <span>Version {spiel.version}</span>}
@@ -150,7 +177,7 @@ export default function Games({ onClose, fokus }: { onClose: () => void; fokus?:
 
           {(fehlerJeSpiel[spiel.id] || meldungen[spiel.id] || (spiel.hinweis && !startbar)) && (
             <div
-              className={`text-[11px] rounded-lg px-2.5 py-1.5 border ${
+              className={`text-[11px] rounded-lg px-2.5 py-1.5 border break-words [overflow-wrap:anywhere] ${
                 fehlerJeSpiel[spiel.id]
                   ? "border-rose-400/25 bg-rose-400/10 text-rose-200"
                   : "border-white/10 bg-white/5 text-white/55"

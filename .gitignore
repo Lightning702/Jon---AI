@@ -41,3 +41,15 @@ spiele/STARFALL/settings.cfg
 spiele/STARFALL/bin/*.pdb
 spiele/STARFALL/bin/*.ilk
 spiele/STARFALL/vorschau/*.ppm
+
+# HARMONIE
+spiele/HARMONIE/saves/
+spiele/HARMONIE/bin/*.pdb
+spiele/HARMONIE/bin/*.ilk
+spiele/HARMONIE/*.bmp
+
+# BLOCKWELT
+spiele/BLOCKWELT/saves/
+spiele/BLOCKWELT/bin/*.pdb
+spiele/BLOCKWELT/bin/*.ilk
+spiele/BLOCKWELT/*.bmp

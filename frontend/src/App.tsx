@@ -33,6 +33,7 @@ import Search from "./components/Search";
 import SetupWizard from "./components/SetupWizard";
 import CalendarPanel from "./components/CalendarPanel";
 import { VoiceListener } from "./lib/voice";
+import { applyTheme, istTheme } from "./lib/theme";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import {
   ConversationSummary,
@@ -68,7 +69,6 @@ import {
   getDueCapsules,
   getDueReminders,
   getHealth,
-  blockweltUrl,
   getSpiele,
   Spiel,
   getHealthCheck,
@@ -322,9 +322,9 @@ export default function App() {
       if (!provs.length) throw new Error("keine Provider");
       setProviders(provs);
       const saved = await getUserSettings();
-      if (saved.theme) {
+      if (istTheme(saved.theme)) {
         localStorage.setItem("jon_theme", saved.theme);
-        document.documentElement.classList.toggle("light", saved.theme === "light");
+        applyTheme(saved.theme);
       }
       const savedProv = provs.find(
         (p) =>
@@ -951,11 +951,19 @@ export default function App() {
       return;
     }
     if (command === "/spiel" || command === "/blockwelt" || command === "/game") {
-      window.open(blockweltUrl(), "_blank");
+      setGamesOpen("blockwelt");
       return;
     }
-    if (command === "/spiele" || command === "/games" || command === "/echo" || command === "/aetheria") {
-      setGamesOpen(command === "/echo" || command === "/aetheria" ? command.slice(1) : "");
+    if (
+      command === "/spiele" ||
+      command === "/games" ||
+      command === "/echo" ||
+      command === "/aetheria" ||
+      command === "/harmonie"
+    ) {
+      setGamesOpen(
+        command === "/spiele" || command === "/games" ? "" : command.slice(1)
+      );
       return;
     }
     if (command === "/tagebuch" || command === "/journal") {

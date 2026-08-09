@@ -292,7 +292,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                 <button
                   onClick={addCall}
                   disabled={busy === "add"}
-                  className="px-4 py-2 rounded-lg text-[13px] bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#f7e4a8] disabled:opacity-40"
+                  className="px-4 py-2 rounded-lg text-[13px] bg-gold/20 border border-gold/40 text-gold-light disabled:opacity-40"
                 >
                   Anruf planen
                 </button>
@@ -412,7 +412,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                       key={address.ip}
                       className={`flex items-center gap-2 text-[12px] rounded-lg border px-2 py-1.5 cursor-pointer ${
                         address.selected
-                          ? "border-[#d4af37]/40 bg-[#d4af37]/10"
+                          ? "border-gold/40 bg-gold/10"
                           : "border-white/10 bg-white/5"
                       }`}
                     >

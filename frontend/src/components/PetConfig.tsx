@@ -12,14 +12,27 @@ type Eyes = "round" | "happy" | "sleepy";
 
 interface Jon3DView {
   setKind: (kind: string) => void;
-  setColors: (colors: { accent?: string; face?: string; light?: boolean }) => void;
+  setColors: (colors: {
+    accent?: string;
+    face?: string;
+    light?: boolean;
+    cozy?: boolean;
+  }) => void;
   start: () => void;
   stop: () => void;
+}
+
+const COZY_ACCENT = "#e28aaf";
+
+function cozyAktiv(): boolean {
+  return document.documentElement.classList.contains("cozy");
 }
 
 interface Jon3DApi {
   create: (canvas: HTMLCanvasElement) => Jon3DView | null;
 }
+
+type Companion = "none" | "cat" | "dog";
 
 interface Cfg {
   pet_accent: string;
@@ -27,6 +40,7 @@ interface Cfg {
   pet_cheeks: boolean;
   pet_scale: number;
   pet_eyes: Eyes;
+  pet_companion: Companion;
   pet_provider: string;
   pet_model: string;
   pet_3d: boolean;
@@ -38,10 +52,21 @@ const DEFAULT: Cfg = {
   pet_cheeks: false,
   pet_scale: 1,
   pet_eyes: "round",
+  pet_companion: "none",
   pet_3d: false,
   pet_provider: "",
   pet_model: "openai/gpt-oss-20b",
 };
+
+function schaufarbe(accent: string): string {
+  return cozyAktiv() && accent.toLowerCase() === DEFAULT.pet_accent ? COZY_ACCENT : accent;
+}
+
+const COMPANIONS: { value: Companion; label: string; hint: string }[] = [
+  { value: "none", label: "Keins", hint: "Mini Jon ist allein unterwegs." },
+  { value: "cat", label: "🐱 Katze", hint: "Minka zieht bei Mini Jon ein." },
+  { value: "dog", label: "🐶 Hund", hint: "Rocky zieht bei Mini Jon ein." },
+];
 
 function Eyes({ style, color }: { style: Eyes; color: string }) {
   if (style === "happy")
@@ -84,6 +109,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
         pet_cheeks: s.pet_cheeks !== false,
         pet_scale: s.pet_scale || 1,
         pet_eyes: (s.pet_eyes as Eyes) || "round",
+        pet_companion: (s.pet_companion as Companion) || "none",
         pet_3d: s.pet_3d === true,
         pet_provider: s.pet_provider || "",
         pet_model: s.pet_model || DEFAULT.pet_model,
@@ -107,9 +133,10 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
     if (!view) return;
     view.setKind(preview);
     view.setColors({
-      accent: cfg.pet_accent,
+      accent: schaufarbe(cfg.pet_accent),
       face: cfg.pet_face,
       light: document.documentElement.classList.contains("light"),
+      cozy: cozyAktiv(),
     });
     view.start();
     return () => view.stop();
@@ -123,7 +150,13 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
 
   const reset = () => {
     setCfg(DEFAULT);
+    setPreview("jon");
     void saveUserSettings(DEFAULT);
+  };
+
+  const pickCompanion = (value: Companion) => {
+    update({ pet_companion: value });
+    setPreview(value === "none" ? "jon" : value);
   };
 
   const eyeOptions: { value: Eyes; label: string }[] = [
@@ -178,7 +211,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               cy={60}
               r={52}
               fill="none"
-              stroke={cfg.pet_accent}
+              stroke={schaufarbe(cfg.pet_accent)}
               strokeWidth={4}
             />
             {cfg.pet_cheeks && (
@@ -187,11 +220,11 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
                 <ellipse cx={82} cy={70} rx={8} ry={5} fill="#ff9bb0" opacity={0.5} />
               </>
             )}
-            <Eyes style={cfg.pet_eyes} color={cfg.pet_accent} />
+            <Eyes style={cfg.pet_eyes} color={schaufarbe(cfg.pet_accent)} />
             <path
               d="M44 76 Q60 90 76 76"
               fill="none"
-              stroke={cfg.pet_accent}
+              stroke={schaufarbe(cfg.pet_accent)}
               strokeWidth={5}
               strokeLinecap="round"
             />
@@ -312,6 +345,29 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               </span>
             </div>
             <div className="space-y-1 pt-1">
+              <span className="text-[13px] text-white/80">Haustier</span>
+              <div className="flex gap-1">
+                {COMPANIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    title={o.hint}
+                    onClick={() => pickCompanion(o.value)}
+                    className={`flex-1 px-2.5 py-1.5 rounded-lg text-[12px] border transition ${
+                      cfg.pet_companion === o.value
+                        ? "border-gold/50 bg-gold/15 text-gold"
+                        : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[11px] text-white/40 leading-snug">
+                Das Tier läuft neben Mini Jon her, spielt mit ihm, wenn er frei über den
+                Bildschirm wandert, und schläft mit ihm ein, wenn du weg bist.
+              </div>
+            </div>
+            <div className="space-y-1 pt-1">
               <span className="text-[13px] text-white/80">Anbieter</span>
               <select
                 value={cfg.pet_provider}
@@ -361,7 +417,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
               Zurücksetzen
             </button>
             <p className="text-[11px] text-white/35">
-              Der weiße Modus färbt Mini Jon automatisch hell.
+              Heller und Cozy-Modus färben Mini Jon automatisch mit.
             </p>
           </div>
         </div>

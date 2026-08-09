@@ -14,11 +14,10 @@ import {
   setAutostart,
 } from "../lib/api";
 import { setNaturalVoice } from "../lib/tts";
+import { Theme, applyTheme, readTheme } from "../lib/theme";
 import { useT } from "../hooks/useT";
 import ConnectionsModal from "./ConnectionsModal";
 import OllamaModal from "./OllamaModal";
-
-type Theme = "dark" | "light";
 
 interface Choice {
   value: string;
@@ -112,9 +111,7 @@ export default function SettingsMenu({
 }) {
   const { lang, setLang } = useT();
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<Theme>(() =>
-    localStorage.getItem("jon_theme") === "light" ? "light" : "dark"
-  );
+  const [theme, setTheme] = useState<Theme>(readTheme);
   const [personality, setPersonality] = useState(true);
   const [failover, setFailover] = useState(true);
   const [startup, setStartup] = useState(false);
@@ -133,7 +130,6 @@ export default function SettingsMenu({
   const [routine, setRoutine] = useState(true);
   const [petRoam, setPetRoam] = useState(false);
   const [petWellness, setPetWellness] = useState(true);
-  const [petCompanion, setPetCompanion] = useState("none");
   const [connections, setConnections] = useState<UserSettings | null>(null);
   const [wakeSensitivity, setWakeSensitivity] = useState("mittel");
   const [micList, setMicList] = useState<{ id: string; name: string }[]>([]);
@@ -189,7 +185,6 @@ export default function SettingsMenu({
       setRoutine(s.routine_enabled !== false);
       setPetRoam(s.pet_roam === true);
       setPetWellness(s.pet_wellness !== false);
-      setPetCompanion(s.pet_companion || "none");
       setWakeSensitivity(s.wake_sensitivity || "mittel");
       setSelectedMic(s.microphone_device || "default");
     });
@@ -300,11 +295,6 @@ export default function SettingsMenu({
     void saveUserSettings({ pet_wellness: next });
   };
 
-  const pickCompanion = (value: string) => {
-    setPetCompanion(value);
-    void saveUserSettings({ pet_companion: value });
-  };
-
   const pickWakeSensitivity = (value: string) => {
     setWakeSensitivity(value);
     void saveUserSettings({ wake_sensitivity: value });
@@ -333,7 +323,7 @@ export default function SettingsMenu({
   const changeTheme = (next: Theme) => {
     setTheme(next);
     localStorage.setItem("jon_theme", next);
-    document.documentElement.classList.toggle("light", next === "light");
+    applyTheme(next);
     void saveUserSettings({ theme: next });
   };
 
@@ -353,6 +343,7 @@ export default function SettingsMenu({
   const themes: Choice[] = [
     { value: "dark", label: "Dunkel", hint: "Schwarz-Gold (Standard)." },
     { value: "light", label: "Hell", hint: "Weißer Modus mit Gold-Akzenten." },
+    { value: "cozy", label: "Cozy", hint: "Weiß mit zartem Rosa — weich und warm." },
   ];
 
   return (
@@ -611,7 +602,7 @@ export default function SettingsMenu({
                 nutzt Jon automatisch die bisherige Erkennung im Fenster.
               </div>
             </div>
-            <Section title="Mini Jon & Haustier" />
+            <Section title="Mini Jon" />
             <div className="space-y-1">
               <Toggle
                 label="Frei über den Bildschirm"
@@ -625,23 +616,9 @@ export default function SettingsMenu({
                 on={petWellness}
                 onClick={togglePetWellness}
               />
-              <div className="pt-1">
-                <div className="text-[10px] text-white/40 px-0.5 mb-1">
-                  Haustier für Mini Jon
-                </div>
-                <Segmented
-                  value={petCompanion}
-                  items={[
-                    { value: "none", label: "Keins", hint: "Mini Jon ist allein." },
-                    { value: "cat", label: "🐱 Katze", hint: "Minka lebt bei Mini Jon." },
-                    { value: "dog", label: "🐶 Hund", hint: "Rocky lebt bei Mini Jon." },
-                  ]}
-                  onPick={pickCompanion}
-                />
-                <div className="text-[9.5px] text-white/35 px-0.5 mt-1 leading-snug">
-                  Mini Jon spielt mit dem Tier, wenn er frei ist — schläft mit ihm,
-                  wenn du weg bist.
-                </div>
+              <div className="text-[9.5px] text-white/35 px-0.5 pt-1 leading-snug">
+                Aussehen und Haustier stellst du in „Mini Jon anpassen“ ein — Klick auf
+                Mini Jon, dann auf das Pinsel-Symbol.
               </div>
             </div>
             <Section title="Tagesbriefing" />

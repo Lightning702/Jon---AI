@@ -504,10 +504,6 @@ export function downloadFileUrl(job: string): string {
   return `${BASE}/downloader/file/${job}`;
 }
 
-export function blockweltUrl(): string {
-  return BASE.replace(/\/api$/, "") + "/blockwelt";
-}
-
 export function privatBrowserUrl(): string {
   return BASE.replace(/\/api$/, "") + "/privat";
 }
