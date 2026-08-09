@@ -1,144 +1,311 @@
 #include "Welt.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
+#include "Atlas.hpp"
 #include "fw/Werkzeug.hpp"
-#include "fw/Zufall.hpp"
 
 namespace blockwelt {
 namespace {
 
 using namespace fw;
 
-int stelle(int x, int y, int z) { return (y * WEITE + z) * WEITE + x; }
+unsigned char misch[512];
+unsigned aktiveSaat = 0;
 
-float hoehenfeld(float x, float z, unsigned saat) {
-    int s = static_cast<int>(saat);
-    float grob = bergRauschen(x * 0.012f, z * 0.012f, s, 4);
-    float mittel = bergRauschen(x * 0.045f, z * 0.045f, s + 71, 3);
-    float fein = bergRauschen(x * 0.13f, z * 0.13f, s + 211, 2);
-    float berge = bergRauschen(x * 0.006f, z * 0.006f, s + 331, 3);
-    float form = grob * 0.55f + mittel * 0.3f + fein * 0.15f;
-    float huegel = std::pow(klemme(berge, 0.0f, 1.0f), 2.2f);
-    return 15.0f + form * 21.0f + huegel * 26.0f;
+void rauschenSaat(unsigned saat) {
+    if (aktiveSaat == saat && saat != 0) return;
+    aktiveSaat = saat;
+    unsigned char p[256];
+    for (int i = 0; i < 256; ++i) p[i] = static_cast<unsigned char>(i);
+    long long s = static_cast<long long>(saat) % 2147483647ll;
+    if (s <= 0) s += 2147483646ll;
+    auto wurf = [&]() {
+        s = (s * 16807ll) % 2147483647ll;
+        return static_cast<double>(s) / 2147483647.0;
+    };
+    for (int i = 255; i > 0; --i) {
+        int j = static_cast<int>(wurf() * (i + 1));
+        unsigned char t = p[i];
+        p[i] = p[j];
+        p[j] = t;
+    }
+    for (int i = 0; i < 512; ++i) misch[i] = p[i & 255];
 }
 
-bool hoehle(int x, int y, int z, unsigned saat) {
-    if (y < 3 || y > 40) return false;
-    float wert = bergRauschen(static_cast<float>(x) * 0.08f + static_cast<float>(y) * 0.05f,
-                              static_cast<float>(z) * 0.08f - static_cast<float>(y) * 0.03f,
-                              static_cast<int>(saat) + 907, 3);
-    float zweit = bergRauschen(static_cast<float>(x) * 0.05f - static_cast<float>(y) * 0.09f,
-                               static_cast<float>(z) * 0.05f + static_cast<float>(y) * 0.07f,
-                               static_cast<int>(saat) + 1301, 2);
-    return wert > 0.63f && zweit > 0.55f;
+float verlauf(float t) { return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f); }
+
+float steigung(int h, float x, float y) {
+    switch (h & 3) {
+        case 0: return x + y;
+        case 1: return -x + y;
+        case 2: return x - y;
+        default: return -x - y;
+    }
+}
+
+float rauschen2(float x, float y) {
+    int X = static_cast<int>(std::floor(x)) & 255;
+    int Y = static_cast<int>(std::floor(y)) & 255;
+    x -= std::floor(x);
+    y -= std::floor(y);
+    float u = verlauf(x);
+    float v = verlauf(y);
+    int A = misch[X] + Y;
+    int B = misch[X + 1] + Y;
+    float a = mische(steigung(misch[A & 511], x, y), steigung(misch[B & 511], x - 1.0f, y), u);
+    float b = mische(steigung(misch[(A + 1) & 511], x, y - 1.0f),
+                     steigung(misch[(B + 1) & 511], x - 1.0f, y - 1.0f), u);
+    return mische(a, b, v);
+}
+
+float berge(float x, float y, int lagen) {
+    float staerke = 1.0f;
+    float weite = 1.0f;
+    float summe = 0.0f;
+    float gewicht = 0.0f;
+    for (int i = 0; i < lagen; ++i) {
+        summe += staerke * rauschen2(x * weite, y * weite);
+        gewicht += staerke;
+        staerke *= 0.5f;
+        weite *= 2.0f;
+    }
+    return klemme(summe / gewicht * 1.85f, -1.0f, 1.0f);
+}
+
+float streu2(int x, int z, unsigned saat) {
+    unsigned h = static_cast<unsigned>(x * 374761393 + z * 668265263) + saat * 2246822519u;
+    h = (h ^ (h >> 13)) * 1274126177u;
+    return static_cast<float>((h ^ (h >> 16))) / 4294967296.0f;
+}
+
+int stelleIn(int lx, int y, int lz) { return y * 256 + lz * 16 + lx; }
+
+int teilenAb(int a, int b) { return a >= 0 ? a / b : -(((-a) + b - 1) / b); }
+
+int restVon(int a, int b) {
+    int r = a % b;
+    return r < 0 ? r + b : r;
 }
 
 }
 
-void Welt::erzeugen(unsigned saat) {
-    saatwert = saat;
-    bloecke.assign(static_cast<size_t>(WEITE) * WEITE * HOEHE, LUFT);
-    geaendert.clear();
-
-    for (int z = 0; z < WEITE; ++z) {
-        for (int x = 0; x < WEITE; ++x) {
-            int gipfel = static_cast<int>(hoehenfeld(static_cast<float>(x), static_cast<float>(z), saat));
-            gipfel = static_cast<int>(klemme(static_cast<float>(gipfel), 4.0f, HOEHE - 8.0f));
-            for (int y = 0; y <= gipfel; ++y) {
-                unsigned char id = STEIN;
-                if (y > gipfel - 4) id = ERDE;
-                if (y == gipfel) {
-                    if (gipfel <= MEERESHOEHE + 1) id = SAND;
-                    else if (gipfel > 44) id = SCHNEE;
-                    else id = GRAS;
-                }
-                if (y < 3) id = STEIN;
-                if (id != STEIN && y < gipfel - 6) id = STEIN;
-                if (hoehle(x, y, z, saat) && y < gipfel - 2) id = LUFT;
-                bloecke[stelle(x, y, z)] = id;
-            }
-            for (int y = gipfel + 1; y <= MEERESHOEHE; ++y) bloecke[stelle(x, y, z)] = WASSER;
-        }
+int hoeheAn(int x, int z, unsigned saat) {
+    rauschenSaat(saat);
+    float fx = static_cast<float>(x);
+    float fz = static_cast<float>(z);
+    float c = berge(fx * 0.0018f, fz * 0.0018f, 4);
+    float e = berge(fx * 0.01f + 500.0f, fz * 0.01f + 500.0f, 3);
+    float mo = berge(fx * 0.004f - 900.0f, fz * 0.004f + 900.0f, 4);
+    float h = 40.0f + c * 22.0f + e * 6.0f;
+    if (mo > 0.22f) {
+        float m = (mo - 0.22f) / 0.78f;
+        h += m * m * 58.0f;
     }
+    int ganz = static_cast<int>(std::floor(h));
+    if (ganz < 3) ganz = 3;
+    if (ganz > 84) ganz = 84;
+    return ganz;
+}
 
-    Zufall wuerfel(saat * 6364136223846793005ull + 17u);
-    for (int versuch = 0; versuch < WEITE * WEITE / 72; ++versuch) {
-        int x = wuerfel.ganz(3, WEITE - 3);
-        int z = wuerfel.ganz(3, WEITE - 3);
-        int y = hoeheBei(x, z);
-        if (y <= MEERESHOEHE + 1 || y > 44) continue;
-        if (block(x, y, z) != GRAS) continue;
-        int stamm = wuerfel.ganz(4, 7);
-        for (int i = 1; i <= stamm; ++i) bloecke[stelle(x, y + i, z)] = HOLZ;
-        int krone = y + stamm;
-        for (int dy = -2; dy <= 2; ++dy) {
-            int radius = dy <= 0 ? 2 : (dy == 1 ? 2 : 1);
-            for (int dz = -radius; dz <= radius; ++dz) {
-                for (int dx = -radius; dx <= radius; ++dx) {
-                    if (dx * dx + dz * dz + dy * dy > radius * radius + 2) continue;
-                    int bx = x + dx;
-                    int by = krone + dy;
-                    int bz = z + dz;
-                    if (!innen(bx, by, bz)) continue;
-                    if (bloecke[stelle(bx, by, bz)] == LUFT) bloecke[stelle(bx, by, bz)] = LAUB;
-                }
-            }
-        }
+int bezirkAn(int x, int z, unsigned saat) {
+    rauschenSaat(saat);
+    float fx = static_cast<float>(x);
+    float fz = static_cast<float>(z);
+    float t = berge(fx * 0.0016f + 800.0f, fz * 0.0016f - 800.0f, 3);
+    float m = berge(fx * 0.0021f - 443.0f, fz * 0.0021f + 271.0f, 3);
+    if (t > 0.22f && m < 0.05f) return 2;
+    if (t < -0.26f) return 3;
+    if (m > 0.08f) return 1;
+    return 0;
+}
+
+const char* bezirkText(int bezirk) {
+    switch (bezirk) {
+        case 1: return "Wald";
+        case 2: return "Wueste";
+        case 3: return "Schneeland";
+        case 4: return "Gebirge";
+        default: return "Ebene";
     }
+}
 
-    for (int versuch = 0; versuch < 90; ++versuch) {
-        int x = wuerfel.ganz(2, WEITE - 2);
-        int z = wuerfel.ganz(2, WEITE - 2);
-        int y = wuerfel.ganz(4, 18);
-        if (block(x, y, z) == STEIN) bloecke[stelle(x, y, z)] = LEUCHTSTEIN;
+void Welt::beginnen(unsigned saat) {
+    saatwert = saat ? saat : 1337u;
+    rauschenSaat(saatwert);
+    freigeben();
+}
+
+void Welt::freigeben() {
+    for (auto& eintrag : felder) {
+        eintrag.second->fest.freigeben();
+        eintrag.second->fluessig.freigeben();
     }
-
     felder.clear();
-    felder.resize(static_cast<size_t>(CHUNKS) * CHUNKS);
-    for (int cz = 0; cz < CHUNKS; ++cz) {
-        for (int cx = 0; cx < CHUNKS; ++cx) {
-            Feld& feld = felder[static_cast<size_t>(cz) * CHUNKS + cx];
-            feld.mitte = Vec3(static_cast<float>(cx * CHUNK + CHUNK / 2), 30.0f,
-                              static_cast<float>(cz * CHUNK + CHUNK / 2));
-            feld.schmutzig = true;
+}
+
+Feld* Welt::feldSuchen(int cx, int cz) {
+    auto es = felder.find(schluessel(cx, cz));
+    return es == felder.end() ? nullptr : es->second.get();
+}
+
+const Feld* Welt::feldSuchen(int cx, int cz) const {
+    auto es = felder.find(schluessel(cx, cz));
+    return es == felder.end() ? nullptr : es->second.get();
+}
+
+bool Welt::geladen(int x, int z) const {
+    return feldSuchen(teilenAb(x, CHUNK), teilenAb(z, CHUNK)) != nullptr;
+}
+
+void Welt::feldFuellen(Feld& feld) {
+    feld.daten.assign(static_cast<size_t>(CHUNK) * CHUNK * HOEHE, LUFT);
+    int hoechste = 0;
+    for (int lz = 0; lz < CHUNK; ++lz) {
+        for (int lx = 0; lx < CHUNK; ++lx) {
+            int wx = feld.cx * CHUNK + lx;
+            int wz = feld.cz * CHUNK + lz;
+            int h = hoeheAn(wx, wz, saatwert);
+            int bezirk = h > 62 ? 4 : bezirkAn(wx, wz, saatwert);
+            bool strand = h <= MEER + 1;
+            for (int y = 0; y <= h; ++y) {
+                int d = h - y;
+                unsigned char id;
+                if (y == 0) {
+                    id = STEIN;
+                } else if (bezirk == 4) {
+                    id = (d == 0 && h > 72) ? SCHNEE : STEIN;
+                } else if (strand) {
+                    id = d < 4 ? SAND : (d < 7 ? SANDSTEIN : STEIN);
+                } else if (bezirk == 2) {
+                    id = d < 4 ? SAND : (d < 8 ? SANDSTEIN : STEIN);
+                } else if (bezirk == 3) {
+                    id = d == 0 ? SCHNEE : (d < 4 ? ERDE : STEIN);
+                } else {
+                    id = d == 0 ? GRAS : (d < 4 ? ERDE : STEIN);
+                }
+                feld.daten[stelleIn(lx, y, lz)] = id;
+            }
+            for (int y = h + 1; y <= MEER; ++y) feld.daten[stelleIn(lx, y, lz)] = WASSER;
+            if (h > hoechste) hoechste = h;
+            if (MEER > hoechste) hoechste = MEER;
+
+            if (lx < 2 || lx > 13 || lz < 2 || lz > 13) continue;
+            if (h <= MEER + 1 || h >= HOEHE - 12 || bezirk == 4) continue;
+            float r = streu2(wx, wz, saatwert);
+            if ((bezirk == 1 && r < 0.02f) || (bezirk == 0 && r < 0.003f) ||
+                (bezirk == 3 && r < 0.006f)) {
+                int stammHoehe = 4 + static_cast<int>(streu2(wx + 31, wz + 77, saatwert) * 3.0f);
+                for (int i = 1; i <= stammHoehe; ++i) feld.daten[stelleIn(lx, h + i, lz)] = STAMM;
+                for (int dy = stammHoehe - 2; dy <= stammHoehe + 1; ++dy) {
+                    int rad = dy >= stammHoehe ? 1 : 2;
+                    for (int ax = -rad; ax <= rad; ++ax) {
+                        for (int az = -rad; az <= rad; ++az) {
+                            if (dy == stammHoehe + 1 && std::abs(ax) + std::abs(az) > 1) continue;
+                            if (std::abs(ax) == rad && std::abs(az) == rad &&
+                                streu2(wx + ax * 13, wz + az * 7 + dy, saatwert) < 0.4f) {
+                                continue;
+                            }
+                            int y = h + dy;
+                            if (y < 0 || y >= HOEHE) continue;
+                            int i = stelleIn(lx + ax, y, lz + az);
+                            if (feld.daten[i] == LUFT) feld.daten[i] = LAUB;
+                            if (y > hoechste) hoechste = y;
+                        }
+                    }
+                }
+            } else if (bezirk == 2 && r < 0.005f) {
+                int kaktusHoehe = 2 + static_cast<int>(streu2(wx + 5, wz + 9, saatwert) * 3.0f);
+                for (int i = 1; i <= kaktusHoehe; ++i) feld.daten[stelleIn(lx, h + i, lz)] = KAKTUS;
+                if (h + kaktusHoehe > hoechste) hoechste = h + kaktusHoehe;
+            }
         }
     }
+    feld.gipfel = hoechste + 1 < HOEHE ? hoechste + 1 : HOEHE - 1;
+
+    auto es = notizen.find(schluessel(feld.cx, feld.cz));
+    if (es != notizen.end()) {
+        for (const auto& notiz : es->second) {
+            if (notiz.first < 0 || notiz.first >= static_cast<int>(feld.daten.size())) continue;
+            feld.daten[notiz.first] = notiz.second;
+            int y = notiz.first / 256;
+            if (notiz.second != LUFT && y > feld.gipfel) feld.gipfel = y;
+        }
+    }
+}
+
+Feld* Welt::feldErzeugen(int cx, int cz) {
+    Feld* schon = feldSuchen(cx, cz);
+    if (schon) return schon;
+    auto feld = std::make_unique<Feld>();
+    feld->cx = cx;
+    feld->cz = cz;
+    feldFuellen(*feld);
+    Feld* zeiger = feld.get();
+    felder.emplace(schluessel(cx, cz), std::move(feld));
+    return zeiger;
 }
 
 unsigned char Welt::block(int x, int y, int z) const {
-    if (!innen(x, y, z)) return LUFT;
-    return bloecke[stelle(x, y, z)];
+    if (y < 0 || y >= HOEHE) return LUFT;
+    const Feld* feld = feldSuchen(teilenAb(x, CHUNK), teilenAb(z, CHUNK));
+    if (!feld) return LUFT;
+    return feld->daten[stelleIn(restVon(x, CHUNK), y, restVon(z, CHUNK))];
 }
 
-void Welt::setzeBlock(int x, int y, int z, unsigned char id) {
-    if (!innen(x, y, z)) return;
-    int index = stelle(x, y, z);
-    if (bloecke[index] == id) return;
-    bloecke[index] = id;
-    geaendert.push_back({index, id});
-    int cx = x / CHUNK;
-    int cz = z / CHUNK;
+void Welt::schmutzigMachen(int x, int z) {
+    int cx = teilenAb(x, CHUNK);
+    int cz = teilenAb(z, CHUNK);
     for (int dz = -1; dz <= 1; ++dz) {
         for (int dx = -1; dx <= 1; ++dx) {
-            int nx = cx + dx;
-            int nz = cz + dz;
-            if (nx < 0 || nz < 0 || nx >= CHUNKS || nz >= CHUNKS) continue;
-            felder[static_cast<size_t>(nz) * CHUNKS + nx].schmutzig = true;
+            Feld* feld = feldSuchen(cx + dx, cz + dz);
+            if (feld) feld->schmutzig = true;
         }
     }
 }
 
+void Welt::setzeBlock(int x, int y, int z, unsigned char id) {
+    if (y < 0 || y >= HOEHE) return;
+    Feld* feld = feldSuchen(teilenAb(x, CHUNK), teilenAb(z, CHUNK));
+    if (!feld) return;
+    int i = stelleIn(restVon(x, CHUNK), y, restVon(z, CHUNK));
+    if (feld->daten[i] == id) return;
+    feld->daten[i] = id;
+    if (id != LUFT && y > feld->gipfel) feld->gipfel = y;
+    std::vector<std::pair<int, unsigned char>>& liste = notizen[schluessel(teilenAb(x, CHUNK),
+                                                                           teilenAb(z, CHUNK))];
+    bool gefunden = false;
+    for (auto& eintrag : liste) {
+        if (eintrag.first == i) {
+            eintrag.second = id;
+            gefunden = true;
+            break;
+        }
+    }
+    if (!gefunden) liste.push_back({i, id});
+    schmutzigMachen(x, z);
+}
+
 int Welt::hoeheBei(int x, int z) const {
+    const Feld* feld = feldSuchen(teilenAb(x, CHUNK), teilenAb(z, CHUNK));
+    if (!feld) return hoeheAn(x, z, saatwert);
+    int lx = restVon(x, CHUNK);
+    int lz = restVon(z, CHUNK);
     for (int y = HOEHE - 1; y >= 0; --y) {
-        unsigned char id = block(x, y, z);
+        unsigned char id = feld->daten[stelleIn(lx, y, lz)];
         if (id != LUFT && id != WASSER) return y;
     }
     return 0;
 }
 
-float Welt::lichtEcke(int x, int y, int z, int dx, int dy, int dz, int achse) const {
+std::string Welt::bezirkName(int x, int z) const {
+    int h = hoeheAn(x, z, saatwert);
+    return bezirkText(h > 62 ? 4 : bezirkAn(x, z, saatwert));
+}
+
+float Welt::eckenLicht(int x, int y, int z, int dx, int dy, int dz, int achse) const {
     int seiteA[3] = {0, 0, 0};
     int seiteB[3] = {0, 0, 0};
     if (achse == 0) {
@@ -156,47 +323,52 @@ float Welt::lichtEcke(int x, int y, int z, int dx, int dy, int dz, int achse) co
     bool ecke = istFest(block(x + seiteA[0] + seiteB[0], y + seiteA[1] + seiteB[1],
                               z + seiteA[2] + seiteB[2]));
     int summe = (a ? 1 : 0) + (b ? 1 : 0) + ((a && b) ? 1 : (ecke ? 1 : 0));
-    return 1.0f - static_cast<float>(summe) * 0.19f;
+    return 1.0f - static_cast<float>(summe) * 0.17f;
 }
 
-void Welt::chunkBauen(int cx, int cz) {
-    Feld& feld = felder[static_cast<size_t>(cz) * CHUNKS + cx];
+void Welt::netzBauen(Feld& feld) {
     Bauer fest;
     Bauer nass;
-    const int basisX = cx * CHUNK;
-    const int basisZ = cz * CHUNK;
+    const int basisX = feld.cx * CHUNK;
+    const int basisZ = feld.cz * CHUNK;
+    const int nachbarn[6][3] = {{0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}, {1, 0, 0}, {-1, 0, 0}};
 
-    for (int y = 0; y < HOEHE; ++y) {
-        for (int z = basisZ; z < basisZ + CHUNK; ++z) {
-            for (int x = basisX; x < basisX + CHUNK; ++x) {
-                unsigned char id = block(x, y, z);
+    for (int y = 0; y <= feld.gipfel; ++y) {
+        for (int lz = 0; lz < CHUNK; ++lz) {
+            for (int lx = 0; lx < CHUNK; ++lx) {
+                unsigned char id = feld.daten[stelleIn(lx, y, lz)];
                 if (id == LUFT) continue;
                 const Blockart& art = blockart(id);
-                float wackeln = 0.92f + streu(x, y * 31 + z, 5) * 0.16f;
+                int x = basisX + lx;
+                int z = basisZ + lz;
 
                 if (id == WASSER) {
                     if (block(x, y + 1, z) == WASSER) continue;
-                    float hoehe = static_cast<float>(y) + 0.86f;
+                    float hoehe = static_cast<float>(y) + 0.88f;
                     Vec3 a(static_cast<float>(x), hoehe, static_cast<float>(z));
                     Vec3 b(static_cast<float>(x) + 1.0f, hoehe, static_cast<float>(z));
                     Vec3 c(static_cast<float>(x) + 1.0f, hoehe, static_cast<float>(z) + 1.0f);
                     Vec3 d(static_cast<float>(x), hoehe, static_cast<float>(z) + 1.0f);
-                    nass.viereck(a, d, c, b, art.oben, 0.85f);
+                    Vec3 oben(0.0f, 1.0f, 0.0f);
+                    Vec3 weiss(1.0f, 1.0f, 1.0f);
+                    nass.ecke(a, oben, weiss, 0.85f, Atlas::bildpunkt(art.oben, 0.0f, 0.0f));
+                    nass.ecke(d, oben, weiss, 0.85f, Atlas::bildpunkt(art.oben, 0.0f, 1.0f));
+                    nass.ecke(c, oben, weiss, 0.85f, Atlas::bildpunkt(art.oben, 1.0f, 1.0f));
+                    nass.ecke(a, oben, weiss, 0.85f, Atlas::bildpunkt(art.oben, 0.0f, 0.0f));
+                    nass.ecke(c, oben, weiss, 0.85f, Atlas::bildpunkt(art.oben, 1.0f, 1.0f));
+                    nass.ecke(b, oben, weiss, 0.85f, Atlas::bildpunkt(art.oben, 1.0f, 0.0f));
                     continue;
                 }
 
-                const int nachbarn[6][3] = {{0, 1, 0},  {0, -1, 0}, {0, 0, 1},
-                                            {0, 0, -1}, {1, 0, 0},  {-1, 0, 0}};
                 for (int seite = 0; seite < 6; ++seite) {
                     int nx = x + nachbarn[seite][0];
                     int ny = y + nachbarn[seite][1];
                     int nz = z + nachbarn[seite][2];
                     unsigned char nachbar = block(nx, ny, nz);
-                    if (istFest(nachbar) && !blockart(nachbar).sichtdurch) continue;
                     if (nachbar == id) continue;
+                    if (istFest(nachbar) && !istDurchsichtig(nachbar)) continue;
 
-                    Vec3 farbe = seite == 0 ? art.oben : (seite == 1 ? art.unten : art.seite);
-                    farbe = farbe * wackeln;
+                    int kachel = seite == 0 ? art.oben : (seite == 1 ? art.unten : art.seite);
                     float fx = static_cast<float>(x);
                     float fy = static_cast<float>(y);
                     float fz = static_cast<float>(z);
@@ -209,65 +381,69 @@ void Welt::chunkBauen(int cx, int cz) {
                         ecken[1] = Vec3(fx, fy + 1.0f, fz + 1.0f);
                         ecken[2] = Vec3(fx + 1.0f, fy + 1.0f, fz + 1.0f);
                         ecken[3] = Vec3(fx + 1.0f, fy + 1.0f, fz);
-                        schatten[0] = lichtEcke(x, y + 1, z, -1, 0, -1, 1);
-                        schatten[1] = lichtEcke(x, y + 1, z, -1, 0, 1, 1);
-                        schatten[2] = lichtEcke(x, y + 1, z, 1, 0, 1, 1);
-                        schatten[3] = lichtEcke(x, y + 1, z, 1, 0, -1, 1);
+                        schatten[0] = eckenLicht(x, y + 1, z, -1, 0, -1, 1);
+                        schatten[1] = eckenLicht(x, y + 1, z, -1, 0, 1, 1);
+                        schatten[2] = eckenLicht(x, y + 1, z, 1, 0, 1, 1);
+                        schatten[3] = eckenLicht(x, y + 1, z, 1, 0, -1, 1);
                     } else if (seite == 1) {
                         normale = Vec3(0.0f, -1.0f, 0.0f);
                         ecken[0] = Vec3(fx, fy, fz);
                         ecken[1] = Vec3(fx + 1.0f, fy, fz);
                         ecken[2] = Vec3(fx + 1.0f, fy, fz + 1.0f);
                         ecken[3] = Vec3(fx, fy, fz + 1.0f);
-                        for (int i = 0; i < 4; ++i) schatten[i] = 0.72f;
+                        for (int i = 0; i < 4; ++i) schatten[i] = 0.7f;
                     } else if (seite == 2) {
                         normale = Vec3(0.0f, 0.0f, 1.0f);
                         ecken[0] = Vec3(fx, fy, fz + 1.0f);
                         ecken[1] = Vec3(fx + 1.0f, fy, fz + 1.0f);
                         ecken[2] = Vec3(fx + 1.0f, fy + 1.0f, fz + 1.0f);
                         ecken[3] = Vec3(fx, fy + 1.0f, fz + 1.0f);
-                        schatten[0] = lichtEcke(x, y, z + 1, -1, -1, 0, 2);
-                        schatten[1] = lichtEcke(x, y, z + 1, 1, -1, 0, 2);
-                        schatten[2] = lichtEcke(x, y, z + 1, 1, 1, 0, 2);
-                        schatten[3] = lichtEcke(x, y, z + 1, -1, 1, 0, 2);
+                        schatten[0] = eckenLicht(x, y, z + 1, -1, -1, 0, 2);
+                        schatten[1] = eckenLicht(x, y, z + 1, 1, -1, 0, 2);
+                        schatten[2] = eckenLicht(x, y, z + 1, 1, 1, 0, 2);
+                        schatten[3] = eckenLicht(x, y, z + 1, -1, 1, 0, 2);
                     } else if (seite == 3) {
                         normale = Vec3(0.0f, 0.0f, -1.0f);
                         ecken[0] = Vec3(fx + 1.0f, fy, fz);
                         ecken[1] = Vec3(fx, fy, fz);
                         ecken[2] = Vec3(fx, fy + 1.0f, fz);
                         ecken[3] = Vec3(fx + 1.0f, fy + 1.0f, fz);
-                        schatten[0] = lichtEcke(x, y, z - 1, 1, -1, 0, 2);
-                        schatten[1] = lichtEcke(x, y, z - 1, -1, -1, 0, 2);
-                        schatten[2] = lichtEcke(x, y, z - 1, -1, 1, 0, 2);
-                        schatten[3] = lichtEcke(x, y, z - 1, 1, 1, 0, 2);
+                        schatten[0] = eckenLicht(x, y, z - 1, 1, -1, 0, 2);
+                        schatten[1] = eckenLicht(x, y, z - 1, -1, -1, 0, 2);
+                        schatten[2] = eckenLicht(x, y, z - 1, -1, 1, 0, 2);
+                        schatten[3] = eckenLicht(x, y, z - 1, 1, 1, 0, 2);
                     } else if (seite == 4) {
                         normale = Vec3(1.0f, 0.0f, 0.0f);
                         ecken[0] = Vec3(fx + 1.0f, fy, fz + 1.0f);
                         ecken[1] = Vec3(fx + 1.0f, fy, fz);
                         ecken[2] = Vec3(fx + 1.0f, fy + 1.0f, fz);
                         ecken[3] = Vec3(fx + 1.0f, fy + 1.0f, fz + 1.0f);
-                        schatten[0] = lichtEcke(x + 1, y, z, 0, -1, 1, 0);
-                        schatten[1] = lichtEcke(x + 1, y, z, 0, -1, -1, 0);
-                        schatten[2] = lichtEcke(x + 1, y, z, 0, 1, -1, 0);
-                        schatten[3] = lichtEcke(x + 1, y, z, 0, 1, 1, 0);
+                        schatten[0] = eckenLicht(x + 1, y, z, 0, -1, 1, 0);
+                        schatten[1] = eckenLicht(x + 1, y, z, 0, -1, -1, 0);
+                        schatten[2] = eckenLicht(x + 1, y, z, 0, 1, -1, 0);
+                        schatten[3] = eckenLicht(x + 1, y, z, 0, 1, 1, 0);
                     } else {
                         normale = Vec3(-1.0f, 0.0f, 0.0f);
                         ecken[0] = Vec3(fx, fy, fz);
                         ecken[1] = Vec3(fx, fy, fz + 1.0f);
                         ecken[2] = Vec3(fx, fy + 1.0f, fz + 1.0f);
                         ecken[3] = Vec3(fx, fy + 1.0f, fz);
-                        schatten[0] = lichtEcke(x - 1, y, z, 0, -1, -1, 0);
-                        schatten[1] = lichtEcke(x - 1, y, z, 0, -1, 1, 0);
-                        schatten[2] = lichtEcke(x - 1, y, z, 0, 1, 1, 0);
-                        schatten[3] = lichtEcke(x - 1, y, z, 0, 1, -1, 0);
+                        schatten[0] = eckenLicht(x - 1, y, z, 0, -1, -1, 0);
+                        schatten[1] = eckenLicht(x - 1, y, z, 0, -1, 1, 0);
+                        schatten[2] = eckenLicht(x - 1, y, z, 0, 1, 1, 0);
+                        schatten[3] = eckenLicht(x - 1, y, z, 0, 1, -1, 0);
                     }
-                    float glanz = id == GLAS ? 0.7f : (id == SCHNEE ? 0.25f : 0.0f);
-                    fest.ecke(ecken[0], normale, farbe * schatten[0], glanz);
-                    fest.ecke(ecken[1], normale, farbe * schatten[1], glanz);
-                    fest.ecke(ecken[2], normale, farbe * schatten[2], glanz);
-                    fest.ecke(ecken[0], normale, farbe * schatten[0], glanz);
-                    fest.ecke(ecken[2], normale, farbe * schatten[2], glanz);
-                    fest.ecke(ecken[3], normale, farbe * schatten[3], glanz);
+                    const Vec2 bilder[4] = {Atlas::bildpunkt(kachel, 0.0f, 1.0f),
+                                            Atlas::bildpunkt(kachel, 1.0f, 1.0f),
+                                            Atlas::bildpunkt(kachel, 1.0f, 0.0f),
+                                            Atlas::bildpunkt(kachel, 0.0f, 0.0f)};
+                    float glanz = id == GLAS ? 0.6f : (id == SCHNEE ? 0.2f : 0.0f);
+                    const int reihe[6] = {0, 1, 2, 0, 2, 3};
+                    for (int k = 0; k < 6; ++k) {
+                        int e = reihe[k];
+                        Vec3 farbe(schatten[e], schatten[e], schatten[e]);
+                        fest.ecke(ecken[e], normale, farbe, glanz, bilder[e]);
+                    }
                 }
             }
         }
@@ -275,46 +451,78 @@ void Welt::chunkBauen(int cx, int cz) {
     feld.fest.hochladen(fest);
     feld.fluessig.hochladen(nass);
     feld.schmutzig = false;
+    feld.gebaut = true;
 }
 
-void Welt::netzeBauen() {
-    for (int cz = 0; cz < CHUNKS; ++cz) {
-        for (int cx = 0; cx < CHUNKS; ++cx) chunkBauen(cx, cz);
+void Welt::umgebungPflegen(Vec3 spieler, int radius, int erzeugeJeBild, int netzeJeBild) {
+    int mx = teilenAb(static_cast<int>(std::floor(spieler.x)), CHUNK);
+    int mz = teilenAb(static_cast<int>(std::floor(spieler.z)), CHUNK);
+
+    int erzeugt = 0;
+    for (int ring = 0; ring <= radius && erzeugt < erzeugeJeBild; ++ring) {
+        for (int dz = -ring; dz <= ring && erzeugt < erzeugeJeBild; ++dz) {
+            for (int dx = -ring; dx <= ring && erzeugt < erzeugeJeBild; ++dx) {
+                if (std::max(std::abs(dx), std::abs(dz)) != ring) continue;
+                if (feldSuchen(mx + dx, mz + dz)) continue;
+                feldErzeugen(mx + dx, mz + dz);
+                ++erzeugt;
+            }
+        }
     }
-}
 
-void Welt::netzeAuffrischen() {
-    for (int cz = 0; cz < CHUNKS; ++cz) {
-        for (int cx = 0; cx < CHUNKS; ++cx) {
-            if (felder[static_cast<size_t>(cz) * CHUNKS + cx].schmutzig) chunkBauen(cx, cz);
+    int gebaut = 0;
+    for (int ring = 0; ring <= radius && gebaut < netzeJeBild; ++ring) {
+        for (int dz = -ring; dz <= ring && gebaut < netzeJeBild; ++dz) {
+            for (int dx = -ring; dx <= ring && gebaut < netzeJeBild; ++dx) {
+                if (std::max(std::abs(dx), std::abs(dz)) != ring) continue;
+                Feld* feld = feldSuchen(mx + dx, mz + dz);
+                if (!feld || !feld->schmutzig) continue;
+                if (!feldSuchen(feld->cx - 1, feld->cz) || !feldSuchen(feld->cx + 1, feld->cz) ||
+                    !feldSuchen(feld->cx, feld->cz - 1) || !feldSuchen(feld->cx, feld->cz + 1)) {
+                    continue;
+                }
+                netzBauen(*feld);
+                ++gebaut;
+            }
+        }
+    }
+
+    const int grenze = radius + 3;
+    for (auto es = felder.begin(); es != felder.end();) {
+        int dx = std::abs(es->second->cx - mx);
+        int dz = std::abs(es->second->cz - mz);
+        if (std::max(dx, dz) > grenze) {
+            es->second->fest.freigeben();
+            es->second->fluessig.freigeben();
+            es = felder.erase(es);
+        } else {
+            ++es;
         }
     }
 }
 
-void Welt::freigeben() {
-    for (Feld& feld : felder) {
-        feld.fest.freigeben();
-        feld.fluessig.freigeben();
-    }
-    felder.clear();
-}
-
 void Welt::zeichnen(Maler& maler, Vec3 auge, float sichtweite) const {
     maler.modell(einheit());
-    for (const Feld& feld : felder) {
-        float dx = feld.mitte.x - auge.x;
-        float dz = feld.mitte.z - auge.z;
-        if (std::sqrt(dx * dx + dz * dz) > sichtweite) continue;
+    gezeichnet = 0;
+    for (const auto& eintrag : felder) {
+        const Feld& feld = *eintrag.second;
+        if (!feld.gebaut) continue;
+        float mx = static_cast<float>(feld.cx * CHUNK + CHUNK / 2) - auge.x;
+        float mz = static_cast<float>(feld.cz * CHUNK + CHUNK / 2) - auge.z;
+        if (std::sqrt(mx * mx + mz * mz) > sichtweite + CHUNK) continue;
         maler.zeichnen(feld.fest);
+        ++gezeichnet;
     }
 }
 
 void Welt::zeichnenWasser(Maler& maler, Vec3 auge, float sichtweite) const {
     maler.modell(einheit());
-    for (const Feld& feld : felder) {
-        float dx = feld.mitte.x - auge.x;
-        float dz = feld.mitte.z - auge.z;
-        if (std::sqrt(dx * dx + dz * dz) > sichtweite) continue;
+    for (const auto& eintrag : felder) {
+        const Feld& feld = *eintrag.second;
+        if (!feld.gebaut) continue;
+        float mx = static_cast<float>(feld.cx * CHUNK + CHUNK / 2) - auge.x;
+        float mz = static_cast<float>(feld.cz * CHUNK + CHUNK / 2) - auge.z;
+        if (std::sqrt(mx * mx + mz * mz) > sichtweite + CHUNK) continue;
         maler.zeichnen(feld.fluessig);
     }
 }
@@ -341,7 +549,7 @@ Treffer Welt::strahl(Vec3 start, Vec3 richtung, float weite) const {
     int vorY = y;
     int vorZ = z;
     float gelaufen = 0.0f;
-    for (int schritt = 0; schritt < 256 && gelaufen <= weite; ++schritt) {
+    for (int schritt = 0; schritt < 320 && gelaufen <= weite; ++schritt) {
         unsigned char id = block(x, y, z);
         if (istFest(id)) {
             treffer.getroffen = true;
@@ -374,16 +582,27 @@ Treffer Welt::strahl(Vec3 start, Vec3 richtung, float weite) const {
     return treffer;
 }
 
+size_t Welt::aenderungen() const {
+    size_t summe = 0;
+    for (const auto& eintrag : notizen) summe += eintrag.second.size();
+    return summe;
+}
+
 bool Welt::speichern(const std::string& pfad) const {
     std::string text = "saat " + std::to_string(saatwert) + "\n";
-    char zeile[64];
-    for (const auto& eintrag : geaendert) {
-        int index = eintrag.first;
-        int x = index % WEITE;
-        int z = (index / WEITE) % WEITE;
-        int y = index / (WEITE * WEITE);
-        std::snprintf(zeile, sizeof(zeile), "b %d %d %d %d\n", x, y, z, static_cast<int>(eintrag.second));
-        text += zeile;
+    char zeile[80];
+    for (const auto& eintrag : notizen) {
+        int cx = feldX(eintrag.first);
+        int cz = feldZ(eintrag.first);
+        for (const auto& notiz : eintrag.second) {
+            int y = notiz.first / 256;
+            int rest = notiz.first % 256;
+            int x = cx * CHUNK + (rest % 16);
+            int z = cz * CHUNK + (rest / 16);
+            std::snprintf(zeile, sizeof(zeile), "b %d %d %d %d\n", x, y, z,
+                          static_cast<int>(notiz.second));
+            text += zeile;
+        }
     }
     return fw::schreibeText(pfad, text);
 }
@@ -391,18 +610,16 @@ bool Welt::speichern(const std::string& pfad) const {
 bool Welt::laden(const std::string& pfad) {
     std::string inhalt = fw::leseText(pfad);
     if (inhalt.empty()) return false;
-    unsigned gespeicherteSaat = saatwert;
     std::vector<std::string> zeilen = fw::zerlegen(inhalt, '\n');
+    unsigned gespeichert = saatwert;
     for (const std::string& roh : zeilen) {
         std::string zeile = fw::putzen(roh);
         if (zeile.rfind("saat", 0) == 0) {
-            gespeicherteSaat = static_cast<unsigned>(std::atoi(zeile.c_str() + 4));
+            gespeichert = static_cast<unsigned>(std::atoi(zeile.c_str() + 4));
         }
     }
-    if (gespeicherteSaat != saatwert) {
-        saatwert = gespeicherteSaat;
-        erzeugen(saatwert);
-    }
+    beginnen(gespeichert);
+    notizen.clear();
     for (const std::string& roh : zeilen) {
         std::string zeile = fw::putzen(roh);
         if (zeile.rfind("b ", 0) != 0) continue;
@@ -410,9 +627,10 @@ bool Welt::laden(const std::string& pfad) {
         int y = 0;
         int z = 0;
         int id = 0;
-        if (std::sscanf(zeile.c_str() + 2, "%d %d %d %d", &x, &y, &z, &id) == 4) {
-            setzeBlock(x, y, z, static_cast<unsigned char>(id));
-        }
+        if (std::sscanf(zeile.c_str() + 2, "%d %d %d %d", &x, &y, &z, &id) != 4) continue;
+        if (y < 0 || y >= HOEHE) continue;
+        notizen[schluessel(teilenAb(x, CHUNK), teilenAb(z, CHUNK))].push_back(
+            {stelleIn(restVon(x, CHUNK), y, restVon(z, CHUNK)), static_cast<unsigned char>(id)});
     }
     return true;
 }

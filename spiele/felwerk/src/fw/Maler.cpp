@@ -8,6 +8,7 @@ layout(location = 0) in vec3 aOrt;
 layout(location = 1) in vec3 aNormale;
 layout(location = 2) in vec3 aFarbe;
 layout(location = 3) in float aRauheit;
+layout(location = 4) in vec2 aBild;
 
 uniform mat4 uModell;
 uniform mat4 uSicht;
@@ -20,6 +21,7 @@ out vec3 vOrt;
 out vec3 vNormale;
 out vec3 vFarbe;
 out float vRauheit;
+out vec2 vBild;
 
 void main() {
     vec4 welt = uModell * vec4(aOrt, 1.0);
@@ -38,6 +40,7 @@ void main() {
     vNormale = normale;
     vFarbe = aFarbe;
     vRauheit = aRauheit;
+    vBild = aBild;
     gl_Position = uProjektion * uSicht * welt;
 }
 )";
@@ -47,6 +50,7 @@ in vec3 vOrt;
 in vec3 vNormale;
 in vec3 vFarbe;
 in float vRauheit;
+in vec2 vBild;
 
 uniform vec3 uAuge;
 uniform vec3 uSonne;
@@ -63,6 +67,8 @@ uniform float uLeuchten;
 uniform float uDeckkraft;
 uniform float uZeit;
 uniform vec3 uFarbton;
+uniform sampler2D uAtlas;
+uniform float uTexturAn;
 
 out vec4 ausgabe;
 
@@ -84,6 +90,7 @@ void main() {
     float saum = pow(1.0 - max(dot(normale, blick), 0.0), 3.0);
 
     vec3 eigen = vFarbe * uFarbton;
+    if (uTexturAn > 0.5) eigen *= texture(uAtlas, vBild).rgb;
     vec3 farbe = eigen * licht;
     farbe += uSonnenfarbe * glanz * vRauheit * 0.85;
     farbe += uHimmel * saum * 0.14;
@@ -122,6 +129,17 @@ void Maler::beginnen(const Mat4& sicht, const Mat4& projektion, Vec3 auge, float
     programm.setze("uWelleWeite", 0.0f);
     programm.setze("uStufen", 0.0f);
     programm.setze("uFarbton", Vec3(1.0f, 1.0f, 1.0f));
+    programm.setze("uTexturAn", 0.0f);
+    programm.setze("uAtlas", 0);
+}
+
+void Maler::textur(unsigned kennung) {
+    programm.setze("uTexturAn", kennung ? 1.0f : 0.0f);
+    if (kennung) {
+        programm.setze("uAtlas", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, kennung);
+    }
 }
 
 void Maler::toenung(Vec3 farbe) { programm.setze("uFarbton", farbe); }

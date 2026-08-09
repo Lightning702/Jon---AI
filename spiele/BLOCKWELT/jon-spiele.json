@@ -1,7 +1,7 @@
 {
   "sammlung": "FelWorks Game Collection",
   "herausgeber": "FelWorks",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "bauen": "build.bat",
   "spiele": [
     {
@@ -9,13 +9,13 @@
       "titel": "Blockwelt",
       "genre": "Sandbox",
       "icon": "🧱",
-      "kurz": "Bauen mit Mini Jon an deiner Seite.",
-      "beschreibung": "Voxel-Sandbox als eigenes Programm — kein Browser, kein Tab. Eine Welt aus 192 mal 192 Blöcken mit Hügeln, Stränden, Seen, Wäldern und Höhlen entsteht bei jedem Startwert neu. Abbauen, setzen, graben, schwimmen, fliegen. Mini Jon schwebt neben dir her: Drück T, und er sucht sich einen Platz und baut dir ein Haus, einen Turm, eine Brücke, einen Baum oder ein Leuchtfeuer, Block für Block. Tag und Nacht ziehen vorbei, nachts kommen die Sterne. Deine Änderungen werden gespeichert und beim nächsten Start wieder eingesetzt. In C++ ohne Engine geschrieben.",
-      "steuerung": "Maus umsehen · WASD laufen · Shift rennen · Leertaste springen · Linksklick abbauen · Rechtsklick setzen · 1-9 Block wählen · Mausrad blättern · T Mini Jon beauftragen · F fliegen · H Anzeige · F5/F6 Sichtweite · F11 Vollbild · P Bild · Esc Maus frei",
+      "kurz": "Endlose Welt, bauen mit Mini Jon.",
+      "beschreibung": "Voxel-Sandbox als eigenes Programm — kein Browser, kein Tab. Die Welt hat keinen Rand: Felder werden erzeugt, waehrend du laeufst, und hinter dir wieder freigegeben. Aus Perlin-Rauschen entstehen Ebenen, Waelder, Wuesten mit Kakteen, Schneeland und Gebirge, dazu Seen, Straende und Baeume. 16 Blocksorten mit echten Texturen, die beim Start Bildpunkt fuer Bildpunkt selbst gemalt werden. Abbauen, setzen, graben, schwimmen, fliegen. TNT zuendet auf Klick und reisst ein Loch, die Enderperle versetzt dich dorthin, wo sie landet. Mini Jon schwebt neben dir her: Druck T, und er baut dir Haus, Turm, Bruecke, Baum oder Leuchtfeuer, Block fuer Block. Tag und Nacht ziehen vorbei, nachts kommen die Sterne. Deine Aenderungen werden gespeichert. In C++ ohne Engine geschrieben.",
+      "steuerung": "Maus umsehen · WASD laufen · Shift rennen · Leertaste springen · Linksklick abbauen · Rechtsklick setzen · 1-9 und Mausrad Block waehlen · TNT anklicken zuendet · Enderperle rechts werfen · T Mini Jon beauftragen · F fliegen · F5/F6 Sichtweite · H Anzeige · F11 Vollbild · P Bild · Esc Maus frei",
       "vorschau": "vorschau/blockwelt.jpg",
       "exe": "bin/BLOCKWELT.exe",
       "args": [],
-      "version": "2.0.0"
+      "version": "2.1.0"
     }
   ]
 }

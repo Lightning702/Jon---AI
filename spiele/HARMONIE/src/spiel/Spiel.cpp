@@ -197,7 +197,7 @@ void Spiel::eingabeLesen(float dt) {
     wunschWeite = klemme(wunschWeite - fenster.radBewegung() * 3.4f, 12.0f, 62.0f);
     kameraWeite = mische(kameraWeite, uebersicht ? 86.0f : wunschWeite, klemme(dt * 4.0f, 0.0f, 1.0f));
 
-    Vec3 vor = kameraBlick();
+    Vec3 vor = kameraBlick() * -1.0f;
     Vec3 quer = kameraRechts();
     Vec3 wunsch(0.0f, 0.0f, 0.0f);
     if (fenster.taste('W')) wunsch += vor;

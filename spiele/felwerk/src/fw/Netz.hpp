@@ -13,6 +13,7 @@ struct Ecke {
     Vec3 normale;
     Vec3 farbe;
     float rauheit = 0.0f;
+    Vec2 bild;
 };
 
 class Bauer {
@@ -23,6 +24,7 @@ public:
     size_t dreieckZahl() const { return indizes.size() / 3; }
 
     void ecke(Vec3 ort, Vec3 normale, Vec3 farbe, float rauheit = 0.0f);
+    void ecke(Vec3 ort, Vec3 normale, Vec3 farbe, float rauheit, Vec2 bild);
     void dreieck(Vec3 a, Vec3 b, Vec3 c, Vec3 farbe, float rauheit = 0.0f);
     void viereck(Vec3 a, Vec3 b, Vec3 c, Vec3 d, Vec3 farbe, float rauheit = 0.0f);
 

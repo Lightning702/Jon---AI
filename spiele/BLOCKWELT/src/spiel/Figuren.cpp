@@ -131,11 +131,9 @@ void Spieler::schritt(float dt, const Welt& welt, Fenster& fenster, bool eingabe
 
     ort = versuch;
     if (ort.y < -8.0f) {
-        ort.y = 50.0f;
+        ort.y = static_cast<float>(HOEHE - 10);
         fahrt.y = 0.0f;
     }
-    ort.x = klemme(ort.x, 1.0f, static_cast<float>(WEITE - 1));
-    ort.z = klemme(ort.z, 1.0f, static_cast<float>(WEITE - 1));
 }
 
 void MiniJon::erstellen() {
@@ -174,7 +172,7 @@ void MiniJon::setzen(Vec3 neu) {
 void MiniJon::planFuer(Bauwerk werk, const Welt& welt, int mx, int my, int mz) {
     plan.clear();
     auto lege = [&](int x, int y, int z, unsigned char id) {
-        if (!welt.innen(x, y, z)) return;
+        if (y < 0 || y >= HOEHE) return;
         plan.push_back({x, y, z, id});
     };
     if (werk == Bauwerk::Haus) {
@@ -204,34 +202,34 @@ void MiniJon::planFuer(Bauwerk werk, const Welt& welt, int mx, int my, int mz) {
                 }
             }
         }
-        lege(mx, my + 1, mz, LEUCHTSTEIN);
+        lege(mx, my + 1, mz, GLAS);
     } else if (werk == Bauwerk::Turm) {
         for (int y = 0; y < 16; ++y) {
             for (int i = 0; i < 12; ++i) {
                 float w = static_cast<float>(i) / 12.0f * TAU;
                 int dx = static_cast<int>(std::round(std::cos(w) * 2.2f));
                 int dz = static_cast<int>(std::round(std::sin(w) * 2.2f));
-                lege(mx + dx, my + y, mz + dz, y % 4 == 3 ? ZIEGEL : STEIN);
+                lege(mx + dx, my + y, mz + dz, y % 4 == 3 ? ZIEGEL : BRUCHSTEIN);
             }
         }
         for (int dz = -2; dz <= 2; ++dz) {
             for (int dx = -2; dx <= 2; ++dx) lege(mx + dx, my + 16, mz + dz, BRETT);
         }
-        lege(mx, my + 17, mz, LEUCHTSTEIN);
+        lege(mx, my + 17, mz, ENDERPERLE);
     } else if (werk == Bauwerk::Bruecke) {
         for (int i = 0; i < 24; ++i) {
             for (int dz = -1; dz <= 1; ++dz) {
                 lege(mx + i, my, mz + dz, BRETT);
             }
             if (i % 4 == 0) {
-                lege(mx + i, my + 1, mz - 2, HOLZ);
-                lege(mx + i, my + 1, mz + 2, HOLZ);
-                lege(mx + i, my + 2, mz - 2, HOLZ);
-                lege(mx + i, my + 2, mz + 2, HOLZ);
+                lege(mx + i, my + 1, mz - 2, STAMM);
+                lege(mx + i, my + 1, mz + 2, STAMM);
+                lege(mx + i, my + 2, mz - 2, STAMM);
+                lege(mx + i, my + 2, mz + 2, STAMM);
             }
         }
     } else if (werk == Bauwerk::Baum) {
-        for (int y = 0; y < 6; ++y) lege(mx, my + y, mz, HOLZ);
+        for (int y = 0; y < 6; ++y) lege(mx, my + y, mz, STAMM);
         for (int dy = -2; dy <= 2; ++dy) {
             int radius = dy <= 0 ? 3 : 2;
             for (int dz = -radius; dz <= radius; ++dz) {
@@ -247,7 +245,7 @@ void MiniJon::planFuer(Bauwerk werk, const Welt& welt, int mx, int my, int mz) {
             int weite = 2 - y / 2;
             for (int dz = -weite; dz <= weite; ++dz) {
                 for (int dx = -weite; dx <= weite; ++dx) {
-                    lege(mx + dx, my + y, mz + dz, y == 4 ? LEUCHTSTEIN : STEIN);
+                    lege(mx + dx, my + y, mz + dz, y == 4 ? ENDERPERLE : BRUCHSTEIN);
                 }
             }
         }
@@ -261,8 +259,6 @@ void MiniJon::auftrag(Bauwerk werk, Welt& welt, Vec3 spieler, float gierung) {
     Vec3 mitte = spieler + vorne * 14.0f;
     int mx = static_cast<int>(std::floor(mitte.x));
     int mz = static_cast<int>(std::floor(mitte.z));
-    mx = static_cast<int>(klemme(static_cast<float>(mx), 6.0f, static_cast<float>(WEITE - 30)));
-    mz = static_cast<int>(klemme(static_cast<float>(mz), 6.0f, static_cast<float>(WEITE - 30)));
     int my = welt.hoeheBei(mx, mz) + 1;
     planFuer(werk, welt, mx, my, mz);
     ziel = Vec3(static_cast<float>(mx) + 0.5f, static_cast<float>(my) + 1.6f,

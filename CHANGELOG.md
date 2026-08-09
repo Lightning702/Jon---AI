@@ -2,6 +2,32 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.34.0] — 2026-08-10
+
+### 🧱 Die Blockwelt hat keinen Rand mehr
+
+Die Voxel-Sandbox ist wieder so weit wie im Browser — nur eben als eigenes Programm.
+
+- **Endlose Welt**: Felder von 16 × 16 Blöcken entstehen, während du läufst, und werden
+  hinter dir wieder freigegeben. Im Speicher liegen immer nur ein paar hundert Felder,
+  egal wie weit du gehst.
+- **Landschaften**: Aus drei Lagen Perlin-Rauschen wachsen Ebene, Wald, Wüste mit Kakteen,
+  Schneeland und Gebirge, dazu Seen, Strände und Wälder. Die Anzeige nennt Landschaft und
+  Position.
+- **Echte Texturen**: 20 Kacheln werden beim Start Bildpunkt für Bildpunkt gemalt —
+  Grasnarbe über Erde, Jahresringe im Stamm, Fugen im Ziegel, die weiße Binde am TNT.
+  Keine einzige Bilddatei liegt bei.
+- **16 Blocksorten** in der Leiste, mit 1–9 und dem Mausrad wählbar.
+- **TNT und Enderperle**: Ein Klick auf TNT zündet die Lunte, die Explosion reißt ein Loch
+  und steckt benachbartes TNT an. Die Enderperle fliegt im Bogen und versetzt dich dorthin,
+  wo sie landet.
+- Gespeichert wird nur, was du geändert hast — die Datei bleibt klein.
+
+### 🏝️ Harmonische Inseln: W läuft nach vorn
+
+In der isometrischen Ansicht liefen W und S verkehrt herum, weil die Blickrichtung von der
+Kamera zum Ziel gerechnet wurde statt umgekehrt. Jetzt geht W nach vorn und S zurück.
+
 ## [4.33.9] — 2026-08-09
 
 ### 🏝️ Harmonische Inseln — ein neues Spiel zum Runterkommen

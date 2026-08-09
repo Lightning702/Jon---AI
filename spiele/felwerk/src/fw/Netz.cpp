@@ -8,11 +8,16 @@ void Bauer::leeren() {
 }
 
 void Bauer::ecke(Vec3 ort, Vec3 normale, Vec3 farbe, float rauheit) {
+    ecke(ort, normale, farbe, rauheit, Vec2(0.0f, 0.0f));
+}
+
+void Bauer::ecke(Vec3 ort, Vec3 normale, Vec3 farbe, float rauheit, Vec2 bild) {
     Ecke e;
     e.ort = ort;
     e.normale = normale;
     e.farbe = farbe;
     e.rauheit = rauheit;
+    e.bild = bild;
     indizes.push_back(static_cast<uint32_t>(ecken.size()));
     ecken.push_back(e);
 }
@@ -228,6 +233,9 @@ void Netz::hochladen(const Bauer& bauer, bool dynamisch) {
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, schritt, reinterpret_cast<void*>(sizeof(Vec3) * 2));
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, schritt, reinterpret_cast<void*>(sizeof(Vec3) * 3));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, schritt,
+                          reinterpret_cast<void*>(sizeof(Vec3) * 3 + sizeof(float)));
     glBindVertexArray(0);
 }
 

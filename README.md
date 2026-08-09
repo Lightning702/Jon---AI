@@ -58,8 +58,8 @@ zu zweit über einen 6-stelligen Code.
 </tr>
 <tr>
 <td width="50%" align="center">
-<img src="website/spiele/block.png" alt="Blockwelt — Voxel-Sandbox" width="100%">
-<br><b>Blockwelt</b><br><sub>Voxel-Sandbox, in der Mini Jon für dich baut</sub>
+<img src="website/spiele/blockwelt-nativ.jpg" alt="Blockwelt — Voxel-Sandbox" width="100%">
+<br><b>Blockwelt</b><br><sub>Endlose Voxel-Welt, in der Mini Jon für dich baut</sub>
 </td>
 <td width="50%" align="center">
 <img src="docs/img/koop-blockwelt.png" alt="Online-Koop in der Blockwelt" width="100%">
@@ -129,7 +129,7 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   4 Etagen, 464 Räume, fünf Enden), **AETHERIA** (Fantasy-Open-World-RPG mit Dörfern,
   Aufträgen und Weltkarte), **STARFALL** (Echtzeit-Simulation eines rotierenden Schwarzen
   Lochs), die **Harmonischen Inseln** (ruhiges Aufbauspiel auf einem schwebenden Archipel)
-  und die **Blockwelt** (Voxel-Sandbox, in der Mini Jon für dich baut) stecken direkt in
+  und die **Blockwelt** (Voxel-Sandbox ohne Weltrand, in der Mini Jon für dich baut) stecken direkt in
   Jon: **Werkzeuge → Spiele → Starten** oder `/spiele`. Nichts startet von allein — erst
   der Klick öffnet das Spiel, jedes in einem eigenen Fenster. Jon läuft dabei normal
   weiter. Weitere Spiele kommen dazu, indem man einen Ordner mit einer `jon-spiele.json`
@@ -553,7 +553,8 @@ Wissensbasis …) läuft dort genauso.
 
 Jon bringt die **FelWorks Game Collection** mit (Werkzeuge → Spiele): **ECHO**
 (Psychological Horror), **AETHERIA** (Open-World-RPG), **STARFALL** (Schwarzloch-Simulation),
-die **Harmonischen Inseln** (cozy Aufbauspiel) und die **Blockwelt** (Voxel-Sandbox).
+die **Harmonischen Inseln** (cozy Aufbauspiel) und die **Blockwelt** (Voxel-Sandbox mit
+endloser Welt).
 Seit v3.33.0 haben ECHO, AETHERIA und die Blockwelt einen echten Online-Koop über einen
 Freundschaftscode.
 

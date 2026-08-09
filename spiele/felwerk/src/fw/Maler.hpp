@@ -18,6 +18,7 @@ public:
 
     void modell(const Mat4& matrix);
     void toenung(Vec3 farbe);
+    void textur(unsigned kennung);
     void leuchten(float wert);
     void deckkraft(float wert);
     void welle(float staerke, float weite);

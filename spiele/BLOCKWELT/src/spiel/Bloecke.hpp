@@ -12,16 +12,29 @@ enum Block : unsigned char {
     ERDE = 2,
     STEIN = 3,
     SAND = 4,
-    HOLZ = 5,
-    LAUB = 6,
-    BRETT = 7,
-    ZIEGEL = 8,
-    GLAS = 9,
-    WASSER = 10,
-    LEUCHTSTEIN = 11,
-    SCHNEE = 12,
-    KIES = 13,
-    BLOCK_ANZAHL = 14
+    WASSER = 5,
+    STAMM = 6,
+    LAUB = 7,
+    SCHNEE = 8,
+    BRETT = 9,
+    GLAS = 10,
+    BRUCHSTEIN = 11,
+    ZIEGEL = 12,
+    KAKTUS = 13,
+    SANDSTEIN = 14,
+    ENDERPERLE = 15,
+    TNT = 16,
+    BLOCK_ANZAHL = 17
+};
+
+struct Blockart {
+    const char* name;
+    int oben;
+    int seite;
+    int unten;
+    bool fest;
+    bool durchsichtig;
+    Vec3 anzeige;
 };
 
 inline Vec3 ausByte(int r, int g, int b) {
@@ -29,40 +42,33 @@ inline Vec3 ausByte(int r, int g, int b) {
                 static_cast<float>(b) / 255.0f);
 }
 
-struct Blockart {
-    const char* name;
-    Vec3 oben;
-    Vec3 seite;
-    Vec3 unten;
-    bool fest;
-    bool sichtdurch;
-    float leuchten;
-};
-
 inline const Blockart& blockart(unsigned char id) {
     static const Blockart arten[BLOCK_ANZAHL] = {
-        {"Luft", Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), false, true, 0.0f},
-        {"Gras", ausByte(126, 190, 96), ausByte(146, 116, 78), ausByte(134, 104, 72), true, false, 0.0f},
-        {"Erde", ausByte(146, 112, 76), ausByte(140, 106, 72), ausByte(134, 102, 70), true, false, 0.0f},
-        {"Stein", ausByte(146, 146, 154), ausByte(138, 138, 146), ausByte(128, 128, 136), true, false, 0.0f},
-        {"Sand", ausByte(232, 214, 166), ausByte(226, 206, 158), ausByte(218, 198, 150), true, false, 0.0f},
-        {"Holz", ausByte(160, 122, 74), ausByte(132, 98, 60), ausByte(160, 122, 74), true, false, 0.0f},
-        {"Laub", ausByte(94, 162, 84), ausByte(86, 150, 78), ausByte(74, 132, 68), true, false, 0.0f},
-        {"Bretter", ausByte(206, 160, 104), ausByte(198, 152, 98), ausByte(186, 142, 92), true, false, 0.0f},
-        {"Ziegel", ausByte(196, 106, 92), ausByte(186, 98, 86), ausByte(176, 92, 80), true, false, 0.0f},
-        {"Glas", ausByte(198, 232, 240), ausByte(198, 232, 240), ausByte(198, 232, 240), true, true, 0.0f},
-        {"Wasser", ausByte(62, 130, 186), ausByte(58, 122, 178), ausByte(52, 112, 168), false, true, 0.0f},
-        {"Leuchtstein", ausByte(250, 224, 150), ausByte(246, 214, 132), ausByte(240, 204, 120), true,
-         false, 0.55f},
-        {"Schnee", ausByte(244, 248, 252), ausByte(236, 240, 248), ausByte(228, 234, 244), true, false,
-         0.0f},
-        {"Kies", ausByte(168, 162, 156), ausByte(160, 154, 148), ausByte(152, 146, 140), true, false,
-         0.0f}};
+        {"Luft", 0, 0, 0, false, true, ausByte(255, 255, 255)},
+        {"Gras", 0, 1, 2, true, false, ausByte(109, 176, 66)},
+        {"Erde", 2, 2, 2, true, false, ausByte(134, 96, 67)},
+        {"Stein", 3, 3, 3, true, false, ausByte(127, 127, 127)},
+        {"Sand", 4, 4, 4, true, false, ausByte(218, 205, 160)},
+        {"Wasser", 5, 5, 5, false, true, ausByte(52, 104, 220)},
+        {"Holzstamm", 7, 6, 7, true, false, ausByte(112, 88, 54)},
+        {"Laub", 8, 8, 8, true, true, ausByte(58, 138, 48)},
+        {"Schnee", 9, 9, 9, true, false, ausByte(240, 246, 250)},
+        {"Bretter", 10, 10, 10, true, false, ausByte(162, 131, 81)},
+        {"Glas", 11, 11, 11, true, true, ausByte(206, 236, 244)},
+        {"Bruchstein", 12, 12, 12, true, false, ausByte(122, 122, 122)},
+        {"Ziegel", 13, 13, 13, true, false, ausByte(152, 110, 95)},
+        {"Kaktus", 15, 14, 15, true, false, ausByte(60, 118, 38)},
+        {"Sandstein", 16, 16, 16, true, false, ausByte(214, 201, 154)},
+        {"Enderperle", 17, 17, 17, true, false, ausByte(24, 108, 92)},
+        {"TNT", 19, 18, 19, true, false, ausByte(196, 58, 38)}};
     return arten[id < BLOCK_ANZAHL ? id : 0];
 }
 
 inline bool istFest(unsigned char id) { return blockart(id).fest; }
 inline bool istLuft(unsigned char id) { return id == LUFT; }
 inline bool istFluessig(unsigned char id) { return id == WASSER; }
+inline bool istDurchsichtig(unsigned char id) { return blockart(id).durchsichtig; }
+inline bool leuchtet(unsigned char id) { return id == ENDERPERLE; }
+inline Vec3 kachelfarbe(unsigned char id) { return blockart(id).anzeige; }
 
 }
