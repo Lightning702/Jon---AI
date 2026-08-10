@@ -2,6 +2,24 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.34.2] — 2026-08-10
+
+### ⬇️ Downloader: gekaufte YouTube-Filme
+
+„This video requires payment to watch" kam auch dann, wenn man den Film längst gekauft
+hatte — der Downloader war schlicht nicht eingeloggt und sah nur die Bezahlschranke.
+
+- Neuer Abschnitt **YouTube-Login** im Downloader. Jon liest die Cookies entweder direkt
+  aus deinem Browser (Firefox, Brave, Edge, Chrome, Chromium, Opera, Vivaldi, Safari) oder
+  aus einer exportierten `cookies.txt`, die du einmal hinterlegst.
+- Scheitert ein Download an Bezahlung, Mitgliedschaft, Altersfreigabe oder der
+  Bot-Abfrage, probiert Jon die hinterlegten Logins automatisch durch, statt sofort
+  aufzugeben.
+- Der Fehlertext sagt jetzt, was zu tun ist, und unterscheidet „noch kein Login
+  hinterlegt" von „Login abgelaufen oder falsches Konto".
+- Der Login-Bereich klappt von selbst auf, wenn ein Video ihn braucht.
+- Cookies bleiben lokal in `<Daten>/downloader/cookies.txt` — nichts wird hochgeladen.
+
 ## [4.34.1] — 2026-08-10
 
 ### 👥 Koop in den neuen Spielen

@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  DownloadCookieState,
   DownloadInfo,
   analyzeDownload,
+  clearDownloadCookies,
+  downloadCookieState,
   downloadFileUrl,
   downloadProgressUrl,
+  saveDownloadCookies,
   startDownload,
 } from "../lib/api";
 
@@ -13,6 +17,19 @@ const QUALITIES = [
   { id: "720", label: "720p" },
   { id: "480", label: "480p" },
 ];
+
+const BROWSER_LABELS: Record<string, string> = {
+  auto: "Automatisch",
+  firefox: "Firefox",
+  brave: "Brave",
+  edge: "Edge",
+  chrome: "Chrome",
+  chromium: "Chromium",
+  opera: "Opera",
+  vivaldi: "Vivaldi",
+  safari: "Safari",
+  off: "Aus",
+};
 
 interface Progress {
   status: string;
@@ -55,13 +72,69 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
   const [progress, setProgress] = useState<Progress | null>(null);
   const [doneName, setDoneName] = useState("");
   const [error, setError] = useState("");
+  const [cookies, setCookies] = useState<DownloadCookieState | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [cookieText, setCookieText] = useState("");
+  const [savingLogin, setSavingLogin] = useState(false);
+  const [loginMsg, setLoginMsg] = useState("");
+  const [loginError, setLoginError] = useState("");
   const sourceRef = useRef<EventSource | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    void downloadCookieState()
+      .then(setCookies)
+      .catch(() => setCookies(null));
     return () => sourceRef.current?.close();
   }, []);
+
+  useEffect(() => {
+    if (error.toLowerCase().includes("youtube-login")) setLoginOpen(true);
+  }, [error]);
+
+  const applyLogin = async (text: string, browser: string) => {
+    setSavingLogin(true);
+    setLoginError("");
+    setLoginMsg("");
+    try {
+      const state = await saveDownloadCookies(text, browser);
+      setCookies(state);
+      setCookieText("");
+      if (fileRef.current) fileRef.current.value = "";
+      setLoginMsg(
+        text.trim()
+          ? `Login gespeichert — ${state.count} Cookies aktiv.`
+          : "Browser-Auswahl gespeichert."
+      );
+    } catch (e) {
+      setLoginError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSavingLogin(false);
+    }
+  };
+
+  const removeLogin = async () => {
+    setSavingLogin(true);
+    setLoginError("");
+    setLoginMsg("");
+    try {
+      setCookies(await clearDownloadCookies());
+      setLoginMsg("Login entfernt.");
+    } catch (e) {
+      setLoginError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSavingLogin(false);
+    }
+  };
+
+  const pickCookieFile = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => void applyLogin(String(reader.result ?? ""), "");
+    reader.readAsText(file);
+  };
 
   const analyze = async (value?: string) => {
     const link = (value ?? url).trim();
@@ -344,6 +417,110 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
               )}
             </div>
           )}
+
+          <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+            <button
+              onClick={() => setLoginOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-white/5 transition"
+            >
+              <span className="flex items-center gap-2 text-[12.5px] text-white/70">
+                <span>🔐</span>
+                YouTube-Login (gekaufte Filme, Mitglieder-Videos, Altersfreigabe)
+              </span>
+              <span
+                className={`text-[10.5px] px-2 py-0.5 rounded-full border ${
+                  cookies?.file
+                    ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                    : "border-white/15 bg-white/5 text-white/40"
+                }`}
+              >
+                {cookies?.file ? `${cookies.count} Cookies` : "nicht verbunden"}
+              </span>
+            </button>
+
+            {loginOpen && (
+              <div className="px-3.5 pb-3.5 pt-1 border-t border-white/10">
+                <div className="text-[11.5px] text-white/45 leading-relaxed">
+                  Gekaufte Filme liegen hinter deinem YouTube-Konto. Jon holt sich den Login
+                  entweder direkt aus deinem Browser oder aus einer exportierten cookies.txt.
+                </div>
+
+                <div className="mt-3 text-[10.5px] uppercase tracking-widest text-white/35">
+                  Cookies aus Browser lesen
+                </div>
+                <select
+                  value={cookies?.browser ?? "auto"}
+                  disabled={savingLogin}
+                  onChange={(e) => void applyLogin("", e.target.value)}
+                  className="mt-1.5 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12.5px] text-white/80 outline-none focus:border-gold/40 transition"
+                >
+                  {["auto", ...(cookies?.browsers ?? []), "off"].map((id) => (
+                    <option key={id} value={id} className="bg-[#12121a]">
+                      {BROWSER_LABELS[id] ?? id}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-1.5 text-[11px] text-white/35 leading-relaxed">
+                  Firefox klappt am zuverlässigsten. Chrome/Edge/Brave verschlüsseln ihre Cookies
+                  seit Version 127 — falls es damit nicht geht, nimm cookies.txt.
+                </div>
+
+                <div className="mt-3 text-[10.5px] uppercase tracking-widest text-white/35">
+                  Oder cookies.txt hinterlegen
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".txt,text/plain"
+                  disabled={savingLogin}
+                  onChange={(e) => pickCookieFile(e.target.files?.[0])}
+                  className="mt-1.5 w-full text-[11.5px] text-white/50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-white/10 file:text-white/70 file:text-[11.5px] file:cursor-pointer"
+                />
+                <textarea
+                  value={cookieText}
+                  onChange={(e) => setCookieText(e.target.value)}
+                  disabled={savingLogin}
+                  placeholder="… oder Inhalt der cookies.txt hier einfügen"
+                  spellCheck={false}
+                  rows={3}
+                  className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11.5px] text-white/80 placeholder-white/25 outline-none focus:border-gold/40 transition resize-none font-mono"
+                />
+                <div className="mt-2 flex gap-1.5">
+                  <button
+                    onClick={() => void applyLogin(cookieText, "")}
+                    disabled={savingLogin || !cookieText.trim()}
+                    className="flex-1 py-2 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold text-[12px] shadow-gold disabled:opacity-40 hover:brightness-110 transition"
+                  >
+                    {savingLogin ? "Speichert …" : "Login speichern"}
+                  </button>
+                  {cookies?.file && (
+                    <button
+                      onClick={() => void removeLogin()}
+                      disabled={savingLogin}
+                      className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-[12px] text-white/60 hover:bg-white/10 disabled:opacity-40 transition"
+                    >
+                      Entfernen
+                    </button>
+                  )}
+                </div>
+
+                {loginMsg && (
+                  <div className="mt-2 text-[11.5px] text-emerald-300">{loginMsg}</div>
+                )}
+                {loginError && (
+                  <div className="mt-2 text-[11.5px] text-red-300 leading-relaxed">
+                    {loginError}
+                  </div>
+                )}
+
+                <div className="mt-2 text-[11px] text-white/30 leading-relaxed">
+                  cookies.txt exportierst du mit einer Browser-Erweiterung wie „Get cookies.txt
+                  LOCALLY“, während du auf youtube.com eingeloggt bist. Die Datei bleibt lokal auf
+                  diesem Rechner.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="px-5 py-2 border-t border-white/10 text-[10.5px] text-white/30 shrink-0">

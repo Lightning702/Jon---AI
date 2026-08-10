@@ -230,6 +230,11 @@ class DownloadStartIn(BaseModel):
     title: str = ""
 
 
+class DownloadCookiesIn(BaseModel):
+    cookies: str = ""
+    browser: str = ""
+
+
 class FocusStartIn(BaseModel):
     minutes: int = 25
     goal: str = ""

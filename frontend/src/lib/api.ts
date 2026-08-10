@@ -496,6 +496,42 @@ export async function startDownload(
   return data.job;
 }
 
+export interface DownloadCookieState {
+  file: boolean;
+  count: number;
+  updated: number;
+  browser: string;
+  browsers: string[];
+}
+
+export async function downloadCookieState(): Promise<DownloadCookieState> {
+  const res = await fetch(`${BASE}/downloader/cookies`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Login-Status nicht ladbar.");
+  return data;
+}
+
+export async function saveDownloadCookies(
+  cookies: string,
+  browser: string
+): Promise<DownloadCookieState> {
+  const res = await fetch(`${BASE}/downloader/cookies`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cookies, browser }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Speichern fehlgeschlagen.");
+  return data;
+}
+
+export async function clearDownloadCookies(): Promise<DownloadCookieState> {
+  const res = await fetch(`${BASE}/downloader/cookies`, { method: "DELETE" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? "Entfernen fehlgeschlagen.");
+  return data;
+}
+
 export function downloadProgressUrl(job: string): string {
   return `${BASE}/downloader/progress/${job}`;
 }

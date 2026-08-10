@@ -13,11 +13,18 @@ from urllib.parse import urlparse
 
 import httpx
 
+from app.core.config import DATA_DIR
+
 SPOTIFY_ID = re.compile(r"open\.spotify\.com/(?:intl-[a-z]+/)?track/([A-Za-z0-9]+)")
 
 BASE_DIR = Path(tempfile.gettempdir()) / "jon-downloads"
+COOKIE_DIR = DATA_DIR / "downloader"
+COOKIE_FILE = COOKIE_DIR / "cookies.txt"
+COOKIE_CONFIG = COOKIE_DIR / "cookies.json"
+NETSCAPE_HEADER = "# Netscape HTTP Cookie File"
 JOB_TTL = 3600.0
 QUALITIES = ("best", "1080", "720", "480")
+BROWSERS = ("firefox", "brave", "edge", "chrome", "chromium", "opera", "vivaldi", "safari")
 BROWSER_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -26,40 +33,110 @@ BROWSER_HEADERS = {
     "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
 }
 
+LOGIN_HINT = "Verbinde dazu unten deinen YouTube-Login."
+LOGIN_FAILED_HINT = (
+    "Dein hinterlegter YouTube-Login hat nicht gereicht — bitte die Cookies erneuern "
+    "(sie laufen ab) und prüfen, ob es das Konto ist, mit dem du gekauft hast."
+)
+
+AUTH_MARKERS = (
+    "requires payment",
+    "purchase",
+    "purchased",
+    "rental",
+    "paid content",
+    "members-only",
+    "members only",
+    "sign in",
+    "log in to",
+    "login required",
+    "cookies",
+    "not a bot",
+    "error 403",
+    "403: forbidden",
+    "private video",
+    "age-restricted",
+    "inappropriate",
+)
+
+COOKIE_LOAD_FAILURES = (
+    "could not find",
+    "cookie database",
+    "cookies database",
+    "unsupported browser",
+    "no such file",
+    "permission denied",
+    "failed to decrypt",
+    "could not copy",
+    "unable to read",
+    "cookieloaderror",
+    "does not support",
+    "not supported",
+)
+
 ERROR_HINTS = (
     ("is not a valid url", "Das sieht nicht wie ein gültiger Link aus."),
     ("unsupported url", "Diese Seite wird leider nicht unterstützt."),
+    (
+        "requires payment",
+        "Dieses Video ist kostenpflichtig (Kauf oder Leihe). Wenn du es gekauft hast, "
+        f"brauche ich deinen YouTube-Login, um an deine Kaufversion zu kommen. {LOGIN_HINT}",
+    ),
+    (
+        "purchase",
+        "Dieses Video muss gekauft oder geliehen werden. Wenn du es schon gekauft hast, "
+        f"brauche ich deinen YouTube-Login. {LOGIN_HINT}",
+    ),
+    (
+        "rental",
+        "Dieses Video ist eine Leihe. Wenn du es geliehen oder gekauft hast, "
+        f"brauche ich deinen YouTube-Login. {LOGIN_HINT}",
+    ),
     ("private video", "Dieses Video ist privat — darauf gibt es keinen Zugriff."),
     ("private account", "Dieses Profil ist privat — darauf gibt es keinen Zugriff."),
-    ("sign in to confirm your age", "Dieses Video ist altersbeschränkt und braucht einen Login."),
-    ("age-restricted", "Dieses Video ist altersbeschränkt und braucht einen Login."),
-    ("inappropriate", "Dieses Video ist altersbeschränkt und braucht einen Login."),
+    (
+        "sign in to confirm your age",
+        f"Dieses Video ist altersbeschränkt und braucht einen Login. {LOGIN_HINT}",
+    ),
+    ("age-restricted", f"Dieses Video ist altersbeschränkt und braucht einen Login. {LOGIN_HINT}"),
+    ("inappropriate", f"Dieses Video ist altersbeschränkt und braucht einen Login. {LOGIN_HINT}"),
     ("available in your country", "Dieses Video ist in deinem Land gesperrt (Geo-Sperre)."),
     ("geo restriction", "Dieses Video ist in deinem Land gesperrt (Geo-Sperre)."),
     ("geo-restricted", "Dieses Video ist in deinem Land gesperrt (Geo-Sperre)."),
     ("blocked it in your country", "Dieses Video ist in deinem Land gesperrt (Geo-Sperre)."),
     ("video unavailable", "Dieses Video existiert nicht mehr oder wurde entfernt."),
     ("account has been terminated", "Der Kanal hinter diesem Video wurde gelöscht."),
-    ("members-only", "Dieses Video ist nur für zahlende Mitglieder."),
+    (
+        "members-only",
+        f"Dieses Video ist nur für zahlende Mitglieder des Kanals. {LOGIN_HINT}",
+    ),
     ("premieres in", "Diese Premiere hat noch nicht stattgefunden."),
     ("live event will begin", "Dieser Livestream hat noch nicht begonnen."),
     ("requested format is not available", "Diese Qualität gibt es hier nicht — probier eine andere."),
-    ("sign in", "Diese Plattform verlangt für dieses Video einen Login."),
-    ("login required", "Diese Plattform verlangt für dieses Video einen Login."),
-    ("use --cookies", "Diese Plattform verlangt für dieses Video einen Login."),
+    (
+        "confirm you're not a bot",
+        f"YouTube hält den Zugriff für einen Bot und will einen Login sehen. {LOGIN_HINT}",
+    ),
+    ("sign in", f"Diese Plattform verlangt für dieses Video einen Login. {LOGIN_HINT}"),
+    ("login required", f"Diese Plattform verlangt für dieses Video einen Login. {LOGIN_HINT}"),
+    ("use --cookies", f"Diese Plattform verlangt für dieses Video einen Login. {LOGIN_HINT}"),
     ("ffmpeg", "ffmpeg fehlt oder schlug fehl — bitte ffmpeg installieren."),
     ("unable to download webpage", "Die Seite ist gerade nicht erreichbar — Link prüfen oder später nochmal."),
     ("timed out", "Zeitüberschreitung — die Plattform antwortet gerade nicht."),
 )
 
 
-def friendly_error(raw: str) -> str:
+def friendly_error(
+    raw: str, tried_login: bool = False, prefix: str = "Download fehlgeschlagen"
+) -> str:
     text = raw.replace("ERROR:", "").strip()
     low = text.lower()
     for needle, message in ERROR_HINTS:
         if needle in low:
+            if tried_login and LOGIN_HINT in message:
+                return message.replace(LOGIN_HINT, LOGIN_FAILED_HINT)
             return message
-    return f"Download fehlgeschlagen: {text[:200]}"
+    return f"{prefix}: {text[:200]}"
 
 
 def sanitize_filename(title: str) -> str:
@@ -71,6 +148,68 @@ def sanitize_filename(title: str) -> str:
 def valid_url(url: str) -> bool:
     parsed = urlparse(url)
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
+def normalize_cookie_text(text: str) -> str:
+    lines: list[str] = []
+    for raw in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        line = raw.rstrip()
+        if not line.strip():
+            continue
+        if line.lstrip().startswith("#") and not line.lstrip().startswith("#HttpOnly_"):
+            continue
+        if "\t" not in line:
+            parts = line.split()
+            if len(parts) >= 7:
+                line = "\t".join(parts[:6] + [" ".join(parts[6:])])
+            else:
+                continue
+        lines.append(line)
+    if not lines:
+        return ""
+    return NETSCAPE_HEADER + "\n" + "\n".join(lines) + "\n"
+
+
+def count_cookies(text: str) -> int:
+    return sum(
+        1
+        for line in text.splitlines()
+        if line.strip() and not line.startswith("# ") and line.count("\t") >= 6
+    )
+
+
+def cookie_config() -> dict:
+    try:
+        data = json.loads(COOKIE_CONFIG.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    return {}
+
+
+def write_cookie_config(data: dict) -> None:
+    try:
+        COOKIE_DIR.mkdir(parents=True, exist_ok=True)
+        COOKIE_CONFIG.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def cookies_ready() -> bool:
+    try:
+        return COOKIE_FILE.is_file() and COOKIE_FILE.stat().st_size > 40
+    except Exception:
+        return False
+
+
+def browser_targets() -> list[str]:
+    choice = str(cookie_config().get("browser") or "auto").lower()
+    if choice == "off":
+        return []
+    if choice in BROWSERS:
+        return [choice]
+    return list(BROWSERS)
 
 
 class _SilentLogger:
@@ -97,7 +236,66 @@ def base_options() -> dict:
     }
 
 
-def first_entry(info: dict) -> dict:
+def needs_auth(message: str) -> bool:
+    low = message.lower()
+    return any(marker in low for marker in AUTH_MARKERS)
+
+
+def auth_variants() -> list[dict]:
+    variants: list[dict] = [
+        {"extractor_args": {"youtube": {"player_client": ["android", "web"]}}}
+    ]
+    logged_in = {"extractor_args": {"youtube": {"player_client": ["default", "web", "mweb"]}}}
+    if cookies_ready():
+        variants.append({"cookiefile": str(COOKIE_FILE), **logged_in})
+    for browser in browser_targets():
+        variants.append({"cookiesfrombrowser": (browser, None, None, None), **logged_in})
+    return variants
+
+
+def is_login_variant(variant: dict) -> bool:
+    return "cookiefile" in variant or "cookiesfrombrowser" in variant
+
+
+def cookie_load_failed(message: str) -> bool:
+    low = message.lower()
+    return any(marker in low for marker in COOKIE_LOAD_FAILURES)
+
+
+def extract_info(options: dict, target: str, download: bool = False) -> dict:
+    import yt_dlp
+
+    with yt_dlp.YoutubeDL(options) as ydl:
+        return first_entry(ydl.extract_info(target, download=download))
+
+
+def extract_with_fallback(
+    options: dict, target: str, download: bool = False, on_retry=None
+) -> tuple[dict, str, bool]:
+    try:
+        return extract_info(options, target, download), "", False
+    except Exception as exc:
+        first = str(exc)
+    if not needs_auth(first):
+        return {}, first, False
+    tried_login = False
+    for variant in auth_variants():
+        merged = dict(options)
+        merged.update(variant)
+        if on_retry:
+            on_retry()
+        try:
+            return extract_info(merged, target, download), "", tried_login
+        except Exception as exc:
+            if is_login_variant(variant) and not cookie_load_failed(str(exc)):
+                tried_login = True
+            continue
+    return {}, first, tried_login
+
+
+def first_entry(info: dict | None) -> dict:
+    if not info:
+        return {}
     if info.get("_type") == "playlist":
         entries = [e for e in info.get("entries") or [] if e]
         return entries[0] if entries else {}
@@ -238,6 +436,7 @@ class DownloaderService:
         self._jobs: dict[str, dict] = {}
         self._lock = threading.Lock()
         BASE_DIR.mkdir(parents=True, exist_ok=True)
+        COOKIE_DIR.mkdir(parents=True, exist_ok=True)
 
     def _cleanup_old(self) -> None:
         now = time.time()
@@ -247,28 +446,71 @@ class DownloaderService:
                 self._jobs.pop(job_id, None)
                 shutil.rmtree(job["dir"], ignore_errors=True)
 
-    def analyze(self, url: str) -> dict:
-        import yt_dlp
+    def cookie_status(self) -> dict:
+        config = cookie_config()
+        count = 0
+        updated = 0.0
+        if cookies_ready():
+            try:
+                count = count_cookies(COOKIE_FILE.read_text(encoding="utf-8", errors="ignore"))
+                updated = COOKIE_FILE.stat().st_mtime
+            except Exception:
+                count = 0
+        return {
+            "file": cookies_ready(),
+            "count": count,
+            "updated": updated,
+            "browser": str(config.get("browser") or "auto").lower(),
+            "browsers": list(BROWSERS),
+        }
 
+    def save_cookies(self, text: str, browser: str = "") -> dict:
+        choice = (browser or "").strip().lower()
+        if choice:
+            if choice not in BROWSERS and choice not in ("auto", "off"):
+                return {"error": "Unbekannte Browser-Auswahl."}
+            config = cookie_config()
+            config["browser"] = choice
+            write_cookie_config(config)
+        raw = (text or "").strip()
+        if raw:
+            normalized = normalize_cookie_text(raw)
+            if not normalized:
+                return {
+                    "error": "Das ist kein gültiges cookies.txt (Netscape-Format). "
+                    "Exportiere es mit einer Erweiterung wie „Get cookies.txt LOCALLY“ "
+                    "auf youtube.com, während du eingeloggt bist."
+                }
+            try:
+                COOKIE_DIR.mkdir(parents=True, exist_ok=True)
+                COOKIE_FILE.write_text(normalized, encoding="utf-8")
+            except Exception as exc:
+                return {"error": f"Cookies konnten nicht gespeichert werden: {exc}"}
+        return self.cookie_status()
+
+    def clear_cookies(self) -> dict:
+        try:
+            COOKIE_FILE.unlink(missing_ok=True)
+        except Exception:
+            pass
+        return self.cookie_status()
+
+    def analyze(self, url: str) -> dict:
         url = url.strip()
         if not valid_url(url):
             return {"error": "Das sieht nicht wie ein gültiger Link aus."}
         source = music_source(url)
+        options = base_options()
+        options["skip_download"] = True
         if source:
             resolved = resolve_music(url, source)
             if "error" in resolved:
                 return resolved
-            options = base_options()
-            options["skip_download"] = True
-            try:
-                with yt_dlp.YoutubeDL(options) as ydl:
-                    info = first_entry(
-                        ydl.extract_info(f"ytsearch1:{resolved['query']}", download=False)
-                    )
-            except yt_dlp.utils.DownloadError as exc:
-                return {"error": friendly_error(str(exc))}
-            except Exception as exc:
-                return {"error": f"Suche fehlgeschlagen: {exc}"}
+            info, error, tried_login = extract_with_fallback(
+                options, f"ytsearch1:{resolved['query']}"
+            )
+            if error:
+                return {"error": friendly_error(error, tried_login, "Suche fehlgeschlagen")}
             if not info:
                 return {"error": "Ich habe zu diesem Song keine passende Aufnahme gefunden."}
             return {
@@ -283,15 +525,9 @@ class DownloaderService:
                 "music": True,
                 "url": info.get("webpage_url") or "",
             }
-        options = base_options()
-        options["skip_download"] = True
-        try:
-            with yt_dlp.YoutubeDL(options) as ydl:
-                info = first_entry(ydl.extract_info(url, download=False))
-        except yt_dlp.utils.DownloadError as exc:
-            return {"error": friendly_error(str(exc))}
-        except Exception as exc:
-            return {"error": f"Analyse fehlgeschlagen: {exc}"}
+        info, error, tried_login = extract_with_fallback(options, url)
+        if error:
+            return {"error": friendly_error(error, tried_login, "Analyse fehlgeschlagen")}
         if not info:
             return {"error": "Hier wurde kein Video gefunden."}
         heights = sorted(
@@ -367,8 +603,6 @@ class DownloaderService:
         return inner
 
     def _run(self, job_id: str, url: str, kind: str, quality: str, title: str) -> None:
-        import yt_dlp
-
         job = self._jobs[job_id]
         job_dir = Path(job["dir"])
         options = base_options()
@@ -393,21 +627,22 @@ class DownloaderService:
             options["postprocessors"] = [
                 {"key": "FFmpegVideoRemuxer", "preferedformat": "mp4"}
             ]
-        def grab(opts: dict) -> dict:
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                return first_entry(ydl.extract_info(url, download=True))
+
+        def restart() -> None:
+            job["percent"] = 0.0
+            job["speed"] = 0
+            job["eta"] = None
+            job["status"] = "starting"
+            for leftover in job_dir.glob("*"):
+                if leftover.is_file() and leftover.suffix.lower() in (".part", ".ytdl"):
+                    leftover.unlink(missing_ok=True)
 
         try:
-            try:
-                info = grab(options)
-            except yt_dlp.utils.DownloadError as exc:
-                if "403" not in str(exc):
-                    raise
-                retry = dict(options)
-                retry["extractor_args"] = {"youtube": {"player_client": ["android"]}}
-                job["percent"] = 0.0
-                job["status"] = "starting"
-                info = grab(retry)
+            info, error, tried_login = extract_with_fallback(options, url, True, restart)
+            if error:
+                job["status"] = "error"
+                job["error"] = friendly_error(error, tried_login)
+                return
             ext = "mp3" if kind == "mp3" else "mp4"
             files = [
                 p
@@ -428,12 +663,9 @@ class DownloaderService:
             job["name"] = f"{name}{target.suffix.lower()}"
             job["percent"] = 100.0
             job["status"] = "done"
-        except yt_dlp.utils.DownloadError as exc:
-            job["status"] = "error"
-            job["error"] = friendly_error(str(exc))
         except Exception as exc:
             job["status"] = "error"
-            job["error"] = f"Download fehlgeschlagen: {exc}"
+            job["error"] = friendly_error(str(exc))
 
     def state(self, job_id: str) -> dict | None:
         job = self._jobs.get(job_id)

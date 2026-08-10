@@ -25,6 +25,7 @@ from app.schemas import (
     CleanupPreviewIn,
     CoworkAnswerIn,
     DownloadAnalyzeIn,
+    DownloadCookiesIn,
     DownloadStartIn,
     DreamIn,
     FlashcardsAnswerIn,
@@ -608,6 +609,30 @@ async def downloader_start(payload: DownloadStartIn) -> dict:
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
+
+
+@router.get("/downloader/cookies")
+async def downloader_cookies() -> dict:
+    from app.services.downloader_service import get_downloader_service
+
+    return get_downloader_service().cookie_status()
+
+
+@router.post("/downloader/cookies")
+async def downloader_cookies_save(payload: DownloadCookiesIn) -> dict:
+    from app.services.downloader_service import get_downloader_service
+
+    result = get_downloader_service().save_cookies(payload.cookies, payload.browser)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.delete("/downloader/cookies")
+async def downloader_cookies_clear() -> dict:
+    from app.services.downloader_service import get_downloader_service
+
+    return get_downloader_service().clear_cookies()
 
 
 @router.get("/downloader/progress/{job_id}")
