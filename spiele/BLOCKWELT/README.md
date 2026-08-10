@@ -26,6 +26,7 @@ Braucht die Visual Studio Build Tools mit C++-Workload. Ergebnis: `bin\BLOCKWELT
 | Linksklick auf TNT | Zündet die Lunte |
 | Rechtsklick mit Enderperle | Wirft sie; wo sie landet, stehst du |
 | T | Mini Jon beauftragen (Haus, Turm, Brücke, Baum, Leuchtfeuer) |
+| K | Zusammen spielen (Koop) |
 | F | Flugmodus |
 | F5 / F6 | Sichtweite in Feldern |
 | H | Anzeige ein und aus |
@@ -52,6 +53,13 @@ auch wenn du weit gelaufen bist.
 Die 20 Kacheln des Atlas werden beim Start Bildpunkt für Bildpunkt gemalt: Grasnarbe über Erde,
 Jahresringe im Stamm, Fugen im Ziegel, Rillen im Sandstein, die weiße Binde am TNT. Nichts davon
 liegt als Bilddatei bei.
+
+## Zu zweit
+
+**K** öffnet die Koop-Anzeige. Einer erstellt ein Spiel und gibt den sechsstelligen
+Freundschaftscode weiter, der andere tippt ihn ein und drückt Enter. Der Gast bekommt die Welt
+des Gastgebers (gleiche Saat), ihr seht euch gegenseitig laufen, und jeder gesetzte oder
+abgebaute Block erscheint auch beim anderen. Jon muss dafür laufen — er ist der Server.
 
 ## Mini Jon
 

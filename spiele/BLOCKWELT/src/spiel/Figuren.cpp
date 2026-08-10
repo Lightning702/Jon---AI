@@ -66,7 +66,7 @@ bool Spieler::trifft(const Welt& welt, Vec3 pruefOrt) const {
 
 void Spieler::schritt(float dt, const Welt& welt, Fenster& fenster, bool eingabeAn) {
     Vec3 vorne(std::sin(gier), 0.0f, std::cos(gier));
-    Vec3 rechts(vorne.z, 0.0f, -vorne.x);
+    Vec3 rechts(-vorne.z, 0.0f, vorne.x);
     Vec3 wunsch(0.0f, 0.0f, 0.0f);
     if (eingabeAn) {
         if (fenster.taste('W')) wunsch += vorne;

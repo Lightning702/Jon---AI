@@ -1,7 +1,7 @@
 {
   "sammlung": "FelWorks Game Collection",
   "herausgeber": "FelWorks",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "bauen": "build.bat",
   "spiele": [
     {
@@ -10,12 +10,12 @@
       "genre": "Sandbox",
       "icon": "🧱",
       "kurz": "Endlose Welt, bauen mit Mini Jon.",
-      "beschreibung": "Voxel-Sandbox als eigenes Programm — kein Browser, kein Tab. Die Welt hat keinen Rand: Felder werden erzeugt, waehrend du laeufst, und hinter dir wieder freigegeben. Aus Perlin-Rauschen entstehen Ebenen, Waelder, Wuesten mit Kakteen, Schneeland und Gebirge, dazu Seen, Straende und Baeume. 16 Blocksorten mit echten Texturen, die beim Start Bildpunkt fuer Bildpunkt selbst gemalt werden. Abbauen, setzen, graben, schwimmen, fliegen. TNT zuendet auf Klick und reisst ein Loch, die Enderperle versetzt dich dorthin, wo sie landet. Mini Jon schwebt neben dir her: Druck T, und er baut dir Haus, Turm, Bruecke, Baum oder Leuchtfeuer, Block fuer Block. Tag und Nacht ziehen vorbei, nachts kommen die Sterne. Deine Aenderungen werden gespeichert. In C++ ohne Engine geschrieben.",
-      "steuerung": "Maus umsehen · WASD laufen · Shift rennen · Leertaste springen · Linksklick abbauen · Rechtsklick setzen · 1-9 und Mausrad Block waehlen · TNT anklicken zuendet · Enderperle rechts werfen · T Mini Jon beauftragen · F fliegen · F5/F6 Sichtweite · H Anzeige · F11 Vollbild · P Bild · Esc Maus frei",
+      "beschreibung": "Voxel-Sandbox als eigenes Programm — kein Browser, kein Tab. Die Welt hat keinen Rand: Felder werden erzeugt, waehrend du laeufst, und hinter dir wieder freigegeben. Aus Perlin-Rauschen entstehen Ebenen, Waelder, Wuesten mit Kakteen, Schneeland und Gebirge, dazu Seen, Straende und Baeume. 16 Blocksorten mit echten Texturen, die beim Start Bildpunkt fuer Bildpunkt selbst gemalt werden. Abbauen, setzen, graben, schwimmen, fliegen. TNT zuendet auf Klick und reisst ein Loch, die Enderperle versetzt dich dorthin, wo sie landet. Mini Jon schwebt neben dir her: Druck T, und er baut dir Haus, Turm, Bruecke, Baum oder Leuchtfeuer, Block fuer Block. Tag und Nacht ziehen vorbei, nachts kommen die Sterne. Deine Aenderungen werden gespeichert. Zu zweit geht es auch: Freundschaftscode teilen, dann baut ihr dieselbe Welt gemeinsam um. In C++ ohne Engine geschrieben.",
+      "steuerung": "Maus umsehen · WASD laufen · Shift rennen · Leertaste springen · Linksklick abbauen · Rechtsklick setzen · 1-9 und Mausrad Block waehlen · TNT anklicken zuendet · Enderperle rechts werfen · T Mini Jon beauftragen · K zusammen spielen · F fliegen · F5/F6 Sichtweite · H Anzeige · F11 Vollbild · P Bild · Esc Maus frei",
       "vorschau": "vorschau/blockwelt.jpg",
       "exe": "bin/BLOCKWELT.exe",
       "args": [],
-      "version": "2.1.0"
+      "version": "2.2.0"
     }
   ]
 }

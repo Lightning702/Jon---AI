@@ -93,7 +93,7 @@ set "OPTFLAGS=/O2 /Oi /fp:precise /GS- /DNDEBUG"
 if /i "%~1"=="debug" set "OPTFLAGS=/Od /Zi /fp:precise /D_DEBUG"
 if /i "%~2"=="debug" set "OPTFLAGS=/Od /Zi /fp:precise /D_DEBUG"
 
-set "LIBS=opengl32.lib user32.lib gdi32.lib shell32.lib winmm.lib"
+set "LIBS=opengl32.lib user32.lib gdi32.lib shell32.lib winmm.lib ws2_32.lib"
 set "LDFLAGS=/link /INCREMENTAL:NO /OPT:REF /OPT:ICF /SUBSYSTEM:CONSOLE"
 
 echo  [3/4] Kompiliere...

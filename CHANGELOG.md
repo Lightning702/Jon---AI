@@ -2,6 +2,41 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.34.1] — 2026-08-10
+
+### 👥 Koop in den neuen Spielen
+
+Die Harmonischen Inseln und die Blockwelt spielt ihr jetzt zu zweit — über denselben
+Freundschaftscode wie ECHO, AETHERIA und die alte Browser-Blockwelt.
+
+- **K** öffnet die Koop-Anzeige: einer erstellt ein Spiel, der andere tippt den
+  sechsstelligen Code ein. Wer beitritt, meldet sich selbst bereit; der Gastgeber startet
+  mit Enter.
+- Ihr seht euch gegenseitig laufen, sauber zwischen den Servertakten geglättet.
+- In der Blockwelt bekommt der Gast die Welt des Gastgebers (gleiche Saat), und jeder
+  gesetzte oder abgebaute Block erscheint auch beim anderen.
+- Auf den Harmonischen Inseln zählt jede Lieferung für beide, und geschenkte Herzen
+  zählen zusammen.
+- Der Netzcode (`spiele/felwerk/src/fw/Koop.*`) liegt in der gemeinsamen Engine, spricht
+  dasselbe JSON-Protokoll über TCP 8759 und wird von beiden Spielen geteilt.
+
+### 🏝️ Die Harmonischen Inseln haben ein Ziel
+
+Vorher konnte man sammeln und abgeben, aber nichts sagte einem wofür. Jetzt schon:
+
+- Der Leuchtturm nennt seinen **Auftrag**: „braucht 3 × Korn", mit Fortschrittsbalken.
+  Sechs Stufen, jede mit eigenem Wunsch — das schickt dich abwechselnd zur Farm, zum Berg
+  und in die Werkstatt. Das Gewünschte zählt doppelt, alles andere einfach.
+- Über dem Kopf mancher Bewohner schwebt ein **Wunsch**. Hast du das Passende dabei,
+  schenkst du es mit **F** und bekommst ein **Herz**.
+- Ist der Turm fertig, kommen alle Bewohner an der Werft zusammen, es steigen Lichter auf,
+  und ein Abspann zählt die verschenkten Herzen. Weiterspielen geht trotzdem.
+
+### 🎮 Steuerung
+
+- **Blockwelt**: A und D waren vertauscht — der Rechts-Vektor zeigte nach links.
+- **Harmonische Inseln**: W lief nach hinten (aus der Vorversion), jetzt läuft W nach vorn.
+
 ## [4.34.0] — 2026-08-10
 
 ### 🧱 Die Blockwelt hat keinen Rand mehr

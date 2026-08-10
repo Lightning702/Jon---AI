@@ -11,8 +11,15 @@ namespace {
 
 using namespace fw;
 
-constexpr int PUNKTE_JE_STUFE = 6;
 constexpr int STUFEN = 6;
+
+struct Auftrag {
+    Gabe gabe;
+    int menge;
+};
+
+const Auftrag AUFTRAEGE[STUFEN] = {{Gabe::Korn, 3},  {Gabe::Stein, 4}, {Gabe::Brett, 4},
+                                   {Gabe::Korn, 5},  {Gabe::Stein, 5}, {Gabe::Brett, 6}};
 
 const char* gabenName(Gabe gabe) {
     switch (gabe) {
@@ -112,6 +119,8 @@ bool Spiel::starten(const Startwerte& werte) {
     spielerOrt.y = welt.bodenBei(spielerOrt.x, spielerOrt.z);
     kameraZiel = spielerOrt;
 
+    auftragLesen();
+    koop.anlegen("harmonie", "Inselfreund");
     laden();
     if (werte.ortGesetzt) {
         spielerOrt = Vec3(werte.ortX, welt.bodenBei(werte.ortX, werte.ortZ), werte.ortZ);
@@ -121,7 +130,8 @@ bool Spiel::starten(const Startwerte& werte) {
     anzeigeAn = !werte.ohneAnzeige;
     if (werte.stufe >= 0) {
         stufeErreicht = static_cast<int>(klemme(static_cast<float>(werte.stufe), 0.0f, 6.0f));
-        fortschritt = stufeErreicht * PUNKTE_JE_STUFE;
+        stufeGebracht = 0;
+        auftragLesen();
     }
     welt.leuchtturmStufe(stufeErreicht);
 
@@ -132,6 +142,14 @@ bool Spiel::starten(const Startwerte& werte) {
     if (werte.schnellstart) einblendung = 0.0f;
 
     ordnerAnlegen(ordnerNeben("saves"));
+    if (!werte.koopWunsch.empty()) {
+        if (werte.koopWunsch == "host") {
+            koop.gastgeben(werte.saat, spielerOrt);
+        } else {
+            koop.beitreten(werte.koopWunsch);
+        }
+        koopSchirm.oeffnen();
+    }
     laeuft = true;
     notiz("Archipel bereit, Stufe %d, Qualitaet %d", stufeErreicht, qualitaet);
     return true;
@@ -142,7 +160,15 @@ void Spiel::qualitaetSetzen(int stufe) {
     funken.grenze(qualitaet >= 2 ? 420 : (qualitaet == 1 ? 200 : 60));
 }
 
+void Spiel::auftragLesen() {
+    int stufe = static_cast<int>(klemme(static_cast<float>(stufeErreicht), 0.0f, STUFEN - 1.0f));
+    stufeGabe = AUFTRAEGE[stufe].gabe;
+    stufeBedarf = AUFTRAEGE[stufe].menge;
+}
+
 void Spiel::beenden() {
+    koop.verlassen();
+    koop.beenden();
     speichern();
     ton.stoppen();
     funken.freigeben();
@@ -167,6 +193,11 @@ Vec3 Spiel::kameraRechts() const {
 }
 
 void Spiel::eingabeLesen(float dt) {
+    if (koopSchirm.offen()) {
+        koopSchirm.tasten(fenster, koop, start.saat, spielerOrt);
+        if (fenster.tasteGedrueckt('K')) koopSchirm.umschalten();
+        return;
+    }
     if (fenster.tasteGedrueckt(VK_ESCAPE)) fenster.schliessenAnfordern();
     if (fenster.tasteGedrueckt(VK_F11)) fenster.vollbildUmschalten();
     if (fenster.tasteGedrueckt(VK_TAB)) uebersicht = !uebersicht;
@@ -232,7 +263,11 @@ void Spiel::eingabeLesen(float dt) {
         abliefern();
         sammeln();
     }
-    if (fenster.tasteGedrueckt('F')) gruessen();
+    if (fenster.tasteGedrueckt('F')) {
+        schenken();
+        gruessen();
+    }
+    if (fenster.tasteGedrueckt('K')) koopSchirm.umschalten();
 }
 
 void Spiel::sammeln() {
@@ -265,16 +300,52 @@ void Spiel::sammeln() {
 }
 
 void Spiel::abliefern() {
+    if (stufeErreicht >= STUFEN) return;
     Vec3 fuss = welt.leuchtturmFuss();
     Vec3 nach = fuss - spielerOrt;
     nach.y = 0.0f;
     if (laenge(nach) > 6.0f || getragenZahl == 0) return;
-    fortschritt += getragenZahl;
+    int wert = 0;
+    for (int i = 0; i < getragenZahl; ++i) wert += getragen[i] == stufeGabe ? 2 : 1;
+    stufeGebracht += wert;
+    koop.handlungSenden("signal", "liefer", static_cast<double>(wert), spielerOrt);
     getragenZahl = 0;
     for (Gabe& gabe : getragen) gabe = Gabe::Keine;
     funken.streuen(Funke::Glanz, fuss + Vec3(0.0f, 2.0f, 0.0f), 26, 1.3f);
     if (tonAn) ton.ereignis(Klang::Hammer, 1.0f);
-    meldung = "Fuer den Leuchtturm abgegeben";
+    meldung = "Abgegeben, danke!";
+    meldungZeit = 2.4f;
+}
+
+void Spiel::schenken() {
+    Bewohner* person = volk.naechsterBewohner(spielerOrt, 3.0f);
+    if (person == nullptr) return;
+    if (person->wunsch == Gabe::Keine) {
+        meldung = "Der Bewohner ist zufrieden";
+        meldungZeit = 2.0f;
+        return;
+    }
+    int fach = -1;
+    for (int i = 0; i < getragenZahl; ++i) {
+        if (getragen[i] == person->wunsch) {
+            fach = i;
+            break;
+        }
+    }
+    if (fach < 0) {
+        meldung = std::string("Gewuenscht wird: ") + gabenName(person->wunsch);
+        meldungZeit = 2.6f;
+        return;
+    }
+    for (int i = fach; i + 1 < getragenZahl; ++i) getragen[i] = getragen[i + 1];
+    getragenZahl -= 1;
+    getragen[getragenZahl] = Gabe::Keine;
+    volk.wunschErfuellen(*person);
+    herzen += 1;
+    koop.handlungSenden("signal", "herz", 1.0, spielerOrt);
+    funken.streuen(Funke::Herz, person->ort + Vec3(0.0f, 1.9f, 0.0f), 7, 0.7f);
+    if (tonAn) ton.ereignis(Klang::Freude, 0.9f);
+    meldung = "Geschenkt - ein Herz mehr";
     meldungZeit = 2.4f;
 }
 
@@ -331,24 +402,47 @@ void Spiel::weltSchritt(float dt) {
         }
     }
 
-    int neueStufe = static_cast<int>(klemme(static_cast<float>(fortschritt / PUNKTE_JE_STUFE), 0.0f,
-                                            static_cast<float>(STUFEN)));
     bool feiern = false;
-    if (neueStufe != stufeErreicht) {
-        stufeErreicht = neueStufe;
+    while (stufeErreicht < STUFEN && stufeGebracht >= stufeBedarf) {
+        stufeGebracht -= stufeBedarf;
+        stufeErreicht += 1;
         welt.leuchtturmStufe(stufeErreicht);
+        auftragLesen();
         funken.streuen(Funke::Glanz, welt.leuchtturmFuss() + Vec3(0.0f, 4.0f, 0.0f), 60, 1.8f);
         if (tonAn) ton.ereignis(Klang::Glocke, 1.0f);
         feierBlitz = 1.6f;
         feiern = true;
-        meldung = stufeErreicht >= STUFEN ? "Der Leuchtturm brennt - die Inseln sind vereint"
-                                          : "Der Leuchtturm waechst";
-        meldungZeit = 4.0f;
+        if (stufeErreicht >= STUFEN) {
+            fest = true;
+            festUhr = 0.0f;
+            volk.feiernLassen(welt.leuchtturmFuss());
+            meldung = "Der Leuchtturm brennt - die Inseln sind vereint";
+            meldungZeit = 6.0f;
+        } else {
+            meldung = std::string("Stufe ") + std::to_string(stufeErreicht) + " steht";
+            meldungZeit = 3.4f;
+        }
         speichern();
+    }
+    if (fest) {
+        festUhr += dt;
+        regenbogen = klemme(regenbogen + dt * 0.2f, 0.0f, 1.6f);
+        if (qualitaet >= 1) {
+            static float feuerUhr = 0.0f;
+            feuerUhr -= dt;
+            if (feuerUhr <= 0.0f) {
+                feuerUhr = 0.35f;
+                Vec3 himmelOrt = welt.leuchtturmFuss() +
+                                 Vec3(std::cos(zeit * 1.7f) * 9.0f, 12.0f + std::sin(zeit) * 3.0f,
+                                      std::sin(zeit * 1.3f) * 9.0f);
+                funken.streuen(Funke::Glanz, himmelOrt, 22, 1.6f);
+            }
+        }
     }
 
     volk.aktualisieren(dt, welt, spielerOrt, feiern);
-    fortschritt += volk.lieferungenAbholen();
+    stufeGebracht += volk.lieferungenAbholen();
+    koopSchritt(dt);
 
     funken.wind(Vec3(std::cos(zeit * 0.09f) * 0.5f, 0.0f, std::sin(zeit * 0.07f) * 0.4f));
     if (qualitaet >= 1) {
@@ -385,6 +479,63 @@ void Spiel::weltSchritt(float dt) {
         float naeheWasser = klemme(1.4f - spielerOrt.y * 0.2f, 0.2f, 1.0f);
         ton.stimmung(0.3f, naeheWasser * 0.55f);
     }
+}
+
+void Spiel::koopSchritt(float dt) {
+    fw::KoopZustand zustand;
+    zustand.ort = spielerOrt;
+    zustand.gierung = spielerRichtung;
+    koop.eigenerZustand(zustand);
+    koop.schritt(dt);
+    koop.freundeBewegen(dt);
+    if (koop.startpunktFrisch()) {
+        Vec3 punkt = koop.startpunkt();
+        if (welt.bodenBei(punkt.x, punkt.z) > 0.1f) {
+            spielerOrt = Vec3(punkt.x, welt.bodenBei(punkt.x, punkt.z), punkt.z);
+            kameraZiel = spielerOrt;
+        }
+    }
+    fw::KoopEreignis ereignis;
+    while (koop.ereignisHolen(ereignis)) {
+        if (ereignis.kennung == "liefer") {
+            stufeGebracht += static_cast<int>(ereignis.wert);
+            meldung = "Ein Mitspieler hat abgegeben";
+            meldungZeit = 2.4f;
+            funken.streuen(Funke::Glanz, welt.leuchtturmFuss() + Vec3(0.0f, 2.0f, 0.0f), 14, 1.0f);
+        } else if (ereignis.kennung == "herz") {
+            herzen += static_cast<int>(ereignis.wert);
+        }
+    }
+    std::string zeile;
+    while (koop.spruchHolen(zeile)) {
+        meldung = zeile;
+        meldungZeit = 4.0f;
+    }
+    static int letzterStand = -1;
+    if (koop.stand() != letzterStand) {
+        letzterStand = koop.stand();
+        notiz("Koop: Stand %d, Code %s, Spieler %d, %s", letzterStand,
+              koop.code().empty() ? "-" : koop.code().c_str(), koop.spielerzahl(),
+              koop.fehler().empty() ? koop.hinweis().c_str() : koop.fehler().c_str());
+    }
+}
+
+void Spiel::koopZeichnen() {
+    if (!koop.aktiv()) return;
+    int platz = 0;
+    for (const fw::KoopFreund& freund : koop.mitspieler()) {
+        platz += 1;
+        if (!freund.anwesend) continue;
+        float hub = std::fabs(std::sin(freund.schrittTakt)) * 0.09f;
+        float stauchen = 1.0f - hub * 0.5f;
+        Mat4 modell = verschiebung(freund.zeigeOrt + Vec3(0.0f, hub, 0.0f)) *
+                      drehungY(freund.zeigeGierung) *
+                      skalierung(Vec3(FIGUR_MASS / stauchen, FIGUR_MASS * stauchen,
+                                      FIGUR_MASS / stauchen));
+        maler.modell(modell);
+        maler.zeichnen(volk.gestaltNetz(platz + 2));
+    }
+    maler.modell(einheit());
 }
 
 void Spiel::kameraSetzen() {
@@ -464,6 +615,7 @@ void Spiel::bildBauen() {
 
     volk.zeichnenLeute(maler, zeit);
     volk.zeichnenTiere(maler, welt, zeit);
+    koopZeichnen();
 
     float hub = std::fabs(std::sin(spielerTakt * 2.2f)) * 0.09f;
     float stauchen = 1.0f - hub * 0.5f;
@@ -547,6 +699,34 @@ void Spiel::anzeige() {
         schrift.flaeche(x, rand + 10.0f, punktGroesse, punktGroesse, farbe);
     }
 
+    std::string auftrag;
+    if (fest) {
+        auftrag = "Der Leuchtturm brennt - " + std::to_string(herzen) + " Herzen geschenkt";
+    } else {
+        auftrag = "Der Leuchtturm braucht " + std::to_string(stufeBedarf) + " x " +
+                  gabenName(stufeGabe) + "   " + std::to_string(stufeGebracht) + " / " +
+                  std::to_string(stufeBedarf);
+    }
+    float auftragBreite = schrift.textBreite(auftrag) + 30.0f;
+    float auftragX = breite * 0.5f - auftragBreite * 0.5f;
+    tafel(auftragX, rand, auftragBreite, zeile + 14.0f);
+    schrift.text(auftragX + 15.0f, rand + 7.0f, auftrag, tinte);
+    if (!fest) {
+        float balken = auftragBreite - 30.0f;
+        float anteil = klemme(static_cast<float>(stufeGebracht) / static_cast<float>(stufeBedarf),
+                              0.0f, 1.0f);
+        schrift.flaeche(auftragX + 15.0f, rand + zeile + 9.0f, balken, 3.0f,
+                        Farbe(0.75f, 0.7f, 0.68f, 0.35f));
+        schrift.flaeche(auftragX + 15.0f, rand + zeile + 9.0f, balken * anteil, 3.0f,
+                        Farbe(0.95f, 0.68f, 0.36f, 0.95f));
+    }
+
+    std::string herzText = std::string("Herzen ") + std::to_string(herzen);
+    float herzBreite = schrift.textBreite(herzText, 0.9f) + 26.0f;
+    tafel(rand, rand + zeile + 22.0f, herzBreite, zeile + 12.0f);
+    schrift.flaeche(rand + 10.0f, rand + zeile + 30.0f, 9.0f, 9.0f, Farbe(0.92f, 0.5f, 0.6f, 1.0f));
+    schrift.text(rand + 25.0f, rand + zeile + 27.0f, herzText, tinte, 0.9f);
+
     if (getragenZahl > 0) {
         float feld = 22.0f;
         float w = getragenZahl * (feld + 6.0f) + 16.0f;
@@ -585,7 +765,7 @@ void Spiel::anzeige() {
                            "Q und R drehen  -  Mausrad naeher  -  Tab Uebersicht",
                            Farbe(0.34f, 0.26f, 0.3f, sicht), 1.0f);
     } else {
-        std::string hinweis = "WASD laufen - E sammeln - F gruessen - Tab Uebersicht";
+        std::string hinweis = "WASD laufen - E sammeln und abgeben - F schenken - K zusammen spielen";
         float w = schrift.textBreite(hinweis, 0.86f) + 22.0f;
         schrift.flaeche(breite * 0.5f - w * 0.5f, hoehe - rand - 26.0f, w, 22.0f,
                         Farbe(1.0f, 0.98f, 0.97f, 0.45f));
@@ -602,6 +782,25 @@ void Spiel::anzeige() {
         schrift.textMittig(breite * 0.5f, rand + 7.0f, text, tinte);
     }
 
+    if (fest && festUhr > 1.5f) {
+        float sicht = klemme((festUhr - 1.5f) * 0.6f, 0.0f, 1.0f);
+        std::string titel = "Die Inseln sind vereint";
+        std::string unter = std::to_string(herzen) + " Herzen verschenkt";
+        float w = schrift.textBreite(titel, 1.6f) + 60.0f;
+        float h = zeile * 5.0f + 20.0f;
+        float x = breite * 0.5f - w * 0.5f;
+        float y = hoehe * 0.16f;
+        schrift.flaeche(x, y, w, h, Farbe(1.0f, 0.98f, 0.97f, 0.78f * sicht));
+        schrift.rahmen(x, y, w, h, 1.0f, Farbe(0.9f, 0.72f, 0.55f, 0.7f * sicht));
+        schrift.textMittig(breite * 0.5f, y + 14.0f, titel, Farbe(0.24f, 0.16f, 0.2f, sicht), 1.6f);
+        schrift.textMittig(breite * 0.5f, y + 16.0f + zeile * 2.0f, unter,
+                           Farbe(0.4f, 0.3f, 0.34f, sicht), 1.0f);
+        schrift.textMittig(breite * 0.5f, y + 16.0f + zeile * 3.3f,
+                           "Bleib so lange du magst", Farbe(0.45f, 0.36f, 0.4f, sicht), 0.9f);
+    }
+
+    koopSchirm.randzeile(schrift, koop, fenster.breite(), fenster.hoehe());
+    koopSchirm.zeichnen(schrift, koop, fenster.breite(), fenster.hoehe());
     schrift.beenden();
 }
 
@@ -615,20 +814,26 @@ void Spiel::speichern() {
 void Spiel::laden() {
     std::string inhalt = leseText(ordnerNeben("saves\\harmonie.txt"));
     if (inhalt.empty()) return;
-    int gespeichert = 0;
     float x = spielerOrt.x;
     float z = spielerOrt.z;
     for (const std::string& zeile : zerlegen(inhalt, '\n')) {
         std::string sauber = putzen(zeile);
-        if (sauber.rfind("fortschritt", 0) == 0) {
-            gespeichert = std::atoi(sauber.c_str() + 11);
+        if (sauber.rfind("stufe", 0) == 0) {
+            stufeErreicht = std::atoi(sauber.c_str() + 5);
+        } else if (sauber.rfind("gebracht", 0) == 0) {
+            stufeGebracht = std::atoi(sauber.c_str() + 8);
+        } else if (sauber.rfind("herzen", 0) == 0) {
+            herzen = std::atoi(sauber.c_str() + 6);
         } else if (sauber.rfind("ort", 0) == 0) {
             std::sscanf(sauber.c_str() + 3, "%f %f", &x, &z);
         }
     }
-    fortschritt = static_cast<int>(klemme(static_cast<float>(gespeichert), 0.0f,
-                                          static_cast<float>(STUFEN * PUNKTE_JE_STUFE)));
-    stufeErreicht = fortschritt / PUNKTE_JE_STUFE;
+    stufeErreicht = static_cast<int>(klemme(static_cast<float>(stufeErreicht), 0.0f,
+                                            static_cast<float>(STUFEN)));
+    if (stufeGebracht < 0) stufeGebracht = 0;
+    if (herzen < 0) herzen = 0;
+    fest = stufeErreicht >= STUFEN;
+    auftragLesen();
     if (welt.bodenBei(x, z) > 0.1f) {
         spielerOrt = Vec3(x, welt.bodenBei(x, z), z);
         kameraZiel = spielerOrt;

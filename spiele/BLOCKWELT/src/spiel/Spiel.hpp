@@ -8,6 +8,8 @@
 #include "Himmel.hpp"
 #include "Welt.hpp"
 #include "fw/Fenster.hpp"
+#include "fw/Koop.hpp"
+#include "fw/KoopSchirm.hpp"
 #include "fw/Maler.hpp"
 #include "fw/Netz.hpp"
 #include "fw/Schrift.hpp"
@@ -31,6 +33,8 @@ struct Startwerte {
     float gierung = 0.0f;
     float neigung = 0.0f;
     std::string bilddatei;
+    std::string koopWunsch;
+    bool koopStarten = false;
 };
 
 struct Zuender {
@@ -65,6 +69,8 @@ private:
     void sprengen(int x, int y, int z);
     void perleWerfen();
     void spielerAbsetzen();
+    void koopSchritt(float dt);
+    void koopZeichnen();
 
     fw::Fenster fenster;
     fw::Maler maler;
@@ -77,6 +83,9 @@ private:
     MiniJon jon;
     fw::Netz rahmen;
     fw::Netz wuerfel;
+    fw::Netz freundNetz;
+    fw::Koop koop;
+    fw::KoopSchirm koopSchirm;
 
     Startwerte start;
     Treffer ziel;
@@ -97,6 +106,7 @@ private:
     bool menueOffen = false;
     bool anzeigeAn = true;
     bool tonAn = false;
+    unsigned long long koopSaat = 0;
 };
 
 }

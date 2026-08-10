@@ -54,6 +54,9 @@ int main(int anzahl, char** werte) {
             start.ortZ = static_cast<float>(std::atof(folgt(2).c_str()));
             start.ortGesetzt = true;
             i += 2;
+        } else if (schalter == "-koop") {
+            start.koopWunsch = folgt(1);
+            ++i;
         } else if (schalter == "-grafik") {
             start.qualitaet = std::atoi(folgt(1).c_str());
             ++i;

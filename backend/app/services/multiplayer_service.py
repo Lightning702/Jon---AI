@@ -51,12 +51,21 @@ class GameProfile:
 
 GAMES: dict[str, GameProfile] = {
     "blockwelt": GameProfile(
-        max_speed=14.0,
+        max_speed=26.0,
         world_radius=40000.0,
         height_min=-8.0,
         height_max=140.0,
         edit_range=9.0,
         block_ids=tuple(range(0, 24)),
+    ),
+    "harmonie": GameProfile(
+        max_speed=12.0,
+        world_radius=400.0,
+        height_min=-4.0,
+        height_max=64.0,
+        edit_range=8.0,
+        interact_range=10.0,
+        block_ids=tuple(range(0, 8)),
     ),
     "aetheria": GameProfile(
         max_speed=16.0,

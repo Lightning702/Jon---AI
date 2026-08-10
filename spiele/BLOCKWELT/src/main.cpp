@@ -56,6 +56,11 @@ int main(int anzahl, char** werte) {
         } else if (schalter == "-baue") {
             start.sofortBau = std::atoi(folgt(1).c_str());
             ++i;
+        } else if (schalter == "-koopstart") {
+            start.koopStarten = true;
+        } else if (schalter == "-koop") {
+            start.koopWunsch = folgt(1);
+            ++i;
         } else if (schalter == "-grafik") {
             start.qualitaet = std::atoi(folgt(1).c_str());
             ++i;

@@ -93,6 +93,27 @@ bool Spiel::starten(const Startwerte& werte) {
                     12, 0.6f);
         wuerfel.hochladen(bauer);
     }
+    {
+        Bauer bauer;
+        const Vec3 hose(0.22f, 0.26f, 0.52f);
+        const Vec3 hemd(0.24f, 0.62f, 0.48f);
+        const Vec3 haut(0.92f, 0.74f, 0.58f);
+        const Vec3 haar(0.28f, 0.2f, 0.16f);
+        for (float sx : {-1.0f, 1.0f}) {
+            bauer.quader(Vec3(sx * 0.13f, 0.35f, 0.0f), Vec3(0.11f, 0.35f, 0.12f), hose);
+            bauer.quader(Vec3(sx * 0.38f, 1.05f, 0.0f), Vec3(0.11f, 0.32f, 0.12f), hemd);
+            bauer.quader(Vec3(sx * 0.38f, 0.72f, 0.0f), Vec3(0.1f, 0.06f, 0.11f), haut);
+        }
+        bauer.quader(Vec3(0.0f, 1.05f, 0.0f), Vec3(0.26f, 0.36f, 0.14f), hemd);
+        bauer.quader(Vec3(0.0f, 1.62f, 0.0f), Vec3(0.24f, 0.23f, 0.24f), haut);
+        bauer.quader(Vec3(0.0f, 1.78f, 0.0f), Vec3(0.25f, 0.09f, 0.25f), haar);
+        for (float sx : {-1.0f, 1.0f}) {
+            bauer.quader(Vec3(sx * 0.1f, 1.66f, -0.24f), Vec3(0.05f, 0.05f, 0.02f),
+                         Vec3(0.1f, 0.1f, 0.14f));
+        }
+        freundNetz.hochladen(bauer);
+    }
+    koop.anlegen("blockwelt", "Blockbauer");
 
     spielerAbsetzen();
     if (werte.blickGesetzt) spieler.blickSetzen(werte.gierung, werte.neigung);
@@ -109,6 +130,14 @@ bool Spiel::starten(const Startwerte& werte) {
     anzeigeAn = !werte.ohneAnzeige;
     if (werte.schnellstart) einblendung = 0.0f;
     if (werte.sofortBau >= 0) bauwerkWaehlen(werte.sofortBau);
+    if (!werte.koopWunsch.empty()) {
+        if (werte.koopWunsch == "host") {
+            koop.gastgeben(welt.saat(), spieler.fuesse());
+        } else {
+            koop.beitreten(werte.koopWunsch);
+        }
+        koopSchirm.oeffnen();
+    }
     notiz("Welt bereit, Saat %u, Sichtweite %d Felder", welt.saat(), radius);
     return true;
 }
@@ -129,6 +158,9 @@ void Spiel::spielerAbsetzen() {
 }
 
 void Spiel::beenden() {
+    koop.verlassen();
+    koop.beenden();
+    freundNetz.freigeben();
     welt.speichern(speicherPfad());
     ton.stoppen();
     jon.freigeben();
@@ -231,9 +263,21 @@ void Spiel::eingabeLesen(float dt) {
         spieler.fliegenUmschalten();
         meldungSetzen(spieler.fliegtGerade() ? "Flugmodus an" : "Flugmodus aus");
     }
-    if (fenster.tasteGedrueckt('T')) {
+    if (fenster.tasteGedrueckt('T') && !koopSchirm.offen()) {
         menueOffen = !menueOffen;
         if (menueOffen) meldungZeit = 0.0f;
+    }
+    if (fenster.tasteGedrueckt('K')) {
+        koopSchirm.umschalten();
+        if (koopSchirm.offen()) {
+            fenster.mausFangen(false);
+            menueOffen = false;
+        }
+    }
+    if (koopSchirm.offen()) {
+        Vec3 fuss = spieler.fuesse();
+        koopSchirm.tasten(fenster, koop, welt.saat(), fuss);
+        return;
     }
     if (einblendung > 0.0f && fenster.mausGedrueckt(Maustaste::Links)) einblendung = 0.0f;
 
@@ -269,6 +313,7 @@ void Spiel::eingabeLesen(float dt) {
             meldungSetzen("TNT gezuendet", 1.8f);
         } else {
             welt.setzeBlock(ziel.x, ziel.y, ziel.z, LUFT);
+            koop.blockSenden(ziel.x, ziel.y, ziel.z, LUFT, spieler.fuesse());
             if (tonAn) ton.ereignis(Klang::Hammer, 0.8f);
         }
     }
@@ -284,6 +329,7 @@ void Spiel::eingabeLesen(float dt) {
                           ziel.vorY == static_cast<int>(std::floor(fuss.y + 1.0f)));
             if (!imWeg) {
                 welt.setzeBlock(ziel.vorX, ziel.vorY, ziel.vorZ, hand);
+                koop.blockSenden(ziel.vorX, ziel.vorY, ziel.vorZ, hand, spieler.fuesse());
                 if (tonAn) ton.ereignis(Klang::Schritt, 0.6f);
             }
         }
@@ -299,8 +345,10 @@ void Spiel::weltSchritt(float dt) {
     if (blitz > 0.0f) blitz -= dt;
     if (einblendung > 0.0f) einblendung = klemme(einblendung - dt * 0.2f, 0.0f, 1.0f);
 
-    spieler.schritt(dt, welt, fenster, fenster.mausGefangen() && !menueOffen);
+    spieler.schritt(dt, welt, fenster,
+                    fenster.mausGefangen() && !menueOffen && !koopSchirm.offen());
     welt.umgebungPflegen(spieler.fuesse(), radius, 3, 2);
+    koopSchritt(dt);
     jon.schritt(dt, welt, spieler.fuesse(), spieler.gierung());
     if (jon.hatGesetzt() && tonAn) ton.ereignis(Klang::Ernte, 0.35f);
     ziel = welt.strahl(spieler.auge(), spieler.blick(), 6.5f);
@@ -387,6 +435,7 @@ void Spiel::bildBauen() {
     maler.textur(0);
 
     jon.zeichnen(maler, zeit);
+    koopZeichnen();
 
     if (perle.fliegt) {
         maler.modell(verschiebung(perle.ort));
@@ -556,7 +605,72 @@ void Spiel::anzeige() {
         schrift.textMittig(breite * 0.5f, hoehe * 0.5f + 46.0f, text, tinte, 0.9f);
     }
 
+    koopSchirm.randzeile(schrift, koop, fenster.breite(), fenster.hoehe());
+    koopSchirm.zeichnen(schrift, koop, fenster.breite(), fenster.hoehe());
     schrift.beenden();
+}
+
+void Spiel::koopSchritt(float dt) {
+    fw::KoopZustand zustand;
+    zustand.ort = spieler.fuesse();
+    zustand.gierung = spieler.gierung();
+    zustand.neigung = spieler.neigung();
+    koop.eigenerZustand(zustand);
+    koop.schritt(dt);
+    koop.freundeBewegen(dt);
+
+    if (koop.spielt() && koop.saat() != 0 && koop.saat() != koopSaat) {
+        koopSaat = koop.saat();
+        if (static_cast<unsigned>(koopSaat) != welt.saat()) {
+            welt.beginnen(static_cast<unsigned>(koopSaat));
+            welt.umgebungPflegen(spieler.fuesse(), 2, 128, 0);
+            meldungSetzen("Welt des Gastgebers geladen", 3.0f);
+        }
+    }
+    if (koop.startpunktFrisch()) {
+        Vec3 punkt = koop.startpunkt();
+        welt.umgebungPflegen(punkt, 2, 128, 0);
+        int boden = welt.hoeheBei(static_cast<int>(std::floor(punkt.x)),
+                                  static_cast<int>(std::floor(punkt.z)));
+        if (punkt.y < static_cast<float>(boden)) punkt.y = static_cast<float>(boden + 2);
+        spieler.setzen(punkt);
+    }
+
+    int bx = 0;
+    int by = 0;
+    int bz = 0;
+    int block = 0;
+    while (koop.blockHolen(bx, by, bz, block)) {
+        if (block >= 0 && block < BLOCK_ANZAHL) welt.setzeBlock(bx, by, bz, static_cast<unsigned char>(block));
+    }
+    std::string zeile;
+    while (koop.spruchHolen(zeile)) meldungSetzen(zeile, 4.0f);
+    if (start.koopStarten && koop.stand() == KOOP_LOBBY && koop.gastgeber() &&
+        koop.spielerzahl() >= 2) {
+        koop.startBitten();
+    }
+    static int letzterStand = -1;
+    if (koop.stand() != letzterStand) {
+        letzterStand = koop.stand();
+        notiz("Koop: Stand %d, Code %s, Spieler %d, %s", letzterStand,
+              koop.code().empty() ? "-" : koop.code().c_str(), koop.spielerzahl(),
+              koop.fehler().empty() ? koop.hinweis().c_str() : koop.fehler().c_str());
+    }
+}
+
+void Spiel::koopZeichnen() {
+    if (!koop.aktiv()) return;
+    for (const fw::KoopFreund& freund : koop.mitspieler()) {
+        if (!freund.anwesend) continue;
+        float wippen = std::fabs(std::sin(freund.schrittTakt)) * 0.06f;
+        Mat4 modell = verschiebung(freund.zeigeOrt + Vec3(0.0f, wippen, 0.0f)) *
+                      drehungY(freund.zeigeGierung);
+        maler.modell(modell);
+        maler.toenung(Vec3(1.0f, 0.94f, 0.9f));
+        maler.zeichnen(freundNetz);
+        maler.toenung(Vec3(1.0f, 1.0f, 1.0f));
+    }
+    maler.modell(einheit());
 }
 
 void Spiel::laufen() {

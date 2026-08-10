@@ -150,6 +150,15 @@ void Volk::erstellen(const Welt& welt, unsigned saat, int anzahl) {
         bauer.scheibe(Vec3(0.0f, 0.0f, 0.0f), 1.0f, Vec3(0.16f, 0.14f, 0.2f), 18);
         schatten.hochladen(bauer);
     }
+    {
+        Bauer bauer;
+        bauer.kugel(Vec3(0.0f, 0.12f, 0.0f), Vec3(0.3f, 0.34f, 0.3f), Vec3(1.0f, 1.0f, 1.0f), 8, 11,
+                    0.25f);
+        bauer.roehre(Vec3(0.0f, -0.34f, 0.0f), 0.0f, 0.16f, 0.34f, Vec3(1.0f, 1.0f, 1.0f), 8, 0.25f);
+        bauer.kugel(Vec3(-0.1f, 0.24f, -0.2f), Vec3(0.07f, 0.07f, 0.05f), Vec3(2.2f, 2.2f, 2.2f), 5,
+                    7, 0.5f);
+        zeiger.hochladen(bauer);
+    }
 
     volk.clear();
     begleiter.clear();
@@ -164,6 +173,7 @@ void Volk::erstellen(const Welt& welt, unsigned saat, int anzahl) {
         person.tempo = wuerfel.bereich(1.15f, 1.95f);
         person.takt = wuerfel.bereich(0.0f, TAU);
         person.warten = wuerfel.bereich(0.0f, 3.0f);
+        person.wunschUhr = wuerfel.bereich(4.0f, 150.0f);
         person.unterwegsNach = person.heimat;
         volk.push_back(person);
     }
@@ -183,6 +193,47 @@ void Volk::freigeben() {
     for (Netz& netz : begleiterNetze) netz.freigeben();
     brett.freigeben();
     schatten.freigeben();
+    zeiger.freigeben();
+}
+
+int Volk::wuenscheZaehlen() const {
+    int summe = 0;
+    for (const Bewohner& person : volk) {
+        if (person.wunsch != Gabe::Keine) summe += 1;
+    }
+    return summe;
+}
+
+Bewohner* Volk::naechsterBewohner(Vec3 ort, float weite) {
+    Bewohner* beste = nullptr;
+    float besteWeite = weite;
+    for (Bewohner& person : volk) {
+        Vec3 nach = person.ort - ort;
+        nach.y = 0.0f;
+        float abstand = laenge(nach);
+        if (abstand < besteWeite) {
+            besteWeite = abstand;
+            beste = &person;
+        }
+    }
+    return beste;
+}
+
+void Volk::wunschErfuellen(Bewohner& person) {
+    person.wunsch = Gabe::Keine;
+    person.wunschUhr = wuerfel.bereich(40.0f, 90.0f);
+    person.beschenkt = true;
+    person.jubel = 1.0f;
+    person.warten = 1.4f;
+}
+
+void Volk::feiernLassen(Vec3 sammelpunkt) {
+    festLaeuft = true;
+    festOrt = sammelpunkt;
+    for (Bewohner& person : volk) {
+        person.laune = Laune::Jubeln;
+        person.warten = 0.0f;
+    }
 }
 
 Vec3 Volk::zufallszielAuf(const Welt& welt, Bezirk bezirk, unsigned& streuer) const {
@@ -235,9 +286,47 @@ void Volk::neuesZiel(Bewohner& person, const Welt& welt) {
 void Volk::aktualisieren(float dt, const Welt& welt, Vec3 spieler, bool feiern) {
     if (feiern) feierZeit = 4.0f;
     if (feierZeit > 0.0f) feierZeit -= dt;
+    if (festLaeuft) {
+        for (Bewohner& person : volk) {
+            Vec3 nach = festOrt - person.ort;
+            nach.y = 0.0f;
+            float weite = laenge(nach);
+            person.takt += dt * 2.0f;
+            if (weite > 7.0f) {
+                Vec3 schritt = nach * (1.0f / weite) * (person.tempo * 1.3f * dt);
+                Vec3 versuch = person.ort + schritt;
+                float boden = welt.bodenBei(versuch.x, versuch.z);
+                if (boden > 0.05f) {
+                    versuch.y = boden;
+                    person.ort = versuch;
+                }
+                person.richtung += winkelDifferenz(person.richtung, std::atan2(nach.x, nach.z)) *
+                                   klemme(dt * 6.0f, 0.0f, 1.0f);
+                person.jubel = 0.0f;
+            } else {
+                person.jubel = 1.0f;
+            }
+        }
+        for (Begleiter& tier : begleiter) {
+            if (tier.folgt < 0 || tier.folgt >= static_cast<int>(volk.size())) continue;
+            const Bewohner& herrchen = volk[tier.folgt];
+            tier.ort = mische(tier.ort, herrchen.ort, klemme(dt * 2.0f, 0.0f, 1.0f));
+            tier.ort.y = welt.bodenBei(tier.ort.x, tier.ort.z);
+            tier.takt += dt * 6.0f;
+        }
+        return;
+    }
 
     for (Bewohner& person : volk) {
         person.takt += dt * (1.4f + person.tempo * 0.5f);
+        if (person.wunsch == Gabe::Keine) {
+            person.wunschUhr -= dt;
+            if (person.wunschUhr <= 0.0f) {
+                const Gabe gaben[3] = {Gabe::Korn, Gabe::Stein, Gabe::Brett};
+                person.wunsch = gaben[wuerfel.ganz(0, 3)];
+                person.wunschUhr = 0.0f;
+            }
+        }
         if (feierZeit > 0.0f) {
             person.jubel = klemme(person.jubel + dt * 3.0f, 0.0f, 1.0f);
         } else {
@@ -346,6 +435,21 @@ void Volk::zeichnenLeute(Maler& maler, float zeit) {
                       drehungZ(wippen * 0.05f);
         maler.modell(modell);
         maler.zeichnen(gestalten[person.gestalt % 6].netz);
+        if (person.wunsch != Gabe::Keine && person.jubel < 0.5f) {
+            Vec3 farbe = person.wunsch == Gabe::Korn
+                             ? FARBE_KORN
+                             : (person.wunsch == Gabe::Stein ? FARBE_FELS_HELL : FARBE_HOLZ_HELL);
+            float schweben = std::sin(zeit * 2.4f + person.takt) * 0.09f;
+            Mat4 blase = verschiebung(person.ort +
+                                      Vec3(0.0f, 2.35f * FIGUR_MASS + hub + schweben, 0.0f)) *
+                         drehungY(zeit * 0.8f);
+            maler.modell(blase);
+            maler.toenung(farbe);
+            maler.leuchten(0.12f);
+            maler.zeichnen(zeiger);
+            maler.leuchten(0.0f);
+            maler.toenung(Vec3(1.0f, 1.0f, 1.0f));
+        }
         if (person.traegtBrett) {
             Mat4 last = verschiebung(person.ort +
                                      Vec3(0.0f, 1.02f * FIGUR_MASS + hub + sprung, 0.0f)) *

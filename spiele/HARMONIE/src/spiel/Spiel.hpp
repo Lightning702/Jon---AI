@@ -7,6 +7,8 @@
 #include "Partikel.hpp"
 #include "Welt.hpp"
 #include "fw/Fenster.hpp"
+#include "fw/Koop.hpp"
+#include "fw/KoopSchirm.hpp"
 #include "fw/Maler.hpp"
 #include "fw/Schrift.hpp"
 #include "fw/Ton.hpp"
@@ -28,6 +30,7 @@ struct Startwerte {
     float ortX = 0.0f;
     float ortZ = 0.0f;
     std::string bilddatei;
+    std::string koopWunsch;
 };
 
 class Spiel {
@@ -48,6 +51,10 @@ private:
     void sammeln();
     void abliefern();
     void gruessen();
+    void schenken();
+    void auftragLesen();
+    void koopSchritt(float dt);
+    void koopZeichnen();
     Vec3 kameraBlick() const;
     Vec3 kameraRechts() const;
 
@@ -61,6 +68,8 @@ private:
     Funken funken;
     fw::Netz spielerNetz;
     fw::Netz gabenNetz[3];
+    fw::Koop koop;
+    fw::KoopSchirm koopSchirm;
 
     Startwerte start;
     Vec3 spielerOrt;
@@ -85,6 +94,12 @@ private:
     int getragenZahl = 0;
     int fortschritt = 0;
     int stufeErreicht = 0;
+    int stufeGebracht = 0;
+    int herzen = 0;
+    Gabe stufeGabe = Gabe::Korn;
+    int stufeBedarf = 3;
+    float festUhr = 0.0f;
+    bool fest = false;
     int qualitaet = 2;
     int bildZaehler = 0;
     bool uebersicht = false;

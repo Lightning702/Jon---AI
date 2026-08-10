@@ -1,7 +1,7 @@
 {
   "sammlung": "FelWorks Game Collection",
   "herausgeber": "FelWorks",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "bauen": "build.bat",
   "spiele": [
     {
@@ -9,13 +9,13 @@
       "titel": "Harmonische Inseln",
       "genre": "Cozy Aufbauspiel",
       "icon": "🏝️",
-      "kurz": "Vier Inseln, ein Leuchtturm, kein Zeitdruck.",
-      "beschreibung": "Ein schwebendes Archipel in der Abendsonne, von oben in echter 2.5D-Schrägsicht. Von der Herzinsel mit Markt, Werkstatt und Gildenhalle führen Holzbrücken zur Farm, zur Steinmutter und zur Werft. Sammle Korn, Stein und Bretter und bring sie zum unfertigen Leuchtturm — er wächst in sechs Stufen, bis sein Licht brennt. Die Bewohner leben ihr eigenes Leben: sie wandern über die Brücken, tragen selbst Bretter zur Baustelle, spielen mit ihren Haustieren und jubeln mit, wenn der Turm wächst. Alpakas, Schafe und Capybaras grasen, Blätter treiben im Wind, über dem Berg steht ein Regenbogen. In C++ ohne Engine geschrieben, Gelände, Häuser, Figuren und Klänge entstehen zur Laufzeit.",
-      "steuerung": "WASD laufen · Shift rennen · Leertaste hüpfen · E sammeln und abgeben · F grüßen · Q und R Kamera drehen · Pfeile oben/unten Neigung · Mausrad Zoom · Tab Übersicht · H Anzeige aus · F5/F6 Grafik · F11 Vollbild · P Bild · Esc beenden",
+      "kurz": "Vier Inseln, ein Leuchtturm, gemeinsam oder allein.",
+      "beschreibung": "Ein schwebendes Archipel in der Abendsonne, von oben in echter 2.5D-Schrägsicht. Der Leuchtturm auf der Werft ist unfertig, und er sagt dir, was ihm fehlt: mal drei Korn von der Farm, mal Stein aus dem Berg, mal Bretter aus der Werkstatt. Sechs Stufen später brennt sein Licht, alle Bewohner kommen zusammen und es wird gefeiert. Nebenbei haben die Bewohner Wünsche — über ihrem Kopf schwebt, was sie sich wünschen. Wer schenkt, bekommt ein Herz. Die Bewohner leben ihr eigenes Leben: sie wandern über die Brücken, tragen selbst Bretter zur Baustelle und spielen mit ihren Haustieren. Zu zweit geht es auch: Freundschaftscode teilen, dann sammelt und baut ihr gemeinsam. In C++ ohne Engine geschrieben.",
+      "steuerung": "WASD laufen · Shift rennen · Leertaste hüpfen · E sammeln und abgeben · F schenken und grüßen · K zusammen spielen · Q und R Kamera drehen · Pfeile Neigung · Mausrad Zoom · Tab Übersicht · H Anzeige · F5/F6 Grafik · F11 Vollbild · P Bild · Esc beenden",
       "vorschau": "vorschau/harmonie.jpg",
       "exe": "bin/HARMONIE.exe",
       "args": [],
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ]
 }

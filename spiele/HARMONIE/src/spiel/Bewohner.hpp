@@ -34,6 +34,9 @@ struct Bewohner {
     int wegPunkt = 0;
     bool traegtBrett = false;
     float jubel = 0.0f;
+    Gabe wunsch = Gabe::Keine;
+    float wunschUhr = 0.0f;
+    bool beschenkt = false;
 };
 
 struct Begleiter {
@@ -55,9 +58,14 @@ public:
     void zeichnenSchatten(fw::Maler& maler, const Welt& welt);
 
     int lieferungenAbholen();
+    int wuenscheZaehlen() const;
+    Bewohner* naechsterBewohner(Vec3 ort, float weite);
+    void wunschErfuellen(Bewohner& person);
+    void feiernLassen(Vec3 sammelpunkt);
     const std::vector<Bewohner>& leute() const { return volk; }
     const fw::Netz& gestaltNetz(int index) const { return gestalten[index % 6].netz; }
     const fw::Netz& brettNetz() const { return brett; }
+    const fw::Netz& gabenzeiger() const { return zeiger; }
     const fw::Netz& schattenNetz() const { return schatten; }
     Vec3 gestaltKleid(int index) const { return gestalten[index % 6].kleid; }
 
@@ -75,9 +83,12 @@ private:
     fw::Netz begleiterNetze[2];
     fw::Netz brett;
     fw::Netz schatten;
+    fw::Netz zeiger;
     fw::Zufall wuerfel;
     int offeneLieferungen = 0;
     float feierZeit = 0.0f;
+    bool festLaeuft = false;
+    Vec3 festOrt;
 };
 
 }

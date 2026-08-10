@@ -1,9 +1,20 @@
 # Harmonische Inseln — Vereinte Inseln
 
 Ein ruhiges Aufbauspiel in isometrischer Schrägsicht. Vier schwebende Inseln liegen in der
-Abendsonne, verbunden durch Holzbrücken. Auf der Werft steht ein unfertiger Leuchtturm — jede
-Gabe, die du oder die Bewohner dorthin bringen, lässt ihn ein Stück wachsen. Nach sechs Stufen
-brennt sein Licht, und die Inseln sind vereint.
+Abendsonne, verbunden durch Holzbrücken.
+
+**Worum es geht:** Auf der Werft steht ein unfertiger Leuchtturm, und er sagt dir, was ihm
+fehlt — mal drei Korn von der Farm, mal Stein aus dem Berg, mal Bretter aus der Werkstatt. Die
+Anzeige oben nennt immer den nächsten Auftrag. Was du bringst, zählt; das Gewünschte zählt
+doppelt. Nach sechs Stufen brennt das Licht, alle Bewohner kommen an der Werft zusammen und es
+wird gefeiert.
+
+**Nebenbei:** Über dem Kopf mancher Bewohner schwebt ein Wunsch. Hast du das Passende dabei,
+schenkst du es mit **F** — das gibt ein Herz. Die Herzen stehen am Ende unter dem Abspann.
+
+**Zu zweit:** **K** öffnet die Koop-Anzeige. Einer erstellt ein Spiel und gibt den
+Freundschaftscode weiter, der andere tippt ihn ein. Ihr lauft in derselben Welt, seht euch
+gegenseitig, und was einer abliefert, zählt für beide.
 
 Geschrieben in C++20 ohne Spiel-Engine und ohne Fremdbibliotheken. Fenster, OpenGL-Anbindung,
 Mathematik, Netzbau, Schriftatlas und Ton liegen in `../felwerk` und werden mit BLOCKWELT geteilt.
@@ -26,7 +37,8 @@ Am einfachsten über Jons Spiele-Tab. Direkt geht auch `bin\HARMONIE.exe`.
 | WASD | Laufen, Shift rennt |
 | Leertaste | Hüpfen |
 | E | Sammeln, am Leuchtturm abgeben |
-| F | Bewohner grüßen |
+| F | Schenken und grüßen |
+| K | Zusammen spielen (Koop) |
 | Q / R oder Pfeile links/rechts | Kamera drehen |
 | Pfeile oben/unten | Kamera neigen |
 | Mausrad | Näher und weiter |
