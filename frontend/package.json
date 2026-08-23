@@ -76,6 +76,17 @@
           "!bin/*.log",
           "vorschau/**/*"
         ]
+      },
+      {
+        "from": "../spiele/HARMONIE",
+        "to": "HARMONIE",
+        "filter": [
+          "jon-spiele.json",
+          "README.md",
+          "bin/**/*",
+          "!bin/*.log",
+          "vorschau/**/*"
+        ]
       }
     ],
     "directories": {

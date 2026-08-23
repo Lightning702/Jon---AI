@@ -1,22 +1,51 @@
 {
   "appId": "io.jon.desktop",
   "productName": "Jon",
-  "files": ["dist/**/*", "electron/**/*"],
+  "files": [
+    "dist/**/*",
+    "electron/**/*"
+  ],
   "extraResources": [
     {
       "from": "../backend/dist/jon-backend",
       "to": "jon-backend",
-      "filter": ["**/*"]
+      "filter": [
+        "**/*"
+      ]
     },
     {
       "from": "../ECHO",
       "to": "ECHO",
-      "filter": ["jon-spiele.json", "README.md", "bin/**/*", "shaders/**/*", "vorschau/**/*"]
+      "filter": [
+        "jon-spiele.json",
+        "README.md",
+        "bin/**/*",
+        "shaders/**/*",
+        "vorschau/**/*"
+      ]
     },
     {
       "from": "../spiele/STARFALL",
       "to": "STARFALL",
-      "filter": ["jon-spiele.json", "README.md", "docs/**/*", "bin/**/*", "!bin/*.log", "vorschau/**/*"]
+      "filter": [
+        "jon-spiele.json",
+        "README.md",
+        "docs/**/*",
+        "bin/**/*",
+        "!bin/*.log",
+        "vorschau/**/*"
+      ]
+    },
+    {
+      "from": "../spiele/HARMONIE",
+      "to": "HARMONIE",
+      "filter": [
+        "jon-spiele.json",
+        "README.md",
+        "bin/**/*",
+        "!bin/*.log",
+        "vorschau/**/*"
+      ]
     }
   ],
   "directories": {
@@ -25,7 +54,9 @@
   "win": {
     "target": "nsis",
     "icon": "electron/icon.ico",
-    "signtoolOptions": { "publisherName": "FelWorks" }
+    "signtoolOptions": {
+      "publisherName": "FelWorks"
+    }
   },
   "nsis": {
     "artifactName": "Jon-Setup.exe",
