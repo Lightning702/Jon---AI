@@ -24,6 +24,10 @@ _engine = create_engine(
 SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False)
 
 
+def dispose_engine() -> None:
+    _engine.dispose()
+
+
 def _migrate_columns() -> None:
     from sqlalchemy import inspect, text
 

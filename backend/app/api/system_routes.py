@@ -255,6 +255,11 @@ async def idle() -> dict:
     return {"seconds": _service.idle_seconds()}
 
 
+class UninstallIn(BaseModel):
+    bestaetigung: str
+    programm_entfernen: bool = True
+
+
 class AutostartIn(BaseModel):
     enabled: bool
 
@@ -294,6 +299,29 @@ async def _exit_soon(delay: float) -> None:
     await asyncio.sleep(delay)
     print("Jon-App hat das Herunterfahren angefordert", flush=True)
     os._exit(0)
+
+
+@router.get("/uninstall/plan")
+async def uninstall_plan() -> dict:
+    from app.services.uninstall_service import plan
+
+    return await asyncio.to_thread(plan)
+
+
+@router.post("/uninstall")
+async def uninstall(payload: UninstallIn) -> dict:
+    from app.services.uninstall_service import ausfuehren
+
+    try:
+        ergebnis = await asyncio.to_thread(
+            ausfuehren, payload.bestaetigung, payload.programm_entfernen
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    asyncio.create_task(_exit_soon(1.2))
+    return ergebnis
 
 
 @router.post("/shutdown")

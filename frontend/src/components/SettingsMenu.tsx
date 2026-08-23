@@ -17,6 +17,7 @@ import { setNaturalVoice } from "../lib/tts";
 import { Theme, applyTheme, readTheme } from "../lib/theme";
 import { useT } from "../hooks/useT";
 import ConnectionsModal from "./ConnectionsModal";
+import UninstallModal from "./UninstallModal";
 import OllamaModal from "./OllamaModal";
 
 interface Choice {
@@ -111,6 +112,7 @@ export default function SettingsMenu({
 }) {
   const { lang, setLang } = useT();
   const [open, setOpen] = useState(false);
+  const [uninstallOpen, setUninstallOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [personality, setPersonality] = useState(true);
   const [failover, setFailover] = useState(true);
@@ -679,6 +681,19 @@ export default function SettingsMenu({
               </span>
               <span className="text-gold/70 text-[12px]">›</span>
             </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                setUninstallOpen(true);
+              }}
+              title="Löscht alle Daten von Jon und entfernt das Programm."
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 transition-colors"
+            >
+              <span className="text-[11px] text-red-300/90">
+                🗑️ Jon deinstallieren …
+              </span>
+              <span className="text-red-300/60 text-[12px]">›</span>
+            </button>
           </div>
         </>
       )}
@@ -687,6 +702,9 @@ export default function SettingsMenu({
           settings={connections}
           onClose={() => setConnections(null)}
         />
+      )}
+      {uninstallOpen && (
+        <UninstallModal onClose={() => setUninstallOpen(false)} />
       )}
       {ollamaOpen && (
         <OllamaModal

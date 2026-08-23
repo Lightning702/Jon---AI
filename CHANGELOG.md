@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [Unveröffentlicht]
+
+### 🗑️ Jon deinstallieren
+
+Im Zahnrad-Menü ganz unten: **Jon deinstallieren**. Der Dialog zeigt zuerst genau, was
+verschwinden würde — Ordner, Dateizahl und Größe — bevor irgendetwas passiert.
+
+- Gelöscht werden Jons Datenordner (Unterhaltungen, Gedächtnis, Einstellungen,
+  Wissensbasis, Tresor, Kalender, Freunde, Schlüssel) und die `.env` mit den API-Schlüsseln.
+- Der Autostart-Eintrag wird entfernt.
+- Auf Wunsch startet danach der Windows-Deinstallierer und entfernt das Programm.
+- Läuft Jon aus dem Quellordner, bleibt dieser stehen — der Dialog sagt das ausdrücklich.
+- Der Knopf bleibt gesperrt, bis `JON LOESCHEN` eingetippt wurde. Systempfade wie das
+  Benutzerverzeichnis werden grundsätzlich abgelehnt, auch wenn sie eingetragen würden.
+
 ## [4.34.5] — 2026-08-23
 
 ### 📍 Freunde auf der Karte
