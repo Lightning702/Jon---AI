@@ -152,72 +152,6 @@ export default function LayerSheet({
         ))}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {ENTRIES.map((entry) => {
-          const usable = available[entry.id] !== false;
-          const on = Boolean(layers[entry.id]);
-          return (
-            <button
-              key={entry.id}
-              className="jm-row"
-              data-active={on}
-              disabled={!usable}
-              onClick={() => usable && onToggle(entry.id)}
-              style={{ opacity: usable ? 1 : 0.4 }}
-              title={usable ? entry.hint : `${entry.hint} — nicht verfügbar`}
-            >
-              <span style={{ fontSize: 15, width: 22, textAlign: "center" }}>
-                {entry.icon}
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 13, fontWeight: 550 }}>
-                  {entry.label}
-                </span>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: 11,
-                    color: "var(--jm-text-faint)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {entry.hint}
-                </span>
-              </span>
-              <span
-                style={{
-                  width: 34,
-                  height: 19,
-                  borderRadius: 999,
-                  background: on
-                    ? "rgb(var(--jm-gold) / 0.8)"
-                    : "var(--jm-field-hover)",
-                  position: "relative",
-                  transition: "background 0.3s var(--jm-ease)",
-                  flex: "0 0 auto",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    left: on ? 17 : 2,
-                    width: 15,
-                    height: 15,
-                    borderRadius: "50%",
-                    background: "#fff",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
-                    transition: "left 0.32s cubic-bezier(0.34,1.56,0.64,1)",
-                  }}
-                />
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       <div
         style={{ height: 1, background: "var(--jm-hairline)", margin: "12px 0" }}
       />
@@ -453,6 +387,72 @@ export default function LayerSheet({
       <div
         style={{ height: 1, background: "var(--jm-hairline)", margin: "0 0 12px" }}
       />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {ENTRIES.map((entry) => {
+          const usable = available[entry.id] !== false;
+          const on = Boolean(layers[entry.id]);
+          return (
+            <button
+              key={entry.id}
+              className="jm-row"
+              data-active={on}
+              disabled={!usable}
+              onClick={() => usable && onToggle(entry.id)}
+              style={{ opacity: usable ? 1 : 0.4 }}
+              title={usable ? entry.hint : `${entry.hint} — nicht verfügbar`}
+            >
+              <span style={{ fontSize: 15, width: 22, textAlign: "center" }}>
+                {entry.icon}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 13, fontWeight: 550 }}>
+                  {entry.label}
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    color: "var(--jm-text-faint)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {entry.hint}
+                </span>
+              </span>
+              <span
+                style={{
+                  width: 34,
+                  height: 19,
+                  borderRadius: 999,
+                  background: on
+                    ? "rgb(var(--jm-gold) / 0.8)"
+                    : "var(--jm-field-hover)",
+                  position: "relative",
+                  transition: "background 0.3s var(--jm-ease)",
+                  flex: "0 0 auto",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: on ? 17 : 2,
+                    width: 15,
+                    height: 15,
+                    borderRadius: "50%",
+                    background: "#fff",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                    transition: "left 0.32s cubic-bezier(0.34,1.56,0.64,1)",
+                  }}
+                />
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       <button
         className="jm-row"
