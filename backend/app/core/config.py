@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.34.2"
+    app_version: str = "4.34.5"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = "*"
@@ -107,6 +107,43 @@ class Settings(BaseSettings):
     groq_base_url: str = "https://api.groq.com/openai/v1"
     together_base_url: str = "https://api.together.xyz/v1"
     xai_base_url: str = "https://api.x.ai/v1"
+
+    maps_geocoder: str = "nominatim"
+    maps_places: str = "overpass"
+    maps_router: str = "osrm"
+    maps_transit: str = "transitous"
+    maps_street: str = "kartaview"
+    maps_style_dark: str = "https://tiles.openfreemap.org/styles/positron"
+    maps_style_light: str = "https://tiles.openfreemap.org/styles/bright"
+    maps_tiles_satellite: str = (
+        "https://server.arcgisonline.com/ArcGIS/rest/services/"
+        "World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    )
+    maps_terrain_tiles: str = (
+        "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
+    )
+    maps_transit_tiles: str = "https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png"
+    maps_bike_tiles: str = (
+        "https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
+    )
+    maps_traffic_tiles: str = ""
+    maps_home_lat: float = 51.1657
+    maps_home_lon: float = 10.4515
+    maps_home_zoom: float = 5.2
+    maps_user_agent: str = "JonDesktop/4.34 (+https://github.com/Lightning702/Jon)"
+    nominatim_base_url: str = "https://nominatim.openstreetmap.org"
+    overpass_base_url: str = "https://overpass-api.de/api/interpreter"
+    osrm_base_url: str = "https://router.project-osrm.org"
+    osrm_profiles: str = "auto"
+    valhalla_base_url: str = "https://valhalla1.openstreetmap.de"
+    transitous_base_url: str = "https://api.transitous.org"
+    kartaview_base_url: str = "https://api.openstreetcam.org"
+    mapillary_token: str | None = None
+
+    research_sources_per_topic: int = 6
+    research_max_subtopics: int = 14
+    research_page_chars: int = 14000
+    research_default_minutes: int = 45
 
     request_timeout: float = 90.0
     first_token_timeout: float = 10.0

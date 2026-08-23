@@ -33,6 +33,7 @@ class StreamChunk:
     name: str | None = None
     ok: bool | None = None
     args: dict[str, Any] | None = None
+    result: str | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
 

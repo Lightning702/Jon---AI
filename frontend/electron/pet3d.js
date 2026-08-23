@@ -360,6 +360,7 @@
       mouth: 0,
       eyes: 1,
       sleep: false,
+      cheeks: false,
       facing: 1,
       spin: 0,
       time: 0,
@@ -392,6 +393,26 @@
       let m = identity();
       for (const op of ops) m = multiply(m, op);
       return m;
+    }
+
+    const BLUSH = [0.98, 0.55, 0.62];
+
+    function wangen(parts, y, z, weite, groesse, staerke) {
+      if (!state.cheeks) return;
+      for (const sx of [-1, 1]) {
+        parts.push(
+          part(
+            meshes.sphere,
+            BLUSH,
+            [
+              translation(sx * weite, y, z),
+              scaling(groesse, groesse * 0.72, groesse * 0.45),
+            ],
+            0.12,
+            staerke
+          )
+        );
+      }
     }
 
     function jonParts() {
@@ -466,6 +487,7 @@
           );
         }
       }
+      wangen(parts, -0.06, 0.86, 0.52, 0.145, 0);
       return parts;
     }
 
@@ -632,6 +654,7 @@
       parts.push(
         part(meshes.sphere, PINK, [translation(0, 0.27, 0.66), scaling(0.065, 0.048, 0.055)], 0.85, 0.2)
       );
+      wangen(parts, 0.28, 0.56, 0.34, 0.125, 1);
       return parts;
     }
 
@@ -705,6 +728,7 @@
         );
         augenPaar(parts, sx, 0.48, 0.6, lid, [0.42, 0.26, 0.14], 0.22);
       }
+      wangen(parts, 0.31, 0.55, 0.36, 0.135, 1);
       return parts;
     }
 
@@ -786,6 +810,9 @@
       },
       setSleep(value) {
         state.sleep = value === true;
+      },
+      setCheeks(value) {
+        state.cheeks = value === true;
       },
       setFacing(value) {
         state.facing = value < 0 ? -1 : 1;

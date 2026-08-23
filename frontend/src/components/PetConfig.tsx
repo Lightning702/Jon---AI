@@ -18,6 +18,7 @@ interface Jon3DView {
     light?: boolean;
     cozy?: boolean;
   }) => void;
+  setCheeks?: (value: boolean) => void;
   start: () => void;
   stop: () => void;
 }
@@ -132,6 +133,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
     const view = viewRef.current;
     if (!view) return;
     view.setKind(preview);
+    view.setCheeks?.(cfg.pet_cheeks === true);
     view.setColors({
       accent: schaufarbe(cfg.pet_accent),
       face: cfg.pet_face,
@@ -140,7 +142,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
     });
     view.start();
     return () => view.stop();
-  }, [cfg.pet_3d, cfg.pet_accent, cfg.pet_face, preview]);
+  }, [cfg.pet_3d, cfg.pet_accent, cfg.pet_face, cfg.pet_cheeks, preview]);
 
   const update = (patch: Partial<Cfg>) => {
     const next = { ...cfg, ...patch };

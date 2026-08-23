@@ -2,6 +2,159 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.34.5] — 2026-08-23
+
+### 📍 Freunde auf der Karte
+
+Jon Maps zeigt jetzt, wo deine Freunde sind — über Jons vorhandene, verschlüsselte
+Freundesverbindung, ohne fremden Server.
+
+- **Standort teilen ist standardmäßig aus.** Unter ▦ Ebenen → „Freunde auf der Karte"
+  schaltest du ihn ein, entweder für alle Freunde oder für einzelne. Dort steht auch, wer
+  dich gerade sehen kann, und ein Schalter nimmt es sofort wieder zurück.
+- Freunde erscheinen als Marker mit ihrem Avatar. Frische Standorte leuchten blau, ältere
+  werden blass und grau, damit du nie einen alten Punkt für den aktuellen hältst. Nach
+  30 Minuten ohne Nachricht verschwinden sie ganz.
+- Ein Klick auf einen Freund öffnet seine Karte: Entfernung, Alter der Meldung,
+  Genauigkeit, dazu Route hin, Umsehen und Nachricht schreiben.
+- Blockierst oder entfernst du jemanden, wird sein Standort sofort mitgelöscht.
+
+### 🎯 Standort auf 100 statt 150 Meter
+
+Jon fragt den Windows-Standortdienst jetzt mit hoher Genauigkeit an, nimmt mehrere
+Messungen und behält die beste. Auf Geräten mit GPS greift damit auch das GPS. Auf einem
+Desktop ohne GPS bleibt die WLAN-Ortung die physikalische Grenze — für metergenau setzt
+du deinen Standort weiter mit einem Klick auf die Kartenmitte.
+
+### 🕯️ ECHO: die Verstorbenen haben ein Modell
+
+Bisher war der Verstorbene, den man in die Leichenhalle bringt, ein unsichtbarer Punkt auf
+der Trage. Jetzt liegt dort wirklich jemand: eine Gestalt unter einem Leinentuch, mit
+Kopf, Haar, dem Tuch über Brust, Armen und Beinen und einem Zettel am Fuß. Er erscheint,
+wenn der Auftrag beginnt, und verschwindet, sobald du die Trage schiebst.
+
+### 👀 Multiplayer: Freunde schauen wieder dorthin, wo sie hinsehen
+
+In ECHO und AETHERIA drehte sich der Kopf entfernter Spieler immer zu **dir** statt in
+ihre eigene Blickrichtung — die Blickneigung wurde zwar übertragen, aber nie benutzt.
+Jetzt zeigt der Kopf genau dorthin, wo der Freund wirklich hinschaut, auch nach oben und
+unten. (In der Blockwelt war es bereits richtig.)
+
+### 🏝️ Harmonische Inseln: ein Ziel, das weitergeht
+
+- **Der Spielstand wurde nie gespeichert.** Gespeichert wurden nur Fortschritt, Ort und
+  Saat — Leuchtturmstufe und Herzen las das Spiel beim Start zwar, geschrieben hat sie
+  aber niemand. Nach jedem Beenden fing man von vorne an. Das war der eigentliche Grund,
+  warum sich das Spiel ziellos anfühlte. Jetzt bleibt alles erhalten.
+- **Nach dem Leuchtturm ist nicht Schluss.** Bisher hörte das Sammeln auf, sobald das
+  Licht brannte. Jetzt hält dieses Licht den Nebel zurück: Was du weiter zum Turm
+  bringst, drängt ihn Stück für Stück ab — und mit jedem Stück zieht **ein neuer Bewohner
+  zu**, manchmal mit Haustier. Die Anzeige zeigt, wie viele Bewohner schon da sind und
+  wie weit es bis zum nächsten Zuzug ist. Jeder Zuzug braucht etwas mehr als der letzte.
+
+### 🙂 Mini Jon und seine Tiere bekommen Wangen
+
+Die 3D-Modelle von Mini Jon, Katze und Hund haben jetzt weiche rosa Wangen, wenn du
+„Wangen" einschaltest — vorher gab es die nur in der flachen 2D-Ansicht. Der Schalter
+wirkt sofort in der Vorschau und auf dem Desktop.
+
+## [4.34.4] — 2026-08-23
+
+### 🗺️ Jon Maps — eine eigene Karten- und Navigationsplattform
+
+Jon hat jetzt seine eigene Karte. Kein eingebettetes fremdes Kartenfenster, sondern eine
+Oberfläche, die zu Jon gehört: Liquid Glass über einer Karte, die den ganzen Bildschirm
+einnimmt. Zu öffnen über 🧰 Werkzeuge → Jon Maps oder mit `/maps`.
+
+- **Liquid Glass in Hell und Dunkel.** Die Panels sind echtes Glas: 30–46 px
+  Hintergrundunschärfe, ein Lichtreflex, der beim Überfahren wandert, ein Rahmen aus
+  Farbverlauf statt einer Linie, feine innere Kanten, sehr weiche Schatten und eine
+  Rauschtextur, damit es Material bleibt und nicht Milchglas wird. Die Karte bewegt sich
+  sichtbar hinter den Flächen. Umschalten jederzeit oben rechts, der Modus wird gemerkt.
+- **Die Karte selbst.** Zoomen, schieben, drehen, neigen, 2D/3D-Schalter, 3D-Gebäude mit
+  echten Höhen aus OpenStreetMap, echtes 3D-Gelände aus Höhendaten, Satellitenbilder,
+  Fahrradnetz, ÖPNV-Netz und Fußwege als eigene Ebenen.
+- **Globus.** Weit genug herausgezoomt wird die Karte zur Kugel und beim Hineinzoomen
+  wieder flach — fließend, ohne Bruch. Auch von Hand schaltbar.
+- **Suche** nach Städten, Adressen, Straßen, Restaurants, Hotels, Bahnhöfen, Flughäfen,
+  Tankstellen, Parks und Sehenswürdigkeiten, dazu Schnellfilter für die Umgebung.
+- **Echte Routen** für 🚶 Fuß, 🚗 Auto, 🚲 Fahrrad und 🚌 Bus & Bahn — mit Dauer,
+  Entfernung, Alternativrouten, Zwischenstopps und Abbiegeanweisungen.
+- **Dein Standort, auf den Meter statt auf die Stadt.** Jon holt den echten
+  Windows-Standortdienst (auf ~150 m genau, ohne Schlüssel, ohne Cloud) und merkt sich
+  das Ergebnis dauerhaft — auch für Fragen im Chat wie „Was gibt es hier in der Nähe?".
+  Vorher wurde nur die IP geschätzt, die je nach Anbieter im falschen Bundesland oder
+  sogar im falschen Land landet. Klappt der Standortdienst nicht, setzt du deinen
+  Standort unter ▦ Ebenen mit einem Klick auf die Kartenmitte.
+- **Erde-Ansicht** 🌎 — ein Knopf schaltet Satellitenbild, echtes 3D-Gelände und
+  3D-Gebäude zusammen ein und neigt die Kamera. Über Luftbildern bekommen die Gebäude
+  helle Fassaden und neutrales Licht, damit sie plastisch wirken statt als schwarze
+  Klötze.
+- **Street Exploration.** Auf einen Punkt klicken und auf Straßenebene wechseln: echte
+  Straßenfotos, umsehen per Ziehen, vor und zurück entlang der Straße mit W und S.
+- **Jon World Explorer.** Die Welt frei erkunden als 🚶 Mensch auf Augenhöhe, 🚗 Auto auf
+  Fahrzeughöhe oder ✈️ Flugzeug mit freier Flughöhe. Eine berechnete Route lässt sich
+  abfahren.
+- **Maps im Chat.** Fragen wie „Wie lange brauche ich zu Fuß zum Bahnhof?" oder „Finde mir
+  ein Restaurant in der Nähe" beantwortet Jon mit dem neuen Tool `maps` — die interaktive
+  Karte erscheint direkt im Chat, mit Dauer, Entfernung und Alternativen.
+
+### 🧠 Jon Deep Learning — Jon arbeitet sich selbst in ein Thema ein
+
+„Jon, lerne alles über Quantenmechanik. Du hast zwei Stunden." Ab jetzt macht er das
+wirklich. Zu öffnen über 🧰 Werkzeuge → Deep Learning oder mit `/lerne`.
+
+- **Eigenständige Recherche** in Stufen: Thema analysieren, Unterthemen bilden, Plan
+  aufstellen, suchen, Quellen öffnen und lesen, Inhalte bewerten, Quellen vergleichen,
+  Widersprüche erkennen und gegenprüfen, Wissen herausziehen, speichern, Skill bauen,
+  Wissen indexieren.
+- **Zeitbudget.** Jon teilt die Zeit selbst auf die Unterthemen auf und wechselt weiter,
+  sobald eins fertig ist. Nennt man die Zeit im Satz („du hast zwei Stunden"), erkennt er
+  sie.
+- **Live im Chat**: Fortschrittsbalken, verbleibende Zeit, aktuelles Unterthema und ein
+  laufendes Protokoll, das zeigt, welche Seite gerade geöffnet, gelesen, verglichen oder
+  gespeichert wird.
+- **Wissensordner.** Das Ergebnis landet als Markdown unter `skills/<thema>/` mit
+  README.md, einer Datei je Unterthema, sources.md und skill.md. Skills dürfen jetzt
+  Ordner sein, und Jon liest einzelne Wissensdateien mit dem neuen Tool
+  `read_skill_file`.
+- **Pause, Fortsetzen, Abbrechen** jederzeit. Der Fortschritt wird laufend gespeichert;
+  nach einem Neustart lässt sich eine unterbrochene Recherche weiterführen.
+- **Verlauf** aller Recherchen mit Dauer, Quellenzahl, Dateien und Skill.
+- **Sicherer Webzugriff.** Der Recherche-Agent liest nur: kein Login, kein Kauf, keine
+  Formulare, keine ausführbaren Dateien, keine Adressen im lokalen Netz.
+
+### Dazu
+
+- Alle Kartendienste sind **kostenlos und ohne Schlüssel**: OpenFreeMap, Nominatim,
+  Overpass, OSRM, Valhalla, Transitous, KartaView, CyclOSM, ÖPNV-Karte und offene
+  Höhen- und Satellitenkacheln. Jede Ebene ist in der `.env` austauschbar.
+- Rad- und Fußwege laufen über Valhalla, weil der öffentliche OSRM-Demoserver nur das
+  Autoprofil kennt und sonst stillschweigend die Autoroute zurückgegeben hätte.
+- Karte und Deep-Learning-Ansicht werden erst geladen, wenn man sie öffnet — der Start
+  von Jon bleibt dadurch gleich schnell.
+
+## [4.34.3] — 2026-08-11
+
+### ⬇️ Downloader: ganze Amazon-Music-Playlists
+
+Bisher ging pro Amazon-Music-Link genau ein Song. Jetzt nimmt der Downloader auch
+Playlist- und Album-Links und lädt alles auf einmal.
+
+- Einen Playlist-, Album- oder geteilten Amazon-Music-Link einfügen — Jon liest die
+  komplette Trackliste mit Titel, Künstler und Länge und zeigt sie vor dem Laden an.
+- **Alle Songs als ZIP**: Jon sucht zu jedem Titel die passende Aufnahme, macht MP3s
+  daraus (320 kbps, drei Songs gleichzeitig) und packt sie durchnummeriert in eine
+  ZIP-Datei, benannt nach der Playlist.
+- Der Fortschritt zeigt „x von y Songs" und den Titel, der gerade läuft.
+- Songs, zu denen es keine Aufnahme gibt, überspringt Jon und listet sie am Ende auf,
+  statt den ganzen Download abzubrechen.
+- Amazon Music bleibt kopiergeschützt — Jon lädt nichts von Amazon, sondern benutzt die
+  öffentliche Trackliste als Einkaufszettel und holt die Aufnahmen wie bisher von YouTube.
+- Nebenbei behoben: Geteilte Links auf einen einzelnen Song (`…/albums/…?trackAsin=…`)
+  landeten beim Album statt beim Song, und der Künstlername fehlte oft. Beides kommt
+  jetzt sauber aus den Song-Daten.
+
 ## [4.34.2] — 2026-08-10
 
 ### ⬇️ Downloader: gekaufte YouTube-Filme

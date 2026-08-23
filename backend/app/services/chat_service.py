@@ -284,6 +284,32 @@ def is_slow(provider: str, model: str) -> bool:
     stamp = _slow_routes.get((provider, model), 0.0)
     return time.time() - stamp < SLOW_ROUTE_MEMORY
 
+CARD_TOOLS = {"maps": "maps", "deep_learning": "deep_learning"}
+
+
+def card_payload(name: str | None, result: str | None) -> dict | None:
+    kind = CARD_TOOLS.get(name or "")
+    if kind is None or not result:
+        return None
+    try:
+        data = json.loads(result)
+    except Exception:
+        return None
+    if not isinstance(data, dict) or data.get("error"):
+        return None
+    if kind == "deep_learning":
+        task = data.get("task")
+        if isinstance(task, dict) and task.get("id"):
+            return {"kind": kind, "data": {"id": task["id"], "task": task}}
+        active = data.get("aktiv")
+        if isinstance(active, list) and active:
+            return {"kind": kind, "data": {"id": active[0]["id"], "task": active[0]}}
+        if data.get("id"):
+            return {"kind": kind, "data": {"id": data["id"], "task": data}}
+        return None
+    return {"kind": kind, "data": data}
+
+
 TOOL_PROVIDERS = {
     "nvidia",
     "openai",
@@ -785,12 +811,16 @@ class ChatService:
                     elif chunk.kind == "tool_result":
                         if chunk.ok and chunk.name:
                             tools_used.append(chunk.name)
-                        yield {
+                        event = {
                             "type": "tool",
                             "name": chunk.name,
                             "status": "done",
                             "ok": chunk.ok,
                         }
+                        card = card_payload(chunk.name, chunk.result)
+                        if card is not None:
+                            event["card"] = card
+                        yield event
                     else:
                         if releasing:
                             content_parts.append(chunk.delta)
@@ -850,12 +880,16 @@ class ChatService:
                     ok = approved and '"error"' not in result[:200]
                     if ok:
                         tools_used.append(name)
-                    yield {
+                    done_event = {
                         "type": "tool",
                         "name": name,
                         "status": "done",
                         "ok": ok,
                     }
+                    card = card_payload(name, result)
+                    if card is not None:
+                        done_event["card"] = card
+                    yield done_event
                     request_messages.append(
                         ChatMessage(role="assistant", content=candidate)
                     )

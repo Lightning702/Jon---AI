@@ -41,7 +41,12 @@ SSE-Events: `meta`, `content`, `reasoning`, `tool` (mit `args`, `summary`, optio
 | GET | `/api/skills` | Alle Skills (Name, Titel, Größe) |
 | GET | `/api/skills/{name}` | Skill-Inhalt |
 | PUT | `/api/skills/{name}` | Skill anlegen/aktualisieren (`{content}`) |
-| DELETE | `/api/skills/{name}` | Skill löschen |
+| DELETE | `/api/skills/{name}` | Skill löschen (Datei oder Wissensordner) |
+
+Skills sind entweder eine Datei `skills/<name>.md` oder ein Wissensordner
+`skills/<name>/` mit `skill.md` als Einstieg. Bei einem Ordner liefert
+`GET /api/skills/{name}` zusätzlich `kind: "wissen"` und die Liste der
+Wissensdateien.
 
 ## Konten
 
@@ -159,6 +164,41 @@ Ohne gültiges Token antworten alle `/share/api/*`-Endpunkte mit **401**. Ein Wi
 beendet auch laufende Streams. `POST /share/api/chat` übernimmt vom Gast nur `model`,
 `messages`, `stream`, `tools` und die Sampling-Optionen; `num_ctx` und `num_predict` werden
 auf die Werte des Gastgebers gedeckelt, `keep_alive` kommt immer von ihm.
+
+## Jon Maps
+
+| Methode | Pfad | Beschreibung |
+|---------|------|--------------|
+| GET | `/api/maps/config` | Anbieter, Themes, Ebenen, Fähigkeiten, Kategorien, grober Startort |
+| GET | `/api/maps/styles/{theme}` | Fertiger MapLibre-Style (`dark` oder `light`) im Jon-Design, inklusive 3D-Gebäuden, Gelände und Overlays |
+| GET | `/api/maps/search?q=&lat=&lon=&limit=` | Orte, Adressen und Kategorien suchen |
+| GET | `/api/maps/nearby?category=&lat=&lon=&radius=&limit=` | Orte einer Kategorie in der Umgebung |
+| GET | `/api/maps/reverse?lat=&lon=` | Ort zu einem Punkt |
+| POST | `/api/maps/route` | Route berechnen: `{points:[{lat,lon}…], mode, alternatives}`, `mode` ist `fuss`, `auto`, `fahrrad` oder `oepnv` |
+| GET | `/api/maps/street?lat=&lon=&radius=&limit=` | Straßenfotos an einem Punkt; ohne Fotos kommt `modus: "render"` |
+| GET | `/api/maps/street/sequence/{id}` | Alle Bilder einer Aufnahmefahrt |
+| POST | `/api/maps/action` | Was das Tool `maps` nutzt: `{action, args}` mit `action` = `suche`, `umgebung`, `route` oder `erkunden`; liefert Treffer, Routen, Text und ein fertiges `karte`-Objekt |
+
+Die Anbieter sind über die `.env` austauschbar (`MAPS_GEOCODER`, `MAPS_PLACES`,
+`MAPS_ROUTER`, `MAPS_TRANSIT`, `MAPS_STREET` und die zugehörigen Basis-URLs). Alle
+Voreinstellungen sind kostenlos und brauchen keinen Schlüssel.
+
+## Jon Deep Learning
+
+| Methode | Pfad | Beschreibung |
+|---------|------|--------------|
+| GET | `/api/research/tasks` | Verlauf (`aufgaben`) und laufende Recherchen (`aktiv`) |
+| POST | `/api/research/start` | Recherche starten: `{topic, minutes, depth, provider?, model?}`, `depth` ist `schnell`, `normal` oder `tief` |
+| GET | `/api/research/tasks/{id}` | Vollständiger Stand: Unterthemen, Quellen, Protokoll, Dateien, Restzeit |
+| GET | `/api/research/tasks/{id}/stream` | Server-Sent Events mit dem Live-Fortschritt |
+| POST | `/api/research/tasks/{id}/control` | `{action}` = `pause`, `resume`, `stop` oder `resume_task` (nach Neustart weiterführen) |
+| GET | `/api/research/tasks/{id}/files` | Wissensdateien der Recherche |
+| GET | `/api/research/tasks/{id}/files/{name}` | Inhalt einer Wissensdatei |
+| DELETE | `/api/research/tasks/{id}` | Recherche samt Fortschritt löschen |
+
+Der Fortschritt liegt als JSON unter `<Datenordner>/research/`, das Wissen als Markdown
+unter `skills/<thema>/`. Eine unterbrochene Recherche wird beim Start des Backends auf
+`unterbrochen` gesetzt und lässt sich mit `resume_task` fortsetzen.
 
 ## Nutzung
 
@@ -294,12 +334,24 @@ Jon ruft diese Tools im Chat auf. In Klammern die Pflichtargumente.
   `sage`, `teal`, `coral`, `terracotta`, `berry`, `cherry`, `charcoal`, `gold`
 - `read_pptx(path, max_slides?)` — Text und Sprechernotizen je Folie
 
+### Karten & Navigation
+- `maps(action, query?, category?, around?, from?, to?, via?, mode?, radius?)` —
+  `action` ist `suche` (Orte und Adressen), `umgebung` (Kategorie in der Nähe),
+  `route` (Dauer, Entfernung, Alternativen) oder `erkunden` (Straßenebene).
+  Das Ergebnis enthält ein `karte`-Objekt; im Chat erscheint daraus eine interaktive Karte.
+
+### Eigenständiges Lernen
+- `deep_learning(action, topic?, minutes?, depth?, id?)` — `action` ist `start`,
+  `status`, `pause`, `weiter` oder `stop`. `start` legt eine Recherche an, die im
+  Hintergrund läuft und im Chat als Live-Panel erscheint.
+
 ### Gedächtnis & Skills
 - `remember(content)`, `recall(query?)`, `forget(query)`
 - `list_skills()`, `read_skill(name)`, `write_skill(name, content)`
+- `read_skill_file(name, file)` — eine einzelne Wissensdatei aus einem Wissensordner
 
 **Freigabe:** Ohne Rückfrage laufen nur reine Abfragen wie `get_screen_info`,
 `list_windows`, `wait`, `recall`, `system_info`, `list_processes`, `list_skills`,
-`read_skill`, `read_pptx`, `browser_read`, `browser_screenshot`, `calendar_list`,
-`calendar_search`.
+`read_skill`, `read_skill_file`, `read_pptx`, `browser_read`, `browser_screenshot`,
+`calendar_list`, `calendar_search`, `maps`, `deep_learning`.
 Alle anderen fragen im Modus „Zuerst fragen" um Erlaubnis.

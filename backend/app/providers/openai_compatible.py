@@ -391,7 +391,9 @@ class OpenAICompatibleProvider(LLMProvider):
                 except Exception as exc:
                     result = f"Fehler: {exc}"
                     ok = False
-                yield StreamChunk(kind="tool_result", name=name, ok=ok)
+                yield StreamChunk(
+                    kind="tool_result", name=name, ok=ok, result=str(result)
+                )
                 messages.append(
                     {
                         "role": "tool",

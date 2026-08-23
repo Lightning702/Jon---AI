@@ -50,6 +50,7 @@ export interface StreamEvent {
   args?: Record<string, unknown>;
   summary?: string;
   approval_id?: string;
+  card?: { kind: string; data: Record<string, unknown> };
 }
 
 export type ToolMode = "ask" | "allow";
@@ -466,6 +467,10 @@ export interface DownloadInfo {
   max_height: number;
   audio_only: boolean;
   music: boolean;
+  playlist: boolean;
+  count: number;
+  tracks: string[];
+  cut: boolean;
   url: string;
 }
 

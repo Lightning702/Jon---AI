@@ -192,6 +192,16 @@ void HumanInstance::setPose(int pose, float blendTime) {
     blendSpeed = 1.0f / std::max(blendTime, 0.05f);
 }
 
+void HumanInstance::setLook(float yawOffset, float pitch) {
+    lookForced = true;
+    targetHeadYaw = clampf(wrapAngle(yawOffset), -1.05f, 1.05f);
+    targetHeadPitch = clampf(pitch, -0.62f, 0.62f);
+}
+
+void HumanInstance::clearLook() {
+    lookForced = false;
+}
+
 void HumanInstance::update(float dt, float time, const Vec3& lookTarget, bool hasLookTarget) {
     if (!active) return;
     if (poseBlend < 1.0f) poseBlend = std::min(1.0f, poseBlend + dt * blendSpeed);
@@ -202,7 +212,8 @@ void HumanInstance::update(float dt, float time, const Vec3& lookTarget, bool ha
 
     if (currentPose == POSE_SLOW_WALK) phase += dt * walkSpeed * 1.85f;
 
-    if (hasLookTarget) {
+    if (lookForced) {
+    } else if (hasLookTarget) {
         Vec3 d = lookTarget - headPosition();
         float len = length(d);
         if (len > 1e-3f) {
@@ -218,7 +229,8 @@ void HumanInstance::update(float dt, float time, const Vec3& lookTarget, bool ha
         targetHeadPitch = (hash11(r * 91.7f) - 0.5f) * 0.25f;
     }
 
-    float lookRate = currentPose == POSE_STAND_STILL ? 0.55f : 1.1f;
+    float lookRate = lookForced ? 6.5f
+                                : (currentPose == POSE_STAND_STILL ? 0.55f : 1.1f);
     headYaw = lerpf(headYaw, targetHeadYaw, 1.0f - std::exp(-lookRate * dt));
     headPitch = lerpf(headPitch, targetHeadPitch, 1.0f - std::exp(-lookRate * dt));
 

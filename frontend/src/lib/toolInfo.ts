@@ -67,6 +67,9 @@ export const TOOL_LABELS: Record<string, string> = {
   web_search: "Web-Suche",
   http_get: "Seite abrufen",
   download_file: "Download",
+  maps: "Jon Maps",
+  deep_learning: "Deep Learning",
+  read_skill_file: "Wissensdatei",
 };
 
 export function toolLabel(name: string): string {
@@ -86,6 +89,11 @@ export function toolDetail(
   if (Array.isArray(args.keys)) return args.keys.join(" + ");
   if (typeof args.title === "string") return String(args.title);
   if (typeof args.query === "string") return String(args.query);
+  if (typeof args.topic === "string") return String(args.topic);
+  if (name === "maps" && args.action === "route")
+    return `${args.from ?? "hier"} → ${args.to ?? ""}`;
+  if (name === "maps" && typeof args.category === "string")
+    return String(args.category);
   if (name === "move_path")
     return `${args.source ?? ""} → ${args.destination ?? ""}`;
   try {

@@ -300,14 +300,17 @@ void Spiel::sammeln() {
 }
 
 void Spiel::abliefern() {
-    if (stufeErreicht >= STUFEN) return;
     Vec3 fuss = welt.leuchtturmFuss();
     Vec3 nach = fuss - spielerOrt;
     nach.y = 0.0f;
     if (laenge(nach) > 6.0f || getragenZahl == 0) return;
     int wert = 0;
     for (int i = 0; i < getragenZahl; ++i) wert += getragen[i] == stufeGabe ? 2 : 1;
-    stufeGebracht += wert;
+    if (stufeErreicht >= STUFEN) {
+        nebelGebracht += wert;
+    } else {
+        stufeGebracht += wert;
+    }
     koop.handlungSenden("signal", "liefer", static_cast<double>(wert), spielerOrt);
     getragenZahl = 0;
     for (Gabe& gabe : getragen) gabe = Gabe::Keine;
@@ -424,6 +427,23 @@ void Spiel::weltSchritt(float dt) {
         }
         speichern();
     }
+    while (stufeErreicht >= STUFEN && nebelGebracht >= nebelBedarf) {
+        nebelGebracht -= nebelBedarf;
+        nebelStufe += 1;
+        nebelBedarf = 6 + nebelStufe * 2;
+        zuzugUhr = 2.4f;
+        Vec3 ankunft = welt.leuchtturmFuss() + Vec3(6.0f, 0.0f, 6.0f);
+        volk.zuzugAufnehmen(welt, ankunft);
+        funken.streuen(Funke::Glanz, ankunft + Vec3(0.0f, 2.0f, 0.0f), 40, 1.6f);
+        if (tonAn) ton.ereignis(Klang::Glocke, 0.85f);
+        regenbogen = klemme(regenbogen + 0.12f, 0.0f, 1.9f);
+        feierBlitz = 1.2f;
+        meldung = std::string("Das Licht reicht weiter - jemand zieht zu (") +
+                  std::to_string(volk.anzahl()) + " Bewohner)";
+        meldungZeit = 5.0f;
+        speichern();
+    }
+    if (zuzugUhr > 0.0f) zuzugUhr = klemme(zuzugUhr - dt, 0.0f, 4.0f);
     if (fest) {
         festUhr += dt;
         regenbogen = klemme(regenbogen + dt * 0.2f, 0.0f, 1.6f);
@@ -701,7 +721,10 @@ void Spiel::anzeige() {
 
     std::string auftrag;
     if (fest) {
-        auftrag = "Der Leuchtturm brennt - " + std::to_string(herzen) + " Herzen geschenkt";
+        auftrag = "Der Nebel weicht: " + std::to_string(nebelGebracht) + " / " +
+                  std::to_string(nebelBedarf) + " zum naechsten Zuzug   " +
+                  std::to_string(volk.anzahl()) + " Bewohner   " +
+                  std::to_string(herzen) + " Herzen";
     } else {
         auftrag = "Der Leuchtturm braucht " + std::to_string(stufeBedarf) + " x " +
                   gabenName(stufeGabe) + "   " + std::to_string(stufeGebracht) + " / " +
@@ -711,10 +734,15 @@ void Spiel::anzeige() {
     float auftragX = breite * 0.5f - auftragBreite * 0.5f;
     tafel(auftragX, rand, auftragBreite, zeile + 14.0f);
     schrift.text(auftragX + 15.0f, rand + 7.0f, auftrag, tinte);
-    if (!fest) {
+    {
         float balken = auftragBreite - 30.0f;
-        float anteil = klemme(static_cast<float>(stufeGebracht) / static_cast<float>(stufeBedarf),
-                              0.0f, 1.0f);
+        float anteil = fest
+                           ? klemme(static_cast<float>(nebelGebracht) /
+                                        static_cast<float>(nebelBedarf),
+                                    0.0f, 1.0f)
+                           : klemme(static_cast<float>(stufeGebracht) /
+                                        static_cast<float>(stufeBedarf),
+                                    0.0f, 1.0f);
         schrift.flaeche(auftragX + 15.0f, rand + zeile + 9.0f, balken, 3.0f,
                         Farbe(0.75f, 0.7f, 0.68f, 0.35f));
         schrift.flaeche(auftragX + 15.0f, rand + zeile + 9.0f, balken * anteil, 3.0f,
@@ -805,9 +833,12 @@ void Spiel::anzeige() {
 }
 
 void Spiel::speichern() {
-    char text[256];
-    std::snprintf(text, sizeof(text), "fortschritt %d\nort %.2f %.2f\nsaat %u\n", fortschritt,
-                  spielerOrt.x, spielerOrt.z, start.saat);
+    char text[512];
+    std::snprintf(text, sizeof(text),
+                  "fortschritt %d\nstufe %d\ngebracht %d\nherzen %d\n"
+                  "nebel %d\nnebelgebracht %d\nort %.2f %.2f\nsaat %u\n",
+                  fortschritt, stufeErreicht, stufeGebracht, herzen, nebelStufe,
+                  nebelGebracht, spielerOrt.x, spielerOrt.z, start.saat);
     schreibeText(ordnerNeben("saves\\harmonie.txt"), text);
 }
 
@@ -824,6 +855,10 @@ void Spiel::laden() {
             stufeGebracht = std::atoi(sauber.c_str() + 8);
         } else if (sauber.rfind("herzen", 0) == 0) {
             herzen = std::atoi(sauber.c_str() + 6);
+        } else if (sauber.rfind("nebelgebracht", 0) == 0) {
+            nebelGebracht = std::atoi(sauber.c_str() + 13);
+        } else if (sauber.rfind("nebel", 0) == 0) {
+            nebelStufe = std::atoi(sauber.c_str() + 5);
         } else if (sauber.rfind("ort", 0) == 0) {
             std::sscanf(sauber.c_str() + 3, "%f %f", &x, &z);
         }
@@ -832,7 +867,13 @@ void Spiel::laden() {
                                             static_cast<float>(STUFEN)));
     if (stufeGebracht < 0) stufeGebracht = 0;
     if (herzen < 0) herzen = 0;
+    if (nebelStufe < 0) nebelStufe = 0;
+    if (nebelGebracht < 0) nebelGebracht = 0;
+    nebelBedarf = 6 + nebelStufe * 2;
     fest = stufeErreicht >= STUFEN;
+    if (fest) {
+        regenbogen = klemme(0.85f + static_cast<float>(nebelStufe) * 0.12f, 0.0f, 1.9f);
+    }
     auftragLesen();
     if (welt.bodenBei(x, z) > 0.1f) {
         spielerOrt = Vec3(x, welt.bodenBei(x, z), z);

@@ -1,7 +1,11 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import TypingDots from "./TypingDots";
 import { toolDetail, toolLabel } from "../lib/toolInfo";
+import type { MapsCardData } from "../lib/maps";
+
+const MapsCard = lazy(() => import("./MapsCard"));
+const DeepLearningCard = lazy(() => import("./DeepLearningCard"));
 
 export interface ToolStep {
   name: string;
@@ -16,6 +20,10 @@ export interface AttachmentChip {
   kind: string;
 }
 
+export type ChatCard =
+  | { id: string; kind: "maps"; data: MapsCardData }
+  | { id: string; kind: "deep_learning"; data: { id: string } };
+
 export interface ChatEntry {
   id: string;
   role: "user" | "assistant";
@@ -23,11 +31,22 @@ export interface ChatEntry {
   reasoning?: string;
   streaming?: boolean;
   tools?: ToolStep[];
+  cards?: ChatCard[];
   attachments?: AttachmentChip[];
   attachmentText?: string;
 }
 
-export default function MessageBubble({ entry }: { entry: ChatEntry }) {
+interface BubbleProps {
+  entry: ChatEntry;
+  onOpenMaps?: (data: MapsCardData) => void;
+  onOpenResearch?: (id: string) => void;
+}
+
+export default function MessageBubble({
+  entry,
+  onOpenMaps,
+  onOpenResearch,
+}: BubbleProps) {
   const isUser = entry.role === "user";
   const [showReasoning, setShowReasoning] = useState(false);
   const [openTool, setOpenTool] = useState<number | null>(null);
@@ -42,7 +61,11 @@ export default function MessageBubble({ entry }: { entry: ChatEntry }) {
       transition={{ duration: 0.25 }}
       className={`flex ${isUser ? "justify-end" : "justify-start"}`}
     >
-      <div className={`max-w-[76%] ${isUser ? "items-end" : "items-start"}`}>
+      <div
+        className={`${entry.cards?.length ? "max-w-[86%] w-[520px]" : "max-w-[76%]"} ${
+          isUser ? "items-end" : "items-start"
+        }`}
+      >
         <div
           className={`px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap ${
             isUser
@@ -125,6 +148,33 @@ export default function MessageBubble({ entry }: { entry: ChatEntry }) {
                 </pre>
               )}
             </div>
+          )}
+          {entry.cards && entry.cards.length > 0 && !isUser && (
+            <Suspense
+              fallback={
+                <div className="mb-2 text-[12px] text-white/40">
+                  Ansicht wird geladen …
+                </div>
+              }
+            >
+              <div className="mb-2 space-y-2">
+              {entry.cards.map((card) =>
+                card.kind === "maps" ? (
+                  <MapsCard
+                    key={card.id}
+                    data={card.data}
+                    onOpen={(data) => onOpenMaps?.(data)}
+                  />
+                ) : (
+                  <DeepLearningCard
+                    key={card.id}
+                    id={card.data.id}
+                    onOpen={(id) => onOpenResearch?.(id)}
+                  />
+                  )
+                )}
+              </div>
+            </Suspense>
           )}
           {entry.streaming && !entry.content ? (
             <span className="flex items-center gap-2">

@@ -79,6 +79,7 @@ zu zweit über einen 6-stelligen Code.
 | [🔑 Konten & Modelle](#konten--modelle) | [🧩 Skills](#skills) | [📚 Dokumentation](#dokumentation) |
 | [📱 Handy-App](#handy-app) | [🕹️ Spiele & Online-Koop](#spiele--online-koop) | [🔒 Sicherheit](#sicherheit) |
 | [🔗 Verbindungen](#verbindungen-einrichten) | [💬 Freunde-Chat](#freunde-chat-) | [💾 Backup & Updates](#backup--updates) |
+| [🗺️ Jon Maps](#-jon-maps) | [🧠 Deep Learning](#-jon-deep-learning) | |
 
 ---
 
@@ -256,7 +257,9 @@ auf Klick aufklappbar (Befehl + Erklärung + Ergebnis).
 | Maus/Tastatur | `mouse_move`, `mouse_click`, `mouse_scroll`, `keyboard_type`, `keyboard_press`, `keyboard_hotkey` |
 | Fenster | `list_windows`, `focus_window`, `wait` |
 | Gedächtnis | `remember`, `recall`, `forget` |
-| Skills | `list_skills`, `read_skill`, `write_skill` |
+| Skills | `list_skills`, `read_skill`, `read_skill_file`, `write_skill` |
+| Karten & Navigation | `maps` (Suche, Umgebung, Route, Erkunden) |
+| Eigenständiges Lernen | `deep_learning` (Start, Status, Pause, Weiter, Stop) |
 
 Standardmäßig fragt Jon vor jeder Aktion um Erlaubnis. Reine Abfragen (Systeminfo, Fenster
 auflisten, Skill lesen, Erinnerung abrufen) laufen ohne Rückfrage. Der Modus ist im
@@ -447,6 +450,89 @@ Datenbank, Medien im Ordner `p2p_media`. Löschst du einen Kontakt, verschwindet
   Nachrichten annimmt. Die Jon-API mit der PC-Steuerung bleibt nur lokal auf `127.0.0.1` —
   niemand im WLAN kann darüber deinen PC steuern
 - Beim ersten Start fragt die Windows-Firewall nach Erlaubnis für den Chat-Port
+
+---
+
+## 🗺️ Jon Maps
+
+Eine eigene Karten- und Navigationsplattform, die zu Jon gehört — kein eingebettetes
+fremdes Kartenfenster. **🧰 Werkzeuge → Jon Maps** oder `/maps`.
+
+Die Karte nimmt den ganzen Bildschirm ein, die Bedienung schwebt als Liquid-Glass-Panels
+darüber: echte Hintergrundunschärfe, wandernde Lichtreflexe, Rahmen aus Farbverlauf,
+weiche Schatten und eine feine Rauschtextur. Die Karte bleibt hinter den Flächen sichtbar
+und bewegt sich sichtbar hinter ihnen. **Dunkel** (Schwarz, Anthrazit, goldene Akzente,
+blaue Navigation) und **Hell** (Weiß, helles Grau, dunkle Schrift) sind beide vollständig
+gestaltet und jederzeit umschaltbar — oben rechts oder in den Ebenen.
+
+| Was | Wie |
+|-----|-----|
+| Suche | Städte, Länder, Straßen, Adressen, Restaurants, Hotels, Geschäfte, Sehenswürdigkeiten, Bahnhöfe, Flughäfen, Tankstellen, Parks |
+| Umgebung | Schnellfilter über der Suche — Restaurants, Cafés, Hotels, Supermärkte, Tankstellen, Bahnhöfe, Apotheken, Sehenswürdigkeiten, Parkplätze |
+| Routen | 🚶 Fuß · 🚗 Auto · 🚲 Fahrrad · 🚌 Bus & Bahn — mit Dauer, Entfernung, Alternativen, Zwischenstopps und Abbiegeanweisungen |
+| 2D / 3D | Umschalter im rechten Bedienfeld; in 3D neigen, drehen und 3D-Gebäude mit echten Höhen |
+| Ebenen | Satellit, 3D-Gebäude, Gelände-Schattierung, echtes 3D-Gelände, ÖPNV-Netz, Fahrradnetz, Fußwege |
+| Globus | Weit herauszoomen macht die Karte zur Kugel und beim Hineinzoomen wieder flach — fließend |
+| Street Exploration | Auf einen Punkt klicken, 👁️ drücken: echte Straßenfotos, umsehen per Ziehen, mit `W`/`S` die Straße entlang |
+| Erde | 🌎 schaltet Satellit, echtes 3D-Gelände und 3D-Gebäude zusammen ein und neigt die Kamera — die Google-Earth-Ansicht |
+| Mein Standort | ◎ holt den echten Windows-Standortdienst (~150 m genau, ohne Schlüssel) und merkt ihn sich dauerhaft — auch für Fragen im Chat. Geht das nicht, setzt du ihn unter ▦ Ebenen auf die Kartenmitte; erst danach schätzt Jon grob über die IP |
+| World Explorer | 🕹️ öffnet die freie Erkundung als 🚶 Mensch (Augenhöhe), 🚗 Auto (Fahrzeughöhe) oder ✈️ Flugzeug (freie Flughöhe). `W A S D` bewegen, Maus ziehen zum Umsehen, `Shift` schneller, `R`/`F` steigen und sinken. Eine berechnete Route lässt sich abfahren |
+
+**Im Chat.** Fragen wie „Wie lange brauche ich zu Fuß zum Bahnhof?", „Finde mir ein
+Restaurant in der Nähe" oder „Plane mir eine Reise nach Salzburg" beantwortet Jon mit dem
+Tool `maps` — die interaktive Karte erscheint direkt im Chat, mit Dauer, Entfernung und
+Alternativrouten. „Groß öffnen" übernimmt alles in die volle Ansicht.
+
+**Alles kostenlos, kein Schlüssel nötig.** Karten von OpenFreeMap, Suche über Nominatim,
+Orte über Overpass, Autorouten über OSRM, Fuß- und Radrouten über Valhalla, Bus und Bahn
+über Transitous, Straßenfotos von KartaView, dazu CyclOSM, ÖPNV-Karte und offene Höhen-
+und Satellitenkacheln. Jede Schicht ist über die `.env` austauschbar (siehe
+`.env.example`), damit später ein anderer Anbieter eingesetzt werden kann. Eine
+Verkehrsebene ist vorbereitet, aber ausgeschaltet — dafür gibt es keine kostenlose Quelle;
+wer eine hat, trägt sie unter `MAPS_TRAFFIC_TILES` ein.
+
+---
+
+## 🧠 Jon Deep Learning
+
+Jon arbeitet sich selbst in ein Thema ein. **🧰 Werkzeuge → Deep Learning** oder `/lerne` —
+oder einfach im Chat: „Jon, lerne alles über Quantenmechanik. Du hast zwei Stunden."
+
+Er zerlegt das Thema in Unterthemen, stellt einen Rechercheplan auf, sucht Quellen im Web,
+öffnet und liest sie, bewertet, wie brauchbar jede ist, vergleicht die Quellen
+miteinander, erkennt Widersprüche und prüft dann gezielt nach, zieht das Wissen heraus,
+schreibt es in Markdown-Dateien, baut daraus einen Skill und nimmt alles in die
+Wissensbasis auf.
+
+- **Zeitbudget.** Jon teilt die Zeit selbst auf die Unterthemen auf, arbeitet die
+  wichtigsten zuerst ab und wechselt weiter, sobald eines fertig ist. Sagst du die Zeit im
+  Satz („du hast zwei Stunden"), erkennt er sie; sonst wählst du sie im Panel.
+- **Live.** Fortschrittsbalken, verbleibende Zeit, aktuelles Unterthema und ein laufendes
+  Protokoll: welche Seite gerade geöffnet, gelesen, verglichen oder gespeichert wird und
+  wann der Skill entsteht.
+- **Pause, Fortsetzen, Abbrechen** jederzeit. Der Stand wird laufend gespeichert; nach
+  einem Neustart lässt sich eine unterbrochene Recherche weiterführen.
+- **Verlauf** aller Recherchen mit Dauer, Quellenzahl, Dateien und Skill; alte Projekte
+  lassen sich wieder öffnen und die Wissensdateien direkt lesen.
+
+Das Ergebnis liegt als Wissensordner unter `skills/<thema>/`:
+
+```
+skills/quantenmechanik/
+  README.md              Übersicht, Lesereihenfolge, offene Fragen
+  quantenzustaende.md    eine Datei je Unterthema
+  wellenfunktionen.md
+  sources.md             alle geprüften Quellen mit Bewertung
+  skill.md               der Skill: wann Jon ihn nutzt und wie er vorgeht
+```
+
+Danach kennt Jon das Thema: Der Skill taucht in seiner Skill-Liste auf, er liest einzelne
+Wissensdateien mit `read_skill_file`, und die Inhalte sind über `ask_knowledge` durchsuchbar.
+
+**Sicherer Webzugriff.** Der Recherche-Agent darf ausschließlich lesen: keine Logins, keine
+Käufe, keine Formulare, keine Nachrichten, keine ausführbaren oder gepackten Dateien und
+keine Adressen im lokalen Netz. Nicht erreichbare oder unbrauchbare Quellen überspringt er
+und nimmt die nächste.
 
 ---
 

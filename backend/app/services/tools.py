@@ -68,6 +68,9 @@ SAFE_TOOLS = {
     "calendar_list",
     "calendar_search",
     "read_pptx",
+    "maps",
+    "deep_learning",
+    "read_skill_file",
 }
 
 
@@ -118,6 +121,9 @@ CORE_TOOLS = {
     "get_weather",
     "journal",
     "remember_about_user",
+    "maps",
+    "deep_learning",
+    "read_skill_file",
 }
 
 _CHDIR_RE = re.compile(
@@ -651,6 +657,46 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Listet verfügbare Skills auf."
     if name == "read_skill":
         return f"Liest die Skill-Anleitung „{_shorten(args.get('name', ''))}“."
+    if name == "read_skill_file":
+        return (
+            f"Liest die Wissensdatei „{_shorten(args.get('file', ''))}“ aus dem Skill "
+            f"„{_shorten(args.get('name', ''))}“."
+        )
+    if name == "maps":
+        action = str(args.get("action", "suche"))
+        if action == "route":
+            start = _shorten(args.get("from", "hier"), 40)
+            ziel = _shorten(args.get("to", ""), 40)
+            modus = {
+                "fuss": "zu Fuß",
+                "auto": "mit dem Auto",
+                "fahrrad": "mit dem Fahrrad",
+                "oepnv": "mit Bus und Bahn",
+            }.get(str(args.get("mode", "auto")), "")
+            return f"Berechnet die Route {modus} von {start} nach {ziel}."
+        if action == "umgebung":
+            was = _shorten(args.get("category") or args.get("query", ""), 40)
+            wo = _shorten(args.get("around", ""), 40)
+            return f"Sucht {was} in der Nähe{f' von {wo}' if wo else ''}."
+        if action == "erkunden":
+            return f"Öffnet {_shorten(args.get('query', ''), 50)} zum Erkunden."
+        return f"Sucht auf der Karte nach: {_shorten(args.get('query', ''))}"
+    if name == "deep_learning":
+        action = str(args.get("action", "start"))
+        if action == "start":
+            minutes = args.get("minutes")
+            budget = f" ({minutes} Minuten)" if minutes else ""
+            return (
+                f"Startet eine Tiefenrecherche über "
+                f"„{_shorten(args.get('topic', ''))}“{budget}."
+            )
+        if action == "status":
+            return "Zeigt den Stand der laufenden Recherchen."
+        if action == "pause":
+            return "Pausiert die laufende Recherche."
+        if action in ("weiter", "resume"):
+            return "Setzt die Recherche fort."
+        return "Bricht die Recherche ab und sichert den Fortschritt."
     if name == "write_skill":
         return f"Speichert die Skill-Anleitung „{_shorten(args.get('name', ''))}“."
     if name == "set_reminder":
@@ -1830,6 +1876,102 @@ class ToolBox:
                 },
                 [],
             ),
+            _tool(
+                "maps",
+                "Jon Maps: echte Karten, Orte und Routen. Nutze das fuer alles rund um "
+                "Orte, Wege, Entfernungen, Fahrzeiten und Umgebung. action='suche' "
+                "findet Orte, Adressen, Staedte und Sehenswuerdigkeiten. "
+                "action='umgebung' findet Restaurants, Hotels, Tankstellen, Bahnhoefe "
+                "und aehnliches in der Naehe. action='route' berechnet eine echte "
+                "Route mit Dauer, Entfernung und Alternativen. action='erkunden' "
+                "oeffnet einen Ort zum Erkunden auf Strassenebene. Das Ergebnis "
+                "erscheint als interaktive Karte direkt im Chat.",
+                {
+                    "action": {
+                        "type": "string",
+                        "enum": ["suche", "umgebung", "route", "erkunden"],
+                        "description": "Was Jon auf der Karte tun soll",
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "Ort, Adresse oder Suchbegriff",
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Bei action='umgebung': restaurant, cafe, bar, "
+                        "hotel, supermarkt, tankstelle, apotheke, arzt, bank, bahnhof, "
+                        "haltestelle, flughafen, park, sehenswuerdigkeit, parken",
+                    },
+                    "around": {
+                        "type": "string",
+                        "description": "Bei action='umgebung': Ort, um den gesucht "
+                        "wird. Leer lassen fuer den aktuellen Standort.",
+                    },
+                    "from": {
+                        "type": "string",
+                        "description": "Bei action='route': Startort. 'hier' fuer den "
+                        "aktuellen Standort.",
+                    },
+                    "to": {"type": "string", "description": "Bei action='route': Ziel"},
+                    "via": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Zwischenstopps auf der Route",
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": ["fuss", "auto", "fahrrad", "oepnv"],
+                        "description": "Verkehrsmittel fuer die Route",
+                    },
+                    "radius": {
+                        "type": "integer",
+                        "description": "Suchradius in Metern (Standard 1500)",
+                    },
+                },
+                ["action"],
+            ),
+            _tool(
+                "deep_learning",
+                "Jon Deep Learning: startet eine echte, eigenstaendige Tiefenrecherche. "
+                "Jon zerlegt das Thema, sucht Quellen im Web, liest und vergleicht sie, "
+                "schreibt das Wissen in Markdown-Dateien und erstellt daraus einen "
+                "Skill. Nutze action='start', wenn der Nutzer sagt, du sollst etwas "
+                "lernen, dich in ein Thema einarbeiten oder Spezialist werden. Wenn er "
+                "eine Zeit nennt ('du hast zwei Stunden'), gib sie in minutes an. "
+                "action='status' zeigt laufende Auftraege, 'pause', 'weiter' und "
+                "'stop' steuern sie.",
+                {
+                    "action": {
+                        "type": "string",
+                        "enum": ["start", "status", "pause", "weiter", "stop"],
+                    },
+                    "topic": {
+                        "type": "string",
+                        "description": "Das Thema, das Jon lernen soll",
+                    },
+                    "minutes": {
+                        "type": "integer",
+                        "description": "Zeitbudget in Minuten, 0 fuer Jons Standard",
+                    },
+                    "depth": {
+                        "type": "string",
+                        "enum": ["schnell", "normal", "tief"],
+                    },
+                    "id": {
+                        "type": "string",
+                        "description": "ID eines laufenden Auftrags fuer pause, "
+                        "weiter oder stop",
+                    },
+                },
+                ["action"],
+            ),
+            _tool(
+                "read_skill_file",
+                "Oeffnet eine einzelne Wissensdatei aus einem Skill-Wissensordner, "
+                "z.B. read_skill_file(name='quantenmechanik', file='quantenzustaende').",
+                {"name": _STR, "file": _STR},
+                ["name", "file"],
+            ),
         ]
 
     async def execute(
@@ -1847,6 +1989,10 @@ class ToolBox:
         return result
 
     async def _dispatch(self, name: str, args: dict[str, Any]) -> str:
+        if name == "maps":
+            return await self._maps(args)
+        if name == "deep_learning":
+            return await self._deep_learning(args)
         if name == "webcam_look":
             from app.services.webcam_service import get_webcam_service
 
@@ -1865,6 +2011,106 @@ class ToolBox:
         ):
             return await self._phone(name, args)
         return await asyncio.to_thread(self._execute, name, args)
+
+    async def _maps(self, args: dict[str, Any]) -> str:
+        from app.services.maps import MapsError, get_maps_service
+
+        service = get_maps_service()
+        action = str(args.get("action") or "suche").strip().lower()
+        payload = {
+            "query": str(args.get("query") or ""),
+            "category": str(args.get("category") or ""),
+            "around": str(args.get("around") or ""),
+            "from": str(args.get("from") or args.get("start") or ""),
+            "to": str(args.get("to") or args.get("ziel") or ""),
+            "via": [str(item) for item in args.get("via") or []],
+            "mode": str(args.get("mode") or "auto"),
+            "limit": int(args.get("limit") or 8),
+        }
+        if args.get("radius"):
+            payload["radius"] = int(args["radius"])
+        if action == "umgebung" and not payload["category"]:
+            payload["category"] = payload["query"]
+        if action == "route" and not payload["from"]:
+            payload["from"] = "hier"
+        try:
+            result = await service.answer(action, payload)
+        except MapsError as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        except Exception as exc:
+            return json.dumps(
+                {"error": f"Jon Maps ist gerade nicht erreichbar: {exc}"},
+                ensure_ascii=False,
+            )
+        return json.dumps(result, ensure_ascii=False)
+
+    async def _deep_learning(self, args: dict[str, Any]) -> str:
+        from app.services.research import get_research_service
+
+        service = get_research_service()
+        action = str(args.get("action") or "start").strip().lower()
+        task_id = str(args.get("id") or "").strip()
+
+        def pick() -> str:
+            if task_id:
+                return task_id
+            running = service.active()
+            return str(running[0]["id"]) if running else ""
+
+        try:
+            if action == "start":
+                topic = str(args.get("topic") or args.get("query") or "").strip()
+                if not topic:
+                    return json.dumps(
+                        {"error": "Ohne Thema kann Jon nicht lernen."},
+                        ensure_ascii=False,
+                    )
+                task = await service.start(
+                    topic,
+                    int(args.get("minutes") or 0),
+                    depth=str(args.get("depth") or "normal"),
+                )
+                return json.dumps(
+                    {
+                        "gestartet": True,
+                        "id": task["id"],
+                        "thema": task["thema"],
+                        "minuten": task["minuten"],
+                        "status": task["status"],
+                        "ordner": task["ordner"],
+                        "hinweis": (
+                            "Die Recherche läuft jetzt im Hintergrund. Der Fortschritt "
+                            "erscheint als Deep-Learning-Panel im Chat."
+                        ),
+                        "task": task,
+                    },
+                    ensure_ascii=False,
+                )
+            if action == "status":
+                return json.dumps(
+                    {
+                        "aktiv": service.active(),
+                        "verlauf": service.list()[:10],
+                    },
+                    ensure_ascii=False,
+                )
+            target = pick()
+            if not target:
+                return json.dumps(
+                    {"error": "Es läuft gerade keine Recherche."}, ensure_ascii=False
+                )
+            if action == "pause":
+                return json.dumps(service.pause(target), ensure_ascii=False)
+            if action in ("weiter", "resume", "fortsetzen"):
+                return json.dumps(await service.resume_task(target), ensure_ascii=False)
+            return json.dumps(service.stop(target), ensure_ascii=False)
+        except KeyError:
+            return json.dumps(
+                {"error": "Diesen Research-Auftrag gibt es nicht mehr."},
+                ensure_ascii=False,
+            )
+        except ValueError as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
     async def _phone(self, name: str, args: dict[str, Any]) -> str:
         from app.services.phone_service import get_phone_service
@@ -2449,6 +2695,18 @@ class ToolBox:
                 return json.dumps(skl.read(str(args.get("name", ""))), ensure_ascii=False)
             except FileNotFoundError:
                 return json.dumps({"error": "Skill nicht gefunden"})
+        if name == "read_skill_file":
+            try:
+                return json.dumps(
+                    skl.read_file(
+                        str(args.get("name", "")), str(args.get("file", ""))
+                    ),
+                    ensure_ascii=False,
+                )
+            except FileNotFoundError:
+                return json.dumps({"error": "Wissensdatei nicht gefunden"})
+            except ValueError as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
         if name == "write_skill":
             return json.dumps(
                 skl.write(str(args.get("name", "")), str(args.get("content", ""))),

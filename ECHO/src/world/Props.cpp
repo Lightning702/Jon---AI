@@ -895,6 +895,42 @@ void buildStretcher(PropMesh& out) {
     out.colliderOffset = Vec3(0, 0.12f, 0);
 }
 
+void buildCorpse(PropMesh& out) {
+    MeshBuilder mb;
+
+    mb.setMaterial(MAT_SKIN);
+    mb.addSphere(Vec3(0, 0.10f, -0.74f), 0.115f, 12, 10);
+    mb.addBox(Vec3(-0.13f, 0.045f, 0.34f), Vec3(0.045f, 0.035f, 0.085f));
+    mb.finishSubMesh();
+
+    mb.setMaterial(MAT_HAIR);
+    mb.addSphere(Vec3(0, 0.145f, -0.78f), 0.10f, 12, 8);
+    mb.finishSubMesh();
+
+    mb.setMaterial(MAT_CLOTH_WHITE);
+    mb.addBox(Vec3(0, 0.075f, -0.44f), Vec3(0.215f, 0.075f, 0.24f));
+    mb.addBox(Vec3(0, 0.085f, -0.12f), Vec3(0.235f, 0.085f, 0.20f));
+    mb.addBox(Vec3(0, 0.070f, 0.14f), Vec3(0.205f, 0.070f, 0.18f));
+    mb.addBox(Vec3(-0.095f, 0.060f, 0.40f), Vec3(0.085f, 0.060f, 0.16f));
+    mb.addBox(Vec3(0.095f, 0.060f, 0.40f), Vec3(0.085f, 0.060f, 0.16f));
+    mb.addBox(Vec3(0.135f, 0.075f, -0.20f), Vec3(0.055f, 0.045f, 0.30f));
+    mb.addBox(Vec3(-0.135f, 0.075f, -0.20f), Vec3(0.055f, 0.045f, 0.30f));
+    mb.addBox(Vec3(0, 0.012f, -0.10f), Vec3(0.275f, 0.012f, 0.72f));
+    mb.addBox(Vec3(-0.272f, 0.030f, -0.10f), Vec3(0.014f, 0.030f, 0.70f));
+    mb.addBox(Vec3(0.272f, 0.030f, -0.10f), Vec3(0.014f, 0.030f, 0.70f));
+    mb.addBox(Vec3(0, 0.030f, 0.60f), Vec3(0.245f, 0.030f, 0.020f));
+    mb.finishSubMesh();
+
+    mb.setMaterial(MAT_PAPER);
+    mb.addBox(Vec3(-0.13f, 0.012f, 0.435f), Vec3(0.030f, 0.004f, 0.042f));
+    mb.finishSubMesh();
+
+    mb.build(out.mesh);
+    out.bounds = out.mesh.bounds();
+    out.colliderHalf = Vec3(0.28f, 0.10f, 0.78f);
+    out.colliderOffset = Vec3(0, 0.09f, 0);
+}
+
 void buildSpeaker(PropMesh& out) {
     MeshBuilder mb;
     mb.setMaterial(MAT_METAL_PAINTED);
@@ -1014,6 +1050,7 @@ void PropLibrary::build() {
     buildClock(props[PROP_CLOCK]);
     buildNoticeBoard(props[PROP_NOTICE_BOARD]);
     buildStretcher(props[PROP_STRETCHER]);
+    buildCorpse(props[PROP_CORPSE]);
     buildSpeaker(props[PROP_SPEAKER]);
     buildKeyring(props[PROP_KEYRING]);
     buildBattery(props[PROP_BATTERY]);

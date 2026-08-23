@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
-import MessageBubble, { ChatEntry } from "./components/MessageBubble";
+import MessageBubble, { ChatCard, ChatEntry } from "./components/MessageBubble";
 import Composer, { PendingAttachment } from "./components/Composer";
 import ClipboardPanel from "./components/ClipboardPanel";
 import ModelPicker from "./components/ModelPicker";
@@ -32,6 +32,9 @@ import Vault from "./components/Vault";
 import Search from "./components/Search";
 import SetupWizard from "./components/SetupWizard";
 import CalendarPanel from "./components/CalendarPanel";
+import type { JonMapsIntent } from "./maps/JonMaps";
+const JonMaps = lazy(() => import("./maps/JonMaps"));
+const DeepLearning = lazy(() => import("./components/DeepLearning"));
 import { VoiceListener } from "./lib/voice";
 import { applyTheme, istTheme } from "./lib/theme";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
@@ -164,6 +167,16 @@ const briefingPrompt = (data: Record<string, unknown>) =>
 
 import { useT } from "./hooks/useT";
 
+function LazyCurtain({ label }: { label: string }) {
+  return (
+    <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 backdrop-blur-xl">
+      <div className="glass rounded-2xl px-6 py-4 text-sm text-white/80">
+        {label}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const { t } = useT();
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
@@ -224,6 +237,10 @@ export default function App() {
     () => localStorage.getItem("jon_screen") === "1"
   );
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [mapsOpen, setMapsOpen] = useState(false);
+  const [mapsIntent, setMapsIntent] = useState<JonMapsIntent | undefined>();
+  const [deepOpen, setDeepOpen] = useState(false);
+  const [deepTaskId, setDeepTaskId] = useState<string | undefined>();
   const trashListRef = useRef<string[]>([]);
   const lastScreenRef = useRef("");
   const abortRef = useRef<AbortController | null>(null);
@@ -830,7 +847,18 @@ export default function App() {
                 const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
                 if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
               }
-              return { ...e, tools };
+              const cards = [...(e.cards ?? [])];
+              if (
+                evt.card &&
+                (evt.card.kind === "maps" || evt.card.kind === "deep_learning")
+              ) {
+                cards.push({
+                  id: `${evt.card.kind}-${cards.length}-${nextId()}`,
+                  kind: evt.card.kind,
+                  data: evt.card.data,
+                } as unknown as ChatCard);
+              }
+              return { ...e, tools, cards };
             })
           );
         },
@@ -964,6 +992,27 @@ export default function App() {
       setGamesOpen(
         command === "/spiele" || command === "/games" ? "" : command.slice(1)
       );
+      return;
+    }
+    if (
+      command === "/maps" ||
+      command === "/karte" ||
+      command === "/karten" ||
+      command === "/navigation"
+    ) {
+      setMapsIntent(undefined);
+      setMapsOpen(true);
+      return;
+    }
+    if (
+      command === "/lerne" ||
+      command === "/deep" ||
+      command === "/deeplearning" ||
+      command === "/research" ||
+      command === "/forschung"
+    ) {
+      setDeepTaskId(undefined);
+      setDeepOpen(true);
       return;
     }
     if (command === "/tagebuch" || command === "/journal") {
@@ -1458,7 +1507,18 @@ export default function App() {
                 const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
                 if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
               }
-              return { ...e, tools };
+              const cards = [...(e.cards ?? [])];
+              if (
+                evt.card &&
+                (evt.card.kind === "maps" || evt.card.kind === "deep_learning")
+              ) {
+                cards.push({
+                  id: `${evt.card.kind}-${cards.length}-${nextId()}`,
+                  kind: evt.card.kind,
+                  data: evt.card.data,
+                } as unknown as ChatCard);
+              }
+              return { ...e, tools, cards };
             })
           );
         },
@@ -1580,6 +1640,8 @@ export default function App() {
                           title: t("tools_work"),
                           items: [
                             { icon: "🔎", label: "Alles durchsuchen", hint: "Strg+K", act: () => setSearchOpen(true) },
+                            { icon: "🗺️", label: "Jon Maps", hint: "/maps", act: () => { setMapsIntent(undefined); setMapsOpen(true); } },
+                            { icon: "🧠", label: "Deep Learning", hint: "/lerne", act: () => { setDeepTaskId(undefined); setDeepOpen(true); } },
                             { icon: "</>", label: "Jon Code", act: () => setCodeOpen(true) },
                             { icon: "✍️", label: "Humanisierer", act: () => setHumanizerOpen(true) },
                             { icon: "📌", label: "Haftnotizen", act: () => setNotesOpen(true) },
@@ -1734,7 +1796,27 @@ export default function App() {
               </div>
             )}
             {entries.map((e) => (
-              <MessageBubble key={e.id} entry={e} />
+              <MessageBubble
+                key={e.id}
+                entry={e}
+                onOpenMaps={(data) => {
+                  setMapsIntent({
+                    center: data.karte?.center ?? undefined,
+                    zoom: data.karte?.zoom,
+                    markers: data.karte?.marker,
+                    from: data.start,
+                    to: data.ziel,
+                    mode: data.modus,
+                    routes: data.routen,
+                    street: data.aktion === "erkunden",
+                  });
+                  setMapsOpen(true);
+                }}
+                onOpenResearch={(id) => {
+                  setDeepTaskId(id);
+                  setDeepOpen(true);
+                }}
+              />
             ))}
           </div>
 
@@ -1773,6 +1855,28 @@ export default function App() {
         />
       )}
       {downloaderOpen && <Downloader onClose={() => setDownloaderOpen(false)} />}
+      {mapsOpen && (
+        <div className="fixed inset-0 z-[60]">
+          <Suspense fallback={<LazyCurtain label="Jon Maps wird geladen …" />}>
+            <JonMaps
+              intent={mapsIntent}
+              onClose={() => setMapsOpen(false)}
+              onAskJon={(question) => {
+                setMapsOpen(false);
+                void send(question);
+              }}
+            />
+          </Suspense>
+        </div>
+      )}
+      {deepOpen && (
+        <Suspense fallback={<LazyCurtain label="Deep Learning wird geladen …" />}>
+          <DeepLearning
+            openTaskId={deepTaskId}
+            onClose={() => setDeepOpen(false)}
+          />
+        </Suspense>
+      )}
       {showOpen && (
         <EveningShow
           provider={provider}

@@ -378,7 +378,9 @@ class OllamaProvider(OpenAICompatibleProvider):
                     except Exception as exc:
                         result = f"Fehler: {exc}"
                         ok = False
-                    yield StreamChunk(kind="tool_result", name=name, ok=ok)
+                    yield StreamChunk(
+                        kind="tool_result", name=name, ok=ok, result=str(result)
+                    )
                     payload["messages"].append(
                         {
                             "role": "tool",

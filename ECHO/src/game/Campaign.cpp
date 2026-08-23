@@ -1,4 +1,5 @@
 #include "Campaign.h"
+#include "../world/Props.h"
 #include "Story.h"
 #include "../core/Log.h"
 
@@ -176,6 +177,25 @@ void Campaign::buildRuns(Rng& r) {
         world->rooms()[(size_t)run.pickupRoom].interactables.push_back(it.id);
         run.pickupInteract = it.id;
 
+        {
+            PropInstance body;
+            body.id = (int)world->props().size();
+            body.type = PROP_CORPSE;
+            body.room = run.pickupRoom;
+            body.floor = room.floor;
+            body.position = pos;
+            body.position.y = pos.y - 0.02f;
+            body.yaw = run.gurneyProp >= 0
+                           ? world->props()[(size_t)run.gurneyProp].yaw
+                           : 0.0f;
+            body.originalPosition = body.position;
+            body.originalYaw = body.yaw;
+            body.hidden = true;
+            world->props().push_back(body);
+            world->rooms()[(size_t)run.pickupRoom].props.push_back(body.id);
+            run.bodyProp = body.id;
+        }
+
         runs.push_back(run);
     }
 
@@ -282,6 +302,7 @@ void Campaign::startRun(int index) {
     TransportRun& run = runs[(size_t)currentRun];
 
     if (run.pickupInteract >= 0) world->interactables()[(size_t)run.pickupInteract].hidden = false;
+    if (run.bodyProp >= 0) world->props()[(size_t)run.bodyProp].hidden = false;
     if (morgueInteract >= 0) world->interactables()[(size_t)morgueInteract].hidden = true;
 
     enterStep(STEP_GOTO_PICKUP);
@@ -369,6 +390,7 @@ bool Campaign::onInteract(int kind, int targetId, const Vec3& pos) {
                 events.push_back(2);
                 run.bodyMissing = false;
                 if (run.pickupInteract >= 0) world->interactables()[(size_t)run.pickupInteract].hidden = true;
+                if (run.bodyProp >= 0) world->props()[(size_t)run.bodyProp].hidden = true;
                 carrying = false;
                 enterStep(STEP_GOTO_MORGUE);
                 objectiveText = "Sehen Sie in der Leichenhalle nach";
@@ -376,6 +398,7 @@ bool Campaign::onInteract(int kind, int targetId, const Vec3& pos) {
             }
             carrying = true;
             if (run.pickupInteract >= 0) world->interactables()[(size_t)run.pickupInteract].hidden = true;
+            if (run.bodyProp >= 0) world->props()[(size_t)run.bodyProp].hidden = true;
             if (morgueInteract >= 0) world->interactables()[(size_t)morgueInteract].hidden = false;
             queueMessage("Sie schieben die Trage.", 3.4f);
             enterStep(STEP_GOTO_MORGUE);
@@ -589,6 +612,7 @@ void Campaign::deserialize(const u8* data, size_t size) {
         const TransportRun& run = runs[(size_t)currentRun];
         bool needPickup = currentStep == STEP_GOTO_PICKUP || currentStep == STEP_TAKE_BODY;
         if (run.pickupInteract >= 0) world->interactables()[(size_t)run.pickupInteract].hidden = !needPickup;
+        if (run.bodyProp >= 0) world->props()[(size_t)run.bodyProp].hidden = !needPickup;
         if (morgueInteract >= 0) world->interactables()[(size_t)morgueInteract].hidden = currentStep != STEP_DELIVER;
     }
     cutsceneReady = false;

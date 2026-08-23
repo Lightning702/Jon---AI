@@ -38,6 +38,10 @@ interface Progress {
   eta: number | null;
   error: string | null;
   name: string | null;
+  total: number;
+  done: number;
+  label: string;
+  failed: string[];
 }
 
 function fmtDuration(total: number): string {
@@ -161,7 +165,18 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError("");
     setDoneName("");
-    setProgress({ status: "starting", percent: 0, speed: 0, eta: null, error: null, name: null });
+    setProgress({
+      status: "starting",
+      percent: 0,
+      speed: 0,
+      eta: null,
+      error: null,
+      name: null,
+      total: info.playlist ? info.count : 0,
+      done: 0,
+      label: "",
+      failed: [],
+    });
     try {
       const job = await startDownload(info.url, format, quality, info.music ? info.title : "");
       const source = new EventSource(downloadProgressUrl(job));
@@ -290,67 +305,95 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
               <div className="text-[11.5px] text-white/40 mt-0.5">
                 {[info.uploader, info.extractor].filter(Boolean).join(" · ")}
               </div>
-              {info.music && (
+              {info.music && !info.playlist && (
                 <div className="mt-2 px-3 py-2 rounded-xl border border-gold/25 bg-gold/10 text-[11.5px] text-gold/80 leading-relaxed">
                   🎵 {info.extractor}-Link erkannt. {info.extractor} ist kopiergeschützt —
                   ich lade die passende Aufnahme von YouTube: „{info.matched}"
                 </div>
               )}
 
-              <div className="mt-4 text-[10.5px] uppercase tracking-widest text-white/35">
-                Format
-              </div>
-              <div className="mt-1.5 flex gap-1.5">
-                <button
-                  onClick={() => !busy && !info.audio_only && !info.music && setFormat("mp4")}
-                  disabled={info.audio_only || info.music}
-                  className={`flex-1 py-2 rounded-xl border text-[12.5px] font-semibold transition disabled:opacity-30 ${
-                    format === "mp4"
-                      ? "border-gold/45 bg-gold/15 text-gold"
-                      : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
-                  }`}
-                >
-                  MP4 · Video
-                </button>
-                <button
-                  onClick={() => !busy && setFormat("mp3")}
-                  className={`flex-1 py-2 rounded-xl border text-[12.5px] font-semibold transition ${
-                    format === "mp3"
-                      ? "border-gold/45 bg-gold/15 text-gold"
-                      : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
-                  }`}
-                >
-                  MP3 · Nur Ton (320 kbps)
-                </button>
-              </div>
-
-              {format === "mp4" && (
+              {info.playlist && (
                 <>
-                  <div className="mt-3 text-[10.5px] uppercase tracking-widest text-white/35">
-                    Qualität
+                  <div className="mt-2 px-3 py-2 rounded-xl border border-gold/25 bg-gold/10 text-[11.5px] text-gold/80 leading-relaxed">
+                    🎵 Playlist mit {info.count} {info.count === 1 ? "Song" : "Songs"} erkannt.
+                    Amazon Music ist kopiergeschützt — ich suche zu jedem Song die passende
+                    Aufnahme auf YouTube, mache MP3s daraus und packe alles in eine ZIP-Datei.
+                    {info.cut && " Ich nehme die ersten 300 Songs."}
+                  </div>
+                  <div className="mt-2 max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-white/[0.03] divide-y divide-white/5">
+                    {info.tracks.map((track, index) => (
+                      <div
+                        key={`${index}-${track}`}
+                        className="flex gap-2 px-3 py-1.5 text-[11.5px] text-white/55"
+                      >
+                        <span className="text-white/25 tabular-nums w-6 shrink-0 text-right">
+                          {index + 1}
+                        </span>
+                        <span className="truncate">{track}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {!info.playlist && (
+                <>
+                  <div className="mt-4 text-[10.5px] uppercase tracking-widest text-white/35">
+                    Format
                   </div>
                   <div className="mt-1.5 flex gap-1.5">
-                    {QUALITIES.map((q) => {
-                      const off =
-                        q.id !== "best" &&
-                        info.max_height > 0 &&
-                        Number(q.id) > info.max_height;
-                      return (
-                        <button
-                          key={q.id}
-                          onClick={() => !busy && !off && setQuality(q.id)}
-                          disabled={off}
-                          className={`flex-1 py-2 rounded-xl border text-[12.5px] font-semibold transition disabled:opacity-30 ${
-                            quality === q.id && !off
-                              ? "border-gold/45 bg-gold/15 text-gold"
-                              : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
-                          }`}
-                        >
-                          {q.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <button
+                    onClick={() => !busy && !info.audio_only && !info.music && setFormat("mp4")}
+                    disabled={info.audio_only || info.music}
+                    className={`flex-1 py-2 rounded-xl border text-[12.5px] font-semibold transition disabled:opacity-30 ${
+                      format === "mp4"
+                        ? "border-gold/45 bg-gold/15 text-gold"
+                        : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+                    }`}
+                  >
+                    MP4 · Video
+                  </button>
+                  <button
+                    onClick={() => !busy && setFormat("mp3")}
+                    className={`flex-1 py-2 rounded-xl border text-[12.5px] font-semibold transition ${
+                      format === "mp3"
+                        ? "border-gold/45 bg-gold/15 text-gold"
+                        : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+                    }`}
+                  >
+                    MP3 · Nur Ton (320 kbps)
+                  </button>
+                </div>
+
+                {format === "mp4" && (
+                  <>
+                    <div className="mt-3 text-[10.5px] uppercase tracking-widest text-white/35">
+                      Qualität
+                    </div>
+                    <div className="mt-1.5 flex gap-1.5">
+                      {QUALITIES.map((q) => {
+                        const off =
+                          q.id !== "best" &&
+                          info.max_height > 0 &&
+                          Number(q.id) > info.max_height;
+                        return (
+                          <button
+                            key={q.id}
+                            onClick={() => !busy && !off && setQuality(q.id)}
+                            disabled={off}
+                            className={`flex-1 py-2 rounded-xl border text-[12.5px] font-semibold transition disabled:opacity-30 ${
+                              quality === q.id && !off
+                                ? "border-gold/45 bg-gold/15 text-gold"
+                                : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+                            }`}
+                          >
+                            {q.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
                 </>
               )}
 
@@ -362,9 +405,11 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
                 >
                   {busy
                     ? "Lädt …"
-                    : format === "mp3"
-                      ? "MP3 herunterladen"
-                      : "Video herunterladen"}
+                    : info.playlist
+                      ? `Alle ${info.count} Songs als ZIP laden`
+                      : format === "mp3"
+                        ? "MP3 herunterladen"
+                        : "Video herunterladen"}
                 </button>
               )}
 
@@ -382,28 +427,52 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
                   </div>
                   <div className="flex justify-between mt-1.5 text-[11.5px] text-white/45">
                     <span className="text-white/80 font-semibold">
-                      {Math.floor(doneName ? 100 : progress.percent)}%
+                      {progress.total > 0
+                        ? `${progress.done} von ${progress.total} Songs`
+                        : `${Math.floor(doneName ? 100 : progress.percent)}%`}
                     </span>
                     <span>{fmtSpeed(progress.speed)}</span>
                     <span>
-                      {progress.status === "downloading" ? fmtEta(progress.eta) : ""}
+                      {progress.total > 0
+                        ? `${Math.floor(doneName ? 100 : progress.percent)}%`
+                        : progress.status === "downloading"
+                          ? fmtEta(progress.eta)
+                          : ""}
                     </span>
                   </div>
                   <div
-                    className={`mt-2 text-center text-[12.5px] ${
+                    className={`mt-2 text-center text-[12.5px] truncate ${
                       doneName ? "text-emerald-300" : "text-white/60"
                     }`}
                   >
                     {doneName
                       ? `Fertig — ${doneName} wird gespeichert ✓`
-                      : progress.status === "processing"
-                        ? format === "mp3"
-                          ? "Wandle in MP3 um …"
-                          : "Füge Video zusammen …"
-                        : progress.status === "downloading"
-                          ? "Lade herunter …"
-                          : "Starte …"}
+                      : progress.status === "reading"
+                        ? "Liest die Playlist …"
+                        : progress.status === "packing"
+                          ? "Packt die ZIP-Datei …"
+                          : progress.status === "processing"
+                            ? format === "mp3"
+                              ? "Wandle in MP3 um …"
+                              : "Füge Video zusammen …"
+                            : progress.status === "downloading"
+                              ? progress.label || "Lade herunter …"
+                              : "Starte …"}
                   </div>
+                  {progress.failed.length > 0 && (
+                    <div className="mt-3 px-3 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-[11.5px] text-amber-200/90 leading-relaxed">
+                      {progress.failed.length}{" "}
+                      {progress.failed.length === 1 ? "Song" : "Songs"} habe ich nicht
+                      gefunden — {doneName ? "der Rest ist in der ZIP" : "die überspringe ich"}:
+                      <div className="mt-1 max-h-24 overflow-y-auto text-amber-200/70">
+                        {progress.failed.map((track, index) => (
+                          <div key={`${index}-${track}`} className="truncate">
+                            {track}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

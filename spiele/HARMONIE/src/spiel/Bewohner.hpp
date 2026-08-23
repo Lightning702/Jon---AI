@@ -62,6 +62,8 @@ public:
     Bewohner* naechsterBewohner(Vec3 ort, float weite);
     void wunschErfuellen(Bewohner& person);
     void feiernLassen(Vec3 sammelpunkt);
+    void zuzugAufnehmen(const Welt& welt, Vec3 ankunft);
+    int anzahl() const { return static_cast<int>(volk.size()); }
     const std::vector<Bewohner>& leute() const { return volk; }
     const fw::Netz& gestaltNetz(int index) const { return gestalten[index % 6].netz; }
     const fw::Netz& brettNetz() const { return brett; }

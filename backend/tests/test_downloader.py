@@ -98,6 +98,73 @@ def test_url_pruefung():
     assert not valid_url("kein link")
 
 
+def test_amazon_sammlungen_werden_erkannt():
+    from app.services.downloader_service import amazon_collection
+
+    assert amazon_collection("https://music.amazon.de/user-playlists/cb9685bd?marketplaceId=A1") == "playlist"
+    assert amazon_collection("https://music.amazon.com/playlists/B01M11SBC8") == "playlist"
+    assert amazon_collection("https://music.amazon.de/albums/B00AHWF5HE") == "album"
+    assert amazon_collection("https://music.amazon.de/tracks/B00AHWF6P0") == ""
+    assert amazon_collection("https://music.amazon.de/albums/B00AHWF5HE?trackAsin=B00AHWF6P0") == ""
+
+
+def test_amazon_trackliste_kommt_aus_metatags():
+    from app.services.downloader_service import amazon_track_asins
+
+    page = (
+        '<meta property="og:title" content="Best Songs">'
+        '<meta property="music:song" content="https://music.amazon.de/user-playlists/x?do&#x3D;play&amp;trackAsin=B00AHWF6P0">'
+        '<meta property="music:song:track" content="1">'
+        '<meta property="music:song" content="https://music.amazon.de/user-playlists/x?do=play&trackAsin=B07LDXHYSX">'
+        '<meta property="music:song:track" content="2">'
+        '<meta property="music:song" content="https://music.amazon.de/user-playlists/x?do=play&trackAsin=B00AHWF6P0">'
+    )
+    assert amazon_track_asins(page) == ["B00AHWF6P0", "B07LDXHYSX"]
+    assert amazon_track_asins('<meta property="og:title" content="Leer">') == []
+
+
+def test_amazon_sammlung_ohne_songs_meldet_sich(monkeypatch):
+    from app.services import downloader_service as service
+
+    monkeypatch.setattr(service, "_amazon_page", lambda url: '<meta property="og:title" content="Privat">')
+    result = service.resolve_amazon_collection("https://music.amazon.de/playlists/B0X", "playlist")
+    assert "öffentlich" in result["error"]
+
+    monkeypatch.setattr(service, "_amazon_page", lambda url: "")
+    assert "nicht laden" in service.resolve_amazon_collection("https://music.amazon.de/playlists/B0X", "playlist")["error"]
+
+
+def test_amazon_songs_werden_zu_suchbegriffen(monkeypatch):
+    from app.services import downloader_service as service
+
+    pages = {
+        "https://music.amazon.de/playlists/B0X": (
+            '<meta property="og:title" content="Best Songs">'
+            '<meta property="og:description" content="Playlist von amuser5835331435">'
+            '<meta property="og:image" content="https://m.media-amazon.com/images/I/cover.jpg">'
+            '<meta property="music:song" content="https://music.amazon.de/playlists/B0X?trackAsin=B00AHWF6P0">'
+        ),
+        "https://music.amazon.de/tracks/B00AHWF6P0": (
+            '<meta property="og:title" content="Locked out of Heaven [Explicit]">'
+            '<meta property="music:musician" content="https://music.amazon.de/artists/B001T1TD0W">'
+            '<meta property="music:duration" content="233">'
+        ),
+        "https://music.amazon.de/artists/B001T1TD0W": '<meta property="og:title" content="Bruno Mars">',
+    }
+    monkeypatch.setattr(service, "_amazon_page", lambda url: pages.get(url, ""))
+    data = service.resolve_amazon_collection("https://music.amazon.de/playlists/B0X", "playlist")
+    assert data["name"] == "Best Songs"
+    assert data["owner"] == "Playlist von amuser5835331435"
+    assert data["cover"].endswith("cover.jpg")
+    assert data["tracks"] == [
+        {
+            "query": "Bruno Mars Locked out of Heaven",
+            "label": "Bruno Mars – Locked out of Heaven",
+            "duration": 233,
+        }
+    ]
+
+
 def test_humanizer_score_erkennt_ki_muster():
     from app.services.humanize_service import score
 

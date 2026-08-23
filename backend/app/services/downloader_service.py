@@ -8,6 +8,8 @@ import tempfile
 import threading
 import time
 import uuid
+import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -16,6 +18,8 @@ import httpx
 from app.core.config import DATA_DIR
 
 SPOTIFY_ID = re.compile(r"open\.spotify\.com/(?:intl-[a-z]+/)?track/([A-Za-z0-9]+)")
+TRACK_ASIN = re.compile(r"trackAsin=([A-Z0-9]+)", re.I)
+ARTIST_ASIN = re.compile(r"/artists/([A-Z0-9]+)", re.I)
 
 BASE_DIR = Path(tempfile.gettempdir()) / "jon-downloads"
 COOKIE_DIR = DATA_DIR / "downloader"
@@ -23,6 +27,7 @@ COOKIE_FILE = COOKIE_DIR / "cookies.txt"
 COOKIE_CONFIG = COOKIE_DIR / "cookies.json"
 NETSCAPE_HEADER = "# Netscape HTTP Cookie File"
 JOB_TTL = 3600.0
+LIST_TTL = 1800.0
 QUALITIES = ("best", "1080", "720", "480")
 BROWSERS = ("firefox", "brave", "edge", "chrome", "chromium", "opera", "vivaldi", "safari")
 BROWSER_HEADERS = {
@@ -32,6 +37,14 @@ BROWSER_HEADERS = {
     ),
     "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
 }
+CRAWLER_HEADERS = {
+    "User-Agent": "facebookexternalhit/1.1",
+    "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+}
+LOOKUP_WORKERS = 8
+TRACK_WORKERS = 3
+MAX_TRACKS = 300
+GENERIC_TITLES = ("", "amazon music", "geteilt auf amazon music", "shared on amazon music")
 
 LOGIN_HINT = "Verbinde dazu unten deinen YouTube-Login."
 LOGIN_FAILED_HINT = (
@@ -325,6 +338,13 @@ def _meta(page: str, prop: str) -> str:
     return ""
 
 
+def _meta_all(page: str, prop: str) -> list[str]:
+    pattern = (
+        rf'<meta[^>]+(?:property|name)=["\']{re.escape(prop)}["\'][^>]+content=["\']([^"\']*)["\']'
+    )
+    return [html_lib.unescape(value).strip() for value in re.findall(pattern, page, re.I)]
+
+
 def music_source(url: str) -> str:
     host = urlparse(url).netloc.lower()
     if "spotify" in host:
@@ -332,6 +352,27 @@ def music_source(url: str) -> str:
     if "music.amazon" in host:
         return "amazon"
     return ""
+
+
+def amazon_collection(url: str) -> str:
+    parsed = urlparse(url)
+    if TRACK_ASIN.search(parsed.query or ""):
+        return ""
+    path = parsed.path.lower()
+    if "/user-playlists/" in path or "/playlists/" in path:
+        return "playlist"
+    if "/albums/" in path:
+        return "album"
+    return ""
+
+
+def amazon_track_asins(page: str) -> list[str]:
+    asins: list[str] = []
+    for value in _meta_all(page, "music:song"):
+        found = TRACK_ASIN.search(value)
+        if found and found.group(1) not in asins:
+            asins.append(found.group(1))
+    return asins
 
 
 def _strip_noise(title: str) -> str:
@@ -395,9 +436,105 @@ def _resolve_spotify(url: str) -> dict:
     return {"query": query, "label": label}
 
 
+def _amazon_page(url: str) -> str:
+    for headers in (CRAWLER_HEADERS, BROWSER_HEADERS):
+        try:
+            page = httpx.get(url, headers=headers, follow_redirects=True, timeout=15).text
+        except Exception:
+            continue
+        if "og:title" in page:
+            return page
+    return ""
+
+
+def _amazon_artist(host: str, asin: str, cache: dict[str, str], lock: threading.Lock) -> str:
+    with lock:
+        if asin in cache:
+            return cache[asin]
+    name = _strip_noise(_meta(_amazon_page(f"https://{host}/artists/{asin}"), "og:title"))
+    if name.lower() in GENERIC_TITLES:
+        name = ""
+    with lock:
+        cache[asin] = name
+    return name
+
+
+def _amazon_song(page: str, host: str, cache: dict[str, str], lock: threading.Lock) -> dict:
+    title = _strip_noise(_meta(page, "og:title"))
+    if title.lower() in GENERIC_TITLES:
+        return {}
+    artist = ""
+    found = ARTIST_ASIN.search(_meta(page, "music:musician"))
+    if found:
+        artist = _amazon_artist(host, found.group(1), cache, lock)
+    duration = 0
+    if re.fullmatch(r"\d+", _meta(page, "music:duration")):
+        duration = int(_meta(page, "music:duration"))
+    return {
+        "query": f"{artist} {title}".strip(),
+        "label": f"{artist} – {title}" if artist else title,
+        "duration": duration,
+    }
+
+
+def _amazon_track(host: str, asin: str, cache: dict[str, str], lock: threading.Lock) -> dict:
+    return _amazon_song(_amazon_page(f"https://{host}/tracks/{asin}"), host, cache, lock)
+
+
+def resolve_amazon_collection(url: str, kind: str) -> dict:
+    page = _amazon_page(url)
+    if not page:
+        return {"error": "Ich konnte die Amazon-Music-Seite nicht laden — Link prüfen oder später nochmal."}
+    asins = amazon_track_asins(page)
+    if not asins:
+        return {
+            "error": "In diesem Link stecken keine Songs. Playlists müssen öffentlich geteilt "
+            "sein — in Amazon Music auf „Playlist öffentlich machen“ und dann den Teilen-Link "
+            "kopieren."
+        }
+    cut = len(asins) > MAX_TRACKS
+    host = urlparse(url).netloc
+    cache: dict[str, str] = {}
+    lock = threading.Lock()
+    with ThreadPoolExecutor(max_workers=LOOKUP_WORKERS) as pool:
+        found = list(pool.map(lambda asin: _amazon_track(host, asin, cache, lock), asins[:MAX_TRACKS]))
+    tracks = [song for song in found if song]
+    if not tracks:
+        return {"error": "Ich konnte zu diesem Link keine Songtitel lesen — versuch es später nochmal."}
+    name = _strip_noise(_meta(page, "og:title"))
+    if name.lower() in GENERIC_TITLES:
+        name = "Playlist" if kind == "playlist" else "Album"
+    owner = _meta(page, "og:description")
+    if owner.lower().startswith(("millionen", "millions")):
+        owner = ""
+    return {
+        "name": name,
+        "owner": owner,
+        "cover": _meta(page, "og:image"),
+        "tracks": tracks,
+        "cut": cut,
+    }
+
+
 def _resolve_amazon(url: str) -> dict:
-    crawler = {"User-Agent": "facebookexternalhit/1.1"}
-    for headers in (BROWSER_HEADERS, crawler):
+    host = urlparse(url).netloc
+    cache: dict[str, str] = {}
+    lock = threading.Lock()
+    found = TRACK_ASIN.search(urlparse(url).query or "")
+    if found:
+        song = _amazon_track(host, found.group(1), cache, lock)
+        if song:
+            return song
+    page = _amazon_page(url)
+    if page:
+        song = _amazon_song(page, host, cache, lock)
+        if song:
+            return song
+    return _resolve_amazon_text(url)
+
+
+def _resolve_amazon_text(url: str) -> dict:
+    for headers in (BROWSER_HEADERS, CRAWLER_HEADERS):
         try:
             response = httpx.get(url, headers=headers, follow_redirects=True, timeout=15)
             page = response.text
@@ -434,6 +571,7 @@ def resolve_music(url: str, source: str) -> dict:
 class DownloaderService:
     def __init__(self) -> None:
         self._jobs: dict[str, dict] = {}
+        self._lists: dict[str, dict] = {}
         self._lock = threading.Lock()
         BASE_DIR.mkdir(parents=True, exist_ok=True)
         COOKIE_DIR.mkdir(parents=True, exist_ok=True)
@@ -502,6 +640,29 @@ class DownloaderService:
         source = music_source(url)
         options = base_options()
         options["skip_download"] = True
+        collection = amazon_collection(url) if source == "amazon" else ""
+        if collection:
+            data = resolve_amazon_collection(url, collection)
+            if "error" in data:
+                return data
+            with self._lock:
+                self._lists[url] = {"data": data, "created": time.time()}
+            return {
+                "title": data["name"],
+                "matched": "",
+                "thumbnail": data["cover"],
+                "duration": sum(song["duration"] for song in data["tracks"]),
+                "uploader": data["owner"],
+                "extractor": "Amazon Music",
+                "max_height": 0,
+                "audio_only": True,
+                "music": True,
+                "playlist": True,
+                "count": len(data["tracks"]),
+                "tracks": [song["label"] for song in data["tracks"]],
+                "cut": data["cut"],
+                "url": url,
+            }
         if source:
             resolved = resolve_music(url, source)
             if "error" in resolved:
@@ -523,6 +684,10 @@ class DownloaderService:
                 "max_height": 0,
                 "audio_only": True,
                 "music": True,
+                "playlist": False,
+                "count": 0,
+                "tracks": [],
+                "cut": False,
                 "url": info.get("webpage_url") or "",
             }
         info, error, tried_login = extract_with_fallback(options, url)
@@ -548,6 +713,10 @@ class DownloaderService:
             "max_height": heights[0] if heights else 0,
             "audio_only": not heights,
             "music": False,
+            "playlist": False,
+            "count": 0,
+            "tracks": [],
+            "cut": False,
             "url": info.get("webpage_url") or url,
         }
 
@@ -575,10 +744,19 @@ class DownloaderService:
             "error": None,
             "created": time.time(),
             "dir": str(job_dir),
+            "total": 0,
+            "done": 0,
+            "label": "",
+            "failed": [],
         }
         with self._lock:
             self._cleanup_old()
             self._jobs[job_id] = job
+        if music_source(url) == "amazon" and amazon_collection(url):
+            threading.Thread(
+                target=self._run_collection, args=(job_id, url, title), daemon=True
+            ).start()
+            return {"job": job_id}
         threading.Thread(
             target=self._run, args=(job_id, url, kind, quality, title), daemon=True
         ).start()
@@ -667,6 +845,122 @@ class DownloaderService:
             job["status"] = "error"
             job["error"] = friendly_error(str(exc))
 
+    def _collection(self, url: str) -> dict:
+        with self._lock:
+            entry = self._lists.get(url)
+        if entry and time.time() - entry["created"] < LIST_TTL:
+            return dict(entry["data"])
+        data = resolve_amazon_collection(url, amazon_collection(url))
+        if "error" not in data:
+            with self._lock:
+                self._lists[url] = {"data": data, "created": time.time()}
+        return data
+
+    def _run_collection(self, job_id: str, url: str, title: str) -> None:
+        job = self._jobs[job_id]
+        job_dir = Path(job["dir"])
+        job["status"] = "reading"
+        data = self._collection(url)
+        if "error" in data:
+            job["status"] = "error"
+            job["error"] = data["error"]
+            return
+        tracks = data["tracks"]
+        job["total"] = len(tracks)
+        job["status"] = "downloading"
+        shares: dict[int, float] = {}
+        speeds: dict[int, float] = {}
+        guard = threading.Lock()
+
+        def refresh() -> None:
+            job["percent"] = min(99.0, sum(shares.values()) / len(tracks) * 100.0)
+            job["speed"] = int(sum(speeds.values()))
+
+        def hook_for(index: int):
+            def inner(d: dict) -> None:
+                status = d.get("status")
+                with guard:
+                    if status == "downloading":
+                        total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
+                        done = d.get("downloaded_bytes") or 0
+                        shares[index] = min(0.9, done / total) if total else 0.0
+                        speeds[index] = d.get("speed") or 0
+                    elif status == "finished":
+                        shares[index] = 0.95
+                        speeds[index] = 0
+                    refresh()
+            return inner
+
+        def fetch(item: tuple[int, dict]) -> Path | None:
+            index, song = item
+            options = base_options()
+            options.update(
+                {
+                    "outtmpl": str(job_dir / f"{index:03d}.%(ext)s"),
+                    "format": "bestaudio/best",
+                    "progress_hooks": [hook_for(index)],
+                    "concurrent_fragment_downloads": 2,
+                    "postprocessors": [
+                        {
+                            "key": "FFmpegExtractAudio",
+                            "preferredcodec": "mp3",
+                            "preferredquality": "320",
+                        }
+                    ],
+                }
+            )
+            with guard:
+                job["label"] = song["label"]
+            try:
+                _, error, _ = extract_with_fallback(
+                    options, f"ytsearch1:{song['query']}", True
+                )
+            except Exception as exc:
+                error = str(exc)
+            made = job_dir / f"{index:03d}.mp3"
+            target: Path | None = None
+            if not error and made.is_file():
+                stem = sanitize_filename(f"{index:03d} - {song['label']}")
+                target = job_dir / f"{stem}.mp3"
+                try:
+                    made.replace(target)
+                except OSError:
+                    target = made
+            with guard:
+                if target is None:
+                    job["failed"].append(song["label"])
+                else:
+                    job["done"] += 1
+                shares[index] = 1.0
+                speeds[index] = 0
+                refresh()
+            return target
+
+        try:
+            with ThreadPoolExecutor(max_workers=TRACK_WORKERS) as pool:
+                files = [path for path in pool.map(fetch, enumerate(tracks, 1)) if path]
+            if not files:
+                job["status"] = "error"
+                job["error"] = (
+                    "Zu keinem Song dieser Playlist habe ich eine Aufnahme gefunden."
+                )
+                return
+            job["status"] = "packing"
+            job["label"] = ""
+            job["speed"] = 0
+            bundle = job_dir / "bundle.zip"
+            with zipfile.ZipFile(bundle, "w", zipfile.ZIP_STORED) as archive:
+                for path in sorted(files):
+                    archive.write(path, path.name)
+                    path.unlink(missing_ok=True)
+            job["file"] = str(bundle)
+            job["name"] = f"{sanitize_filename(title or data['name'])}.zip"
+            job["percent"] = 100.0
+            job["status"] = "done"
+        except Exception as exc:
+            job["status"] = "error"
+            job["error"] = friendly_error(str(exc))
+
     def state(self, job_id: str) -> dict | None:
         job = self._jobs.get(job_id)
         if job is None:
@@ -678,6 +972,10 @@ class DownloaderService:
             "eta": job["eta"],
             "error": job["error"],
             "name": job["name"],
+            "total": job["total"],
+            "done": job["done"],
+            "label": job["label"],
+            "failed": list(job["failed"]),
         }
 
     def file_for(self, job_id: str) -> tuple[Path, str] | None:

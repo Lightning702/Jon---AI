@@ -50,6 +50,7 @@ struct TransportRun {
     int pickupRoom = -1;
     int gurneyProp = -1;
     int pickupInteract = -1;
+    int bodyProp = -1;
     bool bodyMissing = false;
 };
 

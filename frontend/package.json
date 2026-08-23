@@ -1,6 +1,6 @@
 {
   "name": "jon-desktop",
-  "version": "4.34.2",
+  "version": "4.34.5",
   "description": "Jon - Der moderne KI-Desktop-Assistent",
   "author": "FelWorks",
   "license": "MIT",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "framer-motion": "^11.15.0",
+    "maplibre-gl": "^5.24.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -35,7 +36,10 @@
   "build": {
     "appId": "io.jon.desktop",
     "productName": "Jon",
-    "files": ["dist/**/*", "electron/**/*"],
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
     "extraResources": [
       {
         "from": "../backend",
@@ -53,19 +57,36 @@
       {
         "from": "../ECHO",
         "to": "ECHO",
-        "filter": ["jon-spiele.json", "README.md", "bin/**/*", "shaders/**/*", "vorschau/**/*"]
+        "filter": [
+          "jon-spiele.json",
+          "README.md",
+          "bin/**/*",
+          "shaders/**/*",
+          "vorschau/**/*"
+        ]
       },
       {
         "from": "../spiele/STARFALL",
         "to": "STARFALL",
-        "filter": ["jon-spiele.json", "README.md", "docs/**/*", "bin/**/*", "!bin/*.log", "vorschau/**/*"]
+        "filter": [
+          "jon-spiele.json",
+          "README.md",
+          "docs/**/*",
+          "bin/**/*",
+          "!bin/*.log",
+          "vorschau/**/*"
+        ]
       }
     ],
-    "directories": { "output": "release" },
+    "directories": {
+      "output": "release"
+    },
     "win": {
       "target": "nsis",
       "icon": "electron/icon.ico",
-      "signtoolOptions": { "publisherName": "FelWorks" }
+      "signtoolOptions": {
+        "publisherName": "FelWorks"
+      }
     },
     "nsis": {
       "oneClick": false,

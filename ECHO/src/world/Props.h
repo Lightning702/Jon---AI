@@ -55,6 +55,7 @@ enum PropType {
     PROP_SPEAKER,
     PROP_KEYRING,
     PROP_BATTERY,
+    PROP_CORPSE,
     PROP_COUNT
 };
 

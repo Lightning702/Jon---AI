@@ -187,6 +187,33 @@ void Volk::erstellen(const Welt& welt, unsigned saat, int anzahl) {
     }
 }
 
+void Volk::zuzugAufnehmen(const Welt& welt, Vec3 ankunft) {
+    Bewohner person;
+    const Bezirk heimaten[4] = {Bezirk::Herz, Bezirk::Farm, Bezirk::Werft, Bezirk::Berg};
+    int index = static_cast<int>(volk.size());
+    person.heimat = heimaten[index % 4];
+    person.ort = ankunft;
+    person.ziel = ankunft;
+    person.gestalt = wuerfel.ganz(0, 6);
+    person.tempo = wuerfel.bereich(1.15f, 1.95f);
+    person.takt = wuerfel.bereich(0.0f, TAU);
+    person.warten = wuerfel.bereich(0.0f, 1.4f);
+    person.wunschUhr = wuerfel.bereich(6.0f, 40.0f);
+    person.unterwegsNach = person.heimat;
+    person.jubel = 3.0f;
+    volk.push_back(person);
+    neuesZiel(volk.back(), welt);
+    if (static_cast<int>(begleiter.size()) < 8 && index % 3 == 0) {
+        Begleiter tier;
+        tier.folgt = index;
+        tier.art = index % 2;
+        tier.ort = person.ort;
+        begleiter.push_back(tier);
+        volk[static_cast<size_t>(index)].haustier =
+            static_cast<int>(begleiter.size()) - 1;
+    }
+}
+
 void Volk::freigeben() {
     for (Gestalt& gestalt : gestalten) gestalt.netz.freigeben();
     for (Netz& netz : tierNetze) netz.freigeben();

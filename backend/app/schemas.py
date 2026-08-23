@@ -460,3 +460,44 @@ class CalendarUpdateIn(BaseModel):
     note: str | None = None
     kind: str | None = None
     done: bool | None = None
+
+
+class MapsPoint(BaseModel):
+    lat: float
+    lon: float
+
+
+class MapsRouteIn(BaseModel):
+    points: list[MapsPoint]
+    mode: str = Field(default="auto", pattern="^(fuss|auto|fahrrad|oepnv)$")
+    alternatives: bool = True
+
+
+class MapsHomeIn(BaseModel):
+    lat: float
+    lon: float
+    source: str = Field(default="geraet", pattern="^(geraet|karte|ip)$")
+
+
+class MapsSharingIn(BaseModel):
+    aktiv: bool | None = None
+    alle: bool | None = None
+    peers: list[str] | None = None
+
+
+class MapsActionIn(BaseModel):
+    action: str = Field(pattern="^(suche|umgebung|route|erkunden)$")
+    args: dict = Field(default_factory=dict)
+
+
+class ResearchStartIn(BaseModel):
+    topic: str
+    minutes: int = 0
+    provider: str | None = None
+    model: str | None = None
+    depth: str = Field(default="normal", pattern="^(schnell|normal|tief)$")
+    language: str = "de"
+
+
+class ResearchControlIn(BaseModel):
+    action: str = Field(pattern="^(pause|resume|stop|resume_task)$")

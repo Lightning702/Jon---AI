@@ -16,7 +16,9 @@ from app.api.multiplayer_routes import MP_TCP_PORT, MP_WS_PORT, create_coop_app
 from app.api.multiplayer_routes import router as multiplayer_router
 from app.api.p2p_routes import create_chat_app
 from app.api.p2p_routes import router as p2p_router
+from app.api.maps_routes import router as maps_router
 from app.api.phone_routes import router as phone_router
+from app.api.research_routes import router as research_router
 from app.api.routes import accounts, providers, router
 from app.api.system_routes import router as system_router
 from app.core.config import ROOT_DIR, get_settings
@@ -53,6 +55,20 @@ async def _dream_watcher() -> None:
             provider = data.get("provider") or settings.default_provider
             model = data.get("model") or settings.jon_model
             await dreams.run_pending(provider, model)
+        except Exception:
+            continue
+
+
+async def _friend_location_watcher() -> None:
+    from app.services.friend_location_service import get_friend_location_service
+
+    service = get_friend_location_service()
+    while True:
+        await asyncio.sleep(120)
+        try:
+            if not service.sharing().get("aktiv"):
+                continue
+            await service.broadcast()
         except Exception:
             continue
 
@@ -344,6 +360,10 @@ async def lifespan(app: FastAPI):
 
     with suppress(Exception):
         get_trash_service().cleanup()
+    from app.services.research import get_research_service
+
+    with suppress(Exception):
+        get_research_service().boot()
     from app.services.p2p_service import get_p2p_service
 
     p2p = get_p2p_service()
@@ -351,6 +371,7 @@ async def lifespan(app: FastAPI):
     warmup = asyncio.create_task(_warm_caches())
     dream_task = asyncio.create_task(_dream_watcher())
     clipboard_task = asyncio.create_task(_clipboard_watcher())
+    friend_location_task = asyncio.create_task(_friend_location_watcher())
     automation_task = asyncio.create_task(_task_watcher())
     telegram_task = asyncio.create_task(_telegram_watcher())
     group_bots_task = asyncio.create_task(_group_bots_watcher())
@@ -389,6 +410,7 @@ async def lifespan(app: FastAPI):
     warmup.cancel()
     dream_task.cancel()
     clipboard_task.cancel()
+    friend_location_task.cancel()
     automation_task.cancel()
     telegram_task.cancel()
     group_bots_task.cancel()
@@ -432,6 +454,8 @@ def create_app() -> FastAPI:
     app.include_router(p2p_router)
     app.include_router(multiplayer_router)
     app.include_router(phone_router)
+    app.include_router(maps_router)
+    app.include_router(research_router)
 
     from pathlib import Path
 

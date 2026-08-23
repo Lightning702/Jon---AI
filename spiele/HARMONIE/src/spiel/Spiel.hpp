@@ -99,6 +99,10 @@ private:
     Gabe stufeGabe = Gabe::Korn;
     int stufeBedarf = 3;
     float festUhr = 0.0f;
+    int nebelStufe = 0;
+    int nebelGebracht = 0;
+    int nebelBedarf = 6;
+    float zuzugUhr = 0.0f;
     bool fest = false;
     int qualitaet = 2;
     int bildZaehler = 0;

@@ -396,6 +396,14 @@ class P2PService:
         return {"rejected": existed}
 
     def block_peer(self, peer_id: str) -> dict:
+        try:
+            from app.services.friend_location_service import (
+                get_friend_location_service,
+            )
+
+            get_friend_location_service().forget(peer_id)
+        except Exception:
+            pass
         with self._lock:
             if peer_id not in self._blocked:
                 self._blocked.append(peer_id)
@@ -423,6 +431,14 @@ class P2PService:
                 session.delete(row)
 
     def forget_peer(self, peer_id: str) -> bool:
+        try:
+            from app.services.friend_location_service import (
+                get_friend_location_service,
+            )
+
+            get_friend_location_service().forget(peer_id)
+        except Exception:
+            pass
         with self._lock:
             existed = self._peers.pop(peer_id, None) is not None
             if existed:
@@ -1004,6 +1020,27 @@ class P2PService:
                 return {"error": "Entschlüsselung fehlgeschlagen"}
         kind = str(payload.get("type", ""))
         message_id = str(payload.get("msg_id", ""))
+
+        if kind == "standort":
+            from app.services.friend_location_service import (
+                get_friend_location_service,
+            )
+
+            try:
+                lat = float(payload.get("lat"))
+                lon = float(payload.get("lon"))
+            except (TypeError, ValueError):
+                return {"error": "Standort unvollständig"}
+            accuracy = payload.get("genauigkeit_m")
+            get_friend_location_service().record(
+                peer_id,
+                lat,
+                lon,
+                float(accuracy) if accuracy is not None else None,
+                str(payload.get("from_name", "")),
+                payload.get("ts"),
+            )
+            return {"ok": True}
 
         if kind == "receipt" and message_id:
             with session_scope() as session:

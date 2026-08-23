@@ -71,6 +71,8 @@ public:
     void configure(int type, u64 seed);
     void setPose(int pose, float blendTime = 0.8f);
     void update(float dt, float time, const em::Vec3& lookTarget, bool hasLookTarget);
+    void setLook(float yawOffset, float pitch);
+    void clearLook();
     void submit(Renderer& renderer, const HumanRig& rig) const;
 
     em::Vec3 position;
@@ -101,6 +103,7 @@ private:
     float breathPhase = 0.0f;
     float headYaw = 0.0f, headPitch = 0.0f;
     float targetHeadYaw = 0.0f, targetHeadPitch = 0.0f;
+    bool lookForced = false;
     float swayPhase = 0.0f;
     float idleTimer = 0.0f;
     u64 seedValue = 0;

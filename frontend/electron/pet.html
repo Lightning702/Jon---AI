@@ -792,6 +792,8 @@
           cozy ? "#fffafc" : light ? "#ffffff" : cfg.pet_face || "#0a0a0e"
         );
         cheeks.style.display = cfg.pet_cheeks ? "block" : "none";
+        if (petView && petView.setCheeks) petView.setCheeks(cfg.pet_cheeks === true);
+        if (jonView && jonView.setCheeks) jonView.setCheeks(cfg.pet_cheeks === true);
         renderEyes(cfg.pet_eyes || "round");
         jonWrap.style.transform = "scale(" + (cfg.pet_scale || 1) + ")";
         const want3d = cfg.pet_3d === true;

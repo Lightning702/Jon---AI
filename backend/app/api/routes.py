@@ -675,7 +675,9 @@ async def downloader_file(job_id: str):
     if found is None:
         raise HTTPException(status_code=404, detail="Datei nicht gefunden.")
     path, name = found
-    mime = "audio/mpeg" if path.suffix.lower() == ".mp3" else "video/mp4"
+    mime = {".mp3": "audio/mpeg", ".zip": "application/zip"}.get(
+        path.suffix.lower(), "video/mp4"
+    )
     return FileResponse(path, filename=name, media_type=mime)
 
 

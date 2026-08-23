@@ -891,7 +891,8 @@ void CoopSession::updateRemotes(float dt, float time, const Vec3& listener) {
         remote.body.yaw = remote.renderYaw;
         remote.body.visibility = remote.online ? 1.0f : 0.35f;
         remote.body.active = true;
-        remote.body.update(dt, time, listener, true);
+        remote.body.setLook(0.0f, remote.renderPitch);
+        remote.body.update(dt, time, listener, false);
     }
 }
 
