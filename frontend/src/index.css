@@ -19,12 +19,51 @@ body,
   margin: 0;
 }
 
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+
 body {
   background: radial-gradient(circle at 20% 0%, #14141c 0%, #050506 55%, #000 100%);
   color: #f5f5f7;
   font-family: Inter, "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 ::-webkit-scrollbar {

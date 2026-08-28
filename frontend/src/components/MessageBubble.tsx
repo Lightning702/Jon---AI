@@ -62,7 +62,7 @@ export default function MessageBubble({
       className={`flex ${isUser ? "justify-end" : "justify-start"}`}
     >
       <div
-        className={`${entry.cards?.length ? "max-w-[86%] w-[520px]" : "max-w-[76%]"} ${
+        className={`${entry.cards?.length ? "max-w-[96%] w-full md:max-w-[86%] md:w-[520px]" : "max-w-[92%] md:max-w-[76%]"} ${
           isUser ? "items-end" : "items-start"
         }`}
       >

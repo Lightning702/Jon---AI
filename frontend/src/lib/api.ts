@@ -1,8 +1,13 @@
-export const BASE =
-  window.location.protocol.startsWith("http") &&
-  window.location.port === "8756"
-    ? `${window.location.origin}/api`
-    : "http://127.0.0.1:8756/api";
+function backendBase(): string {
+  const { protocol, hostname, port, origin } = window.location;
+  if (!protocol.startsWith("http")) return "http://127.0.0.1:8756/api";
+  if (port === "8756") return `${origin}/api`;
+  const lokal =
+    hostname === "localhost" || hostname === "127.0.0.1" || hostname === "";
+  return lokal ? "http://127.0.0.1:8756/api" : `${origin}/api`;
+}
+
+export const BASE = backendBase();
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";

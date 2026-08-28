@@ -124,7 +124,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
 
   return (
     <div
-      className="p-4"
+      className="p-2 md:p-4 safe-bottom"
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -181,7 +181,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
             onClick={() => fileRef.current?.click()}
             disabled={disabled}
             title="Datei anhängen (PDF, Bild, Text) — oder einfach reinziehen"
-            className="flex items-center justify-center w-9 h-9 mb-0.5 rounded-xl border border-white/10 bg-white/5 text-white/40 hover:text-gold hover:border-gold/40 transition-colors disabled:opacity-40"
+            className="flex items-center justify-center w-11 h-11 md:w-9 md:h-9 mb-0.5 shrink-0 rounded-xl border border-white/10 bg-white/5 text-white/40 hover:text-gold hover:border-gold/40 transition-colors disabled:opacity-40"
           >
             <svg
               width="15"
@@ -208,12 +208,12 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
             onPaste={onPaste}
             rows={1}
             placeholder={dragging ? t("drop_file") : t("chat_placeholder")}
-            className="flex-1 bg-transparent resize-none outline-none px-3 py-2 text-white/90 placeholder-white/30 max-h-44"
+            className="flex-1 min-w-0 bg-transparent resize-none outline-none px-2 md:px-3 py-2.5 md:py-2 text-[16px] md:text-[15px] text-white/90 placeholder-white/30 max-h-44"
           />
           {streaming ? (
             <button
               onClick={onStop}
-              className="px-4 py-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white font-medium transition"
+              className="px-4 py-2.5 md:py-2 shrink-0 rounded-xl bg-red-500/80 hover:bg-red-500 text-white font-medium transition"
             >
               Stop
             </button>
@@ -221,7 +221,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
             <button
               onClick={submit}
               disabled={disabled || loading || (!text.trim() && ready.length === 0)}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold shadow-gold disabled:opacity-40 hover:brightness-110 transition"
+              className="px-4 md:px-5 py-2.5 md:py-2 shrink-0 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold shadow-gold disabled:opacity-40 hover:brightness-110 transition"
             >
               {loading ? "Lese …" : "Senden"}
             </button>

@@ -2,6 +2,33 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.34.7] — 2026-08-28
+
+### 📱 Jon am Handy — die volle Oberfläche über den Raspberry Pi
+
+Läuft Jon auf dem Pi, rufst du ihn im WLAN unter `http://<pi>:8756/app` auf. Diese
+Oberfläche war bisher für Maus und großen Bildschirm gebaut. Jetzt lässt sie sich mit dem
+Daumen bedienen.
+
+- **Unterhaltungen als Schublade:** Auf schmalen Bildschirmen liegt die Seitenleiste
+  aus dem Weg und fährt über ☰ herein, mit abdunkelndem Hintergrund. Ein Tipp auf eine
+  Unterhaltung schließt sie wieder. Am PC ist alles unverändert.
+- **Kopfzeile passt sich an:** Modellauswahl und Werkzeugleiste schrumpfen, scrollen
+  seitlich und verlieren auf dem Handy nur ihre Beschriftungen — nichts wird mehr
+  abgeschnitten, nichts schiebt die Seite in die Breite.
+- **Kein Zoom-Gehüpfe mehr:** Eingabefelder haben auf Touchgeräten 16px, damit Safari
+  und Chrome beim Antippen nicht mehr hineinzoomen. Knöpfe und Eingabezeile sind auf
+  44 Pixel Höhe gewachsen.
+- **Volle Höhe, echte Ränder:** Die App rechnet mit der dynamischen Fensterhöhe
+  (`100dvh`) und respektiert die sichere Fläche unten, sodass die Eingabezeile nicht mehr
+  hinter der Browserleiste oder dem Homebalken verschwindet.
+- **Nachrichten und Karten** nutzen auf dem Handy fast die ganze Breite.
+- **Zum Startbildschirm hinzufügen** funktioniert sauber: eigene Farbe für die
+  Statusleiste, Vollbild-Modus und Titel.
+- **Backend-Adresse:** Wird Jon über einen anderen Namen oder Port erreicht (Reverse
+  Proxy, Tailscale, Port 80), spricht die Oberfläche jetzt denselben Ursprung an, statt
+  stur `127.0.0.1:8756` zu versuchen.
+
 ## [4.34.6] — 2026-08-28
 
 ### 🗺️ Jon Maps versteht die Filter

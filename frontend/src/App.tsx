@@ -239,6 +239,7 @@ export default function App() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [mapsOpen, setMapsOpen] = useState(false);
   const [mapsIntent, setMapsIntent] = useState<JonMapsIntent | undefined>();
+  const [navOpen, setNavOpen] = useState(false);
   const [deepOpen, setDeepOpen] = useState(false);
   const [deepTaskId, setDeepTaskId] = useState<string | undefined>();
   const trashListRef = useRef<string[]>([]);
@@ -1566,7 +1567,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen h-[100dvh]">
       <TitleBar />
       <div className="flex flex-1 min-h-0">
         <Sidebar
@@ -1576,16 +1577,27 @@ export default function App() {
           onSelect={loadConversation}
           onNew={startNew}
           onDelete={removeConversation}
+          open={navOpen}
+          onClose={() => setNavOpen(false)}
         />
         <main className="flex-1 flex flex-col min-w-0">
-          <div className="flex items-center justify-between px-6 h-14 border-b border-white/10">
-            <ModelPicker
-              providers={providers}
-              provider={provider}
-              model={model}
-              onChange={changeModel}
-            />
-            <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center justify-between gap-2 px-3 md:px-6 h-14 border-b border-white/10">
+            <button
+              onClick={() => setNavOpen(true)}
+              aria-label="Unterhaltungen öffnen"
+              className="md:hidden flex items-center justify-center w-10 h-10 shrink-0 rounded-xl border border-white/10 bg-white/5 text-white/70"
+            >
+              ☰
+            </button>
+            <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
+              <ModelPicker
+                providers={providers}
+                provider={provider}
+                model={model}
+                onChange={changeModel}
+              />
+            </div>
+            <div className="flex items-center gap-2 md:gap-3 text-xs shrink-0 max-w-[54vw] md:max-w-none overflow-x-auto no-scrollbar [&>*]:shrink-0">
               {jonDesktop?.togglePet && (
                 <div className="flex items-center rounded-full border border-gold/30 bg-gold/10 text-gold/90 overflow-hidden">
                   <button
@@ -1616,7 +1628,9 @@ export default function App() {
                   }`}
                 >
                   <span className="text-[12px] leading-none">🧰</span>
-                  <span className="text-[11px] font-medium">{t("header_tools")}</span>
+                  <span className="hidden md:inline text-[11px] font-medium">
+                    {t("header_tools")}
+                  </span>
                   {unread > 0 && !toolsMenuOpen && (
                     <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-gold text-black text-[9px] font-bold flex items-center justify-center">
                       {unread}
@@ -1771,14 +1785,17 @@ export default function App() {
                     online ? "bg-emerald-400" : "bg-red-400"
                   }`}
                 />
-                <span className="text-white/50">
+                <span className="hidden md:inline text-white/50">
                   {online ? "Verbunden" : "Backend offline"}
                 </span>
               </div>
             </div>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto overscroll-contain px-3 py-4 md:px-6 md:py-6 space-y-4"
+          >
             <RoutineBanner />
             {entries.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center">
