@@ -1589,7 +1589,7 @@ export default function App() {
             >
               ☰
             </button>
-            <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
+            <div className="min-w-0 flex-1">
               <ModelPicker
                 providers={providers}
                 provider={provider}
@@ -1597,7 +1597,7 @@ export default function App() {
                 onChange={changeModel}
               />
             </div>
-            <div className="flex items-center gap-2 md:gap-3 text-xs shrink-0 max-w-[54vw] md:max-w-none overflow-x-auto no-scrollbar [&>*]:shrink-0">
+            <div className="flex items-center gap-2 md:gap-3 text-xs shrink-0 [&>*]:shrink-0">
               {jonDesktop?.togglePet && (
                 <div className="flex items-center rounded-full border border-gold/30 bg-gold/10 text-gold/90 overflow-hidden">
                   <button

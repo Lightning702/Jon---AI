@@ -26,14 +26,14 @@ export default function ModelPicker({
   }, {});
 
   return (
-    <div className="no-drag flex items-center gap-2">
+    <div className="no-drag flex items-center gap-2 min-w-0">
       <select
         value={provider}
         onChange={(e) => {
           const next = providers.find((p) => p.provider === e.target.value);
           onChange(e.target.value, next?.models[0] ?? "");
         }}
-        className="glass rounded-lg px-3 py-1.5 text-sm text-white/90 outline-none cursor-pointer"
+        className="glass rounded-lg px-2 md:px-3 py-1.5 text-sm text-white/90 outline-none cursor-pointer min-w-0 max-w-[30vw] md:max-w-none"
       >
         {providers.map((p) => (
           <option
@@ -50,7 +50,7 @@ export default function ModelPicker({
       {locked ? (
         <div
           title={`${active?.label || "Freigegebener Server"} — der Besitzer gibt das Modell vor`}
-          className="glass rounded-lg px-3 py-1.5 text-sm text-white/60 max-w-[240px] truncate flex items-center gap-1.5"
+          className="glass rounded-lg px-2 md:px-3 py-1.5 text-sm text-white/60 min-w-0 max-w-[38vw] md:max-w-[240px] truncate flex items-center gap-1.5"
         >
           <span className="text-gold/70">🔒</span>
           <span className="truncate">{model || models[0] || "—"}</span>
@@ -59,7 +59,7 @@ export default function ModelPicker({
         <select
           value={model}
           onChange={(e) => onChange(provider, e.target.value)}
-          className="glass rounded-lg px-3 py-1.5 text-sm text-white/90 outline-none cursor-pointer max-w-[240px]"
+          className="glass rounded-lg px-2 md:px-3 py-1.5 text-sm text-white/90 outline-none cursor-pointer min-w-0 max-w-[38vw] md:max-w-[240px]"
         >
           {shared.length === 0
             ? models.map((m) => (

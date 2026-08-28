@@ -2,6 +2,30 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.34.8] — 2026-08-28
+
+### 🔧 Werkzeuge und Einstellungen gehen wieder auf
+
+Die Handy-Anpassung aus 4.34.7 hatte die Kopfzeile seitlich scrollbar gemacht. Ein
+scrollender Kasten schneidet aber alles ab, was aus ihm herausragt — und damit auch die
+Klappmenüs hinter 🧰 Werkzeuge, ⚙️ Einstellungen und der Modellauswahl. Sie öffneten
+sich zwar, blieben aber unsichtbar in einer 28 Pixel hohen Zeile stecken.
+
+- Die Kopfzeile schneidet nichts mehr ab: Statt zu scrollen, schrumpfen Anbieter- und
+  Modellauswahl auf schmalen Bildschirmen mit und kürzen ihren Text.
+- Geprüft bei 375 und 894 Pixel Breite: Werkzeugmenü, Einstellungen und die Panels
+  dahinter (z. B. Kalender) öffnen wieder und passen vollständig auf den Bildschirm.
+
+### 🔌 Verbindungen öffnen wieder
+
+„Einstellungen → 🔌 Verbindungen …" tat manchmal einfach nichts. Der Knopf holte erst die
+Einstellungen vom Backend und öffnete das Fenster danach — war das Backend gerade nicht
+erreichbar, brach der Aufruf still ab und es passierte gar nichts.
+
+- Das Fenster geht jetzt sofort auf, das Menü schließt sich sofort mit.
+- Ist das Backend nicht erreichbar, öffnet es mit den Standardwerten, statt zu
+  verschwinden. Das gilt für alle Stellen, die die Einstellungen laden.
+
 ## [4.34.7] — 2026-08-28
 
 ### 📱 Jon am Handy — die volle Oberfläche über den Raspberry Pi

@@ -313,8 +313,12 @@ export default function SettingsMenu({
   };
 
   const openConnections = async () => {
-    setConnections(await getUserSettings());
     setOpen(false);
+    try {
+      setConnections(await getUserSettings());
+    } catch {
+      setConnections(null);
+    }
   };
 
   const saveCity = (value: string) => {
