@@ -463,8 +463,27 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  mainWindow.webContents.on("render-process-gone", () => {
+    if (quitting || !mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.reload();
+  });
+
   if (isDev) {
-    mainWindow.loadURL("http://127.0.0.1:5173");
+    const devUrl = "http://127.0.0.1:5173";
+    let versuche = 0;
+    mainWindow.webContents.on("did-fail-load", (_event, _code, _desc, url) => {
+      if (quitting || !mainWindow || mainWindow.isDestroyed()) return;
+      if (url && !url.startsWith(devUrl)) return;
+      versuche += 1;
+      if (versuche === 5) mainWindow.show();
+      if (versuche > 40) return;
+      setTimeout(() => {
+        if (!quitting && mainWindow && !mainWindow.isDestroyed()) {
+          void mainWindow.loadURL(devUrl);
+        }
+      }, 700);
+    });
+    void mainWindow.loadURL(devUrl);
   } else {
     mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
   }

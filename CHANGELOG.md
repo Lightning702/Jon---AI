@@ -26,6 +26,24 @@ erreichbar, brach der Aufruf still ab und es passierte gar nichts.
 - Ist das Backend nicht erreichbar, öffnet es mit den Standardwerten, statt zu
   verschwinden. Das gilt für alle Stellen, die die Einstellungen laden.
 
+### 🖥️ Start über start-jon.bat lässt kein Backend zurück
+
+Startete man Jon über `start-jon.bat` und die App verabschiedete sich, lief das Backend
+allein weiter — der nächste Start traf dann auf einen belegten Port. Und war Port 5173
+noch von einem alten Entwicklungsserver besetzt, beendete sich die App sofort wieder,
+weil Vite den Port fest braucht.
+
+- Die bat räumt jetzt vor dem Start auch Port 5173 ab, aber nur, wenn dort wirklich ein
+  `node` oder `electron` liegt.
+- Endet die App — ob normal oder durch einen Absturz —, stoppt die bat das Backend
+  hinterher: erst über den Shutdown-Endpunkt, dann gezielt über den Port, und nur eigene
+  Python-Prozesse.
+- Beendet sich die App mit einem Fehler, sagt die bat das mit Code und Pfad zum
+  Backend-Log, statt einfach zu verschwinden.
+- Die App selbst versucht im Entwicklungsmodus erneut zu laden, wenn der Vite-Server
+  beim ersten Versuch noch nicht steht, und lädt sich nach einem Absturz der Oberfläche
+  selbst neu.
+
 ## [4.34.7] — 2026-08-28
 
 ### 📱 Jon am Handy — die volle Oberfläche über den Raspberry Pi

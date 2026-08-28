@@ -60,6 +60,7 @@ set "LOGFILE=%LOGDIR%\backend.log"
 del "%~dp0data\backend.log" >nul 2>nul
 
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8756 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }" >nul 2>nul
+powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { $p = Get-Process -Id $_ -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -match '^(node|electron)$') { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }" >nul 2>nul
 
 %PY% -c "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf,cv2,edge_tts,cryptography,paho.mqtt.client,yt_dlp,pynput,tzdata,numpy" >nul 2>nul
 if errorlevel 1 (
@@ -137,5 +138,18 @@ if not exist "node_modules" (
 
 echo Starte Jon-App...
 call npm run dev
+set "APPCODE=%ERRORLEVEL%"
+
+echo Jon wurde beendet - stoppe das Backend...
+powershell -NoProfile -Command "try{Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 -Method Post http://127.0.0.1:8756/api/system/shutdown | Out-Null}catch{}" >nul 2>nul
+powershell -NoProfile -Command "Start-Sleep -Milliseconds 800; Get-NetTCPConnection -LocalPort 8756 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { $p = Get-Process -Id $_ -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -match '^(python|pythonw|py|jon-backend)$') { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }" >nul 2>nul
+
+if not "%APPCODE%"=="0" (
+    echo.
+    echo Die Jon-App hat sich unerwartet beendet ^(Code %APPCODE%^).
+    echo Das Backend wurde mitgestoppt, du kannst einfach neu starten.
+    echo Meldungen der App stehen oben, das Backend-Log unter: %LOGFILE%
+    pause
+)
 
 endlocal
