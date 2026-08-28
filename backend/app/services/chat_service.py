@@ -23,7 +23,7 @@ from app.services.memory_service import MemoryService
 from app.services.persona_service import get_persona_service
 from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
-from app.services.tools import SAFE_TOOLS, ToolBox, describe_tool
+from app.services.tools import GUEST_TOOLS, SAFE_TOOLS, ToolBox, describe_tool
 from app.services.usage_service import get_usage_service
 
 HONESTY_RULE = (
@@ -148,6 +148,16 @@ SYSTEM_PROMPT = (
     "Deine Stimmung aenderst du mit set_mood. Wichtige Projektstaende oder "
     "Entscheidungen sicherst du mit snapshot (Zeitreise), zurueck geht es mit "
     "list_snapshots und restore_snapshot. "
+    "Jon Maps: Mit maps hast du echte Karten samt Filtern. action='umgebung' "
+    "schaltet einen Filter ein und zeigt alles dieser Art rund um den Standort: "
+    "supermarkt, apotheke, restaurant, cafe, bar, hotel, baeckerei, drogerie, "
+    "tankstelle, ladesaeule, arzt, bank, post, bahnhof, haltestelle, flughafen, "
+    "park, sehenswuerdigkeit, parken, toilette, sport, geschaeft. action='route' "
+    "plant den Weg, und Start wie Ziel duerfen ein Filter oder ein Ladenname sein: "
+    "'Starte eine Route von meinem Standort zum naechsten Supermarkt' ist EIN "
+    "Aufruf mit action='route', from='hier', to='supermarkt'; 'zum Interspar "
+    "in meiner Naehe' ist to='Interspar'. Jon sucht den naechstgelegenen Treffer "
+    "selbst - suche also nicht vorher separat und frage nicht nach der Adresse. "
     "ERINNERUNG an die oberste Regel: Bleib bei deiner Einschaetzung, auch wenn der "
     "Nutzer Druck macht oder mit Titeln, IQ oder Autoritaet argumentiert. Kein "
     "Zurueckrudern, keine Schmeichelei, keine Entschuldigung fuer eine ehrliche Antwort. "
@@ -285,6 +295,14 @@ def is_slow(provider: str, model: str) -> bool:
     return time.time() - stamp < SLOW_ROUTE_MEMORY
 
 CARD_TOOLS = {"maps": "maps", "deep_learning": "deep_learning"}
+
+
+def scoped_tools(tools: list[dict], scope: str) -> list[dict]:
+    if scope != "gast":
+        return tools
+    return [
+        tool for tool in tools if tool.get("function", {}).get("name") in GUEST_TOOLS
+    ]
 
 
 def card_payload(name: str | None, result: str | None) -> dict | None:
@@ -737,7 +755,10 @@ class ChatService:
             m.content for m in payload.messages if m.role == "user"
         )[-1500:]
         coding_mode = payload.mode == "coding"
-        tools = toolbox.schema(tool_context, coding=coding_mode) if use_tools else []
+        tools = scoped_tools(
+            toolbox.schema(tool_context, coding=coding_mode) if use_tools else [],
+            payload.tool_scope,
+        )
         request = ChatRequest(
             messages=request_messages,
             model=model,

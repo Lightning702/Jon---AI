@@ -192,12 +192,33 @@
     box-shadow 0.3s var(--jm-ease);
 }
 
+.jm-dock-btn:disabled {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
 .jm-press:hover {
   transform: translateY(-1px);
 }
 
 .jm-press:active {
   transform: translateY(0) scale(0.975);
+}
+
+.jm-space {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: #030308;
+  pointer-events: none;
+}
+
+.jm-space-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: opacity 0.6s var(--jm-ease);
 }
 
 .jm-map.jm-map {
@@ -621,6 +642,75 @@
   height: 100%;
   display: block;
   object-fit: cover;
+}
+
+.jm-horizon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 320px;
+  height: 320px;
+  margin: -160px 0 0 -160px;
+  z-index: 5;
+  pointer-events: none;
+  transition: transform 0.08s linear;
+}
+
+.jm-horizon::before,
+.jm-horizon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 108px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--jm-gold) / 0),
+    rgb(var(--jm-gold) / 0.85)
+  );
+  border-radius: 2px;
+}
+
+.jm-horizon::before {
+  left: 0;
+}
+
+.jm-horizon::after {
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.jm-horizon > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 2px solid rgb(var(--jm-gold) / 0.8);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgb(var(--jm-gold) / 0.28);
+}
+
+.jm-throttle {
+  margin: 9px auto 0;
+  width: 190px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--jm-field);
+  overflow: hidden;
+}
+
+.jm-throttle > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--jm-nav)),
+    rgb(var(--jm-gold))
+  );
+  transition: width 0.14s linear;
 }
 
 .jm-crosshair {

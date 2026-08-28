@@ -1,14 +1,23 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import MapCanvas, { MapMarker } from "../maps/MapCanvas";
 import "../maps/glass.css";
 import {
   MODE_ICONS,
   MapsCardData,
+  MapsPlace,
+  MapsRoute,
   MapsTheme,
+  TripLeg,
   formatDistance,
   formatDuration,
+  planRoute,
 } from "../lib/maps";
+
+function chainTitle(names: string[]): string {
+  if (names.length <= 3) return names.join(" → ");
+  return `${names[0]} → +${names.length - 2} → ${names[names.length - 1]}`;
+}
 
 interface Props {
   data: MapsCardData;
@@ -22,27 +31,78 @@ function readTheme(): MapsTheme {
 export default function MapsCard({ data, onOpen }: Props) {
   const [theme, setTheme] = useState<MapsTheme>(readTheme);
   const [routeIndex, setRouteIndex] = useState(0);
+  const [ziel, setZiel] = useState<MapsPlace | null>(null);
+  const [eigeneRouten, setEigeneRouten] = useState<MapsRoute[] | null>(null);
+  const [routeBusy, setRouteBusy] = useState(false);
+  const [routeError, setRouteError] = useState("");
 
-  const center = data.karte?.center ?? { lat: 51.1657, lon: 10.4515 };
-  const routes = data.routen ?? [];
+  const basis = useMemo(
+    () => data.stationen ?? data.karte?.marker ?? [],
+    [data.stationen, data.karte]
+  );
+
+  const stations = useMemo(
+    () => (ziel && basis.length > 1 ? [...basis.slice(0, -1), ziel] : basis),
+    [basis, ziel]
+  );
+
+  const routes = eigeneRouten ?? data.routen ?? [];
   const active = routes[routeIndex];
 
-  const markers = useMemo<MapMarker[]>(() => {
-    const list: MapMarker[] = (data.karte?.marker ?? []).map((place, index) => ({
-      id: `${place.id}-${index}`,
-      lat: place.lat,
-      lon: place.lon,
-      icon:
-        data.aktion === "route"
-          ? index === 0
-            ? "🅰"
-            : "🏁"
-          : String(place.extra?.icon ?? "") || "📍",
-      tone:
-        data.aktion === "route" ? (index === 0 ? "start" : "ziel") : "poi",
+  const legs = useMemo<TripLeg[]>(() => {
+    if (!eigeneRouten) return data.abschnitte ?? [];
+    const roh = active?.legs ?? [];
+    if (roh.length !== stations.length - 1) return [];
+    return roh.map((leg, index) => ({
+      von: stations[index].name,
+      nach: stations[index + 1].name,
+      distanz_m: Number(leg.distanz_m ?? 0),
+      dauer_s: Number(leg.dauer_s ?? 0),
+      zusammenfassung: String(leg.zusammenfassung ?? ""),
     }));
+  }, [eigeneRouten, active, stations, data.abschnitte]);
+
+  const alternativen = useMemo<MapsPlace[]>(() => {
+    const liste = [...(data.ziel_optionen ?? [])];
+    const original = data.ziel;
+    if (ziel && original && !liste.some((place) => place.id === original.id)) {
+      liste.unshift(original);
+    }
+    const aktiv = ziel?.id ?? original?.id;
+    return liste.filter((place) => place.id !== aktiv);
+  }, [data.ziel_optionen, data.ziel, ziel]);
+
+  const markers = useMemo<MapMarker[]>(() => {
+    const list: MapMarker[] = stations.map((place, index) => {
+      const last = index === stations.length - 1;
+      if (data.aktion !== "route") {
+        return {
+          id: `${place.id}-${index}`,
+          lat: place.lat,
+          lon: place.lon,
+          icon: String(place.extra?.icon ?? "") || "📍",
+          tone: "poi" as const,
+        };
+      }
+      return {
+        id: `${place.id}-${index}`,
+        lat: place.lat,
+        lon: place.lon,
+        icon: index === 0 ? "🅰" : last ? "🏁" : String(index),
+        tone: index === 0 ? "start" : last ? "ziel" : "poi",
+      };
+    });
+    alternativen.forEach((place, index) => {
+      list.push({
+        id: `option-${place.id}-${index}`,
+        lat: place.lat,
+        lon: place.lon,
+        icon: String(place.extra?.icon ?? "") || "📍",
+        tone: "poi",
+      });
+    });
     return list;
-  }, [data]);
+  }, [stations, alternativen, data.aktion]);
 
   const routeLines = useMemo(
     () =>
@@ -54,21 +114,113 @@ export default function MapsCard({ data, onOpen }: Props) {
     [routes, routeIndex]
   );
 
-  const zoom =
-    data.aktion === "route"
-      ? 6
-      : data.aktion === "erkunden"
-        ? 16
-        : (data.karte?.zoom ?? 13);
+  const center = useMemo(() => {
+    if (data.aktion === "route" && stations.length > 1) {
+      const lats = stations.map((place) => place.lat);
+      const lons = stations.map((place) => place.lon);
+      return {
+        lat: (Math.min(...lats) + Math.max(...lats)) / 2,
+        lon: (Math.min(...lons) + Math.max(...lons)) / 2,
+      };
+    }
+    return data.karte?.center ?? { lat: 51.1657, lon: 10.4515 };
+  }, [data.aktion, data.karte, stations]);
+
+  const zoom = useMemo(() => {
+    if (data.aktion === "erkunden") return 16;
+    if (data.aktion !== "route") return data.karte?.zoom ?? 13;
+    if (stations.length < 2) return 6;
+    const lats = stations.map((place) => place.lat);
+    const lons = stations.map((place) => place.lon);
+    const middle = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const span = Math.max(
+      Math.max(...lats) - Math.min(...lats),
+      (Math.max(...lons) - Math.min(...lons)) *
+        Math.cos((middle * Math.PI) / 180),
+      0.02
+    );
+    return Math.max(2, Math.min(13, Math.log2(360 / span) - 1.35));
+  }, [data, stations]);
 
   const title =
     data.aktion === "route"
-      ? `${data.start?.name ?? "Start"} → ${data.ziel?.name ?? "Ziel"}`
+      ? chainTitle(
+          stations.length > 1
+            ? stations.map((place) => place.name)
+            : [data.start?.name ?? "Start", data.ziel?.name ?? "Ziel"]
+        )
       : data.aktion === "umgebung"
         ? `${data.kategorie || "In der Nähe"}`
         : data.aktion === "erkunden"
           ? (data.ort?.name ?? "Erkunden")
           : (data.anfrage ?? "Karte");
+
+  const text = useMemo(() => {
+    if (!ziel || !active) return data.text;
+    const kette = stations.map((place) => place.name).join(" → ");
+    return (
+      `${data.modus_label ?? "Route"}: ${kette} — ` +
+      `${formatDuration(active.duration_s)} · ${formatDistance(active.distance_m)}.`
+    );
+  }, [ziel, active, stations, data.text, data.modus_label]);
+
+  const ansicht = useMemo<MapsCardData>(() => {
+    if (!ziel) return data;
+    return {
+      ...data,
+      ziel,
+      stationen: stations,
+      zwischenstopps: stations.slice(1, -1),
+      abschnitte: legs,
+      routen: routes,
+      ziel_optionen: alternativen,
+      karte: {
+        ...data.karte,
+        center,
+        marker: stations,
+        route: routes[routeIndex]?.geometry ?? [],
+      },
+      text,
+    };
+  }, [
+    data,
+    ziel,
+    stations,
+    legs,
+    routes,
+    routeIndex,
+    alternativen,
+    center,
+    text,
+  ]);
+
+  const waehleZiel = useCallback(
+    async (place: MapsPlace) => {
+      const kette = [...basis.slice(0, -1), place];
+      if (kette.length < 2) return;
+      setRouteBusy(true);
+      setRouteError("");
+      try {
+        const gefunden = await planRoute(
+          kette.map((stop) => ({ lat: stop.lat, lon: stop.lon })),
+          data.modus ?? "auto",
+          kette.length === 2
+        );
+        if (gefunden.length === 0) {
+          setRouteError(`Zu ${place.name} finde ich keine Route.`);
+          return;
+        }
+        setZiel(place);
+        setEigeneRouten(gefunden);
+        setRouteIndex(0);
+      } catch {
+        setRouteError("Die Route ließ sich gerade nicht berechnen.");
+      } finally {
+        setRouteBusy(false);
+      }
+    },
+    [basis, data.modus]
+  );
 
   return (
     <motion.div
@@ -126,7 +278,7 @@ export default function MapsCard({ data, onOpen }: Props) {
             className="jm-chip"
             data-active="true"
             style={{ padding: "5px 11px" }}
-            onClick={() => onOpen(data)}
+            onClick={() => onOpen(ansicht)}
           >
             Groß öffnen
           </button>
@@ -167,6 +319,103 @@ export default function MapsCard({ data, onOpen }: Props) {
                   🔁 {active.extra.umstiege} Umstiege
                 </span>
               )}
+              {stations.length > 2 && (
+                <span className="jm-chip" style={{ cursor: "default" }}>
+                  📍 {stations.length} Stationen
+                </span>
+              )}
+            </div>
+          )}
+
+          {data.aktion === "route" && legs.length > 1 && (
+            <div style={{ marginTop: 9, display: "flex", flexDirection: "column" }}>
+              {legs.map((leg, index) => (
+                <div
+                  key={`${leg.von}-${index}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 9,
+                    padding: "4px 2px",
+                    fontSize: 11.5,
+                    borderBottom: "1px solid var(--jm-hairline)",
+                  }}
+                >
+                  <span
+                    className="jm-mono"
+                    style={{ color: "var(--jm-text-faint)", width: 14 }}
+                  >
+                    {index + 1}
+                  </span>
+                  <span
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {leg.von} → {leg.nach}
+                  </span>
+                  <span className="jm-mono" style={{ color: "var(--jm-text-soft)" }}>
+                    {formatDuration(leg.dauer_s)}
+                  </span>
+                  <span
+                    className="jm-mono"
+                    style={{ color: "var(--jm-text-faint)" }}
+                  >
+                    {formatDistance(leg.distanz_m)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {data.aktion === "route" && alternativen.length > 0 && (
+            <div
+              style={{
+                marginTop: 9,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 7,
+                alignItems: "center",
+              }}
+            >
+              <span style={{ fontSize: 11.5, color: "var(--jm-text-faint)" }}>
+                {routeBusy ? "Route wird berechnet …" : "Stattdessen hierher"}
+              </span>
+              {alternativen.slice(0, 4).map((place, index) => (
+                <button
+                  key={`${place.id}-${index}`}
+                  className="jm-chip"
+                  disabled={routeBusy}
+                  title={`Route nach ${place.name}${
+                    place.label ? ` · ${place.label}` : ""
+                  }`}
+                  onClick={() => void waehleZiel(place)}
+                >
+                  <span>{String(place.extra?.icon ?? "") || "📍"}</span>
+                  {place.name}
+                  {place.distance_m != null && (
+                    <span style={{ opacity: 0.65 }}>
+                      {formatDistance(place.distance_m)}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {routeError && (
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 11.5,
+                color: "var(--jm-warn, #ff9a9a)",
+              }}
+            >
+              {routeError}
             </div>
           )}
 
@@ -220,24 +469,25 @@ export default function MapsCard({ data, onOpen }: Props) {
               <span className="jm-chip" style={{ cursor: "default" }}>
                 {data.street?.modus === "fotos"
                   ? `👁️ ${data.street.bilder.length} Straßenfotos`
-                  : "🕹️ 3D-Erkundung"}
+                  : "✈️ 3D-Erkundung"}
               </span>
               <button className="jm-chip" onClick={() => onOpen(data)}>
-                🚶 Loslaufen
+                ✈️ Abheben
               </button>
             </div>
           )}
 
-          {data.text && (
+          {text && (
             <div
               style={{
                 marginTop: 9,
                 fontSize: 11.5,
                 lineHeight: 1.5,
+                whiteSpace: "pre-line",
                 color: "var(--jm-text-soft)",
               }}
             >
-              {data.text}
+              {legs.length > 1 ? text.split("\n")[0] : text}
             </div>
           )}
         </div>

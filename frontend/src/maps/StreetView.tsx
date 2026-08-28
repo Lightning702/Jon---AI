@@ -353,7 +353,7 @@ export default function StreetView({
             data-active="true"
             onClick={() => onWalkMode(current?.lat ?? lat, current?.lon ?? lon)}
           >
-            🚶 In 3D erkunden
+            ✈️ Von oben erkunden
           </button>
           <button className="jm-chip" onClick={onClose}>
             ✕ Zurück zur Karte
@@ -444,8 +444,8 @@ export default function StreetView({
             <span
               style={{ fontSize: 12, color: "var(--jm-text-soft)", maxWidth: 330 }}
             >
-              Hier gibt es keine Straßenfotos — Jon zeigt dir die Straße in seiner
-              eigenen 3D-Ansicht. W und S laufen, Ziehen schaut um.
+              Hier gibt es keine Straßenfotos — dafür hebt Jon mit dir ab und zeigt
+              dir die Gegend aus dem Cockpit.
             </span>
             <button
               className="jm-chip jm-press"
@@ -453,7 +453,7 @@ export default function StreetView({
               data-active="true"
               onClick={() => onWalkMode(current?.lat ?? lat, current?.lon ?? lon)}
             >
-              🕹️ Frei bewegen
+              ✈️ Abheben
             </button>
           </div>
         </div>

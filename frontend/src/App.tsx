@@ -1605,14 +1605,6 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <button
-                onClick={() => setCalendarOpen(true)}
-                title="Jons Kalender — Termine, Tasks und Erinnerungen"
-                className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/40 hover:text-white/70 transition-colors"
-              >
-                <span className="text-[12px] leading-none">📅</span>
-                <span className="text-[11px] font-medium">{t("header_calendar")}</span>
-              </button>
               <div className="relative">
                 <button
                   onClick={() => setToolsMenuOpen((v) => !v)}
@@ -1640,6 +1632,7 @@ export default function App() {
                           title: t("tools_work"),
                           items: [
                             { icon: "🔎", label: "Alles durchsuchen", hint: "Strg+K", act: () => setSearchOpen(true) },
+                            { icon: "📅", label: t("header_calendar"), act: () => setCalendarOpen(true) },
                             { icon: "🗺️", label: "Jon Maps", hint: "/maps", act: () => { setMapsIntent(undefined); setMapsOpen(true); } },
                             { icon: "🧠", label: "Deep Learning", hint: "/lerne", act: () => { setDeepTaskId(undefined); setDeepOpen(true); } },
                             { icon: "</>", label: "Jon Code", act: () => setCodeOpen(true) },
@@ -1803,9 +1796,15 @@ export default function App() {
                   setMapsIntent({
                     center: data.karte?.center ?? undefined,
                     zoom: data.karte?.zoom,
-                    markers: data.karte?.marker,
+                    markers:
+                      data.aktion === "route"
+                        ? data.ziel_optionen
+                        : data.karte?.marker,
+                    kategorie: data.filter,
                     from: data.start,
                     to: data.ziel,
+                    via: data.zwischenstopps,
+                    stops: data.stationen,
                     mode: data.modus,
                     routes: data.routen,
                     street: data.aktion === "erkunden",

@@ -2,7 +2,44 @@
 
 Alle nennenswerten Änderungen an Jon.
 
-## [Unveröffentlicht]
+## [4.34.6] — 2026-08-28
+
+### 🗺️ Jon Maps versteht die Filter
+
+Jon bedient die Kartenfilter jetzt selbst. „Starte eine Route von meinem Standort zum
+nächsten Supermarkt" genügt — er sucht den nächstgelegenen Treffer, plant die Route und
+zeigt die anderen Läden gleich daneben.
+
+- Ziel und Zwischenstopps einer Route dürfen ein Filter (`supermarkt`, `apotheke`,
+  `tankstelle` …) oder ein Laden- und Markenname sein: „zum Interspar in meiner Nähe".
+- „nächster", „in meiner Nähe", „um mich herum" werden verstanden und aus der Suche
+  herausgerechnet, statt als Ortsname im Geocoder zu landen.
+- Neue Filter: **Bäckereien**, **Drogerien** und **Post & Paket** — zusammen 22 Stück.
+  Marken wie Interspar, Billa, Hofer, dm, Shell oder McDonald's kennt Jon direkt und
+  sucht sie in der passenden Kategorie.
+- Findet er in 2,5 km nichts, weitet er auf 10 und 25 km aus, statt aufzugeben.
+- In der Kartenkarte im Chat stehen die Alternativen als Chips: ein Klick rechnet die
+  Route sofort dorthin um — Karte, Dauer, Entfernung und Text ziehen mit. „Groß öffnen"
+  übernimmt die neue Route und schaltet den passenden Filter in Jon Maps scharf.
+- Overpass läuft über drei Server: fällt einer aus, übernimmt der nächste.
+
+### ✈️ Jon und Mini Jon unterwegs
+
+Was Jon am PC kann, kann er jetzt auch über Telegram — und Mini Jon zum ersten Mal
+überhaupt: Er hatte dort bisher gar keine Werkzeuge.
+
+- Standort teilen (📎 → Standort), und „hier" ist wirklich dort, wo du bist. Live-Standorte
+  werden dabei schonend übernommen, nicht bei jedem Zucken.
+- Zu jeder Karte kommt ein **Kartenpin** zum Antippen, zu jeder Route zusätzlich ein
+  Routenlink fürs Handy.
+- **/lernen &lt;Thema&gt;** startet eine echte Tiefenrecherche am PC, **/lernstatus**,
+  **/lernstop** und **/lernweiter** steuern sie. Sobald sie fertig ist, meldet sich Jon
+  von selbst mit Zusammenfassung, Quellen und Dateien — auch wenn du die Recherche
+  einfach im Gespräch angestoßen hast.
+- In Gruppen antworten beide weiterhin nur auf @Erwähnung, dort aber mit einem bewusst
+  kleinen Werkzeugkasten: Karten, Routen, Websuche, Wetter und Deep Learning. Kein
+  Zugriff auf PC, Mails, Zwischenablage oder Freunde-Chats — den vollen Satz hat nur der
+  Chat, der mit deinem PC verbunden ist.
 
 ### 🗑️ Jon deinstallieren
 

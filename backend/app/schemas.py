@@ -21,6 +21,7 @@ class ChatIn(BaseModel):
     conversation_id: str | None = None
     persist: bool = True
     tool_mode: str = Field(default="ask", pattern="^(ask|allow)$")
+    tool_scope: str = Field(default="", pattern="^(gast|voll)?$")
     mode: str = Field(default="chat", pattern="^(chat|coding)$")
     persona: str = Field(default="papa", pattern="^(papa|junior)$")
     slot: str = Field(default="", pattern="^(jon|emil)?$")

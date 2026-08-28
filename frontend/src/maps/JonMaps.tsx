@@ -10,7 +10,8 @@ import RoutePanel from "./RoutePanel";
 import PlaceSheet from "./PlaceSheet";
 import FriendSheet from "./FriendSheet";
 import StreetView from "./StreetView";
-import WorldExplorer, { ExplorerMode } from "./WorldExplorer";
+import WorldExplorer from "./WorldExplorer";
+import SpaceBackdrop from "./SpaceBackdrop";
 import {
   FriendLocation,
   FriendsResult,
@@ -36,11 +37,14 @@ export interface JonMapsIntent {
   center?: { lat: number; lon: number };
   zoom?: number;
   markers?: MapsPlace[];
+  kategorie?: string;
   route?: [number, number][];
   street?: boolean;
-  explorer?: ExplorerMode;
+  explorer?: boolean;
   from?: MapsPlace;
   to?: MapsPlace;
+  via?: MapsPlace[];
+  stops?: MapsPlace[];
   mode?: TravelMode;
   routes?: MapsRoute[];
 }
@@ -81,15 +85,16 @@ export default function JonMaps({
   const [selected, setSelected] = useState<MapsPlace | null>(null);
   const [home, setHome] = useState<{ lat: number; lon: number } | null>(null);
   const [routeOpen, setRouteOpen] = useState(false);
-  const [routeFrom, setRouteFrom] = useState<MapsPlace | null>(null);
-  const [routeTo, setRouteTo] = useState<MapsPlace | null>(null);
-  const [routeVia, setRouteVia] = useState<MapsPlace[]>([]);
+  const [routeStops, setRouteStops] = useState<(MapsPlace | null)[]>([
+    null,
+    null,
+  ]);
   const [routeMode, setRouteMode] = useState<TravelMode>("auto");
   const [routes, setRoutes] = useState<MapsRoute[]>([]);
   const [routeIndex, setRouteIndex] = useState(0);
   const [routeBusy, setRouteBusy] = useState(false);
   const [routeError, setRouteError] = useState("");
-  const [routeSlot, setRouteSlot] = useState<"from" | "to" | null>(null);
+  const [routeSlot, setRouteSlot] = useState<number | null>(null);
   const [layersOpen, setLayersOpen] = useState(false);
   const [layers, setLayers] = useState<Record<string, boolean>>({
     gebaeude3d: false,
@@ -105,7 +110,7 @@ export default function JonMaps({
     "auto"
   );
   const [street, setStreet] = useState<{ lat: number; lon: number } | null>(null);
-  const [explorer, setExplorer] = useState<ExplorerMode | null>(null);
+  const [explorer, setExplorer] = useState(false);
   const [explorerStart, setExplorerStart] = useState({ lat: 0, lon: 0 });
   const [toast, setToast] = useState("");
   const [homeName, setHomeName] = useState("");
@@ -308,8 +313,29 @@ export default function JonMaps({
   useEffect(() => {
     if (!intent) return;
     if (intent.markers?.length) setResults(intent.markers);
-    if (intent.from) setRouteFrom(intent.from);
-    if (intent.to) setRouteTo(intent.to);
+    if (intent.kategorie) {
+      setCategory(intent.kategorie);
+      if (!intent.markers?.length && intent.center) {
+        void nearbyPlaces(
+          intent.kategorie,
+          intent.center.lat,
+          intent.center.lon,
+          4000,
+          30
+        )
+          .then(setResults)
+          .catch(() => undefined);
+      }
+    }
+    const chain = intent.stops?.length
+      ? intent.stops
+      : [intent.from, ...(intent.via ?? []), intent.to].filter(
+          (place): place is MapsPlace => Boolean(place)
+        );
+    if (chain.length >= 2) {
+      setRouteStops(chain);
+      setRouteOpen(true);
+    }
     if (intent.mode) setRouteMode(intent.mode);
     if (intent.routes?.length) {
       setRoutes(intent.routes);
@@ -324,23 +350,61 @@ export default function JonMaps({
     }
     if (intent.explorer && intent.center) {
       setExplorerStart({ lat: intent.center.lat, lon: intent.center.lon });
-      setExplorer(intent.explorer);
+      setExplorer(true);
     }
   }, [intent, flyTo]);
+
+  const setStop = useCallback((index: number, place: MapsPlace | null) => {
+    setRouteStops((current) =>
+      current.map((item, position) => (position === index ? place : item))
+    );
+  }, []);
+
+  const openRoute = useCallback(
+    (place?: MapsPlace, slot: "start" | "ziel" = "ziel") => {
+      setRouteOpen(true);
+      if (place) {
+        setRouteStops((current) => {
+          const next = [...current];
+          if (slot === "start") next[0] = place;
+          else next[next.length - 1] = place;
+          return next;
+        });
+      }
+      if (home) {
+        void reversePlace(home.lat, home.lon)
+          .then((found) =>
+            setRouteStops((current) =>
+              current[0]
+                ? current
+                : current.map((item, index) => (index === 0 ? found : item))
+            )
+          )
+          .catch(() => undefined);
+      }
+    },
+    [home]
+  );
 
   const choosePlace = useCallback(
     (place: MapsPlace) => {
       if (routeOpen) {
-        if (routeSlot === "from") setRouteFrom(place);
-        else if (routeSlot === "to") setRouteTo(place);
-        else if (!routeTo) setRouteTo(place);
-        else setRouteFrom(place);
+        setRouteStops((current) => {
+          const wanted =
+            routeSlot != null && routeSlot < current.length
+              ? routeSlot
+              : current.findIndex((item) => !item);
+          const index = wanted < 0 ? current.length - 1 : wanted;
+          return current.map((item, position) =>
+            position === index ? place : item
+          );
+        });
         setRouteSlot(null);
       } else {
         setSelected(place);
       }
     },
-    [routeOpen, routeSlot, routeTo]
+    [routeOpen, routeSlot]
   );
 
   const runSearch = useCallback(
@@ -395,19 +459,19 @@ export default function JonMaps({
   );
 
   useEffect(() => {
-    if (!routeFrom || !routeTo) {
+    const chosen = routeStops.filter(
+      (stop): stop is MapsPlace => Boolean(stop)
+    );
+    if (chosen.length < 2) {
       setRoutes([]);
+      setRouteError("");
       return;
     }
     let cancelled = false;
     setRouteBusy(true);
     setRouteError("");
-    const points = [
-      { lat: routeFrom.lat, lon: routeFrom.lon },
-      ...routeVia.map((stop) => ({ lat: stop.lat, lon: stop.lon })),
-      { lat: routeTo.lat, lon: routeTo.lon },
-    ];
-    planRoute(points, routeMode, true)
+    const points = chosen.map((stop) => ({ lat: stop.lat, lon: stop.lon }));
+    planRoute(points, routeMode, chosen.length === 2)
       .then((found) => {
         if (cancelled) return;
         setRoutes(found);
@@ -446,7 +510,7 @@ export default function JonMaps({
     return () => {
       cancelled = true;
     };
-  }, [routeFrom, routeTo, routeVia, routeMode]);
+  }, [routeStops, routeMode]);
 
   useEffect(() => {
     if (!toast) return;
@@ -463,33 +527,17 @@ export default function JonMaps({
       tone: "poi",
       active: selected?.id === place.id,
     }));
-    if (routeFrom) {
+    routeStops.forEach((stop, index) => {
+      if (!stop) return;
+      const last = index === routeStops.length - 1;
       list.push({
-        id: "route-from",
-        lat: routeFrom.lat,
-        lon: routeFrom.lon,
-        icon: "🅰",
-        tone: "start",
-      });
-    }
-    routeVia.forEach((stop, index) => {
-      list.push({
-        id: `route-via-${index}`,
+        id: `route-stop-${index}`,
         lat: stop.lat,
         lon: stop.lon,
-        icon: String(index + 1),
-        tone: "poi",
+        icon: index === 0 ? "🅰" : last ? "🏁" : String(index),
+        tone: index === 0 ? "start" : last ? "ziel" : "poi",
       });
     });
-    if (routeTo) {
-      list.push({
-        id: "route-to",
-        lat: routeTo.lat,
-        lon: routeTo.lon,
-        icon: "🏁",
-        tone: "ziel",
-      });
-    }
     if (home) {
       list.push({ id: "home", lat: home.lat, lon: home.lon, tone: "standort" });
     }
@@ -505,7 +553,7 @@ export default function JonMaps({
       });
     });
     return list;
-  }, [results, selected, routeFrom, routeTo, routeVia, home, friends, activeFriend]);
+  }, [results, selected, routeStops, home, friends, activeFriend]);
 
   const routeLines = useMemo<MapRouteLine[]>(
     () =>
@@ -521,11 +569,9 @@ export default function JonMaps({
 
   const handleMapClick = useCallback(
     async (lat: number, lon: number) => {
-      if (routeSlot) {
+      if (routeSlot != null) {
         try {
-          const place = await reversePlace(lat, lon);
-          if (routeSlot === "from") setRouteFrom(place);
-          else setRouteTo(place);
+          setStop(routeSlot, await reversePlace(lat, lon));
         } catch {
           setToast("Diesen Punkt konnte Jon nicht auflösen.");
         }
@@ -539,7 +585,7 @@ export default function JonMaps({
         setToast("Zu diesem Punkt gibt es keine Daten.");
       }
     },
-    [routeSlot]
+    [routeSlot, setStop]
   );
 
   const handleMarkerClick = useCallback(
@@ -622,7 +668,7 @@ export default function JonMaps({
     });
   };
 
-  const openExplorer = (mode: ExplorerMode, lat?: number, lon?: number) => {
+  const openExplorer = (lat?: number, lon?: number) => {
     setExplorerStart({
       lat: lat ?? selected?.lat ?? view.lat,
       lon: lon ?? selected?.lon ?? view.lon,
@@ -630,13 +676,19 @@ export default function JonMaps({
     setLayers((current) => ({ ...current, gebaeude3d: true }));
     setTerrain(true);
     setProjection("mercator");
-    setExplorer(mode);
+    setExplorer(true);
   };
 
-  const overlayHidden = Boolean(explorer) || Boolean(street);
+  const overlayHidden = explorer || Boolean(street);
 
   return (
     <div className="jm-root" data-jm-theme={theme}>
+      <SpaceBackdrop
+        lat={view.lat}
+        lon={view.lon}
+        zoom={view.zoom}
+        bearing={view.bearing}
+      />
       <MapCanvas
         theme={theme}
         center={{ lat: view.lat, lon: view.lon }}
@@ -654,7 +706,7 @@ export default function JonMaps({
             map.jumpTo({ center: [target.lon, target.lat], zoom: target.zoom });
           }
         }}
-        onMove={setView}
+        onMove={explorer ? undefined : setView}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}
       />
@@ -711,14 +763,7 @@ export default function JonMaps({
                     setSelected(null);
                     setCategory("");
                   }}
-                  onOpenRoute={() => {
-                    setRouteOpen(true);
-                    if (!routeFrom && home) {
-                      void reversePlace(home.lat, home.lon)
-                        .then(setRouteFrom)
-                        .catch(() => undefined);
-                    }
-                  }}
+                  onOpenRoute={() => openRoute()}
                 />
               </div>
             </div>
@@ -786,7 +831,7 @@ export default function JonMaps({
                 onToggleEarth={toggleEarth}
                 onLayers={() => setLayersOpen((value) => !value)}
                 onLocate={() => void locate(true)}
-                onExplore={() => openExplorer("mensch")}
+                onExplore={() => openExplorer()}
                 onStreet={() => openStreet()}
               />
             </div>
@@ -805,9 +850,7 @@ export default function JonMaps({
                 {routeOpen && (
                   <RoutePanel
                     key="route"
-                    from={routeFrom}
-                    to={routeTo}
-                    via={routeVia}
+                    stops={routeStops}
                     mode={routeMode}
                     routes={routes}
                     activeIndex={routeIndex}
@@ -815,34 +858,55 @@ export default function JonMaps({
                     error={routeError}
                     onMode={setRouteMode}
                     onPick={setRouteIndex}
-                    onSwap={() => {
-                      setRouteFrom(routeTo);
-                      setRouteTo(routeFrom);
-                    }}
+                    onReverse={() =>
+                      setRouteStops((current) => [...current].reverse())
+                    }
                     onClear={() => {
                       setRouteOpen(false);
                       setRoutes([]);
-                      setRouteFrom(null);
-                      setRouteTo(null);
-                      setRouteVia([]);
+                      setRouteStops([null, null]);
+                      setRouteSlot(null);
                     }}
-                    onEdit={(slot) => {
-                      setRouteSlot(slot);
+                    onEdit={(index) => {
+                      setRouteSlot(index);
                       setToast(
-                        slot === "from"
+                        index === 0
                           ? "Suche einen Ort oder klick auf die Karte, um den Start zu setzen."
-                          : "Suche einen Ort oder klick auf die Karte, um das Ziel zu setzen."
+                          : index === routeStops.length - 1
+                            ? "Suche einen Ort oder klick auf die Karte, um das Ziel zu setzen."
+                            : `Suche einen Ort oder klick auf die Karte für Station ${index}.`
                       );
                     }}
-                    onRemoveVia={(index) =>
-                      setRouteVia((current) =>
-                        current.filter((_, position) => position !== index)
+                    onRemove={(index) =>
+                      setRouteStops((current) =>
+                        current.length <= 2
+                          ? current
+                          : current.filter((_, position) => position !== index)
                       )
+                    }
+                    onAdd={() => {
+                      setRouteStops((current) =>
+                        current.length >= 12 ? current : [...current, null]
+                      );
+                      setRouteSlot(routeStops.length);
+                      setToast(
+                        "Suche den nächsten Ort oder klick auf die Karte — Jon hängt ihn an den Trip."
+                      );
+                    }}
+                    onShift={(index, delta) =>
+                      setRouteStops((current) => {
+                        const target = index + delta;
+                        if (target < 0 || target >= current.length) return current;
+                        const next = [...current];
+                        const moved = next[index];
+                        next[index] = next[target];
+                        next[target] = moved;
+                        return next;
+                      })
                     }
                     onDrive={() => {
                       const start = routes[routeIndex]?.geometry?.[0];
                       openExplorer(
-                        routeMode === "fuss" ? "mensch" : "auto",
                         start ? start[1] : undefined,
                         start ? start[0] : undefined
                       );
@@ -867,7 +931,7 @@ export default function JonMaps({
                     }
                     onClose={() => setActiveFriend(null)}
                     onRouteTo={() => {
-                      setRouteTo({
+                      openRoute({
                         id: `freund:${activeFriend.id}`,
                         name: activeFriend.name,
                         label: "Standort deines Freundes",
@@ -881,13 +945,7 @@ export default function JonMaps({
                         source: "jon-freunde",
                         extra: { icon: activeFriend.avatar },
                       });
-                      setRouteOpen(true);
                       setActiveFriend(null);
-                      if (!routeFrom && home) {
-                        void reversePlace(home.lat, home.lon)
-                          .then(setRouteFrom)
-                          .catch(() => undefined);
-                      }
                     }}
                     onStreet={() => {
                       openStreet(activeFriend.lat, activeFriend.lon);
@@ -904,23 +962,10 @@ export default function JonMaps({
                     key={selected.id + selected.lat}
                     place={selected}
                     onClose={() => setSelected(null)}
-                    onRouteTo={() => {
-                      setRouteTo(selected);
-                      setRouteOpen(true);
-                      if (!routeFrom && home) {
-                        void reversePlace(home.lat, home.lon)
-                          .then(setRouteFrom)
-                          .catch(() => undefined);
-                      }
-                    }}
-                    onRouteFrom={() => {
-                      setRouteFrom(selected);
-                      setRouteOpen(true);
-                    }}
+                    onRouteTo={() => openRoute(selected, "ziel")}
+                    onRouteFrom={() => openRoute(selected, "start")}
                     onStreet={() => openStreet(selected.lat, selected.lon)}
-                    onExplore={() =>
-                      openExplorer("mensch", selected.lat, selected.lon)
-                    }
+                    onExplore={() => openExplorer(selected.lat, selected.lon)}
                     onAskJon={(question) => onAskJon?.(question)}
                   />
                 )}
@@ -952,10 +997,10 @@ export default function JonMaps({
             onClose={() => setStreet(null)}
             onWalkMode={(lat, lon) => {
               setStreet(null);
-              openExplorer("mensch", lat, lon);
+              openExplorer(lat, lon);
               setToast(
-                "Keine Straßenfotos an dieser Stelle — du stehst jetzt in Jons " +
-                  "3D-Ansicht auf der Straße. W A S D laufen, Maus ziehen schaut um."
+                "Keine Straßenfotos an dieser Stelle — Jon hebt mit dir ab. " +
+                  "W und S geben Schub, A und D rollen, R und F heben die Nase."
               );
             }}
             onPositionChange={(lat, lon) => {
@@ -968,12 +1013,10 @@ export default function JonMaps({
       {explorer && (
         <WorldExplorer
           map={mapRef.current}
-          mode={explorer}
           start={explorerStart}
           route={activeGeometry}
-          onModeChange={setExplorer}
           onClose={() => {
-            setExplorer(null);
+            setExplorer(false);
             setProjection("auto");
           }}
         />

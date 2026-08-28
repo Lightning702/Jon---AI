@@ -133,9 +133,9 @@ export default function ControlDock({
         <button
           className="jm-dock-btn"
           onClick={onExplore}
-          title="Welt frei erkunden (Mensch, Auto, Flugzeug)"
+          title="Abheben und die Welt im Flugzeug erkunden"
         >
-          🕹️
+          ✈️
         </button>
         <div className="jm-dock-sep" />
         <button className="jm-dock-btn" onClick={onLocate} title="Mein Standort">

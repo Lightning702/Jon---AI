@@ -108,6 +108,16 @@ class PlacesProvider(Protocol):
         self, category: str, lat: float, lon: float, radius_m: int, limit: int
     ) -> list[Place]: ...
 
+    async def named(
+        self,
+        name: str,
+        lat: float,
+        lon: float,
+        radius_m: int,
+        category: str,
+        limit: int,
+    ) -> list[Place]: ...
+
 
 @runtime_checkable
 class RoutingProvider(Protocol):

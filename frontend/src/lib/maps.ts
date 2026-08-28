@@ -114,15 +114,27 @@ export interface MapsConfig {
   attribution: string;
 }
 
+export interface TripLeg {
+  von: string;
+  nach: string;
+  distanz_m: number;
+  dauer_s: number;
+  zusammenfassung: string;
+}
+
 export interface MapsCardData {
   aktion: MapsAction;
   anfrage?: string;
   kategorie?: string;
+  filter?: string;
+  ziel_optionen?: MapsPlace[];
   treffer?: MapsPlace[];
   start?: MapsPlace;
   ziel?: MapsPlace;
   ort?: MapsPlace;
   zwischenstopps?: MapsPlace[];
+  stationen?: MapsPlace[];
+  abschnitte?: TripLeg[];
   routen?: MapsRoute[];
   modus?: TravelMode;
   modus_label?: string;

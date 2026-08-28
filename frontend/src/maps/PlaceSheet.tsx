@@ -153,7 +153,7 @@ export default function PlaceSheet({
             style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
             onClick={onExplore}
           >
-            🕹️ Erkunden
+            ✈️ Hinfliegen
           </button>
         </div>
 

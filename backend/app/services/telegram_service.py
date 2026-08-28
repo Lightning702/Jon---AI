@@ -4,6 +4,7 @@ import asyncio
 import json
 import subprocess
 import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -30,6 +31,8 @@ class TelegramService:
         self._pending_place: dict[str, str] = {}
         self._username = ""
         self._username_token = ""
+        self._research_watch: dict[str, asyncio.Task] = {}
+        self._last_home = 0.0
 
     def _load_histories(self) -> dict[str, list[dict]]:
         try:
@@ -129,6 +132,7 @@ class TelegramService:
         question = strip_mention(text, username) or "Hallo!"
         await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
         provider, model = get_settings_service().telegram_selection()
+        cards: list[dict] = []
         try:
             answer = await asyncio.wait_for(
                 group_answer(
@@ -142,19 +146,55 @@ class TelegramService:
                     provider=provider,
                     model=model,
                     slot="jon",
+                    scope="gast",
+                    source="telegram-gruppe",
+                    cards=cards,
                 ),
-                timeout=120,
+                timeout=180,
             )
         except Exception:
             answer = FEHLER_ANTWORT
         memory.record(chat_id, "Jon", answer, bot="jon")
         await self.send(chat_id, answer)
+        await self.send_cards(chat_id, cards)
 
     async def send(self, chat_id: str | int, text: str) -> None:
         for start in range(0, max(len(text), 1), 3900):
             await self._api(
                 "sendMessage",
                 {"chat_id": chat_id, "text": text[start : start + 3900]},
+            )
+
+    async def send_location(self, chat_id: str | int, punkt: dict) -> None:
+        await self._api(
+            "sendVenue",
+            {
+                "chat_id": chat_id,
+                "latitude": punkt["lat"],
+                "longitude": punkt["lon"],
+                "title": punkt.get("titel") or "Ort",
+                "address": punkt.get("label")
+                or f"{punkt['lat']:.5f}, {punkt['lon']:.5f}",
+            },
+        )
+
+    async def send_cards(self, chat_id: str | int, cards: list[dict]) -> None:
+        from app.services.telegram_extras import (
+            map_links,
+            map_points,
+            research_ids,
+            spawn_research_watch,
+        )
+
+        for punkt in map_points(cards):
+            await self.send_location(chat_id, punkt)
+        for link in map_links(cards):
+            await self.send(chat_id, f"🗺️ Route zum Mitnehmen: {link}")
+        for task_id in research_ids(cards):
+            spawn_research_watch(
+                task_id,
+                lambda text, ziel=chat_id: self.send(ziel, text),
+                self._research_watch,
             )
 
     async def send_voice(self, chat_id: str | int, text: str) -> bool:
@@ -279,6 +319,7 @@ class TelegramService:
         from app.services.location_service import get_location_service
 
         service = get_location_service()
+        await self._remember_position(lat, lon, live)
         pending = self._pending_place.pop(chat_id, None)
         if pending and not live:
             service.add_place(chat_id, pending, lat, lon)
@@ -291,6 +332,32 @@ class TelegramService:
         triggered = service.check(chat_id, lat, lon)
         for text in triggered:
             await self.send(chat_id, f"📍 Du bist da! Denk an: {text}")
+        if not live and not triggered:
+            await self.send(
+                chat_id,
+                "📍 Standort übernommen. „Route zum nächsten Supermarkt“ geht "
+                "jetzt von hier aus.",
+            )
+
+    async def _remember_position(self, lat: float, lon: float, live: bool) -> None:
+        from app.services.maps import get_maps_service
+
+        service = get_maps_service()
+        now = time.monotonic()
+        if live and now - self._last_home < 120.0:
+            return
+        try:
+            aktuell = await service.home()
+            if service.distance(aktuell[0], aktuell[1], lat, lon) < 120.0:
+                self._last_home = now
+                return
+        except Exception:
+            pass
+        try:
+            await service.set_home(lat, lon, "handy")
+            self._last_home = now
+        except Exception:
+            pass
 
     async def _typing(self, chat_id: str | int) -> None:
         while True:
@@ -314,11 +381,21 @@ class TelegramService:
             "bewegen. Uebergib x/y nur, wenn er ein konkretes Ziel nennt. "
             "keyboard_press drueckt einzelne Tasten, keyboard_hotkey "
             "Kombinationen, screenshot zeigt dir den Bildschirm. Fuehre solche "
-            "Befehle direkt aus, statt nachzufragen."
+            "Befehle direkt aus, statt nachzufragen. "
+            "Unterwegs hast du auch Jon Maps und Jon Deep Learning dabei: Fuer "
+            "Orte, Wege und Entfernungen nutze maps — action='umgebung' mit einem "
+            "Filter wie supermarkt, apotheke oder tankstelle, action='route' mit "
+            "from='hier' und einem Filter oder Ladennamen als Ziel "
+            "(to='supermarkt', to='Interspar'). 'hier' ist der zuletzt per "
+            "Telegram geteilte Handy-Standort; fehlt er, bitte um das Teilen des "
+            "Standorts. Zu jeder Karte bekommt der Nutzer automatisch einen Pin "
+            "aufs Handy. Soll Jon etwas lernen oder recherchieren, starte "
+            "deep_learning mit action='start' — das laeuft am PC weiter, und das "
+            "Ergebnis landet hier im Chat, sobald es fertig ist."
         )
         return {"role": "system", "content": system}
 
-    async def _answer(self, chat_id: str, text: str) -> str:
+    async def _answer(self, chat_id: str, text: str) -> tuple[str, list[dict]]:
         from app.core.config import get_settings
         from app.schemas import ChatIn, MessageIn
         from app.services.chat_service import ChatService
@@ -345,9 +422,13 @@ class TelegramService:
         parts: list[str] = []
         done_summaries: list[str] = []
         running_summaries: dict[str, str] = {}
+        cards: list[dict] = []
         announced = 0
         async for event in self._chat_service.stream(payload):
             kind = event.get("type")
+            card = event.get("card")
+            if isinstance(card, dict) and card not in cards:
+                cards.append(card)
             if kind == "content":
                 parts.append(event.get("delta") or "")
             elif kind == "tool" and event.get("status") == "running":
@@ -375,7 +456,7 @@ class TelegramService:
         if executed:
             report = "\n".join(f"• {s}" for s in executed[:8])
             answer = f"{answer}\n\n✅ Ausgeführte Befehle:\n{report}"
-        return answer
+        return answer, cards
 
     def _direct_control(self, text: str) -> str | None:
         raw = text.strip()
@@ -499,8 +580,11 @@ class TelegramService:
                 await self.send(chat_id, direct)
             return
         typing = asyncio.create_task(self._typing(chat_id))
+        cards: list[dict] = []
         try:
-            answer = await asyncio.wait_for(self._answer(chat_id, text), timeout=180)
+            answer, cards = await asyncio.wait_for(
+                self._answer(chat_id, text), timeout=180
+            )
         except asyncio.CancelledError:
             typing.cancel()
             return
@@ -517,6 +601,7 @@ class TelegramService:
         if wants_voice:
             await self.send_voice(chat_id, answer)
         await self.send(chat_id, answer)
+        await self.send_cards(chat_id, cards)
 
     def _launch(self, chat_id: str, text: str, voice: bool = False) -> None:
         old = self._running.get(chat_id)
@@ -743,9 +828,15 @@ class TelegramService:
                     "Ich bin da. 👋 Schreib oder sprich mir, was ich auf deinem PC "
                     "tun soll — zum Beispiel: Öffne YouTube · Spiel was Entspanntes · "
                     "Wie geht es meinem PC? · Hab ich neue Mails?\n\n"
-                    "Schick mir gerne auch eine Sprachnachricht. Befehle: /stimme = "
+                    "Schick mir gerne auch eine Sprachnachricht. Teile mir deinen "
+                    "Standort (📎 → Standort), dann plane ich Routen ab hier — zum "
+                    "Beispiel: Route zum nächsten Supermarkt.\n\n"
+                    "Befehle: /stimme = "
                     "ich antworte per Sprachnachricht · /endstimme = nur noch Text · "
-                    "/stopp = laufende Aktion abbrechen · /reset = Gespräch vergessen.",
+                    "/lernen <Thema> = Tiefenrecherche starten · /lernstatus = Stand "
+                    "der Recherche · /lernstop = abbrechen · /lernweiter = "
+                    "fortsetzen · /stopp = laufende Aktion abbrechen · /reset = "
+                    "Gespräch vergessen.",
                 )
                 continue
             if text.startswith("/reset"):
@@ -772,6 +863,26 @@ class TelegramService:
                     chat_id, "Alles klar, ich antworte dir jetzt als Sprachnachricht. 🎙️"
                 )
                 continue
+            from app.services.telegram_extras import (
+                is_learn_command,
+                research_command,
+                spawn_research_watch,
+            )
+
+            if is_learn_command(text):
+                ergebnis = await research_command(text)
+                if ergebnis is not None:
+                    antwort, task_id = ergebnis
+                    await self.send(chat_id, antwort)
+                    if task_id:
+                        spawn_research_watch(
+                            task_id,
+                            lambda nachricht, ziel=chat_id: self.send(
+                                ziel, nachricht
+                            ),
+                            self._research_watch,
+                        )
+                    continue
             low = text.lower()
             place_trigger = None
             for phrase in (

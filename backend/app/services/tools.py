@@ -74,6 +74,18 @@ SAFE_TOOLS = {
 }
 
 
+GUEST_TOOLS = {
+    "maps",
+    "deep_learning",
+    "web_search",
+    "get_weather",
+    "list_skills",
+    "read_skill",
+    "read_skill_file",
+    "wait",
+}
+
+
 CORE_TOOLS = {
     "run_powershell",
     "run_cmd",
@@ -666,18 +678,26 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         action = str(args.get("action", "suche"))
         if action == "route":
             start = _shorten(args.get("from", "hier"), 40)
+            unterwegs = [
+                _shorten(str(item), 30)
+                for item in (list(args.get("via") or []) + list(args.get("stops") or []))
+                if str(item).strip()
+            ]
             ziel = _shorten(args.get("to", ""), 40)
+            kette = [start] + unterwegs + ([ziel] if ziel else [])
             modus = {
                 "fuss": "zu Fuß",
                 "auto": "mit dem Auto",
                 "fahrrad": "mit dem Fahrrad",
                 "oepnv": "mit Bus und Bahn",
             }.get(str(args.get("mode", "auto")), "")
+            if len(kette) > 2:
+                return f"Plant den Trip {modus} über {' → '.join(kette)}."
             return f"Berechnet die Route {modus} von {start} nach {ziel}."
         if action == "umgebung":
             was = _shorten(args.get("category") or args.get("query", ""), 40)
             wo = _shorten(args.get("around", ""), 40)
-            return f"Sucht {was} in der Nähe{f' von {wo}' if wo else ''}."
+            return f"Filtert die Karte nach {was}{f' rund um {wo}' if wo else ' in der Nähe'}."
         if action == "erkunden":
             return f"Öffnet {_shorten(args.get('query', ''), 50)} zum Erkunden."
         return f"Sucht auf der Karte nach: {_shorten(args.get('query', ''))}"
@@ -867,6 +887,12 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
     if name == "calendar_search":
         return f"Sucht im Kalender nach: {_shorten(args.get('query', ''))}"
     return f"Führt das Tool {name} aus."
+
+
+def _maps_filters() -> str:
+    from app.services.maps.overpass import CATEGORIES
+
+    return ", ".join(CATEGORIES)
 
 
 def _tool(name: str, description: str, properties: dict, required: list[str]) -> dict:
@@ -1878,13 +1904,29 @@ class ToolBox:
             ),
             _tool(
                 "maps",
-                "Jon Maps: echte Karten, Orte und Routen. Nutze das fuer alles rund um "
-                "Orte, Wege, Entfernungen, Fahrzeiten und Umgebung. action='suche' "
-                "findet Orte, Adressen, Staedte und Sehenswuerdigkeiten. "
-                "action='umgebung' findet Restaurants, Hotels, Tankstellen, Bahnhoefe "
-                "und aehnliches in der Naehe. action='route' berechnet eine echte "
-                "Route mit Dauer, Entfernung und Alternativen. action='erkunden' "
-                "oeffnet einen Ort zum Erkunden auf Strassenebene. Das Ergebnis "
+                "Jon Maps: echte Karten, Orte, Filter und Routen. Nutze das fuer alles "
+                "rund um Orte, Wege, Entfernungen, Fahrzeiten und Umgebung. "
+                "action='suche' findet Orte, Adressen, Staedte und Sehenswuerdigkeiten. "
+                "action='umgebung' schaltet einen Karten-Filter ein und zeigt alles "
+                "dieser Art in der Naehe — Supermaerkte, Apotheken, Restaurants, "
+                "Tankstellen, Baeckereien und mehr. Verfuegbare Filter: "
+                f"{_maps_filters()}. Statt eines Filters darfst du dort auch einen "
+                "Marken- oder Ladennamen angeben ('Interspar', 'dm', 'Shell'), Jon "
+                "sucht ihn dann rund um den Standort. action='route' berechnet eine "
+                "echte Route mit Dauer, Entfernung und Alternativen — und ebenso einen "
+                "ganzen Trip ueber beliebig viele Stationen: schreibe dafuer alle "
+                "Ziele der Reihe nach in stops. Beispiel: 'von meinem Standort nach "
+                "Tschechien, dann nach Polen, dann zurueck nach Deutschland' ist "
+                "from='hier' und stops=['Tschechien','Polen','Deutschland']. Fasse "
+                "eine Reise mit mehreren Zielen nie in mehrere Aufrufe auf, sondern "
+                "immer in einen einzigen Aufruf mit stops. action='erkunden' "
+                "oeffnet einen Ort zum Erkunden — auf Strassenebene oder im Flug. "
+                "Start, Ziel und Zwischenstopps einer Route duerfen auch Filter oder "
+                "Ladennamen sein: to='supermarkt' faehrt zum naechstgelegenen "
+                "Supermarkt vom Start aus, to='Interspar' zum naechsten Interspar. "
+                "'Starte eine Route von meinem Standort zum naechsten Supermarkt' ist "
+                "also action='route', from='hier', to='supermarkt' — in einem "
+                "einzigen Aufruf, ohne vorher zu suchen. Das Ergebnis "
                 "erscheint als interaktive Karte direkt im Chat.",
                 {
                     "action": {
@@ -1898,9 +1940,8 @@ class ToolBox:
                     },
                     "category": {
                         "type": "string",
-                        "description": "Bei action='umgebung': restaurant, cafe, bar, "
-                        "hotel, supermarkt, tankstelle, apotheke, arzt, bank, bahnhof, "
-                        "haltestelle, flughafen, park, sehenswuerdigkeit, parken",
+                        "description": "Bei action='umgebung': einer der Filter "
+                        f"({_maps_filters()}) oder ein Marken- bzw. Ladenname.",
                     },
                     "around": {
                         "type": "string",
@@ -1912,11 +1953,24 @@ class ToolBox:
                         "description": "Bei action='route': Startort. 'hier' fuer den "
                         "aktuellen Standort.",
                     },
-                    "to": {"type": "string", "description": "Bei action='route': Ziel"},
+                    "to": {
+                        "type": "string",
+                        "description": "Bei action='route': das letzte Ziel — ein Ort, "
+                        "eine Adresse, ein Filter ('supermarkt', 'apotheke') oder ein "
+                        "Ladenname ('Interspar'). Bei einem Trip mit mehreren Zielen "
+                        "stattdessen stops nutzen.",
+                    },
+                    "stops": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Bei action='route': alle Ziele des Trips in "
+                        "der Reihenfolge, in der sie angefahren werden — vom ersten "
+                        "bis zum letzten. Der Startort steht in from.",
+                    },
                     "via": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Zwischenstopps auf der Route",
+                        "description": "Zwischenstopps zwischen from und to",
                     },
                     "mode": {
                         "type": "string",
@@ -2024,6 +2078,7 @@ class ToolBox:
             "from": str(args.get("from") or args.get("start") or ""),
             "to": str(args.get("to") or args.get("ziel") or ""),
             "via": [str(item) for item in args.get("via") or []],
+            "stops": [str(item) for item in args.get("stops") or []],
             "mode": str(args.get("mode") or "auto"),
             "limit": int(args.get("limit") or 8),
         }

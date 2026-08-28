@@ -13,7 +13,7 @@ GROUPS_FILE = DATA_DIR / "telegram_groups.json"
 GROUP_CHAT_TYPES = {"group", "supergroup"}
 GROUP_KEEP = 80
 GROUP_CONTEXT_LIMIT = 30
-ANSWER_TIMEOUT = 120
+ANSWER_TIMEOUT = 180
 FEHLER_ANTWORT = "Puh, da ist gerade etwas schiefgelaufen. Frag mich gleich nochmal."
 
 
@@ -107,19 +107,41 @@ def strip_mention(text: str, username: str) -> str:
     return re.sub(r"\s+", " ", pattern.sub(" ", text)).strip(" ,;:—-")
 
 
-async def group_answer(
+def _tool_hint(scope: str) -> str:
+    if scope == "voll":
+        return (
+            "\n\nDu hast hier dieselben Werkzeuge wie am PC. Nutze sie wirklich, "
+            "statt sie nur zu beschreiben: das Werkzeug maps (Jon Maps) fuer Orte, "
+            "Filter und echte "
+            "Routen (action='umgebung' mit einem Filter wie supermarkt oder "
+            "apotheke, action='route' mit from='hier' und einem Filter oder "
+            "Ladennamen als Ziel) und deep_learning mit action='start' fuer eine "
+            "echte Tiefenrecherche, die am PC weiterlaeuft und deren Ergebnis "
+            "hier im Chat landet."
+        )
+    if scope == "gast":
+        return (
+            "\n\nDu hast hier echte Werkzeuge dabei: das Werkzeug maps (Jon Maps) "
+            "fuer Orte, Filter wie supermarkt, apotheke oder tankstelle und echte "
+            "Routen "
+            "(action='umgebung', oder action='route' mit from='hier' und einem "
+            "Filter oder Ladennamen als Ziel), dazu Websuche, Wetter und "
+            "deep_learning mit action='start' fuer eine echte Tiefenrecherche. "
+            "Nutze sie direkt, wenn jemand danach fragt, und erzaehle das "
+            "Ergebnis kurz in eigenen Worten. Dateien, Programme, Maus und "
+            "Tastatur am PC kannst du hier NICHT steuern - biete das nicht an."
+        )
+    return "\n\nDu kannst hier KEINE Aktionen am PC ausfuehren - biete das nicht an."
+
+
+def _system_text(
     variant: str,
     username: str,
     sender: str,
-    question: str,
-    transcript: str = "",
-    group: bool = True,
-    partner_hint: str = "",
-    provider: str = "",
-    model: str = "",
-    slot: str = "jon",
+    group: bool,
+    partner_hint: str,
+    scope: str,
 ) -> str:
-    from app.services.llm import complete
     from app.services.persona_service import get_persona_service
 
     system = get_persona_service().persona_block(include_memory=False, variant=variant)
@@ -134,15 +156,120 @@ async def group_answer(
             + ". Wird jemand anderes angesprochen, mischst du dich nicht ein. "
             "Antworte kurz (hoechstens 4 Saetze), locker und passend zum Verlauf "
             "und sprich die Person bei Bedarf mit Namen an. Kein Markdown, keine "
-            "Tabellen. Du kannst hier KEINE Aktionen am PC ausfuehren - biete "
-            "das nicht an."
+            "Tabellen."
         )
     else:
         system += (
             f"\n\nDu chattest gerade privat mit {sender} auf Telegram. "
-            "Antworte kurz und natuerlich, kein Markdown, keine Tabellen. "
-            "Du kannst hier keine Aktionen am PC ausfuehren."
+            "Antworte kurz und natuerlich, kein Markdown, keine Tabellen."
         )
+    return system + _tool_hint(scope)
+
+
+_chat_service = None
+
+
+def chat_service():
+    global _chat_service
+    if _chat_service is None:
+        from app.services.chat_service import ChatService
+
+        _chat_service = ChatService()
+    return _chat_service
+
+
+async def tool_answer(
+    system: str,
+    question: str,
+    transcript: str,
+    provider: str,
+    model: str,
+    slot: str,
+    scope: str,
+    source: str,
+) -> dict:
+    from app.schemas import ChatIn, MessageIn
+
+    messages = [{"role": "system", "content": system}]
+    if transcript:
+        messages.append(
+            {
+                "role": "user",
+                "content": f"Bisheriger Gespraechsverlauf:\n{transcript}",
+            }
+        )
+        messages.append(
+            {"role": "assistant", "content": "Alles klar, ich kenne den Verlauf."}
+        )
+    messages.append({"role": "user", "content": question})
+    payload = ChatIn(
+        messages=[MessageIn(**message) for message in messages],
+        persist=False,
+        tool_mode="allow",
+        tool_scope="gast" if scope == "gast" else "",
+        max_tokens=1200,
+        provider=provider or None,
+        model=model or None,
+        slot=slot,
+        source=source,
+    )
+    parts: list[str] = []
+    cards: list[dict] = []
+    aktionen: list[str] = []
+    laufend: dict[str, str] = {}
+    async for event in chat_service().stream(payload):
+        card = event.get("card")
+        if isinstance(card, dict) and card not in cards:
+            cards.append(card)
+        kind = event.get("type")
+        if kind == "content":
+            parts.append(event.get("delta") or "")
+        elif kind == "tool" and event.get("status") == "running":
+            if event.get("name"):
+                laufend[str(event["name"])] = str(
+                    event.get("summary") or event["name"]
+                )
+        elif kind == "tool" and event.get("status") == "done":
+            if event.get("ok") and event.get("name"):
+                name = str(event["name"])
+                aktionen.append(laufend.get(name, name))
+        elif kind == "error":
+            parts.append(f"[Fehler] {event.get('message', '')}")
+    return {
+        "text": "".join(parts).strip(),
+        "karten": cards,
+        "aktionen": list(dict.fromkeys(aktionen)),
+    }
+
+
+async def group_answer(
+    variant: str,
+    username: str,
+    sender: str,
+    question: str,
+    transcript: str = "",
+    group: bool = True,
+    partner_hint: str = "",
+    provider: str = "",
+    model: str = "",
+    slot: str = "jon",
+    scope: str = "",
+    source: str = "telegram",
+    cards: list[dict] | None = None,
+) -> str:
+    from app.services.llm import complete
+
+    system = _system_text(variant, username, sender, group, partner_hint, scope)
+    if scope:
+        ergebnis = await tool_answer(
+            system, question, transcript, provider, model, slot, scope, source
+        )
+        if cards is not None:
+            cards.extend(ergebnis["karten"])
+        text = ergebnis["text"]
+        if not text and ergebnis["aktionen"]:
+            text = "Erledigt ✅ " + ", ".join(ergebnis["aktionen"][:3])
+        return text or "Hm, dazu faellt mir gerade nichts ein."
     user = ""
     if transcript:
         user += f"Bisheriger Gespraechsverlauf:\n{transcript}\n\n"
@@ -171,6 +298,17 @@ class GroupBot:
         self._offset = 0
         self._username = ""
         self._username_token = ""
+        self._research_watch: dict[str, asyncio.Task] = {}
+
+    def scope(self, chat_id: str, is_group: bool) -> str:
+        if is_group:
+            return "gast"
+        from app.services.settings_service import get_settings_service
+
+        bound = str(
+            get_settings_service().get().get("telegram_chat_id", "")
+        ).strip()
+        return "voll" if bound and str(chat_id) == bound else "gast"
 
     def token(self) -> str:
         from app.services.settings_service import get_settings_service
@@ -239,14 +377,73 @@ class GroupBot:
         if not result.get("ok"):
             await self.send(chat_id, caption or "😴")
 
-    async def handle_command(self, chat_id: str, command: str, is_group: bool) -> bool:
-        return False
+    async def send_location(self, chat_id: str | int, punkt: dict) -> None:
+        await self._api(
+            "sendVenue",
+            {
+                "chat_id": chat_id,
+                "latitude": punkt["lat"],
+                "longitude": punkt["lon"],
+                "title": punkt.get("titel") or "Ort",
+                "address": punkt.get("label")
+                or f"{punkt['lat']:.5f}, {punkt['lon']:.5f}",
+            },
+        )
+
+    async def send_cards(self, chat_id: str, cards: list[dict]) -> None:
+        from app.services.telegram_extras import (
+            map_links,
+            map_points,
+            research_ids,
+            spawn_research_watch,
+        )
+
+        for punkt in map_points(cards):
+            await self.send_location(chat_id, punkt)
+        for link in map_links(cards):
+            await self.send(chat_id, f"🗺️ Route zum Mitnehmen: {link}")
+        for task_id in research_ids(cards):
+            spawn_research_watch(
+                task_id,
+                lambda nachricht, ziel=chat_id: self.send(ziel, nachricht),
+                self._research_watch,
+            )
+
+    async def handle_command(
+        self, chat_id: str, command: str, is_group: bool, text: str = ""
+    ) -> bool:
+        from app.services.telegram_extras import (
+            is_learn_command,
+            research_command,
+            spawn_research_watch,
+        )
+
+        if not is_learn_command(text or command):
+            return False
+        ergebnis = await research_command(text or command)
+        if ergebnis is None:
+            return False
+        antwort, task_id = ergebnis
+        await self.send(chat_id, antwort)
+        if task_id:
+            spawn_research_watch(
+                task_id,
+                lambda nachricht, ziel=chat_id: self.send(ziel, nachricht),
+                self._research_watch,
+            )
+        return True
 
     async def blocked_reply(self, chat_id: str) -> bool:
         return False
 
     async def answer(
-        self, chat_id: str, sender: str, question: str, transcript: str, is_group: bool
+        self,
+        chat_id: str,
+        sender: str,
+        question: str,
+        transcript: str,
+        is_group: bool,
+        cards: list[dict] | None = None,
     ) -> str:
         provider, model = self.selection()
         return await group_answer(
@@ -260,6 +457,9 @@ class GroupBot:
             provider=provider,
             model=model,
             slot=self.slot,
+            scope=self.scope(chat_id, is_group),
+            source=f"telegram-{self.key}",
+            cards=cards,
         )
 
     async def _respond(
@@ -268,15 +468,17 @@ class GroupBot:
         if await self.blocked_reply(chat_id):
             return
         await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
+        cards: list[dict] = []
         try:
             answer = await asyncio.wait_for(
-                self.answer(chat_id, sender, question, transcript, is_group),
+                self.answer(chat_id, sender, question, transcript, is_group, cards),
                 timeout=ANSWER_TIMEOUT,
             )
         except Exception:
             answer = FEHLER_ANTWORT
         get_group_memory().record(chat_id, self.display_name, answer, bot=self.key)
         await self.send(chat_id, answer)
+        await self.send_cards(chat_id, cards)
 
     async def handle_message(self, message: dict) -> None:
         chat = message.get("chat") or {}
@@ -298,7 +500,9 @@ class GroupBot:
                 command, target = command.split("@", 1)
                 if username and target.lower() != username.lower():
                     return
-            if await self.handle_command(chat_id, command.lower(), is_group):
+            if await self.handle_command(
+                chat_id, command.lower(), is_group, text
+            ):
                 return
             if is_group:
                 return
@@ -355,9 +559,13 @@ class MiniJonBot(GroupBot):
     token_setting = "mini_jon_bot_token"
     partner_hint = "dein Papa Jon mit seinem eigenen Bot"
 
-    async def handle_command(self, chat_id: str, command: str, is_group: bool) -> bool:
+    async def handle_command(
+        self, chat_id: str, command: str, is_group: bool, text: str = ""
+    ) -> bool:
         from app.services.mini_jon_service import get_mini_jon_service
 
+        if await super().handle_command(chat_id, command, is_group, text):
+            return True
         service = get_mini_jon_service()
         if command in ("/schlafen", "/schlaf"):
             service.set_status("schlaeft")
@@ -382,6 +590,10 @@ class MiniJonBot(GroupBot):
                 chat_id,
                 "Hallo, ich bin Mini Jon! 👋 In Gruppen lese ich mit und antworte, "
                 "wenn du mich mit @" + (await self.username() or "…") + " ansprichst. "
+                "Ich kann dasselbe wie Papa Jon unterwegs: Orte und Filter auf Jon "
+                "Maps suchen (Supermarkt, Apotheke, Tankstelle …), echte Routen "
+                "planen und mit /lernen <Thema> eine Tiefenrecherche starten "
+                "(/lernstatus, /lernstop, /lernweiter). "
                 "Mit /schlafen schicke ich mich ins Bett, mit /aufwachen bin ich "
                 "wieder da.",
             )

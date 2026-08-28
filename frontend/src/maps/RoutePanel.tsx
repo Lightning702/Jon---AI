@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   MODE_ICONS,
@@ -11,9 +11,7 @@ import {
 } from "../lib/maps";
 
 interface Props {
-  from: MapsPlace | null;
-  to: MapsPlace | null;
-  via: MapsPlace[];
+  stops: (MapsPlace | null)[];
   mode: TravelMode;
   routes: MapsRoute[];
   activeIndex: number;
@@ -21,17 +19,31 @@ interface Props {
   error: string;
   onMode: (mode: TravelMode) => void;
   onPick: (index: number) => void;
-  onSwap: () => void;
+  onReverse: () => void;
   onClear: () => void;
-  onEdit: (slot: "from" | "to") => void;
-  onRemoveVia: (index: number) => void;
+  onEdit: (index: number) => void;
+  onRemove: (index: number) => void;
+  onAdd: () => void;
+  onShift: (index: number, delta: number) => void;
   onDrive: () => void;
 }
 
+const MAX_STOPS = 12;
+
+function stopMark(index: number, total: number): string {
+  if (index === 0) return "●";
+  if (index === total - 1) return "◆";
+  return String(index);
+}
+
+function stopHint(index: number, total: number): string {
+  if (index === 0) return "Start wählen";
+  if (index === total - 1) return "Ziel wählen";
+  return `Station ${index} wählen`;
+}
+
 export default function RoutePanel({
-  from,
-  to,
-  via,
+  stops,
   mode,
   routes,
   activeIndex,
@@ -39,14 +51,28 @@ export default function RoutePanel({
   error,
   onMode,
   onPick,
-  onSwap,
+  onReverse,
   onClear,
   onEdit,
-  onRemoveVia,
+  onRemove,
+  onAdd,
+  onShift,
   onDrive,
 }: Props) {
   const [showSteps, setShowSteps] = useState(false);
   const active = routes[activeIndex];
+
+  const legs = useMemo(() => {
+    const filled = stops.filter((stop): stop is MapsPlace => Boolean(stop));
+    const raw = (active?.legs ?? []) as Record<string, unknown>[];
+    if (raw.length !== filled.length - 1) return [];
+    return raw.map((leg, index) => ({
+      von: filled[index].name,
+      nach: filled[index + 1].name,
+      distanz: Number(leg.distanz_m ?? 0),
+      dauer: Number(leg.dauer_s ?? 0),
+    }));
+  }, [active, stops]);
 
   return (
     <motion.div
@@ -67,13 +93,15 @@ export default function RoutePanel({
             marginBottom: 12,
           }}
         >
-          <span className="jm-title">Route</span>
+          <span className="jm-title">
+            {stops.length > 2 ? `Trip · ${stops.length} Stationen` : "Route"}
+          </span>
           <div style={{ display: "flex", gap: 4 }}>
             <button
               className="jm-dock-btn"
               style={{ width: 26, height: 26, fontSize: 12 }}
-              onClick={onSwap}
-              title="Start und Ziel tauschen"
+              onClick={onReverse}
+              title="Reihenfolge umdrehen"
             >
               ⇅
             </button>
@@ -89,70 +117,88 @@ export default function RoutePanel({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <button className="jm-row" onClick={() => onEdit("from")}>
-            <span className="jm-mono" style={{ color: "rgb(var(--jm-nav))" }}>
-              ●
-            </span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: 13,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  color: from ? "var(--jm-text)" : "var(--jm-text-faint)",
-                }}
-              >
-                {from ? from.name : "Start wählen"}
-              </span>
-            </span>
-          </button>
-          {via.map((stop, index) => (
-            <button
-              key={stop.id + index}
-              className="jm-row"
-              onClick={() => onRemoveVia(index)}
-              title="Zwischenstopp entfernen"
+          {stops.map((stop, index) => (
+            <div
+              key={`${stop?.id ?? "leer"}-${index}`}
+              style={{ display: "flex", alignItems: "center", gap: 4 }}
             >
-              <span className="jm-mono" style={{ color: "var(--jm-text-faint)" }}>
-                ┃
-              </span>
-              <span
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  fontSize: 12.5,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
+              <button
+                className="jm-row"
+                style={{ flex: 1, minWidth: 0 }}
+                onClick={() => onEdit(index)}
+                title={stop ? stop.label : stopHint(index, stops.length)}
               >
-                {stop.name}
-              </span>
-              <span style={{ fontSize: 11, color: "var(--jm-text-faint)" }}>✕</span>
-            </button>
+                <span
+                  className="jm-mono"
+                  style={{
+                    color:
+                      index === 0
+                        ? "rgb(var(--jm-nav))"
+                        : index === stops.length - 1
+                          ? "rgb(var(--jm-gold))"
+                          : "var(--jm-text-faint)",
+                    width: 14,
+                    textAlign: "center",
+                  }}
+                >
+                  {stopMark(index, stops.length)}
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: 13,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      color: stop ? "var(--jm-text)" : "var(--jm-text-faint)",
+                    }}
+                  >
+                    {stop ? stop.name : stopHint(index, stops.length)}
+                  </span>
+                </span>
+              </button>
+              <button
+                className="jm-dock-btn"
+                style={{ width: 22, height: 22, fontSize: 10 }}
+                onClick={() => onShift(index, -1)}
+                disabled={index === 0}
+                title="Nach oben"
+              >
+                ↑
+              </button>
+              <button
+                className="jm-dock-btn"
+                style={{ width: 22, height: 22, fontSize: 10 }}
+                onClick={() => onShift(index, 1)}
+                disabled={index === stops.length - 1}
+                title="Nach unten"
+              >
+                ↓
+              </button>
+              <button
+                className="jm-dock-btn"
+                style={{ width: 22, height: 22, fontSize: 10 }}
+                onClick={() => onRemove(index)}
+                disabled={stops.length <= 2}
+                title="Station entfernen"
+              >
+                ✕
+              </button>
+            </div>
           ))}
-          <button className="jm-row" onClick={() => onEdit("to")}>
-            <span className="jm-mono" style={{ color: "rgb(var(--jm-gold))" }}>
-              ◆
-            </span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: 13,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  color: to ? "var(--jm-text)" : "var(--jm-text-faint)",
-                }}
-              >
-                {to ? to.name : "Ziel wählen"}
-              </span>
-            </span>
-          </button>
         </div>
+
+        {stops.length < MAX_STOPS && (
+          <button
+            className="jm-chip"
+            style={{ marginTop: 8, width: "100%", justifyContent: "center" }}
+            onClick={onAdd}
+            title="Noch ein Ziel an den Trip hängen"
+          >
+            ＋ Station hinzufügen
+          </button>
+        )}
 
         <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
           {(Object.keys(MODE_LABELS) as TravelMode[]).map((item) => (
@@ -236,6 +282,57 @@ export default function RoutePanel({
                 </button>
               ))}
 
+            {!busy && legs.length > 1 && (
+              <div
+                className="jm-scroll jm-fade-mask"
+                style={{ maxHeight: 148, marginTop: 8 }}
+              >
+                {legs.map((leg, index) => (
+                  <div
+                    key={`${leg.von}-${index}`}
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "baseline",
+                      padding: "6px 4px",
+                      fontSize: 11.5,
+                      borderBottom: "1px solid var(--jm-hairline)",
+                    }}
+                  >
+                    <span
+                      className="jm-mono"
+                      style={{ color: "var(--jm-text-faint)", minWidth: 16 }}
+                    >
+                      {index + 1}
+                    </span>
+                    <span
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {leg.von} → {leg.nach}
+                    </span>
+                    <span
+                      className="jm-mono"
+                      style={{ color: "var(--jm-text-soft)" }}
+                    >
+                      {formatDuration(leg.dauer)}
+                    </span>
+                    <span
+                      className="jm-mono"
+                      style={{ color: "var(--jm-text-faint)" }}
+                    >
+                      {formatDistance(leg.distanz)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {active && (
               <>
                 <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
@@ -251,9 +348,9 @@ export default function RoutePanel({
                     data-active="true"
                     style={{ flex: 1, justifyContent: "center" }}
                     onClick={onDrive}
-                    title="Die Route in Jons 3D-Welt abfahren"
+                    title="Die Route in Jons Flugansicht abfliegen"
                   >
-                    ▶ Route erleben
+                    ✈️ Route abfliegen
                   </button>
                 </div>
                 <AnimatePresence initial={false}>
