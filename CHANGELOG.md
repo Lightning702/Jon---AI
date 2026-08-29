@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.35.1] — 2026-08-29
+
+### 🩹 Versionszeile in der Seitenleiste sitzt wieder mittig
+
+Ganz unten links klebte „Jon Desktop v…" am unteren Rand statt mittig im Streifen zu
+stehen. Schuld war die Polsterung: Die Regel für den Geräterand (`safe-bottom`) hat den
+unteren Abstand auf 0 gesetzt und damit den oberen von 16 Pixeln allein gelassen.
+
+- Der Streifen hat jetzt eine feste Höhe und zentriert seinen Inhalt selbst — oben und
+  unten je 18 Pixel, waagrecht unverändert links.
+- Auf dem Handy bleibt der Geräterand berücksichtigt, der Streifen wächst dort einfach mit.
+
 ## [4.35.0] — 2026-08-29
 
 ### 🎨 Video / Foto: Bilder und Videos in Jon erstellen

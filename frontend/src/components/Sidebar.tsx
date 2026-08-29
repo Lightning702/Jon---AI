@@ -106,7 +106,7 @@ export default function Sidebar({
           </p>
         )}
       </div>
-      <div className="p-4 safe-bottom text-[11px] text-white/30 border-t border-white/10">
+      <div className="px-4 min-h-[3.25rem] flex items-center safe-bottom text-[11px] text-white/30 border-t border-white/10">
         {version ? `Jon Desktop v${version}` : "Jon Desktop"}
       </div>
       </aside>
