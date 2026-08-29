@@ -2,6 +2,92 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.36.0] — 2026-08-29
+
+### 🔒 Zugangsschutz: Jon fragt jetzt nach einem Geräte-Schlüssel
+
+Bis 4.35.1 war jede der 283 Programmschnittstellen ungeschützt — auch
+`POST /api/system/powershell`, `/system/files/write` und `/system/files/delete`. Mit
+`JON_LAN=1` (der dokumentierte Weg, das Handy als PC-App zu nutzen) konnte damit **jedes
+Gerät im selben WLAN** beliebige Befehle auf dem PC ausführen. Und weil `CORS_ORIGINS`
+auf `*` stand, konnte auch **jede beliebige Webseite** im Browser Befehle an
+`127.0.0.1:8756` schicken — ohne LAN-Modus, ohne Zutun.
+
+- Jon erzeugt beim ersten Start einen Geräte-Schlüssel und legt ihn in
+  `data/access.token` ab. Ohne diesen Schlüssel antwortet jede `/api/`-Anfrage mit 401.
+- Der Schlüssel wird als `X-Jon-Token`-Kopfzeile, als `?token=`-Anhang oder als Cookie
+  akzeptiert — damit funktionieren auch Downloads, Bilder und Live-Streams.
+- Die App bekommt ihn beim Start direkt vom Programm, ohne dass du etwas eintippen musst.
+  Mini Jon, die Schnellfrage, der private Browser und die Blockwelt ebenso.
+- `CORS_ORIGINS` steht nicht mehr auf `*`, sondern erlaubt genau die Adressen, unter denen
+  Jons eigene Oberfläche läuft.
+- Die Spiele-Schnittstelle (`/api/mp/`) und `/api/health` bleiben offen — sonst könnten
+  Mitspieler nicht mehr beitreten.
+
+### 📱 Handy koppeln über Einstellungen → Diagnose
+
+Weil der Schlüssel nun nötig ist, gibt es einen Weg, ihn ans Handy zu bringen: Die neue
+Ansicht zeigt die vollständige Adresse inklusive Schlüssel zum Kopieren. Das Handy merkt
+sich den Schlüssel und entfernt ihn aus der Adresszeile. Mit **Neues Token** lässt sich
+alles Gekoppelte auf einen Schlag abmelden.
+
+### 🩺 Diagnose: sichtbar machen, was still kaputtging
+
+Jon startet 24 Hintergrunddienste. Bisher verschwand jeder Fehler darin in einem
+`except: continue` — Telegram, Kalender oder der Dateiwächter konnten wochenlang tot sein,
+ohne dass es jemand merkte.
+
+- Alle Hintergrunddienste laufen jetzt über eine gemeinsame Registrierung. Stirbt einer,
+  wird das protokolliert statt verschluckt.
+- Neue Ansicht unter Einstellungen → **Diagnose & Handy koppeln**: Version, Laufzeit,
+  Adresse, Datenverzeichnis, der Zustand jedes einzelnen Dienstes und die letzten
+  Meldungen.
+- **Protokoll speichern** legt eine Textdatei mit Dienstzuständen und Protokoll an — das,
+  was man einem Fehlerbericht beilegt.
+- Das Protokoll landet rollierend in `data/jon.log` (max. 4 × 2 MB) statt in `print`.
+
+### 💾 Daten überleben jetzt einen Absturz
+
+36 Dateien hielten Jons Zustand — Freunde, Aufgaben, Erinnerungen, Konten, Tresor. Alle
+53 Schreibvorgänge schrieben direkt in die Zieldatei: Ein Absturz oder Stromausfall
+mittendrin hinterließ eine halbe Datei, und der Inhalt war beim nächsten Start weg.
+
+- Geschrieben wird jetzt erst in eine Nebendatei, dann per `os.replace` umgeklappt. Der
+  alte Stand bleibt vollständig, bis der neue vollständig auf der Platte liegt.
+- Windows verweigert das Umklappen, solange jemand die Datei liest — deshalb wird es bis
+  zu 25-mal wiederholt statt aufzugeben.
+- `read_json` gibt bei einer kaputten Datei den Standardwert zurück, statt den Dienst
+  abstürzen zu lassen.
+
+### 💬 Lange Gespräche brechen nicht mehr ab
+
+Bisher ging bei jeder Nachricht der **komplette** Verlauf ans Modell. Lange Gespräche
+wurden immer langsamer und teurer, bis der Anbieter mit einem Kontext-Fehler abbrach.
+
+- Der Verlauf wird auf ein Zeichenbudget gekürzt (`CONTEXT_BUDGET_TOKENS`, Standard
+  24000). Die Systemanweisung und die neuesten Nachrichten bleiben immer erhalten.
+- Was wegfällt, kommt als kurze Zusammenfassung mit — Jon vergisst den Anfang also nicht
+  vollständig.
+- Eine einzelne riesige Nachricht (etwa eine eingefügte Datei) wird in der Mitte gekürzt,
+  statt allein das ganze Budget zu sprengen.
+
+### 🧾 Updates werden auf Echtheit geprüft
+
+Der Update-Download prüfte bisher nur Größe und `MZ`-Kopf.
+
+- Jedes Release bekommt eine `SHA256SUMS.txt`; der Download wird dagegen geprüft und bei
+  Abweichung verworfen.
+- `scripts/build_installer.py` erzeugt die Prüfsummendatei automatisch mit.
+
+### 🧪 Tests und reproduzierbare Builds
+
+- 35 neue Tests: Zugangsschutz, atomares Schreiben unter parallelem Zugriff,
+  Verlaufskürzung, Freigabe-Dialog und Tresor — vier davon waren bisher **komplett
+  ungetestet**, obwohl sie über Datenverlust entscheiden.
+- Insgesamt **415 Tests**, alle grün.
+- `backend/requirements.lock` nagelt alle 31 Abhängigkeiten auf die Version fest, mit der
+  gebaut wurde. Der Installer benutzt die Lockdatei, wenn sie da ist.
+
 ## [4.35.1] — 2026-08-29
 
 ### 🩹 Versionszeile in der Seitenleiste sitzt wieder mittig

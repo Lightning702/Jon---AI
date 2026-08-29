@@ -1,5 +1,8 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
+const jonToken = (process.argv.find((a) => a.startsWith("--jon-token=")) || "").slice(12);
+contextBridge.exposeInMainWorld("jonToken", jonToken);
+
 contextBridge.exposeInMainWorld("jonpet", {
   showApp: () => ipcRenderer.invoke("app:show"),
   hide: () => ipcRenderer.invoke("pet:hide"),

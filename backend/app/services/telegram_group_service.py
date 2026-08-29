@@ -8,6 +8,7 @@ import threading
 import httpx
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 GROUPS_FILE = DATA_DIR / "telegram_groups.json"
 GROUP_CHAT_TYPES = {"group", "supergroup"}
@@ -37,7 +38,7 @@ class GroupMemory:
 
     def _save(self) -> None:
         try:
-            GROUPS_FILE.write_text(
+            atomic_write_text(GROUPS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )

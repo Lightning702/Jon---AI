@@ -9,6 +9,7 @@ from pathlib import Path
 
 from app.core.config import DATA_DIR, get_settings
 from app.services.focus_service import active_window_title
+from app.core.store import atomic_write_bytes, atomic_write_text
 
 TIMELINE_DIR = DATA_DIR / "timeline"
 INDEX_FILE = TIMELINE_DIR / "index.json"
@@ -40,7 +41,7 @@ class TimelineService:
 
     def _save(self) -> None:
         try:
-            INDEX_FILE.write_text(
+            atomic_write_text(INDEX_FILE,
                 json.dumps(self._index, ensure_ascii=False), encoding="utf-8"
             )
         except Exception:
@@ -77,7 +78,7 @@ class TimelineService:
         stamp = datetime.now()
         name = stamp.strftime("%Y%m%d_%H%M%S") + ".jpg"
         try:
-            (TIMELINE_DIR / name).write_bytes(raw)
+            atomic_write_bytes((TIMELINE_DIR / name), raw)
         except Exception:
             return
         with self._lock:

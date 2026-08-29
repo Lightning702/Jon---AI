@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 from app.core.config import DATA_DIR
 from app.services.focus_service import active_window_title
+from app.core.store import atomic_write_text
 
 LOG_FILE = DATA_DIR / "routine_log.json"
 STATE_FILE = DATA_DIR / "routine_state.json"
@@ -64,8 +65,8 @@ class RoutineService:
 
     def _save(self) -> None:
         try:
-            LOG_FILE.write_text(json.dumps(self._log, ensure_ascii=False), encoding="utf-8")
-            STATE_FILE.write_text(
+            atomic_write_text(LOG_FILE, json.dumps(self._log, ensure_ascii=False), encoding="utf-8")
+            atomic_write_text(STATE_FILE,
                 json.dumps(self._state, ensure_ascii=False), encoding="utf-8"
             )
         except Exception:

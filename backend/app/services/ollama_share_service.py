@@ -16,6 +16,7 @@ from typing import Any
 import httpx
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 SHARE_FILE = DATA_DIR / "ollama_share.json"
 
@@ -114,7 +115,7 @@ class OllamaShareService:
     def _save(self) -> None:
         try:
             SHARE_FILE.parent.mkdir(parents=True, exist_ok=True)
-            SHARE_FILE.write_text(
+            atomic_write_text(SHARE_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

@@ -50,7 +50,12 @@ async def _update_installed_app():
 
     task = asyncio.create_task(
         asyncio.to_thread(
-            download_installer, url, latest, info.get("installer_size", 0), progress
+            download_installer,
+            url,
+            latest,
+            info.get("installer_size", 0),
+            progress,
+            info.get("checksum_url", ""),
         )
     )
     while not task.done() or not queue.empty():
@@ -94,14 +99,14 @@ async def perform_update():
     yield "Schritt 2: Erstelle Backup...\n"
     backup_dir = DATA_DIR / "backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
-    
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_path = backup_dir / f"pre-update-{timestamp}.zip"
-    
+
     try:
         shutil.make_archive(str(backup_path).replace(".zip", ""), "zip", str(DATA_DIR))
         yield f"Backup erstellt: {backup_path.name}\n"
-        
+
         backups = sorted(backup_dir.glob("pre-update-*.zip"))
         while len(backups) > 5:
             oldest = backups.pop(0)
@@ -167,7 +172,7 @@ async def perform_update():
             await proc3.communicate()
             yield "Rollback abgeschlossen. Abbruch.\n"
             return
-            
+
     except Exception as e:
         yield f"Git-Fehler: {e}\nAbbruch.\n"
         return
@@ -216,7 +221,7 @@ async def perform_update():
                     stderr=subprocess.STDOUT
                 )
             await proc_npm_i.communicate()
-            
+
             if os.name == 'nt':
                 proc_npm_b = await asyncio.create_subprocess_shell(
                     "npm run build",

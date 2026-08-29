@@ -349,8 +349,23 @@
       let seq = 0;
       let toastTimer = null;
 
+      const JON_TOKEN = (() => {
+        try {
+          const p = new URLSearchParams(window.location.search);
+          const fromUrl = p.get("token");
+          if (fromUrl) {
+            window.localStorage.setItem("jon.token", fromUrl);
+            return fromUrl;
+          }
+          return window.localStorage.getItem("jon.token") || "";
+        } catch (e) {
+          return "";
+        }
+      })();
+
       function proxyUrl(u) {
-        return "/api/private/proxy?url=" + encodeURIComponent(u);
+        const base = "/api/private/proxy?url=" + encodeURIComponent(u);
+        return JON_TOKEN ? base + "&token=" + encodeURIComponent(JON_TOKEN) : base;
       }
 
       function toast(text) {

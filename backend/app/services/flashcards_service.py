@@ -9,6 +9,7 @@ import uuid
 from app.core.config import DATA_DIR
 from app.services.llm import complete
 from app.services.settings_service import get_settings_service
+from app.core.store import atomic_write_text
 
 DECKS_FILE = DATA_DIR / "flashcards.json"
 INTERVALS = [0, 60, 600, 3600, 21600, 86400, 259200, 604800, 1209600]
@@ -44,7 +45,7 @@ class FlashcardsService:
 
     def _save(self) -> None:
         try:
-            DECKS_FILE.write_text(
+            atomic_write_text(DECKS_FILE,
                 json.dumps(self._decks, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

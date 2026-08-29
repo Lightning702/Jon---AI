@@ -20,6 +20,7 @@ from app.db.database import session_scope
 from app.db.models import P2PMessage, P2POutbox
 from app.services.crypto_service import get_crypto_service
 from app.services.settings_service import get_settings_service
+from app.core.store import atomic_write_bytes, atomic_write_text
 
 DISCOVERY_PORT = int(os.environ.get("JON_DISCOVERY_PORT", "8757"))
 CHAT_PORT = int(os.environ.get("JON_CHAT_PORT", "8758"))
@@ -64,7 +65,7 @@ class P2PService:
 
     def _save(self) -> None:
         try:
-            PEERS_FILE.write_text(
+            atomic_write_text(PEERS_FILE,
                 json.dumps(
                     {
                         "peers": self._peers,
@@ -96,7 +97,7 @@ class P2PService:
 
     def _save_groups(self) -> None:
         try:
-            GROUPS_FILE.write_text(
+            atomic_write_text(GROUPS_FILE,
                 json.dumps(
                     {"groups": self._groups, "invites": self._invites},
                     ensure_ascii=False,
@@ -761,7 +762,7 @@ class P2PService:
                 mimetypes.guess_extension(media_mime) or ""
             )
             media_file = f"{uuid.uuid4().hex}{suffix}"
-            (MEDIA_DIR / media_file).write_bytes(raw)
+            atomic_write_bytes((MEDIA_DIR / media_file), raw)
             if media_mime.startswith("image/"):
                 media_kind = "image"
             elif media_mime.startswith("video/"):

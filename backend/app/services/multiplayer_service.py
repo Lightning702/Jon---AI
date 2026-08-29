@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 MP_DIR = DATA_DIR / "multiplayer"
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -462,7 +463,7 @@ class MultiplayerService:
         try:
             MP_DIR.mkdir(parents=True, exist_ok=True)
             path = MP_DIR / f"{lobby.code}.json"
-            path.write_text(
+            atomic_write_text(path,
                 json.dumps(lobby.store(), ensure_ascii=False), encoding="utf-8"
             )
         except Exception:

@@ -1,3 +1,4 @@
+import hashlib
 import os
 import shutil
 import subprocess
@@ -29,7 +30,8 @@ def ensure_pyinstaller() -> None:
 def build_backend() -> None:
     shutil.rmtree(BACKEND / "build", ignore_errors=True)
     shutil.rmtree(BACKEND / "dist", ignore_errors=True)
-    run(f'"{sys.executable}" -m pip install --disable-pip-version-check -r requirements.txt', BACKEND)
+    liste = "requirements.lock" if (BACKEND / "requirements.lock").exists() else "requirements.txt"
+    run(f'"{sys.executable}" -m pip install --disable-pip-version-check -r {liste}', BACKEND)
     run(f'"{sys.executable}" -m PyInstaller --noconfirm --clean jon-backend.spec', BACKEND)
     exe = BACKEND / "dist" / "jon-backend" / "jon-backend.exe"
     if not exe.exists():
@@ -62,6 +64,19 @@ def build_portable_zip() -> Path:
             if path.is_dir():
                 continue
             z.write(path, rel)
+    return target
+
+
+def write_checksums(paths: list[Path]) -> Path:
+    target = RELEASE / "SHA256SUMS.txt"
+    zeilen = []
+    for path in paths:
+        sha = hashlib.sha256()
+        with path.open("rb") as handle:
+            for block in iter(lambda: handle.read(1_048_576), b""):
+                sha.update(block)
+        zeilen.append(f"{sha.hexdigest()}  {path.name}")
+    target.write_text(chr(10).join(zeilen) + chr(10), encoding="utf-8")
     return target
 
 

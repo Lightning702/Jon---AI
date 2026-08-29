@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_bytes
 
 KEY_FILE = DATA_DIR / "chat_key.bin"
 
@@ -45,7 +46,7 @@ class CryptoService:
             encryption_algorithm=serialization.NoEncryption(),
         )
         KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        KEY_FILE.write_bytes(raw)
+        atomic_write_bytes(KEY_FILE, raw)
         return private
 
     def public_key(self) -> str:

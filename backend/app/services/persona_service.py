@@ -5,6 +5,7 @@ import threading
 from datetime import datetime, date
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 PERSONA_FILE = DATA_DIR / "persona.json"
 MEMORY_FILE = DATA_DIR / "MEMORY.md"
@@ -157,7 +158,7 @@ class PersonaService:
 
     def _save(self) -> None:
         try:
-            PERSONA_FILE.write_text(
+            atomic_write_text(PERSONA_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:
@@ -235,7 +236,7 @@ class PersonaService:
         else:
             text = f"{text}\n## Journal\n{block}"
         try:
-            MEMORY_FILE.write_text(text, encoding="utf-8")
+            atomic_write_text(MEMORY_FILE, text, encoding="utf-8")
         except Exception as exc:
             return {"error": str(exc)}
         return {"saved": True, "when": stamp}
@@ -257,7 +258,7 @@ class PersonaService:
             note_body = f"\n- {note}{note_body}"
             text = f"{head}{marker}{after}{note_body}"
             try:
-                MEMORY_FILE.write_text(text, encoding="utf-8")
+                atomic_write_text(MEMORY_FILE, text, encoding="utf-8")
                 return {"saved": True}
             except Exception as exc:
                 return {"error": str(exc)}

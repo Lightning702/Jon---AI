@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet, InvalidToken
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_bytes
 
 VAULT_FILE = DATA_DIR / "vault.dat"
 LOCK_AFTER = 900.0
@@ -49,7 +50,7 @@ class VaultService:
         blob = self._fernet.encrypt(
             json.dumps(self._entries, ensure_ascii=False).encode("utf-8")
         )
-        VAULT_FILE.write_bytes(base64.b64encode(salt) + b"\n" + blob)
+        atomic_write_bytes(VAULT_FILE, base64.b64encode(salt) + b"\n" + blob)
 
     def create(self, password: str) -> dict:
         if len(password) < 4:

@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from app.core.config import DATA_DIR, get_settings
+from app.core.store import atomic_write_text
 
 OLLAMA_FILE = DATA_DIR / "ollama.json"
 
@@ -202,7 +203,7 @@ class OllamaService:
     def _save(self) -> None:
         try:
             OLLAMA_FILE.parent.mkdir(parents=True, exist_ok=True)
-            OLLAMA_FILE.write_text(
+            atomic_write_text(OLLAMA_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

@@ -9,6 +9,7 @@ declare global {
       hide?: () => void;
       installUpdate?: (path: string) => Promise<{ ok: boolean; error?: string }>;
       moveBy?: (dx: number, dy: number) => void;
+      token?: string;
       platform: string;
     };
   }

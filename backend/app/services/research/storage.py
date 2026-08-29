@@ -7,6 +7,7 @@ from pathlib import Path
 from app.services.skill_service import SKILLS_DIR
 
 from .models import ResearchTask, slugify
+from app.core.store import atomic_write_text
 
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,60}$")
 
@@ -27,7 +28,7 @@ def file_name(name: str) -> str:
 def write_file(slug: str, name: str, content: str) -> str:
     safe = file_name(name)
     path = topic_dir(slug) / safe
-    path.write_text(content.rstrip() + "\n", encoding="utf-8")
+    atomic_write_text(path, content.rstrip() + "\n", encoding="utf-8")
     return safe
 
 

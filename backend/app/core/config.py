@@ -69,11 +69,12 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.35.1"
+    app_version: str = "4.36.0"
     host: str = "127.0.0.1"
     port: int = 8756
-    cors_origins: str = "*"
+    cors_origins: str = ""
     jon_lan: bool = False
+    jon_token: str = ""
 
     database_url: str = f"sqlite:///{(DATA_DIR / 'jon.db').as_posix()}"
 
@@ -149,6 +150,7 @@ class Settings(BaseSettings):
     first_token_timeout: float = 10.0
     models_timeout: float = 6.0
     max_tokens: int = 32768
+    context_budget_tokens: int = 24000
     reasoning_effort: str = "low"
     default_temperature: float = 0.7
     default_top_p: float = 0.9
@@ -170,9 +172,17 @@ class Settings(BaseSettings):
 
     def origins(self) -> list[str]:
         raw = self.cors_origins.strip()
-        if raw == "*" or not raw:
-            return ["*"]
-        return [item.strip() for item in raw.split(",") if item.strip()]
+        if raw:
+            return [item.strip() for item in raw.split(",") if item.strip()]
+        allowed = ["null"]
+        for host in ("localhost", "127.0.0.1"):
+            allowed.append(f"http://{host}:{self.port}")
+            allowed.append(f"http://{host}:5173")
+        if self.jon_lan:
+            from app.core.auth import lan_address
+
+            allowed.append(f"http://{lan_address()}:{self.port}")
+        return allowed
 
 
 @lru_cache

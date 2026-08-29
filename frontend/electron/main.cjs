@@ -13,6 +13,7 @@ const {
 const path = require("node:path");
 const fs = require("node:fs");
 const { spawn, spawnSync } = require("node:child_process");
+const crypto = require("node:crypto");
 
 const isDev = !app.isPackaged;
 const BACKEND_PORTS = [8756, 8758, 8759, 8760];
@@ -26,6 +27,59 @@ const API_BASE = "http://127.0.0.1:8756/api";
 let backendProcess = null;
 let tray = null;
 let quitting = false;
+
+let jonToken = "";
+
+function tokenCandidates() {
+  const list = [];
+  if (process.resourcesPath) {
+    list.push(
+      path.join(process.resourcesPath, "jon-backend", "data", "access.token")
+    );
+    list.push(path.join(process.resourcesPath, "backend", "data", "access.token"));
+  }
+  const local = process.env.LOCALAPPDATA;
+  if (local) list.push(path.join(local, "Jon", "data", "access.token"));
+  list.push(path.join(app.getPath("home"), ".jon", "data", "access.token"));
+  return list;
+}
+
+function ensureToken() {
+  if (jonToken) return jonToken;
+  if (process.env.JON_TOKEN && process.env.JON_TOKEN.trim()) {
+    jonToken = process.env.JON_TOKEN.trim();
+    return jonToken;
+  }
+  for (const file of tokenCandidates()) {
+    try {
+      const value = fs.readFileSync(file, "utf-8").trim();
+      if (value) {
+        jonToken = value;
+        return jonToken;
+      }
+    } catch (e) {}
+  }
+  jonToken = crypto.randomBytes(32).toString("base64url");
+  const target = tokenCandidates().find((file) =>
+    file.includes(path.join("Jon", "data"))
+  );
+  if (target) {
+    try {
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, jonToken + String.fromCharCode(10), "utf-8");
+    } catch (e) {}
+  }
+  process.env.JON_TOKEN = jonToken;
+  return jonToken;
+}
+
+function tokenArgs() {
+  return ["--jon-token=" + ensureToken()];
+}
+
+function tokenHeaders() {
+  return { "X-Jon-Token": ensureToken() };
+}
 
 function createQuickAsk() {
   const area = screen.getPrimaryDisplay().workArea;
@@ -45,6 +99,7 @@ function createQuickAsk() {
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "quickaskPreload.cjs"),
+      additionalArguments: tokenArgs(),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -74,6 +129,7 @@ function createQuickWrite() {
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "quickwritePreload.cjs"),
+      additionalArguments: tokenArgs(),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -170,6 +226,7 @@ function createPet() {
     focusable: true,
     webPreferences: {
       preload: path.join(__dirname, "petPreload.cjs"),
+      additionalArguments: tokenArgs(),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -309,7 +366,11 @@ async function startBackend() {
   if (fs.existsSync(bundledExe)) {
     backendProcess = spawn(bundledExe, [], {
       cwd: path.dirname(bundledExe),
-      env: { ...process.env, JON_PARENT_PID: String(process.pid) },
+      env: {
+        ...process.env,
+        JON_PARENT_PID: String(process.pid),
+        JON_TOKEN: ensureToken(),
+      },
       stdio: ["ignore", out, out],
       windowsHide: true,
     });
@@ -325,7 +386,11 @@ async function startBackend() {
   const py = resolvePython();
   const cmd = py[0];
   const pre = py.slice(1);
-  const env = { ...process.env, JON_PARENT_PID: String(process.pid) };
+  const env = {
+    ...process.env,
+    JON_PARENT_PID: String(process.pid),
+    JON_TOKEN: ensureToken(),
+  };
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.NODE_OPTIONS;
   const depCheck =
@@ -400,6 +465,7 @@ function openPrivateBrowser() {
     icon: path.join(__dirname, "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "privatePreload.cjs"),
+      additionalArguments: tokenArgs(),
       contextIsolation: true,
       nodeIntegration: false,
       webviewTag: true,
@@ -445,6 +511,7 @@ function createWindow() {
     icon: path.join(__dirname, "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
+      additionalArguments: tokenArgs(),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -706,7 +773,10 @@ function freeBackendPorts() {
 function askBackendToStop() {
   return new Promise((resolve) => {
     const done = setTimeout(resolve, 2000);
-    fetch(`${API_BASE}/system/shutdown`, { method: "POST" })
+    fetch(`${API_BASE}/system/shutdown`, {
+      method: "POST",
+      headers: tokenHeaders(),
+    })
       .then(() => {
         clearTimeout(done);
         setTimeout(resolve, 400);

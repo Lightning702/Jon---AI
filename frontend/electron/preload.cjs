@@ -1,5 +1,7 @@
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
+const jonToken = (process.argv.find((a) => a.startsWith("--jon-token=")) || "").slice(12);
+
 contextBridge.exposeInMainWorld("jon", {
   minimize: () => ipcRenderer.invoke("window:minimize"),
   maximize: () => ipcRenderer.invoke("window:maximize"),

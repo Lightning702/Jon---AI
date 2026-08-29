@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -16,6 +17,7 @@ RAW_CONFIG = (
 RELEASES_API = "https://api.github.com/repos/Lightning702/Jon---AI/releases/latest"
 DOWNLOAD = "https://getjon.info"
 INSTALLER_NAME = "Jon-Setup.exe"
+CHECKSUM_NAME = "SHA256SUMS.txt"
 UPDATE_DIR = DATA_DIR / "updates"
 CACHE_TTL = 1800.0
 ALLOWED_PREFIXES = ("https://",)
@@ -54,14 +56,44 @@ def _release() -> dict:
         if str(entry.get("name", "")).lower() == INSTALLER_NAME.lower():
             asset = entry
             break
+    checksum = ""
+    for entry in raw.get("assets") or []:
+        if str(entry.get("name", "")).lower() == CHECKSUM_NAME.lower():
+            checksum = str(entry.get("browser_download_url", ""))
+            break
     if asset is None:
         return {"version": tag}
     return {
         "version": tag,
         "installer_url": asset.get("browser_download_url", ""),
         "installer_size": int(asset.get("size") or 0),
+        "checksum_url": checksum,
         "notes": str(raw.get("body") or "")[:4000],
     }
+
+
+def _digest(path: Path) -> str:
+    sha = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1_048_576), b""):
+            sha.update(block)
+    return sha.hexdigest()
+
+
+def expected_digest(url: str, name: str = INSTALLER_NAME) -> str:
+    if not url.startswith(ALLOWED_PREFIXES):
+        return ""
+    try:
+        text = _fetch(url, 15.0).decode("utf-8", errors="replace")
+    except Exception:
+        return ""
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[-1].lstrip("*").lower() == name.lower():
+            candidate = parts[0].strip().lower()
+            if len(candidate) == 64 and all(c in "0123456789abcdef" for c in candidate):
+                return candidate
+    return ""
 
 
 def check_update(force: bool = False) -> dict:
@@ -80,6 +112,7 @@ def check_update(force: bool = False) -> dict:
         "mode": mode,
         "installer_url": "",
         "installer_size": 0,
+        "checksum_url": "",
         "can_install": False,
     }
     published = ""
@@ -99,6 +132,7 @@ def check_update(force: bool = False) -> dict:
         result["latest"] = version or published or current
         result["installer_url"] = installer
         result["installer_size"] = release.get("installer_size", 0)
+        result["checksum_url"] = release.get("checksum_url", "")
         if release.get("notes"):
             result["notes"] = release["notes"]
         if published and version and _parse(published) > _parse(version):
@@ -120,7 +154,13 @@ def installer_path(version: str) -> Path:
     return UPDATE_DIR / f"Jon-Setup-{safe}.exe"
 
 
-def download_installer(url: str, version: str, expected: int = 0, progress=None) -> Path:
+def download_installer(
+    url: str,
+    version: str,
+    expected: int = 0,
+    progress=None,
+    checksum_url: str = "",
+) -> Path:
     if not url.startswith(ALLOWED_PREFIXES):
         raise ValueError("Unerwartete Download-Adresse")
     UPDATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -150,6 +190,15 @@ def download_installer(url: str, version: str, expected: int = 0, progress=None)
     if magic != b"MZ":
         partial.unlink(missing_ok=True)
         raise ValueError("Datei ist kein Windows-Programm")
+    wanted = expected_digest(checksum_url) if checksum_url else ""
+    if wanted:
+        got = _digest(partial)
+        if got != wanted:
+            partial.unlink(missing_ok=True)
+            raise ValueError(
+                "Pruefsumme stimmt nicht - die Datei wurde unterwegs veraendert "
+                f"(erwartet {wanted[:12]}…, bekommen {got[:12]}…)"
+            )
     target.unlink(missing_ok=True)
     partial.rename(target)
     for old in UPDATE_DIR.glob("Jon-Setup-*.exe"):

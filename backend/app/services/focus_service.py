@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 STATS_FILE = DATA_DIR / "focus_stats.json"
 
@@ -64,7 +65,7 @@ class FocusService:
 
     def _save_stats(self) -> None:
         try:
-            STATS_FILE.write_text(
+            atomic_write_text(STATS_FILE,
                 json.dumps(self._stats, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

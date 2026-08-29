@@ -6,6 +6,7 @@ import time
 from typing import AsyncIterator
 
 from app.core.config import get_settings
+from app.core.logbook import logger as logbook_logger
 from app.db.database import session_scope
 from app.db.models import Conversation, Message
 from app.providers.base import ChatMessage, ChatRequest, StreamChunk
@@ -21,10 +22,13 @@ from app.services.coding import (
 )
 from app.services.memory_service import MemoryService
 from app.services.persona_service import get_persona_service
+from app.services.history import trim_history
 from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
 from app.services.tools import GUEST_TOOLS, SAFE_TOOLS, ToolBox, describe_tool
 from app.services.usage_service import get_usage_service
+
+_log = logbook_logger("chat")
 
 HONESTY_RULE = (
     "OBERSTE REGEL - EHRLICHKEIT VOR GEFALLEN: Du aenderst eine Bewertung, "
@@ -417,7 +421,7 @@ class ChatService:
                 ]
             else:
                 parts = [base]
-            
+
             lang = settings_service.get().get("language", "de")
             if lang == "en":
                 parts.append(
@@ -734,6 +738,19 @@ class ChatService:
                         user_text=latest_user,
                     ),
                 ),
+            )
+
+        trimmed = trim_history(
+            request_messages,
+            get_settings().context_budget_tokens,
+            lambda role, content: ChatMessage(role=role, content=content),
+        )
+        request_messages = trimmed.messages
+        if trimmed.dropped or trimmed.shortened:
+            _log.info(
+                "Verlauf gekuerzt: %s Nachrichten zusammengefasst, %s gestutzt",
+                trimmed.dropped,
+                trimmed.shortened,
             )
 
         if payload.mode != "coding":

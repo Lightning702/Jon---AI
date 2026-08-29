@@ -8,6 +8,7 @@ from datetime import datetime
 from app.core.config import DATA_DIR
 from app.services.llm import complete
 from app.services.settings_service import get_settings_service
+from app.core.store import atomic_write_text
 
 JOURNAL_FILE = DATA_DIR / "journal.json"
 
@@ -41,7 +42,7 @@ class JournalService:
 
     def _save(self) -> None:
         try:
-            JOURNAL_FILE.write_text(
+            atomic_write_text(JOURNAL_FILE,
                 json.dumps(self._entries, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )

@@ -5,6 +5,7 @@ import threading
 from datetime import datetime, timezone
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 USAGE_FILE = DATA_DIR / "usage.json"
 
@@ -36,7 +37,7 @@ class UsageService:
 
     def _save(self) -> None:
         try:
-            USAGE_FILE.write_text(
+            atomic_write_text(USAGE_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

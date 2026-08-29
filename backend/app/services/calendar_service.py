@@ -6,6 +6,7 @@ import uuid
 from datetime import date, datetime, timedelta
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 CALENDAR_FILE = DATA_DIR / "calendar.json"
 KINDS = ("termin", "task", "erinnerung")
@@ -74,7 +75,7 @@ class CalendarService:
 
     def _save(self) -> None:
         try:
-            CALENDAR_FILE.write_text(
+            atomic_write_text(CALENDAR_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )

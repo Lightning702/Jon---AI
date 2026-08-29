@@ -13,6 +13,7 @@ from urllib.parse import quote
 import httpx
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_bytes, atomic_write_text
 
 STUDIO_DIR = DATA_DIR / "studio"
 CONFIG_FILE = DATA_DIR / "studio.json"
@@ -232,11 +233,11 @@ class StudioService:
 
     def _save(self) -> None:
         try:
-            CONFIG_FILE.write_text(
+            atomic_write_text(CONFIG_FILE,
                 json.dumps(self._config, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-            GALLERY_FILE.write_text(
+            atomic_write_text(GALLERY_FILE,
                 json.dumps(self._gallery, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
@@ -421,7 +422,7 @@ class StudioService:
         STUDIO_DIR.mkdir(parents=True, exist_ok=True)
         stamp = time.strftime("%Y%m%d-%H%M%S")
         name = f"{stamp}-{uuid.uuid4().hex[:6]}.{_extension(mime, source)}"
-        (STUDIO_DIR / name).write_bytes(data)
+        atomic_write_bytes((STUDIO_DIR / name), data)
         entry = {
             "id": uuid.uuid4().hex,
             "datei": name,

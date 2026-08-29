@@ -6,6 +6,7 @@ import time
 import uuid
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 NOTES_FILE = DATA_DIR / "sticky_notes.json"
 COLORS = ("gold", "blau", "gruen", "rosa", "lila")
@@ -27,7 +28,7 @@ class NotesService:
 
     def _save(self) -> None:
         try:
-            NOTES_FILE.write_text(
+            atomic_write_text(NOTES_FILE,
                 json.dumps(self._notes, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

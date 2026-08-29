@@ -41,7 +41,7 @@ export default function PrivateBrowser({ onClose, onPopOut }: Props) {
         </div>
         <iframe
           title="Privater Browser"
-          src={`${privatBrowserUrl()}?embed=1`}
+          src={`${privatBrowserUrl()}${privatBrowserUrl().includes("?") ? "&" : "?"}embed=1`}
           className="flex-1 w-full border-none bg-white"
           referrerPolicy="no-referrer"
         />

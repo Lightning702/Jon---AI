@@ -8,6 +8,7 @@ from datetime import datetime
 from app.core.config import DATA_DIR, get_settings
 from app.providers.base import ChatMessage, ChatRequest
 from app.providers.registry import get_registry
+from app.core.store import atomic_write_text
 
 TASKS_FILE = DATA_DIR / "tasks.json"
 
@@ -52,7 +53,7 @@ class TaskService:
 
     def _save(self) -> None:
         try:
-            TASKS_FILE.write_text(
+            atomic_write_text(TASKS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )

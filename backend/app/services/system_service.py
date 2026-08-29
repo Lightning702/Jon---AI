@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from app.core.config import DATA_DIR, ROOT_DIR
+from app.core.store import atomic_write_text
 
 ALARM_PREFIX = "JonWecker_"
 ALARM_DIR = DATA_DIR / "alarms"
@@ -146,7 +147,7 @@ class SystemService:
 
             get_trash_service().stash_overwrite(target)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
+        atomic_write_text(target, content, encoding="utf-8")
 
     def edit_file(self, path: str, old: str, new: str, count: int = 1) -> dict:
         target = Path(path).expanduser()
@@ -158,7 +159,7 @@ class SystemService:
 
         get_trash_service().stash_overwrite(target, "bearbeitet")
         replaced = text.replace(old, new) if count < 0 else text.replace(old, new, count)
-        target.write_text(replaced, encoding="utf-8")
+        atomic_write_text(target, replaced, encoding="utf-8")
         return {"path": str(target), "replacements": occurrences if count < 0 else min(count, occurrences)}
 
     def move_path(self, source: str, destination: str) -> str:
@@ -462,7 +463,7 @@ class SystemService:
         ALARM_DIR.mkdir(parents=True, exist_ok=True)
         script = ALARM_DIR / f"{task_name}.ps1"
         text = (label.strip() or "Wecker").replace("'", "''")
-        script.write_text(
+        atomic_write_text(script,
             f"$player = New-Object System.Media.SoundPlayer \"$env:WINDIR\\Media\\Alarm01.wav\"\n"
             "try { $player.PlayLooping() } catch { }\n"
             "$shell = New-Object -ComObject WScript.Shell\n"
@@ -856,7 +857,7 @@ class SystemService:
         if not bat.exists():
             raise FileNotFoundError(f"Autostart-Skript nicht gefunden: {bat}")
         launcher.parent.mkdir(parents=True, exist_ok=True)
-        launcher.write_text(
+        atomic_write_text(launcher,
             'Set sh = CreateObject("WScript.Shell")\n'
             f'sh.Run Chr(34) & "{bat}" & Chr(34), 7, False\n',
             encoding="utf-8",

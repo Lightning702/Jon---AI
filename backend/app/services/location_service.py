@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 PLACES_FILE = DATA_DIR / "telegram_places.json"
 GEO_REMINDERS_FILE = DATA_DIR / "telegram_geo_reminders.json"
@@ -54,7 +55,7 @@ class LocationService:
 
     def _save(self, path, data) -> None:
         try:
-            path.write_text(
+            atomic_write_text(path,
                 json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

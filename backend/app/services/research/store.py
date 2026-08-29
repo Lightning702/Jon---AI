@@ -6,6 +6,7 @@ import threading
 from app.core.config import DATA_DIR
 
 from .models import ACTIVE_STATES, STATUS_INTERRUPTED, ResearchTask
+from app.core.store import atomic_write_text
 
 RESEARCH_DIR = DATA_DIR / "research"
 
@@ -22,10 +23,7 @@ class ResearchStore:
     def save(self, task: ResearchTask) -> None:
         payload = json.dumps(task.storage_dict(), ensure_ascii=False, indent=2)
         with self._lock:
-            path = self._path(task.id)
-            temp = path.with_suffix(".tmp")
-            temp.write_text(payload, encoding="utf-8")
-            temp.replace(path)
+            atomic_write_text(self._path(task.id), payload)
 
     def load(self, task_id: str) -> ResearchTask | None:
         path = self._path(task_id)

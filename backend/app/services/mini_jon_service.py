@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 STATUS_FILE = DATA_DIR / "mini_jon.json"
 SLEEP_GIF = DATA_DIR / "mini_jon_schlaeft.gif"
@@ -42,7 +43,7 @@ class MiniJonService:
 
     def _save(self) -> None:
         try:
-            STATUS_FILE.write_text(
+            atomic_write_text(STATUS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )

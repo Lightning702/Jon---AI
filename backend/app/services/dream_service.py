@@ -8,6 +8,7 @@ from datetime import datetime
 
 from app.core.config import DATA_DIR
 from app.services.llm import complete
+from app.core.store import atomic_write_text
 
 DREAMS_FILE = DATA_DIR / "dreams.json"
 
@@ -38,7 +39,7 @@ class DreamService:
 
     def _save(self) -> None:
         try:
-            DREAMS_FILE.write_text(
+            atomic_write_text(DREAMS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

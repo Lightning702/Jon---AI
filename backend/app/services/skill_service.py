@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 from app.core.config import ROOT_DIR
+from app.core.store import atomic_write_text
 
 SKILLS_DIR = ROOT_DIR / "skills"
 
@@ -135,7 +136,7 @@ class SkillService:
         else:
             path = SKILLS_DIR / f"{name}.md"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+        atomic_write_text(path, content, encoding="utf-8")
         return {"name": name, "title": _first_heading(content), "chars": len(content)}
 
     def delete(self, name: str) -> bool:

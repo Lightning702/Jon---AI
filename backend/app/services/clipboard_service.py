@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 CLIPBOARD_FILE = DATA_DIR / "clipboard_history.json"
 MAX_ENTRIES = 50
@@ -30,7 +31,7 @@ class ClipboardService:
 
     def _save(self) -> None:
         try:
-            CLIPBOARD_FILE.write_text(
+            atomic_write_text(CLIPBOARD_FILE,
                 json.dumps(self._entries, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )

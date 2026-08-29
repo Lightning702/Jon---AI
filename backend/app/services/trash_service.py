@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 TRASH_DIR = DATA_DIR / "trash"
 KEEP_DAYS = 30
@@ -29,7 +30,7 @@ class TrashService:
 
     def _write_meta(self, entry: Path, meta: dict) -> None:
         meta["deleted_at"] = datetime.now().isoformat(timespec="seconds")
-        (entry / "meta.json").write_text(
+        atomic_write_text((entry / "meta.json"),
             json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 

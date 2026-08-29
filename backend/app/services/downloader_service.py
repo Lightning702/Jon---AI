@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 SPOTIFY_ID = re.compile(r"open\.spotify\.com/(?:intl-[a-z]+/)?track/([A-Za-z0-9]+)")
 TRACK_ASIN = re.compile(r"trackAsin=([A-Z0-9]+)", re.I)
@@ -204,7 +205,7 @@ def cookie_config() -> dict:
 def write_cookie_config(data: dict) -> None:
     try:
         COOKIE_DIR.mkdir(parents=True, exist_ok=True)
-        COOKIE_CONFIG.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        atomic_write_text(COOKIE_CONFIG, json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:
         pass
 
@@ -621,7 +622,7 @@ class DownloaderService:
                 }
             try:
                 COOKIE_DIR.mkdir(parents=True, exist_ok=True)
-                COOKIE_FILE.write_text(normalized, encoding="utf-8")
+                atomic_write_text(COOKIE_FILE, normalized, encoding="utf-8")
             except Exception as exc:
                 return {"error": f"Cookies konnten nicht gespeichert werden: {exc}"}
         return self.cookie_status()

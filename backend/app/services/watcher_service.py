@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 WATCHERS_FILE = DATA_DIR / "watchers.json"
 
@@ -28,7 +29,7 @@ class WatcherService:
 
     def _save(self) -> None:
         try:
-            WATCHERS_FILE.write_text(
+            atomic_write_text(WATCHERS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )

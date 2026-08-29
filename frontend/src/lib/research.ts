@@ -1,4 +1,5 @@
 import { BASE } from "./api";
+import { withToken } from "./token";
 
 export type ResearchStatus =
   | "planung"
@@ -153,7 +154,9 @@ export function watchResearch(
   id: string,
   onUpdate: (task: ResearchTask) => void
 ): () => void {
-  const source = new EventSource(`${BASE}/research/tasks/${id}/stream`);
+  const source = new EventSource(
+    withToken(`${BASE}/research/tasks/${id}/stream`)
+  );
   source.onmessage = (event) => {
     try {
       onUpdate(JSON.parse(event.data) as ResearchTask);

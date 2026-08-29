@@ -607,10 +607,15 @@ Wenn dein Handy im selben WLAN ist, kannst du die **komplette PC-App** am Handy 
 mit allen Tools, Wissensbasis, Automationen und PC-Steuerung, weil dein PC die Arbeit macht:
 
 1. In der `.env` auf dem PC `JON_LAN=1` setzen und Jon neu starten
-2. Am Handy `http://<PC-IP>:8756/app` öffnen (PC-IP z. B. per `ipconfig`)
+2. In Jon: **Zahnrad → Diagnose & Handy koppeln**
+3. Die dort angezeigte Adresse kopieren und am Handy im Browser öffnen
 
-> ⚠️ Damit ist Jon für alle Geräte in deinem WLAN erreichbar — nur in vertrauenswürdigen
-> Netzwerken aktivieren.
+Die Adresse enthält deinen **Geräte-Schlüssel**. Das Handy merkt sich ihn und entfernt ihn
+aus der Adresszeile. Ohne diesen Schlüssel antwortet Jon auf keine Anfrage — ein fremdes
+Gerät im selben WLAN kommt also nicht an deinen PC, selbst wenn es die IP kennt.
+
+> ⚠️ Gib die Adresse an niemanden weiter, sie ist der Schlüssel selbst. Verloren gegangen?
+> **Neues Token** in derselben Ansicht meldet alle gekoppelten Geräte auf einmal ab.
 
 ### Immer an: Jon auf dem Raspberry Pi
 
@@ -894,5 +899,18 @@ Details und Fehlerbehebung: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 - `.env` und der komplette `data/`-Ordner sind über `.gitignore` ausgeschlossen.
 - Die System- und Tool-Aktionen laufen mit den Rechten des angemeldeten Benutzers. Der
   Standardmodus „Zuerst fragen" verlangt vor jeder Aktion eine Freigabe.
-- Das Backend ist nur an `127.0.0.1` gebunden. Für ein öffentliches Deployment ist eine
-  Authentifizierungsschicht erforderlich.
+- **Geräte-Schlüssel (seit 4.36.0):** Jede `/api/`-Anfrage braucht das Token aus
+  `data/access.token`. Ohne es antwortet Jon mit 401 — das gilt auch für Anfragen von
+  `127.0.0.1`, damit keine Webseite in deinem Browser den lokalen Port ansprechen kann.
+  Die Jon-App bekommt den Schlüssel beim Start automatisch. Ausgenommen sind nur
+  `/api/health` und die Spiele-Schnittstelle `/api/mp/`, damit Mitspieler beitreten können.
+- `CORS_ORIGINS` steht nicht mehr auf `*`, sondern erlaubt nur die Adressen von Jons
+  eigener Oberfläche. Ein eigener Wert in der `.env` überschreibt das.
+- Das Backend ist an `127.0.0.1` gebunden; `JON_LAN=1` öffnet es fürs eigene WLAN. Für
+  eine Freigabe ins offene Internet reicht der Geräte-Schlüssel allein nicht — dafür
+  gehört ein VPN oder Tailscale davor.
+- Updates werden gegen die `SHA256SUMS.txt` des Releases geprüft und bei Abweichung
+  verworfen.
+- **Noch offen:** Die `.exe` ist nicht signiert. Windows SmartScreen meldet deshalb einen
+  unbekannten Herausgeber. Das braucht ein gekauftes Code-Signing-Zertifikat und lässt
+  sich im Quellcode nicht lösen.

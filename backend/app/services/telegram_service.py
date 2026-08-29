@@ -12,6 +12,7 @@ import httpx
 
 from app.core.config import DATA_DIR
 from app.services.settings_service import get_settings_service
+from app.core.store import atomic_write_bytes, atomic_write_text
 
 HISTORY_FILE = DATA_DIR / "telegram_memory.json"
 HISTORY_KEEP = 40
@@ -49,7 +50,7 @@ class TelegramService:
 
     def _save_histories(self) -> None:
         try:
-            HISTORY_FILE.write_text(
+            atomic_write_text(HISTORY_FILE,
                 json.dumps(self._histories, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
@@ -65,7 +66,7 @@ class TelegramService:
     def _save_morning(self, day: str) -> None:
         self._last_morning = day
         try:
-            MORNING_STATE_FILE.write_text(
+            atomic_write_text(MORNING_STATE_FILE,
                 json.dumps({"last": day}, ensure_ascii=False), encoding="utf-8"
             )
         except Exception:
@@ -228,7 +229,7 @@ class TelegramService:
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "in.mp3"
             dst = Path(tmp) / "out.ogg"
-            src.write_bytes(mp3)
+            atomic_write_bytes(src, mp3)
             result = subprocess.run(
                 [
                     "ffmpeg", "-y", "-i", str(src),
@@ -276,7 +277,7 @@ class TelegramService:
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "in.ogg"
             dst = Path(tmp) / "out.wav"
-            src.write_bytes(audio)
+            atomic_write_bytes(src, audio)
             result = subprocess.run(
                 ["ffmpeg", "-y", "-i", str(src), "-ar", "16000", "-ac", "1", str(dst)],
                 capture_output=True,

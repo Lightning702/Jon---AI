@@ -1,3 +1,5 @@
+import { withToken } from "./token";
+
 function backendBase(): string {
   const { protocol, hostname, port, origin } = window.location;
   if (!protocol.startsWith("http")) return "http://127.0.0.1:8756/api";
@@ -548,15 +550,15 @@ export async function clearDownloadCookies(): Promise<DownloadCookieState> {
 }
 
 export function downloadProgressUrl(job: string): string {
-  return `${BASE}/downloader/progress/${job}`;
+  return withToken(`${BASE}/downloader/progress/${job}`);
 }
 
 export function downloadFileUrl(job: string): string {
-  return `${BASE}/downloader/file/${job}`;
+  return withToken(`${BASE}/downloader/file/${job}`);
 }
 
 export function privatBrowserUrl(): string {
-  return BASE.replace(/\/api$/, "") + "/privat";
+  return withToken(BASE.replace(/\/api$/, "") + "/privat");
 }
 
 export type SpielStatus =
@@ -623,7 +625,7 @@ export async function buildSpiel(id: string): Promise<SpielAktion> {
 }
 
 export function spielVorschauUrl(id: string): string {
-  return `${BASE}/games/${encodeURIComponent(id)}/vorschau`;
+  return withToken(`${BASE}/games/${encodeURIComponent(id)}/vorschau`);
 }
 
 export function spielSeitenUrl(pfad: string): string {
@@ -1481,7 +1483,8 @@ export interface P2PGroupInvite {
   members: string[];
 }
 
-export const mediaUrl = (messageId: string) => `${BASE}/p2p/media/${messageId}`;
+export const mediaUrl = (messageId: string) =>
+  withToken(`${BASE}/p2p/media/${messageId}`);
 
 export async function getIdentity(): Promise<P2PIdentity> {
   const res = await fetch(`${BASE}/p2p/me`);
@@ -1652,7 +1655,7 @@ export async function checkUpdate(): Promise<{
 }
 
 export function backupUrl(): string {
-  return `${BASE}/backup/export`;
+  return withToken(`${BASE}/backup/export`);
 }
 
 export async function importBackup(file: File): Promise<string> {
@@ -2509,7 +2512,7 @@ export interface StudioConfig {
 }
 
 export function studioFileUrl(work: StudioWork): string {
-  return `${BASE}/studio/file/${encodeURIComponent(work.datei)}`;
+  return withToken(`${BASE}/studio/file/${encodeURIComponent(work.datei)}`);
 }
 
 async function studioJson(path: string, init?: RequestInit) {
@@ -2567,4 +2570,56 @@ export async function getStudioGallery(): Promise<StudioWork[]> {
 
 export async function deleteStudioWork(id: string): Promise<void> {
   await studioJson(`/gallery/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export interface DienstStatus {
+  dienst: string;
+  ok?: number;
+  fehler?: number;
+  zuletzt_ok?: string;
+  zuletzt_fehler?: string;
+  meldung?: string;
+}
+
+export interface Diagnose {
+  version: string;
+  laufzeit: number;
+  port: number;
+  lan: boolean;
+  adresse: string;
+  datenverzeichnis: string;
+  protokolldatei: string;
+  dienste: DienstStatus[];
+  fehlerhaft: string[];
+  meldungen: string[];
+}
+
+export interface Kopplung {
+  token: string;
+  lan: boolean;
+  adresse: string;
+  port: number;
+  url: string;
+}
+
+export async function getDiagnose(): Promise<Diagnose> {
+  const res = await fetch(`${BASE}/system/diagnostics`);
+  if (!res.ok) throw new Error("Diagnose nicht verfuegbar");
+  return res.json();
+}
+
+export function protokollUrl(): string {
+  return withToken(`${BASE}/system/log`);
+}
+
+export async function getKopplung(): Promise<Kopplung> {
+  const res = await fetch(`${BASE}/system/pairing`);
+  if (!res.ok) throw new Error("Kopplung nicht verfuegbar");
+  return res.json();
+}
+
+export async function neuesToken(): Promise<Kopplung> {
+  const res = await fetch(`${BASE}/system/pairing/reset`, { method: "POST" });
+  if (!res.ok) throw new Error("Token konnte nicht erneuert werden");
+  return res.json();
 }

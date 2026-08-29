@@ -17,6 +17,7 @@ import { setNaturalVoice } from "../lib/tts";
 import { Theme, applyTheme, readTheme } from "../lib/theme";
 import { useT } from "../hooks/useT";
 import ConnectionsModal from "./ConnectionsModal";
+import DiagnosticsModal from "./DiagnosticsModal";
 import UninstallModal from "./UninstallModal";
 import OllamaModal from "./OllamaModal";
 
@@ -113,6 +114,7 @@ export default function SettingsMenu({
   const { lang, setLang } = useT();
   const [open, setOpen] = useState(false);
   const [uninstallOpen, setUninstallOpen] = useState(false);
+  const [diagnoseOpen, setDiagnoseOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [personality, setPersonality] = useState(true);
   const [failover, setFailover] = useState(true);
@@ -677,6 +679,17 @@ export default function SettingsMenu({
               </div>
             )}
             <button
+              onClick={() => {
+                setOpen(false);
+                setDiagnoseOpen(true);
+              }}
+              title="Zeigt Version, laufende Hintergrunddienste, Fehler und die Adresse zum Koppeln des Handys."
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-white/15 bg-white/[0.04] hover:bg-white/10 transition-colors"
+            >
+              <span className="text-[11px] text-white/80">Diagnose & Handy koppeln …</span>
+              <span className="text-white/50 text-[12px]">›</span>
+            </button>
+            <button
               onClick={() => void openConnections()}
               className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
             >
@@ -709,6 +722,9 @@ export default function SettingsMenu({
       )}
       {uninstallOpen && (
         <UninstallModal onClose={() => setUninstallOpen(false)} />
+      )}
+      {diagnoseOpen && (
+        <DiagnosticsModal onClose={() => setDiagnoseOpen(false)} />
       )}
       {ollamaOpen && (
         <OllamaModal

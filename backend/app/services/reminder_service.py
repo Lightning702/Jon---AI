@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 REMINDERS_FILE = DATA_DIR / "reminders.json"
 
@@ -25,7 +26,7 @@ class ReminderService:
 
     def _save(self) -> None:
         try:
-            REMINDERS_FILE.write_text(
+            atomic_write_text(REMINDERS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

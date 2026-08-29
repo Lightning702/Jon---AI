@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
 
 SNAP_DIR = DATA_DIR / "snapshots"
 INDEX_FILE = SNAP_DIR / "index.json"
@@ -31,7 +32,7 @@ class TimeTravelService:
 
     def _save(self) -> None:
         try:
-            INDEX_FILE.write_text(
+            atomic_write_text(INDEX_FILE,
                 json.dumps(self._index, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception:

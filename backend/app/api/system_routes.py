@@ -6,7 +6,7 @@ import mimetypes
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from app.services.system_service import SystemService
@@ -328,3 +328,64 @@ async def uninstall(payload: UninstallIn) -> dict:
 async def shutdown() -> dict:
     asyncio.create_task(_exit_soon(0.35))
     return {"stopping": True, "pid": os.getpid()}
+
+
+@router.get("/diagnostics")
+async def diagnostics() -> dict:
+    from app.core.auth import lan_address
+    from app.core.config import DATA_DIR, get_settings
+    from app.core.logbook import LOG_FILE, recent, since_boot, snapshot
+
+    settings = get_settings()
+    dienste = snapshot()
+    return {
+        "version": settings.app_version,
+        "laufzeit": round(since_boot(), 1),
+        "port": settings.port,
+        "lan": settings.jon_lan,
+        "adresse": lan_address() if settings.jon_lan else "127.0.0.1",
+        "datenverzeichnis": str(DATA_DIR),
+        "protokolldatei": str(LOG_FILE),
+        "dienste": dienste,
+        "fehlerhaft": [d["dienst"] for d in dienste if d.get("fehler")],
+        "meldungen": recent(200),
+    }
+
+
+@router.get("/log")
+async def log_export() -> Response:
+    from app.core.logbook import export_text
+
+    text = await asyncio.to_thread(export_text)
+    return Response(
+        content=text,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="jon-protokoll.txt"'},
+    )
+
+
+@router.get("/pairing")
+async def pairing() -> dict:
+    from app.core.auth import get_token, lan_address, pair_url
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    return {
+        "token": get_token(),
+        "lan": settings.jon_lan,
+        "adresse": lan_address(),
+        "port": settings.port,
+        "url": pair_url(settings.port, settings.jon_lan),
+    }
+
+
+@router.post("/pairing/reset")
+async def pairing_reset() -> dict:
+    from app.core.auth import reset_token
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    token = await asyncio.to_thread(reset_token)
+    from app.core.auth import pair_url
+
+    return {"token": token, "url": pair_url(settings.port, settings.jon_lan)}
