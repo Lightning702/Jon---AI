@@ -94,6 +94,7 @@ from app.services.task_service import get_task_service
 from app.services.team_service import TEAM, get_team_service
 from app.services.timetravel_service import get_timetravel_service
 from app.services.usage_service import get_usage_service
+from app.core.auth import TOKEN_FILE
 
 router = APIRouter(prefix="/api")
 _chat_service = ChatService()
@@ -112,6 +113,7 @@ async def health() -> HealthOut:
         default_provider=settings.default_provider,
         default_model=settings.jon_model,
         available_providers=registry.available(),
+        token_file=str(TOKEN_FILE),
     )
 
 

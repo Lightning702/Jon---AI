@@ -2,6 +2,49 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.36.1] — 2026-08-29
+
+### 🩹 Die App bekam den Geräte-Schlüssel gar nicht
+
+In 4.36.0 blieb Jon nach dem Start auf „nicht verbunden" stehen. Ursache waren zwei
+Lücken in der Kette, über die der Schlüssel vom Backend zur Oberfläche kommt:
+
+- **`preload.cjs` reichte den Schlüssel nie durch.** Die Zeile `token: jonToken` fehlte,
+  `window.jon.token` war deshalb immer `undefined`. Jede Anfrage an `/api/` kam ohne
+  Schlüssel an und wurde mit 401 abgewiesen. Die App zeigte das nicht als Fehler, sondern
+  versuchte es stumm alle zwei Sekunden erneut.
+- **Der Electron-Hauptprozess rief die API ohne Schlüssel.** `/api/settings`,
+  `/api/system/idle` und die Quickwrite-Endpunkte gingen an der Absicherung vorbei; nur
+  der Shutdown-Aufruf hatte einen Schlüssel. Alle laufen jetzt über `apiFetch()`.
+
+### 🔁 Ein falscher Schlüssel sperrt nicht mehr dauerhaft aus
+
+Der eigentliche Konstruktionsfehler war, dass Electron **raten** musste, welche Datei das
+Backend benutzt, und sich das Ergebnis für die ganze Laufzeit merkte. Ein falscher Tipp
+bedeutete: dauerhaft ausgesperrt, ohne Meldung, ohne Ausweg.
+
+- `/api/health` nennt jetzt den Pfad seiner Schlüsseldatei (nur den Pfad, nicht den
+  Schlüssel). Electron fragt beim Start dort nach, statt zu raten.
+- Das Backend schreibt seinen wirksamen Schlüssel immer in genau diese Datei — auch wenn
+  er aus `JON_TOKEN` kommt. Datei und Wirklichkeit können nicht mehr auseinanderlaufen.
+- Kommt trotzdem einmal ein 401, holt sich die Oberfläche über den Hauptprozess einen
+  frischen Schlüssel und wiederholt die Anfrage. Das gilt für die App, Mini Jon und die
+  Schnellfrage.
+
+### 🩺 Abgewiesene Anfragen sind jetzt sichtbar
+
+Genau dieser Fehler war von außen unsichtbar — deshalb protokolliert Jon Abweisungen jetzt
+(höchstens eine Meldung alle 30 Sekunden) und zeigt ihre Anzahl in der Diagnose. Eine
+Zahl, die steigt, während die App „nicht verbunden" anzeigt, benennt das Problem sofort.
+
+### 🧪 Tests, die genau diese Kette absichern
+
+Zehn neue Tests prüfen die Übergabe über alle Sprachgrenzen hinweg: dass `/api/health` den
+Pfad meldet und die Datei den wirksamen Schlüssel enthält, dass jedes Preload den Schlüssel
+weiterreicht und nachfragen kann, dass jedes Fenster ihn mitbekommt, dass Oberfläche und
+kleine Fenster nach einer Abweisung wiederholen — und dass **kein** Aufruf im
+Hauptprozess an der Absicherung vorbeigeht. Insgesamt 425 Tests.
+
 ## [4.36.0] — 2026-08-29
 
 ### 🔒 Zugangsschutz: Jon fragt jetzt nach einem Geräte-Schlüssel

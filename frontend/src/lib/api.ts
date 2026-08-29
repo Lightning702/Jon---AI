@@ -2591,6 +2591,7 @@ export interface Diagnose {
   protokolldatei: string;
   dienste: DienstStatus[];
   fehlerhaft: string[];
+  abgewiesen: number;
   meldungen: string[];
 }
 

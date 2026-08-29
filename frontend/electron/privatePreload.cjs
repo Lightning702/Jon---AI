@@ -2,6 +2,9 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 const jonToken = (process.argv.find((a) => a.startsWith("--jon-token=")) || "").slice(12);
 contextBridge.exposeInMainWorld("jonToken", jonToken);
+contextBridge.exposeInMainWorld("jonTokenHolen", () =>
+  ipcRenderer.invoke("auth:token")
+);
 
 contextBridge.exposeInMainWorld("jonPrivat", {
   minimize: () => ipcRenderer.invoke("private:minimize"),

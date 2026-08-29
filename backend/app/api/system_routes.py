@@ -332,7 +332,7 @@ async def shutdown() -> dict:
 
 @router.get("/diagnostics")
 async def diagnostics() -> dict:
-    from app.core.auth import lan_address
+    from app.core.auth import lan_address, rejected
     from app.core.config import DATA_DIR, get_settings
     from app.core.logbook import LOG_FILE, recent, since_boot, snapshot
 
@@ -348,6 +348,7 @@ async def diagnostics() -> dict:
         "protokolldatei": str(LOG_FILE),
         "dienste": dienste,
         "fehlerhaft": [d["dienst"] for d in dienste if d.get("fehler")],
+        "abgewiesen": rejected()["anzahl"],
         "meldungen": recent(200),
     }
 

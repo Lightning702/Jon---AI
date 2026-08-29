@@ -627,17 +627,32 @@
     <script>
       const BASE = "http://127.0.0.1:8756/api";
       (function () {
-        const t = window.jonToken || "";
-        if (!t) return;
+        let t = window.jonToken || "";
         const original = window.fetch.bind(window);
-        window.fetch = function (input, init) {
-          const url = typeof input === "string" ? input : input && input.url;
-          if (!url || url.indexOf("/api/") === -1) return original(input, init);
+        function mit(init, input, wert) {
           const headers = new Headers(
             (init && init.headers) || (input && input.headers) || undefined
           );
-          if (!headers.has("X-Jon-Token")) headers.set("X-Jon-Token", t);
-          return original(input, Object.assign({}, init, { headers: headers }));
+          headers.set("X-Jon-Token", wert);
+          return Object.assign({}, init, { headers: headers });
+        }
+        window.fetch = async function (input, init) {
+          const url = typeof input === "string" ? input : input && input.url;
+          if (!url || url.indexOf("/api/") === -1) return original(input, init);
+          const antwort = t
+            ? await original(input, mit(init, input, t))
+            : await original(input, init);
+          if (antwort.status !== 401) return antwort;
+          if (typeof window.jonTokenHolen !== "function") return antwort;
+          let frisch = "";
+          try {
+            frisch = (await window.jonTokenHolen()) || "";
+          } catch (e) {
+            frisch = "";
+          }
+          if (!frisch || frisch === t) return antwort;
+          t = frisch;
+          return original(input, mit(init, input, frisch));
         };
       })();
       const jon = document.getElementById("jon");

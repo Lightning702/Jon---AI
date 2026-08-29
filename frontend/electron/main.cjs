@@ -29,6 +29,7 @@ let tray = null;
 let quitting = false;
 
 let jonToken = "";
+let backendErreichbar = false;
 
 function tokenCandidates() {
   const list = [];
@@ -44,6 +45,15 @@ function tokenCandidates() {
   return list;
 }
 
+function readTokenFile(file) {
+  try {
+    const value = fs.readFileSync(file, "utf-8").trim();
+    return value || "";
+  } catch (e) {
+    return "";
+  }
+}
+
 function ensureToken() {
   if (jonToken) return jonToken;
   if (process.env.JON_TOKEN && process.env.JON_TOKEN.trim()) {
@@ -51,13 +61,11 @@ function ensureToken() {
     return jonToken;
   }
   for (const file of tokenCandidates()) {
-    try {
-      const value = fs.readFileSync(file, "utf-8").trim();
-      if (value) {
-        jonToken = value;
-        return jonToken;
-      }
-    } catch (e) {}
+    const value = readTokenFile(file);
+    if (value) {
+      jonToken = value;
+      return jonToken;
+    }
   }
   jonToken = crypto.randomBytes(32).toString("base64url");
   const target = tokenCandidates().find((file) =>
@@ -73,12 +81,68 @@ function ensureToken() {
   return jonToken;
 }
 
-function tokenArgs() {
-  return ["--jon-token=" + ensureToken()];
+function verteileToken(value) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed() && win.webContents) {
+      win.webContents.send("jon:token", value);
+    }
+  }
 }
 
-function tokenHeaders() {
-  return { "X-Jon-Token": ensureToken() };
+async function refreshToken() {
+  const vorher = ensureToken();
+  let antwort = null;
+  try {
+    antwort = await fetch(`${API_BASE}/health`, {
+      signal: AbortSignal.timeout(4000),
+    });
+  } catch (e) {
+    return vorher;
+  }
+  if (!antwort || !antwort.ok) return vorher;
+  backendErreichbar = true;
+  let info = null;
+  try {
+    info = await antwort.json();
+  } catch (e) {
+    return vorher;
+  }
+  const datei = info && typeof info.token_file === "string" ? info.token_file : "";
+  if (!datei) return vorher;
+  const value = readTokenFile(datei);
+  if (!value || value === vorher) return vorher;
+  jonToken = value;
+  process.env.JON_TOKEN = value;
+  verteileToken(value);
+  return value;
+}
+
+async function tokenAbgleich() {
+  for (let versuch = 0; versuch < 30; versuch += 1) {
+    const vorher = jonToken;
+    const jetzt = await refreshToken();
+    if (jetzt && jetzt !== vorher) return;
+    if (backendErreichbar) return;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+}
+
+async function apiFetch(pfad, init) {
+  const ziel = `${API_BASE}${pfad}`;
+  const bauen = (wert) => {
+    const headers = Object.assign({}, (init && init.headers) || {});
+    if (wert) headers["X-Jon-Token"] = wert;
+    return Object.assign({}, init, { headers });
+  };
+  const antwort = await fetch(ziel, bauen(ensureToken()));
+  if (antwort.status !== 401) return antwort;
+  const frisch = await refreshToken();
+  if (!frisch) return antwort;
+  return fetch(ziel, bauen(frisch));
+}
+
+function tokenArgs() {
+  return ["--jon-token=" + ensureToken()];
 }
 
 function createQuickAsk() {
@@ -152,7 +216,7 @@ async function openQuickWrite() {
   quickWriteWindow.showInactive();
   let data = { error: "Kein Text markiert." };
   try {
-    const res = await fetch(`${API_BASE}/quickwrite/grab`);
+    const res = await apiFetch("/quickwrite/grab");
     data = await res.json();
     if (!res.ok) data = { error: data.detail || "Kein Text markiert." };
   } catch (e) {
@@ -164,7 +228,7 @@ async function openQuickWrite() {
 async function readAloudSelection() {
   let text = "";
   try {
-    const res = await fetch(`${API_BASE}/quickwrite/grab`);
+    const res = await apiFetch("/quickwrite/grab");
     const data = await res.json();
     if (res.ok && data.text) text = String(data.text).trim();
   } catch (e) {}
@@ -177,7 +241,7 @@ async function readAloudSelection() {
 ipcMain.handle("quickwrite:apply", async (_e, mode) => {
   let result = { ok: false, error: "Fehlgeschlagen." };
   try {
-    const res = await fetch(`${API_BASE}/quickwrite/apply`, {
+    const res = await apiFetch("/quickwrite/apply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode }),
@@ -247,13 +311,13 @@ let roamTarget = null;
 let roamStarted = false;
 async function refreshRoamState() {
   try {
-    const s = await (await fetch(`${API_BASE}/settings`)).json();
+    const s = await (await apiFetch("/settings")).json();
     roamOn = s.pet_roam === true;
   } catch (e) {
     roamOn = false;
   }
   try {
-    const idle = Number((await (await fetch(`${API_BASE}/system/idle`)).json()).seconds || 0);
+    const idle = Number((await (await apiFetch("/system/idle")).json()).seconds || 0);
     roamAsleep = idle > 300;
   } catch (e) {
     roamAsleep = false;
@@ -630,6 +694,7 @@ ipcMain.handle("window:moveBy", (_event, dx, dy) => {
   mainWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
 });
 
+ipcMain.handle("auth:token", async () => refreshToken());
 ipcMain.handle("private:open", () => openPrivateBrowser());
 ipcMain.handle("private:open-in-app", () => openPrivateInApp());
 ipcMain.handle("private:minimize", () => privateWindow && privateWindow.minimize());
@@ -688,6 +753,7 @@ app.whenReady().then(() => {
   createWindow();
   createPet();
   void startBackend();
+  void tokenAbgleich();
   globalShortcut.register("Control+Alt+J", toggleWindow);
   globalShortcut.register("Control+Alt+K", togglePet);
   globalShortcut.register("Control+Alt+Space", toggleQuickAsk);
@@ -773,10 +839,7 @@ function freeBackendPorts() {
 function askBackendToStop() {
   return new Promise((resolve) => {
     const done = setTimeout(resolve, 2000);
-    fetch(`${API_BASE}/system/shutdown`, {
-      method: "POST",
-      headers: tokenHeaders(),
-    })
+    apiFetch("/system/shutdown", { method: "POST" })
       .then(() => {
         clearTimeout(done);
         setTimeout(resolve, 400);

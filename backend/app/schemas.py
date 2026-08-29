@@ -439,6 +439,7 @@ class HealthOut(BaseModel):
     default_provider: str
     default_model: str
     available_providers: list[str]
+    token_file: str = ""
 
 
 class TrashRestoreIn(BaseModel):

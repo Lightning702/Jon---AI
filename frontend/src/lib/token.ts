@@ -77,10 +77,37 @@ function sameBackend(target: string): boolean {
   }
 }
 
+let laufendeNachfrage: Promise<string> | null = null;
+
+async function tokenNachfragen(): Promise<string> {
+  const bruecke = typeof window !== "undefined" ? window.jon : undefined;
+  if (!bruecke || typeof bruecke.getToken !== "function") return "";
+  if (!laufendeNachfrage) {
+    laufendeNachfrage = bruecke
+      .getToken()
+      .then((wert) => (typeof wert === "string" ? wert.trim() : ""))
+      .catch(() => "")
+      .finally(() => {
+        laufendeNachfrage = null;
+      });
+  }
+  return laufendeNachfrage;
+}
+
+function mitSchluessel(
+  init: RequestInit | undefined,
+  vorhandene: HeadersInit | undefined,
+  value: string
+): RequestInit {
+  const headers = new Headers(init?.headers ?? vorhandene);
+  headers.set(HEADER, value);
+  return { ...init, headers };
+}
+
 export function installTokenFetch(): void {
   if (typeof window === "undefined" || !window.fetch) return;
   const original = window.fetch.bind(window);
-  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const target =
       typeof input === "string"
         ? input
@@ -88,10 +115,21 @@ export function installTokenFetch(): void {
           ? input.href
           : input.url;
     if (!sameBackend(target)) return original(input, init);
+    const vorhandene = input instanceof Request ? input.headers : undefined;
     const value = resolveToken();
-    if (!value) return original(input, init);
-    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-    if (!headers.has(HEADER)) headers.set(HEADER, value);
-    return original(input, { ...init, headers });
+    const antwort = value
+      ? await original(input, mitSchluessel(init, vorhandene, value))
+      : await original(input, init);
+    if (antwort.status !== 401 || input instanceof Request) return antwort;
+    const frisch = await tokenNachfragen();
+    if (!frisch || frisch === value) return antwort;
+    setToken(frisch);
+    return original(input, mitSchluessel(init, vorhandene, frisch));
   };
+  const bruecke = window.jon;
+  if (bruecke && typeof bruecke.onToken === "function") {
+    bruecke.onToken((value) => {
+      if (typeof value === "string" && value.trim()) setToken(value);
+    });
+  }
 }
