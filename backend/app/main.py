@@ -20,6 +20,7 @@ from app.api.maps_routes import router as maps_router
 from app.api.phone_routes import router as phone_router
 from app.api.research_routes import router as research_router
 from app.api.routes import accounts, providers, router
+from app.api.studio_routes import router as studio_router
 from app.api.system_routes import router as system_router
 from app.core.config import ROOT_DIR, get_settings
 from app.db.database import init_db
@@ -456,6 +457,7 @@ def create_app() -> FastAPI:
     app.include_router(phone_router)
     app.include_router(maps_router)
     app.include_router(research_router)
+    app.include_router(studio_router)
 
     from pathlib import Path
 

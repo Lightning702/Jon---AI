@@ -2,6 +2,90 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.35.0] — 2026-08-29
+
+### 🎨 Video / Foto: Bilder und Videos in Jon erstellen
+
+Unter 🧰 Werkzeuge steckt ein neues Fenster — oder du tippst `/bild`. Beim ersten Öffnen
+suchst du dir aus, womit Jon malen soll: mit deinem eigenen API-Schlüssel, komplett
+kostenlos ohne Anmeldung oder lokal auf deinem eigenen Rechner.
+
+- Zur Auswahl stehen Pollinations (kostenlos, ohne Schlüssel), Together AI mit FLUX,
+  OpenAI, Google Gemini und Imagen, Stability AI, Replicate, fal.ai und dein eigener
+  Rechner. Über Replicate und fal.ai entstehen auch echte Videos.
+- Der lokale Weg ist der gleiche Gedanke wie bei Ollama: Alles bleibt auf deinem PC.
+  Ollama selbst erzeugt keine Bilder — dafür trägst du die Adresse deines Bilder-Servers
+  ein (Stable Diffusion WebUI, SD.Next oder Forge auf Port 7860).
+- Schreib, was zu sehen sein soll, wähl Größe und Modell, fertig. Alles landet in einer
+  Galerie und bleibt als Datei lokal auf deinem Rechner.
+- Der Schlüssel wird nur bei dir gespeichert und geht ausschließlich an den Anbieter,
+  den du ausgesucht hast.
+
+### 🟢 NVIDIA-Modelle im Video-/Foto-Fenster
+
+Jon kennt deinen NVIDIA-Schlüssel schon — im Bild-Fenster steht NVIDIA deshalb sofort
+bereit, ohne dass du irgendetwas eintippst.
+
+- FLUX läuft direkt bei NVIDIA: `flux.2-klein-4b` (Standard, in Sekunden fertig),
+  `flux.1-schnell`, `flux.1-dev` und `flux.1-kontext-dev`.
+- Das Modellfeld ist frei beschreibbar. Jedes Bildmodell, das NVIDIA unter
+  build.nvidia.com anbietet, funktioniert damit — auch neue, die erst später dazukommen.
+- Bildgröße und Seitenverhältnis rechnet Jon automatisch auf das um, was NVIDIA
+  akzeptiert, statt mit einer Fehlermeldung abzubrechen.
+- Bedient NVIDIA ein Modell gerade nicht, sagt Jon das in einem klaren Satz und
+  schlägt ein Modell vor, das läuft.
+
+### 🖌️ Bilder bearbeiten statt nur neu erzeugen
+
+Bei Anbietern, die das können, gibt es im Bild-Fenster jetzt eine Vorlage: ein Bild vom
+PC oder direkt aus deiner Galerie, dazu ein Satz, was sich ändern soll.
+
+- Unterstützt bei NVIDIA, OpenAI, Google Gemini, Replicate, fal.ai und deinem lokalen
+  Bilder-Server. Anbieter, die nur neu malen können, sagen das offen.
+- NVIDIA nimmt für seine Bearbeitungs-Modelle derzeit keine eigenen Bilder an
+  (Antwort 500 von deren Schnittstelle) — Jon erklärt das im Fenster, statt still zu
+  scheitern. Text zu Bild läuft dort normal.
+
+### 🧠 Jon Code ist jetzt wirklich Experte
+
+Das Wissen, mit dem Jon Code arbeitet, war bisher knapp beschrieben. Jetzt steht dort,
+was er tatsächlich beherrschen soll — und wie er dabei vorgeht.
+
+- Ausdrücklich benannt sind Sprachen von Python, TypeScript, Rust und Go bis C++, Kotlin,
+  Swift und SQL, dazu Frontend-Frameworks, Backends, Datenbanken, Nebenläufigkeit,
+  Betriebssystem-Unterschiede, Git, Build-Systeme, Tests, Profiling und Sicherheit.
+- Neuer Experten-Maßstab: Randfälle mitdenken (leere Eingaben, Zeitzonen, Kodierungen,
+  gleichzeitige Zugriffe), Fehler nie stumm schlucken, Ressourcen schließen, keine
+  Zugangsdaten im Code, SQL nur parametrisiert, Ursache statt Symptom beheben.
+- Er darf keine Funktionen oder Bibliotheken mehr erfinden: Kennt er eine Schnittstelle
+  nicht sicher, liest er sie im Projekt nach.
+- Nach der Änderung prüft er selbst nach — Datei erneut lesen, Test oder Build laufen
+  lassen — und meldet erst danach fertig. Und er behauptet nicht mehr, etwas sei
+  getestet, wenn er es nicht wirklich ausgeführt hat.
+
+### ⌨️ Alle Befehle mit einem Druck auf „/"
+
+Ein `/` im Chatfeld zeigt jetzt alle Befehle mit Erklärung und Zweitnamen. Tippst du
+weiter, bleibt nur übrig, was passt: `/n` zeigt `/notizen`, `/navigation` und `/nutzung`.
+
+- Mit ↑ und ↓ wählen, Enter oder Tab führt aus. Braucht ein Befehl noch Text, setzt Jon
+  ihn ins Feld und wartet. Esc blendet die Liste aus.
+
+### 🗺️ Jon Maps auf Zuruf — und mit der genauen Adresse
+
+Fragte man aus Jon Maps heraus „Jon fragen" zu einem Haus, stand im Chat nur die
+Hausnummer — Jon wusste nicht, wo das ist, und zählte allgemein auf, was man um 21 Uhr so
+machen kann.
+
+- Die Frage aus Jon Maps enthält jetzt den vollständigen Ort: Straße, Hausnummer,
+  Postleitzahl, Ort, Bundesland, Land und die genauen Koordinaten. Fehlt der Straßenname,
+  schreibt Jon „Felixdorf Hausnummer 21".
+- `/maps <Frage>` erzwingt die Karte: Jon überlegt nicht mehr, ob eine Karte passt,
+  sondern sucht wirklich in der Umgebung dieses Ortes und fragt nicht nach der Stadt.
+  `/lerne <Thema>` startet genauso direkt eine Tiefenrecherche.
+- `/maps` allein öffnet weiterhin einfach die Karte.
+- Auch die Ortskarte selbst zeigt jetzt die volle Adresse statt nur „21".
+
 ## [4.34.8] — 2026-08-28
 
 ### 🔧 Werkzeuge und Einstellungen gehen wieder auf

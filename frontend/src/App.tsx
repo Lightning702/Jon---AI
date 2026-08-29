@@ -23,6 +23,7 @@ import RoutineBanner from "./components/RoutineBanner";
 import Journal from "./components/Journal";
 import Cleanup from "./components/Cleanup";
 import Recipe from "./components/Recipe";
+import Studio from "./components/Studio";
 import Flashcards from "./components/Flashcards";
 import ScreenExplain from "./components/ScreenExplain";
 import PrivateBrowser from "./components/PrivateBrowser";
@@ -129,6 +130,14 @@ function chatPing() {
 let idc = 0;
 const nextId = () => `m${Date.now()}_${idc++}`;
 
+const FORCE_COMMANDS: { pattern: RegExp; tool: string }[] = [
+  { pattern: /^\/(maps|karte|karten|navigation)\s+([\s\S]+)$/i, tool: "maps" },
+  {
+    pattern: /^\/(lerne|deep|deeplearning|research|forschung)\s+([\s\S]+)$/i,
+    tool: "deep_learning",
+  },
+];
+
 const BRIEFING_PROMPT =
   "Erstelle ein kurzes Tagesbriefing: Begrüße den Nutzer passend zur Tageszeit, " +
   "nenne Wochentag und Datum (system_info). Hole das Wetter für die Stadt des " +
@@ -206,6 +215,7 @@ export default function App() {
   const [journalOpen, setJournalOpen] = useState(false);
   const [cleanupOpen, setCleanupOpen] = useState(false);
   const [recipeOpen, setRecipeOpen] = useState(false);
+  const [studioOpen, setStudioOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [privateBrowserOpen, setPrivateBrowserOpen] = useState(false);
@@ -954,6 +964,15 @@ export default function App() {
   };
 
   const send = async (text: string, attachments: PendingAttachment[] = []) => {
+    let forceTool = "";
+    for (const entry of FORCE_COMMANDS) {
+      const hit = text.trim().match(entry.pattern);
+      if (hit) {
+        forceTool = entry.tool;
+        text = hit[2].trim();
+        break;
+      }
+    }
     const command = text.trim().toLowerCase();
     if (command === "/usage" || command === "/nutzung") {
       setAccountsTab("usage");
@@ -1003,6 +1022,16 @@ export default function App() {
     ) {
       setMapsIntent(undefined);
       setMapsOpen(true);
+      return;
+    }
+    if (
+      command === "/bild" ||
+      command === "/bilder" ||
+      command === "/foto" ||
+      command === "/video" ||
+      command === "/studio"
+    ) {
+      setStudioOpen(true);
       return;
     }
     if (
@@ -1478,7 +1507,14 @@ export default function App() {
     let convId = activeId;
 
     await streamChat(
-      { messages, provider, model, conversation_id: activeId, tool_mode: toolMode },
+      {
+        messages,
+        provider,
+        model,
+        conversation_id: activeId,
+        tool_mode: toolMode,
+        force_tool: forceTool,
+      },
       {
         onMeta: (e) => {
           if (e.conversation_id) convId = e.conversation_id;
@@ -1649,6 +1685,7 @@ export default function App() {
                             { icon: "📅", label: t("header_calendar"), act: () => setCalendarOpen(true) },
                             { icon: "🗺️", label: "Jon Maps", hint: "/maps", act: () => { setMapsIntent(undefined); setMapsOpen(true); } },
                             { icon: "🧠", label: "Deep Learning", hint: "/lerne", act: () => { setDeepTaskId(undefined); setDeepOpen(true); } },
+                            { icon: "🎨", label: "Video / Foto", hint: "/bild", act: () => setStudioOpen(true) },
                             { icon: "</>", label: "Jon Code", act: () => setCodeOpen(true) },
                             { icon: "✍️", label: "Humanisierer", act: () => setHumanizerOpen(true) },
                             { icon: "📌", label: "Haftnotizen", act: () => setNotesOpen(true) },
@@ -1903,6 +1940,7 @@ export default function App() {
       {journalOpen && <Journal onClose={() => setJournalOpen(false)} />}
       {cleanupOpen && <Cleanup onClose={() => setCleanupOpen(false)} />}
       {recipeOpen && <Recipe onClose={() => setRecipeOpen(false)} />}
+      {studioOpen && <Studio onClose={() => setStudioOpen(false)} />}
       {flashcardsOpen && <Flashcards onClose={() => setFlashcardsOpen(false)} />}
       {explainOpen && <ScreenExplain onClose={() => setExplainOpen(false)} />}
       {privateBrowserOpen && (

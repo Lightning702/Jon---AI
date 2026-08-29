@@ -319,6 +319,70 @@ export function mapsAction(
   });
 }
 
+const NUMBER_ONLY = /^\d+\s*[a-zA-Z]?$/;
+
+function unique(parts: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const part of parts) {
+    const value = part.trim();
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
+}
+
+export function placeFullLabel(place: MapsPlace): string {
+  const address = (place.address ?? {}) as Record<string, string>;
+  const road =
+    address.road ??
+    address.street ??
+    address.pedestrian ??
+    address.footway ??
+    address.residential ??
+    "";
+  const number = address.house_number ?? address.housenumber ?? "";
+  const town =
+    address.city ??
+    address.town ??
+    address.village ??
+    address.municipality ??
+    address.hamlet ??
+    "";
+  const district = address.suburb ?? address.city_district ?? address.borough ?? "";
+  const name = (place.name ?? "").trim();
+  const parts: string[] = [];
+  if (name && !NUMBER_ONLY.test(name)) parts.push(name);
+  if (road) parts.push([road, number].filter(Boolean).join(" "));
+  else if (number) parts.push(`${town || district} Hausnummer ${number}`.trim());
+  parts.push([address.postcode ?? "", town].filter(Boolean).join(" "));
+  if (district && district !== town) parts.push(district);
+  parts.push(address.state ?? "");
+  parts.push(address.country ?? "");
+  const full = unique(parts).join(", ");
+  return full || place.label || name || "dieser Ort";
+}
+
+export function placeTitle(place: MapsPlace): string {
+  const name = (place.name ?? "").trim();
+  if (name && !NUMBER_ONLY.test(name)) return name;
+  const address = (place.address ?? {}) as Record<string, string>;
+  const road = address.road ?? address.street ?? address.pedestrian ?? "";
+  const town = address.city ?? address.town ?? address.village ?? address.suburb ?? "";
+  if (road) return [road, name].filter(Boolean).join(" ");
+  if (town && name) return `${town} Hausnummer ${name}`;
+  return name || place.label || "Ort";
+}
+
+export function placeAskText(place: MapsPlace): string {
+  const label = placeFullLabel(place);
+  const point = `${place.lat.toFixed(5)}, ${place.lon.toFixed(5)}`;
+  return `/maps Was kann ich rund um ${label} unternehmen? Genau dieser Punkt: ${point}`;
+}
+
 export function formatDistance(meters: number): string {
   if (meters < 950) return `${Math.round(meters / 10) * 10} m`;
   if (meters < 100000)

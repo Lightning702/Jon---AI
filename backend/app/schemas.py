@@ -28,6 +28,7 @@ class ChatIn(BaseModel):
     workspace: str | None = None
     active_file: str | None = None
     source: str = ""
+    force_tool: str = ""
 
 
 class ApproveIn(BaseModel):
@@ -489,6 +490,25 @@ class MapsSharingIn(BaseModel):
 class MapsActionIn(BaseModel):
     action: str = Field(pattern="^(suche|umgebung|route|erkunden)$")
     args: dict = Field(default_factory=dict)
+
+
+class StudioConnectIn(BaseModel):
+    provider: str
+    api_key: str | None = None
+    base_url: str | None = None
+    model: str | None = None
+    video_model: str | None = None
+    size: str | None = None
+
+
+class StudioGenerateIn(BaseModel):
+    prompt: str
+    kind: str = Field(default="bild", pattern="^(bild|video)$")
+    provider: str | None = None
+    model: str | None = None
+    size: str | None = None
+    negative: str | None = None
+    image: str | None = None
 
 
 class ResearchStartIn(BaseModel):

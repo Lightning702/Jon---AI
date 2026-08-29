@@ -1793,6 +1793,7 @@ export async function streamChat(
     mode?: "chat" | "coding";
     workspace?: string | null;
     active_file?: string | null;
+    force_tool?: string;
   },
   handlers: StreamHandlers,
   signal?: AbortSignal
@@ -2465,4 +2466,105 @@ export async function getPhoneHistory(limit = 25): Promise<PhoneLogEntry[]> {
 
 export async function clearPhoneHistory(): Promise<void> {
   await phoneJson("/history", { method: "DELETE" });
+}
+
+export interface StudioProvider {
+  id: string;
+  label: string;
+  auth: "api_key" | "lokal" | "frei";
+  docs: string;
+  hinweis: string;
+  bild_modelle: string[];
+  video_modelle: string[];
+  video: boolean;
+  bearbeiten: boolean;
+  geerbt: boolean;
+  basis: string;
+  verbunden: boolean;
+  modell_bild: string;
+  modell_video: string;
+}
+
+export interface StudioWork {
+  id: string;
+  datei: string;
+  art: "bild" | "video";
+  prompt: string;
+  anbieter: string;
+  anbieter_label: string;
+  modell: string;
+  mime: string;
+  groesse_bytes: number;
+  dauer_s: number;
+  erstellt: number;
+}
+
+export interface StudioConfig {
+  anbieter: string;
+  bereit: boolean;
+  groesse: string;
+  groessen: string[];
+  liste: StudioProvider[];
+  galerie: StudioWork[];
+}
+
+export function studioFileUrl(work: StudioWork): string {
+  return `${BASE}/studio/file/${encodeURIComponent(work.datei)}`;
+}
+
+async function studioJson(path: string, init?: RequestInit) {
+  const res = await fetch(`${BASE}/studio${path}`, init);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail ?? `HTTP ${res.status}`);
+  return data;
+}
+
+export function getStudioConfig(): Promise<StudioConfig> {
+  return studioJson("/config");
+}
+
+export function connectStudio(body: {
+  provider: string;
+  api_key?: string;
+  base_url?: string;
+  model?: string;
+  video_model?: string;
+  size?: string;
+}): Promise<StudioConfig> {
+  return studioJson("/connect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function disconnectStudio(provider: string): Promise<StudioConfig> {
+  return studioJson(`/connect/${encodeURIComponent(provider)}`, {
+    method: "DELETE",
+  });
+}
+
+export function generateStudioWork(body: {
+  prompt: string;
+  kind: "bild" | "video";
+  provider?: string;
+  model?: string;
+  size?: string;
+  negative?: string;
+  image?: string;
+}): Promise<StudioWork> {
+  return studioJson("/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getStudioGallery(): Promise<StudioWork[]> {
+  const data = await studioJson("/gallery");
+  return data.galerie ?? [];
+}
+
+export async function deleteStudioWork(id: string): Promise<void> {
+  await studioJson(`/gallery/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

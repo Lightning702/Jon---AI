@@ -296,6 +296,34 @@ def is_slow(provider: str, model: str) -> bool:
 
 CARD_TOOLS = {"maps": "maps", "deep_learning": "deep_learning"}
 
+FORCED_PROMPTS = {
+    "maps": (
+        "Der Nutzer hat Jon Maps ausdruecklich angefordert (Befehl /maps). Du MUSST "
+        "fuer diese Nachricht das Tool maps aufrufen, bevor du antwortest - ueberlege "
+        "nicht, ob eine Karte passt, sondern nutze sie. Der Ort steht bereits "
+        "vollstaendig in der Nachricht: uebernimm ihn genau so, wie er dort steht, "
+        "samt Strasse, Hausnummer, Postleitzahl und Ort. Frage NIEMALS zurueck, in "
+        "welcher Stadt oder Gegend das liegt, und antworte nicht mit einer allgemeinen "
+        "Liste. Stehen Koordinaten in der Nachricht, gib sie als around='breite,laenge' "
+        "bzw. query='breite,laenge' an. Fuer 'Was kann ich hier unternehmen' nimmst du "
+        "action='umgebung' mit einem passenden Filter (sehenswuerdigkeit, restaurant, "
+        "cafe, bar, park, geschaeft) und genau diesem Ort als Mittelpunkt. Schreibe "
+        "danach eine kurze Antwort, die die echten Treffer aus dem Ergebnis mit Namen "
+        "und Entfernung nennt."
+    ),
+    "deep_learning": (
+        "Der Nutzer hat Jon Deep Learning ausdruecklich angefordert. Rufe fuer diese "
+        "Nachricht das Tool deep_learning auf, bevor du antwortest."
+    ),
+}
+
+
+def forced_tools(tools: list[dict], name: str) -> list[dict]:
+    if not name:
+        return tools
+    picked = [t for t in tools if t.get("function", {}).get("name") == name]
+    return picked or tools
+
 
 def scoped_tools(tools: list[dict], scope: str) -> list[dict]:
     if scope != "gast":
@@ -755,10 +783,16 @@ class ChatService:
             m.content for m in payload.messages if m.role == "user"
         )[-1500:]
         coding_mode = payload.mode == "coding"
+        forced = str(payload.force_tool or "").strip().lower()
         tools = scoped_tools(
             toolbox.schema(tool_context, coding=coding_mode) if use_tools else [],
             payload.tool_scope,
         )
+        if forced and use_tools:
+            tools = forced_tools(tools, forced)
+            hint = FORCED_PROMPTS.get(forced)
+            if hint:
+                request_messages.append(ChatMessage(role="system", content=hint))
         request = ChatRequest(
             messages=request_messages,
             model=model,

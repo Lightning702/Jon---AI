@@ -1,5 +1,11 @@
 import { motion } from "framer-motion";
-import { MapsPlace, formatDistance } from "../lib/maps";
+import {
+  MapsPlace,
+  formatDistance,
+  placeAskText,
+  placeFullLabel,
+  placeTitle,
+} from "../lib/maps";
 
 interface Props {
   place: MapsPlace;
@@ -9,17 +15,6 @@ interface Props {
   onStreet: () => void;
   onExplore: () => void;
   onAskJon: (question: string) => void;
-}
-
-function addressLine(place: MapsPlace): string {
-  const address = place.address ?? {};
-  const street = [address.road ?? address.street, address.house_number ?? address.housenumber]
-    .filter(Boolean)
-    .join(" ");
-  const city = [address.postcode, address.city ?? address.town ?? address.village]
-    .filter(Boolean)
-    .join(" ");
-  return [street, city].filter(Boolean).join(", ") || place.label;
 }
 
 export default function PlaceSheet({
@@ -65,7 +60,7 @@ export default function PlaceSheet({
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 620, lineHeight: 1.25 }}>
-              {place.name}
+              {placeTitle(place)}
             </div>
             <div
               style={{
@@ -76,7 +71,7 @@ export default function PlaceSheet({
               }}
             >
               {place.category ? `${place.category} · ` : ""}
-              {addressLine(place)}
+              {placeFullLabel(place)}
             </div>
           </div>
           <button
@@ -161,9 +156,7 @@ export default function PlaceSheet({
           <button
             className="jm-chip"
             style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
-            onClick={() =>
-              onAskJon(`Was kann ich rund um ${place.name} unternehmen?`)
-            }
+            onClick={() => onAskJon(placeAskText(place))}
           >
             ✨ Jon fragen
           </button>
