@@ -629,8 +629,14 @@ kann das Backend auf einem Raspberry Pi (ab Pi 4) laufen:
 
 Das Skript installiert alle Abhängigkeiten, baut die Web-App und richtet einen
 systemd-Dienst ein, der **bei jedem Hochfahren automatisch startet** und bei Abstürzen neu
-startet. Danach erreichst du Jon am Handy unter `http://<Pi-IP>:8756/app` — die Adresse
-zeigt das Skript am Ende an.
+startet. Danach erreichst du Jon am Handy unter `http://<Pi-IP>:8756/app` — die
+**vollständige Adresse inklusive Geräte-Schlüssel** zeigt das Skript am Ende an. Einmal am
+Handy öffnen genügt, danach merkt sich der Browser den Schlüssel. Später findest du sie
+wieder mit:
+
+```bash
+cat ~/.jon/data/access.token
+```
 
 Der PC-Betrieb ändert sich dadurch nicht: `start-jon.bat` funktioniert weiter wie gehabt.
 PC und Pi sind zwei getrennte Jons mit eigenen Einstellungen und eigenem Gedächtnis. Auf

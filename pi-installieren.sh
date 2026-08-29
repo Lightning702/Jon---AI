@@ -98,11 +98,27 @@ else
 fi
 
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+TOKEN="$(backend/.venv/bin/python - <<'PY'
+import json, urllib.request
+try:
+    datei = json.load(urllib.request.urlopen("http://127.0.0.1:8756/api/health", timeout=5))["token_file"]
+    print(open(datei, encoding="utf-8").read().strip())
+except Exception:
+    print("")
+PY
+)"
+if [ -n "$TOKEN" ]; then
+  ZUGANG="http://$IP:8756/app/?token=$TOKEN"
+else
+  ZUGANG="http://$IP:8756/app"
+fi
 echo ""
 echo "Fertig! Jon laeuft und startet ab jetzt bei jedem Hochfahren des Pi von selbst."
 echo ""
-echo "  Handy/Uhr im WLAN:   http://$IP:8756/app"
-echo "  Privater Browser:    http://$IP:8756/privat   (kein Verlauf, keine Cookies)"
+echo "  Handy/Uhr im WLAN:   $ZUGANG"
+echo "                       (die Adresse enthaelt deinen Geraete-Schluessel -"
+echo "                        einmal am Handy oeffnen, danach merkt es sich der Browser)"
+echo "  Privater Browser:    http://$IP:8756/privat?token=$TOKEN"
 echo "  Schnelltest:         http://$IP:8756/api/health"
 echo ""
 echo "  API-Keys eintragen:  nano $JON_DIR/.env   (danach: sudo systemctl restart jon)"
