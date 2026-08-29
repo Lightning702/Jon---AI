@@ -2600,6 +2600,8 @@ export interface Kopplung {
   adresse: string;
   port: number;
   url: string;
+  oberflaeche: boolean;
+  env_datei: string;
 }
 
 export async function getDiagnose(): Promise<Diagnose> {

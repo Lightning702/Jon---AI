@@ -23,7 +23,7 @@ from app.api.routes import accounts, providers, router
 from app.api.studio_routes import router as studio_router
 from app.api.system_routes import router as system_router
 from app.core.auth import TokenMiddleware, get_token
-from app.core.config import ROOT_DIR, get_settings
+from app.core.config import ROOT_DIR, get_settings, web_app_dir
 from app.core.logbook import logger as logbook_logger
 from app.core.logbook import note_error, note_ok, setup_logging
 from app.db.database import init_db
@@ -513,9 +513,11 @@ def create_app() -> FastAPI:
             headers={"Cache-Control": "no-store"},
         )
 
-    dist = ROOT_DIR / "frontend" / "dist"
-    if dist.is_dir():
+    dist = web_app_dir()
+    if dist is not None:
         app.mount("/app", StaticFiles(directory=str(dist), html=True), name="app")
+    else:
+        _log.warning("Web-Oberflaeche nicht gefunden - /app bleibt aus")
     return app
 
 

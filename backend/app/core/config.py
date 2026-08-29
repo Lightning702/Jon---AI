@@ -42,6 +42,17 @@ def _resolve_data_dir() -> Path:
     return Path.home() / ".jon" / "data"
 
 
+def web_app_dir() -> Path | None:
+    kandidaten = [ROOT_DIR / "frontend" / "dist"]
+    bundled = getattr(sys, "_MEIPASS", "")
+    if bundled:
+        kandidaten.append(Path(bundled) / "frontend" / "dist")
+    for pfad in kandidaten:
+        if (pfad / "index.html").is_file():
+            return pfad
+    return None
+
+
 DATA_DIR = _resolve_data_dir()
 _OLD_DATA_DIR = ROOT_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)

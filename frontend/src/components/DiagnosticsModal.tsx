@@ -160,8 +160,20 @@ export default function DiagnosticsModal({ onClose }: { onClose: () => void }) {
               <p className="text-white/60 leading-relaxed">
                 {kopplung.lan
                   ? "Öffne diese Adresse im Browser deines Handys. Sie enthält deinen Zugangsschlüssel — gib sie an niemanden weiter."
-                  : "Jon ist gerade nur auf diesem PC erreichbar. Für das Handy JON_LAN=1 in der .env setzen und Jon neu starten."}
+                  : "Jon ist gerade nur auf diesem PC erreichbar. Für das Handy JON_LAN=1 eintragen und Jon neu starten:"}
               </p>
+              {!kopplung.lan && (
+                <div className="font-mono text-[10px] text-white/45 break-all bg-black/40 rounded-lg px-2 py-1.5">
+                  {kopplung.env_datei}
+                </div>
+              )}
+              {!kopplung.oberflaeche && (
+                <div className="text-[11px] text-red-300/90 leading-relaxed">
+                  Die Web-Oberfläche wurde nicht gefunden — am Handy lässt sich Jon
+                  gerade nicht öffnen. Im Quellcode hilft „npm run build" im Ordner
+                  frontend.
+                </div>
+              )}
               <div className="flex gap-2">
                 <input
                   readOnly

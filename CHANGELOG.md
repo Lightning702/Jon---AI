@@ -31,6 +31,12 @@ Ansicht zeigt die vollständige Adresse inklusive Schlüssel zum Kopieren. Das H
 sich den Schlüssel und entfernt ihn aus der Adresszeile. Mit **Neues Token** lässt sich
 alles Gekoppelte auf einen Schlag abmelden.
 
+Dabei fiel auf, dass `http://<PC-IP>:8756/app` in der **installierten Version noch nie**
+funktioniert hat: Die Web-Oberfläche lag nur im Quellcode-Ordner, im Windows-Paket fehlte
+sie — der Aufruf lief seit jeher in ein 404. Sie wird jetzt mit ins Backend-Paket gelegt
+und dort gefunden, wo sie liegt (Quellcode oder Bundle). Findet Jon sie nicht, sagt die
+Diagnose das, statt eine tote Adresse anzubieten.
+
 ### 🩺 Diagnose: sichtbar machen, was still kaputtging
 
 Jon startet 24 Hintergrunddienste. Bisher verschwand jeder Fehler darin in einem

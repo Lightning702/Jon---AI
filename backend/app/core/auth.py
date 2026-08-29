@@ -129,5 +129,8 @@ def lan_address() -> str:
 
 
 def pair_url(port: int, lan: bool) -> str:
+    from app.core.config import web_app_dir
+
     host = lan_address() if lan else "127.0.0.1"
-    return f"http://{host}:{port}/app/?{QUERY_NAME}={get_token()}"
+    pfad = "/app/" if web_app_dir() is not None else "/"
+    return f"http://{host}:{port}{pfad}?{QUERY_NAME}={get_token()}"

@@ -87,8 +87,10 @@ def main() -> None:
     build_installer()
     portable = build_portable_zip()
     print("\nFertig!")
+    summen = write_checksums([RELEASE / "Jon-Setup.exe", portable])
     print(f"Installer: {RELEASE / 'Jon-Setup.exe'}")
     print(f"Portabel:  {portable}")
+    print(f"Pruefsummen: {summen}")
 
 
 if __name__ == "__main__":

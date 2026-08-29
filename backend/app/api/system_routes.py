@@ -369,6 +369,8 @@ async def pairing() -> dict:
     from app.core.auth import get_token, lan_address, pair_url
     from app.core.config import get_settings
 
+    from app.core.config import ENV_FILE, web_app_dir
+
     settings = get_settings()
     return {
         "token": get_token(),
@@ -376,6 +378,8 @@ async def pairing() -> dict:
         "adresse": lan_address(),
         "port": settings.port,
         "url": pair_url(settings.port, settings.jon_lan),
+        "oberflaeche": web_app_dir() is not None,
+        "env_datei": str(ENV_FILE),
     }
 
 

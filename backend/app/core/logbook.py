@@ -136,13 +136,6 @@ def export_text() -> str:
     return "\n".join(head + body) + "\n"
 
 
-def watch(name: str):
-    def wrap(exc: BaseException) -> None:
-        note_error(name, exc)
-
-    return wrap
-
-
 def since_boot() -> float:
     return time.time() - _BOOT
 

@@ -93,6 +93,13 @@ hiddenimports += [
 
 datas += [("app/static", "app/static")]
 
+_web = Path(SPECPATH).parent / "frontend" / "dist"
+if (_web / "index.html").is_file():
+    for _pfad in _web.rglob("*"):
+        if _pfad.is_file():
+            _ziel = Path("frontend/dist") / _pfad.relative_to(_web).parent
+            datas.append((str(_pfad), str(_ziel)))
+
 a = Analysis(
     ["run_backend.py"],
     pathex=[],

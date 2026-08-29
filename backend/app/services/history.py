@@ -17,10 +17,6 @@ class TrimResult:
     shortened: int
 
 
-def estimate_tokens(text: str) -> int:
-    return int(len(text) / CHARS_PER_TOKEN) + 1
-
-
 def budget_chars(tokens: int) -> int:
     return int(max(tokens, 1000) * CHARS_PER_TOKEN)
 

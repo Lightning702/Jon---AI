@@ -51,15 +51,6 @@ export function setToken(value: string): void {
   if (token) remember(token);
 }
 
-export function hasToken(): boolean {
-  return resolveToken().length > 0;
-}
-
-export function authHeaders(): Record<string, string> {
-  const value = resolveToken();
-  return value ? { [HEADER]: value } : {};
-}
-
 export function withToken(url: string): string {
   const value = resolveToken();
   if (!value) return url;
