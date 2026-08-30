@@ -2,6 +2,83 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.36.4] — 2026-08-30
+
+### 🖥️ Start über start-jon.bat bleibt nicht mehr hängen
+
+Beim Doppelklick öffnete sich nur ein Fenster und dann passierte nichts mehr. Dahinter
+steckten zwei getrennte Fehler.
+
+- **Der Start blieb wirklich stehen.** Blieb vom letzten Mal ein Backend-Prozess übrig,
+  hielt der die Datei `backend.log` offen. Der neue Start schrieb sein Log über
+  `Tee-Object` in genau diese Datei — das schlug fehl, und damit starb der Backend-Start
+  sofort, noch bevor Python lief. Das Fenster wartete dann endlos auf ein Backend, das
+  nie kam.
+  - Die bat räumt jetzt vor dem Start auch Backend-Prozesse ab, die keinen Port mehr
+    halten (erkannt an ihrer Befehlszeile), nicht nur die, die auf 8756 lauschen.
+  - Und selbst wenn das Log noch gesperrt ist, startet Jon trotzdem: Er weicht dann auf
+    eine Log-Datei im Temp-Ordner aus, statt abzubrechen.
+- **Im Fenster stand nichts mehr.** Vite löscht beim Start standardmäßig den Bildschirm
+  und schob damit alle Meldungen der bat aus dem Bild — das Fenster wirkte tot.
+  `clearScreen: false` schaltet das ab, jetzt bleibt alles stehen.
+- Die Zeile mit den Spielen war seit dem Zugangsschutz in 4.36.0 verschwunden: Die
+  Abfrage lief ohne Geräte-Schlüssel und wurde abgewiesen. Sie schickt den Schlüssel
+  jetzt mit.
+- Neu im Fenster: ein Hinweis, dass es offen bleiben muss, und wo das Backend-Log liegt.
+
+## [4.36.3] — 2026-08-30
+
+### 💬 Jon schreibt wieder wie ein Mensch, nicht wie ein Datenblatt
+
+Bei Vergleichen baute Jon gern Markdown-Tabellen. Da der Chat den Text aber roh anzeigt,
+standen dort nackte Striche und Trennzeilen wie `|---|---|` — das sah nach Rohdaten aus
+statt nach einer Antwort.
+
+- Jon weiß jetzt: keine Tabellen. Vergleiche kommen als kurze Absätze mit
+  Zwischenüberschrift und Aufzählung. Listen, Absätze und Überschriften bleiben
+  ausdrücklich erwünscht — nur die Striche sind weg.
+- Als Netz darunter: Rutscht einem Modell doch eine Tabelle durch, wandelt Jon sie beim
+  Anzeigen in eine Aufzählung um — im Chat und in Telegram. Code-Blöcke bleiben dabei
+  unangetastet, ein `cat datei | grep x` wird also nicht zerlegt.
+
+## [4.36.2] — 2026-08-30
+
+### 🖼️ Bilder und Videos direkt im Chat
+
+Jon kann jetzt selbst malen, ohne dass du das Fenster „Video / Foto" öffnest. Sag ihm
+einfach „mal mir ein Bild von …" — er formuliert den Prompt aus, erzeugt das Bild und
+zeigt es direkt in der Unterhaltung.
+
+- Ohne eigenen API-Schlüssel läuft das kostenlos über Pollinations. Sobald du in
+  „Video / Foto" einen Schlüssel einträgst, nimmt Jon deinen Anbieter — der Schlüssel
+  bleibt gespeichert und gilt auch für den Chat.
+- Unter jedem Bild sitzen drei Knöpfe: **Herunterladen** legt es in deinen
+  Downloads-Ordner (mit sprechendem Dateinamen), **Groß ansehen** öffnet es, und
+  **Im Studio öffnen** springt ins Bild-Fenster.
+- Der Telegram-Bot schickt dir das fertige Bild als echtes Foto — auch aus Gruppen. Bei
+  Videos kommt ein Video, notfalls die Datei.
+- Auch im Bild-Fenster selbst gibt es jetzt einen Herunterladen-Knopf.
+
+### 🔎 Eine Websuche, die diesen Namen verdient
+
+„Wie teuer ist das neue iPhone?" beantwortete Jon aus dem Gedächtnis — mit einem Modell
+von vor Jahren. Und suchte er doch, kamen Werbeanzeigen statt Treffern zurück, mit
+kaputten Sonderzeichen. Beides ist behoben.
+
+- **Jon weiß, welcher Tag heute ist.** Im Systemprompt steht das echte Datum, dazu die
+  Regel: Bei Preisen, Produkten, Versionen, Personen, News und Terminen wird gesucht,
+  nicht geraten. Und: Was die Suche findet, gilt — er darf nicht mehr behaupten, ein
+  Produkt gäbe es nicht, nur weil er es nicht kennt.
+- **Neuer Suchdienst** mit drei Quellen hintereinander: DuckDuckGo Lite, DuckDuckGo HTML
+  und Wikipedia. Fällt eine aus, übernimmt die nächste.
+- **Werbung fliegt raus.** Bisher waren die ersten zwei von sechs Treffern gekaufte
+  Anzeigen. Auch Umlaute und das Euro-Zeichen kommen jetzt sauber an, und die
+  Beschreibung gehört wieder zum richtigen Treffer (vorher konnten sie verrutschen).
+- **Jon liest die Seiten wirklich**: Mit `read` holt er den Text der besten Treffer und
+  kann echte Zahlen nennen, statt nur Suchergebnis-Schnipsel zu wiederholen.
+- Jede Antwort der Suche trägt ihren Stand mit Datum und Uhrzeit, damit Jon sagen kann,
+  wie aktuell die Information ist.
+
 ## [4.36.1] — 2026-08-29
 
 ### 🩹 Die App bekam den Geräte-Schlüssel gar nicht

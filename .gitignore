@@ -1,5 +1,6 @@
 .env
 data/
+/backend/MEMORY.md
 .claude/
 __pycache__/
 *.py[cod]

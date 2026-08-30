@@ -536,40 +536,9 @@ class SystemService:
         return html.unescape(re.sub(r"<[^>]+>", "", fragment)).strip()
 
     def web_search(self, query: str, max_results: int = 6) -> list[dict]:
-        query = query.strip()
-        if not query:
-            return []
-        page = self._fetch(
-            "https://html.duckduckgo.com/html/?"
-            + urllib.parse.urlencode({"q": query})
-        )
-        snippets = re.findall(
-            r'class="result__snippet"[^>]*>(.*?)</a>', page, re.S
-        )
-        results: list[dict] = []
-        for i, match in enumerate(
-            re.finditer(
-                r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
-                page,
-                re.S,
-            )
-        ):
-            href = match.group(1)
-            url = href
-            if "uddg=" in href:
-                params = urllib.parse.parse_qs(urllib.parse.urlparse(href).query)
-                url = params.get("uddg", [href])[0]
-            snippet = self._strip_tags(snippets[i]) if i < len(snippets) else ""
-            results.append(
-                {
-                    "title": self._strip_tags(match.group(2)),
-                    "url": url,
-                    "snippet": snippet[:300],
-                }
-            )
-            if len(results) >= max(1, min(int(max_results), 10)):
-                break
-        return results
+        from app.services.websearch_service import search_web_sync
+
+        return search_web_sync(query, max_results).get("treffer", [])
 
     def get_weather(self, city: str, days: int = 3) -> dict:
         city = city.strip()

@@ -166,6 +166,8 @@ SIZES = ["1024x1024", "1024x1536", "1536x1024", "1280x720", "768x768", "512x512"
 
 INHERITED = {"nvidia": "nvidia", "openai": "openai", "gemini": "gemini", "together": "together"}
 
+FREE_PROVIDER = "pollinations"
+
 PNG_MAGIC = bytes([0x89, 0x50, 0x4E, 0x47])
 
 NVIDIA_SIDES = (768, 832, 896, 960, 1024, 1088, 1152, 1216, 1280, 1344)
@@ -189,6 +191,12 @@ NVIDIA_RATIOS = (
 
 class StudioError(RuntimeError):
     pass
+
+
+def _slug(text: str) -> str:
+    sauber = re.sub(r"[^0-9A-Za-zaeoeuess -]+", "", text.strip().lower())
+    sauber = re.sub(r"\s+", "-", sauber).strip("-")
+    return (sauber or "jon-bild")[:60]
 
 
 def _extension(mime: str, url: str = "") -> str:
@@ -305,6 +313,21 @@ class StudioService:
             return bool(self.base(provider))
         return True
 
+    def pick(self, kind: str = "bild") -> str:
+        aktiv = self.active()
+        if aktiv and self.ready(aktiv):
+            if kind != "video" or PROVIDERS[aktiv]["video_modelle"]:
+                return aktiv
+        if kind == "video":
+            for name, meta in PROVIDERS.items():
+                if meta["video_modelle"] and self.ready(name):
+                    return name
+            return aktiv or FREE_PROVIDER
+        for name, meta in PROVIDERS.items():
+            if meta["auth"] == "frei":
+                return name
+        return FREE_PROVIDER
+
     def config(self) -> dict:
         active = self.active()
         return {
@@ -400,6 +423,41 @@ class StudioService:
             pass
         return {"geloescht": entry_id}
 
+    def entry(self, entry_id: str) -> dict:
+        found = next((e for e in self._gallery if e.get("id") == entry_id), None)
+        if found is None:
+            raise StudioError("Dieses Werk gibt es nicht mehr.")
+        return found
+
+    def downloads_dir(self):
+        from pathlib import Path
+
+        home = Path.home()
+        for name in ("Downloads", "Download", "Herunterladen"):
+            ziel = home / name
+            if ziel.is_dir():
+                return ziel
+        ziel = home / "Downloads"
+        ziel.mkdir(parents=True, exist_ok=True)
+        return ziel
+
+    def save_copy(self, entry_id: str, folder: str = "") -> dict:
+        from pathlib import Path
+
+        eintrag = self.entry(entry_id)
+        quelle = self.file(str(eintrag.get("datei")))
+        ziel_ordner = Path(folder).expanduser() if folder.strip() else self.downloads_dir()
+        if not ziel_ordner.is_dir():
+            raise StudioError(f"Diesen Ordner gibt es nicht: {ziel_ordner}")
+        stamm = _slug(str(eintrag.get("prompt") or "jon-bild"))
+        ziel = ziel_ordner / f"{stamm}{quelle.suffix}"
+        zaehler = 2
+        while ziel.exists():
+            ziel = ziel_ordner / f"{stamm}-{zaehler}{quelle.suffix}"
+            zaehler += 1
+        atomic_write_bytes(ziel, quelle.read_bytes())
+        return {"gespeichert": str(ziel), "name": ziel.name}
+
     def file(self, name: str):
         if not SAFE_NAME.match(name):
             raise StudioError("Ungültiger Dateiname.")
@@ -461,11 +519,11 @@ class StudioService:
         prompt = prompt.strip()
         if not prompt:
             raise StudioError("Beschreibe zuerst, was Jon erstellen soll.")
-        name = (provider or self.active()).strip().lower()
+        kind = "video" if kind == "video" else "bild"
+        name = (provider or self.pick(kind)).strip().lower()
         meta = PROVIDERS.get(name)
         if meta is None:
             raise StudioError("Richte zuerst einen Anbieter ein.")
-        kind = "video" if kind == "video" else "bild"
         if kind == "video" and not meta["video_modelle"]:
             raise StudioError(f"{meta['label']} erzeugt nur Bilder, keine Videos.")
         if not self.ready(name):

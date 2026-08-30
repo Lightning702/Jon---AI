@@ -2568,6 +2568,14 @@ export async function getStudioGallery(): Promise<StudioWork[]> {
   return data.galerie ?? [];
 }
 
+export function saveStudioWork(
+  id: string,
+  folder = ""
+): Promise<{ gespeichert: string; name: string }> {
+  const suffix = folder ? `?folder=${encodeURIComponent(folder)}` : "";
+  return studioJson(`/save/${encodeURIComponent(id)}${suffix}`, { method: "POST" });
+}
+
 export async function deleteStudioWork(id: string): Promise<void> {
   await studioJson(`/gallery/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

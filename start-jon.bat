@@ -60,6 +60,7 @@ set "LOGFILE=%LOGDIR%\backend.log"
 del "%~dp0data\backend.log" >nul 2>nul
 
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8756 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }" >nul 2>nul
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^(python|pythonw|py|jon-backend)\.exe$' -and $_.CommandLine -match 'app\.main|run_backend' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>nul
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { $p = Get-Process -Id $_ -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -match '^(node|electron)$') { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }" >nul 2>nul
 
 %PY% -c "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf,cv2,edge_tts,cryptography,paho.mqtt.client,yt_dlp,pynput,tzdata,numpy" >nul 2>nul
@@ -89,7 +90,7 @@ if errorlevel 1 echo Hinweis: ffmpeg wurde nicht gefunden - ohne ffmpeg kann Jon
 
 echo Starte Jon-Backend...
 del "%LOGFILE%" >nul 2>nul
-start "Jon Backend" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$host.UI.RawUI.WindowTitle = 'Jon Backend'; Set-Location '%~dp0backend'; & %PY% -m app.main 2>&1 | ForEach-Object ToString | Tee-Object -FilePath '%LOGFILE%'"
+start "Jon Backend" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$host.UI.RawUI.WindowTitle = 'Jon Backend'; Set-Location '%~dp0backend'; $log = '%LOGFILE%'; try { Set-Content -Path $log -Value '' -ErrorAction Stop } catch { $log = Join-Path $env:TEMP 'jon-backend.log' }; & %PY% -m app.main 2>&1 | ForEach-Object ToString | Tee-Object -FilePath $log -ErrorAction SilentlyContinue"
 
 echo Warte auf Backend...
 set BACKEND_OK=
@@ -102,8 +103,10 @@ for /l %%i in (1,1,40) do (
 )
 if defined BACKEND_OK (
     echo Backend laeuft auf http://127.0.0.1:8756
+    set "JONTOKEN="
+    for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "try{$h=Invoke-RestMethod -TimeoutSec 5 http://127.0.0.1:8756/api/health; if($h.token_file -and (Test-Path $h.token_file)){(Get-Content $h.token_file -Raw).Trim()}}catch{''}"`) do set "JONTOKEN=%%a"
     set "SPIELE="
-    for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "try{$r=Invoke-RestMethod -TimeoutSec 5 http://127.0.0.1:8756/api/games; (($r.spiele | ForEach-Object { $_.titel + ' [' + $_.status + ']' }) -join ', ')}catch{''}"`) do set "SPIELE=%%a"
+    for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "try{$r=Invoke-RestMethod -TimeoutSec 5 -Headers @{'X-Jon-Token'='!JONTOKEN!'} http://127.0.0.1:8756/api/games; (($r.spiele | ForEach-Object { $_.titel + ' [' + $_.status + ']' }) -join ', ')}catch{''}"`) do set "SPIELE=%%a"
     if defined SPIELE (
         echo Spiele-Dienst laeuft: !SPIELE!
         echo Spiele starten erst ueber Werkzeuge ^> Spiele ^> Starten.
@@ -136,6 +139,11 @@ if not exist "node_modules" (
     )
 )
 
+echo.
+echo Jon startet - dieses Fenster bitte offen lassen.
+echo Schliesst du es, wird Jon mitsamt Backend beendet.
+echo Backend-Log: %LOGFILE%
+echo.
 echo Starte Jon-App...
 call npm run dev
 set "APPCODE=%ERRORLEVEL%"
@@ -143,6 +151,7 @@ set "APPCODE=%ERRORLEVEL%"
 echo Jon wurde beendet - stoppe das Backend...
 powershell -NoProfile -Command "try{Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 -Method Post http://127.0.0.1:8756/api/system/shutdown | Out-Null}catch{}" >nul 2>nul
 powershell -NoProfile -Command "Start-Sleep -Milliseconds 800; Get-NetTCPConnection -LocalPort 8756 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { $p = Get-Process -Id $_ -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -match '^(python|pythonw|py|jon-backend)$') { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }" >nul 2>nul
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^(python|pythonw|py|jon-backend)\.exe$' -and $_.CommandLine -match 'app\.main|run_backend' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>nul
 
 if not "%APPCODE%"=="0" (
     echo.

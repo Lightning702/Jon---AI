@@ -861,7 +861,9 @@ export default function App() {
               const cards = [...(e.cards ?? [])];
               if (
                 evt.card &&
-                (evt.card.kind === "maps" || evt.card.kind === "deep_learning")
+                (evt.card.kind === "maps" ||
+                  evt.card.kind === "deep_learning" ||
+                  evt.card.kind === "bild")
               ) {
                 cards.push({
                   id: `${evt.card.kind}-${cards.length}-${nextId()}`,
@@ -1547,7 +1549,9 @@ export default function App() {
               const cards = [...(e.cards ?? [])];
               if (
                 evt.card &&
-                (evt.card.kind === "maps" || evt.card.kind === "deep_learning")
+                (evt.card.kind === "maps" ||
+                  evt.card.kind === "deep_learning" ||
+                  evt.card.kind === "bild")
               ) {
                 cards.push({
                   id: `${evt.card.kind}-${cards.length}-${nextId()}`,
@@ -1869,6 +1873,7 @@ export default function App() {
                   setDeepTaskId(id);
                   setDeepOpen(true);
                 }}
+                onOpenStudio={() => setStudioOpen(true)}
               />
             ))}
           </div>

@@ -2,10 +2,13 @@ import { motion } from "framer-motion";
 import { Suspense, lazy, useState } from "react";
 import TypingDots from "./TypingDots";
 import { toolDetail, toolLabel } from "../lib/toolInfo";
+import { ohneTabellen } from "../lib/text";
 import type { MapsCardData } from "../lib/maps";
+import type { StudioWork } from "../lib/api";
 
 const MapsCard = lazy(() => import("./MapsCard"));
 const DeepLearningCard = lazy(() => import("./DeepLearningCard"));
+const BildCard = lazy(() => import("./BildCard"));
 
 export interface ToolStep {
   name: string;
@@ -22,7 +25,8 @@ export interface AttachmentChip {
 
 export type ChatCard =
   | { id: string; kind: "maps"; data: MapsCardData }
-  | { id: string; kind: "deep_learning"; data: { id: string } };
+  | { id: string; kind: "deep_learning"; data: { id: string } }
+  | { id: string; kind: "bild"; data: StudioWork };
 
 export interface ChatEntry {
   id: string;
@@ -40,12 +44,14 @@ interface BubbleProps {
   entry: ChatEntry;
   onOpenMaps?: (data: MapsCardData) => void;
   onOpenResearch?: (id: string) => void;
+  onOpenStudio?: () => void;
 }
 
 export default function MessageBubble({
   entry,
   onOpenMaps,
   onOpenResearch,
+  onOpenStudio,
 }: BubbleProps) {
   const isUser = entry.role === "user";
   const [showReasoning, setShowReasoning] = useState(false);
@@ -165,6 +171,12 @@ export default function MessageBubble({
                     data={card.data}
                     onOpen={(data) => onOpenMaps?.(data)}
                   />
+                ) : card.kind === "bild" ? (
+                  <BildCard
+                    key={card.id}
+                    data={card.data}
+                    onOpen={onOpenStudio ? () => onOpenStudio() : undefined}
+                  />
                 ) : (
                   <DeepLearningCard
                     key={card.id}
@@ -183,7 +195,7 @@ export default function MessageBubble({
             </span>
           ) : (
             <>
-              <span>{entry.content}</span>
+              <span>{ohneTabellen(entry.content)}</span>
               {entry.streaming && (
                 <span className="inline-block w-2 h-4 ml-0.5 align-middle bg-gold animate-pulse rounded-sm" />
               )}

@@ -91,6 +91,29 @@ def map_links(cards: list[dict] | None) -> list[str]:
     return links
 
 
+def studio_files(cards: list[dict] | None) -> list[dict]:
+    from app.services.studio_service import StudioError, get_studio_service
+
+    service = get_studio_service()
+    werke: list[dict] = []
+    for data in _cards(cards, "bild"):
+        datei = str(data.get("datei") or "")
+        if not datei:
+            continue
+        try:
+            pfad = service.file(datei)
+        except StudioError:
+            continue
+        werke.append(
+            {
+                "pfad": str(pfad),
+                "art": str(data.get("art") or "bild"),
+                "prompt": str(data.get("prompt") or ""),
+            }
+        )
+    return werke
+
+
 def research_ids(cards: list[dict] | None) -> list[str]:
     ids: list[str] = []
     for data in _cards(cards, "deep_learning"):

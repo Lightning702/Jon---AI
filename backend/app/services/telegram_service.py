@@ -160,6 +160,9 @@ class TelegramService:
         await self.send_cards(chat_id, cards)
 
     async def send(self, chat_id: str | int, text: str) -> None:
+        from app.services.text_format import ohne_tabellen
+
+        text = ohne_tabellen(text)
         for start in range(0, max(len(text), 1), 3900):
             await self._api(
                 "sendMessage",
@@ -179,14 +182,49 @@ class TelegramService:
             },
         )
 
+    async def send_media(self, chat_id: str | int, werk: dict) -> bool:
+        token = self._token()
+        pfad = Path(str(werk.get("pfad") or ""))
+        if not token or not pfad.is_file():
+            return False
+        video = str(werk.get("art")) == "video"
+        methode = "sendVideo" if video else "sendPhoto"
+        feld = "video" if video else "photo"
+        beschriftung = str(werk.get("prompt") or "")[:900]
+        try:
+            daten = await asyncio.to_thread(pfad.read_bytes)
+            async with httpx.AsyncClient(timeout=120) as client:
+                antwort = await client.post(
+                    f"https://api.telegram.org/bot{token}/{methode}",
+                    data={"chat_id": str(chat_id), "caption": beschriftung},
+                    files={feld: (pfad.name, daten)},
+                )
+            if antwort.status_code < 400:
+                return True
+            async with httpx.AsyncClient(timeout=120) as client:
+                antwort = await client.post(
+                    f"https://api.telegram.org/bot{token}/sendDocument",
+                    data={"chat_id": str(chat_id), "caption": beschriftung},
+                    files={"document": (pfad.name, daten)},
+                )
+            return antwort.status_code < 400
+        except Exception:
+            return False
+
     async def send_cards(self, chat_id: str | int, cards: list[dict]) -> None:
         from app.services.telegram_extras import (
             map_links,
             map_points,
             research_ids,
             spawn_research_watch,
+            studio_files,
         )
 
+        for werk in studio_files(cards):
+            if not await self.send_media(chat_id, werk):
+                await self.send(
+                    chat_id, "Das Bild ist fertig, ließ sich aber nicht senden."
+                )
         for punkt in map_points(cards):
             await self.send_location(chat_id, punkt)
         for link in map_links(cards):

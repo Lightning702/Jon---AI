@@ -8,6 +8,7 @@ import {
   disconnectStudio,
   generateStudioWork,
   getStudioConfig,
+  saveStudioWork,
   studioFileUrl,
 } from "../lib/api";
 
@@ -48,6 +49,7 @@ export default function Studio({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [hinweis, setHinweis] = useState("");
   const [vorlage, setVorlage] = useState<{
     url: string;
     name: string;
@@ -145,6 +147,7 @@ export default function Studio({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError("");
     try {
+      setHinweis("");
       const work = await generateStudioWork({
         prompt: prompt.trim(),
         kind,
@@ -159,6 +162,16 @@ export default function Studio({ onClose }: { onClose: () => void }) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const speichern = async (work: StudioWork) => {
+    setError("");
+    try {
+      const r = await saveStudioWork(work.id);
+      setHinweis(`Gespeichert: ${r.gespeichert}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -537,6 +550,12 @@ export default function Studio({ onClose }: { onClose: () => void }) {
                         {preview.modell || preview.anbieter_label} ·{" "}
                         {bytes(preview.groesse_bytes)} · {preview.dauer_s}s
                       </span>
+                      <button
+                        onClick={() => void speichern(preview)}
+                        className="px-2.5 py-1 rounded-lg border border-gold/30 bg-gold/10 text-[11.5px] text-gold/90 hover:bg-gold/20 transition"
+                      >
+                        ⬇ Herunterladen
+                      </button>
                       <a
                         href={studioFileUrl(preview)}
                         target="_blank"
@@ -558,6 +577,11 @@ export default function Studio({ onClose }: { onClose: () => void }) {
                         Löschen
                       </button>
                     </div>
+                    {hinweis && (
+                      <div className="text-[11.5px] text-emerald-300/70 mt-1.5 break-all">
+                        {hinweis}
+                      </div>
+                    )}
                     <div className="text-[12px] text-white/55 mt-2 leading-snug">
                       {preview.prompt}
                     </div>

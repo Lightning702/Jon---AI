@@ -70,6 +70,7 @@ SAFE_TOOLS = {
     "read_pptx",
     "maps",
     "deep_learning",
+    "create_image",
     "read_skill_file",
 }
 
@@ -77,6 +78,7 @@ SAFE_TOOLS = {
 GUEST_TOOLS = {
     "maps",
     "deep_learning",
+    "create_image",
     "web_search",
     "get_weather",
     "list_skills",
@@ -135,6 +137,7 @@ CORE_TOOLS = {
     "remember_about_user",
     "maps",
     "deep_learning",
+    "create_image",
     "read_skill_file",
 }
 
@@ -674,6 +677,9 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
             f"Liest die Wissensdatei „{_shorten(args.get('file', ''))}“ aus dem Skill "
             f"„{_shorten(args.get('name', ''))}“."
         )
+    if name == "create_image":
+        art = "Video" if str(args.get("kind", "")) == "video" else "Bild"
+        return f"Erstellt ein {art}: {_shorten(args.get('prompt', ''), 70)}"
     if name == "maps":
         action = str(args.get("action", "suche"))
         if action == "route":
@@ -1426,11 +1432,31 @@ class ToolBox:
             ),
             _tool(
                 "web_search",
-                "Sucht im Internet (DuckDuckGo) und liefert Titel, URL und "
-                "Beschreibung der Treffer. Nutze das fuer aktuelle Infos wie News, "
-                "Preise, Oeffnungszeiten oder Fakten, die du nicht sicher weisst. "
-                "Oeffne bei Bedarf einen Treffer mit http_get fuer Details.",
-                {"query": _STR, "max_results": _INT},
+                "Sucht wirklich im Internet und liefert Titel, Quelle, Link und "
+                "Beschreibung - mit read=true zusaetzlich den echten Text der besten "
+                "Seiten. Dein eigenes Wissen hat einen Stichtag und ist bei allem "
+                "veraltet, was sich aendert. Nutze web_search deshalb IMMER bei: "
+                "Preisen, Produkten und deren Nachfolgern, Versionsnummern, News, "
+                "Terminen, Ergebnissen, Kursen, Oeffnungszeiten, Personen im Amt und "
+                "jeder Frage mit 'aktuell', 'neu', 'neueste', 'gerade' oder einer "
+                "Jahreszahl. Frag nicht nach Erlaubnis, such einfach. Was die Suche "
+                "findet, gilt - auch wenn es deinem Wissen widerspricht. Behaupte "
+                "NIEMALS, dass es ein Produkt, eine Version oder ein Ereignis nicht "
+                "gibt, nur weil du es nicht kennst; liefert die Suche nichts, sag, "
+                "dass die Suche nichts hergab, und such mit anderen Woertern weiter. "
+                "Nenne in der Antwort die Quelle und den Stand aus dem Ergebnis.",
+                {
+                    "query": {
+                        "type": "string",
+                        "description": "Suchbegriffe, so wie man sie eintippen wuerde",
+                    },
+                    "max_results": _INT,
+                    "read": {
+                        "type": "boolean",
+                        "description": "true liest die besten Treffer wirklich aus - "
+                        "nimm das bei Preisen, Zahlen und Details",
+                    },
+                },
                 ["query"],
             ),
             _tool(
@@ -2020,6 +2046,43 @@ class ToolBox:
                 ["action"],
             ),
             _tool(
+                "create_image",
+                "Erstellt ein echtes Bild oder Video aus einer Beschreibung und zeigt "
+                "es direkt im Chat. Nutze das immer, wenn der Nutzer ein Bild, Foto, "
+                "Logo, Hintergrund, Zeichnung oder Video haben will ('mal mir ...', "
+                "'erstelle ein Bild von ...', 'zeig mir, wie ... aussieht'). Ohne "
+                "eigenen API-Schluessel laeuft es kostenlos ueber Pollinations, mit "
+                "Schluessel ueber den im Fenster 'Video / Foto' eingestellten Anbieter. "
+                "Schreibe den Prompt selbst aus und mach ihn bildhaft und konkret "
+                "(Motiv, Umgebung, Licht, Stil), auch wenn der Nutzer nur zwei Worte "
+                "sagt - uebersetze ihn dabei ins Englische, das verstehen die "
+                "Bildmodelle am besten. kind='video' nur, wenn der Nutzer wirklich ein "
+                "Video will. Das Ergebnis erscheint als Bild im Chat, du musst es "
+                "danach nur noch kurz beschreiben und keine Links ausgeben.",
+                {
+                    "prompt": {
+                        "type": "string",
+                        "description": "Ausformulierte Bildbeschreibung, am besten "
+                        "auf Englisch",
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": ["bild", "video"],
+                        "description": "bild (Standard) oder video",
+                    },
+                    "size": {
+                        "type": "string",
+                        "description": "Format wie 1024x1024, 1536x1024 (quer) oder "
+                        "1024x1536 (hoch)",
+                    },
+                    "negative": {
+                        "type": "string",
+                        "description": "Was nicht im Bild sein soll",
+                    },
+                },
+                ["prompt"],
+            ),
+            _tool(
                 "read_skill_file",
                 "Oeffnet eine einzelne Wissensdatei aus einem Skill-Wissensordner, "
                 "z.B. read_skill_file(name='quantenmechanik', file='quantenzustaende').",
@@ -2047,6 +2110,22 @@ class ToolBox:
             return await self._maps(args)
         if name == "deep_learning":
             return await self._deep_learning(args)
+        if name == "create_image":
+            return await self._create_image(args)
+        if name == "web_search":
+            from app.services.websearch_service import search_web
+
+            try:
+                return json.dumps(
+                    await search_web(
+                        str(args.get("query", "")),
+                        int(args.get("max_results", 6)),
+                        bool(args.get("read", False)),
+                    ),
+                    ensure_ascii=False,
+                )
+            except Exception as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
         if name == "webcam_look":
             from app.services.webcam_service import get_webcam_service
 
@@ -2098,6 +2177,42 @@ class ToolBox:
                 ensure_ascii=False,
             )
         return json.dumps(result, ensure_ascii=False)
+
+    async def _create_image(self, args: dict[str, Any]) -> str:
+        from app.services.studio_service import StudioError, get_studio_service
+
+        service = get_studio_service()
+        kind = "video" if str(args.get("kind") or "").lower() == "video" else "bild"
+        try:
+            werk = await service.generate(
+                str(args.get("prompt") or ""),
+                kind,
+                str(args.get("model") or ""),
+                str(args.get("size") or ""),
+                str(args.get("negative") or ""),
+                str(args.get("provider") or ""),
+                str(args.get("image") or ""),
+            )
+        except StudioError as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        except Exception as exc:
+            return json.dumps(
+                {"error": f"Die Bilderstellung hat nicht geklappt: {exc}"},
+                ensure_ascii=False,
+            )
+        pfad = service.file(str(werk["datei"]))
+        return json.dumps(
+            {
+                **werk,
+                "pfad": str(pfad),
+                "url": f"/api/studio/file/{werk['datei']}",
+                "hinweis": (
+                    "Das Werk ist fertig und wird dem Nutzer bereits angezeigt. "
+                    "Beschreibe es kurz, gib keinen Link und keinen Dateipfad aus."
+                ),
+            },
+            ensure_ascii=False,
+        )
 
     async def _deep_learning(self, args: dict[str, Any]) -> str:
         from app.services.research import get_research_service
@@ -2647,17 +2762,6 @@ class ToolBox:
             try:
                 return json.dumps({"deleted": svc.delete_alarm(str(args.get("name", "")))})
             except ValueError as exc:
-                return json.dumps({"error": str(exc)}, ensure_ascii=False)
-        if name == "web_search":
-            try:
-                return json.dumps(
-                    svc.web_search(
-                        str(args.get("query", "")),
-                        int(args.get("max_results", 6)),
-                    ),
-                    ensure_ascii=False,
-                )
-            except Exception as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
         if name == "get_weather":
             try:

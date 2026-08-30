@@ -203,12 +203,11 @@ class ResearchWeb:
         return results[: max(1, limit + 3)]
 
     async def _duckduckgo(self, query: str, limit: int) -> list[dict]:
-        from app.services.system_service import SystemService
+        from app.services.websearch_service import search_web
 
         try:
-            raw = await asyncio.to_thread(
-                SystemService().web_search, query, max(1, min(limit, 10))
-            )
+            gefunden = await search_web(query, max(1, min(limit, 10)))
+            raw = gefunden.get("treffer") or []
         except Exception:
             return []
         hits: list[dict] = []

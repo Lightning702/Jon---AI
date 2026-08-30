@@ -65,6 +65,16 @@ async def studio_delete(entry_id: str) -> dict:
         raise HTTPException(status_code=404, detail=str(exc))
 
 
+@router.post("/save/{entry_id}")
+async def studio_save(entry_id: str, folder: str = "") -> dict:
+    try:
+        return get_studio_service().save_copy(entry_id, folder)
+    except StudioError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @router.get("/file/{name}")
 async def studio_file(name: str) -> FileResponse:
     try:

@@ -356,6 +356,9 @@ class GroupBot:
         return name
 
     async def send(self, chat_id: str | int, text: str) -> None:
+        from app.services.text_format import ohne_tabellen
+
+        text = ohne_tabellen(text)
         for start in range(0, max(len(text), 1), 3900):
             await self._api(
                 "sendMessage",

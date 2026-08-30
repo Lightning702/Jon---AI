@@ -152,6 +152,13 @@ SYSTEM_PROMPT = (
     "Deine Stimmung aenderst du mit set_mood. Wichtige Projektstaende oder "
     "Entscheidungen sicherst du mit snapshot (Zeitreise), zurueck geht es mit "
     "list_snapshots und restore_snapshot. "
+    "Bilder und Videos: Mit create_image erzeugst du echte Bilder und Videos und "
+    "zeigst sie direkt im Chat an. Nutze es sofort, wenn der Nutzer ein Bild, "
+    "Foto, Logo, Zeichnung oder Video will - sag nie, du koenntest keine Bilder "
+    "erzeugen, das waere falsch. Ohne eigenen Schluessel laeuft es kostenlos "
+    "ueber Pollinations. Formuliere den Prompt selbst aus, bildhaft und auf "
+    "Englisch, auch wenn der Nutzer nur zwei Worte sagt. Das fertige Bild sieht "
+    "der Nutzer schon - beschreibe es danach nur kurz und gib keinen Link aus. "
     "Jon Maps: Mit maps hast du echte Karten samt Filtern. action='umgebung' "
     "schaltet einen Filter ein und zeigt alles dieser Art rund um den Standort: "
     "supermarkt, apotheke, restaurant, cafe, bar, hotel, baeckerei, drogerie, "
@@ -172,11 +179,48 @@ SYSTEM_PROMPT = (
     "mit Text und rufst keine Tools auf. Schreibe Tool-Aufrufe NIEMALS als "
     "JSON-Text oder Code-Block in deine Antwort - nutze ausschliesslich die "
     "offizielle Tool-Schnittstelle. Antworte knapp, praezise und auf Deutsch. "
+    "SCHREIBWEISE: Antworte wie ein Mensch, der etwas erklaert, nicht wie ein "
+    "Datenblatt. Nutze NIEMALS Markdown-Tabellen - keine Zeilen mit senkrechten "
+    "Strichen und keine Trennzeilen wie |---|---|. Willst du mehreres "
+    "gegenueberstellen, nimm kurze Absaetze oder eine Aufzaehlung mit - und "
+    "schreib die Eigenschaft davor ('Kino: bis 23 Uhr offen, kurze Anreise'). "
+    "Aufzaehlungen, Absaetze und Zwischenueberschriften sind willkommen, "
+    "Tabellen nicht. "
     "Beende JEDE Antwort mit genau EINER kurzen, natuerlichen Rueckfrage oder "
     "einem konkreten naechsten Vorschlag an den Nutzer (z.B. 'Soll ich ...?'). "
     "Das gilt fuer dich und fuer Mini Jon. Einzige Ausnahme: Der Nutzer bittet "
     "dich, keine Fragen mehr zu stellen."
 )
+
+WOCHENTAGE = (
+    "Montag",
+    "Dienstag",
+    "Mittwoch",
+    "Donnerstag",
+    "Freitag",
+    "Samstag",
+    "Sonntag",
+)
+
+
+def heute_block() -> str:
+    from datetime import datetime
+
+    jetzt = datetime.now()
+    tag = WOCHENTAGE[jetzt.weekday()]
+    return (
+        f"HEUTE IST {tag}, der {jetzt.strftime('%d.%m.%Y')}, {jetzt.strftime('%H:%M')} "
+        "Uhr. Dein antrainiertes Wissen endet lange davor und ist bei allem veraltet, "
+        "was sich aendert. Bei Preisen, Produkten, Modell- und Versionsnamen, Personen "
+        "im Amt, News, Terminen, Ergebnissen und Kursen antwortest du NIEMALS aus dem "
+        "Gedaechtnis, sondern rufst zuerst web_search auf - auch wenn du glaubst, die "
+        "Antwort zu kennen. Nenne nie etwas 'das neueste', ohne vorher gesucht zu "
+        "haben. Was die Suche findet, gilt, auch wenn es deinem Wissen widerspricht: "
+        "Kennst du ein Produkt oder Ereignis nicht, sag NIE, dass es das nicht gibt, "
+        "sondern such danach. Rechne auch Zeitangaben ('naechstes Jahr', 'in drei "
+        "Wochen') immer ab dem heutigen Datum."
+    )
+
 
 WEBCAM_WORDS = re.compile(r"web\s*-?\s*cam|kamera", re.I)
 WEBCAM_VERBS = re.compile(
@@ -298,7 +342,11 @@ def is_slow(provider: str, model: str) -> bool:
     stamp = _slow_routes.get((provider, model), 0.0)
     return time.time() - stamp < SLOW_ROUTE_MEMORY
 
-CARD_TOOLS = {"maps": "maps", "deep_learning": "deep_learning"}
+CARD_TOOLS = {
+    "maps": "maps",
+    "deep_learning": "deep_learning",
+    "create_image": "bild",
+}
 
 FORCED_PROMPTS = {
     "maps": (
@@ -429,6 +477,7 @@ class ChatService:
                     "You MUST respond entirely in English. All your output, explanations, and conversational "
                     "text must be in English. (Except when specifically asked to translate or output something else)."
                 )
+        parts.append(heute_block())
         catalog = self._skills.catalog()
         if catalog:
             parts.append(catalog)
