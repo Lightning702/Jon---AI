@@ -15,6 +15,7 @@ interface Props {
   onStreet: () => void;
   onExplore: () => void;
   onAskJon: (question: string) => void;
+  onInfo: () => void;
 }
 
 export default function PlaceSheet({
@@ -25,6 +26,7 @@ export default function PlaceSheet({
   onStreet,
   onExplore,
   onAskJon,
+  onInfo,
 }: Props) {
   const website = String(place.extra?.webseite ?? "");
   const phone = String(place.extra?.telefon ?? "");
@@ -149,6 +151,17 @@ export default function PlaceSheet({
             onClick={onExplore}
           >
             ✈️ Hinfliegen
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 7, marginTop: 7 }}>
+          <button
+            className="jm-chip"
+            style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
+            onClick={onInfo}
+            title="Top News und Wetter zu diesem Ort"
+          >
+            📰 News & Wetter
           </button>
         </div>
 

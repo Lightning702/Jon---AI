@@ -6,7 +6,7 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-[![Version](https://img.shields.io/badge/Version-3.35.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.40.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -78,6 +78,7 @@ zu zweit über einen 6-stelligen Code.
 | [🚀 Installation mit der .exe](#weg-a--installation-mit-jon-setupexe) | [🔧 Tools](#was-jon-steuern-kann-tools) | [💻 Aus dem Quellcode](#weg-b--aus-dem-quellcode) |
 | [🔑 Konten & Modelle](#konten--modelle) | [🧩 Skills](#skills) | [📚 Dokumentation](#dokumentation) |
 | [📱 Handy-App](#handy-app) | [🕹️ Spiele & Online-Koop](#spiele--online-koop) | [🔒 Sicherheit](#sicherheit) |
+| [🧩 Browser-Erweiterung](#-jon-im-browser-erweiterung) | [🌐 Browser-Agent](#funktionen) | [📖 Changelog](CHANGELOG.md) |
 | [🔗 Verbindungen](#verbindungen-einrichten) | [💬 Freunde-Chat](#freunde-chat-) | [💾 Backup & Updates](#backup--updates) |
 | [🗺️ Jon Maps](#-jon-maps) | [🧠 Deep Learning](#-jon-deep-learning) | |
 
@@ -258,12 +259,69 @@ auf Klick aufklappbar (Befehl + Erklärung + Ergebnis).
 | Fenster | `list_windows`, `focus_window`, `wait` |
 | Gedächtnis | `remember`, `recall`, `forget` |
 | Skills | `list_skills`, `read_skill`, `read_skill_file`, `write_skill` |
+| Denken & Ziele | `ziel`, `weltmodell`, `notizblock`, `selbstbild`, `erfahrung`, `weltzustand`, `gedaechtnis_pflegen`, `initiative`, `team`, `lernen` |
+| Gedächtnis & Zeit | `was_war`, `verlauf_heute`, `remember`, `recall`, `forget` |
+| Sicherheit & Pflege | `rueckgaengig`, `netz_status` |
+| Browser-Agent | `browser_task` (kompletter Auftrag), `browser_goto`, `browser_search`, `browser_read`, `browser_click`, `browser_fill`, `browser_press`, `browser_scroll`, `browser_select`, `browser_back`, `browser_forward`, `browser_reload`, `browser_tab_new`, `browser_tab_switch`, `browser_tab_close`, `browser_wait`, `browser_screenshot`, `browser_status`, `browser_confirm`, `browser_close` |
 | Karten & Navigation | `maps` (Suche, Umgebung, Route, Erkunden) |
 | Eigenständiges Lernen | `deep_learning` (Start, Status, Pause, Weiter, Stop) |
 
 Standardmäßig fragt Jon vor jeder Aktion um Erlaubnis. Reine Abfragen (Systeminfo, Fenster
 auflisten, Skill lesen, Erinnerung abrufen) laufen ohne Rückfrage. Der Modus ist im
 Zahnrad-Menü umstellbar. Alle Tools sind in [docs/API.md](docs/API.md) dokumentiert.
+
+### 🧠 Jons Denken
+
+Jon vergisst nicht mehr, was war, und wartet nicht mehr nur auf Zuruf. Öffne es mit
+`/denken` oder über Werkzeuge → Jons Denken.
+
+- **Was war** — jede Aktion, jeder Chat und jeder Fehler liegen auf einer Zeitachse.
+  „Was habe ich gestern gemacht?" beantwortet Jon aus echten Daten. Er versteht
+  „gestern", „letzte Woche", „vor 3 Tagen", „Montag" und „24.12.".
+- **Ziele** mit Frist, nächstem Schritt und Fortschritt. Jon legt sie auch selbst an,
+  wenn du etwas vorhast.
+- **Vorschläge** — mit eingeschalteter Eigeninitiative schaut Jon regelmäßig auf
+  gestern, heute, die Ziele und die Termine und sagt, was ansteht. Harmloses erledigt
+  er auf Klick selbst, alles andere legt er dir vor.
+- **Selbstbild** — wie viele Werkzeuge er hat, wie zuverlässig sie zuletzt waren und
+  wo seine Grenzen liegen. Frag ihn „schaffst du das?", bevor du dich darauf verlässt.
+- **Nachts nacharbeiten** — Jon fasst den Tag zusammen, merkt sich dauerhafte Fakten,
+  klärt Widersprüche und vergisst Unwichtiges.
+- **Weltmodell und Notizblock** — Personen, Projekte und Geräte samt Beziehungen,
+  plus ein Arbeitsgedächtnis, das über einzelne Antworten hinweg gilt.
+
+Alles läuft lokal. Einstellungen → **Jons Denken**: Eigeninitiative, nächtliches
+Nacharbeiten, dauerhafte Wahrnehmung, Selbstprüfung, Datenschutzregel und Budget.
+
+### 🛡️ Was Jon schützt
+
+- **Risikowächter für alle Werkzeuge.** Niedrig läuft durch, mittel fragt im
+  Nachfragemodus, hoch fragt **immer** — auch bei „alles erlauben". Kaufen, senden,
+  löschen und gefährliche Shell-Befehle sind hoch.
+- **Systemordner gesperrt.** In Windows-, Programm- und Systemverzeichnissen ändert
+  Jon nichts.
+- **Datenschutz-Gewissen.** Zugangsdaten und Zahlungsangaben verlassen den PC nicht;
+  persönliche Angaben nur mit Hinweis. Einstellbar: warnen, streng, locker.
+- **Rückgängig.** Die letzte Dateiaktion lässt sich zurücknehmen (`rueckgaengig`).
+- **Budget.** Tokens je Tag und Euro je Monat, mit Warnung und Stopp.
+- **Aufträge überleben Abstürze** und melden sich nach dem Neustart als unterbrochen.
+
+### 🌐 Browser-Agent
+
+Jon bedient einen echten Chromium-Browser. Ein Satz genügt — „Such mir das Buch und leg es
+in den Warenkorb" — und Jon plant, öffnet die Seite, liest sie, klickt, füllt aus und
+berichtet. Er erkennt Seiten über Rollen, Beschriftungen und sichtbaren Text, nicht über
+fest verdrahtete CSS-Pfade, und kommt deshalb auch auf unbekannten Websites zurecht.
+
+- **Kaufen, bestellen, absenden, löschen** stoppt der RiskActionGuard **programmatisch**.
+  Jon zeigt Anbieter, Auslöser und Beträge und fragt nach. Eine Freigabe gilt genau einmal
+  und verfällt, sobald sich Preis, Anbieter oder Menge ändern.
+- **Passwörter und Zahlungsdaten** tippt Jon nie ein, CAPTCHAs und 2FA umgeht er nicht.
+- **Seiteninhalt ist nur Text.** Anweisungen auf Websites („Ignoriere alle bisherigen
+  Anweisungen") erkennt Jon als Angriff und ignoriert sie.
+- **Einstellungen → Browser-Agent:** an/aus, Fenster sichtbar oder unsichtbar, Anmeldungen
+  merken, Planmodus (Auto/Immer/Aus), Probelauf und Schrittzahl. Das Browserprofil liegt
+  unter `data/browser/profil`.
 
 ---
 
@@ -643,6 +701,47 @@ PC und Pi sind zwei getrennte Jons mit eigenen Einstellungen und eigenem Gedäch
 dem Pi fehlen nur die PC-Steuerungs-Tools (Fenster, Maus/Tastatur, Screenshots,
 Zwischenablage) — alles andere (Chat, Web-Suche, Erinnerungen, Telegram, Freunde-Chat,
 Wissensbasis …) läuft dort genauso.
+
+---
+
+## 🧩 Jon im Browser (Erweiterung)
+
+Die **Jon-Erweiterung** für Chrome, Edge und Brave (Manifest V3) bringt Jon in jeden Tab.
+Sie enthält keinen zweiten Jon — sie spricht über `127.0.0.1` mit dem Jon, der auf deinem
+Rechner läuft: dein Modell, dein Gedächtnis, deine Projekte.
+
+**Klick auf das Jon-Symbol:** Diese Seite zusammenfassen · erklären · Thema recherchieren ·
+markierten Text verbessern · zu Jons Wissen hinzufügen · in ein Projekt speichern ·
+mit Jon öffnen · frei fragen. Die Antwort läuft Wort für Wort mit.
+
+**Rechtsklick → „Mit Jon …"** auf jeder Seite und jeder Markierung: Erklären,
+Zusammenfassen, Übersetzen, Recherchieren, Zu Jon senden, Zu Projekt hinzufügen,
+Als Notiz speichern.
+
+**Einrichten**
+
+1. Ordner holen: [`jon-erweiterung.zip`](https://getjon.info/jon-erweiterung.zip) von der
+   Website entpacken — oder `resources\extension` aus deiner Jon-Installation nehmen,
+   die Erweiterung liegt jedem Windows-Paket bei. Aus dem Quellcode: der Ordner
+   [`extension/`](extension/).
+2. `chrome://extensions` öffnen → **Entwicklermodus** einschalten →
+   **Entpackte Erweiterung laden** → den Ordner auswählen.
+3. In Jon: **Einstellungen → Diagnose → Kopplung**, Geräte-Schlüssel kopieren.
+   In der Erweiterung: Jon-Symbol → ⚙ → Adresse (Standard `http://127.0.0.1:8756`) und
+   Schlüssel eintragen → **Speichern** → **Verbindung testen**.
+
+**Datenschutz**
+
+- Kein dauerhaftes Content-Script: Seiteninhalte werden nur gelesen, wenn du eine Aktion
+  auslöst — abschaltbar in den Einstellungen der Erweiterung.
+- Übertragen werden nur URL, Titel, Metadaten, markierter Text und der sichtbare
+  Hauptinhalt der aktuellen Seite.
+- Im Chat nutzt die Erweiterung nur Jons **Gast-Werkzeuge** (z. B. Websuche): keine
+  Dateien, keine Systembefehle.
+- Der Geräte-Schlüssel liegt ausschließlich im lokalen Speicher dieses Browsers; im
+  Erweiterungscode stehen keine Passwörter und keine API-Schlüssel.
+
+Details: [extension/README.md](extension/README.md)
 
 ---
 

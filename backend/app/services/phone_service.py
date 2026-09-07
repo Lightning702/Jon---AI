@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 log = logging.getLogger("jon.phone")
 
@@ -826,8 +827,8 @@ class PhoneService:
             if handle is not None:
                 try:
                     await handle.hangup(record.get("reason", ""))
-                except Exception:
-                    pass
+                except Exception as _fehler:
+                    leise(_fehler, "services/phone_service")
             record["duration"] = int(time.time() - started)
             record["ended_at"] = now_local().isoformat(timespec="seconds")
             self._active = None

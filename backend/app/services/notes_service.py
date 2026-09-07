@@ -7,6 +7,7 @@ import uuid
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 NOTES_FILE = DATA_DIR / "sticky_notes.json"
 COLORS = ("gold", "blau", "gruen", "rosa", "lila")
@@ -22,8 +23,8 @@ class NotesService:
             data = json.loads(NOTES_FILE.read_text(encoding="utf-8"))
             if isinstance(data, list):
                 return data
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/notes_service")
         return []
 
     def _save(self) -> None:
@@ -31,8 +32,8 @@ class NotesService:
             atomic_write_text(NOTES_FILE,
                 json.dumps(self._notes, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/notes_service")
 
     def list(self) -> list[dict]:
         with self._lock:

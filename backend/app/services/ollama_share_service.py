@@ -17,6 +17,7 @@ import httpx
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 SHARE_FILE = DATA_DIR / "ollama_share.json"
 
@@ -118,8 +119,8 @@ class OllamaShareService:
             atomic_write_text(SHARE_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/ollama_share_service")
 
     def _identity(self) -> dict:
         try:

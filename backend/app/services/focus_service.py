@@ -8,6 +8,7 @@ from datetime import datetime
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 STATS_FILE = DATA_DIR / "focus_stats.json"
 
@@ -59,8 +60,8 @@ class FocusService:
             data = json.loads(STATS_FILE.read_text(encoding="utf-8"))
             if isinstance(data, dict):
                 return data
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/focus_service")
         return {}
 
     def _save_stats(self) -> None:
@@ -68,8 +69,8 @@ class FocusService:
             atomic_write_text(STATS_FILE,
                 json.dumps(self._stats, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/focus_service")
 
     def _push(self, kind: str, say: str) -> None:
         self._events.append({"kind": kind, "say": say})

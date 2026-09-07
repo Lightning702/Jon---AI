@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any, Awaitable, Callable
+from app.core.fehler import leise
 
 ROUTE_ENGINES = {
     "fuss": "fossgis_osrm_foot",
@@ -181,14 +182,14 @@ async def watch_research(
             pass
     except asyncio.CancelledError:
         raise
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/telegram_extras")
     bericht = research_report(task_id)
     if bericht:
         try:
             await send(bericht)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_extras")
 
 
 def spawn_research_watch(

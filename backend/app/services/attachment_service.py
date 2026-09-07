@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import base64
 import io
+import time
 
-from app.core.config import get_settings
+from app.core.config import DATA_DIR, get_settings
 from app.providers.openai_compatible import OpenAICompatibleProvider
 from app.providers.registry import get_registry
 from app.services.screen_service import VISION_DEFAULTS
@@ -11,6 +12,7 @@ from app.services.settings_service import get_settings_service
 
 MAX_BYTES = 15_000_000
 MAX_TEXT = 20_000
+ANHANG_ORDNER = DATA_DIR / "anhaenge"
 
 IMAGE_PROMPT = (
     "Der Nutzer hat dieses Bild in den Chat gezogen. Beschreibe praezise und "
@@ -35,11 +37,49 @@ class AttachmentService:
         if len(raw) > MAX_BYTES:
             return {"error": "Datei zu gross (max 15 MB)"}
         lower = name.lower()
+        pfad = self._sichern(name, raw)
         if mime == "application/pdf" or lower.endswith(".pdf"):
-            return self._extract_pdf(name, raw)
-        if mime.startswith("image/"):
-            return await self._describe_image(name, mime, raw, provider_name)
-        return self._extract_text(name, raw)
+            ergebnis = self._extract_pdf(name, raw)
+        elif mime.startswith("image/"):
+            ergebnis = await self._describe_image(name, mime, raw, provider_name)
+        else:
+            ergebnis = self._extract_text(name, raw)
+        if pfad and "error" not in ergebnis:
+            ergebnis["pfad"] = pfad
+        return ergebnis
+
+    def _sichern(self, name: str, raw: bytes) -> str:
+        sauber = "".join(
+            zeichen if zeichen.isalnum() or zeichen in "._- " else "_"
+            for zeichen in name.strip()
+        ).strip(" .")[:80] or "anhang"
+        try:
+            ANHANG_ORDNER.mkdir(parents=True, exist_ok=True)
+            ziel = ANHANG_ORDNER / f"{time.strftime('%Y%m%d-%H%M%S')}-{sauber}"
+            zaehler = 1
+            while ziel.exists():
+                ziel = ANHANG_ORDNER / f"{time.strftime('%Y%m%d-%H%M%S')}-{zaehler}-{sauber}"
+                zaehler += 1
+            ziel.write_bytes(raw)
+            self._aufraeumen()
+            return str(ziel)
+        except OSError:
+            return ""
+
+    def _aufraeumen(self) -> None:
+        try:
+            dateien = sorted(
+                (datei for datei in ANHANG_ORDNER.glob("*") if datei.is_file()),
+                key=lambda datei: datei.stat().st_mtime,
+                reverse=True,
+            )
+        except OSError:
+            return
+        for alt in dateien[60:]:
+            try:
+                alt.unlink()
+            except OSError:
+                continue
 
     def _extract_pdf(self, name: str, raw: bytes) -> dict:
         try:

@@ -1,13 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import MessageBubble, { ChatEntry } from "./MessageBubble";
+import ProjectPanel from "./ProjectPanel";
 import {
   FileEntry,
+  JonProject,
+  ProjectAnalysis,
+  ProjectChanges,
+  ProjectDiff,
+  ProjectSnapshot,
   ProviderStatus,
+  addProject,
+  analyzeProject,
+  deleteProject,
   listDir,
+  listProjects,
   makeDir,
+  noteProject,
   openInVscode,
   pathInfo,
   pickFolderDialog,
+  projectChanges,
+  projectGit,
+  projectSnapshot,
   readFileBase64,
   readWorkspaceFile,
   streamChat,
@@ -43,11 +57,44 @@ interface Props {
   model: string;
   onModelChange: (provider: string, model: string) => void;
   onClose: () => void;
+  openPath?: string;
 }
 
 interface GoalStep {
   text: string;
   status: "offen" | "läuft" | "fertig" | "fehler";
+}
+
+const PHASES = [
+  "Analysiere Projekt",
+  "Erstelle Plan",
+  "Bestimme Dateien",
+  "Implementiere",
+  "Erstelle Dateien",
+  "Installiere",
+  "Baue",
+  "Teste",
+  "Behebe Fehler",
+  "Fertig",
+] as const;
+
+type Phase = (typeof PHASES)[number] | "";
+
+function phaseForTool(name: string, args?: Record<string, unknown>): Phase | null {
+  if (["read_file", "list_dir", "search_files"].includes(name))
+    return "Bestimme Dateien";
+  if (["write_file", "make_dir", "unzip"].includes(name)) return "Erstelle Dateien";
+  if (["edit_file", "append_file", "move_path", "copy_path", "delete_path"].includes(name))
+    return "Implementiere";
+  if (name === "run_powershell" || name === "run_cmd") {
+    const command = String(args?.command ?? "").toLowerCase();
+    if (/\b(install|add)\b|npm i |pip install|cargo add|yarn add/.test(command))
+      return "Installiere";
+    if (/test|pytest|vitest|jest|playwright/.test(command)) return "Teste";
+    if (/build|tsc|compile|gradle|make\b|msbuild/.test(command)) return "Baue";
+    return "Implementiere";
+  }
+  return null;
 }
 
 function parsePlan(raw: string): { steps?: string[]; frage?: string } {
@@ -149,6 +196,7 @@ export default function CodeAgent({
   model,
   onModelChange,
   onClose,
+  openPath,
 }: Props) {
   const [workspace, setWorkspace] = useState<string>(
     () => localStorage.getItem("jon_workspace") || ""
@@ -179,6 +227,17 @@ export default function CodeAgent({
   const [goalSteps, setGoalSteps] = useState<GoalStep[]>([]);
   const [goalRunning, setGoalRunning] = useState(false);
   const [goalQuestion, setGoalQuestion] = useState("");
+  const [projects, setProjects] = useState<JonProject[]>([]);
+  const [project, setProject] = useState<JonProject | null>(null);
+  const [projectMenu, setProjectMenu] = useState(false);
+  const [analysis, setAnalysis] = useState<ProjectAnalysis | null>(null);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
+  const [changes, setChanges] = useState<ProjectChanges | null>(null);
+  const [diff, setDiff] = useState<ProjectDiff | null>(null);
+  const [diffBusy, setDiffBusy] = useState(false);
+  const [phase, setPhase] = useState<Phase>("");
+  const baselineRef = useRef<ProjectSnapshot | null>(null);
+  const workspaceRef = useRef("");
   const goalStopRef = useRef(false);
   const goalAbortRef = useRef<AbortController | null>(null);
   const chatRef = useRef<HTMLDivElement>(null);
@@ -194,6 +253,7 @@ export default function CodeAgent({
   filePathRef.current = filePath;
   fileKindRef.current = fileKind;
   dirtyRef.current = dirty;
+  workspaceRef.current = workspace;
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight });
@@ -270,6 +330,28 @@ export default function CodeAgent({
     }
   };
 
+  const runAnalysis = async (root: string) => {
+    if (!root) return;
+    setAnalysisBusy(true);
+    try {
+      setAnalysis(await analyzeProject(root));
+    } catch {
+      setAnalysis(null);
+    } finally {
+      setAnalysisBusy(false);
+    }
+  };
+
+  const adoptProject = async (root: string) => {
+    try {
+      const entry = await addProject(root);
+      setProject(entry);
+      setProjects(await listProjects());
+    } catch {
+      setProject(null);
+    }
+  };
+
   const setWorkspacePath = (p: string) => {
     setWorkspace(p);
     setManualPath(p);
@@ -279,6 +361,13 @@ export default function CodeAgent({
     setImageSrc("");
     setFileKind("text");
     setRefreshKey((k) => k + 1);
+    setAnalysis(null);
+    setChanges(null);
+    setDiff(null);
+    setPhase("");
+    baselineRef.current = null;
+    void adoptProject(p);
+    void runAnalysis(p);
   };
 
   const openFile = async (p: string) => {
@@ -292,9 +381,7 @@ export default function CodeAgent({
         setFileContent("");
         setDirty(false);
         return;
-      } catch {
-        /* fall through to text */
-      }
+      } catch {}
     }
     try {
       const content = await readWorkspaceFile(p);
@@ -311,6 +398,52 @@ export default function CodeAgent({
     }
   };
 
+  useEffect(() => {
+    void listProjects().then(async (list) => {
+      setProjects(list);
+      const current = workspaceRef.current;
+      if (!current) return;
+      const known = list.find(
+        (entry) => entry.root.toLowerCase() === current.toLowerCase()
+      );
+      if (known) {
+        setProject(known);
+        return;
+      }
+      await adoptProject(current);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (workspace && !analysis && !analysisBusy) void runAnalysis(workspace);
+  }, [workspace]);
+
+  useEffect(() => {
+    const target = (openPath ?? "").trim();
+    if (!target) return;
+    let cancelled = false;
+    void (async () => {
+      const info = await pathInfo(target);
+      if (cancelled) return;
+      if (info.is_dir) {
+        if (target !== workspaceRef.current) setWorkspacePath(target);
+        return;
+      }
+      if (!info.exists) return;
+      const list = projects.length ? projects : await listProjects();
+      const lower = target.toLowerCase();
+      const owner = list.find((entry) =>
+        lower.startsWith(entry.root.toLowerCase())
+      );
+      const root = owner?.root ?? info.parent ?? parentDir(target);
+      if (root && root !== workspaceRef.current) setWorkspacePath(root);
+      await openFile(target);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [openPath]);
+
   const createEntry = async () => {
     const name = newName.trim();
     if (!name || !workspace) {
@@ -325,9 +458,7 @@ export default function CodeAgent({
       } else {
         await writeWorkspaceFile(target, "");
       }
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     const kind = creating;
     setCreating(null);
     setNewName("");
@@ -400,10 +531,54 @@ export default function CodeAgent({
           setFileContent(next);
           setDirty(false);
         }
-      } catch {
-        /* file may have been deleted */
-      }
+      } catch {}
     }
+  };
+
+  const loadDiff = async () => {
+    if (!workspaceRef.current) return;
+    setDiffBusy(true);
+    try {
+      setDiff(await projectGit(workspaceRef.current, "diff"));
+    } catch {
+      setDiff({ repo: true, fehler: "Git Diff nicht möglich." });
+    } finally {
+      setDiffBusy(false);
+    }
+  };
+
+  const beginRun = async () => {
+    const root = workspaceRef.current;
+    if (!root) return;
+    setChanges(null);
+    try {
+      baselineRef.current = await projectSnapshot(root);
+    } catch {
+      baselineRef.current = null;
+    }
+  };
+
+  const finishRun = async () => {
+    const root = workspaceRef.current;
+    const base = baselineRef.current;
+    if (!root || !base) return;
+    try {
+      const result = await projectChanges(root, base);
+      baselineRef.current = result.snapshot;
+      if (
+        result.anzahl.geaendert ||
+        result.anzahl.erstellt ||
+        result.anzahl.geloescht
+      ) {
+        setChanges(result);
+      }
+    } catch {}
+    void runAnalysis(root);
+  };
+
+  const trackTool = (name: string, args?: Record<string, unknown>) => {
+    const next = phaseForTool(name, args);
+    if (next) setPhase(next);
   };
 
   const runGoalChat = async (
@@ -442,7 +617,8 @@ export default function CodeAgent({
                   : e
               )
             ),
-          onTool: (evt) =>
+          onTool: (evt) => {
+            if (evt.status === "running") trackTool(evt.name ?? "", evt.args);
             setEntries((prev) =>
               prev.map((e) => {
                 if (e.id !== assistant.id) return e;
@@ -460,7 +636,8 @@ export default function CodeAgent({
                 }
                 return { ...e, tools };
               })
-            ),
+            );
+          },
           onContent: (delta) => {
             text += delta;
             setEntries((prev) =>
@@ -497,6 +674,8 @@ export default function CodeAgent({
     sys(message);
     setGoalRunning(false);
     setStreaming(false);
+    setPhase("Fertig");
+    void finishRun();
   };
 
   const startGoal = async (goalText: string, clarification = "") => {
@@ -506,6 +685,8 @@ export default function CodeAgent({
     setGoalQuestion("");
     setGoalRunning(true);
     setStreaming(true);
+    setPhase("Analysiere Projekt");
+    await beginRun();
     goalStopRef.current = false;
     const history: { role: "user" | "assistant"; content: string }[] = [];
     const planPrompt = [
@@ -544,6 +725,7 @@ export default function CodeAgent({
       status: "offen",
     }));
     setGoalSteps(steps);
+    setPhase("Erstelle Plan");
     history.push({
       role: "assistant",
       content: JSON.stringify({ steps: parsed.steps }),
@@ -560,6 +742,7 @@ export default function CodeAgent({
       });
       let result = await runGoalChat(history);
       if (result.error && !goalStopRef.current) {
+        setPhase("Behebe Fehler");
         history.push({
           role: "assistant",
           content: (result.text || "Fehler.").slice(0, 1500),
@@ -599,6 +782,8 @@ export default function CodeAgent({
     await runGoalChat(history);
     setGoalRunning(false);
     setStreaming(false);
+    setPhase("Fertig");
+    await finishRun();
   };
 
   const stopGoal = () => {
@@ -610,9 +795,73 @@ export default function CodeAgent({
     const [cmd, ...rest] = raw.slice(1).split(/\s+/);
     const arg = rest.join(" ").trim();
     const c = cmd.toLowerCase();
+    if (c === "projekt") {
+      if (!workspace) {
+        sys("Wähle zuerst oben einen Projektordner.");
+        return true;
+      }
+      void (async () => {
+        await runAnalysis(workspace);
+        const data = await analyzeProject(workspace).catch(() => null);
+        if (!data) {
+          sys("Die Projektanalyse ist fehlgeschlagen.");
+          return;
+        }
+        sys(
+          [
+            `📁 ${data.name} — ${data.dateien} Dateien in ${data.ordner} Ordnern`,
+            data.projekttyp.length ? `Typ: ${data.projekttyp.join(", ")}` : "",
+            data.sprachen.length
+              ? `Sprachen: ${data.sprachen
+                  .slice(0, 6)
+                  .map((s) => `${s.name} (${s.dateien})`)
+                  .join(", ")}`
+              : "",
+            data.frameworks.length ? `Frameworks: ${data.frameworks.join(", ")}` : "",
+            Object.keys(data.skripte).length
+              ? `Skripte: ${Object.keys(data.skripte).join(", ")}`
+              : "",
+            data.git.repo
+              ? `Git: ${data.git.branch}, ${data.git.geaendert} geänderte Dateien`
+              : "Kein Git-Repository",
+          ]
+            .filter(Boolean)
+            .join("\n")
+        );
+      })();
+      return true;
+    }
+    if (c === "diff") {
+      if (!workspace) {
+        sys("Wähle zuerst oben einen Projektordner.");
+        return true;
+      }
+      void (async () => {
+        await loadDiff();
+        sys("Git Diff steht links im Projekt-Bereich.");
+      })();
+      return true;
+    }
+    if (c === "merke") {
+      if (!project) {
+        sys("Für diesen Ordner gibt es noch kein Jon-Projekt.");
+        return true;
+      }
+      if (!arg) {
+        sys("Nutzung: /merke Text — Jon behält das dauerhaft zu diesem Projekt.");
+        return true;
+      }
+      void noteProject(project.id, arg)
+        .then((updated) => {
+          setProject(updated);
+          sys(`Gemerkt: ${arg}`);
+        })
+        .catch(() => sys("Konnte den Merkposten nicht speichern."));
+      return true;
+    }
     if (c === "help") {
       sys(
-        "Befehle: /goal Zielbeschreibung, /model [name], /provider [name], /tools, /status, /clear, /help. " +
+        "Befehle: /goal Zielbeschreibung, /projekt, /diff, /merke Text, /model [name], /provider [name], /tools, /status, /clear, /help. " +
           "Mit /goal plant Jon die Schritte zu deinem Ziel, führt sie nacheinander aus und berichtet am Ende. " +
           "Sonst sag einfach, was passieren soll: Nennst du eine Datei (z. B. „schreib das in index.html“), schreibt Jon direkt dort hinein, " +
           "ohne Dateinamen nimmt er die geöffnete Datei. Jon bleibt dabei immer im gewählten Projektordner."
@@ -647,12 +896,16 @@ export default function CodeAgent({
       return true;
     }
     if (c === "status") {
-      sys(`Provider ${provider} · Modell ${model} · Workspace ${workspace || "—"}`);
+      sys(
+        `Provider ${provider} · Modell ${model} · Projekt ${
+          project?.name ?? "—"
+        } · Ordner ${workspace || "—"}`
+      );
       return true;
     }
     if (c === "tools") {
       sys(
-        "Im Code-Modus hat Jon nur Werkzeuge für den Projektordner: read_file, write_file, edit_file, append_file, " +
+        "Im Code-Modus hat Jon nur Werkzeuge für den Projektordner: project_overview, git_status, git_diff, read_file, write_file, edit_file, append_file, " +
           "search_files, list_dir, make_dir, move_path, copy_path, delete_path, zip/unzip, run_powershell, run_cmd (Start immer im Ordner), " +
           "http_get, download_file, web_search, open_in_vscode. Alles außerhalb des Ordners wird blockiert."
       );
@@ -702,6 +955,8 @@ export default function CodeAgent({
       return;
     }
     if (dirtyRef.current) await saveFile();
+    setPhase("Analysiere Projekt");
+    await beginRun();
     const userEntry: ChatEntry = { id: nid(), role: "user", content: text };
     const assistant: ChatEntry = {
       id: nid(),
@@ -732,7 +987,8 @@ export default function CodeAgent({
               e.id === assistant.id ? { ...e, reasoning: (e.reasoning ?? "") + delta } : e
             )
           ),
-        onTool: (evt) =>
+        onTool: (evt) => {
+          if (evt.status === "running") trackTool(evt.name ?? "", evt.args);
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistant.id) return e;
@@ -745,7 +1001,8 @@ export default function CodeAgent({
               }
               return { ...e, tools };
             })
-          ),
+          );
+        },
         onContent: (delta) =>
           setEntries((prev) =>
             prev.map((e) =>
@@ -765,6 +1022,8 @@ export default function CodeAgent({
             prev.map((e) => (e.id === assistant.id ? { ...e, streaming: false } : e))
           );
           setStreaming(false);
+          setPhase("Fertig");
+          void finishRun();
           setRefreshKey((k) => k + 1);
           if (filePathRef.current && fileKindRef.current === "text") {
             try {
@@ -774,9 +1033,7 @@ export default function CodeAgent({
                 setFileContent(next);
                 setDirty(false);
               }
-            } catch {
-              /* file may have been deleted */
-            }
+            } catch {}
           }
           if (view === "preview" && previewMode === "url") reloadPreview();
         },
@@ -812,6 +1069,57 @@ export default function CodeAgent({
         >
           {picking ? "Öffne …" : "📂 Ordner öffnen"}
         </button>
+        <div className="relative flex-none">
+          <button
+            onClick={() => setProjectMenu((value) => !value)}
+            className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 whitespace-nowrap"
+            title="Zuletzt geöffnete Jon-Projekte"
+          >
+            Projekte ▾
+          </button>
+          {projectMenu && (
+            <div className="absolute top-8 left-0 z-20 w-72 max-h-72 overflow-y-auto glass rounded-xl border border-white/10 p-1.5">
+              {projects.length === 0 && (
+                <div className="text-[11.5px] text-white/40 px-2 py-2 leading-snug">
+                  Noch keine Projekte. Öffne einen Ordner — Jon merkt ihn sich
+                  dann als Projekt.
+                </div>
+              )}
+              {projects.map((entry) => (
+                <div key={entry.id} className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setProjectMenu(false);
+                      if (entry.root !== workspace) setWorkspacePath(entry.root);
+                    }}
+                    className={`flex-1 min-w-0 text-left px-2 py-1.5 rounded-lg text-[12px] transition ${
+                      entry.root === workspace
+                        ? "bg-gold/15 text-gold"
+                        : "text-white/75 hover:bg-white/10"
+                    }`}
+                  >
+                    <div className="truncate font-medium">{entry.name}</div>
+                    <div className="truncate text-[10.5px] text-white/40">
+                      {entry.technik || entry.root}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      void deleteProject(entry.id).then(async () => {
+                        setProjects(await listProjects());
+                        if (entry.root === workspace) setProject(null);
+                      });
+                    }}
+                    className="text-white/30 hover:text-red-300 text-[13px] px-1"
+                    title="Projekt aus der Liste entfernen"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {showManual ? (
           <>
             <input
@@ -947,6 +1255,23 @@ export default function CodeAgent({
               </div>
             )}
           </div>
+          <ProjectPanel
+            workspace={workspace}
+            project={project}
+            analysis={analysis}
+            busy={analysisBusy}
+            changes={changes}
+            diff={diff}
+            diffBusy={diffBusy}
+            onAnalyze={() => void runAnalysis(workspace)}
+            onDiff={() => void loadDiff()}
+            onNote={(note) => {
+              if (!project) return;
+              void noteProject(project.id, note)
+                .then(setProject)
+                .catch(() => undefined);
+            }}
+          />
         </div>
 
         <div className="flex-1 flex flex-col min-w-0 border-r border-white/10">
@@ -1214,6 +1539,37 @@ export default function CodeAgent({
                 <div className="mt-1.5 text-[11.5px] text-amber-300/90">
                   ❓ {goalQuestion} — antworte einfach unten im Chat.
                 </div>
+              )}
+            </div>
+          )}
+          {phase && (
+            <div className="flex-none border-b border-white/10 bg-black/25 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto">
+              {PHASES.map((step) => {
+                const index = PHASES.indexOf(step);
+                const active = step === phase;
+                const done = index < PHASES.indexOf(phase as (typeof PHASES)[number]);
+                if (!active && !done && step !== "Fertig") return null;
+                return (
+                  <span
+                    key={step}
+                    className={`text-[10.5px] px-1.5 py-0.5 rounded whitespace-nowrap ${
+                      active
+                        ? "bg-gold/20 text-gold"
+                        : done
+                          ? "text-white/35"
+                          : "text-white/20"
+                    }`}
+                  >
+                    {active ? "▶ " : done ? "✓ " : ""}
+                    {step}
+                  </span>
+                );
+              })}
+              {changes && phase === "Fertig" && (
+                <span className="ml-auto text-[10.5px] text-white/45 whitespace-nowrap">
+                  {changes.anzahl.geaendert} geändert · {changes.anzahl.erstellt}{" "}
+                  erstellt · {changes.anzahl.geloescht} gelöscht
+                </span>
               )}
             </div>
           )}

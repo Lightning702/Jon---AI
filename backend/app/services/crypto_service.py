@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_bytes
+from app.core.fehler import leise
 
 KEY_FILE = DATA_DIR / "chat_key.bin"
 
@@ -37,8 +38,8 @@ class CryptoService:
         if KEY_FILE.exists():
             try:
                 return X25519PrivateKey.from_private_bytes(KEY_FILE.read_bytes())
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/crypto_service")
         private = X25519PrivateKey.generate()
         raw = private.private_bytes(
             encoding=serialization.Encoding.Raw,

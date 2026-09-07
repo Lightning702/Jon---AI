@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.core.config import DATA_DIR, ROOT_DIR
+from app.core.fehler import leise
 
 SKILLS_DIR = ROOT_DIR / "skills"
 SECRET_KEYS = {
@@ -38,8 +39,8 @@ def export_backup(include_keys: bool = False) -> bytes:
                             json.dumps(data, ensure_ascii=False, indent=2),
                         )
                         continue
-                except Exception:
-                    pass
+                except Exception as _fehler:
+                    leise(_fehler, "services/backup_service")
             if rel.name == "accounts.json" and not include_keys:
                 continue
             zf.write(path, f"data/{rel.as_posix()}")

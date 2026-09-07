@@ -9,6 +9,7 @@ from app.core.config import DATA_DIR, get_settings
 from app.providers.base import ChatMessage, ChatRequest
 from app.providers.registry import get_registry
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 TASKS_FILE = DATA_DIR / "tasks.json"
 
@@ -46,8 +47,8 @@ class TaskService:
         if TASKS_FILE.exists():
             try:
                 base.update(json.loads(TASKS_FILE.read_text(encoding="utf-8")))
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/task_service")
         base["running"] = False
         return base
 
@@ -57,8 +58,8 @@ class TaskService:
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/task_service")
 
     def add(self, task: str, time_str: str, repeat: str = "daily") -> dict:
         task = task.strip()

@@ -10,6 +10,7 @@ export interface PendingAttachment {
   status: "loading" | "ready" | "error";
   content?: string;
   error?: string;
+  pfad?: string;
 }
 
 interface Props {
@@ -85,6 +86,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
                     status: "ready",
                     kind: extracted.kind,
                     content: extracted.content,
+                    pfad: extracted.pfad,
                   }
                 : a
             )

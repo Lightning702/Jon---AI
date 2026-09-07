@@ -19,6 +19,7 @@ from pathlib import Path
 
 from app.core.config import DATA_DIR, ROOT_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 ALARM_PREFIX = "JonWecker_"
 ALARM_DIR = DATA_DIR / "alarms"
@@ -399,8 +400,8 @@ class SystemService:
             usage = shutil.disk_usage(Path.home().anchor or "C:/")
             info["disk_total_gb"] = round(usage.total / 1e9, 1)
             info["disk_free_gb"] = round(usage.free / 1e9, 1)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/system_service")
         return info
 
     def list_processes(self, limit: int = 60) -> list[dict]:
@@ -672,8 +673,8 @@ class SystemService:
         def resolve(device: dict) -> None:
             try:
                 device["name"] = sock.gethostbyaddr(device["ip"])[0]
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/system_service")
 
         with ThreadPoolExecutor(max_workers=12) as pool:
             list(pool.map(resolve, found))
@@ -742,8 +743,8 @@ class SystemService:
                 "frei_gb": round(usage.free / 1e9, 1),
                 "belegt_prozent": round(100 * (1 - usage.free / usage.total)),
             }
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/system_service")
         report["ram_top"] = self.list_processes(10)
         result = self.run_powershell(
             "Get-CimInstance Win32_StartupCommand | "
@@ -764,8 +765,8 @@ class SystemService:
             report["laufzeit_stunden"] = round(
                 ctypes.windll.kernel32.GetTickCount64() / 3_600_000, 1
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/system_service")
         try:
             temp = Path(os.environ.get("TEMP", ""))
             total = 0
@@ -777,8 +778,8 @@ class SystemService:
                     total += item.stat().st_size
                     count += 1
             report["temp_ordner_mb"] = round(total / 1e6)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/system_service")
         try:
             mem = self.run_powershell(
                 "Get-CimInstance Win32_OperatingSystem | Select-Object "
@@ -792,8 +793,8 @@ class SystemService:
                 "frei_gb": free_gb,
                 "belegt_prozent": round(100 * (1 - free_gb / total_gb)),
             }
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/system_service")
         return report
 
     def _autostart_launcher(self) -> Path:

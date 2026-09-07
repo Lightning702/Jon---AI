@@ -5,6 +5,7 @@ import re
 
 from app.services.llm import complete
 from app.services.settings_service import get_settings_service
+from app.core.fehler import leise
 
 STRUCTURES = {"haus", "turm", "pyramide", "bruecke", "pool", "mauer", "baum"}
 MATERIALS = {"holz", "stein", "ziegel", "bruchstein", "sand", "sandstein", "glas", "schnee"}
@@ -152,8 +153,8 @@ async def game_command(message: str, x: float, y: float, z: float) -> dict:
         actions = sanitize_actions(data.get("actions"))
         if say or actions:
             return {"say": say or "Bin dran!", "actions": actions}
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/game_service")
     actions = fallback_actions(message)
     say = "Na klar, mach ich!" if actions else (
         "Sag mir, was ich tun soll — Haus, Turm, Brücke, Pool, Pyramide, "

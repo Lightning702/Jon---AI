@@ -46,7 +46,7 @@ export default function ControlDock({
         overflowY: "auto",
         paddingRight: 2,
       }}
-      initial={{ opacity: 0, x: 22, filter: "blur(12px)" }}
+      initial={{ opacity: 0, x: -22, filter: "blur(12px)" }}
       animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.5, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
     >

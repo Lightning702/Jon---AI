@@ -2,6 +2,191 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.40.0] — 2026-09-07
+
+### 🧩 Jon im Browser — und alles Neue endlich im Download
+
+Diese Ausgabe bringt die **Jon-Erweiterung für Chrome, Edge und Brave** und macht
+zugleich alles herunterladbar, was seit 4.36.4 entstanden ist: den Android Connector
+aus 4.37, den Browser-Agenten aus 4.38 und Jons neues Denken aus 4.39.
+
+- **Jon-Symbol im Browser.** Ein Klick, und Jon nimmt sich die offene Seite vor:
+  zusammenfassen, erklären, recherchieren, markierten Text verbessern, zu Jons Wissen
+  hinzufügen, in ein Projekt speichern — oder frei fragen. Die Antwort läuft im Popup
+  Wort für Wort mit.
+- **Rechtsklick → „Mit Jon …"** auf jeder Seite und jeder Markierung: erklären,
+  zusammenfassen, übersetzen, recherchieren, zu Jon senden, zu einem Projekt
+  hinzufügen, als Notiz speichern.
+- **Kein zweiter Jon.** Die Erweiterung rechnet nichts selbst, sie spricht mit dem Jon
+  auf deinem Rechner — dein Modell, dein Gedächtnis, deine Projekte, deine Kosten.
+- **Datensparsam.** Kein dauerhaftes Content-Script: Die Seite wird nur gelesen, wenn du
+  eine Aktion auslöst, und das lässt sich ganz abschalten. Im Chat hat die Erweiterung
+  nur Jons **Gast-Werkzeuge** — keine Dateien, keine Systembefehle. Der Geräte-Schlüssel
+  liegt allein im lokalen Speicher deines Browsers.
+- **Zwei Wege zur Erweiterung:** Sie liegt dem Windows-Paket unter `resources/extension`
+  bei und steht als eigener Download auf der Website. Einbauen über `chrome://extensions`
+  → Entwicklermodus → „Entpackte Erweiterung laden".
+- Die Versionsnummer steht wieder überall gleich — `package-lock.json` war auf 4.37.0
+  stehen geblieben.
+
+## [4.39.1] — 2026-09-05
+
+### 🌐 Jon surft standardmäßig selbst — und du entscheidest, was liegen bleibt
+
+- **Jon-Browser ist jetzt Standard** für Websuche und alles, was mit Webseiten zu tun
+  hat. `web_search` sucht im eigenen Browser und liefert echte Treffer mit Quelle,
+  `open_url` öffnet dort — und Jon kann die Seite danach wirklich lesen.
+- **Umstellbar** unter Einstellungen → Browser-Agent → „Womit öffnet Jon Webseiten?":
+  Jon-Browser, Standardbrowser, Chrome, Edge, Firefox, Brave, Opera, Vivaldi. Jon
+  sagt ehrlich dazu, dass er bei einem fremden Browser nicht mitlesen kann. Neues
+  Werkzeug `browser_wahl`.
+- **RAM oder Festplatte**: Jons Browser hält auf Wunsch **alles nur im
+  Arbeitsspeicher** — kein Profil, kein Cache, keine Cookies auf der Platte, und
+  auch Screenshots landen in einem flüchtigen Ordner, der beim Schließen verschwindet.
+  Oder wie bisher auf der Festplatte, damit Logins erhalten bleiben.
+- **Brave Search** ist die neue Standard-Suchmaschine im Browser, weil sie sich am
+  zuverlässigsten lesen lässt. Blockt eine Suchmaschine den Browser (Captcha,
+  Firewall), umgeht Jon das **nicht** — er nimmt die direkte Suche und sagt Bescheid.
+
+## [4.39.0] — 2026-09-05
+
+### 🧠 Jon denkt: Gedächtnis, Ziele, Eigeninitiative — und 47 Baustellen erledigt
+
+Der größte Umbau seit es Jon gibt. Jon merkt sich, was passiert ist, versteht Zeit,
+verfolgt Ziele über Tage, denkt von selbst voraus und weiß, was er kann.
+
+**Gedächtnis und Zeit**
+- **Ereignisgedächtnis**: Jede Aktion, jeder Chat, jeder Fehler landet auf einer
+  Zeitachse. Neu: `was_war` und `verlauf_heute` — „Was habe ich gestern gemacht?"
+  beantwortet Jon aus echten Daten statt zu raten.
+- **Zeitverständnis**: „gestern", „vorgestern", „letzte Woche", „vor 3 Tagen",
+  „Montag", „24.12." werden überall verstanden.
+- **Gedächtnis mit Relevanz**: Erinnerungen werden nach Passung geholt, nicht nach
+  Alter. Wiederholungen ersetzen alte Einträge, echte Widersprüche werden gesammelt
+  und nachts geklärt, Ungenutztes verfällt.
+- **Verlauf wird zusammengefasst** statt abgeschnitten — der Anfang eines langen
+  Gesprächs geht nicht mehr verloren.
+- **Nachts nacharbeiten**: Jon fasst den Tag zusammen, merkt sich dauerhafte Fakten,
+  löst Widersprüche auf und leitet daraus die Ziele für morgen ab.
+
+**Vorausdenken**
+- **Ziele** mit Frist, nächstem Schritt, Fortschritt und Abhängigkeiten (`/denken`).
+- **Eigeninitiative**: Jon schaut regelmäßig auf gestern, heute, die Ziele und die
+  Termine und schlägt vor, was ansteht. Harmloses erledigt er auf Wunsch selbst,
+  alles andere legt er dir vor.
+- **Weltmodell**: Personen, Projekte, Geräte, Orte und ihre Beziehungen — statt 90
+  getrennter Dateien.
+- **Notizblock** als Arbeitsgedächtnis, das über Antworten hinweg gilt.
+- **Selbstbild**: Jon kennt seine Werkzeuge, seine Erfolgsquote je Werkzeug und
+  seine Grenzen — und sagt vorher, ob er sich etwas zutraut.
+- **Erfahrungsgedächtnis** je Website und Werkzeug: was dort klappt und was nicht.
+- **Lernen**: Jon erkennt wiederkehrende Abläufe, schreibt daraus Skills, lernt aus
+  Fehlern und kann Trainingsdaten für ein eigenes Modell exportieren.
+- **Agententeam**: große Rechercheaufgaben laufen auf mehreren Teilagenten parallel.
+
+**Sicherheit und Verlässlichkeit**
+- **Risikowächter für alle Werkzeuge**: niedrig läuft durch, mittel fragt im
+  Nachfragemodus, hoch fragt **immer** — auch wenn du „alles erlauben" eingestellt
+  hast. Kaufen, senden, löschen und gefährliche Shell-Befehle sind hoch.
+- **Systemordner sind gesperrt**: In Windows-, Programm- und Systemverzeichnissen
+  verändert Jon nichts, egal was er gerade tut.
+- **Datenschutz-Gewissen**: Zugangsdaten und Zahlungsangaben verlassen den PC nicht,
+  persönliche Angaben nur mit Hinweis — einstellbar warnen / streng / locker.
+- **Rückgängig**: Die letzte Dateiaktion lässt sich zurücknehmen.
+- **Budget** in Tokens je Tag und Euro je Monat, mit Warnung und Stopp.
+- **Aufträge überleben Abstürze** und werden nach dem Neustart als unterbrochen
+  gemeldet.
+- **Verständliche Fehlermeldungen** statt roher Ausnahmen, und Jon prüft zuerst, ob
+  überhaupt Internet da ist.
+- **Selbstprüfung**: Auf Wunsch prüft Jon unsichere Antworten selbst und sagt, woran
+  er zweifelt.
+
+**Unter der Haube**
+- **Werkzeugauswahl versteht Bedeutung** statt Stichwortlisten — „kannst du auf
+  einer Homepage was raussuchen" findet jetzt den Browser.
+- **Werkzeug-Registry** statt einer 3500-Zeilen-if-Kette; neue Werkzeuge sind ein
+  Dekorator.
+- **177 verschluckte Fehler** werden jetzt gezählt und stehen in der Diagnose.
+- **Schema und Migration** für die JSON-Dateien, mit Sicherung vor jeder Umstellung.
+- **Ergebnis-Cache** für wiederholte Abfragen.
+- **Ereignisbus** als gemeinsamer Kern, an dem Wahrnehmung, Handlung und Ziele hängen.
+- **Karten im Chat überleben das Neuladen**, und die Whitelist steht nur noch an
+  einer Stelle.
+- **Browser**: eigene Sitzung je Gespräch, Cookie-Dialoge datensparsam, Screenshots
+  auf Wunsch von einem sehenden Modell beschrieben, Datei-Uploads, einstellbare
+  Suchmaschine, automatisches Aufräumen von Screenshots und Profil-Cache.
+- **Barrierefreiheit**: Fokusrahmen, Escape und Strg+Enter im Freigabedialog,
+  ruhigere Animationen bei „prefers-reduced-motion".
+- **Zweisprachig**: Die neuen Oberflächen sprechen Deutsch und Englisch.
+- **Benchmark-Suite** mit 53 festen Prüfungen (`/api/denken/benchmark`) — sie fällt
+  auf, bevor du es merkst. Dazu 26 neue Tests, insgesamt 537 grün.
+
+## [4.38.0] — 2026-09-05
+
+### 🌐 Browser-Agent: Jon benutzt das Web wirklich selbst
+
+Jon bekommt einen echten Chromium-Browser als Werkzeug — keine Selektor-Bastelei pro
+Website, sondern ein Agent, der jede Seite über ihre sichtbaren Elemente versteht.
+
+- **Ein Auftrag genügt.** `browser_task` bekommt einen Satz („Such mir das Buch und leg
+  es in den Warenkorb"), plant, öffnet Seiten, liest sie, klickt, füllt Formulare aus,
+  passt sich an, wenn sich die Seite ändert, und berichtet am Ende auf Deutsch.
+- **Website-unabhängig.** Elemente kommen aus Rollen, ARIA-Labels, Beschriftungen und
+  sichtbarem Text und bekommen stabile IDs (e1, e17). Keine fest verdrahteten
+  CSS-Pfade für einzelne Shops.
+- **Planmodus.** Mehrstufige oder riskante Aufträge werden erst geplant, dann ausgeführt
+  — und ein Plan ist ausdrücklich keine Erlaubnis. Einstellbar: Auto, Immer, Aus.
+- **RiskActionGuard.** Kaufen, bestellen, buchen, absenden, löschen wird programmatisch
+  gestoppt, nicht nur vom Sprachmodell. Jon zeigt Anbieter, Auslöser und die gefundenen
+  Beträge und fragt nach. Die Freigabe gilt genau einmal und verfällt, sobald sich Preis,
+  Anbieter oder Menge ändern.
+- **Probelauf (Dry Run).** Jon plant und schaut nur nach, verändert nichts.
+- **Passwörter bleiben im Browser.** Passwort- und Zahlungsfelder füllt Jon nie aus,
+  CAPTCHAs und 2FA umgeht er nicht — da übernimmt der Nutzer.
+- **Seiteninhalt ist nur Text.** Versucht eine Website, Jon Anweisungen zu geben
+  („Ignoriere alle bisherigen Anweisungen"), erkennt er das, meldet es und arbeitet
+  normal weiter.
+- **Eigenes Browserprofil** unter `data/browser/profil`: Logins bleiben erhalten, das
+  Sprachmodell sieht Cookies und Tokens trotzdem nie.
+- **Neue Karte im Chat** mit Plan, aktuellem Schritt, Protokoll und den Knöpfen
+  „Bestätigen" / „Abbrechen", plus neue Einstellungen unter „Browser-Agent".
+- **Neue Werkzeuge:** `browser_task`, `browser_search`, `browser_press`, `browser_scroll`,
+  `browser_select`, `browser_forward`, `browser_reload`, `browser_tab_new`,
+  `browser_tab_switch`, `browser_tab_close`, `browser_wait`, `browser_status`,
+  `browser_confirm` — dazu die bekannten `browser_goto`, `browser_read`, `browser_click`,
+  `browser_fill`, `browser_screenshot`, `browser_back`, `browser_close`.
+
+## [4.37.0] — 2026-09-01
+
+### 📱 Android Connector: Das Handy wird ein Gerät in Jon
+
+Aus der gekoppelten Handy-App wird ein vollwertiges Gerät, das Jon abfragen darf — immer
+nur so weit, wie du es freigibst.
+
+- **Neue Kategorie „Geräte"** unter Einstellungen → 🔌 Verbindungen: Karte je Handy mit
+  Online-Punkt, Akku, Verbindungsart, letztem Kontakt, Umbenennen, Trennen und einem
+  Schalter für jede Berechtigung.
+- **Drei Stufen.** Standard (Status, Dateien) ist an, Persönlich (Benachrichtigungen,
+  Zwischenablage, Standort, Kontakte) und Sensibel (Kamera, Mikrofon) sind aus. Sensible
+  Funktionen fragen zusätzlich am Handy nach.
+- **Neue Werkzeuge** für die KI: `android_device_status`, `android_battery_status`,
+  `android_notifications_list`, `android_files_list`, `android_files_send`,
+  `android_files_receive`, `android_clipboard_send`, `android_location_get`,
+  `android_contacts_search`, `android_camera_request_photo`. Jon sieht ein Werkzeug nur,
+  wenn ein Gerät die passende Freigabe hat.
+- **„Jon, schick die PDF auf mein Handy."** Dateien gehen jetzt in beide Richtungen, in
+  32-KB-Teilen über denselben verschlüsselten Kanal wie der Chat.
+- **Connector-System.** Neuer `ConnectorManager` mit dem `AndroidConnector` als erstem
+  Teilnehmer; weitere Connectoren melden ihre Werkzeuge künftig genauso dynamisch an.
+- **Companion-App (1.1.0).** Neuer Bildschirm „Verbinder": zeigt für jede Funktion, was
+  der PC freigegeben hat und was Android erlaubt, fordert fehlende Berechtigungen an und
+  kann jede Funktion sofort sperren. Ein Vordergrunddienst hält die Verbindung und zeigt
+  sichtbar an, dass das Handy mit Jon verbunden ist.
+- **Kamera nur sichtbar.** Eine Fotoanfrage erscheint als Hinweis mit Begründung; die
+  Kamera öffnet sich erst nach dem Tippen. Fürs Mikrofon gibt es bewusst kein Fernwerkzeug.
+- Grenzen von Android (Zwischenablage lesen, fremde Downloads, Start nach dem Neustart)
+  stehen jetzt in [docs/ANDROID.md](docs/ANDROID.md).
+
 ## [4.36.4] — 2026-08-30
 
 ### 🖥️ Start über start-jon.bat bleibt nicht mehr hängen

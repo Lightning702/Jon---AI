@@ -1,7 +1,8 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
-import MessageBubble, { ChatCard, ChatEntry } from "./components/MessageBubble";
+import MessageBubble, { ChatEntry } from "./components/MessageBubble";
+import { karteAnhaengen, kartenLesen } from "./lib/karten";
 import Composer, { PendingAttachment } from "./components/Composer";
 import ClipboardPanel from "./components/ClipboardPanel";
 import ModelPicker from "./components/ModelPicker";
@@ -25,12 +26,15 @@ import Cleanup from "./components/Cleanup";
 import Recipe from "./components/Recipe";
 import Studio from "./components/Studio";
 import Flashcards from "./components/Flashcards";
+import DenkenPanel from "./components/DenkenPanel";
 import ScreenExplain from "./components/ScreenExplain";
 import PrivateBrowser from "./components/PrivateBrowser";
 import Notes from "./components/Notes";
 import Games from "./components/Games";
+import ToolsModal from "./components/ToolsModal";
 import Vault from "./components/Vault";
 import Search from "./components/Search";
+import Inbox from "./components/Inbox";
 import SetupWizard from "./components/SetupWizard";
 import CalendarPanel from "./components/CalendarPanel";
 import type { JonMapsIntent } from "./maps/JonMaps";
@@ -209,6 +213,8 @@ export default function App() {
     "accounts" | "usage" | "skills" | null
   >(null);
   const [codeOpen, setCodeOpen] = useState(false);
+  const [codePath, setCodePath] = useState("");
+  const [inboxOpen, setInboxOpen] = useState(false);
   const [humanizerOpen, setHumanizerOpen] = useState(false);
   const [downloaderOpen, setDownloaderOpen] = useState(false);
   const [showOpen, setShowOpen] = useState(false);
@@ -217,10 +223,12 @@ export default function App() {
   const [recipeOpen, setRecipeOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
+  const [denkenOpen, setDenkenOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [privateBrowserOpen, setPrivateBrowserOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [gamesOpen, setGamesOpen] = useState<string | null>(null);
+  const [werkzeugeOpen, setWerkzeugeOpen] = useState<string | null>(null);
   const [spiele, setSpiele] = useState<Spiel[]>([]);
   const [vaultOpen, setVaultOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -323,6 +331,7 @@ export default function App() {
         name: evt.name ?? "tool",
         args: evt.args,
         summary: evt.summary,
+        risiko: evt.risiko,
       });
     }
   };
@@ -776,6 +785,7 @@ export default function App() {
           role: m.role,
           content: m.content,
           reasoning: m.reasoning ?? undefined,
+          cards: kartenLesen(m.karten, nextId),
         }))
     );
   };
@@ -858,19 +868,7 @@ export default function App() {
                 const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
                 if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
               }
-              const cards = [...(e.cards ?? [])];
-              if (
-                evt.card &&
-                (evt.card.kind === "maps" ||
-                  evt.card.kind === "deep_learning" ||
-                  evt.card.kind === "bild")
-              ) {
-                cards.push({
-                  id: `${evt.card.kind}-${cards.length}-${nextId()}`,
-                  kind: evt.card.kind,
-                  data: evt.card.data,
-                } as unknown as ChatCard);
-              }
+              const cards = karteAnhaengen(e.cards, evt.card, nextId);
               return { ...e, tools, cards };
             })
           );
@@ -1047,12 +1045,33 @@ export default function App() {
       setDeepOpen(true);
       return;
     }
+    if (command === "/werkzeuge" || command === "/tools") {
+      setWerkzeugeOpen("");
+      return;
+    }
+    if (
+      command === "/handy" ||
+      command === "/android" ||
+      command === "/geraete" ||
+      command === "/geräte"
+    ) {
+      setWerkzeugeOpen("handy");
+      return;
+    }
     if (command === "/tagebuch" || command === "/journal") {
       setJournalOpen(true);
       return;
     }
     if (command === "/aufraeumen" || command === "/cleanup") {
       setCleanupOpen(true);
+      return;
+    }
+    if (
+      command === "/denken" ||
+      command === "/ziele" ||
+      command === "/kopf"
+    ) {
+      setDenkenOpen(true);
       return;
     }
     if (command === "/kochen" || command === "/rezept") {
@@ -1459,6 +1478,8 @@ export default function App() {
           .map(
             (a) =>
               `[Anhang „${a.name}" (${a.kind === "image" ? "Bildbeschreibung" : a.kind})]\n${a.content ?? ""}`
+              + (a.pfad ? `
+Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
           )
           .join("\n\n")
       : undefined;
@@ -1546,19 +1567,7 @@ export default function App() {
                 const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
                 if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
               }
-              const cards = [...(e.cards ?? [])];
-              if (
-                evt.card &&
-                (evt.card.kind === "maps" ||
-                  evt.card.kind === "deep_learning" ||
-                  evt.card.kind === "bild")
-              ) {
-                cards.push({
-                  id: `${evt.card.kind}-${cards.length}-${nextId()}`,
-                  kind: evt.card.kind,
-                  data: evt.card.data,
-                } as unknown as ChatCard);
-              }
+              const cards = karteAnhaengen(e.cards, evt.card, nextId);
               return { ...e, tools, cards };
             })
           );
@@ -1686,6 +1695,7 @@ export default function App() {
                           title: t("tools_work"),
                           items: [
                             { icon: "🔎", label: "Alles durchsuchen", hint: "Strg+K", act: () => setSearchOpen(true) },
+                            { icon: "📥", label: "Intelligente Inbox", act: () => setInboxOpen(true) },
                             { icon: "📅", label: t("header_calendar"), act: () => setCalendarOpen(true) },
                             { icon: "🗺️", label: "Jon Maps", hint: "/maps", act: () => { setMapsIntent(undefined); setMapsOpen(true); } },
                             { icon: "🧠", label: "Deep Learning", hint: "/lerne", act: () => { setDeepTaskId(undefined); setDeepOpen(true); } },
@@ -1697,11 +1707,14 @@ export default function App() {
                             { icon: "🔒", label: "Passwort-Tresor", act: () => setVaultOpen(true) },
                             { icon: "📔", label: "Sprach-Tagebuch", act: () => setJournalOpen(true) },
                             { icon: "🎴", label: "Lern-Karteikarten", act: () => setFlashcardsOpen(true) },
+                            { icon: "🧠", label: "Jons Denken", act: () => setDenkenOpen(true) },
                           ],
                         },
                         {
                           title: t("tools_pc"),
                           items: [
+                            { icon: "📱", label: "Handy & Geräte", hint: "/handy", act: () => setWerkzeugeOpen("handy") },
+                            { icon: "🧰", label: "Alle Werkzeuge", hint: "/werkzeuge", act: () => setWerkzeugeOpen("") },
                             { icon: "🔍", label: "Bildschirm erklären", hint: "Strg+Alt+E", act: () => setExplainOpen(true) },
                             { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
                             { icon: "⬇️", label: "Downloader", act: () => setDownloaderOpen(true) },
@@ -1902,7 +1915,21 @@ export default function App() {
           provider={provider}
           model={model}
           onModelChange={changeModel}
-          onClose={() => setCodeOpen(false)}
+          openPath={codePath}
+          onClose={() => {
+            setCodeOpen(false);
+            setCodePath("");
+          }}
+        />
+      )}
+      {inboxOpen && (
+        <Inbox
+          onClose={() => setInboxOpen(false)}
+          onAsk={(text) => void send(text)}
+          onOpenProject={(root) => {
+            setCodePath(root);
+            setCodeOpen(true);
+          }}
         />
       )}
       {humanizerOpen && (
@@ -1947,6 +1974,7 @@ export default function App() {
       {recipeOpen && <Recipe onClose={() => setRecipeOpen(false)} />}
       {studioOpen && <Studio onClose={() => setStudioOpen(false)} />}
       {flashcardsOpen && <Flashcards onClose={() => setFlashcardsOpen(false)} />}
+      {denkenOpen && <DenkenPanel onClose={() => setDenkenOpen(false)} />}
       {explainOpen && <ScreenExplain onClose={() => setExplainOpen(false)} />}
       {privateBrowserOpen && (
         <PrivateBrowser
@@ -1965,10 +1993,20 @@ export default function App() {
       {gamesOpen !== null && (
         <Games onClose={() => setGamesOpen(null)} fokus={gamesOpen || undefined} />
       )}
+      {werkzeugeOpen !== null && (
+        <ToolsModal
+          start={werkzeugeOpen || undefined}
+          onClose={() => setWerkzeugeOpen(null)}
+        />
+      )}
       {vaultOpen && <Vault onClose={() => setVaultOpen(false)} />}
       {searchOpen && (
         <Search
           onOpenConversation={(id) => void loadConversation(id)}
+          onOpenPath={(path) => {
+            setCodePath(path);
+            setCodeOpen(true);
+          }}
           onClose={() => setSearchOpen(false)}
         />
       )}

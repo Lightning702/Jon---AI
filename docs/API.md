@@ -314,11 +314,42 @@ Jon ruft diese Tools im Chat auf. In Klammern die Pflichtargumente.
 - `keyboard_type(text)`, `keyboard_press(key)`, `keyboard_hotkey(keys)`
 - `list_windows()`, `focus_window(title)`, `wait(seconds)`
 
-### Browser (Playwright)
-- `browser_goto(url)`, `browser_read()`, `browser_click(target)`, `browser_fill(target,
-  text, press_enter?)`
-- `browser_screenshot()`, `browser_back()`, `browser_close()`
-- `target` ist ein Selektor aus `browser_read` oder sichtbarer Text.
+### Browser-Agent (Playwright)
+- `browser_task(auftrag, dry_run?, max_schritte?)` — kompletter Auftrag: planen, oeffnen,
+  lesen, klicken, ausfuellen, berichten. Erste Wahl fuer alles Mehrstufige.
+- `browser_goto(url)`, `browser_search(query)`, `browser_read()`
+- `browser_click(element)`, `browser_fill(element, text, enter?)`, `browser_press(taste,
+  element?)`, `browser_scroll(richtung?, menge?)`, `browser_select(element, option)`
+- `browser_back()`, `browser_forward()`, `browser_reload()`, `browser_wait(element?,
+  timeout?)`
+- `browser_tab_new(url?)`, `browser_tab_switch(tab)`, `browser_tab_close(tab?)`
+- `browser_screenshot(ganz?)`, `browser_status()`, `browser_close()`
+- `browser_confirm(token, abbrechen?)` — gibt eine vom RiskActionGuard gestoppte Aktion
+  frei, nur nach ausdruecklicher Zustimmung des Nutzers.
+- `element` ist eine ID aus `browser_read` (z.B. `e17`) oder sichtbarer Text.
+- REST: `GET /api/browser/status`, `POST /api/browser/confirm`, `POST /api/browser/stop`.
+
+### Denken, Gedächtnis und Ziele
+- `was_war(zeitraum?, thema?)`, `verlauf_heute()` — Jons Ereignisgedaechtnis
+- `ziel(aktion, titel?, frist?, naechster_schritt?, id?, zustand?, fortschritt?)`
+- `weltmodell(aktion, name?, art?, beschreibung?, ziel?, beziehung?)`
+- `notizblock(aktion, inhalt?, bereich?)` — Arbeitsgedaechtnis
+- `selbstbild(aufgabe?)` — Faehigkeiten, Erfolgsquoten, Grenzen
+- `erfahrung(bereich?, aktion?, text?, art?)` — was wo klappt
+- `weltzustand()` — Browser, Bildschirm, Handy, Auftraege, Ziele, Netz, Budget
+- `gedaechtnis_pflegen(tag?)` — Tag nacharbeiten und konsolidieren
+- `initiative(aktion, id?)` — vorausdenken, entscheiden, ausfuehren
+- `team(aufgabe, agenten?)` — mehrere Teilagenten parallel
+- `lernen(aktion, id?, titel?)` — Muster, Skills, Trainingsdaten
+- `rueckgaengig(id?, nur_zeigen?)`, `netz_status(neu?)`
+- REST: `GET /api/denken/zustand|ziele|verlauf|initiative|selbstbild|weltmodell|
+  auftraege|budget|benchmark`, `POST /api/denken/ziele`, `PATCH /api/denken/ziele/{id}`,
+  `POST /api/denken/initiative/lauf`, `POST /api/denken/konsolidieren`
+
+- `browser_wahl(browser?, speicher?)` — welcher Browser fuer Webseiten und Websuche
+  (`jon`, `system`, `chrome`, `edge`, `firefox`, `brave`, `opera`, `vivaldi`) und ob
+  Jons Browser alles nur im Arbeitsspeicher haelt (`ram`) oder auf der Festplatte
+  ablegt (`festplatte`)
 
 ### Kalender
 - `calendar_add(title, date, time?, duration_minutes?, note?, kind?)`

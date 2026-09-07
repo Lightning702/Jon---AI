@@ -10,6 +10,7 @@ import urllib.parse
 import urllib.request
 
 from app.services.settings_service import get_settings_service
+from app.core.fehler import leise
 
 KINDS = {"track", "album", "playlist", "artist"}
 
@@ -141,8 +142,8 @@ class SpotifyService:
         time.sleep(6)
         try:
             SystemService().media_control("play_pause")
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/spotify_service")
         return "web"
 
     def play(self, query: str = "", kind: str = "track") -> dict:
@@ -215,8 +216,8 @@ class SpotifyService:
                         "kuenstler": artist.strip() if song else "",
                         "wo": "Spotify Web Player",
                     }
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/spotify_service")
         if title:
             return {"laeuft": False, "hinweis": "Spotify ist offen, spielt aber nichts"}
         return {"laeuft": False, "hinweis": "Spotify laeuft gerade nicht"}

@@ -14,6 +14,7 @@ import httpx
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_bytes, atomic_write_text
+from app.core.fehler import leise
 
 STUDIO_DIR = DATA_DIR / "studio"
 CONFIG_FILE = DATA_DIR / "studio.json"
@@ -226,8 +227,8 @@ class StudioService:
         self._gallery = self._load(GALLERY_FILE, [])
         try:
             STUDIO_DIR.mkdir(parents=True, exist_ok=True)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/studio_service")
 
     @staticmethod
     def _load(path, fallback):
@@ -235,8 +236,8 @@ class StudioService:
             data = json.loads(path.read_text(encoding="utf-8"))
             if isinstance(data, type(fallback)):
                 return data
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/studio_service")
         return json.loads(json.dumps(fallback))
 
     def _save(self) -> None:
@@ -249,8 +250,8 @@ class StudioService:
                 json.dumps(self._gallery, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/studio_service")
 
     def active(self) -> str:
         name = str(self._config.get("anbieter") or "")
@@ -419,8 +420,8 @@ class StudioService:
             self._save()
         try:
             (STUDIO_DIR / str(entry.get("datei"))).unlink(missing_ok=True)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/studio_service")
         return {"geloescht": entry_id}
 
     def entry(self, entry_id: str) -> dict:
@@ -502,8 +503,8 @@ class StudioService:
         for old in dropped:
             try:
                 (STUDIO_DIR / str(old.get("datei"))).unlink(missing_ok=True)
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/studio_service")
         return entry
 
     async def generate(

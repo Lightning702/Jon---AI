@@ -5,6 +5,7 @@ import struct
 import threading
 import time
 from datetime import datetime
+from app.core.fehler import leise
 
 SAMPLE_RATE = 16000
 SEGMENT_SECONDS = 18
@@ -251,8 +252,8 @@ class MeetingService:
                 return str(obj.get("zusammenfassung", "")).strip(), obj.get(
                     "todos", []
                 ) or []
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/meeting_service")
         return text, []
 
 

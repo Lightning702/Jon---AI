@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from app.services.llm import complete
+from app.core.fehler import leise
 
 SYSTEM = (
     "Du bist Jons autonomer Recherche-Agent. Du arbeitest gruendlich, praezise und "
@@ -25,8 +26,8 @@ def parse_json(text: str, fallback: Any = None) -> Any:
         raw = match.group(1).strip()
     try:
         return json.loads(raw)
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/research/stages")
     for opener, closer in (("{", "}"), ("[", "]")):
         start = raw.find(opener)
         end = raw.rfind(closer)

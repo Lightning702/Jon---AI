@@ -54,3 +54,7 @@ spiele/BLOCKWELT/saves/
 spiele/BLOCKWELT/bin/*.pdb
 spiele/BLOCKWELT/bin/*.ilk
 spiele/BLOCKWELT/*.bmp
+
+# Werbefilm: Zwischenstaende und fertige Videos werden gerendert
+motion/demo/bau/
+motion/demo/*.mp4

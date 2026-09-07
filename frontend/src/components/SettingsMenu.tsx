@@ -18,6 +18,7 @@ import { Theme, applyTheme, readTheme } from "../lib/theme";
 import { useT } from "../hooks/useT";
 import ConnectionsModal from "./ConnectionsModal";
 import DiagnosticsModal from "./DiagnosticsModal";
+import HandyModal from "./HandyModal";
 import UninstallModal from "./UninstallModal";
 import OllamaModal from "./OllamaModal";
 
@@ -115,6 +116,7 @@ export default function SettingsMenu({
   const [open, setOpen] = useState(false);
   const [uninstallOpen, setUninstallOpen] = useState(false);
   const [diagnoseOpen, setDiagnoseOpen] = useState(false);
+  const [handyOpen, setHandyOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [personality, setPersonality] = useState(true);
   const [failover, setFailover] = useState(true);
@@ -131,6 +133,21 @@ export default function SettingsMenu({
   const [timeline, setTimeline] = useState(false);
   const [autofile, setAutofile] = useState(false);
   const [appUsage, setAppUsage] = useState(false);
+  const [browserAgent, setBrowserAgent] = useState(true);
+  const [browserSichtbar, setBrowserSichtbar] = useState(true);
+  const [browserDryRun, setBrowserDryRun] = useState(false);
+  const [browserPlan, setBrowserPlan] = useState("auto");
+  const [browserSchritte, setBrowserSchritte] = useState(25);
+  const [initiative, setInitiative] = useState(false);
+  const [wahrnehmung, setWahrnehmung] = useState(false);
+  const [konsolidierung, setKonsolidierung] = useState(true);
+  const [kritiker, setKritiker] = useState(false);
+  const [datenschutz, setDatenschutz] = useState("warnen");
+  const [budgetTokens, setBudgetTokens] = useState(0);
+  const [budgetEuro, setBudgetEuro] = useState(0);
+  const [suchmaschine, setSuchmaschine] = useState("brave");
+  const [browserSpeicher, setBrowserSpeicher] = useState("festplatte");
+  const [webBrowser, setWebBrowser] = useState("jon");
   const [routine, setRoutine] = useState(true);
   const [petRoam, setPetRoam] = useState(false);
   const [petWellness, setPetWellness] = useState(true);
@@ -186,6 +203,21 @@ export default function SettingsMenu({
       setTimeline(s.timeline_enabled === true);
       setAutofile(s.autofile_enabled === true);
       setAppUsage(s.app_usage_enabled === true);
+      setBrowserAgent(s.browser_agent !== false);
+      setBrowserSichtbar(s.browser_sichtbar !== false);
+      setBrowserDryRun(s.browser_dry_run === true);
+      setBrowserPlan(s.browser_plan_modus || "auto");
+      setBrowserSchritte(s.browser_max_schritte || 25);
+      setInitiative(s.initiative_enabled === true);
+      setWahrnehmung(s.wahrnehmung_enabled === true);
+      setKonsolidierung(s.konsolidierung_auto !== false);
+      setKritiker(s.kritiker_enabled === true);
+      setDatenschutz(s.datenschutz_regel || "warnen");
+      setBudgetTokens(s.budget_tokens_tag || 0);
+      setBudgetEuro(s.budget_euro_monat || 0);
+      setSuchmaschine(s.browser_suchmaschine || "brave");
+      setBrowserSpeicher(s.browser_speicher || "festplatte");
+      setWebBrowser(s.web_browser || "jon");
       setRoutine(s.routine_enabled !== false);
       setPetRoam(s.pet_roam === true);
       setPetWellness(s.pet_wellness !== false);
@@ -261,6 +293,82 @@ export default function SettingsMenu({
     const next = !quickwrite;
     setQuickwrite(next);
     void saveUserSettings({ quickwrite_enabled: next });
+  };
+
+  const toggleInitiative = () => {
+    const next = !initiative;
+    setInitiative(next);
+    void saveUserSettings({ initiative_enabled: next });
+  };
+
+  const toggleWahrnehmung = () => {
+    const next = !wahrnehmung;
+    setWahrnehmung(next);
+    void saveUserSettings({ wahrnehmung_enabled: next });
+  };
+
+  const toggleKonsolidierung = () => {
+    const next = !konsolidierung;
+    setKonsolidierung(next);
+    void saveUserSettings({ konsolidierung_auto: next });
+  };
+
+  const toggleKritiker = () => {
+    const next = !kritiker;
+    setKritiker(next);
+    void saveUserSettings({ kritiker_enabled: next });
+  };
+
+  const pickDatenschutz = (value: string) => {
+    setDatenschutz(value);
+    void saveUserSettings({ datenschutz_regel: value });
+  };
+
+  const pickBrowserSpeicher = (value: string) => {
+    setBrowserSpeicher(value);
+    void saveUserSettings({
+      browser_speicher: value,
+      browser_persistent: value === "festplatte",
+    });
+  };
+
+  const pickWebBrowser = (value: string) => {
+    setWebBrowser(value);
+    void saveUserSettings({ web_browser: value });
+  };
+
+  const pickSuchmaschine = (value: string) => {
+    setSuchmaschine(value);
+    void saveUserSettings({ browser_suchmaschine: value });
+  };
+
+  const toggleBrowserAgent = () => {
+    const next = !browserAgent;
+    setBrowserAgent(next);
+    void saveUserSettings({ browser_agent: next });
+  };
+
+  const toggleBrowserSichtbar = () => {
+    const next = !browserSichtbar;
+    setBrowserSichtbar(next);
+    void saveUserSettings({ browser_sichtbar: next });
+  };
+
+  const toggleBrowserDryRun = () => {
+    const next = !browserDryRun;
+    setBrowserDryRun(next);
+    void saveUserSettings({ browser_dry_run: next });
+  };
+
+  const pickBrowserPlan = (value: string) => {
+    setBrowserPlan(value);
+    void saveUserSettings({ browser_plan_modus: value });
+  };
+
+  const pickBrowserSchritte = (value: number) => {
+    const sicher = Math.max(3, Math.min(60, value || 25));
+    setBrowserSchritte(sicher);
+    void saveUserSettings({ browser_max_schritte: sicher });
   };
 
   const toggleTimeline = () => {
@@ -546,6 +654,201 @@ export default function SettingsMenu({
                 onClick={toggleAppUsage}
               />
             </div>
+            <Section title="Browser-Agent" />
+            <div className="space-y-1">
+              <Toggle
+                label="Browser-Agent"
+                hint="Jon darf einen echten Chromium-Browser selbst bedienen: Seiten öffnen, lesen, klicken, Formulare ausfüllen."
+                on={browserAgent}
+                onClick={toggleBrowserAgent}
+              />
+              <Toggle
+                label="Browserfenster zeigen"
+                hint="Aus = Jon arbeitet unsichtbar im Hintergrund (headless). An = du siehst live zu."
+                on={browserSichtbar}
+                onClick={toggleBrowserSichtbar}
+              />
+              <Toggle
+                label="Nur Probelauf (Dry Run)"
+                hint="Jon plant und schaut nach, verändert aber nichts: keine Bestellung, kein Absenden."
+                on={browserDryRun}
+                onClick={toggleBrowserDryRun}
+              />
+              <div className="text-[10px] text-white/40 px-0.5 pt-1">Planmodus</div>
+              <Segmented
+                value={browserPlan}
+                items={[
+                  {
+                    value: "auto",
+                    label: "Auto",
+                    hint: "Nur bei riskanten oder mehrstufigen Aufgaben wird geplant.",
+                  },
+                  {
+                    value: "immer",
+                    label: "Immer",
+                    hint: "Jon plant jede Browser-Aufgabe vorher.",
+                  },
+                  {
+                    value: "aus",
+                    label: "Aus",
+                    hint: "Jon legt direkt los. Kritische Aktionen bleiben trotzdem gesperrt.",
+                  },
+                ]}
+                onPick={pickBrowserPlan}
+              />
+              <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5">
+                <span className="text-[11px] text-white/85">Schritte je Auftrag</span>
+                <input
+                  type="number"
+                  min={3}
+                  max={60}
+                  value={browserSchritte}
+                  onChange={(e) => pickBrowserSchritte(Number(e.target.value))}
+                  className="w-16 bg-black/30 border border-white/10 rounded-md px-2 py-0.5 text-[11px] text-white/85 text-right"
+                />
+              </div>
+              <div className="text-[10px] text-white/40 px-0.5 leading-relaxed">
+                Käufe, Bestellungen, Nachrichten und Löschungen fragen immer nach –
+                das lässt sich nicht abschalten.
+              </div>
+              <div className="text-[10px] text-white/40 px-0.5 pt-1">
+                Womit öffnet Jon Webseiten?
+              </div>
+              <select
+                value={webBrowser}
+                onChange={(e) => pickWebBrowser(e.target.value)}
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white/85"
+              >
+                <option value="jon">Jon-Browser (Standard, Jon kann mitlesen)</option>
+                <option value="system">Standardbrowser des PCs</option>
+                <option value="chrome">Google Chrome</option>
+                <option value="edge">Microsoft Edge</option>
+                <option value="firefox">Firefox</option>
+                <option value="brave">Brave</option>
+                <option value="opera">Opera</option>
+                <option value="vivaldi">Vivaldi</option>
+              </select>
+              <div className="text-[10px] text-white/40 px-0.5 leading-relaxed">
+                Mit dem Jon-Browser sucht und liest Jon selbst. Wählst du einen
+                anderen, öffnet er Seiten nur dort — sehen kann er sie dann nicht.
+              </div>
+              <div className="text-[10px] text-white/40 px-0.5 pt-1">
+                Wo liegen die Browserdaten?
+              </div>
+              <Segmented
+                value={browserSpeicher}
+                items={[
+                  {
+                    value: "festplatte",
+                    label: "Festplatte",
+                    hint: "Cookies, Logins und Cache bleiben in Jons Browserprofil erhalten.",
+                  },
+                  {
+                    value: "ram",
+                    label: "Nur RAM",
+                    hint: "Alles nur im Arbeitsspeicher: nichts landet auf der Platte, beim Schließen ist alles weg — auch Screenshots.",
+                  },
+                ]}
+                onPick={pickBrowserSpeicher}
+              />
+              <div className="text-[10px] text-white/40 px-0.5 pt-1">Suchmaschine</div>
+              <select
+                value={suchmaschine}
+                onChange={(e) => pickSuchmaschine(e.target.value)}
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white/85"
+              >
+                <option value="brave">Brave (liest sich am besten)</option>
+                <option value="duckduckgo">DuckDuckGo</option>
+                <option value="startpage">Startpage</option>
+                <option value="ecosia">Ecosia</option>
+                <option value="google">Google</option>
+                <option value="bing">Bing</option>
+              </select>
+            </div>
+            <Section title="Jons Denken" />
+            <div className="space-y-1">
+              <Toggle
+                label="Eigeninitiative"
+                hint="Jon schaut regelmäßig, was gestern war und was morgen ansteht, und schlägt von selbst etwas vor. Ausführen darf er nur Harmloses."
+                on={initiative}
+                onClick={toggleInitiative}
+              />
+              <Toggle
+                label="Nachts nacharbeiten"
+                hint="Jon fasst den vergangenen Tag zusammen, merkt sich dauerhafte Fakten, klärt Widersprüche und vergisst Unwichtiges."
+                on={konsolidierung}
+                onClick={toggleKonsolidierung}
+              />
+              <Toggle
+                label="Dauerhaft wahrnehmen"
+                hint="Jon merkt sich im Hintergrund, welches Fenster vorne ist und ob neue Mails oder Geräte dazukommen. Alles bleibt lokal."
+                on={wahrnehmung}
+                onClick={toggleWahrnehmung}
+              />
+              <Toggle
+                label="Selbstprüfung vor der Antwort"
+                hint="Bei unsicheren Antworten prüft Jon sich selbst und sagt dir, woran er zweifelt. Kostet einen zusätzlichen Modellaufruf."
+                on={kritiker}
+                onClick={toggleKritiker}
+              />
+              <div className="text-[10px] text-white/40 px-0.5 pt-1">
+                Persönliche Daten nach außen
+              </div>
+              <Segmented
+                value={datenschutz}
+                items={[
+                  {
+                    value: "warnen",
+                    label: "Warnen",
+                    hint: "Zugangsdaten werden blockiert, bei persönlichen Angaben sagt Jon Bescheid.",
+                  },
+                  {
+                    value: "streng",
+                    label: "Streng",
+                    hint: "Auch persönliche Angaben (Mail, Telefon, Adresse) verlassen den PC nicht.",
+                  },
+                  {
+                    value: "erlauben",
+                    label: "Locker",
+                    hint: "Nur ein Hinweis, keine Sperre. Zugangsdaten bleiben trotzdem heikel.",
+                  },
+                ]}
+                onPick={pickDatenschutz}
+              />
+              <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5">
+                <span className="text-[11px] text-white/85">Tokens je Tag (0 = frei)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={budgetTokens}
+                  onChange={(e) => {
+                    const wert = Math.max(0, Number(e.target.value) || 0);
+                    setBudgetTokens(wert);
+                    void saveUserSettings({ budget_tokens_tag: wert });
+                  }}
+                  className="w-24 bg-black/30 border border-white/10 rounded-md px-2 py-0.5 text-[11px] text-white/85 text-right"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5">
+                <span className="text-[11px] text-white/85">Euro je Monat (0 = frei)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={budgetEuro}
+                  onChange={(e) => {
+                    const wert = Math.max(0, Number(e.target.value) || 0);
+                    setBudgetEuro(wert);
+                    void saveUserSettings({ budget_euro_monat: wert });
+                  }}
+                  className="w-24 bg-black/30 border border-white/10 rounded-md px-2 py-0.5 text-[11px] text-white/85 text-right"
+                />
+              </div>
+              <div className="text-[10px] text-white/40 px-0.5 leading-relaxed">
+                Ziele, Rückblick, Vorschläge und Jons Selbstbild siehst du mit /denken.
+              </div>
+            </div>
             <Section title="Sprache / Language" />
             <div className="pt-1">
               <div className="text-[10px] text-white/40 px-0.5 mb-1">
@@ -690,6 +993,17 @@ export default function SettingsMenu({
               <span className="text-white/50 text-[12px]">›</span>
             </button>
             <button
+              onClick={() => {
+                setOpen(false);
+                setHandyOpen(true);
+              }}
+              title="Zeigt einen QR-Code. Die Jon-App am Handy scannt ihn und verbindet sich - auch von unterwegs."
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-white/15 bg-white/[0.04] hover:bg-white/10 transition-colors"
+            >
+              <span className="text-[11px] text-white/80">Handy verbinden …</span>
+              <span className="text-white/50 text-[12px]">›</span>
+            </button>
+            <button
               onClick={() => void openConnections()}
               className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
             >
@@ -726,6 +1040,7 @@ export default function SettingsMenu({
       {diagnoseOpen && (
         <DiagnosticsModal onClose={() => setDiagnoseOpen(false)} />
       )}
+      {handyOpen && <HandyModal onClose={() => setHandyOpen(false)} />}
       {ollamaOpen && (
         <OllamaModal
           onClose={() => {

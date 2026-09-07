@@ -11,6 +11,7 @@ from typing import Any
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 MP_DIR = DATA_DIR / "multiplayer"
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -202,8 +203,8 @@ class WebSocketTransport(Transport):
     async def close(self) -> None:
         try:
             await self._socket.close()
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/multiplayer_service")
 
 
 class StreamTransport(Transport):
@@ -220,8 +221,8 @@ class StreamTransport(Transport):
     async def close(self) -> None:
         try:
             self._writer.close()
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/multiplayer_service")
 
 
 @dataclass
@@ -401,8 +402,6 @@ class MultiplayerService:
         self._stats = {"created": 0, "joins": 0, "snapshots": 0, "kicks": 0}
         self._load()
 
-    # ------------------------------------------------------------------ setup
-
     def _load(self) -> None:
         if not MP_DIR.is_dir():
             return
@@ -466,8 +465,8 @@ class MultiplayerService:
             atomic_write_text(path,
                 json.dumps(lobby.store(), ensure_ascii=False), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/multiplayer_service")
 
     def _forget(self, lobby: Lobby) -> None:
         for member in lobby.participants.values():
@@ -475,8 +474,8 @@ class MultiplayerService:
         self._lobbies.pop(lobby.code, None)
         try:
             (MP_DIR / f"{lobby.code}.json").unlink(missing_ok=True)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/multiplayer_service")
 
     def status(self) -> dict:
         return {
@@ -560,8 +559,6 @@ class MultiplayerService:
             return await get_coop_beacon().scan(timeout)
         except Exception:
             return []
-
-    # ------------------------------------------------------------- lobby core
 
     def _new_code(self) -> str:
         for _ in range(64):
@@ -675,8 +672,6 @@ class MultiplayerService:
             return None
         return lobby, member
 
-    # ---------------------------------------------------------------- sending
-
     async def _deliver(self, member: Participant, payload: dict) -> None:
         transport = member.transport
         if transport is None:
@@ -705,8 +700,6 @@ class MultiplayerService:
         lobby.events.append(event)
         if len(lobby.events) > EVENT_HISTORY:
             del lobby.events[: len(lobby.events) - EVENT_HISTORY]
-
-    # ------------------------------------------------------------- connection
 
     def _resume_spawn(self, member: Participant) -> dict[str, float]:
         state = member.state or {}
@@ -760,8 +753,6 @@ class MultiplayerService:
         self._emit(lobby, "presence", {"id": member.player_id, "online": False})
         await self._push_lobby(lobby)
         self._persist(lobby)
-
-    # ------------------------------------------------------------- validation
 
     def _accept_move(self, lobby: Lobby, member: Participant, body: dict) -> bool:
         profile = lobby.profile
@@ -998,8 +989,6 @@ class MultiplayerService:
         )
         return True
 
-    # --------------------------------------------------------------- messages
-
     async def handle(self, lobby: Lobby, member: Participant, message: dict) -> None:
         kind = str(message.get("t", ""))
         member.last_seen = _now()
@@ -1138,8 +1127,6 @@ class MultiplayerService:
             await self.remove(lobby, member)
             return
 
-    # ----------------------------------------------------------------- phases
-
     async def start_game(self, lobby: Lobby) -> None:
         members = lobby.online_members()
         if not members:
@@ -1266,8 +1253,6 @@ class MultiplayerService:
                 await member.transport.close()
         self._forget(lobby)
 
-    # ------------------------------------------------------------------- tick
-
     async def _tick_lobby(self, lobby: Lobby) -> None:
         lobby.tick += 1
         now = _now()
@@ -1361,16 +1346,14 @@ class MultiplayerService:
                         await self.close_lobby(lobby, "Lobby abgelaufen")
                         continue
                     await self._tick_lobby(lobby)
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/multiplayer_service")
             delay = TICK_DT - (_now() - started)
             await asyncio.sleep(max(0.001, delay))
 
     async def start(self) -> None:
         if self._loop_task is None or self._loop_task.done():
             self._loop_task = asyncio.create_task(self._loop())
-
-    # ------------------------------------------------------------ tcp bridge
 
     async def serve_stream(self, host: str, port: int) -> None:
         async def client(
@@ -1405,8 +1388,8 @@ class MultiplayerService:
                     await self.handle(lobby, member, message)
             except (asyncio.IncompleteReadError, ConnectionError, asyncio.CancelledError):
                 pass
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/multiplayer_service")
             finally:
                 if lobby is not None and member is not None and member.transport is transport:
                     await self.detach(lobby, member)
@@ -1433,8 +1416,8 @@ class MultiplayerService:
         async def fail(code: str, text: str) -> None:
             try:
                 await transport.send({"t": "error", "code": code, "msg": text})
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/multiplayer_service")
 
         if kind == "hello":
             token = str(message.get("token", ""))
@@ -1481,8 +1464,8 @@ class MultiplayerService:
                                 "msg": "Gastgeber im Netzwerk gefunden",
                             }
                         )
-                    except Exception:
-                        pass
+                    except Exception as _fehler:
+                        leise(_fehler, "services/multiplayer_service")
                     return None
             try:
                 lobby, member = self.join_lobby(code, name, model)

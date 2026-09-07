@@ -6,6 +6,7 @@ from contextlib import suppress
 
 from app.core.config import DATA_DIR
 from app.services.settings_service import get_settings_service
+from app.core.fehler import leise
 
 WAKEWORD_DIR = DATA_DIR / "wakeword"
 THRESHOLDS = {"niedrig": 0.75, "mittel": 0.55, "hoch": 0.4}
@@ -63,8 +64,8 @@ class WakeService:
                 try:
                     sd._terminate()
                     sd._initialize()
-                except Exception:
-                    pass
+                except Exception as _fehler:
+                    leise(_fehler, "services/wake_service")
                 from openwakeword.model import Model
 
                 custom = (
@@ -97,8 +98,8 @@ class WakeService:
                                 self._counter += 1
                                 with suppress(Exception):
                                     self._model.reset()
-                    except Exception:
-                        pass
+                    except Exception as _fehler:
+                        leise(_fehler, "services/wake_service")
 
                 mic_name = str(
                     get_settings_service().get().get("microphone_name", "")
@@ -114,8 +115,8 @@ class WakeService:
                             ):
                                 device_idx = idx
                                 break
-                    except Exception:
-                        pass
+                    except Exception as _fehler:
+                        leise(_fehler, "services/wake_service")
 
                 self._stream = sd.RawInputStream(
                     device=device_idx,

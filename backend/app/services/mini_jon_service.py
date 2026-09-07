@@ -8,6 +8,7 @@ from pathlib import Path
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 STATUS_FILE = DATA_DIR / "mini_jon.json"
 SLEEP_GIF = DATA_DIR / "mini_jon_schlaeft.gif"
@@ -34,8 +35,8 @@ class MiniJonService:
                     "status": str(data["status"]),
                     "since": str(data.get("since", "")),
                 }
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/mini_jon_service")
         return {
             "status": STATUS_AWAKE,
             "since": datetime.now().isoformat(timespec="seconds"),
@@ -47,8 +48,8 @@ class MiniJonService:
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/mini_jon_service")
 
     def status(self) -> dict:
         with self._lock:

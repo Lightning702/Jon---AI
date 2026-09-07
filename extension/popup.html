@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jon</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <span class="mark">J</span>
+      <div class="head">
+        <div class="name">Jon</div>
+        <div class="state" id="state">verbindet …</div>
+      </div>
+      <button class="ghost" id="options" title="Einstellungen">⚙</button>
+    </header>
+
+    <section class="page" id="page">
+      <div class="page-title" id="pageTitle">—</div>
+      <div class="page-url" id="pageUrl"></div>
+    </section>
+
+    <section class="actions" id="actions">
+      <button data-act="zusammenfassen">Diese Seite zusammenfassen</button>
+      <button data-act="erklaeren">Diese Seite erklären</button>
+      <button data-act="recherchieren">Recherchiere dieses Thema</button>
+      <button data-act="verbessern">Text verbessern</button>
+      <button data-act="wissen">Zu Wissen hinzufügen</button>
+      <button data-act="projekt">In Projekt speichern</button>
+      <button data-act="oeffnen">Mit Jon öffnen</button>
+    </section>
+
+    <section class="project" id="projectRow" hidden>
+      <label for="project">Projekt</label>
+      <select id="project"></select>
+    </section>
+
+    <section class="answer" id="answer" hidden></section>
+
+    <footer class="composer">
+      <textarea id="input" rows="1" placeholder="Jon fragen …"></textarea>
+      <button id="send">Senden</button>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

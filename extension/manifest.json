@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Jon",
+  "version": "4.40.0",
+  "description": "Verbindet den Browser mit deinem Jon: Seiten zusammenfassen, erklaeren, recherchieren, in Projekte und Wissen uebernehmen.",
+  "action": {
+    "default_title": "Jon",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options.html",
+  "permissions": ["activeTab", "scripting", "contextMenus", "storage"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "minimum_chrome_version": "116"
+}

@@ -14,6 +14,7 @@ import httpx
 
 from app.core.config import DATA_DIR, get_settings
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 OLLAMA_FILE = DATA_DIR / "ollama.json"
 
@@ -171,8 +172,8 @@ class OllamaService:
         try:
             scheme, host, port = split_url(get_settings().ollama_base_url)
             data.update({"scheme": scheme, "host": host, "port": port})
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/ollama_service")
         if OLLAMA_FILE.exists():
             try:
                 stored = json.loads(OLLAMA_FILE.read_text(encoding="utf-8"))
@@ -206,8 +207,8 @@ class OllamaService:
             atomic_write_text(OLLAMA_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/ollama_service")
 
     def _validate(self, values: dict, base: dict) -> dict[str, Any]:
         data = dict(base)
@@ -479,14 +480,14 @@ class OllamaService:
         try:
             probe.connect(("8.8.8.8", 80))
             addresses.append(str(probe.getsockname()[0]))
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/ollama_service")
         finally:
             probe.close()
         try:
             addresses.extend(socket.gethostbyname_ex(socket.gethostname())[2])
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/ollama_service")
         tailscale = ipaddress.ip_network("100.64.0.0/10")
         seen = {DEFAULT_HOST}
         for raw in addresses:

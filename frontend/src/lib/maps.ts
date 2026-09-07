@@ -150,6 +150,151 @@ export interface MapsCardData {
   text: string;
 }
 
+export interface NewsArticle {
+  titel: string;
+  url: string;
+  quelle: string;
+  domain: string;
+  bild: string;
+  zeit: string;
+  bereich: "lokal" | "national" | string;
+}
+
+export interface PlaceWeather {
+  ort: string;
+  temperatur: number | null;
+  gefuehlt: number | null;
+  luftfeuchte: number | null;
+  niederschlag: number | null;
+  regen_prozent: number | null;
+  max: number | null;
+  min: number | null;
+  wind_kmh: number | null;
+  code: number | null;
+  zustand: string;
+  tag: boolean;
+  stand: string;
+}
+
+export interface PlaceInfo {
+  ort: string;
+  land: string;
+  bereich: string;
+  news: NewsArticle[];
+  news_fehler: string;
+  wetter: PlaceWeather | null;
+  wetter_fehler: string;
+}
+
+export interface InfoTarget {
+  key: string;
+  name: string;
+  land: string;
+  code: string;
+  scope: "stadt" | "land";
+  lat: number;
+  lon: number;
+}
+
+const CITY_TYPES = new Set([
+  "city",
+  "town",
+  "village",
+  "hamlet",
+  "municipality",
+  "borough",
+  "suburb",
+  "city_district",
+  "quarter",
+  "neighbourhood",
+]);
+
+const COUNTRY_TYPES = new Set(["country", "state", "region", "province"]);
+
+export function infoTargetOf(place: MapsPlace): InfoTarget | null {
+  const address = (place.address ?? {}) as Record<string, string>;
+  const osmType = String(place.extra?.osm_type ?? "");
+  const land = address.country ?? "";
+  const code = address.country_code ?? "";
+  const city =
+    address.city ??
+    address.town ??
+    address.village ??
+    address.municipality ??
+    address.hamlet ??
+    "";
+  if (COUNTRY_TYPES.has(osmType)) {
+    const name = osmType === "country" ? place.name || land : place.name;
+    return {
+      key: `land:${(code || name).toLowerCase()}:${name}`,
+      name: name || land,
+      land: land || name,
+      code,
+      scope: "land",
+      lat: place.lat,
+      lon: place.lon,
+    };
+  }
+  if (CITY_TYPES.has(osmType) || (place.kind === "ort" && city)) {
+    const name = place.name || city;
+    return {
+      key: `stadt:${code}:${name.toLowerCase()}`,
+      name,
+      land,
+      code,
+      scope: "stadt",
+      lat: place.lat,
+      lon: place.lon,
+    };
+  }
+  if (!city && !land) return null;
+  return {
+    key: `stadt:${code}:${(city || land).toLowerCase()}`,
+    name: city || land,
+    land,
+    code,
+    scope: city ? "stadt" : "land",
+    lat: place.lat,
+    lon: place.lon,
+  };
+}
+
+export function isRegion(place: MapsPlace): boolean {
+  const osmType = String(place.extra?.osm_type ?? "");
+  return CITY_TYPES.has(osmType) || COUNTRY_TYPES.has(osmType);
+}
+
+export function formatNewsAge(iso: string): string {
+  if (!iso) return "";
+  const stamp = Date.parse(iso);
+  if (Number.isNaN(stamp)) return "";
+  const minutes = Math.round((Date.now() - stamp) / 60000);
+  if (minutes < 2) return "gerade eben";
+  if (minutes < 60) return `vor ${minutes} Min.`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `vor ${hours} Std.`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "gestern" : `vor ${days} Tagen`;
+}
+
+export const WEATHER_ICONS: { codes: number[]; day: string; night: string }[] = [
+  { codes: [0], day: "☀️", night: "🌙" },
+  { codes: [1, 2], day: "🌤️", night: "🌤️" },
+  { codes: [3], day: "☁️", night: "☁️" },
+  { codes: [45, 48], day: "🌫️", night: "🌫️" },
+  { codes: [51, 53, 55, 56, 57], day: "🌦️", night: "🌦️" },
+  { codes: [61, 63, 65, 66, 67, 80, 81, 82], day: "🌧️", night: "🌧️" },
+  { codes: [71, 73, 75, 77, 85, 86], day: "🌨️", night: "🌨️" },
+  { codes: [95, 96, 99], day: "⛈️", night: "⛈️" },
+];
+
+export function weatherIcon(code: number | null, day = true): string {
+  if (code == null) return "🌡️";
+  const entry = WEATHER_ICONS.find((item) => item.codes.includes(code));
+  if (!entry) return "🌡️";
+  return day ? entry.day : entry.night;
+}
+
 async function json<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
@@ -306,6 +451,23 @@ export async function streetSequence(id: string): Promise<StreetImage[]> {
     `${BASE}/maps/street/sequence/${encodeURIComponent(id)}`
   );
   return data.bilder ?? [];
+}
+
+export function placeInfo(
+  target: InfoTarget,
+  signal?: AbortSignal,
+  limit = 5
+): Promise<PlaceInfo> {
+  const params = new URLSearchParams({
+    lat: String(target.lat),
+    lon: String(target.lon),
+    name: target.name,
+    country: target.land,
+    country_code: target.code,
+    scope: target.scope,
+    limit: String(limit),
+  });
+  return json<PlaceInfo>(`${BASE}/maps/info?${params.toString()}`, { signal });
 }
 
 export function mapsAction(

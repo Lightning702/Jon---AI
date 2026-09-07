@@ -6,13 +6,22 @@ const ICON: Record<string, string> = {
   memory: "🧠",
   journal: "📔",
   knowledge: "📚",
+  projekt: "📁",
+  datei: "📄",
+  notiz: "🗒️",
+  termin: "📅",
+  aufgabe: "✅",
+  erinnerung: "⏰",
+  email: "✉️",
 };
 
 export default function Search({
   onOpenConversation,
+  onOpenPath,
   onClose,
 }: {
   onOpenConversation: (id: string) => void;
+  onOpenPath?: (path: string) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -53,7 +62,7 @@ export default function Search({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && onClose()}
-            placeholder="Alles durchsuchen — Unterhaltungen, Gedächtnis, Tagebuch, Wissen …"
+            placeholder="Jon durchsuchen — Projekte, Dateien, Chats, Notizen, Termine, Mails …"
             className="flex-1 bg-transparent text-[14px] text-white/90 placeholder-white/30 outline-none"
           />
           {busy && <span className="text-[11px] text-white/40">sucht …</span>}
@@ -69,11 +78,22 @@ export default function Search({
               <div className="text-[10.5px] uppercase tracking-wider text-white/40 px-1 mb-1">{ICON[g.kind] ?? "•"} {g.label}</div>
               <div className="space-y-1">
                 {g.items.map((it, i) => {
-                  const clickable = g.kind === "chat" && it.id;
+                  const openable = Boolean(it.path) && Boolean(onOpenPath);
+                  const clickable = (g.kind === "chat" && it.id) || openable;
                   return (
                     <button
                       key={i}
-                      onClick={() => { if (clickable) { onOpenConversation(it.id!); onClose(); } }}
+                      onClick={() => {
+                        if (openable) {
+                          onOpenPath?.(it.path!);
+                          onClose();
+                          return;
+                        }
+                        if (g.kind === "chat" && it.id) {
+                          onOpenConversation(it.id);
+                          onClose();
+                        }
+                      }}
                       className={`w-full text-left rounded-xl border border-white/10 bg-white/5 px-3 py-2 transition ${clickable ? "hover:bg-white/10 hover:border-gold/30 cursor-pointer" : "cursor-default"}`}
                     >
                       {it.title && <div className="text-[12.5px] font-semibold text-white/85 truncate">{it.title}</div>}

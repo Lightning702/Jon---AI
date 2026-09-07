@@ -11,6 +11,7 @@ from pathlib import Path
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 TRASH_DIR = DATA_DIR / "trash"
 KEEP_DAYS = 30
@@ -151,8 +152,8 @@ class TrashService:
                         removed += 1
                 except Exception:
                     continue
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/trash_service")
         return removed
 
 

@@ -9,6 +9,13 @@ export interface SlashCommand {
 
 export const SLASH_COMMANDS: SlashCommand[] = [
   {
+    cmd: "/denken",
+    aliases: ["/ziele", "/kopf"],
+    icon: "🧠",
+    title: "Jons Denken — Ziele, was war, Vorschläge und Selbstbild",
+    gruppe: "Arbeiten",
+  },
+  {
     cmd: "/maps",
     aliases: ["/karte", "/navigation"],
     icon: "🗺️",
@@ -316,6 +323,20 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     aliases: [],
     icon: "📚",
     title: "Jons Skills",
+    gruppe: "Jon",
+  },
+  {
+    cmd: "/werkzeuge",
+    aliases: ["/tools"],
+    icon: "🧰",
+    title: "Alle Werkzeuge, die Jon im Chat benutzen kann",
+    gruppe: "Jon",
+  },
+  {
+    cmd: "/handy",
+    aliases: ["/android", "/geraete", "/geräte"],
+    icon: "📱",
+    title: "Handy — Status, Freigaben und was Jon damit darf",
     gruppe: "Jon",
   },
   {

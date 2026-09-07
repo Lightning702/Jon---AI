@@ -10,6 +10,7 @@ from pathlib import Path
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 SNAP_DIR = DATA_DIR / "snapshots"
 INDEX_FILE = SNAP_DIR / "index.json"
@@ -35,8 +36,8 @@ class TimeTravelService:
             atomic_write_text(INDEX_FILE,
                 json.dumps(self._index, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/timetravel_service")
 
     def snapshot(
         self,
@@ -121,8 +122,8 @@ class TimeTravelService:
             if entry.get("archive"):
                 try:
                     (SNAP_DIR / entry["archive"]).unlink(missing_ok=True)
-                except Exception:
-                    pass
+                except Exception as _fehler:
+                    leise(_fehler, "services/timetravel_service")
             self._index = [e for e in self._index if e["id"] != snap_id]
             self._save()
             return True

@@ -9,6 +9,7 @@ from datetime import datetime
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 PLACES_FILE = DATA_DIR / "telegram_places.json"
 GEO_REMINDERS_FILE = DATA_DIR / "telegram_geo_reminders.json"
@@ -58,8 +59,8 @@ class LocationService:
             atomic_write_text(path,
                 json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/location_service")
 
     def add_place(self, chat_id: str, name: str, lat: float, lon: float) -> dict:
         entry = {

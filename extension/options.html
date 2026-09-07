@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jon — Einstellungen</title>
+    <link rel="stylesheet" href="popup.css" />
+    <style>
+      body {
+        width: auto;
+        max-width: 560px;
+        max-height: none;
+        margin: 0 auto;
+        padding: 22px 20px 32px;
+      }
+      h1 {
+        font-size: 17px;
+        margin: 0 0 4px;
+      }
+      p.lead {
+        font-size: 12.5px;
+        color: var(--soft);
+        margin: 0 0 18px;
+        line-height: 1.5;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--soft);
+        margin: 14px 0 5px;
+      }
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        color: var(--text);
+        padding: 9px 11px;
+        font-size: 12.5px;
+        font-family: inherit;
+        outline: none;
+      }
+      input:focus {
+        border-color: rgba(212, 175, 55, 0.45);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+        font-size: 12.5px;
+        color: var(--soft);
+      }
+      .buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 20px;
+      }
+      .buttons button {
+        border: none;
+        border-radius: 11px;
+        padding: 9px 16px;
+        font-size: 12.5px;
+        font-weight: 650;
+        color: #14110a;
+        background: linear-gradient(140deg, var(--gold-soft), var(--gold));
+        cursor: pointer;
+      }
+      .buttons button.secondary {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--text);
+        font-weight: 500;
+      }
+      #status {
+        margin-top: 14px;
+        font-size: 12.5px;
+        min-height: 18px;
+      }
+      .hint {
+        font-size: 11.5px;
+        color: var(--faint);
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Jon Browser-Erweiterung</h1>
+    <p class="lead">
+      Die Erweiterung ist nur die Verbindung zum Jon auf deinem Rechner. Sie
+      speichert keine Zugangsdaten von Webseiten und schickt Seiteninhalte nur,
+      wenn du eine Aktion auslöst.
+    </p>
+
+    <label for="server">Jon-Adresse</label>
+    <input id="server" type="text" placeholder="http://127.0.0.1:8756" />
+    <div class="hint">
+      Läuft Jon auf einem anderen Gerät im Netz, trage dessen Adresse ein.
+    </div>
+
+    <label for="token">Geräte-Schlüssel</label>
+    <input id="token" type="password" placeholder="Schlüssel aus Jon" />
+    <div class="hint">
+      Findest du in Jon unter Einstellungen → Diagnose → Kopplung. Der Schlüssel
+      bleibt nur in diesem Browser.
+    </div>
+
+    <div class="row">
+      <input id="sharePage" type="checkbox" />
+      <label for="sharePage" style="margin: 0">
+        Seiteninhalt beim Öffnen der Erweiterung mitlesen
+      </label>
+    </div>
+
+    <label for="provider">Anbieter (optional)</label>
+    <input id="provider" type="text" placeholder="leer = Jons Standard" />
+
+    <label for="model">Modell (optional)</label>
+    <input id="model" type="text" placeholder="leer = Jons Standard" />
+
+    <div class="buttons">
+      <button id="save">Speichern</button>
+      <button id="test" class="secondary">Verbindung testen</button>
+    </div>
+    <div id="status"></div>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 
 from app.services.llm import complete
+from app.core.fehler import leise
 
 SHOW_SYSTEM = (
     "Du schreibst ein kurzes, warmes, witziges Zwiegespräch zwischen Jon (Papa-KI: "
@@ -30,14 +31,14 @@ def _today_data() -> dict:
         data["wetter"] = briefing.get("weather")
         data["erinnerungen"] = briefing.get("reminders", [])[:5]
         data["termine"] = briefing.get("termine", [])[:5]
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/show_service")
     try:
         from app.services.focus_service import get_focus_service
 
         data["fokus_heute"] = get_focus_service().state().get("today")
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/show_service")
     try:
         from app.db.database import session_scope
         from app.db.models import Conversation
@@ -60,8 +61,8 @@ def _today_data() -> dict:
 
         memory = get_persona_service().read_memory_file(max_chars=2500)
         data["jons_gedaechtnis_auszug"] = memory[-1500:]
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/show_service")
     return data
 
 

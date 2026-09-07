@@ -21,6 +21,7 @@ from app.db.models import P2PMessage, P2POutbox
 from app.services.crypto_service import get_crypto_service
 from app.services.settings_service import get_settings_service
 from app.core.store import atomic_write_bytes, atomic_write_text
+from app.core.fehler import leise
 
 DISCOVERY_PORT = int(os.environ.get("JON_DISCOVERY_PORT", "8757"))
 CHAT_PORT = int(os.environ.get("JON_CHAT_PORT", "8758"))
@@ -59,8 +60,8 @@ class P2PService:
                     return raw
                 if isinstance(raw, dict):
                     return {"peers": raw, "requests": {}, "blocked": []}
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/p2p_service")
         return {"peers": {}, "requests": {}, "blocked": []}
 
     def _save(self) -> None:
@@ -77,8 +78,8 @@ class P2PService:
                 ),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/p2p_service")
 
     def _load_groups(self) -> dict:
         if GROUPS_FILE.exists():
@@ -90,8 +91,8 @@ class P2PService:
                 if isinstance(data, dict):
                     self._invites = {}
                     return data
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/p2p_service")
         self._invites = {}
         return {}
 
@@ -105,8 +106,8 @@ class P2PService:
                 ),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/p2p_service")
 
     def identity(self) -> dict:
         settings = get_settings_service()
@@ -403,8 +404,8 @@ class P2PService:
             )
 
             get_friend_location_service().forget(peer_id)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/p2p_service")
         with self._lock:
             if peer_id not in self._blocked:
                 self._blocked.append(peer_id)
@@ -438,8 +439,8 @@ class P2PService:
             )
 
             get_friend_location_service().forget(peer_id)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/p2p_service")
         with self._lock:
             existed = self._peers.pop(peer_id, None) is not None
             if existed:
@@ -459,8 +460,8 @@ class P2PService:
                     subnet = ".".join(parts[:3]) + ".255"
                     if subnet not in targets:
                         targets.append(subnet)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/p2p_service")
         return targets
 
     def _broadcast(self, payload: dict) -> None:
@@ -695,8 +696,8 @@ class P2PService:
                         return True
                     if response.status_code == 403:
                         return False
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/p2p_service")
         from app.services.relay_service import get_relay_service
 
         return await get_relay_service().publish(peer_id, kind, body)
@@ -982,8 +983,8 @@ class P2PService:
         except RuntimeError:
             try:
                 asyncio.run(coro)
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/p2p_service")
 
     async def _send_event(self, peer_id: str, event: dict) -> bool:
         me = self.identity()
@@ -1667,8 +1668,8 @@ class P2PService:
                             "public_key": me["public_key"],
                         }
                     )
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/p2p_service")
             await asyncio.sleep(8)
 
     async def listen_loop(self) -> None:

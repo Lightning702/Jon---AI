@@ -6,6 +6,7 @@ from typing import Any
 
 from app.db.database import session_scope
 from app.db.models import ActionLog
+from app.core.fehler import leise
 
 ABSENCE_SOURCES = ("telegram", "automation", "watcher")
 
@@ -26,6 +27,12 @@ def log_action(
     source: str, tool: str, args: Any, result: Any, ok: bool = True
 ) -> None:
     try:
+        from app.services.ereignis_service import get_ereignis_service
+
+        get_ereignis_service().werkzeug_notieren(source, tool, args, result, ok)
+    except Exception as _fehler:
+        leise(_fehler, "services/action_log_service")
+    try:
         with session_scope() as session:
             session.add(
                 ActionLog(
@@ -36,8 +43,8 @@ def log_action(
                     ok=1 if ok else 0,
                 )
             )
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/action_log_service")
 
 
 def _row(entry: ActionLog) -> dict:

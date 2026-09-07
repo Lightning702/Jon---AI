@@ -7,16 +7,42 @@ from pathlib import Path
 from typing import Any
 
 from app.services.automation_service import AutomationService
+from app.services.browser.schema import erklaeren as browser_erklaeren
+from app.services.browser.schema import namen as browser_namen
+from app.services.browser.schema import schema as browser_schema
 from app.services.capsule_service import get_capsule_service
 from app.services.clipboard_service import get_clipboard_service
 from app.services.knowledge_service import get_knowledge_service
 from app.services.memory_service import MemoryService
 from app.services.persona_service import get_persona_service
 from app.services.reminder_service import ReminderService
+from app.services.risiko import pfad_pruefen
+from app.services.werkzeug_register import finden, finden_async, laden
+
+NETZ_TOOLS = {
+    "web_search",
+    "http_get",
+    "download_file",
+    "get_weather",
+    "browser_goto",
+    "browser_search",
+    "browser_task",
+    "spotify_play",
+    "spotify_search",
+    "spotify_now_playing",
+    "maps",
+    "deep_learning",
+    "create_image",
+    "send_mail",
+    "check_mail",
+    "read_mail",
+    "learn_document",
+}
 from app.services.skill_service import SkillService
 from app.services.system_service import SystemService
 from app.services.task_service import get_task_service
 from app.services.timetravel_service import get_timetravel_service
+from app.core.fehler import leise
 
 _STR = {"type": "string"}
 _NUM = {"type": "number"}
@@ -65,6 +91,15 @@ SAFE_TOOLS = {
     "read_friend_messages",
     "browser_read",
     "browser_screenshot",
+    "browser_status",
+    "was_war",
+    "verlauf_heute",
+    "netz_status",
+    "ziel",
+    "selbstbild",
+    "weltzustand",
+    "erfahrung",
+    "notizblock",
     "calendar_list",
     "calendar_search",
     "read_pptx",
@@ -72,6 +107,18 @@ SAFE_TOOLS = {
     "deep_learning",
     "create_image",
     "read_skill_file",
+    "project_overview",
+    "git_status",
+    "git_diff",
+    "start_stopwatch",
+    "start_timer",
+    "stop_timer",
+    "list_timers",
+    "look_at_image",
+    "android_devices",
+    "android_device_status",
+    "android_battery_status",
+    "android_files_list",
 }
 
 
@@ -139,6 +186,7 @@ CORE_TOOLS = {
     "deep_learning",
     "create_image",
     "read_skill_file",
+    "look_at_image",
 }
 
 _CHDIR_RE = re.compile(
@@ -152,6 +200,9 @@ _CHDIR_RE = re.compile(
 CODING_TOOLS = {
     "run_powershell",
     "run_cmd",
+    "project_overview",
+    "git_status",
+    "git_diff",
     "list_dir",
     "read_file",
     "write_file",
@@ -179,15 +230,7 @@ CODING_TOOLS = {
 
 TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
     "browser": (
-        {
-            "browser_goto",
-            "browser_click",
-            "browser_fill",
-            "browser_read",
-            "browser_screenshot",
-            "browser_back",
-            "browser_close",
-        },
+        browser_namen("browser_"),
         (
             "browser",
             "webseite",
@@ -211,6 +254,21 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "surf",
             "such auf",
             "seite",
+            "warenkorb",
+            "kaufen",
+            "shop",
+            "preis",
+            "vergleich",
+            "kostet",
+            "pizza",
+            "liefer",
+            "reservier",
+            "im netz",
+            "online",
+            "recherchier",
+            "leg mir",
+            "such mir",
+            "finde mir",
         ),
     ),
     "calendar": (
@@ -276,8 +334,74 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "dranbleiben",
         ),
     ),
+    "bilder": (
+        {"look_at_image"},
+        (
+            "foto",
+            "bild",
+            "video",
+            "aufnahme",
+            "screenshot",
+            "was ist da drauf",
+            "schau dir",
+            "sieh dir",
+            "hochgeladen",
+        ),
+    ),
+    "zeit": (
+        {"start_stopwatch", "start_timer", "stop_timer", "list_timers"},
+        (
+            "stoppuhr",
+            "stopp die zeit",
+            "stoppe die zeit",
+            "zeit stoppen",
+            "timer",
+            "countdown",
+            "wie lange",
+            "zeit messen",
+            "misst die zeit",
+        ),
+    ),
+    "denken": (
+        {
+            "ziel",
+            "weltmodell",
+            "notizblock",
+            "selbstbild",
+            "erfahrung",
+            "weltzustand",
+            "gedaechtnis_pflegen",
+            "initiative",
+            "team",
+            "lernen",
+        },
+        (
+            "ziel",
+            "ziele",
+            "vorhaben",
+            "plan",
+            "projekt",
+            "morgen",
+            "naechste woche",
+            "was steht an",
+            "kannst du",
+            "schaffst du",
+            "wie sicher",
+            "merk dir",
+            "notier",
+            "team",
+            "vergleich",
+            "recherche",
+            "lern",
+            "erfahrung",
+            "ueberblick",
+            "zustand",
+            "initiative",
+            "vorschlag",
+        ),
+    ),
     "timeline": (
-        {"recall_screen"},
+        {"recall_screen", "was_war", "verlauf_heute", "rueckgaengig"},
         (
             "hatte ich",
             "offen",
@@ -288,6 +412,16 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "zuletzt",
             "erinnerst du dich",
             "was war",
+            "was habe ich",
+            "was hast du",
+            "gemacht",
+            "getan",
+            "protokoll",
+            "verlauf",
+            "rueckblick",
+            "rückblick",
+            "zusammenfassung",
+            "tag",
         ),
     ),
     "media": (
@@ -436,6 +570,18 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "tür",
         ),
     ),
+    "netz": (
+        {"netz_status", "browser_wahl"},
+        (
+            "internet",
+            "online",
+            "offline",
+            "verbindung",
+            "netz",
+            "wlan",
+            "erreichbar",
+        ),
+    ),
     "network": (
         {"scan_network", "wake_device"},
         (
@@ -530,6 +676,45 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
 }
 
 
+ANDROID_WOERTER = (
+    "handy",
+    "smartphone",
+    "telefon",
+    "android",
+    "pixel",
+    "samsung",
+    "tablet",
+    "akku",
+    "batterie",
+    "benachrichtigung",
+    "mitteilung",
+    "zwischenablage",
+    "kontakt",
+    "wo ist mein",
+    "unterwegs",
+)
+
+
+def _connector_werkzeuge() -> list[dict]:
+    from app.services.connectors import get_connector_manager
+
+    try:
+        return get_connector_manager().schema()
+    except Exception:
+        return []
+
+
+def _connector_auswahl(text: str) -> set[str]:
+    if not any(word in text for word in ANDROID_WOERTER):
+        return set()
+    from app.services.connectors import get_connector_manager
+
+    try:
+        return get_connector_manager().namen()
+    except Exception:
+        return set()
+
+
 def select_tools(context: str) -> set[str] | None:
     text = context.strip().lower()
     if not text:
@@ -538,6 +723,13 @@ def select_tools(context: str) -> set[str] | None:
     for names, keywords in TOOL_GROUPS.values():
         if any(word in text for word in keywords):
             allowed |= names
+    allowed |= _connector_auswahl(text)
+    try:
+        from app.services.tool_index import passende_werkzeuge
+
+        allowed |= passende_werkzeuge(context)
+    except Exception as _fehler:
+        leise(_fehler, "services/tools")
     return allowed
 
 
@@ -563,7 +755,34 @@ def _phone_when(value: str) -> str:
     return moment.strftime("%d.%m.%Y um %H:%M")
 
 
+def _android_text(name: str, args: dict[str, Any]) -> str:
+    ziel = str(args.get("device") or "").strip()
+    anhang = f" ({ziel})" if ziel else ""
+    if name == "android_files_send":
+        return f"Schickt {_shorten(args.get('path', ''))} auf das Handy{anhang}."
+    if name == "android_files_receive":
+        return f"Holt {_shorten(args.get('path', ''))} vom Handy{anhang} auf den PC."
+    if name == "android_clipboard_send":
+        return f"Legt Text in die Zwischenablage des Handys{anhang}."
+    if name == "android_camera_request_photo":
+        return (
+            f"Fragt am Handy{anhang} sichtbar nach einem Foto: "
+            f"{_shorten(args.get('reason', ''))}"
+        )
+    if name == "android_contacts_search":
+        return (
+            f"Sucht {_shorten(args.get('query', ''))} in den Kontakten "
+            f"des Handys{anhang}."
+        )
+    from app.services.connectors.android import AndroidConnector
+
+    texte = AndroidConnector().kurztexte()
+    return texte.get(name, f"Fragt das Handy{anhang} etwas.")
+
+
 def describe_tool(name: str, args: dict[str, Any]) -> str:
+    if name.startswith("android_") or name.startswith("android."):
+        return _android_text(name.replace(".", "_"), args)
     if name == "call_user":
         when = str(args.get("datetime", "")).strip()
         return f"Ruft dich an ({when})." if when else "Ruft dich jetzt auf dem Handy an."
@@ -580,7 +799,22 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
     if name == "run_cmd":
         return "Führt einen CMD-Befehl auf deinem PC aus."
     if name == "open_url":
-        return f"Öffnet {_shorten(args.get('url', 'eine URL'))} im Browser."
+        from app.services.browserwahl import name as browsername
+
+        return (
+            f"Öffnet {_shorten(args.get('url', 'eine URL'))} in "
+            f"{browsername(str(args.get('browser', '')))}."
+        )
+    if name == "look_at_image":
+        return f"Schaut sich {_shorten(args.get('path', ''))} an."
+    if name == "start_stopwatch":
+        return "Startet eine Stoppuhr."
+    if name == "start_timer":
+        return "Stellt einen Timer."
+    if name == "stop_timer":
+        return "Stoppt die Zeit."
+    if name == "list_timers":
+        return "Zeigt laufende Stoppuhren und Timer."
     if name == "start_focus":
         return "Startet den Fokus-Modus."
     if name == "stop_focus":
@@ -862,23 +1096,83 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         )
     if name == "read_friend_messages":
         return f"Liest den Chat mit {_shorten(args.get('friend', ''))}."
-    if name == "browser_goto":
-        return f"Öffnet im Jon-Browser: {_shorten(args.get('url', ''))}"
-    if name == "browser_click":
-        return f"Klickt im Browser auf: {_shorten(args.get('target', ''))}"
-    if name == "browser_fill":
+    if name == "browser_wahl":
+        wunsch = _shorten(args.get("browser", ""))
+        if wunsch:
+            return f"Stellt den Browser fuer Webseiten auf: {wunsch}"
+        if args.get("speicher"):
+            return f"Stellt den Browser-Speicher auf: {_shorten(args.get('speicher'))}"
+        return "Zeigt, welchen Browser Jon benutzt."
+    if name == "ziel":
+        aktion = str(args.get("aktion", "liste"))
+        if aktion == "anlegen":
+            return f"Legt das Ziel an: {_shorten(args.get('titel', ''))}"
+        if aktion == "aktualisieren":
+            return f"Aktualisiert ein Ziel ({_shorten(args.get('zustand', ''))})."
+        if aktion == "loeschen":
+            return "Loescht ein Ziel."
+        return "Zeigt Jons offene Ziele."
+    if name == "weltmodell":
+        aktion = str(args.get("aktion", "liste"))
+        if aktion == "merken":
+            return f"Merkt sich {_shorten(args.get('name', ''))} im Weltmodell."
+        if aktion == "umfeld":
+            return f"Sieht nach, was zu {_shorten(args.get('name', ''))} gehoert."
+        if aktion == "verbinden":
+            return (
+                f"Verknuepft {_shorten(args.get('name', ''))} mit "
+                f"{_shorten(args.get('ziel', ''))}."
+            )
+        return "Zeigt Jons Weltmodell."
+    if name == "notizblock":
+        aktion = str(args.get("aktion", "lesen"))
+        if aktion in ("schreiben", "ergaenzen"):
+            return f"Schreibt in den Notizblock: {_shorten(args.get('inhalt', ''))}"
+        if aktion == "leeren":
+            return "Leert den Notizblock."
+        return "Liest den Notizblock."
+    if name == "selbstbild":
+        aufgabe = _shorten(args.get("aufgabe", ""))
         return (
-            f"Füllt im Browser {_shorten(args.get('target', ''))} aus: "
-            f"{_shorten(args.get('text', ''))}"
+            f"Schaetzt ein, ob Jon das kann: {aufgabe}"
+            if aufgabe
+            else "Zeigt Jons Faehigkeiten und Grenzen."
         )
-    if name == "browser_read":
-        return "Liest die aktuelle Browser-Seite."
-    if name == "browser_screenshot":
-        return "Macht einen Screenshot der Browser-Seite."
-    if name == "browser_back":
-        return "Geht im Browser eine Seite zurück."
-    if name == "browser_close":
-        return "Schließt den Jon-Browser."
+    if name == "erfahrung":
+        return f"Sieht in den Erfahrungen nach: {_shorten(args.get('bereich', 'alle'))}"
+    if name == "weltzustand":
+        return "Schaut sich den gesamten aktuellen Zustand an."
+    if name == "gedaechtnis_pflegen":
+        return f"Arbeitet {_shorten(args.get('tag', 'gestern'))} im Gedaechtnis nach."
+    if name == "initiative":
+        aktion = str(args.get("aktion", "liste"))
+        if aktion == "lauf":
+            return "Ueberlegt, was als naechstes ansteht."
+        if aktion == "ausfuehren":
+            return "Erledigt einen eigenen Vorschlag."
+        return "Zeigt Jons Vorschlaege."
+    if name == "team":
+        return f"Laesst mehrere Agenten arbeiten an: {_shorten(args.get('aufgabe', ''))}"
+    if name == "lernen":
+        return f"Lernt aus der eigenen Arbeit ({_shorten(args.get('aktion', 'muster'))})."
+    if name == "rueckgaengig":
+        if args.get("nur_zeigen"):
+            return "Zeigt, was sich rueckgaengig machen laesst."
+        return "Macht die letzte Dateiaktion rueckgaengig."
+    if name == "netz_status":
+        return "Prueft die Internetverbindung."
+    if name == "was_war":
+        raum = _shorten(args.get("zeitraum", "heute")) or "heute"
+        thema = _shorten(args.get("thema", ""))
+        return (
+            f"Sieht im Gedaechtnis nach, was {raum} war"
+            + (f" (Thema: {thema})" if thema else "")
+            + "."
+        )
+    if name == "verlauf_heute":
+        return "Blickt auf den heutigen Tag zurueck."
+    if name.startswith("browser_"):
+        return browser_erklaeren(name.removeprefix("browser_"), args)
     if name == "calendar_add":
         return (
             f"Trägt in den Kalender ein: {_shorten(args.get('title', ''))} "
@@ -914,6 +1208,234 @@ def _tool(name: str, description: str, properties: dict, required: list[str]) ->
             },
         },
     }
+
+
+GRUPPEN_TITEL: list[tuple[str, str, str]] = [
+    ("handy", "Handy", "📱"),
+    ("pc", "PC steuern", "🖥️"),
+    ("dateien", "Dateien", "📁"),
+    ("browser", "Browser", "🌐"),
+    ("wissen", "Wissen & Web", "🔎"),
+    ("kalender", "Kalender & Erinnerungen", "📅"),
+    ("gedaechtnis", "Gedächtnis", "🧠"),
+    ("medien", "Bilder & Dokumente", "🖼️"),
+    ("musik", "Musik & Medien", "🎵"),
+    ("kontakt", "Anrufe & Freunde", "📞"),
+    ("zuhause", "Zuhause & Netzwerk", "🏠"),
+    ("skills", "Skills", "🧩"),
+    ("weitere", "Weitere", "✨"),
+]
+
+_PC_TOOLS = {
+    "run_powershell",
+    "run_cmd",
+    "start_program",
+    "kill_program",
+    "system_info",
+    "list_processes",
+    "lock_screen",
+    "screenshot",
+    "get_screen_info",
+    "list_windows",
+    "focus_window",
+    "mouse_move",
+    "mouse_click",
+    "mouse_scroll",
+    "keyboard_type",
+    "keyboard_press",
+    "keyboard_hotkey",
+    "open_url",
+    "wait",
+}
+
+_DATEI_TOOLS = {
+    "list_dir",
+    "read_file",
+    "write_file",
+    "edit_file",
+    "append_file",
+    "move_path",
+    "copy_path",
+    "delete_path",
+    "make_dir",
+    "search_files",
+    "zip_paths",
+    "unzip",
+    "open_explorer",
+    "open_in_vscode",
+    "download_file",
+    "print_file",
+    "list_printers",
+    "project_overview",
+    "git_status",
+    "git_diff",
+}
+
+_WISSEN_TOOLS = {
+    "web_search",
+    "http_get",
+    "get_weather",
+    "deep_learning",
+    "ask_knowledge",
+    "list_documents",
+    "maps",
+}
+
+_GEDAECHTNIS_TOOLS = {
+    "remember",
+    "recall",
+    "forget",
+    "remember_about_user",
+    "journal",
+    "read_journal",
+    "set_mood",
+    "recall_screen",
+    "list_snapshots",
+    "snapshot",
+}
+
+_MEDIEN_TOOLS = {
+    "look_at_image",
+    "create_image",
+    "webcam_look",
+    "read_pdf",
+    "create_pptx",
+    "read_pptx",
+}
+
+_SKILL_TOOLS = {"list_skills", "read_skill", "read_skill_file"}
+
+_ZUHAUSE_TOOLS = {
+    "smarthome_devices",
+    "smarthome_control",
+    "scan_network",
+    "wake_device",
+}
+
+
+def _gruppe_fuer(name: str) -> str:
+    if name.startswith("android_"):
+        return "handy"
+    if name.startswith("browser_"):
+        return "browser"
+    if name.startswith("calendar_") or name in {
+        "add_reminder",
+        "list_reminders",
+        "delete_reminder",
+        "add_alarm",
+        "list_alarms",
+        "delete_alarm",
+        "add_task",
+        "list_tasks",
+        "delete_task",
+        "start_focus",
+        "stop_focus",
+        "start_stopwatch",
+        "start_timer",
+        "stop_timer",
+        "list_timers",
+    }:
+        return "kalender"
+    if name.startswith("spotify_") or name.startswith("amazon_") or name == "media_control":
+        return "musik"
+    if name in _PC_TOOLS:
+        return "pc"
+    if name in _DATEI_TOOLS:
+        return "dateien"
+    if name in _WISSEN_TOOLS:
+        return "wissen"
+    if name in _GEDAECHTNIS_TOOLS:
+        return "gedaechtnis"
+    if name in _MEDIEN_TOOLS:
+        return "medien"
+    if name in _SKILL_TOOLS:
+        return "skills"
+    if name in _ZUHAUSE_TOOLS:
+        return "zuhause"
+    if name in {
+        "call_user",
+        "schedule_call",
+        "list_scheduled_calls",
+        "cancel_call",
+        "update_call",
+        "list_friends",
+        "send_friend_message",
+        "read_friend_messages",
+        "check_mail",
+        "send_mail",
+    }:
+        return "kontakt"
+    return "weitere"
+
+
+def werkzeug_katalog() -> list[dict]:
+    from app.services.connectors import get_connector_manager
+
+    kasten = ToolBox()
+    eigene = kasten._eigene_tools()
+    verbinder = get_connector_manager()
+    zusatz: dict[str, dict] = {}
+    try:
+        for connector in verbinder.alle():
+            for werkzeug in connector.werkzeuge():
+                zusatz[werkzeug.name] = {
+                    "stufe": werkzeug.stufe,
+                    "recht": werkzeug.recht,
+                    "frei": werkzeug.frei,
+                    "connector": connector.id,
+                    "beschreibung": werkzeug.beschreibung,
+                }
+    except Exception:
+        zusatz = {}
+    alle = list(eigene) + verbinder.schema()
+    gesehen: set[str] = set()
+    eintraege: list[dict] = []
+    for werkzeug in alle:
+        funktion = werkzeug.get("function", {})
+        name = str(funktion.get("name", ""))
+        if not name or name in gesehen:
+            continue
+        gesehen.add(name)
+        daten = dict(zusatz.get(name, {}))
+        beschreibung = str(funktion.get("description", "")).strip()
+        daten.pop("beschreibung", None)
+        eintraege.append(
+            {
+                "name": name,
+                "beschreibung": beschreibung,
+                "gruppe": _gruppe_fuer(name),
+                "ohne_rueckfrage": name in SAFE_TOOLS,
+                **daten,
+            }
+        )
+    for name, daten in zusatz.items():
+        if name in gesehen:
+            continue
+        eintraege.append(
+            {
+                "name": name,
+                "gruppe": "handy",
+                "ohne_rueckfrage": name in SAFE_TOOLS,
+                **daten,
+            }
+        )
+    gruppen = []
+    for kennung, titel, symbol in GRUPPEN_TITEL:
+        passend = sorted(
+            (e for e in eintraege if e["gruppe"] == kennung), key=lambda e: e["name"]
+        )
+        if not passend:
+            continue
+        gruppen.append(
+            {
+                "id": kennung,
+                "name": titel,
+                "symbol": symbol,
+                "anzahl": len(passend),
+                "werkzeuge": passend,
+            }
+        )
+    return gruppen
 
 
 class ToolBox:
@@ -981,6 +1503,9 @@ class ToolBox:
         return [t for t in tools if t["function"]["name"] in allowed]
 
     def _all_tools(self) -> list[dict]:
+        return self._eigene_tools() + _connector_werkzeuge()
+
+    def _eigene_tools(self) -> list[dict]:
         return [
             _tool(
                 "run_powershell",
@@ -1130,55 +1655,166 @@ class ToolBox:
                 ["query"],
             ),
             _tool(
-                "browser_goto",
-                "Oeffnet eine URL in Jons eigenem sichtbarem Browser-Fenster "
-                "(Playwright/Chromium). Die Session bleibt zwischen Aufrufen offen. "
-                "Nutze danach browser_read, um die Seite zu verstehen.",
-                {"url": _STR},
-                ["url"],
+                "browser_wahl",
+                "Zeigt und aendert, welchen Browser Jon fuer Webseiten und Websuche "
+                "benutzt. Ohne browser wird nur der aktuelle Stand samt der auf "
+                "diesem PC gefundenen Browser gezeigt. browser kann 'jon' (Jons "
+                "eigener Browser, Standard), 'system' (Standardbrowser), 'chrome', "
+                "'edge', 'firefox', 'brave', 'opera' oder 'vivaldi' sein. speicher "
+                "stellt zusaetzlich ein, ob Jons Browser alles nur im Arbeitsspeicher "
+                "haelt ('ram') oder auf der Festplatte ablegt ('festplatte').",
+                {"browser": _STR, "speicher": _STR},
+                [],
             ),
             _tool(
-                "browser_click",
-                "Klickt im Jon-Browser auf ein Element. target ist ein Selektor "
-                "aus browser_read ODER sichtbarer Text (z.B. 'Anmelden').",
-                {"target": _STR},
-                ["target"],
+                "ziel",
+                "Jons eigene Zielverwaltung. aktion='anlegen' legt ein Ziel an "
+                "(titel, optional beschreibung, frist wie 'morgen' oder '24.12.', "
+                "naechster_schritt), 'liste' zeigt die offenen Ziele, "
+                "'aktualisieren' aendert Zustand (offen|laeuft|wartet|erledigt|"
+                "verworfen), naechsten Schritt oder Fortschritt, 'faellig' zeigt, was "
+                "bald ansteht, 'loeschen' entfernt eins. Nutze das fuer alles, was "
+                "ueber mehrere Tage geht.",
+                {
+                    "aktion": _STR,
+                    "id": _STR,
+                    "titel": _STR,
+                    "beschreibung": _STR,
+                    "frist": _STR,
+                    "naechster_schritt": _STR,
+                    "zustand": _STR,
+                    "fortschritt": _NUM,
+                    "wichtigkeit": _NUM,
+                    "tage": _INT,
+                },
+                [],
             ),
             _tool(
-                "browser_fill",
-                "Fuellt im Jon-Browser ein Eingabefeld aus. target ist ein Selektor "
-                "aus browser_read ODER die sichtbare Beschriftung des Felds. "
-                "press_enter=true drueckt danach Enter.",
-                {"target": _STR, "text": _STR, "press_enter": _BOOL},
-                ["target", "text"],
+                "weltmodell",
+                "Jons Modell der Welt des Nutzers: Personen, Projekte, Geraete, Orte, "
+                "Firmen. aktion='merken' legt etwas an oder ergaenzt es (name, art, "
+                "beschreibung), 'umfeld' zeigt eine Sache samt Beziehungen, "
+                "'verbinden' verknuepft zwei Dinge (name, ziel, beziehung), 'liste' "
+                "zeigt alles. Nutze es, wenn der Nutzer von Personen, Projekten oder "
+                "Geraeten spricht.",
+                {
+                    "aktion": _STR,
+                    "name": _STR,
+                    "art": _STR,
+                    "beschreibung": _STR,
+                    "ziel": _STR,
+                    "beziehung": _STR,
+                    "wichtigkeit": _NUM,
+                },
+                [],
             ),
             _tool(
-                "browser_read",
-                "Liest die aktuelle Seite im Jon-Browser: Titel, URL, sichtbarer "
-                "Text und interaktive Elemente (Links, Buttons, Eingabefelder) mit "
-                "stabilen Selektoren zum gezielten Klicken.",
+                "notizblock",
+                "Jons Arbeitsgedaechtnis fuer eine laufende Sache. aktion='lesen', "
+                "'schreiben', 'ergaenzen' oder 'leeren'; bereich trennt Themen "
+                "(z.B. der Name des Projekts). Halte hier Zwischenstaende fest, die "
+                "ueber mehrere Antworten hinweg gelten sollen.",
+                {"aktion": _STR, "inhalt": _STR, "bereich": _STR},
+                [],
+            ),
+            _tool(
+                "selbstbild",
+                "Sagt ehrlich, was Jon kann, wie zuverlaessig seine Werkzeuge zuletzt "
+                "waren und wo seine Grenzen liegen. Mit aufgabe='...' schaetzt er "
+                "gezielt ein, ob er genau das schafft. Nutze es, bevor du etwas "
+                "zusagst oder ablehnst.",
+                {"aufgabe": _STR},
+                [],
+            ),
+            _tool(
+                "erfahrung",
+                "Jons Erfahrungsgedaechtnis pro Website oder Werkzeug: was dort "
+                "geklappt hat und was nicht. bereich ist z.B. 'web:thalia.de' oder "
+                "'werkzeug:write_file'. aktion='notieren' schreibt eine Erfahrung "
+                "dazu (text, art='klappt' oder 'klappt_nicht').",
+                {"bereich": _STR, "aktion": _STR, "text": _STR, "art": _STR},
+                [],
+            ),
+            _tool(
+                "weltzustand",
+                "Zeigt Jons gesamten aktuellen Handlungsraum auf einen Blick: offene "
+                "Browsersitzungen, Fenster im Vordergrund, Handy, laufende Auftraege, "
+                "faellige Ziele, Netz und Budget.",
                 {},
                 [],
             ),
             _tool(
-                "browser_screenshot",
-                "Macht einen Screenshot der aktuellen Browser-Seite und liefert "
-                "den Dateipfad.",
-                {},
+                "gedaechtnis_pflegen",
+                "Laesst Jon einen Tag nacharbeiten: Ereignisse zusammenfassen, "
+                "dauerhafte Fakten ins Gedaechtnis uebernehmen, Widersprueche klaeren, "
+                "Unwichtiges vergessen und daraus Ziele fuer morgen ableiten. tag "
+                "versteht 'gestern', 'heute', 'letzte Woche'.",
+                {"tag": _STR},
                 [],
             ),
             _tool(
-                "browser_back",
-                "Geht im Jon-Browser eine Seite zurueck.",
-                {},
+                "initiative",
+                "Jons vorausschauender Teil. aktion='lauf' laesst ihn aus gestern, "
+                "heute, den Zielen und den Terminen Vorschlaege fuer morgen "
+                "erarbeiten, 'liste' zeigt sie, 'annehmen'/'verwerfen' entscheidet "
+                "ueber einen (id), 'ausfuehren' erledigt einen harmlosen Vorschlag "
+                "selbst.",
+                {"aktion": _STR, "id": _STR},
                 [],
             ),
             _tool(
-                "browser_close",
-                "Schliesst das Jon-Browser-Fenster und beendet die Session.",
+                "team",
+                "Teilt eine groessere Rechercheaufgabe auf mehrere Teilagenten auf, "
+                "laesst sie gleichzeitig arbeiten und fasst die Ergebnisse zusammen. "
+                "Nur fuer lesende Aufgaben (vergleichen, sammeln, pruefen).",
+                {"aufgabe": _STR, "agenten": _INT},
+                ["aufgabe"],
+            ),
+            _tool(
+                "lernen",
+                "Jon lernt aus seiner eigenen Arbeit. aktion='muster' zeigt "
+                "wiederkehrende Ablaeufe und haeufige Fehler, 'skill' schreibt aus "
+                "einem gelungenen Lauf eine dauerhafte Anleitung, 'auswerten' "
+                "uebernimmt Fehler ins Erfahrungsgedaechtnis, 'training' exportiert "
+                "Trainingsdaten fuer ein eigenes Modell.",
+                {"aktion": _STR, "id": _STR, "titel": _STR},
+                [],
+            ),
+            _tool(
+                "rueckgaengig",
+                "Macht die letzte umkehrbare Dateiaktion von Jon rueckgaengig "
+                "(schreiben, aendern, verschieben, anlegen, loeschen). Ohne id wird "
+                "die letzte Aktion zurueckgenommen; nur_zeigen=true listet nur auf, "
+                "was rueckgaengig gemacht werden koennte.",
+                {"id": _STR, "nur_zeigen": _BOOL},
+                [],
+            ),
+            _tool(
+                "netz_status",
+                "Sagt, ob gerade eine Internetverbindung besteht. Nutze das, bevor du "
+                "dem Nutzer sagst, etwas im Netz gehe nicht.",
+                {"neu": _BOOL},
+                [],
+            ),
+            _tool(
+                "was_war",
+                "Sieht in Jons eigenem Ereignisgedaechtnis nach, was in einem "
+                "Zeitraum wirklich passiert ist: welche Werkzeuge liefen, was "
+                "geklappt hat, was schiefging, welche Themen dran waren. zeitraum "
+                "versteht 'heute', 'gestern', 'vorgestern', 'letzte Woche', "
+                "'vor 3 Tagen', 'Montag', '24.12.'. Mit thema kannst du gezielt "
+                "danach suchen. Nutze das IMMER, wenn der Nutzer fragt, was er oder "
+                "du frueher gemacht habt - rate nie.",
+                {"zeitraum": _STR, "thema": _STR},
+                [],
+            ),
+            _tool(
+                "verlauf_heute",
+                "Kurzer Rueckblick auf den heutigen Tag aus Jons Ereignisgedaechtnis.",
                 {},
                 [],
             ),
+            *browser_schema("browser_"),
             _tool(
                 "mouse_move",
                 "Bewegt die Maus zu einer Position. x/y sind Pixel (auch auf "
@@ -1270,6 +1906,31 @@ class ToolBox:
                 "Rechnung*.docx.",
                 {"root": _STR, "pattern": _STR},
                 ["root", "pattern"],
+            ),
+            _tool(
+                "project_overview",
+                "Liefert eine Gesamtansicht des Projektordners: Anzahl Dateien und "
+                "Ordner, erkannte Sprachen, Projekttyp, Frameworks, Abhaengigkeiten, "
+                "Build-/Test-Skripte, Schluesseldateien und Git-Status. Nutze das zu "
+                "Beginn einer groesseren Aufgabe, um den ganzen Ordner zu verstehen, "
+                "statt einzelne Dateien zu raten. Ohne root nimmst du den geoeffneten "
+                "Projektordner.",
+                {"root": _STR},
+                [],
+            ),
+            _tool(
+                "git_status",
+                "Zeigt Branch, geaenderte Dateien und den letzten Commit des "
+                "Projektordners. Ohne root der geoeffnete Projektordner.",
+                {"root": _STR},
+                [],
+            ),
+            _tool(
+                "git_diff",
+                "Erzeugt den Git-Diff des Projektordners (mit staged=true den "
+                "gestagten Diff). Ohne root der geoeffnete Projektordner.",
+                {"root": _STR, "staged": _BOOL},
+                [],
             ),
             _tool(
                 "zip_paths",
@@ -1861,6 +2522,43 @@ class ToolBox:
                 [],
             ),
             _tool(
+                "look_at_image",
+                "Schaut sich ein Bild oder Video auf dem PC an und beschreibt "
+                "es ('Was ist auf dem Foto?'). path = Pfad der Datei, question "
+                "= worauf du besonders achten sollst. Bei Videos wird ein "
+                "Standbild aus der Mitte betrachtet.",
+                {"path": _STR, "question": _STR},
+                ["path"],
+            ),
+            _tool(
+                "start_stopwatch",
+                "Startet eine Stoppuhr, die im Chat und in der Handy-App "
+                "mitlaeuft ('Stopp mal die Zeit'). label = wofuer sie laeuft.",
+                {"label": _STR},
+                [],
+            ),
+            _tool(
+                "start_timer",
+                "Stellt einen Countdown, der im Chat und in der Handy-App "
+                "mitlaeuft ('Timer fuer 10 Minuten'). minutes und seconds "
+                "ergeben zusammen die Dauer, label = wofuer.",
+                {"minutes": _INT, "seconds": _INT, "label": _STR},
+                [],
+            ),
+            _tool(
+                "stop_timer",
+                "Stoppt eine laufende Stoppuhr oder einen Timer und nennt die "
+                "gemessene Zeit. Ohne id werden alle gestoppt.",
+                {"id": _STR},
+                [],
+            ),
+            _tool(
+                "list_timers",
+                "Zeigt alle laufenden Stoppuhren und Timer mit ihrer Zeit.",
+                {},
+                [],
+            ),
+            _tool(
                 "recall_screen",
                 "Durchsucht das lokale Bildschirm-Gedaechtnis (Bildschirm-Zeitreise) "
                 "danach, was der Nutzer frueher offen hatte ('Was hatte ich Dienstag "
@@ -2091,21 +2789,123 @@ class ToolBox:
             ),
         ]
 
+    def _zeit(self, name: str, args: dict[str, Any]) -> str:
+        from app.services.zeit_service import ZeitFehler, get_zeit_service, lesbar
+
+        dienst = get_zeit_service()
+        try:
+            if name == "start_stopwatch":
+                uhr = dienst.starten("stoppuhr", 0, str(args.get("label", "")))
+                return json.dumps(
+                    {"gestartet": uhr, "text": "Stoppuhr laeuft."},
+                    ensure_ascii=False,
+                )
+            if name == "start_timer":
+                sekunden = int(args.get("minutes", 0) or 0) * 60 + int(
+                    args.get("seconds", 0) or 0
+                )
+                uhr = dienst.starten("timer", sekunden, str(args.get("label", "")))
+                return json.dumps(
+                    {"gestartet": uhr, "text": f"Timer laeuft: {lesbar(sekunden)}."},
+                    ensure_ascii=False,
+                )
+            if name == "stop_timer":
+                ergebnis = dienst.stoppen(str(args.get("id", "")))
+                zeiten = [
+                    f"{u.get('titel') or u['art']}: {lesbar(u['verstrichen'])}"
+                    for u in ergebnis["gestoppt"]
+                ]
+                return json.dumps(
+                    {
+                        "gestoppt": ergebnis["gestoppt"],
+                        "text": "; ".join(zeiten) if zeiten else "Es lief keine Uhr.",
+                    },
+                    ensure_ascii=False,
+                )
+            return json.dumps(dienst.stand(), ensure_ascii=False)
+        except ZeitFehler as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        except (TypeError, ValueError):
+            return json.dumps({"error": "Ungueltige Dauer."}, ensure_ascii=False)
+
     async def execute(
         self, name: str, args: dict[str, Any], source: str | None = None
     ) -> str:
         from app.services.action_log_service import log_action
 
+        from app.services.cache_service import get_cache_service
+
         src = source or self._source
+        cache = get_cache_service()
+        gemerkt = cache.holen(name, args)
+        if gemerkt is not None:
+            return gemerkt
+        try:
+            from app.services.datenschutz_service import darf_raus
+
+            erlaubt, hinweis, befund = darf_raus(name, args)
+            if not erlaubt:
+                log_action(src, name, args, hinweis, ok=False)
+                return json.dumps(
+                    {"error": hinweis, "datenschutz": befund}, ensure_ascii=False
+                )
+        except Exception as _fehler:
+            leise(_fehler, "services/tools")
+            hinweis = ""
         try:
             result = await self._dispatch(name, args)
         except Exception as exc:
-            log_action(src, name, args, f"Fehler: {exc}", ok=False)
-            raise
-        log_action(src, name, args, result, ok='"error"' not in result[:200])
+            from app.services.fehlertext import verstaendlich
+
+            klartext = verstaendlich(exc, describe_tool(name, args))
+            log_action(src, name, args, f"Fehler: {klartext}", ok=False)
+            return json.dumps({"error": klartext}, ensure_ascii=False)
+        ok = '"error"' not in result[:200]
+        log_action(src, name, args, result, ok=ok)
+        if ok:
+            cache.merken(name, args, result)
+        try:
+            from app.services.erfahrung_service import get_erfahrung_service
+
+            get_erfahrung_service().aus_ergebnis(name, args, result, ok)
+        except Exception as _fehler:
+            leise(_fehler, "services/tools")
+        if hinweis and ok:
+            try:
+                daten = json.loads(result)
+                if isinstance(daten, dict):
+                    daten["datenschutz_hinweis"] = hinweis
+                    return json.dumps(daten, ensure_ascii=False)
+            except Exception as _fehler:
+                leise(_fehler, "services/tools")
         return result
 
     async def _dispatch(self, name: str, args: dict[str, Any]) -> str:
+        if name.startswith("android_") or name.startswith("android."):
+            from app.services.connectors import get_connector_manager
+
+            verbinder = get_connector_manager()
+            gesucht = name.replace(".", "_")
+            if verbinder.kennt(gesucht):
+                return json.dumps(
+                    await verbinder.ausfuehren(gesucht, args), ensure_ascii=False
+                )
+            return json.dumps(
+                {
+                    "error": (
+                        "Dafuer ist gerade kein Handy freigegeben. Der Nutzer schaltet "
+                        "das in Jon unter Einstellungen -> Verbindungen -> Geraete frei."
+                    )
+                },
+                ensure_ascii=False,
+            )
+        if name == "look_at_image":
+            from app.services.bild_service import ansehen
+
+            return json.dumps(
+                await ansehen(str(args.get("path", "")), str(args.get("question", ""))),
+                ensure_ascii=False,
+            )
         if name == "maps":
             return await self._maps(args)
         if name == "deep_learning":
@@ -2113,15 +2913,23 @@ class ToolBox:
         if name == "create_image":
             return await self._create_image(args)
         if name == "web_search":
+            from app.services.browserwahl import nutzt_jon
             from app.services.websearch_service import search_web
 
+            frage = str(args.get("query", ""))
+            anzahl = int(args.get("max_results", 6))
+            if nutzt_jon() and not args.get("schnell"):
+                from app.services.websuche_browser import suchen
+
+                try:
+                    ueber_browser = await asyncio.to_thread(suchen, frage, anzahl)
+                    if ueber_browser.get("treffer"):
+                        return json.dumps(ueber_browser, ensure_ascii=False)
+                except Exception as exc:
+                    leise(exc, "services/tools")
             try:
                 return json.dumps(
-                    await search_web(
-                        str(args.get("query", "")),
-                        int(args.get("max_results", 6)),
-                        bool(args.get("read", False)),
-                    ),
+                    await search_web(frage, anzahl, bool(args.get("read", False))),
                     ensure_ascii=False,
                 )
             except Exception as exc:
@@ -2143,6 +2951,10 @@ class ToolBox:
             "update_call",
         ):
             return await self._phone(name, args)
+        laden()
+        behandler = finden_async(name)
+        if behandler is not None:
+            return await behandler(self, args, name)
         return await asyncio.to_thread(self._execute, name, args)
 
     async def _maps(self, args: dict[str, Any]) -> str:
@@ -2535,19 +3347,61 @@ class ToolBox:
         except Exception as exc:
             return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
+    def _project(self, name: str, args: dict[str, Any]) -> str:
+        from app.services.project_service import (
+            ProjectError,
+            analyze,
+            git_diff,
+            git_status,
+        )
+
+        root = str(args.get("root") or self._root or "")
+        if not root:
+            return json.dumps(
+                {"error": "Kein Projektordner geoeffnet."}, ensure_ascii=False
+            )
+        try:
+            if name == "project_overview":
+                return json.dumps(analyze(root), ensure_ascii=False)
+            if name == "git_status":
+                return json.dumps(git_status(root), ensure_ascii=False)
+            return json.dumps(
+                git_diff(root, bool(args.get("staged"))), ensure_ascii=False
+            )
+        except ProjectError as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        except Exception as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
+
     def _execute(self, name: str, args: dict[str, Any]) -> str:
+        sperre = pfad_pruefen(name, args)
+        if sperre:
+            return json.dumps({"error": sperre}, ensure_ascii=False)
+        if name in NETZ_TOOLS:
+            from app.services.netz_service import pruefen as netz_pruefen
+
+            kein_netz = netz_pruefen("Diese Aktion")
+            if kein_netz:
+                return json.dumps({"error": kein_netz}, ensure_ascii=False)
+        try:
+            from app.services.rueckgaengig_service import get_rueckgaengig_service
+
+            get_rueckgaengig_service().vormerken(name, args)
+        except Exception as _fehler:
+            leise(_fehler, "services/tools")
         if self._root:
             try:
                 args = self._guard_args(name, args)
             except PermissionError as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
-        if name.startswith("browser_"):
-            from app.services.browser_service import get_browser_service
-
-            op = name.removeprefix("browser_")
-            return get_browser_service().call(op, args)
+        laden()
+        behandler = finden(name)
+        if behandler is not None:
+            return behandler(self, args, name)
         if name.startswith("calendar_"):
             return self._calendar(name, args)
+        if name in ("project_overview", "git_status", "git_diff"):
+            return self._project(name, args)
         svc = self._service
         if name == "run_powershell":
             r = svc.run_powershell(str(args.get("command", "")))
@@ -2570,7 +3424,14 @@ class ToolBox:
                 ensure_ascii=False,
             )
         if name == "open_url":
-            return json.dumps({"opened": svc.open_url(str(args.get("url", "")))})
+            from app.services.browserwahl import oeffnen
+
+            return json.dumps(
+                oeffnen(str(args.get("url", "")), str(args.get("browser", ""))),
+                ensure_ascii=False,
+            )
+        if name in ("start_stopwatch", "start_timer", "stop_timer", "list_timers"):
+            return self._zeit(name, args)
         if name == "start_focus":
             from app.services.focus_service import get_focus_service
 

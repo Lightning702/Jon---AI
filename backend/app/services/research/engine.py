@@ -23,6 +23,7 @@ from .models import (
 )
 from .store import ResearchStore
 from .web import UnsafeUrl, domain_of, get_research_web
+from app.core.fehler import leise
 
 MIN_TAIL_S = 55.0
 
@@ -405,8 +406,8 @@ class ResearchEngine:
             get_knowledge_service().learn_text(
                 content, f"{self.task.title or self.task.topic} — {title}"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/research/engine")
 
     async def _finish(self) -> None:
         done = [sub for sub in self.task.subtopics if sub.status == "fertig"]
@@ -472,8 +473,8 @@ class ResearchEngine:
                 self.task.summary = await stages.final_summary(
                     self.task.topic, listing, self.task.provider, self.task.model
                 )
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/research/engine")
         self.task.consumed_s = self.task.elapsed_s()
         self.task.started_at = 0.0
         self.task.ended_at = time.time()

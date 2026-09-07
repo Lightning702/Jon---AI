@@ -19,6 +19,7 @@ from app.providers.openai_compatible import (
     OpenAICompatibleProvider,
     clean_lead,
 )
+from app.core.fehler import leise
 
 RECONNECT_TRIES = 3
 RECONNECT_DELAY = 0.8
@@ -141,8 +142,8 @@ class OllamaProvider(OpenAICompatibleProvider):
             payload = json.loads(text)
             if isinstance(payload, dict):
                 text = str(payload.get("error") or payload.get("detail") or text)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "providers/ollama_provider")
         label = self._label(remote)
         lowered = text.lower()
         if remote is not None and status in (401, 403):

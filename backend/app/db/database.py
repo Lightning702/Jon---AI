@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import get_settings
+from app.core.fehler import leise
 
 
 class Base(DeclarativeBase):
@@ -53,8 +54,8 @@ def init_db() -> None:
     Base.metadata.create_all(bind=_engine)
     try:
         _migrate_columns()
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "db/database")
 
 
 @contextmanager

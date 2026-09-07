@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { UserSettings, saveUserSettings } from "../lib/api";
+import GeraetePanel from "./GeraetePanel";
+import HandyModal from "./HandyModal";
 
 interface Props {
   settings: UserSettings;
@@ -31,6 +33,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
     relay_broker: settings.relay_broker ?? "broker.hivemq.com",
   });
   const [saved, setSaved] = useState(false);
+  const [kopplung, setKopplung] = useState(false);
 
   const set = (key: keyof typeof form, value: string | number | boolean) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -65,6 +68,13 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          <section className="space-y-2">
+            <div className="text-[11px] uppercase tracking-wide text-gold/70">
+              📱 Geräte
+            </div>
+            <GeraetePanel onPair={() => setKopplung(true)} />
+          </section>
+
           <section className="space-y-2">
             <div className="text-[11px] uppercase tracking-wide text-gold/70">
               📧 E-Mail (IMAP/SMTP)
@@ -327,6 +337,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
           </button>
         </div>
       </div>
+      {kopplung && <HandyModal onClose={() => setKopplung(false)} />}
     </div>
   );
 }

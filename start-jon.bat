@@ -41,29 +41,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /I /C:"JON_LAN=true" ".env" >nul 2>nul
-if not errorlevel 1 (
-    powershell -NoProfile -Command "if(-not (Get-NetFirewallRule -DisplayName 'Jon Wear OS' -ErrorAction SilentlyContinue)){exit 1}else{exit 0}" >nul 2>nul
-    if errorlevel 1 (
-        echo Gebe Jon einmalig fuer Handy/Uhr im WLAN frei ^(Windows fragt kurz nach Admin^)...
-        powershell -NoProfile -Command "Start-Process powershell -Verb RunAs -WindowStyle Hidden -ArgumentList '-NoProfile -Command New-NetFirewallRule -DisplayName ''Jon Wear OS'' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8756 -Profile Any'" >nul 2>nul
-    )
-)
-
-set "WLANIP="
-for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'WLAN' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty IPAddress)"`) do set "WLANIP=%%a"
-if not defined WLANIP for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like '192.168.*' -or $_.IPAddress -like '10.*' } | Select-Object -First 1 -ExpandProperty IPAddress)"`) do set "WLANIP=%%a"
-
 set "LOGDIR=%LOCALAPPDATA%\Jon"
 if not exist "%LOGDIR%" mkdir "%LOGDIR%"
 set "LOGFILE=%LOGDIR%\backend.log"
 del "%~dp0data\backend.log" >nul 2>nul
 
-powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8756 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }" >nul 2>nul
-powershell -NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^(python|pythonw|py|jon-backend)\.exe$' -and $_.CommandLine -match 'app\.main|run_backend' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>nul
-powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { $p = Get-Process -Id $_ -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -match '^(node|electron)$') { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }" >nul 2>nul
+set "JONLAN="
+findstr /I /C:"JON_LAN=true" ".env" >nul 2>nul
+if not errorlevel 1 set "JONLAN=1"
 
-%PY% -c "import fastapi,uvicorn,sqlalchemy,openai,anthropic,httpx,pydantic_settings,speech_recognition,pyautogui,pygetwindow,pyperclip,pypdf,cv2,edge_tts,cryptography,paho.mqtt.client,yt_dlp,pynput,tzdata,numpy" >nul 2>nul
+set "WLANIP="
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-vorbereiten.ps1" -JonLan "%JONLAN%"`) do set "WLANIP=%%a"
+
+%PY% -c "import importlib.util as u,sys; mods=['fastapi','uvicorn','sqlalchemy','openai','anthropic','httpx','pydantic_settings','speech_recognition','pyautogui','pygetwindow','pyperclip','pypdf','cv2','edge_tts','cryptography','paho.mqtt.client','yt_dlp','pynput','tzdata','numpy']; sys.exit(0 if all(u.find_spec(m) for m in mods) else 1)" >nul 2>nul
 if errorlevel 1 (
     echo Installiere Backend-Abhaengigkeiten...
     %PY% -m pip install --disable-pip-version-check -r "%~dp0backend\requirements.txt"
@@ -78,7 +68,7 @@ if errorlevel 1 (
     )
 )
 
-%PY% -c "import faster_whisper" >nul 2>nul
+%PY% -c "import importlib.util as u,sys; sys.exit(0 if u.find_spec('faster_whisper') else 1)" >nul 2>nul
 if errorlevel 1 (
     echo Richte die Spracherkennung fuer Telefonanrufe ein...
     %PY% -m pip install --disable-pip-version-check faster-whisper >nul 2>nul
@@ -94,13 +84,8 @@ start "Jon Backend" /min powershell -NoProfile -ExecutionPolicy Bypass -Command 
 
 echo Warte auf Backend...
 set BACKEND_OK=
-for /l %%i in (1,1,40) do (
-    if not defined BACKEND_OK (
-        powershell -NoProfile -Command "try{$null=Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://127.0.0.1:8756/api/health;exit 0}catch{exit 1}" >nul 2>nul
-        if not errorlevel 1 set BACKEND_OK=1
-        if not defined BACKEND_OK ping -n 2 127.0.0.1 >nul
-    )
-)
+powershell -NoProfile -Command "for($i=0;$i -lt 200;$i++){ try{ $null=Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://127.0.0.1:8756/api/health; exit 0 }catch{ Start-Sleep -Milliseconds 250 } }; exit 1" >nul 2>nul
+if not errorlevel 1 set BACKEND_OK=1
 if defined BACKEND_OK (
     echo Backend laeuft auf http://127.0.0.1:8756
     set "JONTOKEN="

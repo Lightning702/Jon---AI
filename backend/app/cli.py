@@ -13,6 +13,7 @@ from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
 from app.services.tools import ToolBox
 from app.services.usage_service import get_usage_service
+from app.core.fehler import leise
 
 GOLD = "\033[38;5;179m"
 DIM = "\033[2m"
@@ -295,8 +296,8 @@ def main() -> None:
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stdin.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "cli")
     if sys.platform == "win32":
         import os
 

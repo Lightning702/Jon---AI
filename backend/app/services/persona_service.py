@@ -6,6 +6,7 @@ from datetime import datetime, date
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 PERSONA_FILE = DATA_DIR / "persona.json"
 MEMORY_FILE = DATA_DIR / "MEMORY.md"
@@ -152,8 +153,8 @@ class PersonaService:
         if PERSONA_FILE.exists():
             try:
                 base.update(json.loads(PERSONA_FILE.read_text(encoding="utf-8")))
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/persona_service")
         return base
 
     def _save(self) -> None:
@@ -161,8 +162,8 @@ class PersonaService:
             atomic_write_text(PERSONA_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/persona_service")
 
     def days_together(self) -> int:
         try:

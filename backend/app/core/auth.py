@@ -21,7 +21,12 @@ HEADER_NAME = "X-Jon-Token"
 COOKIE_NAME = "jon_token"
 QUERY_NAME = "token"
 
-OPEN_PREFIXES = ("/api/health", "/api/mp/", "/api/auth/ping")
+OPEN_PREFIXES = (
+    "/api/health",
+    "/api/mp/",
+    "/api/auth/ping",
+    "/api/handy/gate",
+)
 
 _lock = threading.Lock()
 _cached: str | None = None
@@ -96,7 +101,19 @@ def reset_token() -> str:
 def token_matches(candidate: str | None) -> bool:
     if not candidate:
         return False
-    return secrets.compare_digest(candidate.strip(), get_token())
+    gereinigt = candidate.strip()
+    if secrets.compare_digest(gereinigt, get_token()):
+        return True
+    return _handy_token(gereinigt)
+
+
+def _handy_token(candidate: str) -> bool:
+    try:
+        from app.services.handy_service import get_handy_service
+
+        return get_handy_service().token_gueltig(candidate)
+    except Exception:
+        return False
 
 
 def _presented(request: Request) -> str | None:
@@ -160,6 +177,31 @@ def lan_address() -> str:
         return "127.0.0.1"
     finally:
         probe.close()
+
+
+def lan_adressen() -> list[str]:
+    gefunden: list[str] = []
+    try:
+        eigene = socket.gethostbyname_ex(socket.gethostname())[2]
+    except OSError:
+        eigene = []
+    for adresse in list(eigene) + [lan_address()]:
+        if not isinstance(adresse, str):
+            continue
+        if adresse.startswith(("127.", "169.254.")) or adresse in gefunden:
+            continue
+        gefunden.append(adresse)
+    return sorted(gefunden, key=_rang)
+
+
+def _rang(adresse: str) -> tuple[int, str]:
+    if adresse.startswith("192.168."):
+        return (0, adresse)
+    if adresse.startswith("10."):
+        return (1, adresse)
+    if adresse.startswith("172."):
+        return (2, adresse)
+    return (3, adresse)
 
 
 def pair_url(port: int, lan: bool) -> str:

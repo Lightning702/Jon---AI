@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 CALENDAR_FILE = DATA_DIR / "calendar.json"
 KINDS = ("termin", "task", "erinnerung")
@@ -79,8 +80,8 @@ class CalendarService:
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/calendar_service")
 
     def _overlaps(self, entry: dict, other: dict) -> bool:
         if entry["date"] != other["date"] or not entry["time"] or not other["time"]:
@@ -283,8 +284,8 @@ class CalendarService:
                             "erledigt": False,
                         }
                     )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/calendar_service")
         return sorted(events, key=lambda e: (e["datum"], e["zeit"] or "99:99"))
 
     def due(self) -> list[dict]:

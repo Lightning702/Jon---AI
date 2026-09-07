@@ -5,6 +5,7 @@ import json
 import threading
 
 from app.services.settings_service import get_settings_service
+from app.core.fehler import leise
 
 DEFAULT_BROKER = "broker.hivemq.com"
 DEFAULT_PORT = 1883
@@ -64,8 +65,8 @@ class RelayService:
         self._connected = True
         try:
             client.subscribe(self._my_topic(), qos=1)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/relay_service")
 
     def _on_disconnect(self, *_args) -> None:
         self._connected = False
@@ -122,8 +123,8 @@ class RelayService:
             try:
                 await asyncio.to_thread(client.loop_stop)
                 await asyncio.to_thread(client.disconnect)
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/relay_service")
 
     async def publish(self, peer_id: str, kind: str, body: dict) -> bool:
         if not self._connected or self._client is None:

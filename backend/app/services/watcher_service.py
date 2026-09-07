@@ -8,6 +8,7 @@ from pathlib import Path
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 WATCHERS_FILE = DATA_DIR / "watchers.json"
 
@@ -23,8 +24,8 @@ class WatcherService:
         if WATCHERS_FILE.exists():
             try:
                 base.update(json.loads(WATCHERS_FILE.read_text(encoding="utf-8")))
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/watcher_service")
         return base
 
     def _save(self) -> None:
@@ -33,8 +34,8 @@ class WatcherService:
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/watcher_service")
 
     def add(self, path: str, task: str) -> dict:
         folder = Path(path).expanduser()

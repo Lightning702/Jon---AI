@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes
 import os
 import time
+from app.core.fehler import leise
 
 try:
     import pyautogui
@@ -23,8 +24,8 @@ if pyautogui is not None:
 if os.name == "nt":
     try:
         ctypes.windll.user32.SetProcessDPIAware()
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/automation_service")
 
 
 def _require_automation() -> None:
@@ -112,8 +113,8 @@ class AutomationService:
                 old = None
                 try:
                     old = pyperclip.paste()
-                except Exception:
-                    pass
+                except Exception as _fehler:
+                    leise(_fehler, "services/automation_service")
                 pyperclip.copy(text)
                 pyautogui.hotkey("ctrl", "v")
                 time.sleep(0.15)

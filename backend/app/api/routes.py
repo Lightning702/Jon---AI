@@ -1327,6 +1327,21 @@ async def extract_attachment(payload: AttachmentIn) -> dict:
     return result
 
 
+@router.get("/tools")
+async def tools_catalog() -> dict:
+    from app.services.tools import werkzeug_katalog
+
+    from app.services.skill_service import SkillService
+
+    gruppen = await asyncio.to_thread(werkzeug_katalog)
+    skills = await asyncio.to_thread(SkillService().list)
+    return {
+        "gruppen": gruppen,
+        "anzahl": sum(gruppe["anzahl"] for gruppe in gruppen),
+        "skills": skills,
+    }
+
+
 @router.get("/weekly")
 async def weekly() -> dict:
     return await asyncio.to_thread(get_briefing_service().weekly_data)

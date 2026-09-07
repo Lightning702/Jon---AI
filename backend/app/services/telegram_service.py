@@ -13,6 +13,7 @@ import httpx
 from app.core.config import DATA_DIR
 from app.services.settings_service import get_settings_service
 from app.core.store import atomic_write_bytes, atomic_write_text
+from app.core.fehler import leise
 
 HISTORY_FILE = DATA_DIR / "telegram_memory.json"
 HISTORY_KEEP = 40
@@ -44,8 +45,8 @@ class TelegramService:
                     for key, value in data.items()
                     if isinstance(value, list)
                 }
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_service")
         return {}
 
     def _save_histories(self) -> None:
@@ -54,8 +55,8 @@ class TelegramService:
                 json.dumps(self._histories, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_service")
 
     def _load_morning(self) -> str:
         try:
@@ -69,8 +70,8 @@ class TelegramService:
             atomic_write_text(MORNING_STATE_FILE,
                 json.dumps({"last": day}, ensure_ascii=False), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_service")
 
     def _token(self) -> str:
         return str(get_settings_service().get().get("telegram_bot_token", "")).strip()
@@ -84,8 +85,8 @@ class TelegramService:
                 await client.post(
                     f"https://api.telegram.org/bot{token}/{method}", json=payload
                 )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_service")
 
     async def bot_username(self) -> str:
         token = self._token()
@@ -390,13 +391,13 @@ class TelegramService:
             if service.distance(aktuell[0], aktuell[1], lat, lon) < 120.0:
                 self._last_home = now
                 return
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_service")
         try:
             await service.set_home(lat, lon, "handy")
             self._last_home = now
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_service")
 
     async def _typing(self, chat_id: str | int) -> None:
         while True:

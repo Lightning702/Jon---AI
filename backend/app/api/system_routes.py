@@ -326,6 +326,10 @@ async def uninstall(payload: UninstallIn) -> dict:
 
 @router.post("/shutdown")
 async def shutdown() -> dict:
+    from app.core.logbook import since_boot
+
+    if since_boot() < 15:
+        return {"stopping": False, "grund": "gerade erst gestartet", "pid": os.getpid()}
     asyncio.create_task(_exit_soon(0.35))
     return {"stopping": True, "pid": os.getpid()}
 
@@ -334,6 +338,7 @@ async def shutdown() -> dict:
 async def diagnostics() -> dict:
     from app.core.auth import lan_address, rejected
     from app.core.config import DATA_DIR, get_settings
+    from app.core.fehler import bericht as stiller_bericht
     from app.core.logbook import LOG_FILE, recent, since_boot, snapshot
 
     settings = get_settings()
@@ -349,6 +354,7 @@ async def diagnostics() -> dict:
         "dienste": dienste,
         "fehlerhaft": [d["dienst"] for d in dienste if d.get("fehler")],
         "abgewiesen": rejected()["anzahl"],
+        "stille_fehler": stiller_bericht(20),
         "meldungen": recent(200),
     }
 

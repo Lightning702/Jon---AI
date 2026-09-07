@@ -5,6 +5,7 @@ from datetime import datetime
 from app.services.reminder_service import get_reminder_service
 from app.services.settings_service import get_settings_service
 from app.services.system_service import SystemService
+from app.core.fehler import leise
 
 WEEKDAYS = {
     "de": ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"],
@@ -69,8 +70,8 @@ class BriefingService:
             mail = get_mail_service().check_mail(5)
             data["unread_mails"] = mail.get("ungelesen", 0)
             data["mails"] = mail.get("mails", [])
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/briefing_service")
         try:
             from app.services.mail_service import get_mail_service
 
@@ -79,8 +80,8 @@ class BriefingService:
             data["termine"] = [
                 e for e in events if e["datum"] == today
             ] or events[:5]
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/briefing_service")
         try:
             from app.services.action_log_service import absence_actions
 
@@ -122,16 +123,16 @@ class BriefingService:
             report = get_appusage_service().report(7)
             if report.get("gesamt_minuten"):
                 data["app_zeiten"] = report
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/briefing_service")
         try:
             from app.services.persona_service import get_persona_service
 
             data["jons_gedaechtnis"] = get_persona_service().read_memory_file(
                 max_chars=5000
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/briefing_service")
         try:
             from app.db.database import session_scope
             from app.db.models import Conversation
@@ -154,8 +155,8 @@ class BriefingService:
                 {"task": t["task"], "zuletzt": t.get("last_run_at")}
                 for t in get_task_service().list()
             ][:10]
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/briefing_service")
         try:
             from app.services.dream_service import get_dream_service
 
@@ -164,14 +165,14 @@ class BriefingService:
                 for t in get_dream_service().list()
                 if t.get("status") == "done"
             ][:10]
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/briefing_service")
         try:
             from app.services.usage_service import get_usage_service
 
             data["nutzung"] = get_usage_service().summary(None)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/briefing_service")
         return data
 
 

@@ -9,6 +9,7 @@ import httpx
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 GROUPS_FILE = DATA_DIR / "telegram_groups.json"
 GROUP_CHAT_TYPES = {"group", "supergroup"}
@@ -32,8 +33,8 @@ class GroupMemory:
                     for key, value in data.items()
                     if isinstance(value, list)
                 }
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_group_service")
         return {}
 
     def _save(self) -> None:
@@ -42,8 +43,8 @@ class GroupMemory:
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_group_service")
 
     def record(
         self,

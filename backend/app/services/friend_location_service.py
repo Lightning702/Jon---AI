@@ -7,6 +7,7 @@ from typing import Any
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 LOCATIONS_FILE = DATA_DIR / "friend_locations.json"
 
@@ -33,8 +34,8 @@ class FriendLocationService:
                 received = stored.get("empfangen")
                 if isinstance(received, dict):
                     base["empfangen"] = received
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/friend_location_service")
         return base
 
     def _save(self) -> None:
@@ -42,8 +43,8 @@ class FriendLocationService:
             atomic_write_text(LOCATIONS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/friend_location_service")
 
     def sharing(self) -> dict[str, Any]:
         with self._lock:

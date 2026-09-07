@@ -5,6 +5,7 @@ import threading
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 ACCOUNTS_FILE = DATA_DIR / "accounts.json"
 
@@ -118,8 +119,8 @@ class AccountService:
             atomic_write_text(ACCOUNTS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/account_service")
 
     def runtime_key(self, provider: str) -> str | None:
         entry = self._data.get(provider)

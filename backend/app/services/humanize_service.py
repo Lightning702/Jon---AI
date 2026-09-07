@@ -4,6 +4,7 @@ import re
 import statistics
 
 from app.services.llm import complete
+from app.core.fehler import leise
 
 STYLES = {
     "neutral": "sachlich, aber locker geschrieben — wie ein aufmerksamer Mensch schreibt",
@@ -260,8 +261,8 @@ async def humanize(
                     output = second
                     after = second_score
                     passes = 2
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/humanize_service")
     return {
         "text": output,
         "before": before,

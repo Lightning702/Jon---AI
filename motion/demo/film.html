@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Jon — Demofilm</title>
+    <style>
+      :root {
+        --schwarz: #0b0b0f;
+        --gold: #d4af37;
+        --goldhell: #f5d67b;
+        --golddunkel: #9a7b1f;
+        --gruen: #8fd05a;
+        --schrift: "Segoe UI", system-ui, sans-serif;
+        --mono: Consolas, "Cascadia Mono", monospace;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: var(--schrift);
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+      }
+      html,
+      body {
+        background: #000;
+        overflow: hidden;
+      }
+      #rahmen {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        overflow: hidden;
+      }
+      #kamera {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        transform-origin: 0 0;
+        overflow: hidden;
+      }
+      #buehne {
+        position: absolute;
+        inset: 0;
+        background: #000;
+      }
+      .schicht {
+        position: absolute;
+        inset: 0;
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse at 50% 45%,
+          rgba(0, 0, 0, 0) 42%,
+          rgba(0, 0, 0, 0.42) 78%,
+          rgba(0, 0, 0, 0.72) 100%
+        );
+        z-index: 60;
+      }
+      #korn {
+        position: absolute;
+        inset: -20px;
+        pointer-events: none;
+        opacity: 0.05;
+        z-index: 61;
+        mix-blend-mode: overlay;
+      }
+      #blende {
+        position: absolute;
+        inset: 0;
+        background: #000;
+        pointer-events: none;
+        opacity: 0;
+        z-index: 70;
+      }
+      #untertitel {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 64px;
+        max-width: 1280px;
+        text-align: center;
+        font-size: 30px;
+        font-weight: 400;
+        letter-spacing: 0.012em;
+        line-height: 1.35;
+        color: #f2efe6;
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 42px rgba(0, 0, 0, 0.8);
+        opacity: 0;
+        z-index: 65;
+      }
+      #hochkant {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 64;
+        display: none;
+      }
+      body.portraet #hochkant {
+        display: block;
+      }
+      #hkKopf {
+        position: absolute;
+        left: 88px;
+        right: 88px;
+        top: 210px;
+        text-align: center;
+        font-size: 62px;
+        font-weight: 200;
+        letter-spacing: 0.02em;
+        line-height: 1.18;
+        color: #f7f4ea;
+      }
+      #hkFuss {
+        position: absolute;
+        left: 88px;
+        right: 88px;
+        bottom: 240px;
+        text-align: center;
+        font-size: 33px;
+        font-weight: 300;
+        letter-spacing: 0.1em;
+        color: rgba(245, 214, 123, 0.9);
+      }
+      #hkMaske {
+        position: absolute;
+        inset: 0;
+        z-index: 63;
+        display: none;
+        background: linear-gradient(
+          180deg,
+          #000 0%,
+          rgba(0, 0, 0, 0.98) 13%,
+          rgba(0, 0, 0, 0) 20.5%,
+          rgba(0, 0, 0, 0) 75%,
+          rgba(0, 0, 0, 0.98) 82%,
+          #000 100%
+        );
+      }
+      body.portraet #hkMaske {
+        display: block;
+      }
+
+      .gold {
+        background: linear-gradient(96deg, var(--goldhell), var(--gold) 52%, var(--golddunkel));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .glas {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+      }
+      .glasstark {
+        background: rgba(0, 0, 0, 0.42);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(22px);
+      }
+      .goldrand {
+        border: 1px solid rgba(212, 175, 55, 0.32);
+      }
+
+      .schild {
+        position: absolute;
+        font-size: 34px;
+        font-weight: 300;
+        letter-spacing: 0.055em;
+        color: var(--goldhell);
+        text-shadow: 0 2px 22px rgba(0, 0, 0, 0.9);
+        opacity: 0;
+        z-index: 40;
+      }
+      .schild .unter {
+        display: block;
+        margin-top: 8px;
+        font-size: 20px;
+        letter-spacing: 0.09em;
+        color: rgba(245, 214, 123, 0.62);
+      }
+
+      .fenster {
+        position: absolute;
+        border-radius: 18px;
+        background: rgba(9, 9, 13, 0.9);
+        border: 1px solid rgba(212, 175, 55, 0.26);
+        box-shadow: 0 40px 120px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.02);
+        overflow: hidden;
+        backdrop-filter: blur(22px);
+      }
+      .leiste {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .marke {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+      }
+      .punkt {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 0 16px rgba(212, 175, 55, 0.65);
+      }
+      .knopfreihe {
+        display: flex;
+        gap: 4px;
+        color: rgba(255, 255, 255, 0.42);
+        font-size: 14px;
+      }
+      .knopfreihe span {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+      }
+
+      .seitenleiste {
+        width: 268px;
+        border-right: 1px solid rgba(255, 255, 255, 0.07);
+        padding: 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: rgba(0, 0, 0, 0.25);
+      }
+      .neuerchat {
+        padding: 12px;
+        border-radius: 13px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: #12100a;
+        background: linear-gradient(90deg, var(--goldhell), var(--golddunkel));
+        box-shadow: 0 6px 22px rgba(212, 175, 55, 0.22);
+      }
+      .suchfeld {
+        padding: 9px 11px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+      .verlauf {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-top: 2px;
+      }
+      .verlauf div {
+        padding: 9px 11px;
+        border-radius: 10px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.62);
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .verlauf div.aktiv {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .verlauf div small {
+        display: block;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.26);
+        margin-top: 2px;
+      }
+
+      .chatflaeche {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .verlaufsliste {
+        flex: 1;
+        padding: 26px 30px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        justify-content: flex-end;
+        overflow: hidden;
+      }
+      .blase {
+        max-width: 74%;
+        padding: 14px 18px;
+        border-radius: 18px;
+        font-size: 17px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+      }
+      .blase.ich {
+        align-self: flex-end;
+        background: linear-gradient(135deg, rgba(245, 214, 123, 0.92), rgba(154, 123, 31, 0.92));
+        color: #0a0a0c;
+        border-bottom-right-radius: 7px;
+        font-weight: 500;
+      }
+      .blase.jon {
+        align-self: flex-start;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.92);
+        border-bottom-left-radius: 7px;
+        backdrop-filter: blur(14px);
+      }
+      .werkzeuge {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-bottom: 10px;
+      }
+      .wchip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12.5px;
+        padding: 5px 10px;
+        border-radius: 9px;
+        background: rgba(212, 175, 55, 0.1);
+        border: 1px solid rgba(212, 175, 55, 0.26);
+        color: rgba(245, 214, 123, 0.92);
+      }
+      .wchip .lampe {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--gold);
+      }
+      .quelle {
+        margin-top: 10px;
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.32);
+      }
+      .schreiber {
+        display: inline-block;
+        width: 9px;
+        height: 19px;
+        margin-left: 3px;
+        vertical-align: -3px;
+        background: var(--gold);
+        border-radius: 2px;
+      }
+      .eingabe {
+        margin: 8px 24px 22px;
+        padding: 12px 14px;
+        border-radius: 17px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(16px);
+      }
+      .eingabe .feld {
+        flex: 1;
+        font-size: 17px;
+        color: rgba(255, 255, 255, 0.9);
+        min-height: 24px;
+      }
+      .eingabe .feld.leer {
+        color: rgba(255, 255, 255, 0.28);
+      }
+      .eingabe .senden {
+        padding: 10px 22px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #100e08;
+        background: linear-gradient(90deg, var(--goldhell), var(--golddunkel));
+      }
+      .eingabe .klammer {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.35);
+        display: grid;
+        place-items: center;
+        font-size: 17px;
+      }
+
+      #zeiger {
+        position: absolute;
+        width: 26px;
+        height: 34px;
+        z-index: 52;
+        opacity: 0;
+        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.8));
+      }
+      .taste {
+        display: inline-block;
+        padding: 10px 18px;
+        border-radius: 11px;
+        border: 1px solid rgba(212, 175, 55, 0.45);
+        background: rgba(212, 175, 55, 0.09);
+        color: var(--goldhell);
+        font-size: 27px;
+        letter-spacing: 0.06em;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="rahmen">
+      <div id="kamera">
+        <div id="buehne"><div id="szene" class="schicht"></div></div>
+        <div id="vignette"></div>
+        <div id="korn"></div>
+      </div>
+      <div id="hkMaske"></div>
+      <div id="hochkant"><div id="hkKopf"></div><div id="hkFuss"></div></div>
+      <div id="untertitel"></div>
+      <div id="blende"></div>
+    </div>
+    <script src="js/vo.js"></script>
+    <script src="js/bausteine.js"></script>
+    <script src="js/szenen.js"></script>
+    <script src="js/film.js"></script>
+  </body>
+</html>

@@ -56,6 +56,7 @@ export interface StreamEvent {
   ok?: boolean;
   args?: Record<string, unknown>;
   summary?: string;
+  risiko?: string;
   approval_id?: string;
   card?: { kind: string; data: Record<string, unknown> };
 }
@@ -243,6 +244,7 @@ export interface UserSettings {
   vision_model: string;
   briefing_city: string;
   clipboard_history: boolean;
+  handy_ordner: string;
   webcam_enabled: boolean;
   mail_imap_host: string;
   mail_imap_user: string;
@@ -291,6 +293,25 @@ export interface UserSettings {
   phone_timezone?: string;
   phone_keep_transcript?: boolean;
   phone_max_seconds?: number;
+  browser_agent?: boolean;
+  browser_sichtbar?: boolean;
+  browser_persistent?: boolean;
+  browser_plan_modus?: string;
+  browser_dry_run?: boolean;
+  browser_max_schritte?: number;
+  browser_suchmaschine?: string;
+  browser_speicher?: string;
+  web_browser?: string;
+  initiative_enabled?: boolean;
+  initiative_stunde?: number;
+  wahrnehmung_enabled?: boolean;
+  konsolidierung_auto?: boolean;
+  kritiker_enabled?: boolean;
+  kritiker_schwelle?: number;
+  datenschutz_regel?: string;
+  budget_tokens_tag?: number;
+  budget_euro_monat?: number;
+  semantik_modell?: string;
 }
 
 const STANDARD_SETTINGS: UserSettings = {
@@ -312,6 +333,7 @@ const STANDARD_SETTINGS: UserSettings = {
     vision_model: "",
     briefing_city: "",
     clipboard_history: true,
+    handy_ordner: "",
     webcam_enabled: false,
     mail_imap_host: "",
     mail_imap_user: "",
@@ -351,6 +373,25 @@ const STANDARD_SETTINGS: UserSettings = {
     app_usage_enabled: false,
     language: "de",
     phone_enabled: false,
+    browser_agent: true,
+    browser_sichtbar: true,
+    browser_persistent: true,
+    browser_plan_modus: "auto",
+    browser_dry_run: false,
+    browser_max_schritte: 25,
+    browser_suchmaschine: "brave",
+    browser_speicher: "festplatte",
+    web_browser: "jon",
+    initiative_enabled: false,
+    initiative_stunde: 7,
+    wahrnehmung_enabled: false,
+    konsolidierung_auto: true,
+    kritiker_enabled: false,
+    kritiker_schwelle: 0.5,
+    datenschutz_regel: "warnen",
+    budget_tokens_tag: 0,
+    budget_euro_monat: 0,
+    semantik_modell: "",
   };
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -929,7 +970,7 @@ export async function vaultGenerate(length: number, symbols: boolean): Promise<s
 export interface SearchGroup {
   kind: string;
   label: string;
-  items: { id?: string; title?: string; snippet: string }[];
+  items: { id?: string; title?: string; snippet: string; path?: string }[];
 }
 
 export async function universalSearch(query: string): Promise<SearchGroup[]> {
@@ -1110,6 +1151,283 @@ export interface PersonaState {
   interactions: number;
   energy: number;
   warmth: number;
+}
+
+export interface BrowserPlanSchritt {
+  id: number;
+  beschreibung: string;
+  art: string;
+  risiko: string;
+  bestaetigung_noetig: boolean;
+}
+
+export interface BrowserPlanDaten {
+  ziel: string;
+  schritte: BrowserPlanSchritt[];
+  aktueller_schritt: number;
+  risiko: string;
+  bestaetigung_noetig: boolean;
+  kritische_schritte: number[];
+  status: string;
+  grund?: string;
+}
+
+export interface BrowserTaskDaten {
+  ok: boolean;
+  auftrag: string;
+  dry_run?: boolean;
+  schritte?: number;
+  bericht?: string;
+  url?: string;
+  titel?: string;
+  abbruch?: string;
+  hinweis?: string;
+  plan?: BrowserPlanDaten;
+  protokoll?: string[];
+  bestaetigung?: {
+    token?: string;
+    zusammenfassung?: string;
+    risiko?: string;
+    art?: string;
+  };
+}
+
+export interface BrowserZustand {
+  aktiv: boolean;
+  url: string;
+  titel: string;
+  letzte_aktion?: string;
+  tab: string;
+  tabs: { tab: string; titel: string; url: string; aktiv: boolean }[];
+  laden: string;
+  plan_schritt: number;
+  plan_schritte: number;
+  plan_ziel: string;
+  status: string;
+  fehler: string;
+  aktualisiert: string;
+}
+
+export interface BrowserStatus {
+  zustand: BrowserZustand;
+  bestaetigung: {
+    token: string;
+    zusammenfassung: string;
+    bestaetigt: boolean;
+    abgelehnt: boolean;
+    verbraucht: boolean;
+    abgelaufen: boolean;
+  } | null;
+  protokoll: { zeit: string; aktion: string; detail: string }[];
+}
+
+export async function getBrowserStatus(): Promise<BrowserStatus | null> {
+  try {
+    const res = await fetch(`${BASE}/browser/status`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function confirmBrowserAction(
+  token: string,
+  approved: boolean
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/browser/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, approved }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function stopBrowser(): Promise<void> {
+  try {
+    await fetch(`${BASE}/browser/stop`, { method: "POST" });
+  } catch {
+    return;
+  }
+}
+
+export interface DenkZiel {
+  id: string;
+  titel: string;
+  beschreibung: string;
+  zustand: string;
+  naechster_schritt: string;
+  frist: string;
+  tage_bis_frist: number | null;
+  wichtigkeit: number;
+  fortschritt: number;
+}
+
+export interface DenkVorschlag {
+  id: string;
+  titel: string;
+  warum: string;
+  wann: string;
+  selbst_machbar: boolean;
+  werkzeug: string;
+  risiko: string;
+  zustand: string;
+}
+
+export interface DenkZustand {
+  zeit: string;
+  browser?: { offen: string[]; sitzungen: Record<string, { url: string; titel: string }> };
+  bildschirm?: { vorne?: string; fenster?: number; leerlauf_s?: number };
+  auftraege?: { offen: number; titel: string[] };
+  ziele?: { offen: number; faellig: string[] };
+  netz?: { online: boolean };
+  budget?: { tokens: number; euro: number; anfragen: number };
+}
+
+export interface DenkVerlauf {
+  zeitraum: { beschreibung: string; von: string; bis: string };
+  anzahl: number;
+  nach_art: Record<string, number>;
+  haeufigste_werkzeuge: [string, number][];
+  fehler: string[];
+  hoehepunkte: { zeit: string; art: string; titel: string; detail: string }[];
+}
+
+export interface DenkSelbstbild {
+  werkzeuge: number;
+  skills: string[];
+  grenzen: string[];
+  bilanz: {
+    aktionen: number;
+    schwaechste: { werkzeug: string; laeufe: number; erfolgsquote: number }[];
+    staerkste: { werkzeug: string; laeufe: number; erfolgsquote: number }[];
+  };
+}
+
+export async function getZiele(): Promise<{ offen: DenkZiel[]; faellig: DenkZiel[] }> {
+  try {
+    const res = await fetch(`${BASE}/denken/ziele`);
+    if (!res.ok) return { offen: [], faellig: [] };
+    return await res.json();
+  } catch {
+    return { offen: [], faellig: [] };
+  }
+}
+
+export async function addZiel(
+  titel: string,
+  frist = "",
+  naechster_schritt = ""
+): Promise<DenkZiel | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/ziele`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ titel, frist, naechster_schritt }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function updateZiel(
+  id: string,
+  werte: { zustand?: string; naechster_schritt?: string; fortschritt?: number }
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/denken/ziele/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(werte),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteZiel(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/denken/ziele/${id}`, { method: "DELETE" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function getDenkZustand(): Promise<DenkZustand | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/zustand`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getDenkVerlauf(zeitraum = "heute"): Promise<DenkVerlauf | null> {
+  try {
+    const res = await fetch(
+      `${BASE}/denken/verlauf?zeitraum=${encodeURIComponent(zeitraum)}`
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getVorschlaege(): Promise<DenkVorschlag[]> {
+  try {
+    const res = await fetch(`${BASE}/denken/initiative`);
+    if (!res.ok) return [];
+    const daten = await res.json();
+    return daten.vorschlaege ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function initiativeLauf(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/denken/initiative/lauf`, { method: "POST" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function vorschlagEntscheiden(
+  id: string,
+  angenommen: boolean,
+  ausfuehren = false
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/denken/initiative/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ angenommen, ausfuehren }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function getSelbstbild(): Promise<DenkSelbstbild | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/selbstbild`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function getPersona(): Promise<PersonaState | null> {
@@ -1362,6 +1680,7 @@ export interface ExtractedAttachment {
   name: string;
   content: string;
   pages?: number;
+  pfad?: string;
 }
 
 export async function extractAttachment(
@@ -1379,9 +1698,7 @@ export async function extractAttachment(
     try {
       const data = await res.json();
       if (data.detail) detail = String(data.detail);
-    } catch {
-      /* leer */
-    }
+    } catch {}
     throw new Error(detail);
   }
   return res.json();
@@ -1755,9 +2072,7 @@ export async function sendTyping(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ peer_id: peerId, group_id: groupId }),
     });
-  } catch {
-    /* egal */
-  }
+  } catch {}
 }
 
 export async function getAutostart(): Promise<boolean> {
@@ -2629,8 +2944,457 @@ export async function getKopplung(): Promise<Kopplung> {
   return res.json();
 }
 
+export interface HandyPc {
+  id: string;
+  name: string;
+  version: string;
+}
+
+export interface HandyRelayStand {
+  verbunden: boolean;
+  thema: string;
+  verbindet?: boolean;
+  seit?: number;
+}
+
+export interface HandyKopplung {
+  nutzlast: string;
+  code: string;
+  code_gruppiert: string;
+  ablauf: number;
+  pc: HandyPc;
+  adresse: string;
+  heimnetz: boolean;
+  broker: { host: string; port: number };
+  relay?: HandyRelayStand;
+}
+
+export interface HandyStand {
+  status: string;
+  code?: string;
+  code_gruppiert?: string;
+  geraet?: { name: string; plattform: string } | null;
+  rest?: number;
+  relay?: HandyRelayStand;
+}
+
+export interface HandyZustand {
+  akku?: number;
+  laedt?: boolean;
+  netz?: string;
+  android?: string;
+  modell?: string;
+  speicher_frei?: number;
+}
+
+export type HandyRechte = Record<string, boolean>;
+
+export interface HandyGeraet {
+  id: string;
+  name: string;
+  plattform: string;
+  erstellt: number;
+  gesehen: number;
+  online?: boolean;
+  rechte?: HandyRechte;
+  stufen?: Record<string, string>;
+  namen?: Record<string, string>;
+  faehigkeiten?: string[];
+  zustand?: HandyZustand;
+  zustand_zeit?: number;
+}
+
+export async function handyKopplungStarten(): Promise<HandyKopplung> {
+  const res = await fetch(`${BASE}/handy/pairing/start`, { method: "POST" });
+  if (!res.ok) throw new Error("Kopplung konnte nicht gestartet werden");
+  return res.json();
+}
+
+export async function handyKopplungStand(): Promise<HandyStand> {
+  const res = await fetch(`${BASE}/handy/pairing/state`);
+  if (!res.ok) throw new Error("Stand nicht verfuegbar");
+  return res.json();
+}
+
+export async function handyKopplungAntworten(
+  angenommen: boolean
+): Promise<{ status: string }> {
+  const res = await fetch(`${BASE}/handy/pairing/answer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ angenommen }),
+  });
+  if (!res.ok) throw new Error("Antwort fehlgeschlagen");
+  return res.json();
+}
+
+export async function handyKopplungAbbrechen(): Promise<{ status: string }> {
+  const res = await fetch(`${BASE}/handy/pairing/cancel`, { method: "POST" });
+  if (!res.ok) throw new Error("Abbruch fehlgeschlagen");
+  return res.json();
+}
+
+export async function handyGeraete(): Promise<{
+  geraete: HandyGeraet[];
+  pc: HandyPc;
+}> {
+  const res = await fetch(`${BASE}/handy/devices`);
+  if (!res.ok) throw new Error("Geraete nicht verfuegbar");
+  return res.json();
+}
+
+export async function handyGeraetLoeschen(
+  id: string
+): Promise<{ entfernt: boolean }> {
+  const res = await fetch(`${BASE}/handy/devices/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Geraet konnte nicht entfernt werden");
+  return res.json();
+}
+
+export interface Werkzeug {
+  name: string;
+  beschreibung: string;
+  gruppe: string;
+  ohne_rueckfrage: boolean;
+  stufe?: string;
+  recht?: string;
+  frei?: boolean;
+  connector?: string;
+}
+
+export interface WerkzeugGruppe {
+  id: string;
+  name: string;
+  symbol: string;
+  anzahl: number;
+  werkzeuge: Werkzeug[];
+}
+
+export interface SkillKurz {
+  name: string;
+  title: string;
+  chars?: number;
+}
+
+export async function werkzeuge(): Promise<{
+  gruppen: WerkzeugGruppe[];
+  anzahl: number;
+  skills: SkillKurz[];
+}> {
+  const res = await fetch(`${BASE}/tools`);
+  if (!res.ok) throw new Error("Werkzeuge nicht verfuegbar");
+  return res.json();
+}
+
+export async function handyRechtSetzen(
+  id: string,
+  recht: string,
+  wert: boolean
+): Promise<{ rechte: HandyRechte }> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/rights`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recht, wert }),
+    }
+  );
+  if (!res.ok) throw new Error("Berechtigung nicht gespeichert");
+  return res.json();
+}
+
+export async function handyGeraetUmbenennen(
+  id: string,
+  name: string
+): Promise<{ geraet: HandyGeraet }> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/name`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }
+  );
+  if (!res.ok) throw new Error("Name nicht gespeichert");
+  return res.json();
+}
+
+export async function handyGeraetStand(
+  id: string
+): Promise<Record<string, unknown>> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/state`
+  );
+  if (!res.ok) throw new Error("Stand nicht verfuegbar");
+  return res.json();
+}
+
+export async function handyDateiSenden(
+  id: string,
+  pfad: string
+): Promise<Record<string, unknown>> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/file`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pfad }),
+    }
+  );
+  if (!res.ok) {
+    const grund = await res.json().catch(() => null);
+    throw new Error(grund?.detail ?? "Datei konnte nicht gesendet werden");
+  }
+  return res.json();
+}
+
+export function handyQrUrl(text: string): string {
+  return withToken(`${BASE}/handy/pairing/qr?text=${encodeURIComponent(text)}`);
+}
+
 export async function neuesToken(): Promise<Kopplung> {
   const res = await fetch(`${BASE}/system/pairing/reset`, { method: "POST" });
   if (!res.ok) throw new Error("Token konnte nicht erneuert werden");
   return res.json();
+}
+
+export interface JonProject {
+  id: string;
+  name: string;
+  root: string;
+  technik: string;
+  notizen: string[];
+  regeln: string[];
+  geraet: string;
+  erstellt: string;
+  zuletzt: string;
+}
+
+export interface ProjectLanguage {
+  name: string;
+  dateien: number;
+}
+
+export interface ProjectGit {
+  repo: boolean;
+  branch?: string;
+  geaendert?: number;
+  dateien?: string[];
+  letzter_commit?: string;
+  remote?: string;
+  hinweis?: string;
+}
+
+export interface ProjectAnalysis {
+  root: string;
+  name: string;
+  dateien: number;
+  ordner: number;
+  textdateien: number;
+  groesse_bytes: number;
+  sprachen: ProjectLanguage[];
+  projekttyp: string[];
+  frameworks: string[];
+  abhaengigkeiten: string[];
+  skripte: Record<string, string>;
+  schluesseldateien: string[];
+  oberste_ebene: string[];
+  git: ProjectGit;
+  stand: string;
+}
+
+export interface ProjectSnapshot {
+  root: string;
+  dateien: Record<string, number[]>;
+  stand: string;
+}
+
+export interface ProjectChanges {
+  root: string;
+  erstellt: string[];
+  geloescht: string[];
+  geaendert: string[];
+  anzahl: { erstellt: number; geloescht: number; geaendert: number };
+  snapshot: ProjectSnapshot;
+}
+
+export interface ProjectDiff {
+  repo: boolean;
+  stat?: string;
+  diff?: string;
+  gekuerzt?: boolean;
+  fehler?: string;
+  hinweis?: string;
+}
+
+export async function listProjects(): Promise<JonProject[]> {
+  const res = await fetch(`${BASE}/projects`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function addProject(
+  root: string,
+  name = "",
+  note = ""
+): Promise<JonProject> {
+  const res = await fetch(`${BASE}/projects`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ root, name, note }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function deleteProject(id: string): Promise<boolean> {
+  const res = await fetch(`${BASE}/projects/${id}`, { method: "DELETE" });
+  if (!res.ok) return false;
+  return (await res.json()).geloescht ?? false;
+}
+
+export async function noteProject(id: string, note: string): Promise<JonProject> {
+  const res = await fetch(`${BASE}/projects/${id}/note`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function analyzeProject(root: string): Promise<ProjectAnalysis> {
+  const res = await fetch(
+    `${BASE}/projects/analyze?root=${encodeURIComponent(root)}`
+  );
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function projectGit(
+  root: string,
+  mode: "status" | "diff" = "status"
+): Promise<ProjectDiff & ProjectGit> {
+  const res = await fetch(
+    `${BASE}/projects/git?root=${encodeURIComponent(root)}&mode=${mode}`
+  );
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function projectSnapshot(root: string): Promise<ProjectSnapshot> {
+  const res = await fetch(`${BASE}/projects/snapshot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ root }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function projectChanges(
+  root: string,
+  snapshot: ProjectSnapshot
+): Promise<ProjectChanges> {
+  const res = await fetch(`${BASE}/projects/changes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ root, snapshot }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export interface InboxAction {
+  typ: string;
+  label: string;
+  payload: Record<string, unknown>;
+  freigabe: boolean;
+}
+
+export interface InboxAnalysis {
+  typ: string;
+  titel: string;
+  zusammenfassung: string;
+  wichtigkeit: string;
+  datum: string;
+  zeit: string;
+  deadline: string;
+  personen: string[];
+  projekt: string;
+  aktionen: InboxAction[];
+  stand?: string;
+}
+
+export interface InboxItem {
+  id: string;
+  kategorie: string;
+  titel: string;
+  untertitel: string;
+  text: string;
+  zeit: string;
+  wichtig: boolean;
+  quelle: string;
+  gesehen?: boolean;
+  mail_id?: string;
+  betreff?: string;
+  von?: string;
+  root?: string;
+  analyse: InboxAnalysis | null;
+}
+
+export interface InboxFeed {
+  kategorien: { id: string; label: string }[];
+  zaehler: Record<string, number>;
+  eintraege: InboxItem[];
+  mail_fehler: string;
+  stand: string;
+}
+
+export async function getInbox(limit = 12, days = 7): Promise<InboxFeed> {
+  const res = await fetch(`${BASE}/inbox?limit=${limit}&days=${days}`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function analyzeInboxItem(
+  id: string,
+  options: { text?: string; betreff?: string; von?: string; provider?: string; model?: string; force?: boolean } = {}
+): Promise<InboxAnalysis> {
+  const res = await fetch(`${BASE}/inbox/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...options }),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(detail || "Analyse fehlgeschlagen");
+  }
+  return res.json();
+}
+
+export async function runInboxAction(
+  typ: string,
+  payload: Record<string, unknown>
+): Promise<{ aktion: string; ergebnis: Record<string, unknown> }> {
+  const res = await fetch(`${BASE}/inbox/action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ typ, payload, bestaetigt: true, quelle: "inbox" }),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(detail || "Aktion fehlgeschlagen");
+  }
+  return res.json();
+}
+
+export async function markInboxSeen(id: string): Promise<void> {
+  await fetch(`${BASE}/inbox/seen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
 }

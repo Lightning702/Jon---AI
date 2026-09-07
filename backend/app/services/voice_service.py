@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 import speech_recognition as sr
+from app.core.fehler import leise
 
 _whisper_model = None
 _whisper_failed = False
@@ -45,8 +46,8 @@ class VoiceService:
                         return text
                 finally:
                     Path(temp_path).unlink(missing_ok=True)
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/voice_service")
         with sr.AudioFile(io.BytesIO(data)) as source:
             audio = self._recognizer.record(source)
         try:

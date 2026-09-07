@@ -1,0 +1,236 @@
+:root {
+  --gold: #d4af37;
+  --gold-soft: #f0d68a;
+  --ink: #0b0b0f;
+  --panel: rgba(255, 255, 255, 0.05);
+  --line: rgba(255, 255, 255, 0.1);
+  --text: rgba(255, 255, 255, 0.9);
+  --soft: rgba(255, 255, 255, 0.55);
+  --faint: rgba(255, 255, 255, 0.35);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 384px;
+  max-height: 600px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(212, 175, 55, 0.16), transparent 60%),
+    radial-gradient(90% 70% at 100% 0%, rgba(90, 130, 255, 0.12), transparent 60%),
+    var(--ink);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(18px);
+}
+
+.mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #14110a;
+  background: linear-gradient(140deg, var(--gold-soft), var(--gold));
+  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.28);
+}
+
+.head {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.state {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.state[data-on="true"] {
+  color: #6ee7a8;
+}
+
+.state[data-on="false"] {
+  color: #f0a5a5;
+}
+
+.ghost {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--soft);
+  border-radius: 9px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s var(--ease);
+}
+
+.ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.page {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.page-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-url {
+  font-size: 10.5px;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.actions button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 11px;
+  padding: 8px 9px;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+
+.actions button:hover {
+  background: rgba(212, 175, 55, 0.12);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.actions button:active {
+  transform: scale(0.98);
+}
+
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 10px;
+  font-size: 11.5px;
+  color: var(--soft);
+}
+
+.project select {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 6px 8px;
+  font-size: 11.5px;
+}
+
+.answer {
+  flex: 1;
+  min-height: 60px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0 12px 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.32);
+  font-size: 12.2px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.answer[data-tone="fehler"] {
+  border-color: rgba(240, 120, 120, 0.4);
+  color: #f2b4b4;
+}
+
+.answer[data-tone="ok"] {
+  border-color: rgba(110, 231, 168, 0.35);
+  color: #b7f0d0;
+}
+
+.composer {
+  display: flex;
+  gap: 7px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.composer textarea {
+  flex: 1;
+  resize: none;
+  max-height: 84px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 12.2px;
+  font-family: inherit;
+  outline: none;
+}
+
+.composer textarea:focus {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.composer button {
+  border: none;
+  border-radius: 11px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #14110a;
+  background: linear-gradient(140deg, var(--gold-soft), var(--gold));
+  cursor: pointer;
+}
+
+.composer button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

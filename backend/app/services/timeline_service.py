@@ -10,6 +10,7 @@ from pathlib import Path
 from app.core.config import DATA_DIR, get_settings
 from app.services.focus_service import active_window_title
 from app.core.store import atomic_write_bytes, atomic_write_text
+from app.core.fehler import leise
 
 TIMELINE_DIR = DATA_DIR / "timeline"
 INDEX_FILE = TIMELINE_DIR / "index.json"
@@ -35,8 +36,8 @@ class TimelineService:
             data = json.loads(INDEX_FILE.read_text(encoding="utf-8"))
             if isinstance(data, list):
                 return data
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/timeline_service")
         return []
 
     def _save(self) -> None:
@@ -44,8 +45,8 @@ class TimelineService:
             atomic_write_text(INDEX_FILE,
                 json.dumps(self._index, ensure_ascii=False), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/timeline_service")
 
     def _prune(self) -> None:
         cutoff = (datetime.now() - timedelta(days=KEEP_DAYS)).isoformat()
@@ -56,8 +57,8 @@ class TimelineService:
             else:
                 try:
                     (TIMELINE_DIR / entry["file"]).unlink(missing_ok=True)
-                except Exception:
-                    pass
+                except Exception as _fehler:
+                    leise(_fehler, "services/timeline_service")
         self._index = keep
 
     def capture(self) -> None:

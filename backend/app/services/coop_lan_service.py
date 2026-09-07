@@ -10,6 +10,7 @@ import socket
 import subprocess
 import time
 from typing import Any
+from app.core.fehler import leise
 
 DISCOVERY_PORT = int(os.environ.get("JON_COOP_DISCOVERY_PORT", "8761"))
 MAGIC = "jon-coop"
@@ -204,8 +205,8 @@ def _fallback_interfaces() -> list[dict]:
         for ip in socket.gethostbyname_ex(socket.gethostname())[2]:
             if _usable(ip):
                 found.append({**template, "ip": ip})
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/coop_lan_service")
     probe = _probe_address()
     if probe and _usable(probe) and all(item["ip"] != probe for item in found):
         found.insert(0, {**template, "ip": probe})

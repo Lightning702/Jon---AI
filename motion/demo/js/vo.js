@@ -1,0 +1,1 @@
+window.VO = [[13.2, 2.7, "Die meisten Assistenten reden."], [20.0, 1.53, "Jon macht."], [25.9, 6.16, "Er weiß, welcher Tag heute ist — und schaut nach, statt zu raten."], [51.4, 5.71, "Am PC. Am Handy. Ohne Cloud, ohne Abo."], [76.3, 2.3, "Und er kommt nicht allein."], [85.6, 3.58, "Jon. Auf getjon.info."]];

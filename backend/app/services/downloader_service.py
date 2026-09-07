@@ -17,6 +17,7 @@ import httpx
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 SPOTIFY_ID = re.compile(r"open\.spotify\.com/(?:intl-[a-z]+/)?track/([A-Za-z0-9]+)")
 TRACK_ASIN = re.compile(r"trackAsin=([A-Z0-9]+)", re.I)
@@ -197,8 +198,8 @@ def cookie_config() -> dict:
         data = json.loads(COOKIE_CONFIG.read_text(encoding="utf-8"))
         if isinstance(data, dict):
             return data
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/downloader_service")
     return {}
 
 
@@ -206,8 +207,8 @@ def write_cookie_config(data: dict) -> None:
     try:
         COOKIE_DIR.mkdir(parents=True, exist_ok=True)
         atomic_write_text(COOKIE_CONFIG, json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/downloader_service")
 
 
 def cookies_ready() -> bool:
@@ -413,8 +414,8 @@ def _resolve_spotify(url: str) -> dict:
             timeout=15,
         ).json()
         title = str(data.get("title") or "").strip()
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/downloader_service")
     try:
         page = httpx.get(
             f"https://open.spotify.com/embed/track/{track_id}",
@@ -428,8 +429,8 @@ def _resolve_spotify(url: str) -> dict:
             found = re.search(r'"name":"((?:[^"\\]|\\.)*)"', page)
             if found:
                 title = _json_unescape(found.group(1))
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/downloader_service")
     if not title:
         return {"error": "Ich konnte die Song-Infos von Spotify nicht lesen — versuch es später nochmal."}
     query = f"{artist} {title}".strip()
@@ -630,8 +631,8 @@ class DownloaderService:
     def clear_cookies(self) -> dict:
         try:
             COOKIE_FILE.unlink(missing_ok=True)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/downloader_service")
         return self.cookie_status()
 
     def analyze(self, url: str) -> dict:

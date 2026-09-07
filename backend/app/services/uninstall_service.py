@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import DATA_DIR, ENV_FILE, ROOT_DIR
+from app.core.fehler import leise
 
 BESTAETIGUNG = "JON LOESCHEN"
 
@@ -181,8 +182,8 @@ def ausfuehren(bestaetigung: str, programm_entfernen: bool) -> dict[str, Any]:
         from app.db.database import dispose_engine
 
         dispose_engine()
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "services/uninstall_service")
 
     for eintrag in _ziele():
         pfad = Path(str(eintrag["pfad"]))

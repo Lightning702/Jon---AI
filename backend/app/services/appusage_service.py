@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 USAGE_FILE = DATA_DIR / "app_usage.json"
 IDLE_THRESHOLD = 90.0
@@ -98,8 +99,8 @@ class AppUsageService:
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/appusage_service")
 
     def _prune(self) -> None:
         cutoff = (date.today() - timedelta(days=KEEP_DAYS)).isoformat()
@@ -112,8 +113,8 @@ class AppUsageService:
         try:
             if SystemService().idle_seconds() > IDLE_THRESHOLD:
                 return
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/appusage_service")
         process = _active_process()
         if not process:
             return

@@ -6,6 +6,7 @@ import socket
 import subprocess
 import time
 from contextlib import asynccontextmanager, suppress
+from datetime import datetime
 
 import uvicorn
 from fastapi import FastAPI
@@ -14,11 +15,17 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.multiplayer_routes import MP_TCP_PORT, MP_WS_PORT, create_coop_app
 from app.api.multiplayer_routes import router as multiplayer_router
+from app.api.inbox_routes import router as inbox_router
+from app.api.handy_routes import router as handy_router
+from app.api.zeit_routes import router as zeit_router
 from app.api.p2p_routes import create_chat_app
 from app.api.p2p_routes import router as p2p_router
 from app.api.maps_routes import router as maps_router
+from app.api.project_routes import router as project_router
 from app.api.phone_routes import router as phone_router
 from app.api.research_routes import router as research_router
+from app.api.browser_routes import router as browser_router
+from app.api.denken_routes import router as denken_router
 from app.api.routes import accounts, providers, router
 from app.api.studio_routes import router as studio_router
 from app.api.system_routes import router as system_router
@@ -36,6 +43,65 @@ async def _warm_caches() -> None:
         await providers()
     with suppress(Exception):
         await accounts()
+
+
+async def _initiative_watcher() -> None:
+    from app.services.initiative_service import get_initiative_service
+
+    while True:
+        await asyncio.sleep(600)
+        try:
+            dienst = get_initiative_service()
+            if dienst.faellig():
+                ergebnis = await dienst.lauf()
+                if ergebnis.get("anzahl"):
+                    _log.info("STEP initiative %s Vorschlaege", ergebnis["anzahl"])
+        except Exception as fehler:
+            _log.warning("Initiative fehlgeschlagen: %s", fehler)
+
+
+async def _konsolidierung_watcher() -> None:
+    from app.services.konsolidierung_service import get_konsolidierung_service
+    from app.services.settings_service import get_settings_service
+
+    while True:
+        await asyncio.sleep(1200)
+        try:
+            if not get_settings_service().get().get("konsolidierung_auto", True):
+                continue
+            if datetime.now().hour < 4:
+                continue
+            dienst = get_konsolidierung_service()
+            if dienst.faellig():
+                ergebnis = await dienst.lauf("gestern")
+                if ergebnis.get("ok"):
+                    _log.info("STEP konsolidierung fertig")
+        except Exception as fehler:
+            _log.warning("Konsolidierung fehlgeschlagen: %s", fehler)
+
+
+async def _wahrnehmung_watcher() -> None:
+    from app.services.wahrnehmung_service import get_wahrnehmung_service
+
+    while True:
+        await asyncio.sleep(45)
+        try:
+            await asyncio.to_thread(get_wahrnehmung_service().takt)
+        except Exception as fehler:
+            _log.warning("Wahrnehmung fehlgeschlagen: %s", fehler)
+
+
+async def _pflege_watcher() -> None:
+    from app.services.pflege_service import alles
+
+    while True:
+        await asyncio.sleep(1800)
+        try:
+            bericht = await asyncio.to_thread(alles)
+            if bericht["screenshots"]["geloescht"] or bericht["browser_geschlossen"]:
+                _log.info("STEP pflege %s", bericht)
+        except Exception as fehler:
+            _log.warning("Pflegelauf fehlgeschlagen: %s", fehler)
 
 
 async def _dream_watcher() -> None:
@@ -415,6 +481,16 @@ async def lifespan(app: FastAPI):
 
     with suppress(Exception):
         get_trash_service().cleanup()
+    from app.services.kern import verdrahten
+
+    with suppress(Exception):
+        verdrahten()
+    from app.services.auftrag_service import get_auftrag_service
+
+    with suppress(Exception):
+        offen = get_auftrag_service().unterbrochene_markieren()
+        if offen:
+            _log.info("STEP %s unterbrochene Auftraege gefunden", offen)
     from app.services.research import get_research_service
 
     with suppress(Exception):
@@ -425,6 +501,10 @@ async def lifespan(app: FastAPI):
     _log.info("STEP p2p service ok")
     _spawn("warmup", _warm_caches())
     _spawn("dream_watcher", _dream_watcher())
+    _spawn("pflege_watcher", _pflege_watcher())
+    _spawn("initiative_watcher", _initiative_watcher())
+    _spawn("konsolidierung_watcher", _konsolidierung_watcher())
+    _spawn("wahrnehmung_watcher", _wahrnehmung_watcher())
     _spawn("clipboard_watcher", _clipboard_watcher())
     _spawn("friend_location_watcher", _friend_location_watcher())
     _spawn("task_watcher", _task_watcher())
@@ -457,6 +537,10 @@ async def lifespan(app: FastAPI):
 
     _log.info("STEP tasks ok")
     _spawn("relay", get_relay_service().start())
+
+    from app.services.handy_relay import get_handy_relay
+
+    _spawn("handy_relay", get_handy_relay().start())
     _spawn("p2p_outbox", p2p.outbox_loop())
     _log.info("STEP vor yield")
     yield
@@ -480,6 +564,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.origins(),
+        allow_origin_regex=r"^(chrome|moz)-extension://[a-zA-Z0-9-]+$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -490,8 +575,14 @@ def create_app() -> FastAPI:
     app.include_router(multiplayer_router)
     app.include_router(phone_router)
     app.include_router(maps_router)
+    app.include_router(project_router)
+    app.include_router(inbox_router)
+    app.include_router(handy_router)
+    app.include_router(zeit_router)
     app.include_router(research_router)
     app.include_router(studio_router)
+    app.include_router(browser_router)
+    app.include_router(denken_router)
 
     from pathlib import Path
 

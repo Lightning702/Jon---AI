@@ -102,14 +102,58 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Text-to-Speech-Antworten (Web Speech API), bevorzugt deutsche männliche Stimme
 - Sprach-Kontext im RAM (letzte 12 Turns), ohne Chat-Verlauf zu verändern
 
-## Browser-Automatisierung
+## Jons Denken
 
-- Sichtbares Chromium-Fenster (Playwright), persistente Session pro Chat
-- `browser_goto/read/click/fill/screenshot/back/close`
-- `browser_read` liefert Text plus interaktive Elemente mit stabilen Selektoren
-- Klick/Ausfüllen per Selektor oder sichtbarem Text, 15 s Timeout, klare Fehler
+- Ereignisgedaechtnis ueber alle Werkzeuge, Chats und Fehler, mit Zeitachse
+- Deutsches Zeitverstaendnis: gestern, vorgestern, letzte Woche, vor 3 Tagen, Montag
+- Gedaechtnis nach Relevanz statt nach Alter, mit Widerspruchsklaerung und Vergessen
+- Rollierende Verlaufszusammenfassung statt hartem Abschneiden
+- Naechtliche Konsolidierung: Tagesrueckblick, dauerhafte Fakten, Ziele fuer morgen
+- Ziele mit Frist, naechstem Schritt, Fortschritt und Abhaengigkeiten
+- Eigeninitiative: Vorschlaege aus gestern, heute, Zielen und Terminen
+- Weltmodell mit Personen, Projekten, Geraeten, Orten und Beziehungen
+- Notizblock als Arbeitsgedaechtnis ueber mehrere Antworten hinweg
+- Selbstbild mit Erfolgsquote je Werkzeug und ehrlichen Grenzen
+- Erfahrungsgedaechtnis je Website und Werkzeug
+- Lernen: Muster erkennen, Skills schreiben, Trainingsdaten exportieren
+- Agententeam fuer parallele Recherche
+- Benchmark-Suite mit 53 festen Pruefungen
+
+- Wahl des Browsers fuer Webseiten und Websuche: Jon-Browser (Standard, Jon liest
+  mit) oder Chrome, Edge, Firefox, Brave, Opera, Vivaldi, Standardbrowser
+- Speicherort waehlbar: Festplatte (Logins bleiben) oder nur Arbeitsspeicher
+  (nichts landet auf der Platte, beim Schliessen ist alles weg)
+- Websuche laeuft im Jon-Browser; blockt eine Suchmaschine, faellt Jon automatisch
+  auf die direkte Suche zurueck statt Sperren zu umgehen
+
+## Sicherheit im Alltag
+
+- Risikowaechter fuer alle Werkzeuge, hoch fragt immer nach
+- Systemordner gesperrt, Pfadschutz unabhaengig vom Modus
+- Datenschutz-Gewissen: Zugangsdaten bleiben lokal, Regel warnen/streng/locker
+- Rueckgaengig fuer Dateiaktionen
+- Budget in Tokens je Tag und Euro je Monat
+- Auftraege ueberleben Abstuerze
+- Verstaendliche Fehlermeldungen und Offline-Erkennung
+
+## Browser-Agent
+
+- Echtes Chromium (Playwright), sichtbar oder headless, mehrere Tabs, eigenes Profil
+  unter `data/browser/profil` (Logins bleiben erhalten)
+- `browser_task` erledigt einen ganzen Auftrag selbstständig: Plan, Seite öffnen, lesen,
+  klicken, ausfüllen, neu bewerten, berichten
+- Elemente kommen aus Rollen, ARIA-Labels, Beschriftungen und sichtbarem Text und
+  bekommen stabile IDs (`e1`, `e17`) — keine hart codierten CSS-Pfade pro Website
+- Planmodus (Auto/Immer/Aus): riskante oder mehrstufige Aufträge werden erst geplant;
+  ein Plan ist keine Erlaubnis
+- RiskActionGuard: Kauf, Bestellung, Buchung, Absenden und Löschen werden programmatisch
+  gestoppt — Bestätigung gilt einmal und verfällt bei Preis-, Anbieter- oder Mengenänderung
+- Dry Run: nur planen und nachsehen, nichts verändern
+- Passwort- und Zahlungsfelder werden nie ausgefüllt, CAPTCHAs und 2FA nie umgangen
+- Seiteninhalt gilt als unvertrauenswürdig; Prompt-Injection wird erkannt und gemeldet
+- Schrittlimit, Zeitlimit, Wiederholungs- und Schleifenerkennung, Protokoll ohne
+  Passwörter, Tokens oder Cookies
 - Chromium wird beim ersten Aufruf automatisch installiert
-- Skill `browser-automation.md`: nie Logins/Käufe ohne Bestätigung
 
 ## Kalender
 

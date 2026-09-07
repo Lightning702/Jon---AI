@@ -24,6 +24,7 @@ from app.services.multiplayer_service import (
     WebSocketTransport,
     get_multiplayer_service,
 )
+from app.core.fehler import leise
 
 router = APIRouter(prefix="/api/mp", tags=["multiplayer"])
 
@@ -217,8 +218,8 @@ async def mp_socket(socket: WebSocket) -> None:
             await service.handle(lobby, member, message)
     except WebSocketDisconnect:
         pass
-    except Exception:
-        pass
+    except Exception as _fehler:
+        leise(_fehler, "api/multiplayer_routes")
     finally:
         if lobby is not None and member is not None and member.transport is transport:
             await service.detach(lobby, member)

@@ -6,6 +6,7 @@ import time
 
 from app.services.llm import complete
 from app.services.settings_service import get_settings_service
+from app.core.fehler import leise
 
 PROMPTS = {
     "verbessern": (
@@ -50,8 +51,8 @@ class QuickwriteService:
         old = ""
         try:
             old = pyperclip.paste()
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/quickwrite_service")
         try:
             pyperclip.copy("")
             pyautogui.hotkey("ctrl", "c")
@@ -62,8 +63,8 @@ class QuickwriteService:
         if not text.strip():
             try:
                 pyperclip.copy(old)
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/quickwrite_service")
             return {"error": "Kein Text markiert — erst Text markieren, dann Jon rufen."}
         with self._lock:
             self._pending = text
@@ -126,8 +127,8 @@ class QuickwriteService:
         old = ""
         try:
             old = pyperclip.paste()
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/quickwrite_service")
         try:
             await asyncio.sleep(0.5)
             pyautogui.press("esc")

@@ -7,6 +7,7 @@ import time
 import urllib.parse
 
 from app.services.spotify_service import MOODS
+from app.core.fehler import leise
 
 WEB = "https://music.amazon.de"
 
@@ -84,8 +85,8 @@ class AmazonMusicService:
                         "titel": clean,
                         "wo": "Amazon Music (Browser)",
                     }
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/amazon_music_service")
         return {"laeuft": False, "hinweis": "Amazon Music laeuft gerade nicht"}
 
 

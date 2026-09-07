@@ -10,6 +10,7 @@ from app.core.config import DATA_DIR
 from app.services.llm import complete
 from app.services.settings_service import get_settings_service
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 DECKS_FILE = DATA_DIR / "flashcards.json"
 INTERVALS = [0, 60, 600, 3600, 21600, 86400, 259200, 604800, 1209600]
@@ -39,8 +40,8 @@ class FlashcardsService:
             data = json.loads(DECKS_FILE.read_text(encoding="utf-8"))
             if isinstance(data, dict):
                 return data
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/flashcards_service")
         return {}
 
     def _save(self) -> None:
@@ -48,8 +49,8 @@ class FlashcardsService:
             atomic_write_text(DECKS_FILE,
                 json.dumps(self._decks, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/flashcards_service")
 
     async def generate(self, topic: str) -> dict:
         text = topic.strip()

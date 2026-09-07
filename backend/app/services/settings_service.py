@@ -5,6 +5,7 @@ import threading
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 SETTINGS_FILE = DATA_DIR / "user_settings.json"
 
@@ -31,6 +32,7 @@ DEFAULTS = {
     "maps_home_label": "",
     "maps_home_source": "",
     "clipboard_history": True,
+    "handy_ordner": "",
     "webcam_enabled": False,
     "mail_imap_host": "",
     "mail_imap_user": "",
@@ -89,6 +91,26 @@ DEFAULTS = {
     "phone_max_seconds": 600,
     "phone_accept_incoming": True,
     "phone_greeting": "",
+    "browser_agent": True,
+    "browser_sichtbar": True,
+    "browser_persistent": True,
+    "browser_speicher": "festplatte",
+    "web_browser": "jon",
+    "browser_plan_modus": "auto",
+    "browser_dry_run": False,
+    "browser_max_schritte": 25,
+    "browser_suchmaschine": "brave",
+    "initiative_enabled": False,
+    "initiative_stunde": 7,
+    "wahrnehmung_enabled": False,
+    "konsolidierung_auto": True,
+    "kritiker_enabled": False,
+    "kritiker_schwelle": 0.5,
+    "datenschutz_regel": "warnen",
+    "budget_tokens_tag": 0,
+    "budget_euro_monat": 0.0,
+    "budget_warnung": 0.8,
+    "semantik_modell": "",
 }
 
 
@@ -98,12 +120,20 @@ class SettingsService:
         self._data = self._load()
 
     def _load(self) -> dict:
+        from app.core.datenschema import pruefen, wandeln
+
         data = dict(DEFAULTS)
-        if SETTINGS_FILE.exists():
-            try:
-                data.update(json.loads(SETTINGS_FILE.read_text(encoding="utf-8")))
-            except Exception:
-                pass
+        roh = wandeln(
+            SETTINGS_FILE,
+            "user_settings",
+            {
+                1: lambda d: d if isinstance(d, dict) else {},
+                2: lambda d: {k: v for k, v in d.items() if v is not None},
+            },
+            standard={},
+        )
+        if isinstance(roh, dict):
+            data = pruefen(roh, data)
         return data
 
     def _save(self) -> None:
@@ -111,8 +141,8 @@ class SettingsService:
             atomic_write_text(SETTINGS_FILE,
                 json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/settings_service")
 
     def get(self) -> dict:
         with self._lock:

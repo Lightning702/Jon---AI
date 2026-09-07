@@ -11,6 +11,7 @@ from email.header import decode_header
 from email.mime.text import MIMEText
 
 from app.services.settings_service import get_settings_service
+from app.core.fehler import leise
 
 
 def _decode(value: str | None) -> str:
@@ -95,8 +96,8 @@ class MailService:
         finally:
             try:
                 conn.logout()
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/mail_service")
 
     def read_mail(self, mail_id: str) -> dict:
         conn = self._imap()
@@ -117,8 +118,8 @@ class MailService:
         finally:
             try:
                 conn.logout()
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/mail_service")
 
     def send_mail(self, to: str, subject: str, body: str) -> dict:
         cfg = self._cfg()

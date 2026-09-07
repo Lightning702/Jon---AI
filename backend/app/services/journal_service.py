@@ -9,6 +9,7 @@ from app.core.config import DATA_DIR
 from app.services.llm import complete
 from app.services.settings_service import get_settings_service
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 JOURNAL_FILE = DATA_DIR / "journal.json"
 
@@ -36,8 +37,8 @@ class JournalService:
             data = json.loads(JOURNAL_FILE.read_text(encoding="utf-8"))
             if isinstance(data, list):
                 return data
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/journal_service")
         return []
 
     def _save(self) -> None:
@@ -46,8 +47,8 @@ class JournalService:
                 json.dumps(self._entries, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/journal_service")
 
     async def add(self, text: str) -> dict:
         body = text.strip()
@@ -72,8 +73,8 @@ class JournalService:
                 title = str(data.get("title") or title)[:80]
                 tags = [str(t)[:24] for t in (data.get("tags") or [])][:4]
                 mood = str(data.get("mood") or "neutral")
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/journal_service")
         now = datetime.now()
         entry = {
             "id": uuid.uuid4().hex,

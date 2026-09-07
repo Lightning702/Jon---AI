@@ -7,6 +7,7 @@ from datetime import datetime
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 CLIPBOARD_FILE = DATA_DIR / "clipboard_history.json"
 MAX_ENTRIES = 50
@@ -25,8 +26,8 @@ class ClipboardService:
                 data = json.loads(CLIPBOARD_FILE.read_text(encoding="utf-8"))
                 if isinstance(data, list):
                     return data
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/clipboard_service")
         return []
 
     def _save(self) -> None:
@@ -35,8 +36,8 @@ class ClipboardService:
                 json.dumps(self._entries, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/clipboard_service")
 
     def capture(self) -> None:
         try:

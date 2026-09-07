@@ -69,6 +69,7 @@ class SettingsIn(BaseModel):
     vision_model: str | None = None
     briefing_city: str | None = None
     clipboard_history: bool | None = None
+    handy_ordner: str | None = None
     webcam_enabled: bool | None = None
     mail_imap_host: str | None = None
     mail_imap_user: str | None = None
@@ -121,6 +122,31 @@ class SettingsIn(BaseModel):
     phone_max_seconds: int | None = None
     phone_accept_incoming: bool | None = None
     phone_greeting: str | None = None
+    browser_agent: bool | None = None
+    browser_sichtbar: bool | None = None
+    browser_persistent: bool | None = None
+    browser_speicher: str | None = None
+    web_browser: str | None = None
+    browser_plan_modus: str | None = None
+    browser_dry_run: bool | None = None
+    browser_max_schritte: int | None = None
+    browser_suchmaschine: str | None = None
+    initiative_enabled: bool | None = None
+    initiative_stunde: int | None = None
+    wahrnehmung_enabled: bool | None = None
+    konsolidierung_auto: bool | None = None
+    kritiker_enabled: bool | None = None
+    kritiker_schwelle: float | None = None
+    datenschutz_regel: str | None = None
+    budget_tokens_tag: int | None = None
+    budget_euro_monat: float | None = None
+    budget_warnung: float | None = None
+    semantik_modell: str | None = None
+
+
+class BrowserConfirmIn(BaseModel):
+    token: str
+    approved: bool = True
 
 
 class PhoneCallIn(BaseModel):
@@ -399,6 +425,7 @@ class MessageOut(BaseModel):
     role: str
     content: str
     reasoning: str | None = None
+    karten: str | None = None
     position: int
     created_at: datetime
 
@@ -523,3 +550,50 @@ class ResearchStartIn(BaseModel):
 
 class ResearchControlIn(BaseModel):
     action: str = Field(pattern="^(pause|resume|stop|resume_task)$")
+
+
+class ProjectAddIn(BaseModel):
+    root: str
+    name: str = ""
+    note: str = ""
+
+
+class ProjectUpdateIn(BaseModel):
+    name: str | None = None
+    technik: str | None = None
+    regeln: list[str] | None = None
+    notizen: list[str] | None = None
+
+
+class ProjectNoteIn(BaseModel):
+    note: str
+
+
+class ProjectPathIn(BaseModel):
+    root: str
+
+
+class ProjectChangesIn(BaseModel):
+    root: str
+    snapshot: dict
+
+
+class InboxAnalyzeIn(BaseModel):
+    id: str = ""
+    text: str = ""
+    betreff: str = ""
+    von: str = ""
+    provider: str | None = None
+    model: str | None = None
+    force: bool = False
+
+
+class InboxActionIn(BaseModel):
+    typ: str
+    payload: dict = Field(default_factory=dict)
+    quelle: str = ""
+    bestaetigt: bool = False
+
+
+class InboxSeenIn(BaseModel):
+    id: str

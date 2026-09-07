@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 
 from app.services.phone import sipmsg
 from app.services.phone.rtp import RtpSession, open_port
+from app.core.fehler import leise
 from app.services.phone.sipmsg import (
     SipMessage,
     SipUri,
@@ -259,8 +260,8 @@ class SipStack(asyncio.DatagramProtocol):
         for call in list(self._calls.values()):
             try:
                 await self.hangup(call, "Jon wurde beendet")
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/phone/stack")
         if self._tcp_server is not None:
             self._tcp_server.close()
             with suppress(Exception):

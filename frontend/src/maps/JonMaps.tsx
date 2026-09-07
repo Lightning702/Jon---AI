@@ -9,22 +9,28 @@ import LayerSheet from "./LayerSheet";
 import RoutePanel from "./RoutePanel";
 import PlaceSheet from "./PlaceSheet";
 import FriendSheet from "./FriendSheet";
+import InfoPanel from "./InfoPanel";
 import StreetView from "./StreetView";
 import WorldExplorer from "./WorldExplorer";
 import SpaceBackdrop from "./SpaceBackdrop";
 import {
   FriendLocation,
   FriendsResult,
+  InfoTarget,
   MapsConfig,
   MapsPlace,
   MapsRoute,
   MapsTheme,
+  PlaceInfo,
   TravelMode,
   getFriends,
   getMapsConfig,
+  infoTargetOf,
+  isRegion,
   locateDevice,
   locateViaJon,
   nearbyPlaces,
+  placeInfo,
   planRoute,
   reversePlace,
   searchPlaces,
@@ -116,6 +122,13 @@ export default function JonMaps({
   const [homeName, setHomeName] = useState("");
   const [friends, setFriends] = useState<FriendsResult | null>(null);
   const [activeFriend, setActiveFriend] = useState<FriendLocation | null>(null);
+  const [infoTarget, setInfoTarget] = useState<InfoTarget | null>(null);
+  const [info, setInfo] = useState<PlaceInfo | null>(null);
+  const [infoBusy, setInfoBusy] = useState(false);
+  const [infoError, setInfoError] = useState("");
+  const infoSeq = useRef(0);
+  const infoAbort = useRef<AbortController | null>(null);
+  const infoCache = useRef(new Map<string, { at: number; data: PlaceInfo }>());
   const mapRef = useRef<maplibregl.Map | null>(null);
   const pendingStart = useRef<{ lat: number; lon: number; zoom: number } | null>(
     null
@@ -354,6 +367,54 @@ export default function JonMaps({
     }
   }, [intent, flyTo]);
 
+  const loadInfo = useCallback(async (target: InfoTarget, force = false) => {
+    const ticket = ++infoSeq.current;
+    infoAbort.current?.abort();
+    setInfoTarget(target);
+    setInfoError("");
+    const cached = infoCache.current.get(target.key);
+    if (cached && !force && Date.now() - cached.at < 600000) {
+      setInfo(cached.data);
+      setInfoBusy(false);
+      return;
+    }
+    setInfo(null);
+    setInfoBusy(true);
+    const controller = new AbortController();
+    infoAbort.current = controller;
+    try {
+      const data = await placeInfo(target, controller.signal);
+      if (ticket !== infoSeq.current) return;
+      infoCache.current.set(target.key, { at: Date.now(), data });
+      setInfo(data);
+    } catch (error) {
+      if (ticket !== infoSeq.current) return;
+      if ((error as Error).name === "AbortError") return;
+      setInfoError("Jon konnte News und Wetter gerade nicht laden.");
+    } finally {
+      if (ticket === infoSeq.current) setInfoBusy(false);
+    }
+  }, []);
+
+  const closeInfo = useCallback(() => {
+    infoSeq.current += 1;
+    infoAbort.current?.abort();
+    infoAbort.current = null;
+    setInfoTarget(null);
+    setInfo(null);
+    setInfoBusy(false);
+    setInfoError("");
+  }, []);
+
+  const openInfo = useCallback(
+    (place: MapsPlace) => {
+      const target = infoTargetOf(place);
+      if (!target) return;
+      void loadInfo(target);
+    },
+    [loadInfo]
+  );
+
   const setStop = useCallback((index: number, place: MapsPlace | null) => {
     setRouteStops((current) =>
       current.map((item, position) => (position === index ? place : item))
@@ -402,9 +463,10 @@ export default function JonMaps({
         setRouteSlot(null);
       } else {
         setSelected(place);
+        if (isRegion(place)) openInfo(place);
       }
     },
-    [routeOpen, routeSlot]
+    [routeOpen, routeSlot, openInfo]
   );
 
   const runSearch = useCallback(
@@ -581,11 +643,12 @@ export default function JonMaps({
       try {
         const place = await reversePlace(lat, lon);
         setSelected(place);
+        if (isRegion(place) || viewRef.current.zoom < 11) openInfo(place);
       } catch {
         setToast("Zu diesem Punkt gibt es keine Daten.");
       }
     },
-    [routeSlot, setStop]
+    [routeSlot, setStop, openInfo]
   );
 
   const handleMarkerClick = useCallback(
@@ -736,6 +799,18 @@ export default function JonMaps({
                       Jon Maps
                     </div>
                   </div>
+                  <button
+                    className="jm-glass jm-glass--chrome jm-dock-btn jm-press"
+                    style={{ width: 38, height: 38, borderRadius: 999 }}
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    title={
+                      theme === "dark"
+                        ? "Hellen Modus einschalten"
+                        : "Dunklen Modus einschalten"
+                    }
+                  >
+                    {theme === "dark" ? "☀️" : "🌙"}
+                  </button>
                   {!embedded && onClose && (
                     <button
                       className="jm-glass jm-glass--chrome jm-dock-btn jm-press"
@@ -768,47 +843,15 @@ export default function JonMaps({
               </div>
             </div>
 
-            <div className="jm-layer" style={{ top: 18, right: 18 }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <AnimatePresence>
-                  {layersOpen && (
-                    <LayerSheet
-                      config={config}
-                      layers={layers}
-                      terrain={terrain}
-                      theme={theme}
-                      onToggle={(key) =>
-                        setLayers((current) => ({
-                          ...current,
-                          [key]: !current[key],
-                        }))
-                      }
-                      onTerrain={() => setTerrain((value) => !value)}
-                      onTheme={setTheme}
-                      homeName={homeName}
-                      onPinHome={() => void pinHome()}
-                      onLocate={() => void locate(true)}
-                      friends={friends}
-                      onSharing={(patch) => void changeSharing(patch)}
-                      onShareNow={() => void pushLocation()}
-                      onClose={() => setLayersOpen(false)}
-                    />
-                  )}
-                </AnimatePresence>
-                <button
-                  className="jm-glass jm-glass--chrome jm-dock-btn jm-press"
-                  style={{ width: 40, height: 40, borderRadius: 999 }}
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  title={theme === "dark" ? "Hellen Modus einschalten" : "Dunklen Modus einschalten"}
-                >
-                  {theme === "dark" ? "☀️" : "🌙"}
-                </button>
-              </div>
-            </div>
-
             <div
               className="jm-layer"
-              style={{ top: "50%", right: 18, transform: "translateY(-50%)" }}
+              style={{
+                bottom: 18,
+                left: 18,
+                display: "flex",
+                alignItems: "flex-end",
+                gap: 12,
+              }}
             >
               <ControlDock
                 bearing={view.bearing}
@@ -834,18 +877,41 @@ export default function JonMaps({
                 onExplore={() => openExplorer()}
                 onStreet={() => openStreet()}
               />
-            </div>
 
-            <div
-              className="jm-layer"
-              style={{
-                bottom: 18,
-                left: 18,
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+              <AnimatePresence>
+                {layersOpen && (
+                  <LayerSheet
+                    key="layers"
+                    config={config}
+                    layers={layers}
+                    terrain={terrain}
+                    theme={theme}
+                    onToggle={(key) =>
+                      setLayers((current) => ({
+                        ...current,
+                        [key]: !current[key],
+                      }))
+                    }
+                    onTerrain={() => setTerrain((value) => !value)}
+                    onTheme={setTheme}
+                    homeName={homeName}
+                    onPinHome={() => void pinHome()}
+                    onLocate={() => void locate(true)}
+                    friends={friends}
+                    onSharing={(patch) => void changeSharing(patch)}
+                    onShareNow={() => void pushLocation()}
+                    onClose={() => setLayersOpen(false)}
+                  />
+                )}
+              </AnimatePresence>
+
               <AnimatePresence>
                 {routeOpen && (
                   <RoutePanel
@@ -967,6 +1033,7 @@ export default function JonMaps({
                     onStreet={() => openStreet(selected.lat, selected.lon)}
                     onExplore={() => openExplorer(selected.lat, selected.lon)}
                     onAskJon={(question) => onAskJon?.(question)}
+                    onInfo={() => openInfo(selected)}
                   />
                 )}
               </AnimatePresence>
@@ -983,6 +1050,32 @@ export default function JonMaps({
               >
                 {config?.attribution ?? "© OpenStreetMap-Mitwirkende"}
               </div>
+              </div>
+            </div>
+
+            <div
+              className="jm-layer"
+              style={{
+                top: 18,
+                right: 18,
+                bottom: 18,
+                display: "flex",
+                alignItems: "stretch",
+              }}
+            >
+              <AnimatePresence>
+                {infoTarget && (
+                  <InfoPanel
+                    key={infoTarget.key}
+                    target={infoTarget}
+                    info={info}
+                    busy={infoBusy}
+                    error={infoError}
+                    onClose={closeInfo}
+                    onReload={() => void loadInfo(infoTarget, true)}
+                  />
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}

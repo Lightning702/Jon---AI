@@ -18,6 +18,7 @@ from app.services.phone.audio import (
 )
 from app.services.phone.rtp import RtpSession
 from app.services.phone.stack import CallHandle
+from app.core.fehler import leise
 
 log = logging.getLogger("jon.phone")
 
@@ -196,8 +197,8 @@ class PhoneConversation:
         if self._on_turn:
             try:
                 self._on_turn(entry)
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/phone/conversation")
 
     async def run(self) -> list[dict]:
         started = time.monotonic()

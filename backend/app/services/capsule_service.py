@@ -7,6 +7,7 @@ from datetime import datetime
 
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
+from app.core.fehler import leise
 
 CAPSULES_FILE = DATA_DIR / "capsules.json"
 
@@ -22,8 +23,8 @@ class CapsuleService:
                 data = json.loads(CAPSULES_FILE.read_text(encoding="utf-8"))
                 if isinstance(data, list):
                     return data
-            except Exception:
-                pass
+            except Exception as _fehler:
+                leise(_fehler, "services/capsule_service")
         return []
 
     def _save(self) -> None:
@@ -32,8 +33,8 @@ class CapsuleService:
                 json.dumps(self._data, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/capsule_service")
 
     def add(self, text: str, deliver_date: str) -> dict:
         text = text.strip()
@@ -50,8 +51,8 @@ class CapsuleService:
             from app.services.persona_service import get_persona_service
 
             mood = str(get_persona_service().state().get("mood_label", ""))
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "services/capsule_service")
         item = {
             "id": uuid.uuid4().hex[:10],
             "text": text,

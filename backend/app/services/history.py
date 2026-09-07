@@ -15,6 +15,7 @@ class TrimResult:
     messages: list
     dropped: int
     shortened: int
+    entfallen: list | None = None
 
 
 def budget_chars(tokens: int) -> int:
@@ -51,7 +52,9 @@ def _digest(dropped: list) -> str:
     )
 
 
-def trim_history(messages: list, tokens: int, make_message) -> TrimResult:
+def trim_history(
+    messages: list, tokens: int, make_message, zusammenfassung: str = ""
+) -> TrimResult:
     limit = budget_chars(tokens)
     system = [m for m in messages if m.role == "system"]
     rest = [m for m in messages if m.role != "system"]
@@ -80,8 +83,22 @@ def trim_history(messages: list, tokens: int, make_message) -> TrimResult:
     dropped = normalised[: len(normalised) - len(kept)]
     result = list(system)
     if dropped:
-        text = _digest(dropped)
-        if text:
-            result.append(make_message("system", text))
+        if zusammenfassung:
+            result.append(
+                make_message(
+                    "system",
+                    "Was in diesem Gespraech vorher besprochen wurde "
+                    "(Gedaechtnisprotokoll):" + chr(10) + zusammenfassung,
+                )
+            )
+        else:
+            text = _digest(dropped)
+            if text:
+                result.append(make_message("system", text))
     result.extend(kept)
-    return TrimResult(messages=result, dropped=len(dropped), shortened=shortened)
+    return TrimResult(
+        messages=result,
+        dropped=len(dropped),
+        shortened=shortened,
+        entfallen=dropped,
+    )

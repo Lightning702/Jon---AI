@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from app.core.fehler import leise
 
 FROZEN = getattr(sys, "frozen", False)
 
@@ -67,8 +68,8 @@ if _OLD_DATA_DIR.exists() and _OLD_DATA_DIR.resolve() != DATA_DIR.resolve():
                 shutil.copytree(_item, _target)
             else:
                 shutil.copy2(_item, _target)
-        except Exception:
-            pass
+        except Exception as _fehler:
+            leise(_fehler, "core/config")
 
 
 class Settings(BaseSettings):
@@ -80,7 +81,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.36.4"
+    app_version: str = "4.40.0"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = ""

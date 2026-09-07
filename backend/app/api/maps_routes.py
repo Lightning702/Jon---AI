@@ -131,6 +131,44 @@ async def maps_reverse(lat: float, lon: float) -> dict:
     return place.to_dict()
 
 
+@router.get("/info")
+async def maps_info(
+    lat: float,
+    lon: float,
+    name: str = "",
+    country: str = "",
+    country_code: str = "",
+    scope: str = "stadt",
+    limit: int = 5,
+) -> dict:
+    from app.services.maps.insights import place_info
+
+    ort = name.strip()
+    land = country.strip()
+    code = country_code.strip()
+    if not ort or not land:
+        try:
+            place = await get_maps_service().reverse(lat, lon)
+        except Exception:
+            place = None
+        if place is not None:
+            address = place.address or {}
+            land = land or address.get("country", "")
+            code = code or address.get("country_code", "")
+            ort = ort or (
+                address.get("city")
+                or address.get("town")
+                or address.get("village")
+                or address.get("municipality")
+                or address.get("state")
+                or land
+            )
+    try:
+        return await place_info(lat, lon, ort, land, code, scope, limit)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Infos nicht ladbar: {exc}")
+
+
 @router.post("/route")
 async def maps_route(payload: MapsRouteIn) -> dict:
     service = get_maps_service()
