@@ -119,8 +119,11 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Agententeam fuer parallele Recherche
 - Benchmark-Suite mit 53 festen Pruefungen
 
-- Wahl des Browsers fuer Webseiten und Websuche: Jon-Browser (Standard, Jon liest
-  mit) oder Chrome, Edge, Firefox, Brave, Opera, Vivaldi, Standardbrowser
+- Seiten fuer dich oeffnet Jon im normalen Browser deines PCs (Voreinstellung);
+  waehlbar sind auch Chrome, Edge, Firefox, Brave, Opera, Vivaldi oder Jons
+  eigener Browser
+- Seinen eigenen Browser nimmt Jon von sich aus nur, wenn er selbst lesen,
+  suchen oder klicken muss - nur dort sieht er, was auf der Seite steht
 - Speicherort waehlbar: Festplatte (Logins bleiben) oder nur Arbeitsspeicher
   (nichts landet auf der Platte, beim Schliessen ist alles weg)
 - Websuche laeuft im Jon-Browser; blockt eine Suchmaschine, faellt Jon automatisch
