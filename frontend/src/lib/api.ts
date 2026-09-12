@@ -389,7 +389,7 @@ const STANDARD_SETTINGS: UserSettings = {
     browser_max_schritte: 25,
     browser_suchmaschine: "brave",
     browser_speicher: "festplatte",
-    web_browser: "system",
+    web_browser: "jon",
     initiative_enabled: false,
     initiative_stunde: 7,
     wahrnehmung_enabled: false,

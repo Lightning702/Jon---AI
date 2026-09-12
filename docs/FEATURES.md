@@ -119,11 +119,10 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Agententeam fuer parallele Recherche
 - Benchmark-Suite mit 53 festen Pruefungen
 
-- Seiten fuer dich oeffnet Jon im normalen Browser deines PCs (Voreinstellung);
-  waehlbar sind auch Chrome, Edge, Firefox, Brave, Opera, Vivaldi oder Jons
-  eigener Browser
-- Seinen eigenen Browser nimmt Jon von sich aus nur, wenn er selbst lesen,
-  suchen oder klicken muss - nur dort sieht er, was auf der Seite steht
+- Alles Web laeuft in Jons eigenem, privatem Browser (Voreinstellung): suchen,
+  oeffnen, lesen, klicken - nur dort sieht Jon, was auf der Seite steht
+- Auf Wunsch stattdessen Chrome, Edge, Firefox, Brave, Opera, Vivaldi oder der
+  normale Standardbrowser des PCs - dort kann Jon nicht mitlesen
 - Speicherort waehlbar: Festplatte (Logins bleiben) oder nur Arbeitsspeicher
   (nichts landet auf der Platte, beim Schliessen ist alles weg)
 - Websuche laeuft im Jon-Browser; blockt eine Suchmaschine, faellt Jon automatisch

@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.45.0] — 2026-09-12
+
+### 🕶️ Alles wieder in Jons eigenem Browser
+
+Jon sucht, öffnet, liest und klickt wieder komplett in **seinem eigenen, privaten
+Browser** — auch Seiten, die du dir nur ansehen willst. Das ist die Voreinstellung.
+Der Vorteil: Was Jon öffnet, kann er auch lesen. Er sieht die Seite mit ihren
+sichtbaren Elementen, kann weiterklicken, vergleichen, Formulare ausfüllen — und
+dein eigener Browser bleibt unberührt, ohne fremde Tabs und ohne Verlauf von Jon.
+
+„Mach das in Edge“, „nimm meinen normalen Browser“ oder „öffne das mit Brave“ gilt
+weiterhin sofort für genau diese eine Anfrage — Jon versteht jetzt auch
+„normal“ und „gewohnt“ als deinen Standardbrowser. Dauerhaft umstellen kannst du es
+unter **Einstellungen → Browser**.
+
+Versucht das Modell eine Adresse über die Konsole zu öffnen — `Start-Process
+https://…`, `start …`, `explorer …` —, fängt Jon das weiterhin ab und schickt sie
+in seinen Browser.
+
 ## [4.44.0] — 2026-09-12
 
 ### 🌐 Webseiten gehen wieder in deinen Browser

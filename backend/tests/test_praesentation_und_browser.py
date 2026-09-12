@@ -26,6 +26,8 @@ from app.services.pptx_service import get_pptx_service
         ("Google Chrome", "chrome"),
         ("firefox", "firefox"),
         ("standardbrowser", SYSTEM),
+        ("nimm meinen normalen Browser", SYSTEM),
+        ("in meinem gewohnten Browser", SYSTEM),
         ("jon", JON),
         ("eigener", JON),
         ("", ""),
@@ -36,13 +38,36 @@ def test_browsernamen_aus_normaler_sprache(eingabe, erwartet):
     assert aufloesen(eingabe) == erwartet
 
 
-def test_der_normale_browser_ist_der_standard(monkeypatch):
+def test_jons_browser_ist_der_standard(monkeypatch):
     from app.services import browserwahl
     from app.services.settings_service import DEFAULTS
 
-    assert DEFAULTS["web_browser"] == SYSTEM
+    assert DEFAULTS["web_browser"] == JON
 
-    monkeypatch.setattr(browserwahl, "wahl", lambda: SYSTEM)
+    monkeypatch.setattr(browserwahl, "wahl", lambda: JON)
+    monkeypatch.setattr(
+        browserwahl.webbrowser,
+        "open",
+        lambda url: pytest.fail("der Systembrowser haette nicht laufen duerfen"),
+    )
+    aufgerufen: dict = {}
+
+    def _goto(aktion, args):
+        aufgerufen["aktion"] = aktion
+        aufgerufen["url"] = args.get("url")
+        return {"ok": True}
+
+    monkeypatch.setattr("app.services.browser.werkzeuge.ausfuehren", _goto)
+    ergebnis = browserwahl.oeffnen("example.com")
+    assert aufgerufen["aktion"] == "goto"
+    assert aufgerufen["url"] == "https://example.com"
+    assert ergebnis["browser"] == "Jon-Browser"
+
+
+def test_normaler_browser_auf_ausdruecklichen_wunsch(monkeypatch):
+    from app.services import browserwahl
+
+    monkeypatch.setattr(browserwahl, "wahl", lambda: JON)
     monkeypatch.setattr(
         "app.services.browser.werkzeuge.ausfuehren",
         lambda aktion, args: pytest.fail("Jons Browser haette nicht laufen duerfen"),
@@ -53,27 +78,9 @@ def test_der_normale_browser_ist_der_standard(monkeypatch):
         "open",
         lambda url: geoeffnet.setdefault("url", url) or True,
     )
-    ergebnis = browserwahl.oeffnen("example.com")
+    ergebnis = browserwahl.oeffnen("example.com", "nimm meinen normalen Browser")
     assert geoeffnet["url"] == "https://example.com"
     assert ergebnis["browser"] == "Standardbrowser"
-
-
-def test_jons_browser_auf_ausdruecklichen_wunsch(monkeypatch):
-    from app.services import browserwahl
-
-    monkeypatch.setattr(browserwahl, "wahl", lambda: SYSTEM)
-    aufgerufen: dict = {}
-
-    def _goto(aktion, args):
-        aufgerufen["aktion"] = aktion
-        aufgerufen["url"] = args.get("url")
-        return {"ok": True}
-
-    monkeypatch.setattr("app.services.browser.werkzeuge.ausfuehren", _goto)
-    ergebnis = browserwahl.oeffnen("example.com", "nimm deinen eigenen Browser")
-    assert aufgerufen["aktion"] == "goto"
-    assert aufgerufen["url"] == "https://example.com"
-    assert ergebnis["browser"] == "Jon-Browser"
 
 
 def test_ausdruecklicher_wunsch_schlaegt_den_standard(monkeypatch):
@@ -94,7 +101,7 @@ def test_web_search_ohne_wunsch_nimmt_jons_browser(monkeypatch):
     from app.services import browserwahl
     from app.services.tools import ToolBox
 
-    monkeypatch.setattr(browserwahl, "wahl", lambda: SYSTEM)
+    monkeypatch.setattr(browserwahl, "wahl", lambda: JON)
     monkeypatch.setattr(
         "app.services.websuche_browser.suchen",
         lambda frage, anzahl: {"treffer": [{"title": "Treffer", "url": "x"}]},
@@ -152,15 +159,14 @@ def test_open_url_kennt_den_browser_parameter():
     schema = {t["function"]["name"]: t for t in ToolBox()._eigene_tools()}
     felder = schema["open_url"]["function"]["parameters"]["properties"]
     assert "browser" in felder
-    assert "ganz normalen Browser" in schema["open_url"]["function"]["description"]
+    assert "JONS EIGENEM" in schema["open_url"]["function"]["description"]
     assert "browser" in schema["web_search"]["function"]["parameters"]["properties"]
 
 
 def test_systemprompt_haelt_die_browserregel_fest():
     from app.services.chat_service import SYSTEM_PROMPT
 
-    assert "seinen ganz normalen Browser" in SYSTEM_PROMPT
-    assert "Jons eigenem Browser" in SYSTEM_PROMPT
+    assert "JONS EIGENEM BROWSER" in SYSTEM_PROMPT
     assert "AUSNAHME" in SYSTEM_PROMPT
 
 
@@ -549,13 +555,13 @@ def test_route_oeffnet_ueber_die_browserwahl(monkeypatch):
     def _oeffnen(url, erzwinge=""):
         gerufen["url"] = url
         gerufen["erzwinge"] = erzwinge
-        return {"ok": True, "geoeffnet": url, "browser": "Standardbrowser"}
+        return {"ok": True, "geoeffnet": url, "browser": "Jon-Browser"}
 
     monkeypatch.setattr(browserwahl, "oeffnen", _oeffnen)
     with TestClient(create_app()) as client:
         antwort = client.post("/api/browser/oeffnen", json={"url": "example.com"})
     assert antwort.status_code == 200
-    assert antwort.json()["browser"] == "Standardbrowser"
+    assert antwort.json()["browser"] == "Jon-Browser"
     assert gerufen["url"] == "example.com"
     assert gerufen["erzwinge"] == ""
 
@@ -714,17 +720,17 @@ def test_umleitung_laeuft_ueber_die_browserwahl(monkeypatch):
     def _oeffnen(url, erzwinge=""):
         gerufen["url"] = url
         gerufen["erzwinge"] = erzwinge
-        return {"ok": True, "geoeffnet": url, "browser": "Standardbrowser"}
+        return {"ok": True, "geoeffnet": url, "browser": "Jon-Browser"}
 
     monkeypatch.setattr(browserwahl, "oeffnen", _oeffnen)
-    monkeypatch.setattr(browserwahl, "wahl", lambda: SYSTEM)
+    monkeypatch.setattr(browserwahl, "wahl", lambda: JON)
     ergebnis = weboeffnen.umleiten(
         "run_powershell", {"command": "Start-Process https://youtube.com"}
     )
     assert ergebnis["ok"] is True
     assert gerufen["url"] == "https://youtube.com"
     assert ergebnis["umgeleitet_von"] == "run_powershell"
-    assert "Standardbrowser" in ergebnis["hinweis"]
+    assert "Jon-Browser" in ergebnis["hinweis"]
 
 
 def test_execute_leitet_um_statt_die_shell_zu_starten(monkeypatch):

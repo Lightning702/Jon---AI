@@ -95,7 +95,7 @@ DEFAULTS = {
     "browser_sichtbar": True,
     "browser_persistent": True,
     "browser_speicher": "festplatte",
-    "web_browser": "system",
+    "web_browser": "jon",
     "browser_plan_modus": "auto",
     "browser_dry_run": False,
     "browser_max_schritte": 25,

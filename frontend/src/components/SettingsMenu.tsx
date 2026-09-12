@@ -152,7 +152,7 @@ export default function SettingsMenu({
   const [budgetEuro, setBudgetEuro] = useState(0);
   const [suchmaschine, setSuchmaschine] = useState("brave");
   const [browserSpeicher, setBrowserSpeicher] = useState("festplatte");
-  const [webBrowser, setWebBrowser] = useState("system");
+  const [webBrowser, setWebBrowser] = useState("jon");
   const [routine, setRoutine] = useState(true);
   const [petRoam, setPetRoam] = useState(false);
   const [petWellness, setPetWellness] = useState(true);
@@ -227,7 +227,7 @@ export default function SettingsMenu({
       setBudgetEuro(s.budget_euro_monat || 0);
       setSuchmaschine(s.browser_suchmaschine || "brave");
       setBrowserSpeicher(s.browser_speicher || "festplatte");
-      setWebBrowser(s.web_browser || "system");
+      setWebBrowser(s.web_browser || "jon");
       setRoutine(s.routine_enabled !== false);
       setPetRoam(s.pet_roam === true);
       setPetWellness(s.pet_wellness !== false);
@@ -759,8 +759,8 @@ export default function SettingsMenu({
                 onChange={(e) => pickWebBrowser(e.target.value)}
                 className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white/85"
               >
-                <option value="system">Normaler Browser des PCs (Standard)</option>
-                <option value="jon">Jon-Browser (Jon kann mitlesen)</option>
+                <option value="jon">Jon-Browser (Standard, privat, Jon liest mit)</option>
+                <option value="system">Normaler Browser des PCs</option>
                 <option value="chrome">Google Chrome</option>
                 <option value="edge">Microsoft Edge</option>
                 <option value="firefox">Firefox</option>
@@ -769,9 +769,9 @@ export default function SettingsMenu({
                 <option value="vivaldi">Vivaldi</option>
               </select>
               <div className="text-[10px] text-white/40 px-0.5 leading-relaxed">
-                Seiten für dich öffnet Jon normal in deinem gewohnten Browser. Zum
-                Suchen und Lesen nimmt er immer seinen eigenen — nur dort sieht
-                er, was auf der Seite steht.
+                Jons eigener Browser surft privat, und nur dort kann Jon lesen und
+                klicken, was er öffnet. Wählst du einen anderen, landen Seiten
+                nur dort — sehen kann er sie dann nicht.
               </div>
               <div className="text-[10px] text-white/40 px-0.5 pt-1">
                 Wo liegen die Browserdaten?

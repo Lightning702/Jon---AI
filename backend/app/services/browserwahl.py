@@ -76,6 +76,11 @@ WOERTER = {
     "standardbrowser": SYSTEM,
     "system": SYSTEM,
     "systembrowser": SYSTEM,
+    "normal": SYSTEM,
+    "normaler": SYSTEM,
+    "gewohnt": SYSTEM,
+    "ueblich": SYSTEM,
+    "richtiger": SYSTEM,
     "chrome": "chrome",
     "googlechrome": "chrome",
     "google": "chrome",
@@ -108,11 +113,11 @@ def wahl() -> str:
     try:
         from app.services.settings_service import get_settings_service
 
-        wert = str(get_settings_service().get().get("web_browser", SYSTEM)).strip()
+        wert = str(get_settings_service().get().get("web_browser", JON)).strip()
     except Exception as _fehler:
         leise(_fehler, "services/browserwahl")
-        wert = SYSTEM
-    return wert or SYSTEM
+        wert = JON
+    return wert or JON
 
 
 def name(wert: str = "") -> str:

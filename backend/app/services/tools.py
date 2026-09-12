@@ -1774,20 +1774,21 @@ class ToolBox:
             ),
             _tool(
                 "open_url",
-                "Oeffnet eine Adresse fuer den NUTZER - im ganz normalen Browser "
-                "seines PCs. Das ist der Standard: 'Oeffne mir YouTube' ist immer "
-                "open_url, nie start_program oder eine Shell. Willst DU die Seite "
-                "selbst lesen, nimmst du stattdessen browser_goto plus browser_read. "
-                "Nennt der Nutzer ausdruecklich einen Browser ('mach das in Edge', "
-                "'nimm deinen eigenen'), setzt du browser auf edge, brave, chrome, "
-                "firefox, opera, vivaldi, system oder jon.",
+                "Oeffnet eine Adresse in JONS EIGENEM Browser - das ist der Standard "
+                "fuer alles Web, auch fuer Seiten, die der Nutzer sehen soll. "
+                "'Oeffne mir YouTube' ist immer open_url, nie start_program oder eine "
+                "Shell. Danach kannst du die Seite mit browser_read wirklich lesen. "
+                "Nur wenn der Nutzer ausdruecklich einen anderen Browser nennt ('mach "
+                "das in Edge', 'nimm meinen normalen Browser'), setzt du browser auf "
+                "edge, brave, chrome, firefox, opera, vivaldi oder system - dann "
+                "oeffnet die Seite dort, und du kannst sie NICHT mitlesen. Sag das "
+                "ehrlich dazu.",
                 {
                     "url": _STR,
                     "browser": {
                         "type": "string",
                         "description": "Nur wenn der Nutzer es verlangt: edge, brave, "
-                        "chrome, firefox, opera, vivaldi, system, jon. Leer = der "
-                        "eingestellte Browser des Nutzers",
+                        "chrome, firefox, opera, vivaldi, system. Leer = Jons Browser",
                     },
                 },
                 ["url"],
@@ -1795,7 +1796,7 @@ class ToolBox:
             _tool(
                 "start_program",
                 "Startet ein Programm oder eine .exe auf dem PC. NICHT fuer Webseiten - "
-                "dafuer gibt es open_url, das den eingestellten Browser benutzt. Gibst "
+                "dafuer gibt es open_url, das Jons eingestellten Browser benutzt. Gibst "
                 "du hier trotzdem eine Adresse an, leitet Jon sie dorthin um.",
                 {
                     "path": _STR,
