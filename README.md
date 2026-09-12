@@ -6,7 +6,7 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-[![Version](https://img.shields.io/badge/Version-4.40.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.43.1-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -260,6 +260,16 @@ auf Klick aufklappbar (Befehl + Erklärung + Ergebnis).
 | Gedächtnis | `remember`, `recall`, `forget` |
 | Skills | `list_skills`, `read_skill`, `read_skill_file`, `write_skill` |
 | Denken & Ziele | `ziel`, `weltmodell`, `notizblock`, `selbstbild`, `erfahrung`, `weltzustand`, `gedaechtnis_pflegen`, `initiative`, `team`, `lernen` |
+| Dateien & Dokumente | `datei_erstellen` (pdf, docx, odt, xlsx, ods, csv, md, txt, Code), `ordner_anlegen`, `datei_oeffnen`, `ordner_oeffnen`, `dateien_finden`, `dateiraum`, `umgebung` |
+| 3D & Blender | `blender_szene`, `blender_render`, `blender_export` |
+| Präsentationen | `create_pptx` (Übergänge, Animationen, Diagramme, Tabellen, Bilder), `read_pptx` |
+| Einrichtung | `desktop_verknuepfung` (Desktop-Symbol anlegen, entfernen, prüfen) |
+
+Die portable ZIP-Fassung bringt **„Jon einrichten.exe"** mit — Doppelklick legt
+Desktop-Symbol und Startmenü-Eintrag an und startet Jon. Wer stattdessen einfach
+`Jon.exe` startet, bekommt das Angebot beim ersten Mal von Jon selbst.
+| Erwarten & Lernen | `selbsteinschaetzung` (wie sicher klappt das?), `ueberraschungen` (was lief anders als gedacht), `frage_merken`, `offene_fragen`, `frage_klaeren` |
+| Fertigkeiten & Pläne | `fertigkeiten` (zeigen, entdecken, lernen, löschen), `fertigkeit_nutzen`, `plan_machen`, `plan_ausfuehren` |
 | Gedächtnis & Zeit | `was_war`, `verlauf_heute`, `remember`, `recall`, `forget` |
 | Sicherheit & Pflege | `rueckgaengig`, `netz_status` |
 | Browser-Agent | `browser_task` (kompletter Auftrag), `browser_goto`, `browser_search`, `browser_read`, `browser_click`, `browser_fill`, `browser_press`, `browser_scroll`, `browser_select`, `browser_back`, `browser_forward`, `browser_reload`, `browser_tab_new`, `browser_tab_switch`, `browser_tab_close`, `browser_wait`, `browser_screenshot`, `browser_status`, `browser_confirm`, `browser_close` |
@@ -269,6 +279,34 @@ auf Klick aufklappbar (Befehl + Erklärung + Ergebnis).
 Standardmäßig fragt Jon vor jeder Aktion um Erlaubnis. Reine Abfragen (Systeminfo, Fenster
 auflisten, Skill lesen, Erinnerung abrufen) laufen ohne Rückfrage. Der Modus ist im
 Zahnrad-Menü umstellbar. Alle Tools sind in [docs/API.md](docs/API.md) dokumentiert.
+
+### 🛠️ Dateien, Dokumente und 3D
+
+Jon erzeugt echte Dateien auf deiner Festplatte und zeigt sie dir im Chat als Karte mit
+**Öffnen**, **Herunterladen** und **Im Ordner öffnen**.
+
+- **Was er schreibt:** PDF, Word (docx), OpenDocument (odt), Excel (xlsx), ODS, CSV,
+  Markdown, Text und jede Code-Datei. Den Inhalt formuliert er vollständig aus, mit
+  Überschriften, Aufzählungen und — bei Tabellen — echten Zellen.
+- **Jons Ordner:** Beim ersten Start entsteht `Jon/` in deinem Benutzerordner mit
+  Fächern für Projects, Documents, PDFs, Images, Videos, Audio, Blender, Code,
+  Downloads, Generated, Workspace, Logs, Temp, Backups und Config. Der Ort ist in den
+  Einstellungen frei wählbar.
+- **Dein Wunsch gewinnt:** „auf den Desktop", „unter Desktop/Meine Projekte/Essen",
+  „mach einen Ordner namens YouTube Projekt" — der Ordner wird angelegt und benutzt.
+  Sagst du nichts, sortiert Jon selbst nach Dateityp ein.
+- **Wiederfinden:** Jede Datei landet in einem Index. „Zeig mir die PDF über Essen von
+  letzter Woche" reicht — Jon sucht nach Bedeutung und Zeitraum.
+- **Blender:** Beschreib die Szene, und Jon schreibt das bpy-Skript selbst, lässt
+  Blender im Hintergrund laufen, repariert eigene Fehler, speichert die .blend-Datei,
+  rendert ein Vorschaubild und exportiert nach fbx, obj, glb, gltf oder stl. Blender
+  muss installiert sein — ist es das nicht, sagt Jon genau das.
+- **Telegram:** Erzeugte Dateien schickt Jon dir direkt in den Chat.
+- **Grenzen:** Jon arbeitet in seinem Ordner, deinem Benutzerordner und Ordnern, die du
+  freigibst. Systemverzeichnisse sind gesperrt, nichts wird versehentlich überschrieben.
+
+Mit `umgebung` sagt dir Jon, was auf dem Rechner wirklich installiert ist — Python,
+Node, npm, Git, FFmpeg, Blender — und welcher Befehl fehlt.
 
 ### 🧠 Jons Denken
 
@@ -289,9 +327,32 @@ Jon vergisst nicht mehr, was war, und wartet nicht mehr nur auf Zuruf. Öffne es
   klärt Widersprüche und vergisst Unwichtiges.
 - **Weltmodell und Notizblock** — Personen, Projekte und Geräte samt Beziehungen,
   plus ein Arbeitsgedächtnis, das über einzelne Antworten hinweg gilt.
+- **Gelernt** — Jon sagt sich vor jedem Werkzeug, wie sicher es klappt, und vergleicht
+  das hinterher mit dem Ergebnis. Hier steht, wie treffsicher seine Einschätzungen
+  zuletzt waren (Brier-Wert), was ihn überrascht hat und welche **Fertigkeiten** er
+  sich aus wiederkehrenden Abläufen gemerkt hat.
+- **Offen** — was Jon gerade nicht weiß. Statt zu raten, legt er die Frage hier ab;
+  auf Klick oder über Nacht klärt er sie und legt die Antwort ins Gedächtnis.
+- **Pläne** — größere Aufträge zerlegt Jon in Schritte mit Abhängigkeiten, arbeitet sie
+  ab und plant selbst um, wenn einer scheitert.
 
 Alles läuft lokal. Einstellungen → **Jons Denken**: Eigeninitiative, nächtliches
-Nacharbeiten, dauerhafte Wahrnehmung, Selbstprüfung, Datenschutzregel und Budget.
+Nacharbeiten, dauerhafte Wahrnehmung, Selbstprüfung, Erwartung, Aufwandsschätzung,
+offene Fragen, Fertigkeiten, Datenschutzregel und Budget.
+
+#### Der Lernkreis
+
+1. **Erwarten** — vor jedem Werkzeug schätzt Jon aus seiner eigenen Statistik, wie
+   wahrscheinlich es klappt, und rechnet Stolpersteine aus dem Bereich ein.
+2. **Handeln** — das Werkzeug läuft wie bisher, mit Risikoprüfung und Freigabe.
+3. **Vergleichen** — Ergebnis und Dauer gegen die Erwartung. Der Abstand ist die
+   Überraschung.
+4. **Lernen** — große Überraschungen werden zu Erfahrungen, zu Ereignissen und, wenn
+   etwas unerwartet bricht, zu einer offenen Frage. Beim nächsten Mal fließt das in
+   die Erwartung ein.
+
+Frag ihn ruhig direkt: „wie sicher bist du dir?", „was hast du zuletzt gelernt?",
+„was weißt du nicht?" — dafür gibt es eigene Werkzeuge.
 
 ### 🛡️ Was Jon schützt
 

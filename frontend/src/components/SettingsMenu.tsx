@@ -142,6 +142,11 @@ export default function SettingsMenu({
   const [wahrnehmung, setWahrnehmung] = useState(false);
   const [konsolidierung, setKonsolidierung] = useState(true);
   const [kritiker, setKritiker] = useState(false);
+  const [erwartung, setErwartung] = useState(true);
+  const [metakognition, setMetakognition] = useState(true);
+  const [neugier, setNeugier] = useState(true);
+  const [neugierAuto, setNeugierAuto] = useState(false);
+  const [fertigkeitAuto, setFertigkeitAuto] = useState(false);
   const [datenschutz, setDatenschutz] = useState("warnen");
   const [budgetTokens, setBudgetTokens] = useState(0);
   const [budgetEuro, setBudgetEuro] = useState(0);
@@ -212,6 +217,11 @@ export default function SettingsMenu({
       setWahrnehmung(s.wahrnehmung_enabled === true);
       setKonsolidierung(s.konsolidierung_auto !== false);
       setKritiker(s.kritiker_enabled === true);
+      setErwartung(s.erwartung_enabled !== false);
+      setMetakognition(s.metakognition_enabled !== false);
+      setNeugier(s.neugier_enabled !== false);
+      setNeugierAuto(s.neugier_auto === true);
+      setFertigkeitAuto(s.fertigkeit_auto === true);
       setDatenschutz(s.datenschutz_regel || "warnen");
       setBudgetTokens(s.budget_tokens_tag || 0);
       setBudgetEuro(s.budget_euro_monat || 0);
@@ -317,6 +327,36 @@ export default function SettingsMenu({
     const next = !kritiker;
     setKritiker(next);
     void saveUserSettings({ kritiker_enabled: next });
+  };
+
+  const toggleErwartung = () => {
+    const next = !erwartung;
+    setErwartung(next);
+    void saveUserSettings({ erwartung_enabled: next });
+  };
+
+  const toggleMetakognition = () => {
+    const next = !metakognition;
+    setMetakognition(next);
+    void saveUserSettings({ metakognition_enabled: next });
+  };
+
+  const toggleNeugier = () => {
+    const next = !neugier;
+    setNeugier(next);
+    void saveUserSettings({ neugier_enabled: next });
+  };
+
+  const toggleNeugierAuto = () => {
+    const next = !neugierAuto;
+    setNeugierAuto(next);
+    void saveUserSettings({ neugier_auto: next });
+  };
+
+  const toggleFertigkeitAuto = () => {
+    const next = !fertigkeitAuto;
+    setFertigkeitAuto(next);
+    void saveUserSettings({ fertigkeit_auto: next });
   };
 
   const pickDatenschutz = (value: string) => {
@@ -790,6 +830,36 @@ export default function SettingsMenu({
                 hint="Bei unsicheren Antworten prüft Jon sich selbst und sagt dir, woran er zweifelt. Kostet einen zusätzlichen Modellaufruf."
                 on={kritiker}
                 onClick={toggleKritiker}
+              />
+              <Toggle
+                label="Vorher sagen, was er erwartet"
+                hint="Vor jedem Werkzeug schätzt Jon, wie sicher es klappt, und vergleicht es danach mit dem Ergebnis. Aus den Überraschungen lernt er. Läuft lokal und kostet nichts."
+                on={erwartung}
+                onClick={toggleErwartung}
+              />
+              <Toggle
+                label="Aufwand selbst einteilen"
+                hint="Jon schätzt vor der Antwort ein, wie schwer die Sache ist, und holt bei schweren Fragen mehr Hintergrund heran als bei einem kurzen Zuruf."
+                on={metakognition}
+                onClick={toggleMetakognition}
+              />
+              <Toggle
+                label="Offene Fragen sammeln"
+                hint="Wenn Jon etwas nicht weiß, merkt er sich die Frage, statt zu raten. Du siehst sie unter Denken → Offen."
+                on={neugier}
+                onClick={toggleNeugier}
+              />
+              <Toggle
+                label="Offene Fragen nachts klären"
+                hint="Jon sucht selbst nach Antworten auf seine offenen Fragen und legt sie ins Gedächtnis. Braucht Internet und kostet Modellaufrufe."
+                on={neugierAuto}
+                onClick={toggleNeugierAuto}
+              />
+              <Toggle
+                label="Abläufe selbst zu Fertigkeiten machen"
+                hint="Wiederholst du denselben Ablauf oft, merkt Jon ihn sich als einen Handgriff und macht ihn künftig in einem Rutsch."
+                on={fertigkeitAuto}
+                onClick={toggleFertigkeitAuto}
               />
               <div className="text-[10px] text-white/40 px-0.5 pt-1">
                 Persönliche Daten nach außen

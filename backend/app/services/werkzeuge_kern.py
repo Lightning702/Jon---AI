@@ -266,3 +266,316 @@ async def _lernen(box: Any, args: dict, name: str = "") -> str:
     if aktion == "auswerten":
         return antwort(await dienst.lernen())
     return antwort({"muster": dienst.muster(), "antimuster": dienst.antimuster()})
+
+
+@werkzeug("selbsteinschaetzung")
+def _selbsteinschaetzung(box: Any, args: dict, name: str = "") -> str:
+    from app.services.erwartung_service import get_erwartung_service
+    from app.services.metakognition_service import get_metakognition_service
+
+    dienst = get_erwartung_service()
+    werkzeug_name = str(args.get("werkzeug", "")).strip()
+    if werkzeug_name:
+        return antwort(dienst.schaetzen(werkzeug_name, args.get("args") or {}))
+    aufgabe = str(args.get("aufgabe", "")).strip()
+    daten = dienst.stand()
+    if aufgabe:
+        daten["aufwand"] = get_metakognition_service().einschaetzen(aufgabe)
+    return antwort(daten)
+
+
+@werkzeug("ueberraschungen")
+def _ueberraschungen(box: Any, args: dict, name: str = "") -> str:
+    from app.services.erwartung_service import get_erwartung_service
+
+    dienst = get_erwartung_service()
+    tage = int(args.get("tage", 14) or 14)
+    return antwort(
+        {
+            "kalibrierung": dienst.kalibrierung(tage),
+            "ueberraschungen": dienst.ueberraschungen(int(args.get("limit", 10) or 10), tage),
+        }
+    )
+
+
+@werkzeug("frage_merken")
+def _frage_merken(box: Any, args: dict, name: str = "") -> str:
+    from app.services.neugier_service import get_neugier_service
+
+    return antwort(
+        get_neugier_service().fragen(
+            str(args.get("frage", "")),
+            str(args.get("thema", "")),
+            "werkzeug",
+            float(args.get("dringlichkeit", 0.5) or 0.5),
+        )
+    )
+
+
+@werkzeug("offene_fragen")
+def _offene_fragen(box: Any, args: dict, name: str = "") -> str:
+    from app.services.neugier_service import get_neugier_service
+
+    dienst = get_neugier_service()
+    return antwort(
+        {
+            "offen": dienst.offene(int(args.get("limit", 15) or 15)),
+            "beantwortet": dienst.beantwortete(8),
+            "stand": dienst.stand(),
+        }
+    )
+
+
+@werkzeug_async("frage_klaeren")
+async def _frage_klaeren(box: Any, args: dict, name: str = "") -> str:
+    from app.services.neugier_service import get_neugier_service
+
+    dienst = get_neugier_service()
+    kennung = str(args.get("id", "")).strip()
+    if kennung:
+        return antwort(await dienst.beantworten(kennung))
+    return antwort(await dienst.lauf(int(args.get("anzahl", 3) or 3)))
+
+
+@werkzeug("fertigkeiten")
+def _fertigkeiten(box: Any, args: dict, name: str = "") -> str:
+    from app.services.fertigkeit_service import get_fertigkeit_service
+
+    dienst = get_fertigkeit_service()
+    aktion = str(args.get("aktion", "zeigen")).strip().lower()
+    if aktion == "entdecken":
+        return antwort({"vorschlaege": dienst.entdecken()})
+    if aktion == "loeschen":
+        return antwort({"geloescht": dienst.loeschen(str(args.get("name", "")))})
+    if aktion == "lernen":
+        return antwort(
+            dienst.anlegen(
+                str(args.get("name", "")),
+                list(args.get("schritte") or []),
+                str(args.get("beschreibung", "")),
+                str(args.get("ausloeser", "")),
+            )
+        )
+    suche = str(args.get("suche", "")).strip()
+    if suche:
+        return antwort({"treffer": dienst.passende(suche)})
+    return antwort(dienst.stand())
+
+
+@werkzeug_async("fertigkeit_nutzen")
+async def _fertigkeit_nutzen(box: Any, args: dict, name: str = "") -> str:
+    from app.services.fertigkeit_service import get_fertigkeit_service
+
+    return antwort(
+        await get_fertigkeit_service().ausfuehren(
+            str(args.get("name", "")),
+            dict(args.get("werte") or {}),
+            bool(args.get("bestaetigt")),
+        )
+    )
+
+
+@werkzeug_async("plan_machen")
+async def _plan_machen(box: Any, args: dict, name: str = "") -> str:
+    from app.services.planer_service import get_planer_service
+
+    dienst = get_planer_service()
+    plan = await dienst.entwerfen(
+        str(args.get("auftrag", "")),
+        str(args.get("ziel", "")),
+        str(args.get("kontext", "")),
+    )
+    if plan.get("error") or not args.get("ausfuehren"):
+        return antwort(plan)
+    ereignisse = []
+    async for eintrag in dienst.ausfuehren(
+        plan["id"], bestaetigt=bool(args.get("bestaetigt"))
+    ):
+        ereignisse.append(eintrag)
+    fertig = dienst.holen(plan["id"]) or plan
+    fertig["ereignisse"] = ereignisse
+    return antwort(fertig)
+
+
+@werkzeug_async("plan_ausfuehren")
+async def _plan_ausfuehren(box: Any, args: dict, name: str = "") -> str:
+    from app.services.planer_service import get_planer_service
+
+    dienst = get_planer_service()
+    kennung = str(args.get("id", "")).strip()
+    if not kennung:
+        return antwort({"error": "Welchen Plan? Es fehlt die id."})
+    if args.get("abbrechen"):
+        return antwort(dienst.abbrechen(kennung) or {"error": "unbekannt"})
+    ereignisse = []
+    async for eintrag in dienst.ausfuehren(
+        kennung, bestaetigt=bool(args.get("bestaetigt"))
+    ):
+        ereignisse.append(eintrag)
+    fertig = dienst.holen(kennung) or {}
+    fertig["ereignisse"] = ereignisse
+    return antwort(fertig)
+
+
+@werkzeug("datei_erstellen")
+def _datei_erstellen(box: Any, args: dict, name: str = "") -> str:
+    from app.services.dokument_service import get_dokument_service
+
+    return antwort(
+        get_dokument_service().erstellen(
+            str(args.get("art", "txt")),
+            str(args.get("titel", "")),
+            args.get("inhalt", ""),
+            str(args.get("ort", "")),
+            str(args.get("dateiname", "")),
+            str(args.get("projekt", "")),
+            quelle=getattr(box, "_source", "app"),
+        )
+    )
+
+
+@werkzeug("ordner_anlegen")
+def _ordner_anlegen(box: Any, args: dict, name: str = "") -> str:
+    from app.services.dateiraum_service import get_dateiraum_service
+
+    wunsch = str(args.get("ort", "")).strip()
+    ordner = str(args.get("name", "")).strip()
+    ziel = f"{wunsch}/{ordner}" if wunsch and ordner else (wunsch or ordner)
+    ergebnis = get_dateiraum_service().zielordner(ziel)
+    if ergebnis.get("error"):
+        return antwort(ergebnis)
+    return antwort({"ok": True, "ordner": ergebnis["pfad"]})
+
+
+@werkzeug("datei_oeffnen")
+def _datei_oeffnen(box: Any, args: dict, name: str = "") -> str:
+    from app.services import plattform
+    from app.services.dateiraum_service import get_dateiraum_service
+    from pathlib import Path
+
+    ziel = Path(str(args.get("pfad", ""))).expanduser()
+    erlaubt, grund = get_dateiraum_service().frei(ziel)
+    if not erlaubt:
+        return antwort({"error": grund})
+    if args.get("ordner"):
+        return antwort(plattform.ordner_oeffnen(ziel))
+    return antwort(plattform.datei_oeffnen(ziel))
+
+
+@werkzeug("ordner_oeffnen")
+def _ordner_oeffnen(box: Any, args: dict, name: str = "") -> str:
+    from app.services import plattform
+    from app.services.dateiraum_service import get_dateiraum_service
+    from pathlib import Path
+
+    roh = str(args.get("pfad", "")).strip()
+    if not roh:
+        ziel = get_dateiraum_service().sicherstellen()
+    else:
+        gewuenscht = get_dateiraum_service().zielordner(roh)
+        if gewuenscht.get("error"):
+            ziel = Path(roh).expanduser()
+        else:
+            ziel = Path(gewuenscht["pfad"])
+    erlaubt, grund = get_dateiraum_service().frei(ziel)
+    if not erlaubt:
+        return antwort({"error": grund})
+    return antwort(plattform.ordner_oeffnen(ziel))
+
+
+@werkzeug("dateien_finden")
+def _dateien_finden(box: Any, args: dict, name: str = "") -> str:
+    from app.services.dateiindex_service import get_dateiindex_service, karte
+
+    dienst = get_dateiindex_service()
+    frage = str(args.get("frage", "")).strip()
+    grenze = int(args.get("limit", 10) or 10)
+    treffer = (
+        dienst.suchen(frage, grenze)
+        if frage
+        else dienst.liste(str(args.get("art", "")), limit=grenze)
+    )
+    return antwort(
+        {
+            "gefunden": len(treffer),
+            "dateien": [
+                karte(e["pfad"], e.get("projekt", ""), e.get("titel", ""))
+                for e in treffer
+                if e.get("vorhanden", True)
+            ],
+            "treffer": treffer,
+        }
+    )
+
+
+@werkzeug("dateiraum")
+def _dateiraum(box: Any, args: dict, name: str = "") -> str:
+    from app.services.dateiindex_service import get_dateiindex_service
+    from app.services.dateiraum_service import get_dateiraum_service
+
+    return antwort(
+        {
+            "raum": get_dateiraum_service().stand(),
+            "index": get_dateiindex_service().stand(),
+        }
+    )
+
+
+@werkzeug("umgebung")
+def _umgebung(box: Any, args: dict, name: str = "") -> str:
+    from app.services.umgebung_service import get_umgebung_service
+
+    return antwort(get_umgebung_service().pruefen(bool(args.get("neu"))))
+
+
+@werkzeug_async("blender_szene")
+async def _blender_szene(box: Any, args: dict, name: str = "") -> str:
+    from app.services.blender_service import get_blender_service
+
+    return antwort(
+        await get_blender_service().szene(
+            str(args.get("auftrag", "")),
+            str(args.get("projekt", "")),
+            str(args.get("ort", "")),
+            bool(args.get("rendern", True)),
+            str(args.get("export", "")),
+            quelle=getattr(box, "_source", "app"),
+        )
+    )
+
+
+@werkzeug("blender_render")
+def _blender_render(box: Any, args: dict, name: str = "") -> str:
+    from app.services.blender_service import get_blender_service
+
+    return antwort(
+        get_blender_service().rendern(
+            str(args.get("datei", "")),
+            int(args.get("breite", 1280) or 1280),
+            int(args.get("hoehe", 720) or 720),
+        )
+    )
+
+
+@werkzeug("blender_export")
+def _blender_export(box: Any, args: dict, name: str = "") -> str:
+    from app.services.blender_service import get_blender_service
+
+    dienst = get_blender_service()
+    if args.get("oeffnen"):
+        return antwort(dienst.oeffnen(str(args.get("datei", ""))))
+    return antwort(
+        dienst.exportieren(str(args.get("datei", "")), str(args.get("format", "glb")))
+    )
+
+
+@werkzeug("desktop_verknuepfung")
+def _desktop_verknuepfung(box: Any, args: dict, name: str = "") -> str:
+    from app.services import verknuepfung_service
+
+    aktion = str(args.get("aktion", "anlegen")).strip().lower()
+    if aktion in ("entfernen", "loeschen", "weg"):
+        return antwort(verknuepfung_service.entfernen())
+    if aktion in ("status", "pruefen", "zeigen"):
+        return antwort(verknuepfung_service.stand())
+    return antwort(verknuepfung_service.anlegen(str(args.get("ziel", ""))))

@@ -346,6 +346,67 @@ Jon ruft diese Tools im Chat auf. In Klammern die Pflichtargumente.
   auftraege|budget|benchmark`, `POST /api/denken/ziele`, `PATCH /api/denken/ziele/{id}`,
   `POST /api/denken/initiative/lauf`, `POST /api/denken/konsolidieren`
 
+### Dateien, Dokumente und 3D
+- `datei_erstellen(art, inhalt, titel?, ort?, dateiname?, projekt?)` — erzeugt eine
+  echte Datei. `art` ist die Endung (pdf, docx, odt, xlsx, ods, csv, md, txt und jede
+  Code-Endung). `inhalt` ist Markdown bei Text, eine Zeilenliste bei Tabellen. `ort`
+  leer lassen heisst: Jon sortiert selbst ein.
+- `ordner_anlegen(name, ort?)`, `datei_oeffnen(pfad, ordner?)`, `ordner_oeffnen(pfad?)`
+- `dateien_finden(frage?, art?, limit?)` — natuerlichsprachige Suche ueber alles, was
+  Jon erzeugt hat, inklusive Zeitraum
+- `dateiraum()` — Jons Ordner und was darin liegt
+- `umgebung(neu?)` — welche Programme und Bibliotheken wirklich installiert sind
+- `blender_szene(auftrag, projekt?, ort?, rendern?, export?)` — Szene bauen, rendern,
+  exportieren; Jon schreibt das bpy-Skript selbst und repariert Fehler
+- `blender_render(datei, breite?, hoehe?)`, `blender_export(datei, format?, oeffnen?)`
+- REST: `GET /api/dateien/raum|liste|suche|stand|karte|inhalt|umgebung|blender`,
+  `POST /api/dateien/erstellen|ordner|oeffnen`,
+  `POST /api/dateien/blender/szene|render|export`,
+  `DELETE /api/dateien/index/{id}`
+- Jede erzeugte Datei liefert eine Karte:
+  `{"type": "file", "name", "path", "mimeType", "kind", "size", "sizeText", "folder",
+  "project", "title", "exists", "actions": ["open", "download", "open_folder"]}`
+
+### Praesentationen
+- `create_pptx(title, slides, path?, theme?, subtitle?, bilder?, effekte?)`
+  Layouts: title, agenda, bullets, text, cards, stat, two_columns, compare,
+  chart, table, image, quote, timeline, closing.
+  Felder je Folie: title, subtitle, footer, text (Einleitung), absaetze,
+  bullets, items, tabelle (Zeilenliste), diagramm ({art, kategorien,
+  reihen:[{name, werte}]}), image, bild_prompt, notes, uebergang, tempo.
+  Uebergaenge und Animationen kommen automatisch; `effekte:false` laesst sie
+  weg, `bilder:false` unterdrueckt das Malen der bild_prompt-Bilder.
+- `read_pptx(path, max_slides?)`
+- `desktop_verknuepfung(aktion?, ziel?)` — Desktop-Symbol anlegen (Standard),
+  entfernen oder status; fuer die portable ZIP-Fassung
+- `open_url(url, browser?)` und `web_search(query, ..., browser?)` laufen ohne
+  browser-Angabe in Jons eigenem Browser; ein Wert wie edge, brave, chrome,
+  firefox, opera, vivaldi oder system gilt nur fuer diesen einen Aufruf
+
+### Erwarten, Fragen, Fertigkeiten und Plaene
+- `selbsteinschaetzung(werkzeug?, aufgabe?)` — Erfolgswahrscheinlichkeit eines Werkzeugs
+  aus Jons eigener Statistik, Aufwandsschaetzung einer Aufgabe, sonst seine Kalibrierung
+- `ueberraschungen(tage?, limit?)` — wo Ergebnis und Erwartung auseinanderliefen
+- `frage_merken(frage, thema?, dringlichkeit?)` — Wissensluecke festhalten statt raten
+- `offene_fragen(limit?)`, `frage_klaeren(id?, anzahl?)` — offene Fragen ansehen und
+  mit Websuche plus Nachdenken klaeren; die Antwort geht ins Gedaechtnis
+- `fertigkeiten(aktion?, name?, schritte?, suche?, beschreibung?, ausloeser?)` — zeigen,
+  entdecken, lernen, loeschen. `schritte` ist eine Liste aus `{werkzeug, args}`, in `args`
+  duerfen `{{platzhalter}}` stehen
+- `fertigkeit_nutzen(name, werte?, bestaetigt?)` — gelernten Ablauf in einem Rutsch
+  ausfuehren; riskante Schritte laufen nur mit `bestaetigt`
+- `plan_machen(auftrag, kontext?, ziel?, ausfuehren?, bestaetigt?)` — Auftrag in Schritte
+  mit Abhaengigkeiten zerlegen, auf Wunsch gleich abarbeiten, bei Fehlschlag umplanen
+- `plan_ausfuehren(id, bestaetigt?, abbrechen?)`
+- REST: `GET /api/denken/erwartung[?tage=]`, `GET /api/denken/erwartung/{werkzeug}`,
+  `GET|POST /api/denken/fragen`, `POST /api/denken/fragen/lauf`,
+  `POST|DELETE /api/denken/fragen/{id}`, `GET|POST /api/denken/fertigkeiten`,
+  `GET /api/denken/fertigkeiten/vorschlaege`,
+  `POST /api/denken/fertigkeiten/{name}/ausfuehren`,
+  `DELETE /api/denken/fertigkeiten/{name}`, `GET|POST /api/denken/plaene`,
+  `GET|DELETE /api/denken/plaene/{id}`, `POST /api/denken/plaene/{id}/lauf`,
+  `GET /api/denken/aufwand[?text=]`, `GET /api/denken/aufmerksamkeit[?text=]`
+
 - `browser_wahl(browser?, speicher?)` — welcher Browser fuer Webseiten und Websuche
   (`jon`, `system`, `chrome`, `edge`, `firefox`, `brave`, `opera`, `vivaldi`) und ob
   Jons Browser alles nur im Arbeitsspeicher haelt (`ram`) oder auf der Festplatte

@@ -17,7 +17,7 @@ from app.services.tools import select_tools
 
 PFLICHT_ABSCHNITTE = (
     "Du bist Jon",
-    "ECHTER BROWSER",
+    "WEB UND BROWSER",
     "browser_task",
     "RiskActionGuard",
     "browser_confirm",
@@ -25,6 +25,13 @@ PFLICHT_ABSCHNITTE = (
     "HEUTE IST",
     "WELCHER BROWSER",
     "browser_wahl",
+    "DATEIEN",
+    "datei_erstellen",
+    "dateien_finden",
+    "ordner_oeffnen",
+    "blender_szene",
+    "plan_machen",
+    "SICHERHEIT",
 )
 
 

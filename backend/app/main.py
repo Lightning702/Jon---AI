@@ -25,6 +25,7 @@ from app.api.project_routes import router as project_router
 from app.api.phone_routes import router as phone_router
 from app.api.research_routes import router as research_router
 from app.api.browser_routes import router as browser_router
+from app.api.datei_routes import router as datei_router
 from app.api.denken_routes import router as denken_router
 from app.api.routes import accounts, providers, router
 from app.api.studio_routes import router as studio_router
@@ -89,6 +90,52 @@ async def _wahrnehmung_watcher() -> None:
             await asyncio.to_thread(get_wahrnehmung_service().takt)
         except Exception as fehler:
             _log.warning("Wahrnehmung fehlgeschlagen: %s", fehler)
+
+
+async def _neugier_watcher() -> None:
+    from app.services.neugier_service import get_neugier_service
+    from app.services.settings_service import get_settings_service
+
+    while True:
+        await asyncio.sleep(1500)
+        try:
+            einstellungen = get_settings_service().get()
+            if not einstellungen.get("neugier_auto", False):
+                continue
+            if datetime.now().hour < 3:
+                continue
+            dienst = get_neugier_service()
+            await asyncio.to_thread(dienst.aus_konflikten)
+            await asyncio.to_thread(dienst.aus_weltmodell)
+            anzahl = int(einstellungen.get("neugier_pro_lauf", 3) or 3)
+            ergebnis = await dienst.lauf(anzahl)
+            if ergebnis.get("beantwortet"):
+                _log.info("STEP neugier %s Fragen geklaert", ergebnis["beantwortet"])
+        except Exception as fehler:
+            _log.warning("Neugier fehlgeschlagen: %s", fehler)
+
+
+async def _fertigkeit_watcher() -> None:
+    from app.services.fertigkeit_service import get_fertigkeit_service
+    from app.services.settings_service import get_settings_service
+
+    while True:
+        await asyncio.sleep(7200)
+        try:
+            if not get_settings_service().get().get("fertigkeit_auto", False):
+                continue
+            dienst = get_fertigkeit_service()
+            vorschlaege = await asyncio.to_thread(dienst.entdecken)
+            neu = 0
+            for vorschlag in vorschlaege:
+                if vorschlag.get("anzahl", 0) < 5:
+                    continue
+                if dienst.uebernehmen(vorschlag).get("id"):
+                    neu += 1
+            if neu:
+                _log.info("STEP fertigkeiten %s neu gelernt", neu)
+        except Exception as fehler:
+            _log.warning("Fertigkeiten fehlgeschlagen: %s", fehler)
 
 
 async def _pflege_watcher() -> None:
@@ -481,6 +528,10 @@ async def lifespan(app: FastAPI):
 
     with suppress(Exception):
         get_trash_service().cleanup()
+    from app.services.dateiraum_service import get_dateiraum_service
+
+    with suppress(Exception):
+        _log.info("STEP dateiraum %s", get_dateiraum_service().sicherstellen())
     from app.services.kern import verdrahten
 
     with suppress(Exception):
@@ -505,6 +556,8 @@ async def lifespan(app: FastAPI):
     _spawn("initiative_watcher", _initiative_watcher())
     _spawn("konsolidierung_watcher", _konsolidierung_watcher())
     _spawn("wahrnehmung_watcher", _wahrnehmung_watcher())
+    _spawn("neugier_watcher", _neugier_watcher())
+    _spawn("fertigkeit_watcher", _fertigkeit_watcher())
     _spawn("clipboard_watcher", _clipboard_watcher())
     _spawn("friend_location_watcher", _friend_location_watcher())
     _spawn("task_watcher", _task_watcher())
@@ -583,6 +636,7 @@ def create_app() -> FastAPI:
     app.include_router(studio_router)
     app.include_router(browser_router)
     app.include_router(denken_router)
+    app.include_router(datei_router)
 
     from pathlib import Path
 

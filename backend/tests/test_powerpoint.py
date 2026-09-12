@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 
 import pytest
@@ -69,7 +70,12 @@ def test_werkzeug_erstellt_datei(tmp_path):
     box = ToolBox()
     ziel = tmp_path / "tool.pptx"
     antwort = json.loads(
-        box._execute("create_pptx", {"title": "Test", "slides": DECK[:3], "path": str(ziel)})
+        asyncio.run(
+            box.execute(
+                "create_pptx",
+                {"title": "Test", "slides": DECK[:3], "path": str(ziel)},
+            )
+        )
     )
     assert antwort["ok"] is True
     assert ziel.exists()
@@ -79,9 +85,11 @@ def test_werkzeug_nimmt_slides_als_json_string(tmp_path):
     box = ToolBox()
     ziel = tmp_path / "string.pptx"
     antwort = json.loads(
-        box._execute(
-            "create_pptx",
-            {"title": "Test", "slides": json.dumps(DECK[:2]), "path": str(ziel)},
+        asyncio.run(
+            box.execute(
+                "create_pptx",
+                {"title": "Test", "slides": json.dumps(DECK[:2]), "path": str(ziel)},
+            )
         )
     )
     assert antwort["ok"] is True

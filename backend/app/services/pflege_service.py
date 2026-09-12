@@ -114,5 +114,13 @@ def alles(tage: int = SCREENSHOT_TAGE) -> dict:
         ergebnis["ereignisse"] = get_ereignis_service().aufraeumen()
     except Exception as _fehler:
         leise(_fehler, "services/pflege_service")
+    try:
+        from app.services.erwartung_service import get_erwartung_service
+        from app.services.neugier_service import get_neugier_service
+
+        ergebnis["erwartungen"] = get_erwartung_service().aufraeumen()
+        ergebnis["fragen"] = get_neugier_service().aufraeumen()
+    except Exception as _fehler:
+        leise(_fehler, "services/pflege_service")
     ergebnis["dauer"] = round(time.time() - start, 2)
     return ergebnis

@@ -2,6 +2,180 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.43.1] — 2026-09-12
+
+### 🖱️ Der Einrichter reagiert wieder
+
+Ein Doppelklick auf „Jon einrichten.cmd" tat nichts. Zwei Gründe: Die Datei suchte
+eine `.ps1` unter einem Namen, den sie erst beim Bauen bekam — und `powershell -File`
+meldet eine fehlende Datei mit **Exit-Code 0**, weshalb auch die eingebaute Pause nie
+ansprang. Das Fenster blinkte auf und war weg.
+
+Ersetzt durch **„Jon einrichten.exe"**: ein eigenständiges kleines Programm mit Jons
+Symbol, das nichts Zweites mehr braucht, seinen eigenen Ordner findet und Fehler im
+Klartext stehen lässt, bis man Enter drückt.
+
+## [4.43.0] — 2026-09-12
+
+### 📊 Präsentationen wie von Hand gemacht
+
+Die alten Folien waren Gliederungen: fünf Stichwörter, keine Bilder, keine Bewegung,
+stellenweise sogar Platzhalter wie „X PB/Monat". Das ist vorbei.
+
+- **Echte Folienübergänge.** Jede Folie bekommt einen Wechsel — Blenden, Schieben,
+  Wischen, Aufdecken, sogar **Morphen**. PowerPoint erkennt sie als seine eigenen,
+  weil Jon sie als echtes OOXML schreibt (python-pptx kann das von Haus aus nicht).
+- **Animationen.** Überschrift, Text und Stichpunkte blenden nacheinander ein,
+  Aufzählungen Punkt für Punkt. Alles über `effekte: false` abschaltbar.
+- **Echte Diagramme.** `layout: chart` erzeugt ein richtiges PowerPoint-Diagramm mit
+  Datenreihen, Beschriftungen und Legende — als Balken, Linie, Fläche, Kreis, Donut
+  oder gestapelt. Man kann es in PowerPoint anklicken und weiterbearbeiten.
+- **Echte Tabellen.** `layout: table` setzt eine richtige Tabelle mit farbiger
+  Kopfzeile und Zebrastreifen statt einer gemalten Attrappe.
+- **Bilder, die Jon selbst malt.** Ein `bild_prompt` pro Folie genügt — Jon erzeugt
+  das Bild und setzt es ein.
+- **Vier neue Layouts:** `agenda` (nummerierte Gliederung mit Erklärungen), `text`
+  (Fließtext, wenn ein Gedanke Raum braucht), `compare` (Gegenüberstellung mit
+  Kopfleisten) und die beiden oben.
+- **Viel mehr Text.** Jede Inhaltsfolie hat jetzt einen erklärenden Einleitungssatz,
+  Stichpunkte sind ausformulierte Aussagen statt Fragmenten, und Sprechernotizen
+  sind Pflicht. In der Messung: gut das Doppelte an Text pro Folie.
+- **Keine erfundenen Zahlen mehr.** Der Skill verbietet Platzhalter ausdrücklich und
+  verlangt eine Websuche, sobald echte Zahlen vorkommen.
+- Der Textumbruch wird jetzt richtig gerechnet: Karten wachsen mit dem Inhalt, und
+  bei sehr viel Text verkleinert Jon die Schrift, statt über den Rand zu laufen.
+
+### 🌐 Jons eigener Browser ist die Regel
+
+- **Alles Web-Mäßige läuft in Jons Browser** — Suche, Seiten öffnen, Aufträge. Nur
+  dort kann er die Seite danach wirklich lesen.
+- **Auf Zuruf ein anderer.** „Mach das in Edge", „such das mit Brave" — Jon versteht
+  den Browsernamen aus normaler Sprache und nutzt ihn für genau diese Anfrage. Danach
+  gilt wieder sein eigener, ohne Nachfrage. `open_url` kannte den Schalter vorher gar
+  nicht und behauptete fälschlich, es öffne im „Standardbrowser".
+- **Ehrlich beim Rückfall.** Kommt Jons Browser nicht durch (Captcha, Firewall),
+  sagt das Ergebnis jetzt, dass die direkte Suche einsprang und warum.
+
+### 🖥️ Desktop-Symbol auch für die ZIP
+
+Die portable Fassung hatte keinen Installer und damit kein Symbol. Jetzt gibt es
+gleich drei Wege dorthin:
+
+- **„Jon einrichten.exe"** liegt der ZIP bei — ein eigenes kleines Programm **mit
+  Jons Symbol**, das auf Doppelklick Desktop-Symbol und Startmenü-Eintrag anlegt und
+  Jon startet. Fehlt `Jon.exe` daneben, weil noch nichts entpackt wurde, sagt es das
+  im Klartext und wartet, statt wortlos zu verschwinden.
+- **Jon fragt selbst.** Startest du die portable Fassung per Doppelklick auf
+  `Jon.exe`, bietet er beim ersten Mal an, das Symbol anzulegen — mit „Nicht mehr
+  fragen", falls du das nicht willst.
+- **Auf Zuruf:** „leg mir ein Desktop-Symbol an" oder „entfern das Desktop-Symbol",
+  auf Windows, macOS und Linux.
+
+## [4.42.0] — 2026-09-12
+
+### 🛠️ Jon macht jetzt Dateien — echte, die du anklicken kannst
+
+Bisher konnte Jon dir erklären, wie man eine PDF schreibt. Jetzt schreibt er sie: eine
+echte Datei auf deiner Festplatte, am richtigen Ort, als anklickbare Karte im Chat.
+
+- **Er erzeugt echte Dokumente.** PDF, Word (docx), OpenDocument (odt), Excel (xlsx),
+  ODS, CSV, Markdown, Text — dazu jede Code-Datei von Python bis Rust. Den Inhalt
+  schreibt er vollständig aus: Überschriften, Absätze, Aufzählungen, nummerierte
+  Schritte, bei Tabellen echte Zellen mit fetter Kopfzeile.
+- **Jons eigener Ordner.** Beim ersten Start legt er sich `Jon/` im Benutzerordner an,
+  mit Fächern für Projects, Documents, PDFs, Images, Videos, Audio, Blender, Code,
+  Downloads, Generated, Workspace, Logs, Temp, Backups und Config. Sagst du nichts dazu,
+  sortiert er selbst ein — eine PDF landet unter PDFs, ein Python-Skript unter Code.
+- **Dein Speicherort gewinnt.** „Speicher das auf dem Desktop", „leg alles unter
+  Desktop/Meine Projekte/Essen ab", „mach einen Ordner namens YouTube Projekt" — der
+  Ordner wird angelegt und benutzt. Der Speicherort ist frei einstellbar.
+- **Datei-Karte im Chat** statt eines Pfads im Fließtext: Symbol, Name, Typ, Größe,
+  Ordner und drei Knöpfe — **Öffnen**, **Herunterladen** und **Im Ordner öffnen**. Der
+  letzte öffnet wirklich den Dateimanager: Explorer unter Windows, Finder unter macOS,
+  nautilus/dolphin/nemo/thunar unter Linux, mit der Datei markiert.
+- **Er findet wieder, was er gemacht hat.** Jede erzeugte Datei landet in einem Index
+  mit Titel, Projekt, Zeit und Typ. „Zeig mir die PDF über Essen von letzter Woche"
+  genügt — Jon sucht nach Bedeutung und Zeitraum, nicht nach Dateinamen.
+- **3D mit Blender.** Beschreib die Szene, und Jon schreibt das bpy-Skript selbst, lässt
+  Blender im Hintergrund laufen, **repariert eigene Fehler und versucht es erneut**,
+  speichert die .blend-Datei, rendert ein Vorschaubild und exportiert auf Wunsch nach
+  fbx, obj, glb, gltf oder stl. Ist Blender nicht installiert, sagt er genau das — statt
+  so zu tun, als wäre etwas entstanden.
+- **Über Telegram kommt die Datei mit.** Was Jon erzeugt, schickt er dir als Dokument
+  oder Bild in den Chat, mit Namen und Ablageort. Zu große Dateien meldet er ehrlich,
+  statt sie stumm zu verschlucken.
+- **Er weiß, was auf dem Rechner fehlt.** Beim Start prüft Jon Python, Node, npm, Git,
+  FFmpeg und Blender samt Version, dazu seine Bibliotheken und ob überhaupt ein Modell
+  eingerichtet ist. Fehlt etwas, nennt er den Installationsbefehl.
+- **Sicherheit bleibt vorn.** Jon arbeitet nur in seinem Ordner, deinem Benutzerordner
+  und Ordnern, die du freigibst. Systemverzeichnisse sind gesperrt, Pfad-Tricks mit `..`
+  laufen ins Leere, und nichts wird versehentlich überschrieben — aus `Bericht.pdf` wird
+  `Bericht-2.pdf`.
+
+### 🧠 Neuer System-Prompt
+
+Jons Anweisungen waren über Jahre zu einem einzigen 14.500-Zeichen-Block gewachsen.
+Jetzt sind es 17 klar getrennte Abschnitte in einer eigenen Datei — kürzer, schärfer,
+und **passend zum Betriebssystem**: unter macOS und Linux verspricht er keine
+PowerShell mehr. Ein Regressionstest bewacht, dass keine Fähigkeit beim nächsten Umbau
+still verschwindet.
+
+### 🐞 Behoben
+
+- **Shell-Befehle stürzten an Sonderzeichen ab.** `run_cmd` und `run_powershell`
+  lasen die Ausgabe mit der ANSI-Codepage; ein einziges unpassendes Byte — wie es
+  pytest, npm, git oder ffmpeg ständig ausgeben — ließ den Lese-Thread sterben und
+  Jon meldete nur `'NoneType' object is not subscriptable`. Jetzt wird die Ausgabe
+  gegen mehrere Kodierungen geprüft, und Umlaute kommen in beide Richtungen sauber an.
+- **Mehrfach zitierte Befehle** wie `cd /d "C:\Ordner mit Leerzeichen" && "python.exe"
+  -m pytest` scheiterten an der Zitierregel von `cmd`. Jon nutzt jetzt den
+  vorhersagbaren Weg.
+
+## [4.41.0] — 2026-09-12
+
+### 🧠 Jon rechnet vorher damit — und lernt, wenn es anders kommt
+
+Bisher hat Jon gehandelt und danach protokolliert. Jetzt sagt er sich **vorher**, was er
+erwartet, vergleicht es mit dem, was wirklich passiert, und zieht seine Schlüsse aus dem
+Unterschied. Daraus wird ein geschlossener Kreis: erwarten → handeln → vergleichen →
+lernen.
+
+- **Er weiß, wie sicher er sich ist.** Vor jedem Werkzeug schätzt Jon aus seiner eigenen
+  Statistik, wie wahrscheinlich es klappt. Frag ihn „schaffst du das?", und du bekommst
+  eine Zahl mit Begründung statt eines freundlichen Ja.
+- **Überraschungen sind der Lehrstoff.** Weicht das Ergebnis stark von seiner Erwartung
+  ab, notiert er das als Erfahrung, hält es im Gedächtnis fest — und bei einem echten
+  Bruch legt er sich selbst die Frage hin, warum etwas nicht mehr geht, das früher lief.
+- **Er weiß, wie gut er sich kennt.** Unter Denken → Gelernt steht sein Brier-Wert: wie
+  treffsicher seine eigenen Einschätzungen zuletzt waren, und welche Werkzeuge ihn am
+  häufigsten überraschen.
+- **Offene Fragen statt geratener Antworten.** Wenn Jon etwas nicht weiß, merkt er sich
+  die Frage. Unter Denken → Offen siehst du sie, kannst sie einzeln klären lassen oder
+  Jon nachts selbst suchen lassen — die Antwort landet danach in seinem Gedächtnis.
+  Auch Widersprüche im Gedächtnis werden zu Fragen, statt stumm nebeneinander zu stehen.
+- **Gelernte Fertigkeiten.** Machst du denselben Ablauf immer wieder, findet Jon das
+  Muster in seinem Protokoll und merkt es sich als **einen** Handgriff — mit Namen,
+  Platzhaltern und Erfolgsquote. Danach führt er ihn in einem Rutsch aus, statt jeden
+  Schritt neu zu erfinden. Riskante Schritte brauchen weiterhin deine Freigabe.
+- **Ein echter Planer im Backend.** Größere Aufträge zerlegt Jon in Schritte mit
+  Abhängigkeiten, arbeitet sie der Reihe nach ab und **plant selbst um**, wenn einer
+  scheitert — bis zu zweimal, mit dem Fehlertext als Ausgangspunkt. Klappt ein Plan im
+  ersten Anlauf, wird daraus automatisch eine Fertigkeit.
+- **Er teilt sich den Aufwand ein.** Vor der Antwort schätzt Jon, wie schwer die Sache
+  ist. Auf einen kurzen Zuruf antwortet er direkt; bei einem vielschichtigen Auftrag holt
+  er mehr Hintergrund heran und prüft sich strenger selbst.
+- **Arbeitsgedächtnis mit Budget.** Was Jon vor einer Antwort über Ziele, Welt, Notizen,
+  Fertigkeiten und offene Fragen heranzieht, wird nach Relevanz gewichtet und passt in ein
+  festes Zeichenbudget — statt alles stumpf anzuhängen.
+- **Neue Werkzeuge** in der Gruppe „Denken & Lernen": `selbsteinschaetzung`,
+  `ueberraschungen`, `frage_merken`, `offene_fragen`, `frage_klaeren`, `fertigkeiten`,
+  `fertigkeit_nutzen`, `plan_machen`, `plan_ausfuehren`.
+- **Alles abschaltbar** unter Einstellungen → Denken. Erwartung, Aufwandsschätzung und
+  Fragen-Sammeln laufen lokal und kosten nichts; das nächtliche Klären und das
+  automatische Lernen von Fertigkeiten sind bewusst aus, bis du sie einschaltest.
+- Der Selbsttest wächst von 53 auf **65 Fälle** (alle grün), die Testsuite von 540 auf
+  **566 Tests**.
+
 ## [4.40.0] — 2026-09-07
 
 ### 🧩 Jon im Browser — und alles Neue endlich im Download

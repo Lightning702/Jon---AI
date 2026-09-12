@@ -1,6 +1,12 @@
 import type { ChatCard } from "../components/MessageBubble";
 
-export const KARTEN_ARTEN = ["maps", "deep_learning", "bild", "browser"] as const;
+export const KARTEN_ARTEN = [
+  "maps",
+  "deep_learning",
+  "bild",
+  "browser",
+  "datei",
+] as const;
 
 export type KartenArt = (typeof KARTEN_ARTEN)[number];
 

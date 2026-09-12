@@ -69,6 +69,10 @@ for pkg in (
     "google.generativeai",
     "paho",
     "pptx",
+    "docx",
+    "openpyxl",
+    "reportlab",
+    "odf",
 ):
     try:
         d, b, h = collect_all(pkg)

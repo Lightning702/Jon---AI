@@ -4,11 +4,12 @@ import TypingDots from "./TypingDots";
 import { toolDetail, toolLabel } from "../lib/toolInfo";
 import { ohneTabellen } from "../lib/text";
 import type { MapsCardData } from "../lib/maps";
-import type { BrowserTaskDaten, StudioWork } from "../lib/api";
+import type { BrowserTaskDaten, JonDatei, StudioWork } from "../lib/api";
 
 const MapsCard = lazy(() => import("./MapsCard"));
 const DeepLearningCard = lazy(() => import("./DeepLearningCard"));
 const BildCard = lazy(() => import("./BildCard"));
+const DateiCard = lazy(() => import("./DateiCard"));
 const BrowserCard = lazy(() => import("./BrowserCard"));
 
 export interface ToolStep {
@@ -28,7 +29,8 @@ export type ChatCard =
   | { id: string; kind: "maps"; data: MapsCardData }
   | { id: string; kind: "deep_learning"; data: { id: string } }
   | { id: string; kind: "bild"; data: StudioWork }
-  | { id: string; kind: "browser"; data: BrowserTaskDaten };
+  | { id: string; kind: "browser"; data: BrowserTaskDaten }
+  | { id: string; kind: "datei"; data: { dateien: JonDatei[] } };
 
 export interface ChatEntry {
   id: string;
@@ -181,6 +183,8 @@ export default function MessageBubble({
                   />
                 ) : card.kind === "browser" ? (
                   <BrowserCard key={card.id} data={card.data} />
+                ) : card.kind === "datei" ? (
+                  <DateiCard key={card.id} dateien={card.data.dateien ?? []} />
                 ) : (
                   <DeepLearningCard
                     key={card.id}

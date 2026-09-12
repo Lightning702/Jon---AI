@@ -308,6 +308,13 @@ export interface UserSettings {
   konsolidierung_auto?: boolean;
   kritiker_enabled?: boolean;
   kritiker_schwelle?: number;
+  erwartung_enabled?: boolean;
+  metakognition_enabled?: boolean;
+  neugier_enabled?: boolean;
+  neugier_auto?: boolean;
+  neugier_pro_lauf?: number;
+  fertigkeit_auto?: boolean;
+  planer_enabled?: boolean;
   datenschutz_regel?: string;
   budget_tokens_tag?: number;
   budget_euro_monat?: number;
@@ -388,6 +395,13 @@ const STANDARD_SETTINGS: UserSettings = {
     konsolidierung_auto: true,
     kritiker_enabled: false,
     kritiker_schwelle: 0.5,
+    erwartung_enabled: true,
+    metakognition_enabled: true,
+    neugier_enabled: true,
+    neugier_auto: false,
+    neugier_pro_lauf: 3,
+    fertigkeit_auto: false,
+    planer_enabled: true,
     datenschutz_regel: "warnen",
     budget_tokens_tag: 0,
     budget_euro_monat: 0,
@@ -1423,6 +1437,342 @@ export async function vorschlagEntscheiden(
 export async function getSelbstbild(): Promise<DenkSelbstbild | null> {
   try {
     const res = await fetch(`${BASE}/denken/selbstbild`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export interface DenkKalibrierung {
+  anzahl: number;
+  brier: number | null;
+  treffer: number | null;
+  ueberraschung: number;
+  schwaechste: { werkzeug: string; ueberraschung: number; anzahl: number }[];
+  text: string;
+}
+
+export interface DenkUeberraschung {
+  id: string;
+  zeit: string;
+  werkzeug: string;
+  bereich: string;
+  erwartet: string;
+  zutrauen: number;
+  gelungen: boolean;
+  ueberraschung: number;
+  notiz: string;
+}
+
+export interface DenkFrage {
+  id: string;
+  text: string;
+  thema: string;
+  quelle: string;
+  dringlichkeit: number;
+  zustand: string;
+  antwort: string;
+  versuche: number;
+  erstellt: string;
+}
+
+export interface DenkFertigkeit {
+  id: string;
+  name: string;
+  beschreibung: string;
+  ausloeser: string;
+  schritte: { werkzeug: string; args: Record<string, unknown>; notiz?: string }[];
+  versuche: number;
+  erfolge: number;
+  erfolgsquote: number | null;
+  aktiv: boolean;
+  quelle: string;
+  benutzt: string;
+}
+
+export interface DenkPlanSchritt {
+  id: string;
+  titel: string;
+  werkzeug: string;
+  zustand: string;
+  ergebnis: string;
+  haengt_von: string[];
+}
+
+export interface DenkPlan {
+  id: string;
+  auftrag: string;
+  zustand: string;
+  schritte: DenkPlanSchritt[];
+  erledigt: number;
+  anzahl: number;
+  fortschritt: number;
+  ergebnis: string;
+  umplanungen: number;
+  erstellt: string;
+}
+
+export async function getErwartung(
+  tage = 14
+): Promise<{ kalibrierung: DenkKalibrierung; ueberraschungen: DenkUeberraschung[] } | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/erwartung?tage=${tage}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getFragen(): Promise<{
+  offen: DenkFrage[];
+  beantwortet: DenkFrage[];
+} | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/fragen`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function addFrage(text: string): Promise<DenkFrage | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/fragen`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function frageKlaeren(id: string): Promise<DenkFrage | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/fragen/${id}`, { method: "POST" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function frageVerwerfen(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/denken/fragen/${id}`, { method: "DELETE" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function fragenLauf(anzahl = 3): Promise<{ beantwortet: number } | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/fragen/lauf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anzahl }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getFertigkeiten(): Promise<{
+  anzahl: number;
+  aktiv: number;
+  fertigkeiten: DenkFertigkeit[];
+} | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/fertigkeiten`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getFertigkeitVorschlaege(): Promise<
+  { name: string; anzahl: number; beschreibung: string; schritte: unknown[] }[]
+> {
+  try {
+    const res = await fetch(`${BASE}/denken/fertigkeiten/vorschlaege`);
+    if (!res.ok) return [];
+    return (await res.json()).vorschlaege ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function addFertigkeit(
+  name: string,
+  schritte: unknown[],
+  beschreibung = "",
+  ausloeser = ""
+): Promise<DenkFertigkeit | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/fertigkeiten`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, schritte, beschreibung, ausloeser, quelle: "nutzer" }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteFertigkeit(name: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${BASE}/denken/fertigkeiten/${encodeURIComponent(name)}`,
+      { method: "DELETE" }
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function getPlaene(): Promise<DenkPlan[]> {
+  try {
+    const res = await fetch(`${BASE}/denken/plaene`);
+    if (!res.ok) return [];
+    return (await res.json()).plaene ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function addPlan(auftrag: string): Promise<DenkPlan | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/plaene`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auftrag }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function planLauf(
+  id: string,
+  bestaetigt = false
+): Promise<(DenkPlan & { ereignisse?: { art: string; text?: string }[] }) | null> {
+  try {
+    const res = await fetch(`${BASE}/denken/plaene/${id}/lauf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bestaetigt }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function planAbbrechen(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/denken/plaene/${id}`, { method: "DELETE" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export interface JonDatei {
+  type: "file";
+  name: string;
+  path: string;
+  mimeType: string;
+  kind: string;
+  size: number;
+  sizeText: string;
+  folder: string;
+  project: string;
+  title: string;
+  exists: boolean;
+  actions: string[];
+}
+
+export interface JonDateiraum {
+  wurzel: string;
+  ordner: { name: string; pfad: string; dateien: number }[];
+  bekannt: Record<string, string>;
+  freigegeben: string[];
+}
+
+export function dateiInhaltUrl(pfad: string): string {
+  return withToken(`${BASE}/dateien/inhalt?pfad=${encodeURIComponent(pfad)}`);
+}
+
+export async function dateiOeffnen(
+  pfad: string,
+  ordner = false
+): Promise<{ ok?: boolean; error?: string } | null> {
+  try {
+    const res = await fetch(`${BASE}/dateien/oeffnen`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pfad, ordner }),
+    });
+    const daten = await res.json().catch(() => null);
+    if (!res.ok) {
+      return { error: daten?.detail ?? "Das ließ sich nicht öffnen." };
+    }
+    return daten;
+  } catch {
+    return { error: "Jon antwortet gerade nicht." };
+  }
+}
+
+export async function getDateiraum(): Promise<JonDateiraum | null> {
+  try {
+    const res = await fetch(`${BASE}/dateien/raum`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function sucheDateien(frage: string): Promise<JonDatei[]> {
+  try {
+    const res = await fetch(
+      `${BASE}/dateien/suche?frage=${encodeURIComponent(frage)}`
+    );
+    if (!res.ok) return [];
+    return (await res.json()).dateien ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getUmgebung(neu = false): Promise<{
+  plattform: string;
+  python: string;
+  dateimanager: string;
+  werkzeuge: { befehl: string; titel: string; da: boolean; version?: string; wozu: string }[];
+  pakete: { modul: string; paket: string; da: boolean; wozu: string; installieren: string }[];
+  llm: { bereit: boolean; anbieter: string[]; ollama: boolean; hinweis: string };
+  telegram: { bereit: boolean; hinweis: string };
+  fehlt: string[];
+  fehlende_pakete: string[];
+} | null> {
+  try {
+    const res = await fetch(`${BASE}/dateien/umgebung?neu=${neu ? "true" : "false"}`);
     if (!res.ok) return null;
     return await res.json();
   } catch {

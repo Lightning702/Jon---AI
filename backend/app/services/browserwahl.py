@@ -65,6 +65,45 @@ TITEL = {
 }
 
 
+WOERTER = {
+    "jon": JON,
+    "jonbrowser": JON,
+    "jons": JON,
+    "eigener": JON,
+    "eigenen": JON,
+    "intern": JON,
+    "standard": SYSTEM,
+    "standardbrowser": SYSTEM,
+    "system": SYSTEM,
+    "systembrowser": SYSTEM,
+    "chrome": "chrome",
+    "googlechrome": "chrome",
+    "google": "chrome",
+    "edge": "edge",
+    "microsoftedge": "edge",
+    "msedge": "edge",
+    "firefox": "firefox",
+    "mozilla": "firefox",
+    "brave": "brave",
+    "bravebrowser": "brave",
+    "opera": "opera",
+    "vivaldi": "vivaldi",
+}
+
+
+def aufloesen(wunsch: str) -> str:
+    roh = str(wunsch or "").strip().lower()
+    if not roh:
+        return ""
+    schlicht = "".join(z for z in roh if z.isalnum())
+    if schlicht in WOERTER:
+        return WOERTER[schlicht]
+    for wort, schluessel in WOERTER.items():
+        if wort in schlicht and len(wort) >= 4:
+            return schluessel
+    return ""
+
+
 def wahl() -> str:
     try:
         from app.services.settings_service import get_settings_service
@@ -132,7 +171,7 @@ def oeffnen(url: str, erzwinge: str = "") -> dict:
     adresse = _vollstaendig(url)
     if not adresse:
         return {"ok": False, "fehler": "Keine Adresse angegeben."}
-    schluessel = (erzwinge or wahl()).lower()
+    schluessel = (aufloesen(erzwinge) or wahl()).lower()
 
     if schluessel == JON and not adresse.startswith("ms-settings:"):
         from app.services.browser.werkzeuge import ausfuehren

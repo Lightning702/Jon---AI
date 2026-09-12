@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -95,6 +96,15 @@ SAFE_TOOLS = {
     "was_war",
     "verlauf_heute",
     "netz_status",
+    "selbsteinschaetzung",
+    "ueberraschungen",
+    "dateien_finden",
+    "dateiraum",
+    "umgebung",
+    "desktop_verknuepfung",
+    "frage_merken",
+    "offene_fragen",
+    "fertigkeiten",
     "ziel",
     "selbstbild",
     "weltzustand",
@@ -362,6 +372,62 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "misst die zeit",
         ),
     ),
+    "dateien_jon": (
+        {
+            "datei_erstellen",
+            "ordner_anlegen",
+            "datei_oeffnen",
+            "ordner_oeffnen",
+            "dateien_finden",
+            "dateiraum",
+            "umgebung",
+            "desktop_verknuepfung",
+            "blender_szene",
+            "blender_render",
+            "blender_export",
+        },
+        (
+            "erstell",
+            "mach mir",
+            "schreib mir",
+            "pdf",
+            "word",
+            "docx",
+            "excel",
+            "xlsx",
+            "tabelle",
+            "dokument",
+            "datei",
+            "dateien",
+            "ordner",
+            "speicher",
+            "speichere",
+            "ablegen",
+            "desktop",
+            "im ordner",
+            "oeffne den ordner",
+            "öffne den ordner",
+            "wo liegt",
+            "wo hast du",
+            "blender",
+            "3d",
+            "modell",
+            "render",
+            "szene",
+            "wuerfel",
+            "würfel",
+            "exportier",
+            "installiert",
+            "verfuegbar",
+            "verfügbar",
+            "verknuepfung",
+            "verknüpfung",
+            "symbol",
+            "desktop-symbol",
+            "startsymbol",
+            "icon",
+        ),
+    ),
     "denken": (
         {
             "ziel",
@@ -374,6 +440,15 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "initiative",
             "team",
             "lernen",
+            "selbsteinschaetzung",
+            "ueberraschungen",
+            "frage_merken",
+            "offene_fragen",
+            "frage_klaeren",
+            "fertigkeiten",
+            "fertigkeit_nutzen",
+            "plan_machen",
+            "plan_ausfuehren",
         },
         (
             "ziel",
@@ -398,6 +473,19 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "zustand",
             "initiative",
             "vorschlag",
+            "wie sicher bist du",
+            "was hast du gelernt",
+            "ueberrascht",
+            "überrascht",
+            "weisst du nicht",
+            "weißt du nicht",
+            "offene frage",
+            "fertigkeit",
+            "kannst du dir merken wie",
+            "immer wenn",
+            "zerleg",
+            "schritt fuer schritt",
+            "schritt für schritt",
         ),
     ),
     "timeline": (
@@ -1171,6 +1259,68 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         )
     if name == "verlauf_heute":
         return "Blickt auf den heutigen Tag zurueck."
+    if name == "datei_erstellen":
+        art = str(_shorten(args.get("art", "Datei"))).upper()
+        titel = _shorten(args.get("titel", "")) or _shorten(args.get("dateiname", ""))
+        ort = _shorten(args.get("ort", ""))
+        return (
+            f"Erstellt eine {art}-Datei"
+            + (f" „{titel}“" if titel else "")
+            + (f" in {ort}" if ort else " in Jons Ordner")
+            + "."
+        )
+    if name == "ordner_anlegen":
+        return f"Legt den Ordner „{_shorten(args.get('name', ''))}“ an."
+    if name == "datei_oeffnen":
+        return f"Oeffnet {_shorten(args.get('pfad', ''))}."
+    if name == "ordner_oeffnen":
+        return f"Oeffnet {_shorten(args.get('pfad', '')) or 'Jons Ordner'} im Dateimanager."
+    if name == "dateien_finden":
+        return f"Sucht in Jons Dateien: {_shorten(args.get('frage', 'alles'))}"
+    if name == "dateiraum":
+        return "Zeigt Jons Ordner und was darin liegt."
+    if name == "umgebung":
+        return "Prueft, welche Programme und Bibliotheken auf dem Rechner da sind."
+    if name == "desktop_verknuepfung":
+        aktion = str(_shorten(args.get("aktion", "anlegen")))
+        if aktion.startswith("entfern"):
+            return "Entfernt Jons Verknuepfung vom Desktop."
+        if aktion.startswith(("status", "pruef", "zeig")):
+            return "Sieht nach, ob Jon eine Desktop-Verknuepfung hat."
+        return "Legt eine Jon-Verknuepfung auf dem Desktop an."
+    if name == "blender_szene":
+        return f"Baut in Blender: {_shorten(args.get('auftrag', ''))}"
+    if name == "blender_render":
+        return f"Rendert {_shorten(args.get('datei', ''))}."
+    if name == "blender_export":
+        if args.get("oeffnen"):
+            return f"Oeffnet {_shorten(args.get('datei', ''))} in Blender."
+        fmt = str(_shorten(args.get("format", "glb"))).upper()
+        return f"Exportiert {_shorten(args.get('datei', ''))} als {fmt}."
+    if name == "selbsteinschaetzung":
+        ziel = _shorten(args.get("werkzeug", "") or args.get("aufgabe", ""))
+        return (
+            f"Schaetzt ein, wie sicher das klappt: {ziel}"
+            if ziel
+            else "Prueft, wie gut Jon sich selbst einschaetzt."
+        )
+    if name == "ueberraschungen":
+        return "Sieht nach, was zuletzt anders lief als erwartet."
+    if name == "frage_merken":
+        return f"Merkt sich die offene Frage: {_shorten(args.get('frage', ''))}"
+    if name == "offene_fragen":
+        return "Zeigt, was Jon noch nicht weiss."
+    if name == "frage_klaeren":
+        return "Klaert offene Fragen mit Suche und Nachdenken."
+    if name == "fertigkeiten":
+        aktion = _shorten(args.get("aktion", "zeigen"))
+        return f"Arbeitet mit gelernten Fertigkeiten ({aktion})."
+    if name == "fertigkeit_nutzen":
+        return f"Fuehrt die gelernte Fertigkeit '{_shorten(args.get('name', ''))}' aus."
+    if name == "plan_machen":
+        return f"Zerlegt in Schritte: {_shorten(args.get('auftrag', ''))}"
+    if name == "plan_ausfuehren":
+        return f"Arbeitet den Plan {_shorten(args.get('id', ''))} ab."
     if name.startswith("browser_"):
         return browser_erklaeren(name.removeprefix("browser_"), args)
     if name == "calendar_add":
@@ -1218,6 +1368,8 @@ GRUPPEN_TITEL: list[tuple[str, str, str]] = [
     ("wissen", "Wissen & Web", "🔎"),
     ("kalender", "Kalender & Erinnerungen", "📅"),
     ("gedaechtnis", "Gedächtnis", "🧠"),
+    ("werkstatt", "Dateien & Werkstatt", "🛠️"),
+    ("denken", "Denken & Lernen", "🤔"),
     ("medien", "Bilder & Dokumente", "🖼️"),
     ("musik", "Musik & Medien", "🎵"),
     ("kontakt", "Anrufe & Freunde", "📞"),
@@ -1294,6 +1446,42 @@ _GEDAECHTNIS_TOOLS = {
     "snapshot",
 }
 
+_DATEI_JON_TOOLS = {
+    "desktop_verknuepfung",
+    "datei_erstellen",
+    "ordner_anlegen",
+    "datei_oeffnen",
+    "ordner_oeffnen",
+    "dateien_finden",
+    "dateiraum",
+    "umgebung",
+    "blender_szene",
+    "blender_render",
+    "blender_export",
+}
+
+_DENK_TOOLS = {
+    "ziel",
+    "weltmodell",
+    "notizblock",
+    "selbstbild",
+    "erfahrung",
+    "weltzustand",
+    "gedaechtnis_pflegen",
+    "initiative",
+    "lernen",
+    "team",
+    "selbsteinschaetzung",
+    "ueberraschungen",
+    "frage_merken",
+    "offene_fragen",
+    "frage_klaeren",
+    "fertigkeiten",
+    "fertigkeit_nutzen",
+    "plan_machen",
+    "plan_ausfuehren",
+}
+
 _MEDIEN_TOOLS = {
     "look_at_image",
     "create_image",
@@ -1346,6 +1534,10 @@ def _gruppe_fuer(name: str) -> str:
         return "wissen"
     if name in _GEDAECHTNIS_TOOLS:
         return "gedaechtnis"
+    if name in _DENK_TOOLS:
+        return "denken"
+    if name in _DATEI_JON_TOOLS:
+        return "werkstatt"
     if name in _MEDIEN_TOOLS:
         return "medien"
     if name in _SKILL_TOOLS:
@@ -1366,6 +1558,14 @@ def _gruppe_fuer(name: str) -> str:
     }:
         return "kontakt"
     return "weitere"
+
+
+def werkzeugnamen() -> set[str]:
+    laden()
+    from app.services.werkzeug_register import namen as register_namen
+
+    eigene = {t["function"]["name"] for t in ToolBox()._eigene_tools()}
+    return eigene | register_namen()
 
 
 def werkzeug_katalog() -> list[dict]:
@@ -1523,8 +1723,21 @@ class ToolBox:
             ),
             _tool(
                 "open_url",
-                "Oeffnet eine URL im Standardbrowser.",
-                {"url": _STR},
+                "Oeffnet eine Adresse in JONS EIGENEM Browser - das ist der Standard "
+                "fuer alles Web. Danach kannst du die Seite mit browser_read wirklich "
+                "lesen. Nur wenn der Nutzer ausdruecklich einen anderen Browser nennt "
+                "('mach das in Edge', 'oeffne das mit Brave'), setzt du browser auf "
+                "edge, brave, chrome, firefox, opera, vivaldi oder system - dann "
+                "oeffnet die Seite dort, und du kannst sie NICHT mitlesen. Sag das "
+                "ehrlich dazu.",
+                {
+                    "url": _STR,
+                    "browser": {
+                        "type": "string",
+                        "description": "Nur wenn der Nutzer es verlangt: edge, brave, "
+                        "chrome, firefox, opera, vivaldi, system. Leer = Jons Browser",
+                    },
+                },
                 ["url"],
             ),
             _tool(
@@ -1813,6 +2026,213 @@ class ToolBox:
                 "Kurzer Rueckblick auf den heutigen Tag aus Jons Ereignisgedaechtnis.",
                 {},
                 [],
+            ),
+            _tool(
+                "datei_erstellen",
+                "Erzeugt eine ECHTE Datei auf dem Rechner und zeigt sie dem Nutzer als "
+                "anklickbare Karte im Chat. art ist die Endung: pdf, docx, odt, xlsx, "
+                "ods, csv, txt, md, json, html, py und weitere Code-Endungen. titel ist "
+                "die Ueberschrift. inhalt schreibst du SELBST vollstaendig aus - bei "
+                "Text in Markdown (# Ueberschrift, ## Unterueberschrift, - Punkt, "
+                "1. Nummer), bei xlsx/ods/csv als Liste von Zeilen, erste Zeile die "
+                "Spaltentitel. ort ist optional: leer laesst Jon selbst einsortieren, "
+                "sonst z.B. 'desktop', 'desktop/Meine Projekte/Essen', 'dokumente' oder "
+                "ein Jon-Unterordner. Nutze das IMMER, wenn der Nutzer eine Datei, ein "
+                "Dokument, eine PDF, eine Tabelle oder einen Text haben will - sag nie, "
+                "du koenntest keine Dateien erstellen.",
+                {
+                    "art": _STR,
+                    "titel": _STR,
+                    "inhalt": {
+                        "type": "string",
+                        "description": "Der vollstaendige Inhalt, bei Tabellen JSON-Zeilen",
+                    },
+                    "ort": _STR,
+                    "dateiname": _STR,
+                    "projekt": _STR,
+                },
+                ["art", "inhalt"],
+            ),
+            _tool(
+                "ordner_anlegen",
+                "Legt einen Ordner an. name ist der Ordnername, ort der Platz dafuer "
+                "(z.B. 'desktop' oder 'Projects'). Ohne ort landet er in Jons Ordner.",
+                {"name": _STR, "ort": _STR},
+                ["name"],
+            ),
+            _tool(
+                "datei_oeffnen",
+                "Oeffnet eine Datei im passenden Programm des Betriebssystems. Mit "
+                "ordner=true wird stattdessen der Ordner geoeffnet und die Datei darin "
+                "markiert.",
+                {"pfad": _STR, "ordner": _BOOL},
+                ["pfad"],
+            ),
+            _tool(
+                "ordner_oeffnen",
+                "Oeffnet einen Ordner im Dateimanager des Systems (Explorer, Finder "
+                "oder der Linux-Dateimanager). Ohne pfad oeffnet sich Jons Hauptordner.",
+                {"pfad": _STR},
+                [],
+            ),
+            _tool(
+                "dateien_finden",
+                "Durchsucht alles, was Jon erzeugt oder abgelegt hat, mit normaler "
+                "Sprache - auch nach Zeit ('die PDF ueber Essen von letzter Woche'). "
+                "Nutze das, wenn der Nutzer nach einer frueheren Datei fragt, statt die "
+                "Festplatte abzusuchen.",
+                {"frage": _STR, "art": _STR, "limit": _NUM},
+                [],
+            ),
+            _tool(
+                "dateiraum",
+                "Zeigt Jons Ordnerstruktur, wie viele Dateien wo liegen und was zuletzt "
+                "entstanden ist.",
+                {},
+                [],
+            ),
+            _tool(
+                "desktop_verknuepfung",
+                "Legt eine Verknuepfung zu Jon auf dem Desktop an - das brauchen vor "
+                "allem Nutzer der portablen ZIP-Fassung, die keinen Installer hatte. "
+                "aktion: anlegen (Standard), entfernen oder status. Mit ziel gibst du "
+                "die Programmdatei an, falls Jon sie nicht selbst findet.",
+                {"aktion": _STR, "ziel": _STR},
+                [],
+            ),
+            _tool(
+                "umgebung",
+                "Prueft, welche Programme (Python, Node, Git, FFmpeg, Blender) und "
+                "Bibliotheken auf diesem Rechner wirklich da sind. Nutze das, bevor du "
+                "behauptest, etwas ginge nicht - und um dem Nutzer zu sagen, was ihm "
+                "noch fehlt.",
+                {"neu": _BOOL},
+                [],
+            ),
+            _tool(
+                "blender_szene",
+                "Baut eine echte 3D-Szene in Blender. Beschreibe in auftrag, was "
+                "entstehen soll ('ein Low-Poly-Haus mit Baum', 'ein Wuerfel mit "
+                "Metallmaterial, leicht gedreht'). Jon schreibt das bpy-Skript selbst, "
+                "laesst Blender im Hintergrund laufen, repariert Fehler selbststaendig, "
+                "speichert die .blend-Datei und rendert ein Vorschaubild. export nimmt "
+                "kommagetrennte Formate: fbx, obj, glb, gltf, stl. Ist Blender nicht "
+                "installiert, sagt das Werkzeug es dir klar - behaupte dann nichts "
+                "anderes.",
+                {
+                    "auftrag": _STR,
+                    "projekt": _STR,
+                    "ort": _STR,
+                    "rendern": _BOOL,
+                    "export": _STR,
+                },
+                ["auftrag"],
+            ),
+            _tool(
+                "blender_render",
+                "Rendert eine vorhandene .blend-Datei als PNG.",
+                {"datei": _STR, "breite": _NUM, "hoehe": _NUM},
+                ["datei"],
+            ),
+            _tool(
+                "blender_export",
+                "Exportiert eine .blend-Datei in ein anderes 3D-Format (fbx, obj, glb, "
+                "gltf, stl). Mit oeffnen=true wird sie stattdessen in Blender geoeffnet.",
+                {"datei": _STR, "format": _STR, "oeffnen": _BOOL},
+                ["datei"],
+            ),
+            _tool(
+                "selbsteinschaetzung",
+                "Sagt ehrlich, wie sicher etwas klappt, BEVOR du es versuchst. Mit "
+                "werkzeug bekommst du die Erfolgswahrscheinlichkeit genau dieses "
+                "Werkzeugs aus Jons eigener Statistik, mit aufgabe eine Einschaetzung, "
+                "wie aufwaendig die Aufgabe ist. Ohne beides bekommst du Jons "
+                "Kalibrierung: wie gut er sich selbst einschaetzt. Nutze das, wenn der "
+                "Nutzer fragt, ob du etwas kannst oder wie sicher du bist.",
+                {"werkzeug": _STR, "aufgabe": _STR},
+                [],
+            ),
+            _tool(
+                "ueberraschungen",
+                "Zeigt, was zuletzt anders lief als Jon erwartet hatte - also wo er "
+                "dazugelernt hat. Nutze das, wenn der Nutzer fragt, was du gelernt "
+                "hast oder warum etwas plotzlich nicht mehr geht.",
+                {"tage": _NUM, "limit": _NUM},
+                [],
+            ),
+            _tool(
+                "frage_merken",
+                "Merkt sich eine Frage, die du gerade NICHT beantworten kannst, damit "
+                "Jon sie spaeter klaert. Nutze das immer, wenn du etwas nicht weisst, "
+                "statt zu raten.",
+                {"frage": _STR, "thema": _STR, "dringlichkeit": _NUM},
+                ["frage"],
+            ),
+            _tool(
+                "offene_fragen",
+                "Listet auf, was Jon noch nicht weiss und was er inzwischen geklaert "
+                "hat.",
+                {"limit": _NUM},
+                [],
+            ),
+            _tool(
+                "frage_klaeren",
+                "Beantwortet offene Fragen mit Websuche und Nachdenken und legt das "
+                "Ergebnis ins Gedaechtnis. Ohne id werden die dringendsten Fragen "
+                "abgearbeitet.",
+                {"id": _STR, "anzahl": _NUM},
+                [],
+            ),
+            _tool(
+                "fertigkeiten",
+                "Verwaltet Jons gelernte Handlungsmuster. aktion: zeigen (Standard), "
+                "entdecken (findet wiederkehrende Werkzeugketten im Protokoll), lernen "
+                "(speichert name + schritte als neue Fertigkeit; schritte ist eine "
+                "Liste aus {werkzeug, args}, in args darf {{platzhalter}} stehen), "
+                "loeschen. Mit suche findest du passende Fertigkeiten zu einem Text.",
+                {
+                    "aktion": _STR,
+                    "name": _STR,
+                    "beschreibung": _STR,
+                    "ausloeser": _STR,
+                    "suche": _STR,
+                    "schritte": {"type": "array", "items": {"type": "object"}},
+                },
+                [],
+            ),
+            _tool(
+                "fertigkeit_nutzen",
+                "Fuehrt eine gelernte Fertigkeit aus, statt die Einzelschritte zu "
+                "wiederholen. werte fuellt die Platzhalter. Riskante Schritte laufen "
+                "erst mit bestaetigt=true.",
+                {
+                    "name": _STR,
+                    "werte": {"type": "object"},
+                    "bestaetigt": _BOOL,
+                },
+                ["name"],
+            ),
+            _tool(
+                "plan_machen",
+                "Zerlegt einen groesseren Auftrag in konkrete Schritte mit "
+                "Abhaengigkeiten und fuehrt sie auf Wunsch gleich aus - inklusive "
+                "Neuplanung, wenn ein Schritt scheitert. Nutze das bei Auftraegen, die "
+                "mehrere Werkzeuge und mehrere Schritte brauchen, statt blind "
+                "loszulegen.",
+                {
+                    "auftrag": _STR,
+                    "kontext": _STR,
+                    "ziel": _STR,
+                    "ausfuehren": _BOOL,
+                    "bestaetigt": _BOOL,
+                },
+                ["auftrag"],
+            ),
+            _tool(
+                "plan_ausfuehren",
+                "Arbeitet einen vorhandenen Plan ab oder bricht ihn ab.",
+                {"id": _STR, "bestaetigt": _BOOL, "abbrechen": _BOOL},
+                ["id"],
             ),
             *browser_schema("browser_"),
             _tool(
@@ -2117,6 +2537,13 @@ class ToolBox:
                         "description": "true liest die besten Treffer wirklich aus - "
                         "nimm das bei Preisen, Zahlen und Details",
                     },
+                    "browser": {
+                        "type": "string",
+                        "description": "Leer lassen - dann sucht Jon in seinem eigenen "
+                        "Browser und kann die Treffer auswerten. Nur wenn der Nutzer "
+                        "ausdruecklich einen anderen nennt: edge, brave, chrome, "
+                        "firefox, opera, vivaldi, system",
+                    },
                 },
                 ["query"],
             ),
@@ -2138,16 +2565,31 @@ class ToolBox:
             ),
             _tool(
                 "create_pptx",
-                "Erstellt eine fertige, designte PowerPoint-Datei (.pptx) mit 16:9-Folien. "
-                "Nutze das IMMER, wenn der Nutzer eine Praesentation, Folien, ein Deck "
-                "oder eine PowerPoint will - schreibe nie selbst XML und starte kein "
-                "Skript dafuer. Lies vorher den Skill 'powerpoint' (read_skill) und folge "
-                "ihm. slides ist eine Liste von Objekten mit layout (title, bullets, "
-                "cards, stat, two_columns, image, quote, timeline, closing) und je nach "
-                "Layout: title, subtitle, text, footer, bullets (Liste), items (Liste aus "
-                "{title, text, bullets}), image (Pfad), notes (Sprechernotizen). theme: "
-                "midnight, forest, coral, terracotta, ocean, charcoal, teal, berry, sage, "
-                "cherry, gold.",
+                "Erstellt eine echte, fertig gestaltete PowerPoint-Datei (.pptx, 16:9) "
+                "mit Folienuebergaengen, Einblend-Animationen, echten Diagrammen und "
+                "Tabellen und auf Wunsch selbst erzeugten Bildern. Nutze das IMMER, wenn "
+                "jemand eine Praesentation, Folien, ein Deck oder eine PowerPoint will - "
+                "schreibe nie XML und starte kein Skript dafuer. Lies vorher den Skill "
+                "'powerpoint' (read_skill) und folge ihm.\n"
+                "SCHREIB RICHTIGE INHALTE: Jede Folie braucht echten, ausformulierten "
+                "Text - keine Stichwortfragmente und NIEMALS Platzhalter wie 'X Prozent' "
+                "oder 'Wert eintragen'. Weisst du eine Zahl nicht, such sie vorher mit "
+                "web_search oder lass sie weg.\n"
+                "layout ist eines von: title, agenda, bullets, text, cards, stat, "
+                "two_columns, compare, chart, table, image, quote, timeline, closing.\n"
+                "Felder je nach Layout: title, subtitle, footer, text (Einleitungssatz "
+                "ueber dem Inhalt), absaetze (Liste von Fliesstext-Absaetzen fuer "
+                "layout=text), bullets (Liste; ein Punkt darf 'Begriff: Erklaerung' sein "
+                "oder {titel, text}), items (Liste aus {titel, text, bullets}), "
+                "tabelle (Liste von Zeilen, erste Zeile sind die Spaltentitel), "
+                "diagramm ({art: balken|linie|kreis|donut|flaeche|gestapelt, kategorien: "
+                "[...], reihen: [{name, werte}]}), image (Pfad zu einem Bild), "
+                "bild_prompt (englische Bildbeschreibung - Jon malt das Bild selbst), "
+                "notes (Sprechernotizen, 2-4 Saetze), uebergang (fade, push, wipe, "
+                "morph, cover, split, zoom, reveal, glitter, keiner), tempo (langsam, "
+                "mittel, schnell).\n"
+                "theme: midnight, forest, coral, terracotta, ocean, charcoal, teal, "
+                "berry, sage, cherry, gold.",
                 {
                     "title": _STR,
                     "slides": {
@@ -2161,6 +2603,14 @@ class ToolBox:
                     },
                     "theme": _STR,
                     "subtitle": _STR,
+                    "bilder": {
+                        "type": "boolean",
+                        "description": "false schaltet das Malen der bild_prompt-Bilder ab",
+                    },
+                    "effekte": {
+                        "type": "boolean",
+                        "description": "false laesst Uebergaenge und Animationen weg",
+                    },
                 },
                 ["title", "slides"],
             ),
@@ -2828,6 +3278,30 @@ class ToolBox:
         except (TypeError, ValueError):
             return json.dumps({"error": "Ungueltige Dauer."}, ensure_ascii=False)
 
+    @staticmethod
+    def _erwarten(name: str, args: dict[str, Any], quelle: str) -> str:
+        try:
+            from app.services.erwartung_service import get_erwartung_service
+            from app.services.settings_service import get_settings_service
+
+            if not get_settings_service().get().get("erwartung_enabled", True):
+                return ""
+            return get_erwartung_service().vorhersagen(name, args, quelle)
+        except Exception as _fehler:
+            leise(_fehler, "services/tools")
+            return ""
+
+    @staticmethod
+    def _abgleichen(kennung: str, ok: bool, ergebnis: str, dauer: float) -> None:
+        if not kennung:
+            return
+        try:
+            from app.services.erwartung_service import get_erwartung_service
+
+            get_erwartung_service().abgleichen(kennung, ok, ergebnis, dauer)
+        except Exception as _fehler:
+            leise(_fehler, "services/tools")
+
     async def execute(
         self, name: str, args: dict[str, Any], source: str | None = None
     ) -> str:
@@ -2852,6 +3326,8 @@ class ToolBox:
         except Exception as _fehler:
             leise(_fehler, "services/tools")
             hinweis = ""
+        erwartung = self._erwarten(name, args, src)
+        begonnen = time.perf_counter()
         try:
             result = await self._dispatch(name, args)
         except Exception as exc:
@@ -2859,9 +3335,11 @@ class ToolBox:
 
             klartext = verstaendlich(exc, describe_tool(name, args))
             log_action(src, name, args, f"Fehler: {klartext}", ok=False)
+            self._abgleichen(erwartung, False, klartext, time.perf_counter() - begonnen)
             return json.dumps({"error": klartext}, ensure_ascii=False)
         ok = '"error"' not in result[:200]
         log_action(src, name, args, result, ok=ok)
+        self._abgleichen(erwartung, ok, result, time.perf_counter() - begonnen)
         if ok:
             cache.merken(name, args, result)
         try:
@@ -2912,26 +3390,56 @@ class ToolBox:
             return await self._deep_learning(args)
         if name == "create_image":
             return await self._create_image(args)
+        if name == "create_pptx":
+            return await self._create_pptx(args)
         if name == "web_search":
-            from app.services.browserwahl import nutzt_jon
+            from app.services.browserwahl import JON, SYSTEM, aufloesen, name as bname
+            from app.services.browserwahl import oeffnen as browser_oeffnen
+            from app.services.browserwahl import wahl
             from app.services.websearch_service import search_web
 
             frage = str(args.get("query", ""))
             anzahl = int(args.get("max_results", 6))
-            if nutzt_jon() and not args.get("schnell"):
+            gewuenscht = aufloesen(str(args.get("browser", ""))) or wahl()
+            if gewuenscht not in (JON, SYSTEM) or (
+                gewuenscht == SYSTEM and args.get("browser")
+            ):
+                from urllib.parse import quote_plus
+
+                ziel = f"https://duckduckgo.com/?q={quote_plus(frage)}"
+                geoeffnet = browser_oeffnen(ziel, gewuenscht)
+                geoeffnet["frage"] = frage
+                geoeffnet["hinweis"] = (
+                    f"Die Suche laeuft in {bname(gewuenscht)}. Dort kann ich die "
+                    "Treffer nicht mitlesen - sag Bescheid, wenn ich sie selbst "
+                    "auswerten soll."
+                )
+                return json.dumps(geoeffnet, ensure_ascii=False)
+            if gewuenscht == JON and not args.get("schnell"):
                 from app.services.websuche_browser import suchen
 
                 try:
                     ueber_browser = await asyncio.to_thread(suchen, frage, anzahl)
                     if ueber_browser.get("treffer"):
+                        ueber_browser["browser"] = bname(JON)
                         return json.dumps(ueber_browser, ensure_ascii=False)
+                    grund = "Die Suchseite lieferte keine Treffer."
                 except Exception as exc:
                     leise(exc, "services/tools")
+                    grund = str(exc)[:200]
+            else:
+                grund = ""
             try:
-                return json.dumps(
-                    await search_web(frage, anzahl, bool(args.get("read", False))),
-                    ensure_ascii=False,
+                ergebnis = await search_web(
+                    frage, anzahl, bool(args.get("read", False))
                 )
+                ergebnis["browser"] = "Direktsuche"
+                if grund:
+                    ergebnis["hinweis"] = (
+                        "Jons Browser kam nicht durch, daher die direkte Suche: "
+                        + grund
+                    )
+                return json.dumps(ergebnis, ensure_ascii=False)
             except Exception as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
         if name == "webcam_look":
@@ -2989,6 +3497,45 @@ class ToolBox:
                 ensure_ascii=False,
             )
         return json.dumps(result, ensure_ascii=False)
+
+    async def _create_pptx(self, args: dict[str, Any]) -> str:
+        from app.services.pptx_service import get_pptx_service
+
+        pptx = get_pptx_service()
+        try:
+            slides = args.get("slides")
+            if isinstance(slides, str):
+                slides = json.loads(slides)
+            folien = [f for f in (slides or []) if isinstance(f, (dict, str))]
+            gemalt = await pptx.bilder_ergaenzen(
+                [f for f in folien if isinstance(f, dict)],
+                args.get("bilder", True) is not False,
+            )
+            ergebnis = await asyncio.to_thread(
+                pptx.create,
+                str(args.get("title", "Praesentation")),
+                list(folien),
+                str(args.get("path", "")) or None,
+                str(args.get("theme", "")) or "midnight",
+                str(args.get("subtitle", "")),
+                args.get("effekte", True) is not False,
+            )
+        except Exception as exc:
+            return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if not ergebnis.get("error"):
+            ergebnis["erzeugte_bilder"] = gemalt
+            try:
+                from app.services.dateiindex_service import get_dateiindex_service
+
+                ergebnis["datei"] = get_dateiindex_service().karte_und_merken(
+                    ergebnis["path"],
+                    str(args.get("title", "Praesentation")),
+                    f"Praesentation mit {ergebnis.get('slides', 0)} Folien",
+                    quelle=self._source,
+                )
+            except Exception as _fehler:
+                leise(_fehler, "services/tools")
+        return json.dumps(ergebnis, ensure_ascii=False)
 
     async def _create_image(self, args: dict[str, Any]) -> str:
         from app.services.studio_service import StudioError, get_studio_service
@@ -3644,34 +4191,18 @@ class ToolBox:
                 )
             except Exception as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
-        if name in ("create_pptx", "read_pptx"):
+        if name == "read_pptx":
             from app.services.pptx_service import get_pptx_service
 
-            pptx = get_pptx_service()
             try:
-                if name == "read_pptx":
-                    return json.dumps(
-                        pptx.read(
-                            str(args.get("path", "")), int(args.get("max_slides", 60))
-                        ),
-                        ensure_ascii=False,
-                    )
-                slides = args.get("slides")
-                if isinstance(slides, str):
-                    slides = json.loads(slides)
                 return json.dumps(
-                    pptx.create(
-                        title=str(args.get("title", "Praesentation")),
-                        slides=list(slides or []),
-                        path=str(args.get("path", "")) or None,
-                        theme=str(args.get("theme", "")) or "midnight",
-                        subtitle=str(args.get("subtitle", "")),
+                    get_pptx_service().read(
+                        str(args.get("path", "")), int(args.get("max_slides", 60))
                     ),
                     ensure_ascii=False,
                 )
             except Exception as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
-        persona = get_persona_service()
         if name == "journal":
             return json.dumps(
                 persona.append_journal(str(args.get("entry", ""))), ensure_ascii=False

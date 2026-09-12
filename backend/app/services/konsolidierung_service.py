@@ -186,6 +186,7 @@ class KonsolidierungService:
         konflikte = await self._konflikte_klaeren()
         vergessen = speicher.aufraeumen()
         alt = ereignisse.aufraeumen()
+        nacharbeit = await self._nacharbeit()
 
         if rueckblick:
             ereignisse.notieren(
@@ -212,7 +213,42 @@ class KonsolidierungService:
             "konflikte_geklaert": konflikte,
             "vergessen": vergessen,
             "alte_ereignisse_entfernt": alt,
+            **nacharbeit,
         }
+
+    async def _nacharbeit(self) -> dict:
+        bericht: dict = {}
+        try:
+            from app.services.erwartung_service import get_erwartung_service
+
+            bericht["kalibrierung"] = get_erwartung_service().kalibrierung(7)
+        except Exception as _fehler:
+            leise(_fehler, "services/konsolidierung_service")
+        try:
+            from app.services.neugier_service import get_neugier_service
+            from app.services.settings_service import get_settings_service
+
+            dienst = get_neugier_service()
+            dienst.aus_konflikten()
+            dienst.aus_weltmodell()
+            einstellungen = get_settings_service().get()
+            if einstellungen.get("neugier_auto", False):
+                bericht["fragen"] = await dienst.lauf(
+                    int(einstellungen.get("neugier_pro_lauf", 3) or 3)
+                )
+            else:
+                bericht["fragen"] = {"offen": len(dienst.offene(50))}
+        except Exception as _fehler:
+            leise(_fehler, "services/konsolidierung_service")
+        try:
+            from app.services.fertigkeit_service import get_fertigkeit_service
+
+            bericht["fertigkeit_vorschlaege"] = [
+                v["name"] for v in get_fertigkeit_service().entdecken()[:5]
+            ]
+        except Exception as _fehler:
+            leise(_fehler, "services/konsolidierung_service")
+        return bericht
 
 
 _service: KonsolidierungService | None = None

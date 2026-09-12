@@ -137,6 +137,17 @@ class SettingsIn(BaseModel):
     konsolidierung_auto: bool | None = None
     kritiker_enabled: bool | None = None
     kritiker_schwelle: float | None = None
+    erwartung_enabled: bool | None = None
+    metakognition_enabled: bool | None = None
+    neugier_enabled: bool | None = None
+    neugier_auto: bool | None = None
+    neugier_pro_lauf: int | None = None
+    fertigkeit_auto: bool | None = None
+    planer_enabled: bool | None = None
+    jon_ordner: str | None = None
+    freigegebene_ordner: list[str] | None = None
+    blender_pfad: str | None = None
+    downloads_sortieren: bool | None = None
     datenschutz_regel: str | None = None
     budget_tokens_tag: int | None = None
     budget_euro_monat: float | None = None

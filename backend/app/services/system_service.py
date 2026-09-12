@@ -7,6 +7,8 @@ import os
 import platform
 import re
 import shutil
+import locale
+import sys
 import subprocess
 import urllib.parse
 import urllib.request
@@ -68,31 +70,52 @@ class SystemService:
     def __init__(self, command_timeout: float = 60.0) -> None:
         self._timeout = command_timeout
 
-    def run_powershell(self, command: str) -> CommandResult:
+    @staticmethod
+    def _entziffern(roh: bytes) -> str:
+        if not roh:
+            return ""
+        kandidaten = ["utf-8"]
+        if sys.platform == "win32":
+            try:
+                import ctypes
+
+                kandidaten.append(f"cp{ctypes.windll.kernel32.GetOEMCP()}")
+                kandidaten.append(f"cp{ctypes.windll.kernel32.GetACP()}")
+            except Exception as _fehler:
+                leise(_fehler, "services/system_service")
+            kandidaten += ["cp850", "cp1252"]
+        else:
+            kandidaten.append(locale.getpreferredencoding(False))
+        for name in kandidaten:
+            try:
+                return roh.decode(name)
+            except (UnicodeDecodeError, LookupError):
+                continue
+        return roh.decode("utf-8", errors="replace")
+
+    def _lauf(
+        self, befehl: list[str] | str, timeout: float | None = None
+    ) -> CommandResult:
         completed = subprocess.run(
-            ["powershell", "-NoProfile", "-NonInteractive", "-Command", command],
+            befehl,
             capture_output=True,
-            text=True,
-            timeout=self._timeout,
+            timeout=timeout or self._timeout,
         )
         return CommandResult(
             exit_code=completed.returncode,
-            stdout=completed.stdout,
-            stderr=completed.stderr,
+            stdout=self._entziffern(completed.stdout),
+            stderr=self._entziffern(completed.stderr),
+        )
+
+    def run_powershell(self, command: str) -> CommandResult:
+        return self._lauf(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", command]
         )
 
     def run_cmd(self, command: str) -> CommandResult:
-        completed = subprocess.run(
-            ["cmd", "/c", command],
-            capture_output=True,
-            text=True,
-            timeout=self._timeout,
-        )
-        return CommandResult(
-            exit_code=completed.returncode,
-            stdout=completed.stdout,
-            stderr=completed.stderr,
-        )
+        if sys.platform == "win32":
+            return self._lauf(f'cmd.exe /s /c "{command}"')
+        return self._lauf(["/bin/sh", "-c", command])
 
     def open_url(self, url: str) -> bool:
         if not url.startswith(("http://", "https://")):
@@ -437,6 +460,8 @@ class SystemService:
             ["powershell", "-STA", "-NoProfile", "-Command", script],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=600,
         )
         return (completed.stdout or "").strip()

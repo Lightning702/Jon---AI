@@ -745,6 +745,89 @@ ipcMain.handle("startup:set", (_event, enabled) => {
   return !!enabled;
 });
 
+function portabelInstalliert() {
+  if (!app.isPackaged || process.platform !== "win32") return false;
+  const pfad = app.getPath("exe").toLowerCase();
+  return !pfad.includes("\program files") && !pfad.includes("\appdata\local\programs");
+}
+
+function verknuepfungPfad() {
+  return path.join(app.getPath("desktop"), "Jon.lnk");
+}
+
+function verknuepfungAnlegen() {
+  const ziel = app.getPath("exe");
+  const ordner = path.dirname(ziel);
+  const symbolPfad = path.join(ordner, "resources", "icon.ico");
+  const symbol = fs.existsSync(symbolPfad) ? symbolPfad : ziel;
+  const ergebnis = shell.writeShortcutLink(verknuepfungPfad(), "create", {
+    target: ziel,
+    cwd: ordner,
+    icon: symbol,
+    iconIndex: 0,
+    description: "Jon - dein KI-Assistent",
+  });
+  if (ergebnis) {
+    try {
+      shell.writeShortcutLink(
+        path.join(app.getPath("appData"), "Microsoft", "Windows", "Start Menu", "Programs", "Jon.lnk"),
+        "create",
+        { target: ziel, cwd: ordner, icon: symbol, iconIndex: 0, description: "Jon" }
+      );
+    } catch {}
+  }
+  return ergebnis;
+}
+
+function merkerPfad() {
+  return path.join(app.getPath("userData"), "verknuepfung-gefragt");
+}
+
+async function verknuepfungAnbieten() {
+  if (!portabelInstalliert()) return;
+  if (fs.existsSync(verknuepfungPfad())) return;
+  if (fs.existsSync(merkerPfad())) return;
+  const antwort = await dialog.showMessageBox({
+    type: "question",
+    buttons: ["Ja, bitte", "Nein danke"],
+    defaultId: 0,
+    cancelId: 1,
+    title: "Jon einrichten",
+    message: "Soll ich ein Jon-Symbol auf deinen Desktop legen?",
+    detail:
+      "Du hast die portable Fassung ohne Installer. Mit einem Desktop-Symbol " +
+      "startest du Jon kuenftig mit einem Doppelklick.",
+    checkboxLabel: "Nicht mehr fragen",
+    checkboxChecked: false,
+  });
+  if (antwort.response === 0) {
+    const geklappt = verknuepfungAnlegen();
+    try {
+      fs.writeFileSync(merkerPfad(), geklappt ? "angelegt" : "fehlgeschlagen");
+    } catch {}
+    if (!geklappt) {
+      dialog.showMessageBox({
+        type: "warning",
+        title: "Jon einrichten",
+        message: "Das Symbol liess sich nicht anlegen.",
+        detail: "Du kannst Jon jederzeit sagen: leg mir ein Desktop-Symbol an.",
+      });
+    }
+    return;
+  }
+  if (antwort.checkboxChecked) {
+    try {
+      fs.writeFileSync(merkerPfad(), "abgelehnt");
+    } catch {}
+  }
+}
+
+ipcMain.handle("jon:desktop-verknuepfung", () => {
+  if (process.platform !== "win32") return { ok: false, grund: "nur unter Windows" };
+  const ok = verknuepfungAnlegen();
+  return { ok, pfad: ok ? verknuepfungPfad() : "" };
+});
+
 app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, cb) => cb(true));
   if (app.isPackaged) {
@@ -753,6 +836,7 @@ app.whenReady().then(() => {
   createWindow();
   createPet();
   void startBackend();
+  setTimeout(() => void verknuepfungAnbieten(), 4000);
   void tokenAbgleich();
   globalShortcut.register("Control+Alt+J", toggleWindow);
   globalShortcut.register("Control+Alt+K", togglePet);

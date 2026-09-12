@@ -209,3 +209,86 @@ class ActionLog(Base):
     result: Mapped[str] = mapped_column(Text, default="")
     ok: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, index=True)
+
+
+class Erwartung(Base):
+    __tablename__ = "erwartungen"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    zeit: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+    werkzeug: Mapped[str] = mapped_column(String(64), index=True)
+    bereich: Mapped[str] = mapped_column(String(80), default="", index=True)
+    erwartet: Mapped[str] = mapped_column(Text, default="")
+    zutrauen: Mapped[float] = mapped_column(Float, default=0.5)
+    dauer_erwartet: Mapped[float] = mapped_column(Float, default=0.0)
+    offen: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    gelungen: Mapped[int] = mapped_column(Integer, default=1)
+    dauer: Mapped[float] = mapped_column(Float, default=0.0)
+    ueberraschung: Mapped[float] = mapped_column(Float, default=0.0, index=True)
+    notiz: Mapped[str] = mapped_column(Text, default="")
+    quelle: Mapped[str] = mapped_column(String(24), default="app")
+
+
+class Fertigkeit(Base):
+    __tablename__ = "fertigkeiten"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(80), index=True)
+    beschreibung: Mapped[str] = mapped_column(Text, default="")
+    ausloeser: Mapped[str] = mapped_column(Text, default="")
+    schritte: Mapped[str] = mapped_column(Text, default="[]")
+    versuche: Mapped[int] = mapped_column(Integer, default=0)
+    erfolge: Mapped[int] = mapped_column(Integer, default=0)
+    aktiv: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    quelle: Mapped[str] = mapped_column(String(24), default="entdeckt")
+    erstellt: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    benutzt: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class Frage(Base):
+    __tablename__ = "fragen"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    text: Mapped[str] = mapped_column(Text, default="")
+    thema: Mapped[str] = mapped_column(String(120), default="", index=True)
+    quelle: Mapped[str] = mapped_column(String(24), default="chat", index=True)
+    dringlichkeit: Mapped[float] = mapped_column(Float, default=0.5, index=True)
+    zustand: Mapped[str] = mapped_column(String(16), default="offen", index=True)
+    antwort: Mapped[str] = mapped_column(Text, default="")
+    versuche: Mapped[int] = mapped_column(Integer, default=0)
+    erstellt: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+    beantwortet: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class Plan(Base):
+    __tablename__ = "plaene"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    auftrag: Mapped[str] = mapped_column(String(200), default="")
+    ziel: Mapped[str] = mapped_column(String(32), default="", index=True)
+    zustand: Mapped[str] = mapped_column(String(16), default="entworfen", index=True)
+    schritte: Mapped[str] = mapped_column(Text, default="[]")
+    ergebnis: Mapped[str] = mapped_column(Text, default="")
+    umplanungen: Mapped[int] = mapped_column(Integer, default=0)
+    quelle: Mapped[str] = mapped_column(String(24), default="app")
+    erstellt: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+    aktualisiert: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class Datei(Base):
+    __tablename__ = "dateien"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    pfad: Mapped[str] = mapped_column(Text, default="", index=True)
+    name: Mapped[str] = mapped_column(String(220), default="", index=True)
+    endung: Mapped[str] = mapped_column(String(16), default="", index=True)
+    art: Mapped[str] = mapped_column(String(24), default="datei", index=True)
+    groesse: Mapped[int] = mapped_column(Integer, default=0)
+    titel: Mapped[str] = mapped_column(String(300), default="")
+    beschreibung: Mapped[str] = mapped_column(Text, default="")
+    projekt: Mapped[str] = mapped_column(String(120), default="", index=True)
+    auftrag: Mapped[str] = mapped_column(String(64), default="", index=True)
+    quelle: Mapped[str] = mapped_column(String(24), default="app")
+    vorhanden: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    erstellt: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+    gesehen: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

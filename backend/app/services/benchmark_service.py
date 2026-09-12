@@ -67,6 +67,37 @@ def _plan(text: str) -> bool:
     return braucht_plan(text)[0]
 
 
+def _zutrauen(werkzeug: str) -> float:
+    from app.services.erwartung_service import get_erwartung_service
+
+    return float(get_erwartung_service().schaetzen(werkzeug)["zutrauen"])
+
+
+def _ueberraschung(zutrauen: float, ok: bool) -> float:
+    from app.services.erwartung_service import ErwartungService
+
+    return ErwartungService._ueberraschung(zutrauen, ok, 0.0, 0.0)
+
+
+def _aufwand(text: str) -> str:
+    from app.services.metakognition_service import get_metakognition_service
+
+    return get_metakognition_service().einschaetzen(text, False)["stufe"]
+
+
+def _budget_haelt(text: str, budget: int) -> bool:
+    from app.services.aufmerksamkeit_service import get_aufmerksamkeit_service
+
+    return get_aufmerksamkeit_service().waehlen(text, budget)["verbraucht"] <= budget
+
+
+def _planschritte(daten: dict) -> list[dict]:
+    from app.services.planer_service import PlanerService
+    from app.services.tools import werkzeugnamen
+
+    return PlanerService._saeubern(daten, werkzeugnamen() | {"denken"})
+
+
 def faelle() -> list[Fall]:
     from app.services.datenschutz_service import darf_raus, einstufen
     from app.services.fehlertext import verstaendlich
@@ -247,6 +278,131 @@ def faelle() -> list[Fall]:
             "semantik",
             "Synonyme greifen",
             lambda: aehnlichkeit(vektor("homepage"), vektor("webseite")) > 0.3,
+        )
+    )
+
+    aufwand_proben = [
+        ("m01", "danke dir", "schnell"),
+        ("m02", "wie spaet ist es", "schnell"),
+        (
+            "m03",
+            "Recherchiere die drei guenstigsten Anbieter, vergleiche sie und "
+            "erstelle mir danach eine Uebersicht mit Empfehlung, und dann schick "
+            "sie mir per Mail. Warum ist der erste eigentlich so teuer?",
+            "gruendlich",
+        ),
+    ]
+    for kennung, text, stufe in aufwand_proben:
+        liste.append(
+            Fall(
+                kennung,
+                "metakognition",
+                f"{text[:40]} -> {stufe}",
+                lambda t=text, e=stufe: _aufwand(t) == e,
+            )
+        )
+
+    liste.append(
+        Fall(
+            "e01",
+            "erwartung",
+            "Zutrauen liegt zwischen 0 und 1",
+            lambda: 0.0 < _zutrauen("list_dir") <= 1.0,
+        )
+    )
+    liste.append(
+        Fall(
+            "e02",
+            "erwartung",
+            "unsichere Werkzeuge bekommen weniger Vorschuss",
+            lambda: _zutrauen("run_powershell") <= _zutrauen("list_dir"),
+        )
+    )
+    liste.append(
+        Fall(
+            "e03",
+            "erwartung",
+            "ein Fehlschlag trotz hoher Erwartung ueberrascht",
+            lambda: _ueberraschung(0.9, False) >= 0.45,
+        )
+    )
+    liste.append(
+        Fall(
+            "e04",
+            "erwartung",
+            "ein Erfolg wie erwartet ueberrascht nicht",
+            lambda: _ueberraschung(0.9, True) < 0.45,
+        )
+    )
+    liste.append(
+        Fall(
+            "a01",
+            "aufmerksamkeit",
+            "das Denkbudget wird eingehalten",
+            lambda: _budget_haelt("Was steht heute an?", 600),
+        )
+    )
+    liste.append(
+        Fall(
+            "a02",
+            "aufmerksamkeit",
+            "mehr Budget bedeutet nie weniger Inhalt",
+            lambda: _budget_haelt("Was steht heute an?", 4000),
+        )
+    )
+    liste.append(
+        Fall(
+            "p01",
+            "planer",
+            "erfundene Werkzeuge werden zu Denkschritten",
+            lambda: _planschritte(
+                {
+                    "schritte": [
+                        {"id": "s1", "titel": "Zauberei", "werkzeug": "gibt_es_nicht"}
+                    ]
+                }
+            )[0]["werkzeug"]
+            == "denken",
+        )
+    )
+    liste.append(
+        Fall(
+            "p02",
+            "planer",
+            "echte Werkzeuge bleiben erhalten",
+            lambda: _planschritte(
+                {
+                    "schritte": [
+                        {
+                            "id": "s1",
+                            "titel": "Ordner",
+                            "werkzeug": "list_dir",
+                            "args": {"path": "C:/"},
+                        }
+                    ]
+                }
+            )[0]["werkzeug"]
+            == "list_dir",
+        )
+    )
+    liste.append(
+        Fall(
+            "p03",
+            "planer",
+            "Abhaengigkeiten auf unbekannte Schritte fallen weg",
+            lambda: _planschritte(
+                {
+                    "schritte": [
+                        {
+                            "id": "s1",
+                            "titel": "Erst",
+                            "werkzeug": "denken",
+                            "haengt_von": ["gibtsnicht"],
+                        }
+                    ]
+                }
+            )[0]["haengt_von"]
+            == [],
         )
     )
 

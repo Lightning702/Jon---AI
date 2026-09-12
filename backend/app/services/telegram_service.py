@@ -212,6 +212,58 @@ class TelegramService:
         except Exception:
             return False
 
+    async def send_datei(self, chat_id: str | int, datei: dict) -> bool:
+        token = self._token()
+        pfad = Path(str(datei.get("path") or ""))
+        if not token or not pfad.is_file():
+            return False
+        if pfad.stat().st_size > 48 * 1024 * 1024:
+            await self.send(
+                chat_id,
+                f"{pfad.name} ist mit {datei.get('sizeText', '')} zu gross fuer Telegram. "
+                f"Sie liegt hier: {pfad.parent}",
+            )
+            return True
+        art = str(datei.get("kind") or "")
+        methode = "sendPhoto" if art == "bild" else "sendDocument"
+        feld = "photo" if art == "bild" else "document"
+        titel = str(datei.get("title") or pfad.stem)
+        beschriftung = f"{titel} — liegt in {pfad.parent}"[:900]
+        try:
+            daten = await asyncio.to_thread(pfad.read_bytes)
+            async with httpx.AsyncClient(timeout=180) as client:
+                antwort = await client.post(
+                    f"https://api.telegram.org/bot{token}/{methode}",
+                    data={"chat_id": str(chat_id), "caption": beschriftung},
+                    files={feld: (pfad.name, daten)},
+                )
+            if antwort.status_code < 400:
+                return True
+            async with httpx.AsyncClient(timeout=180) as client:
+                antwort = await client.post(
+                    f"https://api.telegram.org/bot{token}/sendDocument",
+                    data={"chat_id": str(chat_id), "caption": beschriftung},
+                    files={"document": (pfad.name, daten)},
+                )
+            return antwort.status_code < 400
+        except Exception as _fehler:
+            leise(_fehler, "services/telegram_service")
+            return False
+
+    @staticmethod
+    def _karten_dateien(cards: list[dict]) -> list[dict]:
+        dateien: list[dict] = []
+        gesehen: set[str] = set()
+        for karte in cards or []:
+            if not isinstance(karte, dict) or karte.get("kind") != "datei":
+                continue
+            for eintrag in (karte.get("data") or {}).get("dateien") or []:
+                pfad = str((eintrag or {}).get("path") or "")
+                if pfad and pfad not in gesehen:
+                    gesehen.add(pfad)
+                    dateien.append(eintrag)
+        return dateien
+
     async def send_cards(self, chat_id: str | int, cards: list[dict]) -> None:
         from app.services.telegram_extras import (
             map_links,
@@ -221,6 +273,13 @@ class TelegramService:
             studio_files,
         )
 
+        for datei in self._karten_dateien(cards)[:6]:
+            if not await self.send_datei(chat_id, datei):
+                await self.send(
+                    chat_id,
+                    f"{datei.get('name', 'Die Datei')} ist fertig, liess sich aber "
+                    f"nicht senden. Sie liegt hier: {datei.get('folder', '')}",
+                )
         for werk in studio_files(cards):
             if not await self.send_media(chat_id, werk):
                 await self.send(

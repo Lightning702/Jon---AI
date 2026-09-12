@@ -58,3 +58,4 @@ spiele/BLOCKWELT/*.bmp
 # Werbefilm: Zwischenstaende und fertige Videos werden gerendert
 motion/demo/bau/
 motion/demo/*.mp4
+build/einrichter/
