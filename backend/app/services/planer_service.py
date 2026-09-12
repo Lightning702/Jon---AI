@@ -316,7 +316,7 @@ class PlanerService:
 
         schritte = plan["schritte"]
         riskant = [
-            s["titel"]
+            s
             for s in schritte
             if s["werkzeug"] != "denken"
             and bewerten(s["werkzeug"], s.get("args", {})).risiko == "hoch"
@@ -325,7 +325,9 @@ class PlanerService:
             yield {
                 "art": "freigabe",
                 "text": "Der Plan enthaelt riskante Schritte.",
-                "schritte": riskant,
+                "schritte": [s["titel"] for s in riskant],
+                "werkzeuge": [s["werkzeug"] for s in riskant],
+                "plan": kennung,
             }
             return
         self._sichern(kennung, schritte, LAEUFT)

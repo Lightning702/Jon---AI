@@ -144,6 +144,10 @@ class SettingsIn(BaseModel):
     neugier_pro_lauf: int | None = None
     fertigkeit_auto: bool | None = None
     planer_enabled: bool | None = None
+    aufgaben_enabled: bool | None = None
+    aufgaben_budget: int | None = None
+    vorwaerts_enabled: bool | None = None
+    hypothesen_auto: bool | None = None
     jon_ordner: str | None = None
     freigegebene_ordner: list[str] | None = None
     blender_pfad: str | None = None

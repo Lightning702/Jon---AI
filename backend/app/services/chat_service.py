@@ -908,6 +908,13 @@ class ChatService:
                         if card is not None:
                             event["card"] = card
                             karten.append(card)
+                        if chunk.name == "oberflaeche" and chunk.ok:
+                            try:
+                                daten = json.loads(chunk.result or "{}")
+                                if daten.get("oeffne"):
+                                    event["oeffne"] = daten["oeffne"]
+                            except Exception as fehler:
+                                leise(fehler, "services/chat_service")
                         yield event
                     else:
                         if releasing:

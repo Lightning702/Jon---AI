@@ -59,6 +59,7 @@ export interface StreamEvent {
   risiko?: string;
   approval_id?: string;
   card?: { kind: string; data: Record<string, unknown> };
+  oeffne?: string;
 }
 
 export type ToolMode = "ask" | "allow";
@@ -388,7 +389,7 @@ const STANDARD_SETTINGS: UserSettings = {
     browser_max_schritte: 25,
     browser_suchmaschine: "brave",
     browser_speicher: "festplatte",
-    web_browser: "jon",
+    web_browser: "system",
     initiative_enabled: false,
     initiative_stunde: 7,
     wahrnehmung_enabled: false,

@@ -579,3 +579,92 @@ def _desktop_verknuepfung(box: Any, args: dict, name: str = "") -> str:
     if aktion in ("status", "pruefen", "zeigen"):
         return antwort(verknuepfung_service.stand())
     return antwort(verknuepfung_service.anlegen(str(args.get("ziel", ""))))
+
+
+@werkzeug("aufgabe")
+def _aufgabe(box: Any, args: dict, name: str = "") -> str:
+    from app.services.aufgaben_service import OFFEN, get_aufgaben_service
+
+    dienst = get_aufgaben_service()
+    aktion = str(args.get("aktion", "anlegen")).strip().lower()
+    kennung = str(args.get("id", "")).strip()
+    if aktion in ("liste", "zeigen", "stand"):
+        return antwort(dienst.stand())
+    if aktion == "pausieren":
+        return antwort(dienst.pausieren(kennung) or {"error": "unbekannt"})
+    if aktion in ("fortsetzen", "weiter"):
+        return antwort(dienst.fortsetzen(kennung) or {"error": "unbekannt"})
+    if aktion in ("abbrechen", "loeschen"):
+        return antwort(dienst.abbrechen(kennung) or {"error": "unbekannt"})
+    if aktion == "freigeben":
+        return antwort(
+            dienst.freigeben(kennung, args.get("erlaubt", True) is not False)
+            or {"error": "unbekannt"}
+        )
+    if aktion in ("holen", "status") and kennung:
+        return antwort(dienst.holen(kennung) or {"error": "unbekannt"})
+    return antwort(
+        dienst.anlegen(
+            str(args.get("auftrag", "")),
+            int(args.get("budget_minuten", 20) or 20),
+            int(args.get("prioritaet", 5) or 5),
+            str(args.get("titel", "")),
+            quelle=getattr(box, "_source", "app"),
+        )
+    )
+
+
+@werkzeug_async("aufgabe_starten")
+async def _aufgabe_starten(box: Any, args: dict, name: str = "") -> str:
+    from app.services.aufgaben_service import get_aufgaben_service
+
+    return antwort(await get_aufgaben_service().lauf(str(args.get("id", ""))))
+
+
+@werkzeug("durchspielen")
+def _durchspielen(box: Any, args: dict, name: str = "") -> str:
+    from app.services.vorwaerts_service import get_vorwaerts_service
+
+    dienst = get_vorwaerts_service()
+    schritte = args.get("schritte")
+    if isinstance(schritte, list) and schritte:
+        return antwort(dienst.durchspielen(schritte))
+    return antwort(
+        dienst.vorhersagen(str(args.get("werkzeug", "")), args.get("args") or {})
+    )
+
+
+@werkzeug_async("hypothese")
+async def _hypothese(box: Any, args: dict, name: str = "") -> str:
+    from app.services.hypothese_service import get_hypothese_service
+
+    dienst = get_hypothese_service()
+    aktion = str(args.get("aktion", "stand")).strip().lower()
+    if aktion in ("vermuten", "anlegen"):
+        beobachtung = str(args.get("beobachtung", "")).strip()
+        if beobachtung:
+            return antwort(await dienst.vermuten(beobachtung, str(args.get("bereich", ""))))
+        return antwort(
+            dienst.anlegen(
+                str(args.get("vermutung", "")),
+                str(args.get("test", "")),
+                str(args.get("werkzeug", "keins")),
+                args.get("args") or {},
+                str(args.get("bereich", "")),
+            )
+        )
+    if aktion in ("pruefen", "testen"):
+        return antwort(await dienst.pruefen(str(args.get("id", ""))))
+    if aktion == "lauf":
+        return antwort(await dienst.lauf(int(args.get("anzahl", 2) or 2)))
+    return antwort(dienst.stand())
+
+
+@werkzeug("oberflaeche")
+def _oberflaeche(box: Any, args: dict, name: str = "") -> str:
+    from app.services.oberflaeche_service import liste, oeffnen
+
+    ziel = str(args.get("werkzeug", "") or args.get("ziel", "")).strip()
+    if not ziel or str(args.get("aktion", "")).strip().lower() in ("liste", "zeigen"):
+        return antwort(liste())
+    return antwort(oeffnen(ziel))

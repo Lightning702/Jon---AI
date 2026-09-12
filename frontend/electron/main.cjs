@@ -590,7 +590,7 @@ function createWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    void adresseOeffnen(url);
     return { action: "deny" };
   });
 
@@ -744,6 +744,36 @@ ipcMain.handle("startup:set", (_event, enabled) => {
   app.setLoginItemSettings({ openAtLogin: !!enabled });
   return !!enabled;
 });
+
+function istEigeneSeite(url) {
+  try {
+    const ziel = new URL(url);
+    if (ziel.protocol === "file:") return true;
+    if (!/^https?:$/.test(ziel.protocol)) return true;
+    const lokal = ["127.0.0.1", "localhost", "::1"];
+    if (!lokal.includes(ziel.hostname)) return false;
+    return ["8756", "5173", "8758", ""].includes(ziel.port);
+  } catch {
+    return false;
+  }
+}
+
+async function adresseOeffnen(url) {
+  if (!url) return;
+  if (istEigeneSeite(url)) {
+    shell.openExternal(url);
+    return;
+  }
+  try {
+    const antwort = await apiFetch("/browser/oeffnen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (antwort.ok) return;
+  } catch {}
+  shell.openExternal(url);
+}
 
 function portabelInstalliert() {
   if (!app.isPackaged || process.platform !== "win32") return false;

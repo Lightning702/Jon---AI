@@ -48,3 +48,30 @@ async def stoppen() -> dict:
     ergebnis = await asyncio.to_thread(ausfuehren, "close", {})
     get_guard().leeren()
     return ergebnis
+
+
+@router.post("/oeffnen")
+async def adresse_oeffnen(payload: dict) -> dict:
+    from app.services.browserwahl import oeffnen as browser_oeffnen
+
+    adresse = str(payload.get("url", "")).strip()
+    if not adresse:
+        raise HTTPException(status_code=400, detail="Keine Adresse angegeben.")
+    ergebnis = await asyncio.to_thread(
+        browser_oeffnen, adresse, str(payload.get("browser", ""))
+    )
+    if not ergebnis.get("ok"):
+        raise HTTPException(
+            status_code=400,
+            detail=ergebnis.get("fehler")
+            or ergebnis.get("error")
+            or "Die Seite liess sich nicht oeffnen.",
+        )
+    return ergebnis
+
+
+@router.get("/wahl")
+async def browser_wahl() -> dict:
+    from app.services.browserwahl import name, verfuegbare, wahl
+
+    return {"browser": wahl(), "name": name(), "verfuegbar": verfuegbare()}

@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { motion } from "framer-motion";
 import { JonDatei, dateiInhaltUrl, dateiOeffnen } from "../lib/api";
+
+const DateiAnsicht = lazy(() => import("./DateiAnsicht"));
 
 const SYMBOLE: Record<string, string> = {
   dokument: "📄",
@@ -32,6 +34,7 @@ function endung(name: string): string {
 export default function DateiCard({ dateien }: { dateien: JonDatei[] }) {
   const [meldung, setMeldung] = useState("");
   const [busy, setBusy] = useState("");
+  const [ansicht, setAnsicht] = useState<JonDatei | null>(null);
 
   if (!dateien?.length) return null;
 
@@ -77,11 +80,17 @@ export default function DateiCard({ dateien }: { dateien: JonDatei[] }) {
             {datei.exists && (
               <div className="flex flex-wrap gap-1.5 mt-2.5">
                 <button
+                  onClick={() => setAnsicht(datei)}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-gold/80 text-black font-semibold"
+                >
+                  Öffnen
+                </button>
+                <button
                   onClick={() => void oeffnen(datei, false)}
                   disabled={busy === datei.path}
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-gold/80 text-black font-semibold disabled:opacity-50"
+                  className="text-[11px] px-2.5 py-1 rounded-lg border border-white/15 text-white/70 hover:bg-white/5 disabled:opacity-50"
                 >
-                  {busy === datei.path ? "öffnet …" : "Öffnen"}
+                  {busy === datei.path ? "öffnet …" : "Im Programm"}
                 </button>
                 <a
                   href={dateiInhaltUrl(datei.path)}
@@ -103,6 +112,11 @@ export default function DateiCard({ dateien }: { dateien: JonDatei[] }) {
         );
       })}
       {meldung && <div className="text-[11px] text-red-300/85">{meldung}</div>}
+      {ansicht && (
+        <Suspense fallback={null}>
+          <DateiAnsicht datei={ansicht} onClose={() => setAnsicht(null)} />
+        </Suspense>
+      )}
     </div>
   );
 }

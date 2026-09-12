@@ -45,7 +45,9 @@ class AufmerksamkeitService:
             if block and str(block).strip():
                 kandidaten.append(Kandidat(name, str(block).strip(), grund, text))
 
+        from app.services.aufgaben_service import get_aufgaben_service
         from app.services.erwartung_service import get_erwartung_service
+        from app.services.hypothese_service import get_hypothese_service
         from app.services.fertigkeit_service import get_fertigkeit_service
         from app.services.handlungsraum_service import get_handlungsraum_service
         from app.services.neugier_service import get_neugier_service
@@ -53,6 +55,7 @@ class AufmerksamkeitService:
         from app.services.weltmodell_service import get_weltmodell_service
         from app.services.ziel_service import get_ziel_service
 
+        dazu("aufgaben", 0.92, get_aufgaben_service().prompt_block)
         dazu("notizblock", 0.95, get_notizblock_service().prompt_block)
         dazu("ziele", 0.85, get_ziel_service().prompt_block)
         dazu("fertigkeiten", 0.8, get_fertigkeit_service().prompt_block, text)
@@ -60,6 +63,7 @@ class AufmerksamkeitService:
         dazu("handlungsraum", 0.55, get_handlungsraum_service().prompt_block)
         dazu("ueberraschungen", 0.6, get_erwartung_service().prompt_block)
         dazu("neugier", 0.45, get_neugier_service().prompt_block, text)
+        dazu("hypothesen", 0.5, get_hypothese_service().prompt_block)
         try:
             from app.services.erfahrung_service import get_erfahrung_service
             from app.services.tool_index import passende_werkzeuge

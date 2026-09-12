@@ -36,10 +36,32 @@ def test_browsernamen_aus_normaler_sprache(eingabe, erwartet):
     assert aufloesen(eingabe) == erwartet
 
 
-def test_jons_browser_bleibt_der_standard(monkeypatch, tmp_path):
+def test_der_normale_browser_ist_der_standard(monkeypatch):
+    from app.services import browserwahl
+    from app.services.settings_service import DEFAULTS
+
+    assert DEFAULTS["web_browser"] == SYSTEM
+
+    monkeypatch.setattr(browserwahl, "wahl", lambda: SYSTEM)
+    monkeypatch.setattr(
+        "app.services.browser.werkzeuge.ausfuehren",
+        lambda aktion, args: pytest.fail("Jons Browser haette nicht laufen duerfen"),
+    )
+    geoeffnet: dict = {}
+    monkeypatch.setattr(
+        browserwahl.webbrowser,
+        "open",
+        lambda url: geoeffnet.setdefault("url", url) or True,
+    )
+    ergebnis = browserwahl.oeffnen("example.com")
+    assert geoeffnet["url"] == "https://example.com"
+    assert ergebnis["browser"] == "Standardbrowser"
+
+
+def test_jons_browser_auf_ausdruecklichen_wunsch(monkeypatch):
     from app.services import browserwahl
 
-    monkeypatch.setattr(browserwahl, "wahl", lambda: JON)
+    monkeypatch.setattr(browserwahl, "wahl", lambda: SYSTEM)
     aufgerufen: dict = {}
 
     def _goto(aktion, args):
@@ -48,7 +70,7 @@ def test_jons_browser_bleibt_der_standard(monkeypatch, tmp_path):
         return {"ok": True}
 
     monkeypatch.setattr("app.services.browser.werkzeuge.ausfuehren", _goto)
-    ergebnis = browserwahl.oeffnen("example.com")
+    ergebnis = browserwahl.oeffnen("example.com", "nimm deinen eigenen Browser")
     assert aufgerufen["aktion"] == "goto"
     assert aufgerufen["url"] == "https://example.com"
     assert ergebnis["browser"] == "Jon-Browser"
@@ -72,7 +94,7 @@ def test_web_search_ohne_wunsch_nimmt_jons_browser(monkeypatch):
     from app.services import browserwahl
     from app.services.tools import ToolBox
 
-    monkeypatch.setattr(browserwahl, "wahl", lambda: JON)
+    monkeypatch.setattr(browserwahl, "wahl", lambda: SYSTEM)
     monkeypatch.setattr(
         "app.services.websuche_browser.suchen",
         lambda frage, anzahl: {"treffer": [{"title": "Treffer", "url": "x"}]},
@@ -130,14 +152,15 @@ def test_open_url_kennt_den_browser_parameter():
     schema = {t["function"]["name"]: t for t in ToolBox()._eigene_tools()}
     felder = schema["open_url"]["function"]["parameters"]["properties"]
     assert "browser" in felder
-    assert "JONS EIGENEM" in schema["open_url"]["function"]["description"]
+    assert "ganz normalen Browser" in schema["open_url"]["function"]["description"]
     assert "browser" in schema["web_search"]["function"]["parameters"]["properties"]
 
 
 def test_systemprompt_haelt_die_browserregel_fest():
     from app.services.chat_service import SYSTEM_PROMPT
 
-    assert "JONS EIGENEM Browser" in SYSTEM_PROMPT
+    assert "seinen ganz normalen Browser" in SYSTEM_PROMPT
+    assert "Jons eigenem Browser" in SYSTEM_PROMPT
     assert "AUSNAHME" in SYSTEM_PROMPT
 
 
@@ -501,3 +524,236 @@ def test_app_bietet_die_verknuepfung_selbst_an():
     assert "writeShortcutLink" in text
     assert "portabelInstalliert" in text
     assert "Nicht mehr fragen" in text
+
+
+def test_electron_oeffnet_links_ueber_jons_browser():
+    wurzel = Path(__file__).resolve().parents[2]
+    text = (wurzel / "frontend" / "electron" / "main.cjs").read_text(encoding="utf-8")
+    assert "adresseOeffnen" in text
+    assert "/browser/oeffnen" in text
+    assert "istEigeneSeite" in text
+    stelle = text.index("mainWindow.webContents.setWindowOpenHandler")
+    ausschnitt = text[stelle : stelle + 200]
+    assert "adresseOeffnen" in ausschnitt
+    assert "shell.openExternal" not in ausschnitt
+
+
+def test_route_oeffnet_ueber_die_browserwahl(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.services import browserwahl
+
+    gerufen: dict = {}
+
+    def _oeffnen(url, erzwinge=""):
+        gerufen["url"] = url
+        gerufen["erzwinge"] = erzwinge
+        return {"ok": True, "geoeffnet": url, "browser": "Standardbrowser"}
+
+    monkeypatch.setattr(browserwahl, "oeffnen", _oeffnen)
+    with TestClient(create_app()) as client:
+        antwort = client.post("/api/browser/oeffnen", json={"url": "example.com"})
+    assert antwort.status_code == 200
+    assert antwort.json()["browser"] == "Standardbrowser"
+    assert gerufen["url"] == "example.com"
+    assert gerufen["erzwinge"] == ""
+
+
+def test_route_lehnt_leere_adresse_ab():
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    with TestClient(create_app()) as client:
+        assert client.post("/api/browser/oeffnen", json={"url": " "}).status_code == 400
+
+
+def test_oberflaeche_loest_namen_auf():
+    from app.services.oberflaeche_service import aufloesen
+
+    for eingabe, erwartet in (
+        ("tresor", "tresor"),
+        ("/vault", "tresor"),
+        ("passwort", "tresor"),
+        ("mach die karten auf", "maps"),
+        ("ziele", "denken"),
+        ("aufgabenliste", "aufgaben"),
+        ("quiz", "lernen"),
+        ("", ""),
+        ("voelliger unsinn", ""),
+    ):
+        assert aufloesen(eingabe) == erwartet, eingabe
+
+
+def test_oberflaeche_werkzeug_meldet_das_ziel():
+    import asyncio
+    import json as _json
+
+    from app.services.tools import ToolBox
+
+    daten = _json.loads(
+        asyncio.run(ToolBox().execute("oberflaeche", {"werkzeug": "tresor"}))
+    )
+    assert daten["ok"] is True
+    assert daten["oeffne"] == "tresor"
+    assert daten["befehl"] == "/tresor"
+    assert "Passwort-Tresor" in daten["name"]
+
+    liste = _json.loads(asyncio.run(ToolBox().execute("oberflaeche", {})))
+    assert len(liste["werkzeuge"]) > 20
+
+    unbekannt = _json.loads(
+        asyncio.run(ToolBox().execute("oberflaeche", {"werkzeug": "raumschiff"}))
+    )
+    assert unbekannt.get("error")
+    assert "moeglich" in unbekannt
+
+
+def test_jede_oberflaeche_hat_eine_aktion_im_frontend():
+    from app.services.oberflaeche_service import ZIELE
+
+    wurzel = Path(__file__).resolve().parents[2]
+    text = (wurzel / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+    stelle = text.index("const oberflaecheOeffnen")
+    block = text[stelle : text.index("aktionen[ziel]", stelle)]
+    for ziel in ZIELE:
+        assert f"{ziel}:" in block, ziel
+
+
+def test_chat_reicht_das_oeffnen_durch():
+    wurzel = Path(__file__).resolve().parents[2]
+    text = (
+        wurzel / "backend" / "app" / "services" / "chat_service.py"
+    ).read_text(encoding="utf-8")
+    assert 'chunk.name == "oberflaeche"' in text
+    assert 'event["oeffne"]' in text
+    api = (wurzel / "frontend" / "src" / "lib" / "api.ts").read_text(encoding="utf-8")
+    assert "oeffne?: string;" in api
+
+
+@pytest.mark.parametrize(
+    "werkzeug,args,erwartet",
+    [
+        ("start_program", {"path": "https://www.youtube.com"}, ("https://www.youtube.com", "")),
+        ("start_program", {"path": "youtube.com"}, ("youtube.com", "")),
+        ("start_program", {"path": "www.youtube.com"}, ("www.youtube.com", "")),
+        (
+            "start_program",
+            {"path": "chrome", "args": ["https://youtube.com"]},
+            ("https://youtube.com", "chrome"),
+        ),
+        (
+            "start_program",
+            {"path": "msedge.exe", "args": ["youtube.com"]},
+            ("youtube.com", "edge"),
+        ),
+        (
+            "run_powershell",
+            {"command": 'Start-Process "https://www.youtube.com"'},
+            ("https://www.youtube.com", ""),
+        ),
+        (
+            "run_powershell",
+            {"command": 'Start-Process -FilePath "https://youtube.com"'},
+            ("https://youtube.com", ""),
+        ),
+        (
+            "run_powershell",
+            {"command": "Start-Process msedge https://youtube.com"},
+            ("https://youtube.com", "edge"),
+        ),
+        ("run_cmd", {"command": "start https://www.youtube.com"}, ("https://www.youtube.com", "")),
+        ("run_cmd", {"command": 'start "" "https://youtube.com"'}, ("https://youtube.com", "")),
+        ("run_cmd", {"command": "explorer https://youtube.com"}, ("https://youtube.com", "")),
+        ("run_cmd", {"command": "start youtube.com"}, ("youtube.com", "")),
+    ],
+)
+def test_webadressen_werden_umgeleitet(werkzeug, args, erwartet):
+    from app.services.weboeffnen import pruefen
+
+    assert pruefen(werkzeug, args) == erwartet
+
+
+@pytest.mark.parametrize(
+    "werkzeug,args",
+    [
+        ("start_program", {"path": "notepad.exe"}),
+        ("start_program", {"path": "C:/Programme/Jon/Jon.exe"}),
+        ("start_program", {"path": "command.com"}),
+        ("run_powershell", {"command": "Get-Process | Where-Object Name -eq chrome"}),
+        ("run_powershell", {"command": "Start-Process notepad.exe"}),
+        ("run_powershell", {"command": 'Start-Process "C:/Temp/bericht.pdf"'}),
+        ("run_cmd", {"command": "dir C:/"}),
+        ("run_cmd", {"command": "start notepad && dir"}),
+        ("write_file", {"path": "https://youtube.com"}),
+        ("run_powershell", {"command": "Start-Process winword.exe"}),
+    ],
+)
+def test_echte_shell_befehle_bleiben_shell(werkzeug, args):
+    from app.services.weboeffnen import pruefen
+
+    assert pruefen(werkzeug, args) is None
+
+
+def test_eigene_dateien_gelten_nicht_als_adresse(tmp_path, monkeypatch):
+    from app.services import weboeffnen
+
+    datei = tmp_path / "bericht.com"
+    datei.write_text("x", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    assert weboeffnen.ist_adresse("bericht.com") is False
+    assert weboeffnen.ist_adresse("youtube.com") is True
+
+
+def test_umleitung_laeuft_ueber_die_browserwahl(monkeypatch):
+    from app.services import browserwahl, weboeffnen
+
+    gerufen: dict = {}
+
+    def _oeffnen(url, erzwinge=""):
+        gerufen["url"] = url
+        gerufen["erzwinge"] = erzwinge
+        return {"ok": True, "geoeffnet": url, "browser": "Standardbrowser"}
+
+    monkeypatch.setattr(browserwahl, "oeffnen", _oeffnen)
+    monkeypatch.setattr(browserwahl, "wahl", lambda: SYSTEM)
+    ergebnis = weboeffnen.umleiten(
+        "run_powershell", {"command": "Start-Process https://youtube.com"}
+    )
+    assert ergebnis["ok"] is True
+    assert gerufen["url"] == "https://youtube.com"
+    assert ergebnis["umgeleitet_von"] == "run_powershell"
+    assert "Standardbrowser" in ergebnis["hinweis"]
+
+
+def test_execute_leitet_um_statt_die_shell_zu_starten(monkeypatch):
+    import asyncio
+    import json as _json
+
+    from app.services import weboeffnen
+    from app.services.tools import ToolBox
+
+    monkeypatch.setattr(
+        weboeffnen,
+        "umleiten",
+        lambda name, args: {"ok": True, "geoeffnet": "x", "browser": "Jon-Browser"},
+    )
+
+    def _nie(self, name, args):
+        raise AssertionError("die Shell haette nicht laufen duerfen")
+
+    monkeypatch.setattr("app.services.tools.ToolBox._dispatch", _nie)
+    daten = _json.loads(
+        asyncio.run(
+            ToolBox().execute("run_cmd", {"command": "start https://youtube.com"})
+        )
+    )
+    assert daten["browser"] == "Jon-Browser"
+
+
+def test_systemprompt_verbietet_die_shell_fuer_webseiten():
+    from app.services.chat_service import SYSTEM_PROMPT
+
+    assert "IMMER open_url" in SYSTEM_PROMPT
+    assert "niemals start_program" in SYSTEM_PROMPT

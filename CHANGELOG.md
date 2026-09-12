@@ -2,6 +2,29 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.44.0] — 2026-09-12
+
+### 🌐 Webseiten gehen wieder in deinen Browser
+
+„Oeffne mir YouTube“ landete zuletzt in Jons eigenem Browserfenster. Das war als
+Vorteil gedacht — dort kann Jon mitlesen —, im Alltag will man eine Seite aber
+einfach da haben, wo die Lesezeichen, die Anmeldungen und die Erweiterungen liegen.
+
+Ab jetzt gilt die einfache Regel: **Seiten für dich öffnet Jon in deinem ganz
+normalen Browser.** Seinen eigenen nimmt er nur noch dann, wenn er selbst lesen,
+suchen, vergleichen oder klicken muss — denn nur dort sieht er wirklich, was auf
+der Seite steht. Beides lässt sich jederzeit umdrehen: „mach das in Edge“ oder
+„nimm deinen eigenen Browser“ gilt sofort für genau diese eine Anfrage,
+dauerhaft stellst du es unter Einstellungen → Browser um.
+
+Die Websuche bleibt, wie sie war: Sie läuft weiter in Jons Browser, damit er die
+Treffer wirklich auswerten kann, statt nur ein Suchfenster aufzuschieben.
+
+Versucht das Modell eine Adresse doch über die Konsole zu öffnen —
+`Start-Process https://…`, `start …`, `explorer …` —, fängt Jon das ab und
+leitet sie selbst in den eingestellten Browser um. Die Regel greift also auch dann,
+wenn das Modell den falschen Weg wählt.
+
 ## [4.43.1] — 2026-09-12
 
 ### 🖱️ Der Einrichter reagiert wieder

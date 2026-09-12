@@ -292,3 +292,84 @@ async def aufmerksamkeit(text: str = "") -> dict:
     daten = get_aufmerksamkeit_service().waehlen(text)
     daten.pop("bloecke", None)
     return daten
+
+
+@router.get("/aufgaben")
+async def aufgaben() -> dict:
+    from app.services.aufgaben_service import get_aufgaben_service
+
+    return get_aufgaben_service().stand()
+
+
+@router.post("/aufgaben")
+async def aufgabe_anlegen(payload: dict) -> dict:
+    from app.services.aufgaben_service import get_aufgaben_service
+
+    ergebnis = get_aufgaben_service().anlegen(
+        str(payload.get("auftrag", "")),
+        int(payload.get("budget_minuten", 20) or 20),
+        int(payload.get("prioritaet", 5) or 5),
+        str(payload.get("titel", "")),
+        "app",
+    )
+    if ergebnis.get("error"):
+        raise HTTPException(status_code=400, detail=ergebnis["error"])
+    return ergebnis
+
+
+@router.get("/aufgaben/{kennung}")
+async def aufgabe(kennung: str) -> dict:
+    from app.services.aufgaben_service import get_aufgaben_service
+
+    daten = get_aufgaben_service().holen(kennung)
+    if daten is None:
+        raise HTTPException(status_code=404, detail="Diese Aufgabe kenne ich nicht.")
+    return daten
+
+
+@router.post("/aufgaben/{kennung}/{aktion}")
+async def aufgabe_steuern(kennung: str, aktion: str, payload: dict | None = None) -> dict:
+    from app.services.aufgaben_service import get_aufgaben_service
+
+    dienst = get_aufgaben_service()
+    if aktion == "start":
+        return await dienst.lauf(kennung)
+    if aktion == "pausieren":
+        daten = dienst.pausieren(kennung)
+    elif aktion == "fortsetzen":
+        daten = dienst.fortsetzen(kennung)
+    elif aktion == "abbrechen":
+        daten = dienst.abbrechen(kennung)
+    elif aktion == "freigeben":
+        daten = dienst.freigeben(
+            kennung, (payload or {}).get("erlaubt", True) is not False
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Unbekannte Aktion: {aktion}")
+    if daten is None:
+        raise HTTPException(status_code=404, detail="Diese Aufgabe kenne ich nicht.")
+    return daten
+
+
+@router.get("/hypothesen")
+async def hypothesen() -> dict:
+    from app.services.hypothese_service import get_hypothese_service
+
+    return get_hypothese_service().stand()
+
+
+@router.post("/hypothesen/lauf")
+async def hypothesen_lauf(payload: dict | None = None) -> dict:
+    from app.services.hypothese_service import get_hypothese_service
+
+    return await get_hypothese_service().lauf(int((payload or {}).get("anzahl", 2) or 2))
+
+
+@router.post("/hypothesen/{kennung}/pruefen")
+async def hypothese_pruefen(kennung: str) -> dict:
+    from app.services.hypothese_service import get_hypothese_service
+
+    ergebnis = await get_hypothese_service().pruefen(kennung)
+    if ergebnis.get("error"):
+        raise HTTPException(status_code=400, detail=ergebnis["error"])
+    return ergebnis

@@ -108,11 +108,11 @@ def wahl() -> str:
     try:
         from app.services.settings_service import get_settings_service
 
-        wert = str(get_settings_service().get().get("web_browser", JON)).strip()
+        wert = str(get_settings_service().get().get("web_browser", SYSTEM)).strip()
     except Exception as _fehler:
         leise(_fehler, "services/browserwahl")
-        wert = JON
-    return wert or JON
+        wert = SYSTEM
+    return wert or SYSTEM
 
 
 def name(wert: str = "") -> str:

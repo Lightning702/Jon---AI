@@ -853,6 +853,7 @@ export default function App() {
       {
         onTool: (evt) => {
           handleApprovalEvent(evt);
+          if (evt.oeffne) oberflaecheOeffnen(evt.oeffne);
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistantEntry.id) return e;
@@ -912,6 +913,43 @@ export default function App() {
         return BRIEFING_PROMPT;
       }
     });
+
+  const oberflaecheOeffnen = (ziel: string) => {
+    const aktionen: Record<string, () => void> = {
+      denken: () => setDenkenOpen(true),
+      aufgaben: () => setDenkenOpen(true),
+      werkzeuge: () => setWerkzeugeOpen(""),
+      suche: () => setSearchOpen(true),
+      notizen: () => setNotesOpen(true),
+      tagebuch: () => setJournalOpen(true),
+      tresor: () => setVaultOpen(true),
+      kalender: () => setCalendarOpen(true),
+      inbox: () => setInboxOpen(true),
+      maps: () => setMapsOpen(true),
+      studio: () => setStudioOpen(true),
+      deep: () => setDeepOpen(true),
+      code: () => setCodeOpen(true),
+      humanize: () => setHumanizerOpen(true),
+      download: () => setDownloaderOpen(true),
+      privat: () => setPrivateBrowserOpen(true),
+      zwischenablage: () => setClipboardOpen(true),
+      aufraeumen: () => setCleanupOpen(true),
+      kochen: () => setRecipeOpen(true),
+      lernen: () => setFlashcardsOpen(true),
+      erklaer: () => setExplainOpen(true),
+      telefon: () => setPhoneOpen(true),
+      handy: () => setWerkzeugeOpen("handy"),
+      spiele: () => setGamesOpen(""),
+      abendshow: () => setShowOpen(true),
+      freunde: () => setFriendsOpen(true),
+      konten: () => setAccountsTab("accounts"),
+      nutzung: () => setAccountsTab("usage"),
+      skills: () => setAccountsTab("skills"),
+      einstellungen: () => setToolsMenuOpen(true),
+      diagnose: () => setAccountsTab("accounts"),
+    };
+    aktionen[ziel]?.();
+  };
 
   const runSlashJob = async (
     commandText: string,
@@ -1552,6 +1590,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
           ),
         onTool: (evt) => {
           handleApprovalEvent(evt);
+          if (evt.oeffne) oberflaecheOeffnen(evt.oeffne);
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistantEntry.id) return e;

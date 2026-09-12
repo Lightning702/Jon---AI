@@ -292,3 +292,30 @@ class Datei(Base):
     vorhanden: Mapped[int] = mapped_column(Integer, default=1, index=True)
     erstellt: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
     gesehen: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class Aufgabe(Base):
+    __tablename__ = "aufgaben"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    auftrag: Mapped[str] = mapped_column(Text, default="")
+    titel: Mapped[str] = mapped_column(String(200), default="")
+    zustand: Mapped[str] = mapped_column(String(20), default="wartet", index=True)
+    prioritaet: Mapped[int] = mapped_column(Integer, default=5, index=True)
+    plan: Mapped[str] = mapped_column(String(32), default="", index=True)
+    fortschritt: Mapped[float] = mapped_column(Float, default=0.0)
+    budget_minuten: Mapped[int] = mapped_column(Integer, default=20)
+    verbraucht: Mapped[float] = mapped_column(Float, default=0.0)
+    laeufe: Mapped[int] = mapped_column(Integer, default=0)
+    protokoll: Mapped[str] = mapped_column(Text, default="[]")
+    ergebnis: Mapped[str] = mapped_column(Text, default="")
+    fehler: Mapped[str] = mapped_column(Text, default="")
+    offene_freigabe: Mapped[str] = mapped_column(Text, default="")
+    abnahme: Mapped[str] = mapped_column(Text, default="")
+    unbeaufsichtigt: Mapped[int] = mapped_column(Integer, default=1)
+    quelle: Mapped[str] = mapped_column(String(24), default="app")
+    gespraech: Mapped[str] = mapped_column(String(32), default="")
+    erstellt: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+    gestartet: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    beendet: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    aktualisiert: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

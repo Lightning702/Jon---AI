@@ -138,6 +138,46 @@ async def _fertigkeit_watcher() -> None:
             _log.warning("Fertigkeiten fehlgeschlagen: %s", fehler)
 
 
+async def _aufgaben_watcher() -> None:
+    from app.services.aufgaben_service import get_aufgaben_service
+    from app.services.settings_service import get_settings_service
+
+    while True:
+        await asyncio.sleep(45)
+        try:
+            if not get_settings_service().get().get("aufgaben_enabled", False):
+                continue
+            dienst = get_aufgaben_service()
+            if dienst.naechste() is None:
+                continue
+            ergebnis = await dienst.lauf()
+            aufgabe = ergebnis.get("aufgabe") or {}
+            if aufgabe:
+                _log.info(
+                    "STEP aufgabe %s -> %s",
+                    aufgabe.get("titel", "")[:60],
+                    aufgabe.get("zustand", ""),
+                )
+        except Exception as fehler:
+            _log.warning("Aufgabenlauf fehlgeschlagen: %s", fehler)
+
+
+async def _hypothesen_watcher() -> None:
+    from app.services.hypothese_service import get_hypothese_service
+    from app.services.settings_service import get_settings_service
+
+    while True:
+        await asyncio.sleep(2700)
+        try:
+            if not get_settings_service().get().get("hypothesen_auto", False):
+                continue
+            ergebnis = await get_hypothese_service().lauf(2)
+            if ergebnis.get("neue_vermutungen") or ergebnis.get("geprueft"):
+                _log.info("STEP hypothesen %s", ergebnis)
+        except Exception as fehler:
+            _log.warning("Hypothesenlauf fehlgeschlagen: %s", fehler)
+
+
 async def _pflege_watcher() -> None:
     from app.services.pflege_service import alles
 
@@ -542,6 +582,12 @@ async def lifespan(app: FastAPI):
         offen = get_auftrag_service().unterbrochene_markieren()
         if offen:
             _log.info("STEP %s unterbrochene Auftraege gefunden", offen)
+    from app.services.aufgaben_service import get_aufgaben_service
+
+    with suppress(Exception):
+        wieder = get_aufgaben_service().unterbrochene_aufnehmen()
+        if wieder:
+            _log.info("STEP %s Aufgaben werden fortgesetzt", wieder)
     from app.services.research import get_research_service
 
     with suppress(Exception):
@@ -557,6 +603,8 @@ async def lifespan(app: FastAPI):
     _spawn("konsolidierung_watcher", _konsolidierung_watcher())
     _spawn("wahrnehmung_watcher", _wahrnehmung_watcher())
     _spawn("neugier_watcher", _neugier_watcher())
+    _spawn("aufgaben_watcher", _aufgaben_watcher())
+    _spawn("hypothesen_watcher", _hypothesen_watcher())
     _spawn("fertigkeit_watcher", _fertigkeit_watcher())
     _spawn("clipboard_watcher", _clipboard_watcher())
     _spawn("friend_location_watcher", _friend_location_watcher())

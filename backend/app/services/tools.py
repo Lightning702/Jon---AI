@@ -98,9 +98,11 @@ SAFE_TOOLS = {
     "netz_status",
     "selbsteinschaetzung",
     "ueberraschungen",
+    "durchspielen",
     "dateien_finden",
     "dateiraum",
     "umgebung",
+    "oberflaeche",
     "desktop_verknuepfung",
     "frage_merken",
     "offene_fragen",
@@ -381,6 +383,7 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "dateien_finden",
             "dateiraum",
             "umgebung",
+            "oberflaeche",
             "desktop_verknuepfung",
             "blender_szene",
             "blender_render",
@@ -449,6 +452,10 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "fertigkeit_nutzen",
             "plan_machen",
             "plan_ausfuehren",
+            "aufgabe",
+            "aufgabe_starten",
+            "durchspielen",
+            "hypothese",
         },
         (
             "ziel",
@@ -486,6 +493,21 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "zerleg",
             "schritt fuer schritt",
             "schritt für schritt",
+            "kuemmere dich",
+            "kümmere dich",
+            "erledige",
+            "arbeite daran",
+            "bis heute abend",
+            "in der zwischenzeit",
+            "waehrenddessen",
+            "während ich",
+            "aufgabe",
+            "aufgabenliste",
+            "woran arbeitest du",
+            "wie weit bist du",
+            "vermutung",
+            "woran liegt",
+            "warum scheitert",
         ),
     ),
     "timeline": (
@@ -1281,6 +1303,28 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Zeigt Jons Ordner und was darin liegt."
     if name == "umgebung":
         return "Prueft, welche Programme und Bibliotheken auf dem Rechner da sind."
+    if name == "oberflaeche":
+        ziel = _shorten(args.get("werkzeug", "") or args.get("ziel", ""))
+        return f"Oeffnet {ziel} in Jons Oberflaeche." if ziel else "Zeigt Jons Werkzeuge."
+    if name == "aufgabe":
+        aktion = str(_shorten(args.get("aktion", "anlegen")))
+        if aktion.startswith("anleg"):
+            return f"Nimmt als eigene Aufgabe an: {_shorten(args.get('auftrag', ''))}"
+        if aktion.startswith("freigeb"):
+            return "Gibt eine wartende Aufgabe frei."
+        return f"Aufgabenliste ({aktion})."
+    if name == "aufgabe_starten":
+        return "Nimmt sich die naechste Aufgabe vor."
+    if name == "durchspielen":
+        ziel = _shorten(args.get("werkzeug", "")) or "die Schrittfolge"
+        return f"Spielt im Kopf durch, was {ziel} veraendern wuerde."
+    if name == "hypothese":
+        aktion = str(_shorten(args.get("aktion", "stand")))
+        if aktion.startswith(("vermut", "anleg")):
+            return "Stellt eine pruefbare Vermutung auf."
+        if aktion.startswith(("pruef", "test")):
+            return "Prueft eine eigene Vermutung nach."
+        return "Zeigt, was Jon selbst nachgeprueft hat."
     if name == "desktop_verknuepfung":
         aktion = str(_shorten(args.get("aktion", "anlegen")))
         if aktion.startswith("entfern"):
@@ -1447,6 +1491,7 @@ _GEDAECHTNIS_TOOLS = {
 }
 
 _DATEI_JON_TOOLS = {
+    "oberflaeche",
     "desktop_verknuepfung",
     "datei_erstellen",
     "ordner_anlegen",
@@ -1461,6 +1506,10 @@ _DATEI_JON_TOOLS = {
 }
 
 _DENK_TOOLS = {
+    "aufgabe",
+    "aufgabe_starten",
+    "durchspielen",
+    "hypothese",
     "ziel",
     "weltmodell",
     "notizblock",
@@ -1717,32 +1766,37 @@ class ToolBox:
             ),
             _tool(
                 "run_cmd",
-                "Fuehrt einen Windows-CMD-Befehl aus.",
+                "Fuehrt einen Windows-CMD-Befehl aus. Zum Oeffnen einer Webseite nimm "
+                "open_url statt 'start https://...' - sonst landet die Seite im "
+                "falschen Browser.",
                 {"command": _STR},
                 ["command"],
             ),
             _tool(
                 "open_url",
-                "Oeffnet eine Adresse in JONS EIGENEM Browser - das ist der Standard "
-                "fuer alles Web. Danach kannst du die Seite mit browser_read wirklich "
-                "lesen. Nur wenn der Nutzer ausdruecklich einen anderen Browser nennt "
-                "('mach das in Edge', 'oeffne das mit Brave'), setzt du browser auf "
-                "edge, brave, chrome, firefox, opera, vivaldi oder system - dann "
-                "oeffnet die Seite dort, und du kannst sie NICHT mitlesen. Sag das "
-                "ehrlich dazu.",
+                "Oeffnet eine Adresse fuer den NUTZER - im ganz normalen Browser "
+                "seines PCs. Das ist der Standard: 'Oeffne mir YouTube' ist immer "
+                "open_url, nie start_program oder eine Shell. Willst DU die Seite "
+                "selbst lesen, nimmst du stattdessen browser_goto plus browser_read. "
+                "Nennt der Nutzer ausdruecklich einen Browser ('mach das in Edge', "
+                "'nimm deinen eigenen'), setzt du browser auf edge, brave, chrome, "
+                "firefox, opera, vivaldi, system oder jon.",
                 {
                     "url": _STR,
                     "browser": {
                         "type": "string",
                         "description": "Nur wenn der Nutzer es verlangt: edge, brave, "
-                        "chrome, firefox, opera, vivaldi, system. Leer = Jons Browser",
+                        "chrome, firefox, opera, vivaldi, system, jon. Leer = der "
+                        "eingestellte Browser des Nutzers",
                     },
                 },
                 ["url"],
             ),
             _tool(
                 "start_program",
-                "Startet ein Programm oder eine .exe.",
+                "Startet ein Programm oder eine .exe auf dem PC. NICHT fuer Webseiten - "
+                "dafuer gibt es open_url, das den eingestellten Browser benutzt. Gibst "
+                "du hier trotzdem eine Adresse an, leitet Jon sie dorthin um.",
                 {
                     "path": _STR,
                     "args": {"type": "array", "items": {"type": "string"}},
@@ -2098,6 +2152,85 @@ class ToolBox:
                 "aktion: anlegen (Standard), entfernen oder status. Mit ziel gibst du "
                 "die Programmdatei an, falls Jon sie nicht selbst findet.",
                 {"aktion": _STR, "ziel": _STR},
+                [],
+            ),
+            _tool(
+                "aufgabe",
+                "Jons eigene Aufgabenliste - damit arbeitet er auch dann weiter, wenn "
+                "der Nutzer nicht davorsitzt. aktion=anlegen (Standard) nimmt einen "
+                "Auftrag in die Schlange; Jon plant ihn selbst, arbeitet ihn ab und "
+                "meldet sich, wenn er fertig ist oder eine Freigabe braucht. "
+                "budget_minuten begrenzt die Arbeitszeit (Standard 20), prioritaet 1 "
+                "ist dringend und 9 ist unwichtig. Weitere aktionen: liste, status, "
+                "pausieren, fortsetzen, abbrechen, freigeben (mit erlaubt=false "
+                "verweigern). Nutze das fuer alles, was laenger dauert als ein paar "
+                "Werkzeugaufrufe - 'kuemmere dich um X', 'mach das bis heute Abend'.",
+                {
+                    "aktion": _STR,
+                    "auftrag": _STR,
+                    "titel": _STR,
+                    "budget_minuten": _INT,
+                    "prioritaet": _INT,
+                    "id": _STR,
+                    "erlaubt": _BOOL,
+                },
+                [],
+            ),
+            _tool(
+                "aufgabe_starten",
+                "Nimmt sich sofort die naechste wartende Aufgabe vor (oder die mit der "
+                "angegebenen id) und arbeitet sie ab. Ohne diesen Aufruf beginnt Jon "
+                "von selbst, sobald die Aufgabenschlange eingeschaltet ist.",
+                {"id": _STR},
+                [],
+            ),
+            _tool(
+                "durchspielen",
+                "Spielt im Kopf durch, was ein Werkzeug oder eine ganze Schrittfolge "
+                "mit dem Dateisystem machen wuerde - welche Dateien entstehen, welche "
+                "verschwinden, und ob ein spaeterer Schritt etwas braucht, das ein "
+                "frueherer geloescht hat. Nutze das VOR riskanten Folgen, statt es "
+                "auszuprobieren.",
+                {
+                    "werkzeug": _STR,
+                    "args": {"type": "object"},
+                    "schritte": {"type": "array", "items": {"type": "object"}},
+                },
+                [],
+            ),
+            _tool(
+                "hypothese",
+                "Vermutungen aufstellen und selbst nachpruefen. aktion=vermuten macht "
+                "aus einer Beobachtung eine pruefbare Vermutung samt Test, "
+                "aktion=pruefen fuehrt den Test wirklich aus und verbucht das Ergebnis, "
+                "aktion=lauf macht beides fuer die letzten Ueberraschungen, "
+                "aktion=stand zeigt, was bestaetigt und was widerlegt ist. Getestet "
+                "wird nur Harmloses.",
+                {
+                    "aktion": _STR,
+                    "beobachtung": _STR,
+                    "vermutung": _STR,
+                    "test": _STR,
+                    "werkzeug": _STR,
+                    "bereich": _STR,
+                    "id": _STR,
+                    "anzahl": _INT,
+                },
+                [],
+            ),
+            _tool(
+                "oberflaeche",
+                "Oeffnet ein Werkzeug in Jons eigener Oberflaeche - genau das, was der "
+                "Nutzer sonst ueber das Werkzeuge-Menue anklickt. Nutze das, wenn "
+                "jemand 'mach mal den Tresor auf', 'zeig mir meine Aufgaben', 'oeffne "
+                "die Karten' oder 'ich will was aufraeumen' sagt, statt es nur zu "
+                "beschreiben. Moegliche werkzeug-Werte unter anderem: denken, aufgaben, "
+                "suche, notizen, tagebuch, tresor, kalender, inbox, maps, studio, deep, "
+                "code, humanize, download, privat, zwischenablage, aufraeumen, kochen, "
+                "lernen, erklaer, telefon, handy, spiele, abendshow, freunde, konten, "
+                "skills, einstellungen, diagnose. Ohne werkzeug bekommst du die ganze "
+                "Liste.",
+                {"werkzeug": _STR, "aktion": _STR},
                 [],
             ),
             _tool(
@@ -3292,6 +3425,31 @@ class ToolBox:
             return ""
 
     @staticmethod
+    def _weltbild(name: str, args: dict[str, Any]) -> dict:
+        try:
+            from app.services.settings_service import get_settings_service
+            from app.services.vorwaerts_service import get_vorwaerts_service
+
+            if not get_settings_service().get().get("vorwaerts_enabled", True):
+                return {}
+            return get_vorwaerts_service().vorhersagen(name, args)
+        except Exception as _fehler:
+            leise(_fehler, "services/tools")
+            return {}
+
+    @staticmethod
+    def _weltbild_pruefen(sicht: dict, ok: bool, ergebnis: str) -> None:
+        if not sicht or not ok:
+            return
+        try:
+            from app.services.vorwaerts_service import get_vorwaerts_service
+
+            dienst = get_vorwaerts_service()
+            dienst.lernen(dienst.abgleichen(sicht, ergebnis))
+        except Exception as _fehler:
+            leise(_fehler, "services/tools")
+
+    @staticmethod
     def _abgleichen(kennung: str, ok: bool, ergebnis: str, dauer: float) -> None:
         if not kennung:
             return
@@ -3326,7 +3484,19 @@ class ToolBox:
         except Exception as _fehler:
             leise(_fehler, "services/tools")
             hinweis = ""
+        try:
+            from app.services.weboeffnen import umleiten
+
+            umgeleitet = umleiten(name, args)
+        except Exception as _fehler:
+            leise(_fehler, "services/tools")
+            umgeleitet = None
+        if umgeleitet is not None:
+            ergebnis = json.dumps(umgeleitet, ensure_ascii=False)
+            log_action(src, name, args, ergebnis, ok=bool(umgeleitet.get("ok")))
+            return ergebnis
         erwartung = self._erwarten(name, args, src)
+        sicht = self._weltbild(name, args)
         begonnen = time.perf_counter()
         try:
             result = await self._dispatch(name, args)
@@ -3340,6 +3510,7 @@ class ToolBox:
         ok = '"error"' not in result[:200]
         log_action(src, name, args, result, ok=ok)
         self._abgleichen(erwartung, ok, result, time.perf_counter() - begonnen)
+        self._weltbild_pruefen(sicht, ok, result)
         if ok:
             cache.merken(name, args, result)
         try:
@@ -3393,17 +3564,15 @@ class ToolBox:
         if name == "create_pptx":
             return await self._create_pptx(args)
         if name == "web_search":
-            from app.services.browserwahl import JON, SYSTEM, aufloesen, name as bname
+            from app.services.browserwahl import JON, aufloesen, name as bname
             from app.services.browserwahl import oeffnen as browser_oeffnen
             from app.services.browserwahl import wahl
             from app.services.websearch_service import search_web
 
             frage = str(args.get("query", ""))
             anzahl = int(args.get("max_results", 6))
-            gewuenscht = aufloesen(str(args.get("browser", ""))) or wahl()
-            if gewuenscht not in (JON, SYSTEM) or (
-                gewuenscht == SYSTEM and args.get("browser")
-            ):
+            gewuenscht = aufloesen(str(args.get("browser", ""))) or JON
+            if gewuenscht != JON:
                 from urllib.parse import quote_plus
 
                 ziel = f"https://duckduckgo.com/?q={quote_plus(frage)}"
@@ -3415,7 +3584,7 @@ class ToolBox:
                     "auswerten soll."
                 )
                 return json.dumps(geoeffnet, ensure_ascii=False)
-            if gewuenscht == JON and not args.get("schnell"):
+            if not args.get("schnell"):
                 from app.services.websuche_browser import suchen
 
                 try:
