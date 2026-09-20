@@ -412,6 +412,27 @@ Jon ruft diese Tools im Chat auf. In Klammern die Pflichtargumente.
   Jons Browser alles nur im Arbeitsspeicher haelt (`ram`) oder auf der Festplatte
   ablegt (`festplatte`)
 
+### Bildschirm live & Geraete-Verbund
+- `geraete()` — alle Jon-Geraete im Verbund mit Version, Weg und letzter Antwort
+- `geraet_fragen(geraet, frage)` — stellt einem anderen Jon eine Frage; `geraet`
+  ist der Name oder ein Teil davon
+- `uebertragung(aktion?, welcher?, geraet?, telegram?, takt?)` — startet oder
+  stoppt die Bildschirmuebertragung; mit `geraet` holt Jon das Bild eines anderen
+  Geraets, mit `telegram` schickt er die Uebertragung in den Chat
+
+HTTP dazu:
+- `GET /api/live` — Stand und Monitorliste; `POST /api/live/start|stop`
+- `GET /api/live/bild` (JPEG), `GET /api/live/bild64` (base64 im JSON),
+  `GET /api/live/strom` (MJPEG), Seite unter `GET /live`
+- `GET /api/verbund`, `POST /api/verbund/koppeln {code}`,
+  `GET /api/verbund/{id}/pruefen`, `POST /api/verbund/{id}/fragen {frage}`,
+  `POST /api/verbund/{id}/rufen {methode, pfad, rumpf?, query?}`,
+  `GET /api/verbund/{id}/bild`, `DELETE /api/verbund/{id}`
+
+Der Verbund nutzt dasselbe verschluesselte Umschlag-Protokoll wie die Handy-App
+(`jon/handy/v1`, AES-GCM mit aus dem Kopplungscode abgeleitetem Schluessel). Im
+selben Netz geht der Ruf direkt per HTTP, sonst ueber den MQTT-Vermittler.
+
 ### Kalender
 - `calendar_add(title, date, time?, duration_minutes?, note?, kind?)`
 - `calendar_list(start?, days?)`, `calendar_search(query)`

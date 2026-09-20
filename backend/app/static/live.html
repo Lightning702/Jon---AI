@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#050506" />
+    <title>Jon — Live</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #050506;
+        color: rgba(255, 255, 255, 0.85);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        flex-wrap: wrap;
+      }
+      .punkt {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ef4444;
+      }
+      .punkt.an {
+        background: #34d399;
+      }
+      h1 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 500;
+        color: #d4af37;
+      }
+      .info {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.45);
+      }
+      select,
+      button {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        padding: 5px 10px;
+        font-size: 11.5px;
+        cursor: pointer;
+      }
+      button:hover,
+      select:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .rechts {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+      }
+      img {
+        max-width: 100%;
+        max-height: calc(100vh - 70px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .fehler {
+        max-width: 420px;
+        text-align: center;
+        font-size: 12.5px;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="punkt" id="punkt"></span>
+      <h1>Jon — Live</h1>
+      <span class="info" id="info">verbinde…</span>
+      <div class="rechts">
+        <select id="wahl"></select>
+        <select id="tempo">
+          <option value="0.5">flüssig</option>
+          <option value="1">1 s</option>
+          <option value="2" selected>2 s</option>
+          <option value="5">5 s</option>
+        </select>
+        <button id="vollbild">Vollbild</button>
+      </div>
+    </header>
+    <main>
+      <img id="schirm" alt="Bildschirm" hidden />
+      <div class="fehler" id="fehler" hidden></div>
+    </main>
+    <script>
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var token = params.get("token") || localStorage.getItem("jon.token") || "";
+        if (params.get("token")) {
+          try {
+            localStorage.setItem("jon.token", token);
+          } catch (e) {}
+        }
+        var schirm = document.getElementById("schirm");
+        var fehler = document.getElementById("fehler");
+        var info = document.getElementById("info");
+        var punkt = document.getElementById("punkt");
+        var wahl = document.getElementById("wahl");
+        var tempo = document.getElementById("tempo");
+        var welcher = params.get("welcher") || "alle";
+        var takt = 2000;
+        var laeuft = true;
+
+        function mitToken(pfad) {
+          return pfad + (pfad.indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(token);
+        }
+
+        function zeigeFehler(text) {
+          schirm.hidden = true;
+          fehler.hidden = false;
+          fehler.textContent = text;
+          punkt.classList.remove("an");
+        }
+
+        function naechstes() {
+          if (!laeuft) return;
+          var url = mitToken("/api/live/bild?welcher=" + encodeURIComponent(welcher)) + "&t=" + Date.now();
+          var neu = new Image();
+          neu.onload = function () {
+            schirm.src = neu.src;
+            schirm.hidden = false;
+            fehler.hidden = true;
+            punkt.classList.add("an");
+            info.textContent = new Date().toLocaleTimeString();
+            setTimeout(naechstes, takt);
+          };
+          neu.onerror = function () {
+            zeigeFehler(
+              "Kein Bild. Läuft Jon auf diesem Gerät, und stimmt der Schlüssel in der Adresse?"
+            );
+            setTimeout(naechstes, 3000);
+          };
+          neu.src = url;
+        }
+
+        fetch(mitToken("/api/live"))
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (stand) {
+            (stand.monitore || []).forEach(function (m) {
+              var o = document.createElement("option");
+              o.value = m.id;
+              o.textContent = m.name;
+              if (m.id === welcher) o.selected = true;
+              wahl.appendChild(o);
+            });
+          })
+          .catch(function () {});
+
+        wahl.addEventListener("change", function () {
+          welcher = wahl.value;
+        });
+        tempo.addEventListener("change", function () {
+          takt = Math.round(parseFloat(tempo.value) * 1000);
+        });
+        document.getElementById("vollbild").addEventListener("click", function () {
+          if (document.fullscreenElement) document.exitFullscreen();
+          else document.documentElement.requestFullscreen();
+        });
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) {
+            laeuft = false;
+          } else if (!laeuft) {
+            laeuft = true;
+            naechstes();
+          }
+        });
+        naechstes();
+      })();
+    </script>
+  </body>
+</html>

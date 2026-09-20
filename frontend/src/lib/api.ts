@@ -3909,3 +3909,99 @@ export async function mediathekLoeschen(id: string): Promise<void> {
   const res = await fetch(`${BASE}/mediathek/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Löschen ging nicht.");
 }
+
+export interface VerbundGeraet {
+  id: string;
+  name: string;
+  plattform: string;
+  version: string;
+  adressen: string[];
+  erstellt: number;
+  gesehen: number;
+  weg: string;
+  erreichbar?: boolean;
+  grund?: string;
+}
+
+export async function verbundGeraete(): Promise<VerbundGeraet[]> {
+  const res = await fetch(`${BASE}/verbund`);
+  if (!res.ok) throw new Error("Die Geräteliste ließ sich nicht laden.");
+  const daten = await res.json();
+  return Array.isArray(daten.geraete) ? daten.geraete : [];
+}
+
+export async function verbundKoppeln(code: string): Promise<VerbundGeraet> {
+  const res = await fetch(`${BASE}/verbund/koppeln`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  const daten = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(daten.detail || "Kopplung fehlgeschlagen.");
+  return daten;
+}
+
+export async function verbundPruefen(id: string): Promise<VerbundGeraet> {
+  const res = await fetch(`${BASE}/verbund/${id}/pruefen`);
+  if (!res.ok) throw new Error("Das Gerät antwortet nicht.");
+  return res.json();
+}
+
+export async function verbundEntfernen(id: string): Promise<void> {
+  await fetch(`${BASE}/verbund/${id}`, { method: "DELETE" });
+}
+
+export async function verbundFragen(id: string, frage: string): Promise<string> {
+  const res = await fetch(`${BASE}/verbund/${id}/fragen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ frage }),
+  });
+  const daten = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(daten.detail || "Keine Antwort.");
+  return String(daten.antwort ?? "");
+}
+
+export function verbundBildUrl(id: string, stempel: number): string {
+  return withToken(`${BASE}/verbund/${id}/bild?t=${stempel}`);
+}
+
+export interface LiveStand {
+  laeuft: boolean;
+  welcher: string;
+  takt: number;
+  zuschauer: number;
+  telegram: string[];
+  monitore: { id: string; name: string; breite: number; hoehe: number }[];
+}
+
+export async function liveStand(): Promise<LiveStand> {
+  const res = await fetch(`${BASE}/live`);
+  if (!res.ok) throw new Error("Der Stand ließ sich nicht laden.");
+  return res.json();
+}
+
+export async function liveStarten(
+  welcher = "alle",
+  takt = 2
+): Promise<LiveStand> {
+  const res = await fetch(`${BASE}/live/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ welcher, takt }),
+  });
+  const daten = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(daten.detail || "Übertragung ging nicht.");
+  return daten;
+}
+
+export async function liveStoppen(): Promise<LiveStand> {
+  const res = await fetch(`${BASE}/live/stop`, { method: "POST" });
+  return res.json();
+}
+
+export function liveSeiteUrl(welcher = "alle"): string {
+  return withToken(
+    BASE.replace(/\/api$/, "") + `/live?welcher=${encodeURIComponent(welcher)}`
+  );
+}

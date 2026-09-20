@@ -10,6 +10,7 @@ import {
   getOllamaStatus,
   getUserSettings,
   importBackup,
+  liveSeiteUrl,
   saveOllamaConfig,
   saveUserSettings,
   setAutostart,
@@ -30,6 +31,7 @@ import { useT } from "../hooks/useT";
 import ConnectionsModal from "./ConnectionsModal";
 import DiagnosticsModal from "./DiagnosticsModal";
 import HandyModal from "./HandyModal";
+import VerbundModal from "./VerbundModal";
 import UninstallModal from "./UninstallModal";
 import OllamaModal from "./OllamaModal";
 
@@ -158,6 +160,7 @@ export default function SettingsMenu({
   const [uninstallOpen, setUninstallOpen] = useState(false);
   const [diagnoseOpen, setDiagnoseOpen] = useState(false);
   const [handyOpen, setHandyOpen] = useState(false);
+  const [verbundOpen, setVerbundOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [personality, setPersonality] = useState(true);
   const [failover, setFailover] = useState(true);
@@ -1235,6 +1238,28 @@ export default function SettingsMenu({
               <span className="text-white/50 text-[12px]">›</span>
             </button>
             <button
+              onClick={() => {
+                setOpen(false);
+                window.open(liveSeiteUrl(), "_blank", "noopener");
+              }}
+              title="Oeffnet die Live-Ansicht deiner Bildschirme. Denselben Link kannst du im WLAN an jedem Geraet oeffnen; ueber Telegram geht /live."
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-white/15 bg-white/[0.04] hover:bg-white/10 transition-colors"
+            >
+              <span className="text-[11px] text-white/80">Bildschirm live zeigen …</span>
+              <span className="text-white/50 text-[12px]">›</span>
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                setVerbundOpen(true);
+              }}
+              title="Verbindet diesen Jon mit deinen anderen Jons - Raspberry Pi, zweiter PC. Danach fragst du sie im Chat und siehst ihren Bildschirm, auch von unterwegs."
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-white/15 bg-white/[0.04] hover:bg-white/10 transition-colors"
+            >
+              <span className="text-[11px] text-white/80">Geräte im Verbund …</span>
+              <span className="text-white/50 text-[12px]">›</span>
+            </button>
+            <button
               onClick={() => void openConnections()}
               className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
             >
@@ -1273,6 +1298,7 @@ export default function SettingsMenu({
         <DiagnosticsModal onClose={() => setDiagnoseOpen(false)} />
       )}
       {handyOpen && <HandyModal onClose={() => setHandyOpen(false)} />}
+      {verbundOpen && <VerbundModal onClose={() => setVerbundOpen(false)} />}
       {ollamaOpen && (
         <OllamaModal
           onClose={() => {

@@ -155,6 +155,7 @@ SAFE_TOOLS = {
     "was_war",
     "verlauf_heute",
     "netz_status",
+    "geraete",
     "selbsteinschaetzung",
     "ueberraschungen",
     "durchspielen",
@@ -770,6 +771,23 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "tür",
         ),
     ),
+    "verbund": (
+        {"geraete", "geraet_fragen", "uebertragung"},
+        (
+            "pi",
+            "raspberry",
+            "geraet",
+            "geräte",
+            "geraete",
+            "verbund",
+            "bildschirm",
+            "uebertrag",
+            "übertrag",
+            "live",
+            "streamen",
+            "zeig mir deinen",
+        ),
+    ),
     "netz": (
         {"netz_status", "browser_wahl"},
         (
@@ -1377,6 +1395,19 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         if args.get("nur_zeigen"):
             return "Zeigt, was sich rueckgaengig machen laesst."
         return "Macht die letzte Dateiaktion rueckgaengig."
+    if name == "geraete":
+        return "Sieht nach, welche Jon-Geraete verbunden sind."
+    if name == "geraet_fragen":
+        ziel = _shorten(args.get("geraet", "")) or "einem anderen Geraet"
+        return f"Fragt {ziel}: {_shorten(args.get('frage', ''))}"
+    if name == "uebertragung":
+        aktion = str(args.get("aktion", "start")).lower()
+        if aktion in ("stop", "stopp", "ende", "aus"):
+            return "Beendet die Bildschirmuebertragung."
+        ziel = _shorten(args.get("geraet", ""))
+        if ziel:
+            return f"Holt das Bildschirmbild von {ziel}."
+        return "Startet die Bildschirmuebertragung."
     if name == "netz_status":
         return "Prueft die Internetverbindung."
     if name == "was_war":
@@ -2177,6 +2208,39 @@ class ToolBox:
                 "die letzte Aktion zurueckgenommen; nur_zeigen=true listet nur auf, "
                 "was rueckgaengig gemacht werden koennte.",
                 {"id": _STR, "nur_zeigen": _BOOL},
+                [],
+            ),
+            _tool(
+                "geraete",
+                "Zeigt alle Jon-Geraete im Verbund (z.B. der Raspberry Pi), samt "
+                "Name, Plattform, Version und wann sie zuletzt erreichbar waren. "
+                "Nutze das, wenn der Nutzer nach seinen Geraeten fragt.",
+                {},
+                [],
+            ),
+            _tool(
+                "geraet_fragen",
+                "Stellt einem anderen Jon im Verbund eine Frage oder gibt ihm einen "
+                "Auftrag - zum Beispiel dem Jon auf dem Raspberry Pi. Der andere Jon "
+                "antwortet mit seinem eigenen Gedaechtnis und seinen Werkzeugen. "
+                "geraet ist der Name oder ein Teil davon ('pi', 'wohnzimmer').",
+                {"geraet": _STR, "frage": _STR},
+                ["geraet", "frage"],
+            ),
+            _tool(
+                "uebertragung",
+                "Zeigt den Bildschirm live. Ohne geraet uebertraegt Jon die eigenen "
+                "Bildschirme (welcher='alle' fuer alle Monitore, sonst die Nummer); "
+                "mit telegram=<Chat-ID> schickt er die Uebertragung in den "
+                "Telegram-Chat. Mit geraet=<Name> holt er stattdessen das Bild eines "
+                "anderen Jon-Geraets. aktion='stop' beendet die Uebertragung.",
+                {
+                    "aktion": _STR,
+                    "welcher": _STR,
+                    "geraet": _STR,
+                    "telegram": _STR,
+                    "takt": _NUM,
+                },
                 [],
             ),
             _tool(

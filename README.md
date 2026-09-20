@@ -6,7 +6,7 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-[![Version](https://img.shields.io/badge/Version-4.52.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.53.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -705,6 +705,41 @@ Kosten, Rate-Limits und Restkontingent geben die meisten APIs nicht direkt aus �
 Felder werden nicht erfunden.
 
 ---
+
+## 📺 Bildschirm live zeigen
+
+Jon kann dir **zusehen lassen**, was auf seinen Bildschirmen passiert — ohne
+Fremdsoftware, ohne Konto irgendwo.
+
+- **Über Telegram:** `/live` schickt dir ein Bild, das sich im Chat laufend
+  erneuert (alle Monitore nebeneinander). `/livestop` beendet es. Ein echter
+  Telegram-Videoanruf ist nicht möglich — Anrufe gibt es dort nur zwischen
+  Personen, nicht für Bots; das mitwachsende Bild ist der Weg, der funktioniert.
+- **Im Browser:** `http://<jon>:8756/live?token=…` zeigt dieselbe Übertragung
+  flüssig, mit Vollbild, Monitorwahl und einstellbarem Tempo. Am PC führt
+  **Einstellungen → Bildschirm live zeigen** direkt dorthin.
+- **Im Gespräch:** „zeig mir deinen Bildschirm" genügt.
+
+Auf einem Gerät ohne Monitor sagt Jon das klar, statt ein leeres Bild zu
+schicken.
+
+## 🔗 Geräte im Verbund
+
+Läuft Jon auf mehreren Geräten — am PC und auf dem Raspberry Pi —, verbindest du
+sie zu einem Verbund:
+
+1. Am Zielgerät: **Einstellungen → Handy verbinden** öffnen, Code notieren.
+2. Am anderen Gerät: **Einstellungen → Geräte im Verbund**, Code eintragen.
+3. Am Zielgerät die Anfrage bestätigen. Fertig.
+
+Danach erreichen sich deine Jons **von überall**: im selben WLAN direkt, sonst
+über denselben verschlüsselten Vermittler, über den auch das Handy mit Jon
+spricht — ohne offene Ports im Router.
+
+- im Chat: „frag den Pi, ob die Erinnerung noch steht" (`geraet_fragen`)
+- über Telegram: `/geraete` listet alles, `/live pi` holt den Bildschirm
+- in der Geräteliste: Version, Weg (Heimnetz/Internet), letzte Antwort, und ein
+  Blick auf den Bildschirm des anderen Geräts
 
 ## Handy-App
 

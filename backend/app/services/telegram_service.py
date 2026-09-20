@@ -212,6 +212,147 @@ class TelegramService:
         except Exception:
             return False
 
+    async def live_bild_senden(
+        self, chat_id: str | int, daten: bytes, beschriftung: str = ""
+    ) -> int:
+        token = self._token()
+        if not token:
+            return 0
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                antwort = await client.post(
+                    f"https://api.telegram.org/bot{token}/sendPhoto",
+                    data={"chat_id": str(chat_id), "caption": beschriftung[:900]},
+                    files={"photo": ("live.jpg", daten, "image/jpeg")},
+                )
+            if antwort.status_code >= 400:
+                return 0
+            ergebnis = (antwort.json() or {}).get("result") or {}
+            return int(ergebnis.get("message_id") or 0)
+        except Exception:
+            return 0
+
+    async def live_bild_ersetzen(
+        self, chat_id: str | int, nachricht_id: int, daten: bytes
+    ) -> bool:
+        token = self._token()
+        if not token or not nachricht_id:
+            return False
+        medium = json.dumps(
+            {"type": "photo", "media": "attach://live"}, ensure_ascii=False
+        )
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                antwort = await client.post(
+                    f"https://api.telegram.org/bot{token}/editMessageMedia",
+                    data={
+                        "chat_id": str(chat_id),
+                        "message_id": str(int(nachricht_id)),
+                        "media": medium,
+                    },
+                    files={"live": ("live.jpg", daten, "image/jpeg")},
+                )
+            return antwort.status_code < 400
+        except Exception:
+            return False
+
+    async def live_geraet(self, chat_id: str, ziel: str, welcher: str = "alle") -> bool:
+        from app.services.verbund_service import VerbundFehler, get_verbund_service
+
+        verbund = get_verbund_service()
+        try:
+            eintrag = verbund.finden(ziel)
+        except VerbundFehler:
+            return False
+        try:
+            daten = await verbund.bildschirm(eintrag["id"], welcher)
+        except VerbundFehler as fehler:
+            await self.send(chat_id, f"{eintrag['name']}: {fehler} 🙈")
+            return True
+        await self.live_bild_senden(
+            chat_id,
+            daten,
+            f"🖥️ {eintrag['name']} — gerade eben. Nochmal: /live {ziel}",
+        )
+        return True
+
+    async def live_starten(self, chat_id: str, welcher: str = "alle") -> None:
+        from app.services.live_service import LiveFehler, get_live_service
+
+        dienst = get_live_service()
+        try:
+            stand = await asyncio.to_thread(dienst.starten, welcher, 3.0)
+            daten = await asyncio.to_thread(dienst.aktuell)
+        except LiveFehler as fehler:
+            await self.send(chat_id, f"Das geht hier nicht: {fehler} 🙈")
+            return
+        namen = [m["name"] for m in stand.get("monitore", []) if m["id"] != "alle"]
+        wo = " + ".join(namen) if namen else "Bildschirm"
+        nachricht_id = await self.live_bild_senden(
+            chat_id,
+            daten,
+            f"🔴 Live von {self._rechnername()} — {wo}. Das Bild aktualisiert sich "
+            "hier laufend. /livestop beendet die Uebertragung.",
+        )
+        if not nachricht_id:
+            await self.send(chat_id, "Ich konnte das Bild nicht schicken. 😕")
+            return
+        dienst.telegram_ziel(chat_id, nachricht_id)
+        adressen = self._live_adressen(welcher)
+        if adressen:
+            await self.send(
+                chat_id,
+                "Fluessiger im Browser (im selben WLAN):"
+                + chr(10)
+                + chr(10).join(adressen),
+            )
+
+    async def live_stoppen(self, chat_id: str) -> None:
+        from app.services.live_service import get_live_service
+
+        dienst = get_live_service()
+        dienst.telegram_los(chat_id)
+        if not dienst.telegram_ziele():
+            dienst.stoppen()
+        await self.send(chat_id, "Uebertragung beendet. ⏹️")
+
+    async def _geraete_text(self) -> str:
+        from app.services.verbund_service import get_verbund_service
+
+        geraete = get_verbund_service().geraete()
+        if not geraete:
+            return (
+                "Hier haengt noch kein zweites Geraet dran. Am PC unter "
+                "Einstellungen → Geräte im Verbund koppelst du zum Beispiel deinen "
+                "Raspberry Pi dazu. 🔗"
+            )
+        zeilen = ["Deine Jon-Geraete:"]
+        for g in geraete:
+            wo = g.get("weg") or "noch nicht erreicht"
+            zeilen.append(f"• {g['name']} — {g.get('version') or '?'} ({wo})")
+        zeilen.append("")
+        zeilen.append("Bildschirm ansehen: /live <Name> — fragen: schreib mir einfach.")
+        return chr(10).join(zeilen)
+
+    def _rechnername(self) -> str:
+        from app.services.handy_service import get_handy_service
+
+        return get_handy_service().kennung().get("name", "diesem Rechner")
+
+    def _live_adressen(self, welcher: str) -> list[str]:
+        from app.core.auth import get_token
+        from app.core.config import get_settings
+        from app.core.auth import lan_adressen
+
+        settings = get_settings()
+        if not settings.jon_lan:
+            return []
+        marke = get_token()
+        return [
+            f"http://{host}:{settings.port}/live?welcher={welcher}&token={marke}"
+            for host in lan_adressen()[:2]
+        ]
+
     async def send_datei(self, chat_id: str | int, datei: dict) -> bool:
         token = self._token()
         pfad = Path(str(datei.get("path") or ""))
@@ -930,13 +1071,30 @@ class TelegramService:
                     "Schick mir gerne auch eine Sprachnachricht. Teile mir deinen "
                     "Standort (📎 → Standort), dann plane ich Routen ab hier — zum "
                     "Beispiel: Route zum nächsten Supermarkt.\n\n"
-                    "Befehle: /stimme = "
+                    "Befehle: /live = ich zeige dir meine Bildschirme live · "
+                    "/live <Geraet> = Bildschirm eines anderen Jon (z.B. /live pi) · "
+                    "/geraete = alle verbundenen Geraete · "
+                    "/livestop = Uebertragung beenden · /stimme = "
                     "ich antworte per Sprachnachricht · /endstimme = nur noch Text · "
                     "/lernen <Thema> = Tiefenrecherche starten · /lernstatus = Stand "
                     "der Recherche · /lernstop = abbrechen · /lernweiter = "
                     "fortsetzen · /stopp = laufende Aktion abbrechen · /reset = "
                     "Gespräch vergessen.",
                 )
+                continue
+            if text.startswith("/geraete") or text.startswith("/geräte"):
+                await self.send(chat_id, await self._geraete_text())
+                continue
+            if text.startswith("/live"):
+                if text.startswith("/livestop"):
+                    await self.live_stoppen(str(chat_id))
+                    continue
+                teile = text.split(maxsplit=1)
+                wunsch = teile[1].strip() if len(teile) > 1 else ""
+                if wunsch and wunsch not in ("alle", "1", "2", "3", "4"):
+                    if await self.live_geraet(str(chat_id), wunsch):
+                        continue
+                await self.live_starten(str(chat_id), wunsch or "alle")
                 continue
             if text.startswith("/reset"):
                 self._histories.pop(str(chat_id), None)

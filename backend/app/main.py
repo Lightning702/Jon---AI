@@ -17,6 +17,8 @@ from app.api.multiplayer_routes import MP_TCP_PORT, MP_WS_PORT, create_coop_app
 from app.api.multiplayer_routes import router as multiplayer_router
 from app.api.inbox_routes import router as inbox_router
 from app.api.handy_routes import router as handy_router
+from app.api.live_routes import router as live_router
+from app.api.verbund_routes import router as verbund_router
 from app.api.mediathek_routes import router as mediathek_router
 from app.api.zeit_routes import router as zeit_router
 from app.api.p2p_routes import create_chat_app
@@ -665,6 +667,10 @@ async def lifespan(app: FastAPI):
 
     _spawn("handy_relay", get_handy_relay().start())
     _spawn("p2p_outbox", p2p.outbox_loop())
+
+    from app.services.live_service import get_live_service
+
+    _spawn("live", get_live_service().schleife())
     _log.info("STEP vor yield")
     yield
     _stop_all()
@@ -711,6 +717,8 @@ def create_app() -> FastAPI:
     app.include_router(handy_router)
     app.include_router(zeit_router)
     app.include_router(mediathek_router)
+    app.include_router(live_router)
+    app.include_router(verbund_router)
     app.include_router(research_router)
     app.include_router(studio_router)
     app.include_router(browser_router)
@@ -732,6 +740,16 @@ def create_app() -> FastAPI:
     @app.get("/katzenhof")
     async def katzenhof():
         return FileResponse(katzen_file, media_type="text/html")
+
+    live_file = Path(__file__).resolve().parent / "static" / "live.html"
+
+    @app.get("/live")
+    async def live():
+        return FileResponse(
+            live_file,
+            media_type="text/html",
+            headers={"Cache-Control": "no-store"},
+        )
 
     private_file = Path(__file__).resolve().parent / "static" / "privat.html"
 

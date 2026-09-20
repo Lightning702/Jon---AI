@@ -2,6 +2,42 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.53.0] — 2026-09-20
+
+### 📺 Jon zeigt dir seinen Bildschirm — über Telegram
+
+Schreib deinem Jon-Bot **/live**, und er schickt dir ein Bild von seinem
+Bildschirm, das sich **von selbst weiter aktualisiert**: alle Monitore
+nebeneinander, alle paar Sekunden frisch, direkt im Chat. **/livestop** beendet
+es wieder. Im selben Atemzug bekommst du einen Link zur Live-Ansicht im Browser —
+die läuft flüssiger, kann Vollbild, einzelne Monitore und ein schnelleres Tempo.
+
+Ein echter Telegram-**Videoanruf** ist das nicht: Anrufe laufen bei Telegram nur
+zwischen Personen, ein Bot kann sie technisch nicht führen. Das laufend
+erneuerte Bild im Chat ist der Weg, der ohne Umwege funktioniert — und ist der
+Sache sehr nah.
+
+Am PC findest du dasselbe unter **Einstellungen → Bildschirm live zeigen**, und
+im Gespräch genügt „zeig mir deinen Bildschirm". Auf einem Gerät ohne Monitor —
+dem Pi zum Beispiel — sagt Jon das klar, statt ins Leere zu greifen.
+
+### 🔗 Deine Jons finden sich — über das Internet
+
+Jon auf dem PC und Jon auf dem Raspberry Pi waren bisher zwei Fremde. Jetzt gibt
+es den **Verbund**: Unter **Einstellungen → Geräte im Verbund** trägst du den
+Kopplungscode des anderen Geräts ein, bestätigst dort die Anfrage — fertig.
+
+Danach erreichen sich deine Jons **von überall**. Im selben WLAN sprechen sie
+direkt miteinander, sonst über Jons verschlüsselten Vermittler — dieselbe
+abgesicherte Leitung, über die schon das Handy mit Jon spricht. Niemand
+unterwegs kann mitlesen, und es braucht keine offene Portweiterleitung.
+
+Im Chat sagst du einfach „frag den Pi, ob die Erinnerung noch steht" — der andere
+Jon antwortet mit seinem eigenen Gedächtnis und seinen eigenen Werkzeugen. Über
+Telegram zeigt **/geraete** alle verbundenen Geräte, und **/live pi** holt dir den
+Bildschirm eines anderen Geräts. In der Geräteliste siehst du Version, Weg
+(Heimnetz oder Internet) und wann jedes Gerät zuletzt geantwortet hat.
+
 ## [4.52.0] — 2026-09-20
 
 ### 🖥️ Kein schwarzer Bildschirm mehr am Raspberry Pi

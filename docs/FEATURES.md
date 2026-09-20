@@ -62,6 +62,19 @@ Vollständige Übersicht über den aktuellen Stand von Jon.
 - Aufklappbare Tool-Chips: Befehl, Zusammenfassung, Ergebnis
 - Reine Leseaktionen laufen ohne Rückfrage
 
+## Live-Bildschirm & Geräte-Verbund
+
+Seit 4.53.0 zeigt Jon seinen Bildschirm live: über Telegram als Bild, das sich im
+Chat laufend erneuert (`/live`, `/livestop`), im Browser unter `/live` mit
+Vollbild und Monitorwahl, im Chat auf Zuruf. Ein Bot kann bei Telegram keine
+Videoanrufe führen — das mitwachsende Bild ersetzt sie.
+
+Mehrere Jons (PC, Raspberry Pi) lassen sich zu einem Verbund koppeln:
+Einstellungen → Geräte im Verbund. Im WLAN sprechen sie direkt, von unterwegs
+über Jons verschlüsselten Vermittler. Im Chat fragt Jon andere Geräte
+(`geraet_fragen`), über Telegram zeigen `/geraete` und `/live <Name>` Stand und
+Bildschirm.
+
 ## Präsentationen
 
 - `create_pptx` baut eine fertige **PowerPoint-Datei (.pptx)** im 16:9-Format

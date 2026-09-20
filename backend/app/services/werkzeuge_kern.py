@@ -61,6 +61,70 @@ def _rueckgaengig(box: Any, args: dict, name: str = "") -> str:
     return antwort(dienst.rueckgaengig(str(args.get("id", ""))))
 
 
+@werkzeug("geraete")
+def _geraete(box: Any, args: dict, name: str = "") -> str:
+    from app.services.verbund_service import get_verbund_service
+
+    return antwort({"geraete": get_verbund_service().geraete()})
+
+
+@werkzeug_async("geraet_fragen")
+async def _geraet_fragen(box: Any, args: dict, name: str = "") -> str:
+    from app.services.verbund_service import VerbundFehler, get_verbund_service
+
+    dienst = get_verbund_service()
+    try:
+        eintrag = dienst.finden(str(args.get("geraet", "")))
+        text = await dienst.fragen(eintrag["id"], str(args.get("frage", "")))
+    except VerbundFehler as fehler:
+        return antwort({"ok": False, "fehler": str(fehler)})
+    return antwort({"ok": True, "geraet": eintrag.get("name", ""), "antwort": text})
+
+
+@werkzeug_async("uebertragung")
+async def _uebertragung(box: Any, args: dict, name: str = "") -> str:
+    import asyncio
+
+    from app.services.live_service import LiveFehler, get_live_service
+
+    dienst = get_live_service()
+    aktion = str(args.get("aktion", "start")).strip().lower()
+    if aktion in ("stop", "stopp", "ende", "aus"):
+        return antwort(dienst.stoppen())
+    if aktion in ("stand", "status"):
+        return antwort(dienst.stand())
+    welcher = str(args.get("welcher", "alle")).strip() or "alle"
+    ziel = str(args.get("geraet", "")).strip()
+    if ziel:
+        from app.services.verbund_service import VerbundFehler, get_verbund_service
+
+        verbund = get_verbund_service()
+        try:
+            eintrag = verbund.finden(ziel)
+            await verbund.bildschirm(eintrag["id"], welcher)
+        except VerbundFehler as fehler:
+            return antwort({"ok": False, "fehler": str(fehler)})
+        return antwort(
+            {
+                "ok": True,
+                "geraet": eintrag.get("name", ""),
+                "bild": f"/api/verbund/{eintrag['id']}/bild?welcher={welcher}",
+            }
+        )
+    try:
+        stand = await asyncio.to_thread(
+            dienst.starten, welcher, float(args.get("takt", 2.0) or 2.0)
+        )
+    except LiveFehler as fehler:
+        return antwort({"ok": False, "fehler": str(fehler)})
+    chat = str(args.get("telegram", "")).strip()
+    if chat:
+        from app.services.telegram_service import get_telegram_service
+
+        await get_telegram_service().live_starten(chat, welcher)
+    return antwort({"ok": True, **stand})
+
+
 @werkzeug("netz_status")
 def _netz_status(box: Any, args: dict, name: str = "") -> str:
     from app.services.netz_service import online, stand
