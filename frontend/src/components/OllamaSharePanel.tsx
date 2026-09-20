@@ -19,6 +19,7 @@ import {
   revokeOllamaShare,
   saveOllamaShare,
 } from "../lib/api";
+import { inZwischenablage } from "../lib/umgebung";
 
 const field =
   "w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50";
@@ -157,7 +158,7 @@ export default function OllamaSharePanel({
 
   const copy = async (text: string, what: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await inZwischenablage(text);
       say(`${what} kopiert — jetzt deinem Freund schicken`);
     } catch {
       say(text);

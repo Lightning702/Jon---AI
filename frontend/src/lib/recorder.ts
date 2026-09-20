@@ -1,3 +1,5 @@
+import { mikrofonOeffnen } from "./umgebung";
+
 function encodeWav(samples: Float32Array, rate: number): Blob {
   const buffer = new ArrayBuffer(44 + samples.length * 2);
   const view = new DataView(buffer);
@@ -46,7 +48,7 @@ export class VoiceRecorder {
   private stream: MediaStream | null = null;
 
   async start(): Promise<void> {
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this.stream = await mikrofonOeffnen({ audio: true });
     this.chunks = [];
     this.recorder = new MediaRecorder(this.stream);
     this.recorder.ondataavailable = (e) => {

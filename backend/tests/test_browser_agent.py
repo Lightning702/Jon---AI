@@ -4,6 +4,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 
@@ -571,7 +572,8 @@ def test_websuche_laeuft_ueber_den_jon_browser():
         assert ergebnis["anzahl"] >= 1
         for treffer in ergebnis["treffer"]:
             assert treffer["url"].startswith("http")
-            assert "duckduckgo" not in treffer["url"]
+            host = urlparse(treffer["url"]).netloc.lower()
+            assert not host.endswith("duckduckgo.com")
     finally:
         werkzeuge.ausfuehren("close", {})
         get_settings_service().update({"browser_speicher": "festplatte"})
@@ -585,7 +587,7 @@ def test_browserwahl_kennt_die_moeglichkeiten():
     dienst.update({"web_browser": "jon"})
     assert wahl() == "jon"
     assert nutzt_jon() is True
-    assert name() == "Jon-Browser"
+    assert name() == "Jons privater Browser"
     werte = {e["wert"] for e in verfuegbare()}
     assert {"jon", "system", "chrome", "edge", "firefox"} <= werte
     dienst.update({"web_browser": "chrome"})

@@ -11,6 +11,7 @@ import {
   handyKopplungStand,
   handyQrUrl,
 } from "../lib/api";
+import { inZwischenablage } from "../lib/umgebung";
 
 function zeitpunkt(wert: number): string {
   if (!wert) return "unbekannt";
@@ -148,7 +149,7 @@ export default function HandyModal({ onClose }: { onClose: () => void }) {
               <div className="mt-2 flex items-center justify-center gap-2">
                 <button
                   onClick={() => {
-                    if (kopplung) void navigator.clipboard?.writeText(kopplung.code_gruppiert);
+                    if (kopplung) void inZwischenablage(kopplung.code_gruppiert);
                   }}
                   className="px-3 py-1 rounded-lg border border-white/15 bg-white/[0.04] hover:bg-white/10 text-[11px]"
                 >

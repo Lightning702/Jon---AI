@@ -19,6 +19,7 @@ import FriendsChat from "./components/FriendsChat";
 import FriendRequestPopup from "./components/FriendRequestPopup";
 import Humanizer from "./components/Humanizer";
 import Downloader from "./components/Downloader";
+import Player from "./components/Player";
 import EveningShow from "./components/EveningShow";
 import RoutineBanner from "./components/RoutineBanner";
 import Journal from "./components/Journal";
@@ -33,6 +34,7 @@ import Notes from "./components/Notes";
 import Games from "./components/Games";
 import ToolsModal from "./components/ToolsModal";
 import Vault from "./components/Vault";
+import TokenGate from "./components/TokenGate";
 import Search from "./components/Search";
 import Inbox from "./components/Inbox";
 import SetupWizard from "./components/SetupWizard";
@@ -41,6 +43,7 @@ import type { JonMapsIntent } from "./maps/JonMaps";
 const JonMaps = lazy(() => import("./maps/JonMaps"));
 const DeepLearning = lazy(() => import("./components/DeepLearning"));
 import { VoiceListener } from "./lib/voice";
+import { MIKROFON_FEHLT, mikrofonMoeglich } from "./lib/umgebung";
 import { applyTheme, istTheme } from "./lib/theme";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import {
@@ -94,8 +97,11 @@ import {
   runSimulation,
   runTeam,
   streamChat,
+  zeitNeu,
+  zeitStand,
   BASE,
 } from "./lib/api";
+import type { JonUhr } from "./lib/api";
 
 const jonDesktop = (window as unknown as {
   jon?: {
@@ -133,6 +139,15 @@ function chatPing() {
 
 let idc = 0;
 const nextId = () => `m${Date.now()}_${idc++}`;
+
+function uhrDauer(sekunden: number): string {
+  const minuten = Math.round(Math.max(0, sekunden) / 60);
+  if (minuten < 1) return `${Math.round(sekunden)} Sekunden`;
+  if (minuten < 60) return `${minuten} Minuten`;
+  const stunden = Math.floor(minuten / 60);
+  const rest = minuten % 60;
+  return rest ? `${stunden} Std. ${rest} Min.` : `${stunden} Stunden`;
+}
 
 const FORCE_COMMANDS: { pattern: RegExp; tool: string }[] = [
   { pattern: /^\/(maps|karte|karten|navigation)\s+([\s\S]+)$/i, tool: "maps" },
@@ -200,8 +215,9 @@ export default function App() {
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [online, setOnline] = useState(false);
+  const mikrofonDa = mikrofonMoeglich();
   const [voiceOn, setVoiceOn] = useState(
-    () => localStorage.getItem("jon_voice") !== "0"
+    () => mikrofonDa && localStorage.getItem("jon_voice") !== "0"
   );
   const [voiceState, setVoiceState] = useState<VoiceUiState>("idle");
   const [voiceDetail, setVoiceDetail] = useState<string | undefined>();
@@ -217,6 +233,7 @@ export default function App() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [humanizerOpen, setHumanizerOpen] = useState(false);
   const [downloaderOpen, setDownloaderOpen] = useState(false);
+  const [playerOpen, setPlayerOpen] = useState(false);
   const [showOpen, setShowOpen] = useState(false);
   const [journalOpen, setJournalOpen] = useState(false);
   const [cleanupOpen, setCleanupOpen] = useState(false);
@@ -240,6 +257,7 @@ export default function App() {
   const [identity, setIdentity] = useState<P2PIdentity | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [firstRun, setFirstRun] = useState(false);
+  const [zugangFehlt, setZugangFehlt] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [friendsPeer, setFriendsPeer] = useState<string | null>(null);
   const [friendRequests, setFriendRequests] = useState<P2PRequest[]>([]);
@@ -541,6 +559,55 @@ export default function App() {
 
   useEffect(() => {
     if (!online) return;
+    let beendet = false;
+    const tick = async () => {
+      let frisch: JonUhr[] = [];
+      try {
+        frisch = (await zeitNeu()).uhren;
+      } catch {
+        return;
+      }
+      if (beendet || !frisch.length) return;
+      const alle = await zeitStand().catch(() => ({ uhren: frisch }));
+      const namen = frisch
+        .map((u) =>
+          u.art === "wecker"
+            ? `Wecker für ${(u.klingelt_um ?? "").slice(11, 16)} Uhr`
+            : u.art === "timer"
+              ? `Timer über ${uhrDauer(u.dauer ?? 0)}`
+              : "Stoppuhr"
+        )
+        .join(", ");
+      const quelle = String(frisch[0]?.quelle ?? "");
+      const woher = quelle.startsWith("telegram")
+        ? " über Telegram"
+        : quelle === "handy"
+          ? " vom Handy"
+          : "";
+      const satz = `⏱️ ${namen}${woher} gestartet.`;
+      setEntries((prev) => [
+        ...prev,
+        {
+          id: nextId(),
+          role: "assistant",
+          content: satz,
+          cards: karteAnhaengen([], { kind: "zeit", data: { uhren: alle.uhren } }, nextId),
+        },
+      ]);
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Jon — Uhr läuft", { body: namen });
+      }
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 5000);
+    return () => {
+      beendet = true;
+      window.clearInterval(timer);
+    };
+  }, [online]);
+
+  useEffect(() => {
+    if (!online) return;
     if ("Notification" in window && Notification.permission === "default") {
       void Notification.requestPermission();
     }
@@ -728,7 +795,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!online || !voiceOn) {
+    const merken = () => setZugangFehlt(true);
+    window.addEventListener("jon_zugang_fehlt", merken);
+    return () => window.removeEventListener("jon_zugang_fehlt", merken);
+  }, []);
+
+  useEffect(() => {
+    if (!online || !voiceOn || !mikrofonDa) {
       stopSpeaking();
       setVoiceState("idle");
       setVoiceDetail(undefined);
@@ -761,10 +834,16 @@ export default function App() {
       cancelled = true;
       listenerRef.current = null;
       listener.stop();
+      listener.loesen();
     };
-  }, [online, voiceOn]);
+  }, [online, voiceOn, mikrofonDa]);
 
   const toggleVoice = () => {
+    if (!mikrofonDa) {
+      setVoiceState("error");
+      setVoiceDetail(MIKROFON_FEHLT);
+      return;
+    }
     setVoiceOn((v) => {
       const next = !v;
       localStorage.setItem("jon_voice", next ? "1" : "0");
@@ -1757,6 +1836,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                             { icon: "🔍", label: "Bildschirm erklären", hint: "Strg+Alt+E", act: () => setExplainOpen(true) },
                             { icon: "🧹", label: "Ordner aufräumen", act: () => setCleanupOpen(true) },
                             { icon: "⬇️", label: "Downloader", act: () => setDownloaderOpen(true) },
+                            { icon: "▶️", label: "Player", hint: "Downloads offline", act: () => setPlayerOpen(true) },
                             { icon: "🕶️", label: "Privater Browser", hint: jonDesktop?.openPrivateBrowser ? "Strg+Alt+P" : undefined, act: () => setPrivateBrowserOpen(true) },
                             { icon: "🍳", label: "Kochassistent", act: () => setRecipeOpen(true) },
                             { icon: "📋", label: "Clipboard-Historie", act: () => setClipboardOpen(true) },
@@ -1846,15 +1926,17 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
               <button
                 onClick={toggleVoice}
                 title={
-                  voiceOn
-                    ? "Sprachsteuerung an — sag „Jon“, um zu sprechen"
-                    : "Sprachsteuerung aus"
+                  !mikrofonDa
+                    ? MIKROFON_FEHLT
+                    : voiceOn
+                      ? "Sprachsteuerung an — sag „Jon“, um zu sprechen"
+                      : "Sprachsteuerung aus"
                 }
                 className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
                   voiceOn
                     ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
                     : "border-white/10 bg-white/5 text-white/30"
-                }`}
+                } ${mikrofonDa ? "" : "opacity-40"}`}
               >
                 <svg
                   width="13"
@@ -1869,7 +1951,9 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                   <rect x="9" y="2" width="6" height="12" rx="3" />
                   <path d="M5 10a7 7 0 0 0 14 0" />
                   <line x1="12" y1="19" x2="12" y2="22" />
-                  {!voiceOn && <line x1="3" y1="3" x2="21" y2="21" />}
+                  {(!voiceOn || !mikrofonDa) && (
+                    <line x1="3" y1="3" x2="21" y2="21" />
+                  )}
                 </svg>
               </button>
               <div className="flex items-center gap-2">
@@ -1979,6 +2063,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
         />
       )}
       {downloaderOpen && <Downloader onClose={() => setDownloaderOpen(false)} />}
+      {playerOpen && <Player onClose={() => setPlayerOpen(false)} />}
       {mapsOpen && (
         <div className="fixed inset-0 z-[60]">
           <Suspense fallback={<LazyCurtain label="Jon Maps wird geladen …" />}>
@@ -2129,6 +2214,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
           </div>
         </div>
       )}
+      <TokenGate open={zugangFehlt} />
       {calendarOpen && <CalendarPanel onClose={() => setCalendarOpen(false)} />}
       {setupOpen && <SetupWizard onDone={() => setSetupOpen(false)} />}
       {profileOpen && identity && (

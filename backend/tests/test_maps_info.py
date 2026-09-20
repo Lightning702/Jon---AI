@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -13,24 +14,32 @@ from app.services.maps import insights
 
 client = TestClient(app)
 
-BING_RSS = """<?xml version="1.0" encoding="utf-8"?>
+def _rfc822(stunden: int) -> str:
+    zeitpunkt = datetime.now(timezone.utc) - timedelta(hours=stunden)
+    return zeitpunkt.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+
+FRISCH = _rfc822(6)
+FRISCH_TAG = (datetime.now(timezone.utc) - timedelta(hours=6)).strftime("%Y-%m-%d")
+
+BING_RSS = f"""<?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:News="http://news"><channel>
 <item><title>Regierung beschliesst Entlastungspaket</title>
 <link>http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;url=https%3a%2f%2fwww.derstandard.at%2fstory%2f1&amp;c=1</link>
-<pubDate>Sat, 29 Aug 2026 17:12:00 GMT</pubDate>
+<pubDate>{FRISCH}</pubDate>
 <News:Source>Der Standard</News:Source>
 <News:Image>http://www.bing.com/th?id=ONUT.abc&amp;pid=News</News:Image></item>
 <item><title>OeBB investieren in die Weststrecke</title>
 <link>http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;url=https%3a%2f%2forf.at%2fstory%2f2&amp;c=2</link>
-<pubDate>Sat, 29 Aug 2026 15:00:00 GMT</pubDate>
+<pubDate>{FRISCH}</pubDate>
 <News:Source>ORF</News:Source></item>
 <item><title>Ohne echte Adresse</title><link>news.google.com/nix</link></item>
 </channel></rss>"""
 
-GOOGLE_RSS = """<?xml version="1.0"?><rss><channel>
+GOOGLE_RSS = f"""<?xml version="1.0"?><rss><channel>
 <item><title>Rekord bei Naechtigungen - Die Presse</title>
 <link>https://news.google.com/rss/articles/XYZ</link>
-<pubDate>Sat, 29 Aug 2026 12:00:00 GMT</pubDate>
+<pubDate>{FRISCH}</pubDate>
 <source url="https://www.diepresse.com">Die Presse</source></item>
 </channel></rss>"""
 
@@ -112,7 +121,7 @@ def test_news_liefert_bild_quelle_zeit_und_link(monkeypatch):
     assert erste["url"].startswith("https://www.derstandard.at")
     assert erste["quelle"] == "Der Standard"
     assert erste["bild"].startswith("https://www.bing.com/th")
-    assert erste["zeit"].startswith("2026-08-29")
+    assert erste["zeit"].startswith(FRISCH_TAG)
     assert all(not item["url"].startswith("news.google.com") for item in treffer)
 
 

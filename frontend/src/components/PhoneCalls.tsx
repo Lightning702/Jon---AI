@@ -21,6 +21,7 @@ import {
   type PhoneSetup,
   type PhoneStatus,
 } from "../lib/api";
+import { inZwischenablage } from "../lib/umgebung";
 
 const STATUS_LABEL: Record<string, string> = {
   scheduled: "geplant",
@@ -380,7 +381,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                           </div>
                           <button
                             onClick={() => {
-                              navigator.clipboard?.writeText(check.fix ?? "");
+                              void inZwischenablage(check.fix ?? "");
                               setNote(
                                 "Befehl kopiert. In PowerShell einfügen, Enter — dann fragt " +
                                   "Windows einmal nach Administratorrechten. Auf „Ja“ klicken."
@@ -526,7 +527,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                           <td className="px-2 py-1 w-8">
                             <button
                               onClick={() => {
-                                navigator.clipboard?.writeText(String(value));
+                                void inZwischenablage(String(value));
                                 setNote(`${label} kopiert.`);
                               }}
                               className="text-white/40 hover:text-white/90"

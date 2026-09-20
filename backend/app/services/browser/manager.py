@@ -657,10 +657,13 @@ _manager: dict[str, BrowserManager] = {}
 _manager_lock = threading.Lock()
 
 
-def get_manager(sitzung: str = "") -> BrowserManager:
+def get_manager(sitzung: str = ""):
+    from app.services.browser import privatbruecke
     from app.services.browser.sitzung import aktuell
 
     schluessel = sitzung or aktuell()
+    if privatbruecke.aktiv():
+        return privatbruecke.manager(schluessel)
     with _manager_lock:
         if schluessel not in _manager:
             _manager[schluessel] = BrowserManager(schluessel)

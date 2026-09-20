@@ -75,3 +75,56 @@ async def browser_wahl() -> dict:
     from app.services.browserwahl import name, verfuegbare, wahl
 
     return {"browser": wahl(), "name": name(), "verfuegbar": verfuegbare()}
+
+
+@router.get("/privat/auftrag")
+async def privat_auftrag(warten: float = 25.0, fenster: bool = False) -> dict:
+    from app.services.browser import privatbruecke
+
+    privatbruecke.melden(fenster)
+    grenze = max(0.0, min(float(warten or 0.0), 50.0))
+    ende = asyncio.get_event_loop().time() + grenze
+    while True:
+        auftrag = privatbruecke.abholen()
+        if auftrag is not None:
+            auftrag["skripte"] = privatbruecke.skripte()
+            return {"auftrag": auftrag}
+        if asyncio.get_event_loop().time() >= ende:
+            return {"auftrag": None}
+        await asyncio.sleep(0.12)
+
+
+@router.post("/privat/ergebnis")
+async def privat_ergebnis(payload: dict) -> dict:
+    from app.services.browser import privatbruecke
+
+    privatbruecke.melden(bool(payload.get("fenster", True)), payload.get("seite"))
+    angekommen = privatbruecke.antworten(
+        str(payload.get("id", "")),
+        bool(payload.get("ok", False)),
+        payload.get("daten") if isinstance(payload.get("daten"), dict) else {},
+        str(payload.get("fehler", "")),
+    )
+    return {"ok": True, "angekommen": angekommen}
+
+
+@router.get("/privat/stand")
+async def privat_stand() -> dict:
+    from app.services.browser import privatbruecke
+
+    return privatbruecke.stand()
+
+
+@router.get("/privat/skripte")
+async def privat_skripte() -> dict:
+    from app.services.browser import privatbruecke
+
+    return privatbruecke.skripte()
+
+
+@router.post("/privat/trennen")
+async def privat_trennen() -> dict:
+    from app.services.browser import privatbruecke
+
+    privatbruecke.zuruecksetzen()
+    return {"ok": True}

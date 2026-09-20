@@ -17,6 +17,7 @@ MAX_EINTRAEGE = 60
 MAX_DATEI_MB = 40
 
 UMKEHRBAR = {
+    "datei_erstellen",
     "write_file",
     "edit_file",
     "append_file",
@@ -82,7 +83,11 @@ class RueckgaengigService:
             "args": {k: str(v)[:400] for k, v in (args or {}).items() if v is not None},
         }
         try:
-            if werkzeug in ("write_file", "edit_file", "append_file"):
+            if werkzeug == "datei_erstellen":
+                ziel = str(args.get("pfad") or args.get("ordner") or "")
+                eintrag["ziel"] = ziel
+                eintrag["existierte"] = bool(ziel) and Path(ziel).expanduser().exists()
+            elif werkzeug in ("write_file", "edit_file", "append_file"):
                 pfad = Path(str(args.get("path", ""))).expanduser()
                 eintrag["ziel"] = str(pfad)
                 eintrag["vorher"] = self._kopie(pfad)
@@ -90,7 +95,7 @@ class RueckgaengigService:
             elif werkzeug == "move_path":
                 eintrag["quelle"] = str(args.get("source", ""))
                 eintrag["ziel"] = str(args.get("destination", ""))
-            elif werkzeug in ("copy_path", "make_dir", "unzip"):
+            elif werkzeug in ("copy_path", "make_dir", "unzip", "datei_erstellen"):
                 eintrag["ziel"] = str(
                     args.get("destination") or args.get("path") or ""
                 )
@@ -115,7 +120,13 @@ class RueckgaengigService:
                     "ziel": e.get("ziel", ""),
                     "umkehrbar": bool(e.get("vorher"))
                     or e["werkzeug"]
-                    in ("move_path", "make_dir", "copy_path", "delete_path"),
+                    in (
+                        "move_path",
+                        "make_dir",
+                        "copy_path",
+                        "delete_path",
+                        "datei_erstellen",
+                    ),
                 }
                 for e in reversed(self._eintraege[-limit:])
             ]
@@ -138,7 +149,7 @@ class RueckgaengigService:
                 shutil.move(str(ziel), str(quelle))
                 return f"{quelle.name} zurueckverschoben."
             return "Das Ziel gibt es nicht mehr."
-        if werkzeug in ("copy_path", "make_dir", "unzip"):
+        if werkzeug in ("copy_path", "make_dir", "unzip", "datei_erstellen"):
             if not eintrag.get("existierte") and ziel.exists():
                 if ziel.is_dir():
                     shutil.rmtree(ziel, ignore_errors=True)

@@ -1,4 +1,10 @@
 import { transcribeAudio, wakePoll, wakeStart, wakeStop } from "./api";
+import {
+  MIKROFON_FEHLT,
+  aufGeraetewechsel,
+  mikrofonMoeglich,
+  mikrofonOeffnen,
+} from "./umgebung";
 
 export type VoiceState =
   | "idle"
@@ -92,6 +98,7 @@ export class VoiceListener {
   private pollTimer: number | null = null;
   private lastCounter = -1;
   private capturing = false;
+  private abmelden: () => void = () => undefined;
 
   constructor(callbacks: VoiceCallbacks) {
     this.callbacks = callbacks;
@@ -111,8 +118,17 @@ export class VoiceListener {
         }
       }
     };
-    navigator.mediaDevices.addEventListener("devicechange", restartMic);
+    const geraetewechselAus = aufGeraetewechsel(restartMic);
     window.addEventListener("jon_mic_changed", restartMic);
+    this.abmelden = () => {
+      geraetewechselAus();
+      window.removeEventListener("jon_mic_changed", restartMic);
+    };
+  }
+
+  loesen(): void {
+    this.abmelden();
+    this.abmelden = () => undefined;
   }
 
   setBusy(busy: boolean) {
@@ -170,6 +186,7 @@ export class VoiceListener {
 
   private async openMic(): Promise<void> {
     if (this.stream) return;
+    if (!mikrofonMoeglich()) throw new Error(MIKROFON_FEHLT);
     const deviceId = localStorage.getItem("jon_mic_device") || "default";
     const audioConstraints: MediaTrackConstraints = {
       echoCancellation: true,
@@ -180,11 +197,11 @@ export class VoiceListener {
       audioConstraints.deviceId = { ideal: deviceId };
     }
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      this.stream = await mikrofonOeffnen({
         audio: audioConstraints,
       });
     } catch {
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      this.stream = await mikrofonOeffnen({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,

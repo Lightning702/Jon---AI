@@ -61,7 +61,7 @@ def test_jons_browser_ist_der_standard(monkeypatch):
     ergebnis = browserwahl.oeffnen("example.com")
     assert aufgerufen["aktion"] == "goto"
     assert aufgerufen["url"] == "https://example.com"
-    assert ergebnis["browser"] == "Jon-Browser"
+    assert ergebnis["browser"] == "Jons privater Browser"
 
 
 def test_normaler_browser_auf_ausdruecklichen_wunsch(monkeypatch):
@@ -97,7 +97,31 @@ def test_ausdruecklicher_wunsch_schlaegt_den_standard(monkeypatch):
     assert "Microsoft Edge" in ergebnis.get("hinweis", "")
 
 
-def test_web_search_ohne_wunsch_nimmt_jons_browser(monkeypatch):
+def test_web_search_ohne_wunsch_bleibt_direkt(monkeypatch):
+    import asyncio
+
+    from app.services import browserwahl
+    from app.services.tools import ToolBox
+
+    monkeypatch.setattr(browserwahl, "wahl", lambda: JON)
+
+    def _verboten(frage, anzahl):
+        raise AssertionError("Ohne Auftrag darf kein Browser starten.")
+
+    async def _direkt(frage, anzahl=6, read=False):
+        return {"treffer": [{"title": "Direkt"}]}
+
+    monkeypatch.setattr("app.services.websuche_browser.suchen", _verboten)
+    monkeypatch.setattr("app.services.websearch_service.search_web", _direkt)
+    daten = json.loads(asyncio.run(ToolBox().execute("web_search", {"query": "pizza"})))
+    assert daten["browser"] == "Direktsuche"
+    assert daten["treffer"]
+    assert "hinweis" not in daten
+
+
+def test_web_search_nimmt_jons_browser_auf_ansage(monkeypatch):
+    import asyncio
+
     from app.services import browserwahl
     from app.services.tools import ToolBox
 
@@ -106,11 +130,11 @@ def test_web_search_ohne_wunsch_nimmt_jons_browser(monkeypatch):
         "app.services.websuche_browser.suchen",
         lambda frage, anzahl: {"treffer": [{"title": "Treffer", "url": "x"}]},
     )
-    import asyncio
-
-    roh = asyncio.run(ToolBox().execute("web_search", {"query": "pizza"}))
+    roh = asyncio.run(
+        ToolBox().execute("web_search", {"query": "pizza", "browser": "jon"})
+    )
     daten = json.loads(roh)
-    assert daten["browser"] == "Jon-Browser"
+    assert daten["browser"] == "Jons privater Browser"
     assert daten["treffer"]
 
 
@@ -126,13 +150,15 @@ def test_web_search_sagt_wenn_der_rueckfall_greift(monkeypatch):
         raise RuntimeError("Captcha")
 
     async def _direkt(frage, anzahl=6, read=False):
-        return {"treffer": [{"title": "Direkt"}]}
+        return {"treffer": [{"title": "Direkt"}, {"title": "Zweiter"}], "mager": False}
 
     monkeypatch.setattr("app.services.websuche_browser.suchen", _kaputt)
     monkeypatch.setattr("app.services.websearch_service.search_web", _direkt)
-    daten = json.loads(asyncio.run(ToolBox().execute("web_search", {"query": "x"})))
+    daten = json.loads(
+        asyncio.run(ToolBox().execute("web_search", {"query": "x", "browser": "jon"}))
+    )
     assert daten["browser"] == "Direktsuche"
-    assert "Captcha" in daten["hinweis"]
+    assert daten["treffer"][0]["title"] == "Direkt"
 
 
 def test_web_search_mit_fremdem_browser_oeffnet_dort(monkeypatch):
@@ -159,15 +185,33 @@ def test_open_url_kennt_den_browser_parameter():
     schema = {t["function"]["name"]: t for t in ToolBox()._eigene_tools()}
     felder = schema["open_url"]["function"]["parameters"]["properties"]
     assert "browser" in felder
-    assert "JONS EIGENEM" in schema["open_url"]["function"]["description"]
+    assert "JONS PRIVATEM" in schema["open_url"]["function"]["description"]
     assert "browser" in schema["web_search"]["function"]["parameters"]["properties"]
 
 
 def test_systemprompt_haelt_die_browserregel_fest():
     from app.services.chat_service import SYSTEM_PROMPT
 
-    assert "JONS EIGENEM BROWSER" in SYSTEM_PROMPT
+    assert "JONS PRIVATER BROWSER" in SYSTEM_PROMPT
     assert "AUSNAHME" in SYSTEM_PROMPT
+    assert "KEIN FENSTER OHNE AUFTRAG" in SYSTEM_PROMPT
+
+
+def test_reine_recherche_bekommt_keine_browserwerkzeuge():
+    from app.services.tools import ToolBox
+
+    box = ToolBox()
+    for frage in (
+        "was kostet die rtx 5090 aktuell",
+        "such mir infos ueber quantencomputer",
+        "wann ist die naechste sonnenfinsternis",
+    ):
+        namen = [t["function"]["name"] for t in box.schema(frage)]
+        assert "web_search" in namen
+        assert not [n for n in namen if n.startswith("browser_")]
+    for auftrag in ("oeffne mir youtube im browser", "klick auf den knopf"):
+        namen = [t["function"]["name"] for t in box.schema(auftrag)]
+        assert [n for n in namen if n.startswith("browser_")]
 
 
 @pytest.fixture()
@@ -555,13 +599,13 @@ def test_route_oeffnet_ueber_die_browserwahl(monkeypatch):
     def _oeffnen(url, erzwinge=""):
         gerufen["url"] = url
         gerufen["erzwinge"] = erzwinge
-        return {"ok": True, "geoeffnet": url, "browser": "Jon-Browser"}
+        return {"ok": True, "geoeffnet": url, "browser": "Jons privater Browser"}
 
     monkeypatch.setattr(browserwahl, "oeffnen", _oeffnen)
     with TestClient(create_app()) as client:
         antwort = client.post("/api/browser/oeffnen", json={"url": "example.com"})
     assert antwort.status_code == 200
-    assert antwort.json()["browser"] == "Jon-Browser"
+    assert antwort.json()["browser"] == "Jons privater Browser"
     assert gerufen["url"] == "example.com"
     assert gerufen["erzwinge"] == ""
 
@@ -720,7 +764,7 @@ def test_umleitung_laeuft_ueber_die_browserwahl(monkeypatch):
     def _oeffnen(url, erzwinge=""):
         gerufen["url"] = url
         gerufen["erzwinge"] = erzwinge
-        return {"ok": True, "geoeffnet": url, "browser": "Jon-Browser"}
+        return {"ok": True, "geoeffnet": url, "browser": "Jons privater Browser"}
 
     monkeypatch.setattr(browserwahl, "oeffnen", _oeffnen)
     monkeypatch.setattr(browserwahl, "wahl", lambda: JON)
@@ -730,7 +774,7 @@ def test_umleitung_laeuft_ueber_die_browserwahl(monkeypatch):
     assert ergebnis["ok"] is True
     assert gerufen["url"] == "https://youtube.com"
     assert ergebnis["umgeleitet_von"] == "run_powershell"
-    assert "Jon-Browser" in ergebnis["hinweis"]
+    assert "Jons privater Browser" in ergebnis["hinweis"]
 
 
 def test_execute_leitet_um_statt_die_shell_zu_starten(monkeypatch):
@@ -743,7 +787,7 @@ def test_execute_leitet_um_statt_die_shell_zu_starten(monkeypatch):
     monkeypatch.setattr(
         weboeffnen,
         "umleiten",
-        lambda name, args: {"ok": True, "geoeffnet": "x", "browser": "Jon-Browser"},
+        lambda name, args: {"ok": True, "geoeffnet": "x", "browser": "Jons privater Browser"},
     )
 
     def _nie(self, name, args):
@@ -755,7 +799,7 @@ def test_execute_leitet_um_statt_die_shell_zu_starten(monkeypatch):
             ToolBox().execute("run_cmd", {"command": "start https://youtube.com"})
         )
     )
-    assert daten["browser"] == "Jon-Browser"
+    assert daten["browser"] == "Jons privater Browser"
 
 
 def test_systemprompt_verbietet_die_shell_fuer_webseiten():

@@ -141,6 +141,22 @@ ERROR_HINTS = (
 )
 
 
+def _in_die_mediathek(
+    pfad: Path,
+    name: str,
+    quelle: str,
+    dauer: float,
+    kanal: str,
+    bild: str,
+) -> None:
+    try:
+        from app.services.mediathek_service import get_mediathek_service
+
+        get_mediathek_service().aufnehmen(pfad, name, quelle, dauer, kanal, bild)
+    except Exception as fehler:
+        leise(fehler, "services/downloader")
+
+
 def friendly_error(
     raw: str, tried_login: bool = False, prefix: str = "Download fehlgeschlagen"
 ) -> str:
@@ -841,6 +857,14 @@ class DownloaderService:
             name = sanitize_filename(title or str(info.get("title") or "download"))
             job["file"] = str(target)
             job["name"] = f"{name}{target.suffix.lower()}"
+            _in_die_mediathek(
+                target,
+                f"{name}{target.suffix.lower()}",
+                str(info.get("webpage_url") or url),
+                float(info.get("duration") or 0),
+                str(info.get("uploader") or info.get("channel") or ""),
+                str(info.get("thumbnail") or ""),
+            )
             job["percent"] = 100.0
             job["status"] = "done"
         except Exception as exc:
@@ -954,6 +978,7 @@ class DownloaderService:
             with zipfile.ZipFile(bundle, "w", zipfile.ZIP_STORED) as archive:
                 for path in sorted(files):
                     archive.write(path, path.name)
+                    _in_die_mediathek(path, path.name, url, 0.0, data.get("name", ""), "")
                     path.unlink(missing_ok=True)
             job["file"] = str(bundle)
             job["name"] = f"{sanitize_filename(title or data['name'])}.zip"

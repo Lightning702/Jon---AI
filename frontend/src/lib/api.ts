@@ -3749,3 +3749,163 @@ export async function markInboxSeen(id: string): Promise<void> {
     body: JSON.stringify({ id }),
   });
 }
+
+
+export type JonUhrArt = "timer" | "stoppuhr" | "wecker";
+
+export interface JonUhr {
+  id: string;
+  art: JonUhrArt;
+  titel: string;
+  gestartet: number;
+  gemessen: number;
+  laeuft: boolean;
+  verstrichen: number;
+  quelle?: string;
+  klingelt?: boolean;
+  ton_pc?: boolean;
+  dauer?: number;
+  rest?: number;
+  ziel?: number;
+  klingelt_um?: string;
+  fertig?: boolean;
+}
+
+export interface JonWecker {
+  name: string;
+  titel: string;
+  klingelt: string;
+}
+
+export async function zeitStand(): Promise<{ uhren: JonUhr[] }> {
+  const res = await fetch(`${BASE}/zeit`);
+  if (!res.ok) throw new Error("Die Uhren ließen sich nicht laden.");
+  return res.json();
+}
+
+export async function zeitNeu(): Promise<{ uhren: JonUhr[] }> {
+  const res = await fetch(`${BASE}/zeit/neu`);
+  if (!res.ok) return { uhren: [] };
+  return res.json();
+}
+
+export async function zeitStarten(
+  art: JonUhrArt,
+  sekunden: number,
+  titel = "",
+  uhrzeit = ""
+): Promise<JonUhr> {
+  const res = await fetch(`${BASE}/zeit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ art, sekunden, titel, uhrzeit }),
+  });
+  if (!res.ok) throw new Error("Die Uhr ließ sich nicht starten.");
+  return res.json();
+}
+
+export async function zeitPause(id: string): Promise<JonUhr> {
+  const res = await fetch(`${BASE}/zeit/${id}/pause`, { method: "POST" });
+  if (!res.ok) throw new Error("Pause ging nicht.");
+  return res.json();
+}
+
+export async function zeitWeiter(id: string): Promise<JonUhr> {
+  const res = await fetch(`${BASE}/zeit/${id}/weiter`, { method: "POST" });
+  if (!res.ok) throw new Error("Weiterlaufen ging nicht.");
+  return res.json();
+}
+
+export async function zeitAnpassen(id: string, sekunden: number): Promise<JonUhr> {
+  const res = await fetch(`${BASE}/zeit/${id}/anpassen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sekunden }),
+  });
+  if (!res.ok) throw new Error("Ändern ging nicht.");
+  return res.json();
+}
+
+export async function zeitNeustart(id: string): Promise<JonUhr> {
+  const res = await fetch(`${BASE}/zeit/${id}/neustart`, { method: "POST" });
+  if (!res.ok) throw new Error("Neustart ging nicht.");
+  return res.json();
+}
+
+export async function zeitRuhe(id: string): Promise<{ uhren: JonUhr[] }> {
+  const res = await fetch(`${BASE}/zeit/${id}/ruhe`, { method: "POST" });
+  if (!res.ok) throw new Error("Ton aus ging nicht.");
+  return res.json();
+}
+
+export async function zeitStoppen(id: string): Promise<unknown> {
+  const res = await fetch(`${BASE}/zeit/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Stoppen ging nicht.");
+  return res.json();
+}
+
+export interface TerminalStand {
+  installiert: boolean;
+  befehl: string;
+  ordner: string;
+  im_pfad: boolean;
+  gefunden: string;
+  gebuendelt: boolean;
+  system: string;
+  neustart_noetig: boolean;
+  hinweise?: string[];
+}
+
+export async function terminalStand(): Promise<TerminalStand> {
+  const res = await fetch(`${BASE}/system/terminal`);
+  if (!res.ok) throw new Error("Der Terminal-Status ließ sich nicht laden.");
+  return res.json();
+}
+
+export async function terminalEinrichten(): Promise<TerminalStand> {
+  const res = await fetch(`${BASE}/system/terminal`, { method: "POST" });
+  if (!res.ok) throw new Error("Der Befehl ließ sich nicht einrichten.");
+  return res.json();
+}
+
+export async function terminalEntfernen(): Promise<TerminalStand> {
+  const res = await fetch(`${BASE}/system/terminal`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Der Befehl ließ sich nicht entfernen.");
+  return res.json();
+}
+
+export interface MediaEintrag {
+  id: string;
+  name: string;
+  art: "video" | "musik" | "datei";
+  groesse: number;
+  dauer: number;
+  quelle: string;
+  kanal: string;
+  erstellt: number;
+  bild: boolean;
+  datei: string;
+}
+
+export async function mediathekListe(): Promise<{
+  eintraege: MediaEintrag[];
+  ordner: string;
+  groesse: number;
+}> {
+  const res = await fetch(`${BASE}/mediathek`);
+  if (!res.ok) throw new Error("Die Mediathek ließ sich nicht laden.");
+  return res.json();
+}
+
+export function mediathekDateiUrl(id: string): string {
+  return withToken(`${BASE}/mediathek/datei/${id}`);
+}
+
+export function mediathekBildUrl(id: string): string {
+  return withToken(`${BASE}/mediathek/bild/${id}`);
+}
+
+export async function mediathekLoeschen(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/mediathek/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Löschen ging nicht.");
+}

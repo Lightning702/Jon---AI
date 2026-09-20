@@ -38,24 +38,62 @@ Der gewählte Projektordner ist Jons einziger Arbeitsbereich:
 
 ## Im Terminal
 
-## Starten
-
-Im Projektordner (der Ordner, an dem Jon arbeiten soll):
+Tipp `jon` — in **jedem** Terminal, und du hast Jon komplett: Windows CMD, PowerShell,
+macOS Terminal (zsh/bash), Linux und das integrierte Terminal von VS Code, IntelliJ & Co.
 
 ```bash
 jon
 ```
 
-Zwei Wege, damit `jon` verfügbar ist:
+Beim Start begruesst dich Jon mit Logo, Menue und dem Prompt `jon>`. Schreib einfach, was
+du willst — der volle Funktionsumfang der App steht bereit: Chat, Code, Dateien, System,
+Browser, Projekte, Tools, Gedaechtnis und der Agenten-Modus.
 
-1. **Als Befehl installieren** (empfohlen):
-   ```bash
-   cd backend
-   pip install -e .
-   ```
-   Danach ist `jon` systemweit im Terminal verfügbar.
+### Einrichten
 
-2. **Ohne Installation:** im `backend`-Ordner `python -m app.cli` ausführen.
+In der App: **Zahnrad → Jon im Terminal → Einrichten**. Jon legt den Befehl an und traegt
+ihn in den PATH ein (Windows: Nutzer-PATH, macOS/Linux: `~/.local/bin` und die Shell-
+Profile). Danach ein neues Terminal oeffnen — fertig.
+
+Ohne App geht es auch von Hand:
+
+- **Als Befehl installieren:** `cd backend && pip install -e .`
+- **Ohne Installation:** im `backend`-Ordner `python -m app.cli` ausfuehren.
+
+### In VS Code
+
+Im integrierten Terminal erkennt Jon den Editor automatisch — VS Code, Cursor,
+Windsurf und JetBrains — und startet im **Code-Modus**: Er laedt den Ordner,
+analysiert die Struktur und meldet sich mit `Du (code)>`. Auch ohne Editor reicht ein
+Projektordner: eine `.git`, eine `package.json`, ein `src/` oder schon eine einzelne
+Code-Datei wie `index.html`. Mit `chat` wechselst du in den normalen Chat, mit `code`
+zurueck.
+
+```
+PS C:\Projekte\Jon-AI> jon
+Jon Code-Modus aktiviert!
+VS Code erkannt — ich arbeite in C:\Projekte\Jon-AI
+Ich analysiere dein Projekt ...
+ ✓ Repository geladen (Zweig main)
+ ✓ Code-Struktur analysiert (128 Dateien, 14 Verzeichnisse) · Node/JS, Python
+ ✓ Bereit fuer deine Aufgabe
+Sag einfach, was ich bauen oder aendern soll — ich schreibe direkt in die Dateien.
+Du (code)>
+```
+
+Im Code-Modus ist der geoeffnete Ordner Jons einziger Arbeitsbereich: Datei-Tools und
+Shell-Befehle bleiben darin, und Jon bekommt genau die Projekt-Werkzeuge. Sagst du
+„bau mir eine Website“, schreibt er die Dateien und meldet in zwei Saetzen, was er
+angelegt hat.
+
+### Direkt fragen
+
+Eine einzelne Frage geht auch ohne Sitzung:
+
+```bash
+jon "erklaere mir dieses Projekt"
+jon code "behebe alle Type-Fehler"
+```
 
 ## Was Jon im Terminal kann
 
@@ -70,22 +108,27 @@ Zwei Wege, damit `jon` verfügbar ist:
 
 Jon behält Chatverlauf, Projektstruktur und Gedächtnis über die Sitzung hinweg im Kontext.
 
-## Slash-Befehle
+## Befehle
+
+Du kannst sie mit oder ohne `/` schreiben. Ohne `/` gilt ein Wort nur als Befehl,
+wenn es **allein** steht — „Code mir mit HTML eine Website“ ist also ein Auftrag an
+Jon und kein `code`-Befehl. Mit `/` geht beides auf einmal: `/code bau mir ein Menue`
+schaltet in den Code-Modus und erledigt den Auftrag gleich mit.
 
 | Befehl | Wirkung |
 |--------|---------|
-| `/help` | Hilfe |
-| `/clear` | Verlauf löschen |
-| `/status` | Provider, Modell, Workspace, Nachrichten |
-| `/usage` | Nutzung (Tokens, Anfragen, Antwortzeit) |
-| `/model [n]` | Modelle des Providers anzeigen / wechseln |
-| `/provider [name]` | Provider anzeigen / wechseln |
-| `/agents` | Agenten-Modus erklären |
-| `/tools` | verfügbare Tools |
-| `/memory` | Langzeitgedächtnis |
-| `/plugins` | Skills |
-| `/settings` | Einstellungen |
-| `/exit` | beenden |
+| `hilfe` | Beispiele, Befehle und alles, was Jon im Terminal kann |
+| `chat` | in den normalen Chat wechseln |
+| `code` | Code-Modus fuer das aktuelle Projekt |
+| `projekte` | Projektstruktur anzeigen |
+| `tools` | verfuegbare Tools |
+| `memory` | Langzeitgedaechtnis |
+| `einstellungen` | Anbieter, Modell, Modus, Ordner |
+| `modell [n]` | Modelle des Anbieters anzeigen / waehlen — die Wahl bleibt gemerkt |
+| `anbieter [name]` | Anbieter anzeigen / waehlen — die Wahl bleibt gemerkt |
+| `agent` | Agenten-Modus erklaeren |
+| `neu` | Verlauf loeschen |
+| `ende` | beenden |
 
 `/model` und `/provider` wechseln **ohne Neustart**. Unterstützte Provider:
 OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Ollama, LM Studio, Groq, Together AI,

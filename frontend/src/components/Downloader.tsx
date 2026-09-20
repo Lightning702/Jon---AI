@@ -446,7 +446,7 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
                     }`}
                   >
                     {doneName
-                      ? `Fertig — ${doneName} wird gespeichert ✓`
+                      ? `Fertig — ${doneName} liegt im Player ✓`
                       : progress.status === "reading"
                         ? "Liest die Playlist …"
                         : progress.status === "packing"

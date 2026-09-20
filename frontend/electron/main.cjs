@@ -858,6 +858,100 @@ ipcMain.handle("jon:desktop-verknuepfung", () => {
   return { ok, pfad: ok ? verknuepfungPfad() : "" };
 });
 
+
+let privatWartend = new Map();
+let privatSchleifeLaeuft = false;
+
+function privatZiel() {
+  if (privateWindow && !privateWindow.isDestroyed()) return privateWindow.webContents;
+  return null;
+}
+
+function privatFensterOffen() {
+  return !!privatZiel();
+}
+
+async function privatAusfuehren(auftrag) {
+  if (auftrag.op === "close") {
+    if (privateWindow && !privateWindow.isDestroyed()) privateWindow.close();
+    return { ok: true, daten: { geschlossen: true } };
+  }
+  let ziel = privatZiel();
+  if (!ziel) {
+    openPrivateBrowser();
+    await new Promise((r) => setTimeout(r, 1200));
+    ziel = privatZiel();
+  }
+  if (!ziel) {
+    return { ok: false, fehler: "Der private Browser liess sich nicht oeffnen." };
+  }
+  if (privateWindow && !privateWindow.isDestroyed()) {
+    if (privateWindow.isMinimized()) privateWindow.restore();
+    privateWindow.showInactive();
+  }
+  return await new Promise((fertig) => {
+    const zeitgeber = setTimeout(() => {
+      privatWartend.delete(auftrag.id);
+      fertig({ ok: false, fehler: "Der private Browser hat nicht geantwortet." });
+    }, 60000);
+    privatWartend.set(auftrag.id, (antwort) => {
+      clearTimeout(zeitgeber);
+      fertig(antwort);
+    });
+    ziel.send("private:auftrag", auftrag);
+  });
+}
+
+async function privatSchleife() {
+  if (privatSchleifeLaeuft) return;
+  privatSchleifeLaeuft = true;
+  for (;;) {
+    let auftrag = null;
+    try {
+      const antwort = await apiFetch(
+        `/browser/privat/auftrag?warten=25&fenster=${privatFensterOffen() ? 1 : 0}`
+      );
+      if (antwort.ok) {
+        const daten = await antwort.json();
+        auftrag = daten && daten.auftrag;
+      } else {
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    } catch {
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    if (!auftrag) continue;
+    let ergebnis;
+    try {
+      ergebnis = await privatAusfuehren(auftrag);
+    } catch (e) {
+      ergebnis = { ok: false, fehler: String((e && e.message) || e) };
+    }
+    try {
+      await apiFetch("/browser/privat/ergebnis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: auftrag.id,
+          ok: !!ergebnis.ok,
+          daten: ergebnis.daten || {},
+          fehler: ergebnis.fehler || "",
+          fenster: privatFensterOffen(),
+        }),
+      });
+    } catch {}
+  }
+}
+
+ipcMain.handle("private:ergebnis", (_event, antwort) => {
+  const warten = privatWartend.get(antwort && antwort.id);
+  if (!warten) return false;
+  privatWartend.delete(antwort.id);
+  warten(antwort);
+  return true;
+});
+
+
 app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, cb) => cb(true));
   if (app.isPackaged) {
@@ -868,6 +962,7 @@ app.whenReady().then(() => {
   void startBackend();
   setTimeout(() => void verknuepfungAnbieten(), 4000);
   void tokenAbgleich();
+  void privatSchleife();
   globalShortcut.register("Control+Alt+J", toggleWindow);
   globalShortcut.register("Control+Alt+K", togglePet);
   globalShortcut.register("Control+Alt+Space", toggleQuickAsk);

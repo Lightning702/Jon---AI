@@ -11,6 +11,7 @@ import {
   vaultStatus,
   vaultUnlock,
 } from "../lib/api";
+import { inZwischenablage } from "../lib/umgebung";
 
 export default function Vault({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<"loading" | "create" | "unlock" | "open">("loading");
@@ -175,7 +176,7 @@ export default function Vault({ onClose }: { onClose: () => void }) {
                         {e.username && <div className="text-[11.5px] text-white/45 truncate">{e.username}</div>}
                       </div>
                       <button onClick={() => void reveal(e.id)} className="px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 text-[11.5px] hover:bg-white/10">{revealed[e.id] ? "Verbergen" : "Zeigen"}</button>
-                      {revealed[e.id] && <button onClick={() => navigator.clipboard.writeText(revealed[e.id])} title="Kopieren" className="px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 text-[11.5px] hover:bg-white/10">📋</button>}
+                      {revealed[e.id] && <button onClick={() => void inZwischenablage(revealed[e.id])} title="Kopieren" className="px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 text-[11.5px] hover:bg-white/10">📋</button>}
                       <button onClick={() => void remove(e.id)} className="text-white/30 hover:text-red-300 text-[12px]">✕</button>
                     </div>
                     {revealed[e.id] && <div className="mt-1.5 font-mono text-[12.5px] text-gold/90 break-all bg-black/25 rounded-lg px-2 py-1.5">{revealed[e.id]}</div>}

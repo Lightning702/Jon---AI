@@ -71,7 +71,7 @@ class WebSearch:
     @staticmethod
     def _client() -> httpx.AsyncClient:
         return httpx.AsyncClient(
-            timeout=httpx.Timeout(15.0, connect=7.0),
+            timeout=httpx.Timeout(7.0, connect=3.5),
             follow_redirects=True,
             max_redirects=4,
             headers={
@@ -98,30 +98,32 @@ class WebSearch:
         quellen: list[str] = []
         fehler: list[str] = []
         async with self._client() as client:
-            for engine in engines:
-                try:
-                    gefunden = await engine(client, frage, limit)
-                except Exception as exc:
-                    fehler.append(f"{engine.__name__.strip('_')}: {exc}")
+            laeufe = await asyncio.gather(
+                *(engine(client, frage, limit) for engine in engines),
+                return_exceptions=True,
+            )
+            for engine, ausgang in zip(engines, laeufe):
+                if isinstance(ausgang, BaseException):
+                    fehler.append(f"{engine.__name__.strip('_')}: {ausgang}")
                     continue
-                if gefunden:
-                    quellen.append(gefunden[0]["engine"])
-                for hit in gefunden:
+                if ausgang:
+                    quellen.append(ausgang[0]["engine"])
+                for hit in ausgang:
                     schluessel = hit["url"].rstrip("/").lower()
                     if schluessel in gesehen:
                         continue
                     gesehen.add(schluessel)
                     treffer.append(hit)
-                if len(treffer) >= limit:
-                    break
             treffer = treffer[:limit]
             if read and treffer:
                 await self._read_pages(client, treffer)
+        eigen = [h for h in treffer if not h["engine"].startswith("wikipedia")]
         ergebnis = {
             "frage": frage,
             "stand": datetime.now().strftime("%d.%m.%Y %H:%M"),
             "suchmaschinen": quellen,
             "treffer": treffer,
+            "mager": len(eigen) < 2,
         }
         if not treffer:
             ergebnis["fehler"] = (
@@ -273,3 +275,19 @@ async def search_web(query: str, limit: int = 6, read: bool = False) -> dict:
 
 def search_web_sync(query: str, limit: int = 6, read: bool = False) -> dict:
     return asyncio.run(WebSearch().search(query, limit, read))
+
+
+async def texte_nachladen(treffer: list[dict], anzahl: int = MAX_READ) -> None:
+    ziele = [
+        eintrag
+        for eintrag in treffer
+        if eintrag.get("url") and not eintrag.get("auszug")
+    ][:anzahl]
+    if not ziele:
+        return
+    sucher = WebSearch()
+    async with sucher._client() as client:
+        await asyncio.gather(
+            *(sucher._read_one(client, eintrag) for eintrag in ziele),
+            return_exceptions=True,
+        )

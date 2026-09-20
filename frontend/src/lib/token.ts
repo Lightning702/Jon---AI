@@ -104,6 +104,14 @@ function mitSchluessel(
   return { ...init, headers };
 }
 
+function melden(): void {
+  try {
+    window.dispatchEvent(new CustomEvent("jon_zugang_fehlt"));
+  } catch {
+    return;
+  }
+}
+
 export function installTokenFetch(): void {
   if (typeof window === "undefined" || !window.fetch) return;
   const original = window.fetch.bind(window);
@@ -120,11 +128,19 @@ export function installTokenFetch(): void {
     const antwort = value
       ? await original(input, mitSchluessel(init, vorhandene, value))
       : await original(input, init);
-    if (antwort.status !== 401 || input instanceof Request) return antwort;
+    if (antwort.status !== 401 || input instanceof Request) {
+      if (antwort.status === 401) melden();
+      return antwort;
+    }
     const frisch = await tokenNachfragen();
-    if (!frisch || frisch === value) return antwort;
+    if (!frisch || frisch === value) {
+      melden();
+      return antwort;
+    }
     setToken(frisch);
-    return original(input, mitSchluessel(init, vorhandene, frisch));
+    const zweite = await original(input, mitSchluessel(init, vorhandene, frisch));
+    if (zweite.status === 401) melden();
+    return zweite;
   };
   const bruecke = window.jon;
   if (bruecke && typeof bruecke.onToken === "function") {

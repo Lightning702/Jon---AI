@@ -12,4 +12,6 @@ contextBridge.exposeInMainWorld("jonPrivat", {
   close: () => ipcRenderer.invoke("private:close"),
   clearAll: () => ipcRenderer.invoke("private:clear"),
   onOpenTab: (cb) => ipcRenderer.on("private:open-tab", (_event, url) => cb(url)),
+  onAuftrag: (cb) => ipcRenderer.on("private:auftrag", (_event, auftrag) => cb(auftrag)),
+  ergebnis: (antwort) => ipcRenderer.invoke("private:ergebnis", antwort),
 });

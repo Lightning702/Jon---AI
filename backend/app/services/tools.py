@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import re
 import time
@@ -44,6 +45,64 @@ from app.services.system_service import SystemService
 from app.services.task_service import get_task_service
 from app.services.timetravel_service import get_timetravel_service
 from app.core.fehler import leise
+
+_QUELLE: contextvars.ContextVar[str] = contextvars.ContextVar("jon_quelle", default="")
+
+_SUCHEN: contextvars.ContextVar[int] = contextvars.ContextVar("jon_suchen", default=0)
+MAX_SUCHEN = 3
+ZAHLENFRAGE = (
+    "preis",
+    "price",
+    "kostet",
+    "kosten",
+    "teuer",
+    "uvp",
+    "euro",
+    "eur",
+    "dollar",
+    "€",
+    "$",
+    "wie viel",
+    "wieviel",
+    "how much",
+    "rabatt",
+    "angebot",
+)
+
+
+def runde_beginnen() -> None:
+    _SUCHEN.set(0)
+
+
+_NAME_MUELL = re.compile(r"<\|.*$|[^A-Za-z0-9_.\-].*$")
+
+
+def _zu_duenn(name: str, ergebnis: str) -> bool:
+    if name != "web_search":
+        return False
+    try:
+        daten = json.loads(ergebnis)
+    except Exception:
+        return False
+    return bool(daten.get("mager")) or not daten.get("treffer")
+
+
+def _name_saeubern(name: str) -> str:
+    sauber = _NAME_MUELL.sub("", str(name or "").strip())
+    return sauber or str(name or "").strip()
+
+
+_ZEIT_TOOLS = {
+    "start_stopwatch",
+    "start_timer",
+    "set_alarm",
+    "stop_timer",
+    "list_timers",
+    "adjust_timer",
+    "control_timer",
+    "list_alarms",
+    "delete_alarm",
+}
 
 _STR = {"type": "string"}
 _NUM = {"type": "number"}
@@ -126,6 +185,8 @@ SAFE_TOOLS = {
     "start_timer",
     "stop_timer",
     "list_timers",
+    "adjust_timer",
+    "control_timer",
     "look_at_image",
     "android_devices",
     "android_device_status",
@@ -150,7 +211,6 @@ GUEST_TOOLS = {
 CORE_TOOLS = {
     "run_powershell",
     "run_cmd",
-    "open_url",
     "start_program",
     "kill_program",
     "open_explorer",
@@ -242,9 +302,17 @@ CODING_TOOLS = {
 
 TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
     "browser": (
-        browser_namen("browser_"),
+        browser_namen("browser_") | {"open_url"},
         (
             "browser",
+            "tab",
+            "oeffne",
+            "öffne",
+            "mach auf",
+            "zeig mir die",
+            "ruf auf",
+            "aufrufen",
+            "besuch",
             "webseite",
             "website",
             "www.",
@@ -257,30 +325,17 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "bestell",
             "buchen",
             "anmeld",
-            "google",
-            "amazon",
-            "ebay",
-            "youtube",
+            "einloggen",
             "geh auf",
             "geh zu",
             "surf",
             "such auf",
-            "seite",
+            "auf der seite",
             "warenkorb",
+            "in den korb",
             "kaufen",
-            "shop",
-            "preis",
-            "vergleich",
-            "kostet",
-            "pizza",
-            "liefer",
             "reservier",
-            "im netz",
-            "online",
-            "recherchier",
             "leg mir",
-            "such mir",
-            "finde mir",
         ),
     ),
     "calendar": (
@@ -361,7 +416,15 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
         ),
     ),
     "zeit": (
-        {"start_stopwatch", "start_timer", "stop_timer", "list_timers"},
+        {
+            "start_stopwatch",
+            "start_timer",
+            "stop_timer",
+            "list_timers",
+            "adjust_timer",
+            "control_timer",
+            "set_alarm",
+        },
         (
             "stoppuhr",
             "stopp die zeit",
@@ -372,6 +435,31 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "wie lange",
             "zeit messen",
             "misst die zeit",
+            "wecker",
+            "weck mich",
+            "erhoeh",
+            "erhöh",
+            "verlaenger",
+            "verlänger",
+            "verkuerz",
+            "verkürz",
+            "mach laenger",
+            "mach länger",
+            "mach kuerzer",
+            "mach kürzer",
+            "noch mal",
+            "neustart",
+            "von vorn",
+            "zuruecksetzen",
+            "zurücksetzen",
+            "pausier",
+            "weiterlaufen",
+            "spaeter",
+            "später",
+            "frueher",
+            "früher",
+            "ton aus",
+            "klingel",
         ),
     ),
     "dateien_jon": (
@@ -454,6 +542,8 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "plan_ausfuehren",
             "aufgabe",
             "aufgabe_starten",
+            "ausloeser",
+            "bericht",
             "durchspielen",
             "hypothese",
         },
@@ -716,6 +806,8 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "set_alarm",
             "list_alarms",
             "delete_alarm",
+            "adjust_timer",
+            "control_timer",
             "set_reminder",
             "list_reminders",
         },
@@ -924,7 +1016,23 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
     if name == "stop_timer":
         return "Stoppt die Zeit."
     if name == "list_timers":
-        return "Zeigt laufende Stoppuhren und Timer."
+        return "Zeigt laufende Stoppuhren, Timer und Wecker."
+    if name == "adjust_timer":
+        minuten = int(args.get("minutes", 0) or 0)
+        sekunden = int(args.get("seconds", 0) or 0)
+        gesamt = minuten * 60 + sekunden
+        richtung = "Verlängert" if gesamt >= 0 else "Verkürzt"
+        return f"{richtung} die Uhr um {abs(gesamt) // 60} Min. {abs(gesamt) % 60} Sek."
+    if name == "control_timer":
+        aktion = str(args.get("action", "")).strip().lower()
+        texte = {
+            "pause": "Hält die Uhr an.",
+            "resume": "Lässt die Uhr weiterlaufen.",
+            "restart": "Startet die Uhr neu.",
+            "stop": "Beendet die Uhr.",
+            "silence": "Schaltet das Klingeln aus.",
+        }
+        return texte.get(aktion, "Steuert eine laufende Uhr.")
     if name == "start_focus":
         return "Startet den Fokus-Modus."
     if name == "stop_focus":
@@ -1077,7 +1185,7 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         when = args.get("time") or (
             f"in {args.get('in_minutes')} Minuten" if args.get("in_minutes") else ""
         )
-        return f"Stellt einen Windows-Wecker ({when}): {_shorten(args.get('label', ''))}"
+        return f"Stellt einen Wecker ({when}): {_shorten(args.get('label', ''))}"
     if name == "list_alarms":
         return "Listet gestellte Wecker auf."
     if name == "delete_alarm":
@@ -1306,6 +1414,15 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
     if name == "oberflaeche":
         ziel = _shorten(args.get("werkzeug", "") or args.get("ziel", ""))
         return f"Oeffnet {ziel} in Jons Oberflaeche." if ziel else "Zeigt Jons Werkzeuge."
+    if name == "bericht":
+        return "Fasst zusammen, was seit der letzten Anwesenheit passiert ist."
+    if name == "ausloeser":
+        aktion = str(_shorten(args.get("aktion", "liste")))
+        if aktion.startswith("anleg") or aktion in ("neu", "merken"):
+            return f"Merkt sich einen Ausloeser: {_shorten(args.get('auftrag', ''))}"
+        if aktion.startswith("loesch"):
+            return "Loescht einen Ausloeser."
+        return f"Ausloeser ({aktion})."
     if name == "aufgabe":
         aktion = str(_shorten(args.get("aktion", "anlegen")))
         if aktion.startswith("anleg"):
@@ -1508,6 +1625,8 @@ _DATEI_JON_TOOLS = {
 _DENK_TOOLS = {
     "aufgabe",
     "aufgabe_starten",
+    "ausloeser",
+    "bericht",
     "durchspielen",
     "hypothese",
     "ziel",
@@ -1571,6 +1690,8 @@ def _gruppe_fuer(name: str) -> str:
         "start_timer",
         "stop_timer",
         "list_timers",
+        "adjust_timer",
+        "control_timer",
     }:
         return "kalender"
     if name.startswith("spotify_") or name.startswith("amazon_") or name == "media_control":
@@ -1774,8 +1895,9 @@ class ToolBox:
             ),
             _tool(
                 "open_url",
-                "Oeffnet eine Adresse in JONS EIGENEM Browser - das ist der Standard "
-                "fuer alles Web, auch fuer Seiten, die der Nutzer sehen soll. "
+                "Oeffnet eine Adresse in JONS PRIVATEM Browser - das ist der "
+                "Standard fuer alles Web, auch fuer Seiten, die der Nutzer sehen soll. "
+                "Das Fenster geht von selbst auf, wenn es noch zu war. "
                 "'Oeffne mir YouTube' ist immer open_url, nie start_program oder eine "
                 "Shell. Danach kannst du die Seite mit browser_read wirklich lesen. "
                 "Nur wenn der Nutzer ausdruecklich einen anderen Browser nennt ('mach "
@@ -2174,6 +2296,42 @@ class ToolBox:
                     "prioritaet": _INT,
                     "id": _STR,
                     "erlaubt": _BOOL,
+                },
+                [],
+            ),
+            _tool(
+                "bericht",
+                "Was ist passiert, waehrend der Nutzer weg war: erledigte und offene "
+                "Aufgaben, Aufgaben die auf seine Freigabe warten, geaenderte Dateien "
+                "und die aktiven Ausloeser. Nutze das bei 'was hast du gemacht', 'bin "
+                "wieder da', 'gibt es was Neues' - und von dir aus, wenn er nach "
+                "laengerer Pause zurueckkommt.",
+                {"anzahl": _INT},
+                [],
+            ),
+            _tool(
+                "ausloeser",
+                "Damit faengt Jon von selbst an, ohne dass jemand etwas sagt. Eine "
+                "Regel merkt sich, WANN etwas passieren soll und WAS Jon dann tut - "
+                "er legt zu diesem Zeitpunkt selbst eine Aufgabe an und arbeitet sie "
+                "ab. aktion=anlegen mit art=taeglich (zeit HH:MM, optional tage wie "
+                "'mo,di' oder 'werktags'), art=intervall (minuten, mindestens 5), "
+                "art=ordner (ordner plus muster wie '*.pdf' - laeuft, sobald dort "
+                "etwas Neues landet) oder art=start (bei jedem Start von Jon). "
+                "Weitere aktionen: liste, aus, an, loeschen, pruefen. Nutze das bei "
+                "'jeden Morgen', 'jede Woche', 'immer wenn', 'ab jetzt automatisch'.",
+                {
+                    "aktion": _STR,
+                    "art": _STR,
+                    "auftrag": _STR,
+                    "titel": _STR,
+                    "zeit": _STR,
+                    "tage": _STR,
+                    "minuten": _INT,
+                    "ordner": _STR,
+                    "muster": _STR,
+                    "budget": _INT,
+                    "id": _STR,
                 },
                 [],
             ),
@@ -2619,11 +2777,12 @@ class ToolBox:
             ),
             _tool(
                 "set_alarm",
-                "Stellt einen echten Windows-Wecker mit Klingelton und Popup, der "
-                "auch klingelt, wenn Jon geschlossen ist. Nutze das bei 'Stelle einen "
-                "Wecker fuer 07:00' (time='07:00') oder 'Timer 10 Minuten' "
-                "(in_minutes=10). Liegt die Uhrzeit heute in der Vergangenheit, "
-                "klingelt der Wecker morgen.",
+                "Stellt einen Wecker, der im Chat und in der Handy-App als Uhr "
+                "mitlaeuft und am PC mit Klingelton und Popup weckt - auch wenn "
+                "Jon geschlossen ist. Nutze das bei 'Stelle einen Wecker fuer "
+                "07:00' (time='07:00') oder 'Weck mich in 20 Minuten' "
+                "(in_minutes=20). Liegt die Uhrzeit heute in der Vergangenheit, "
+                "klingelt der Wecker morgen. Verschieben geht mit adjust_timer.",
                 {
                     "label": _STR,
                     "time": {"type": "string", "description": "HH:MM (24h)"},
@@ -2633,17 +2792,18 @@ class ToolBox:
             ),
             _tool(
                 "list_alarms",
-                "Listet alle gestellten Windows-Wecker mit Name, Beschriftung und "
+                "Listet alle gestellten Wecker mit Kennung, Beschriftung und "
                 "Klingelzeit auf.",
                 {},
                 [],
             ),
             _tool(
                 "delete_alarm",
-                "Loescht einen gestellten Windows-Wecker anhand seines Namens "
-                "(JonWecker_...). Rufe vorher list_alarms auf.",
+                "Loescht einen gestellten Wecker. name = Kennung aus list_alarms "
+                "oder seine Beschriftung; ohne name faellt der zuletzt gestellte "
+                "Wecker weg.",
                 {"name": _STR},
-                ["name"],
+                [],
             ),
             _tool(
                 "web_search",
@@ -2673,10 +2833,12 @@ class ToolBox:
                     },
                     "browser": {
                         "type": "string",
-                        "description": "Leer lassen - dann sucht Jon in seinem eigenen "
-                        "Browser und kann die Treffer auswerten. Nur wenn der Nutzer "
-                        "ausdruecklich einen anderen nennt: edge, brave, chrome, "
-                        "firefox, opera, vivaldi, system",
+                        "description": "LEER LASSEN. Dann sucht Jon direkt und "
+                        "antwortet in ein bis zwei Sekunden, ohne ein Fenster zu "
+                        "oeffnen. Nur setzen, wenn der Nutzer ausdruecklich einen "
+                        "Browser verlangt: jon (Jons eigener, langsam, dafuer "
+                        "sichtbar) oder edge, brave, chrome, firefox, opera, "
+                        "vivaldi, system",
                     },
                 },
                 ["query"],
@@ -3131,16 +3293,38 @@ class ToolBox:
             ),
             _tool(
                 "stop_timer",
-                "Stoppt eine laufende Stoppuhr oder einen Timer und nennt die "
-                "gemessene Zeit. Ohne id werden alle gestoppt.",
-                {"id": _STR},
+                "Stoppt eine laufende Stoppuhr, einen Timer oder einen Wecker und "
+                "nennt die gemessene Zeit. kind = timer, stoppuhr oder wecker, id "
+                "= Kennung oder Beschriftung. Ohne beides wird alles gestoppt.",
+                {"id": _STR, "kind": _STR},
                 [],
             ),
             _tool(
                 "list_timers",
-                "Zeigt alle laufenden Stoppuhren und Timer mit ihrer Zeit.",
+                "Zeigt alle laufenden Stoppuhren, Timer und Wecker mit ihrer Zeit.",
                 {},
                 [],
+            ),
+            _tool(
+                "adjust_timer",
+                "Verlaengert oder verkuerzt einen laufenden Timer oder verschiebt "
+                "einen Wecker ('erhoeh um 7 Minuten', 'mach zwei Minuten weniger', "
+                "'Wecker eine halbe Stunde spaeter'). minutes und seconds sind "
+                "POSITIV zum Verlaengern und NEGATIV zum Verkuerzen. kind = timer "
+                "oder wecker, id = Kennung oder Beschriftung; ohne Angabe nimmst "
+                "du die zuletzt gestartete Uhr.",
+                {"minutes": _INT, "seconds": _INT, "kind": _STR, "id": _STR},
+                [],
+            ),
+            _tool(
+                "control_timer",
+                "Steuert eine laufende Uhr: action = pause (anhalten), resume "
+                "(weiterlaufen), restart (von vorn), stop (beenden) oder silence "
+                "(Klingeln ausschalten). kind = timer, stoppuhr oder wecker, id = "
+                "Kennung oder Beschriftung; ohne Angabe nimmst du die zuletzt "
+                "gestartete Uhr.",
+                {"action": _STR, "kind": _STR, "id": _STR},
+                ["action"],
             ),
             _tool(
                 "recall_screen",
@@ -3374,31 +3558,79 @@ class ToolBox:
         ]
 
     def _zeit(self, name: str, args: dict[str, Any]) -> str:
-        from app.services.zeit_service import ZeitFehler, get_zeit_service, lesbar
+        from app.services.zeit_service import (
+            ZeitFehler,
+            beschreiben,
+            get_zeit_service,
+            lesbar,
+        )
 
         dienst = get_zeit_service()
+        quelle = _QUELLE.get() or self._source
+        versatz = int(args.get("minutes", 0) or 0) * 60 + int(
+            args.get("seconds", 0) or 0
+        )
         try:
             if name == "start_stopwatch":
-                uhr = dienst.starten("stoppuhr", 0, str(args.get("label", "")))
+                uhr = dienst.starten(
+                    "stoppuhr", 0, str(args.get("label", "")), quelle
+                )
                 return json.dumps(
                     {"gestartet": uhr, "text": "Stoppuhr laeuft."},
                     ensure_ascii=False,
                 )
             if name == "start_timer":
-                sekunden = int(args.get("minutes", 0) or 0) * 60 + int(
-                    args.get("seconds", 0) or 0
+                uhr = dienst.starten(
+                    "timer", versatz, str(args.get("label", "")), quelle
                 )
-                uhr = dienst.starten("timer", sekunden, str(args.get("label", "")))
                 return json.dumps(
-                    {"gestartet": uhr, "text": f"Timer laeuft: {lesbar(sekunden)}."},
+                    {"gestartet": uhr, "text": f"Timer laeuft: {lesbar(versatz)}."},
                     ensure_ascii=False,
                 )
-            if name == "stop_timer":
-                ergebnis = dienst.stoppen(str(args.get("id", "")))
-                zeiten = [
-                    f"{u.get('titel') or u['art']}: {lesbar(u['verstrichen'])}"
-                    for u in ergebnis["gestoppt"]
-                ]
+            if name == "set_alarm":
+                uhr = dienst.starten(
+                    "wecker",
+                    versatz or int(float(args.get("in_minutes", 0) or 0) * 60),
+                    str(args.get("label", "") or args.get("text", "")),
+                    quelle,
+                    str(args.get("time", "") or args.get("uhrzeit", "")),
+                )
+                return json.dumps(
+                    {
+                        "gestartet": uhr,
+                        "task": uhr["id"],
+                        "label": uhr["titel"] or "Wecker",
+                        "rings_at": uhr["klingelt_um"],
+                        "text": f"Wecker steht: {uhr['klingelt_um'][11:16]} Uhr.",
+                    },
+                    ensure_ascii=False,
+                )
+            if name in ("list_timers", "list_alarms"):
+                stand = dienst.stand()
+                if name == "list_alarms":
+                    stand["uhren"] = [
+                        u for u in stand["uhren"] if u["art"] == "wecker"
+                    ]
+                    stand["alarms"] = [
+                        {
+                            "name": u["id"],
+                            "label": u["titel"] or "Wecker",
+                            "rings_at": u["klingelt_um"],
+                        }
+                        for u in stand["uhren"]
+                    ]
+                stand["text"] = (
+                    "; ".join(beschreiben(u) for u in stand["uhren"])
+                    or "Es laeuft gerade keine Uhr."
+                )
+                return json.dumps(stand, ensure_ascii=False)
+            kennung = str(args.get("id", "") or args.get("name", "") or "")
+            art = str(args.get("kind", "") or args.get("art", ""))
+            if name == "delete_alarm" and not art:
+                art = "wecker"
+            if name == "stop_timer" and not kennung and not art:
+                ergebnis = dienst.stoppen()
+                zeiten = [beschreiben(u) for u in ergebnis["gestoppt"]]
                 return json.dumps(
                     {
                         "gestoppt": ergebnis["gestoppt"],
@@ -3406,7 +3638,70 @@ class ToolBox:
                     },
                     ensure_ascii=False,
                 )
-            return json.dumps(dienst.stand(), ensure_ascii=False)
+            gewaehlt = dienst.waehlen(kennung, art)
+            if name in ("stop_timer", "delete_alarm"):
+                ergebnis = dienst.stoppen(gewaehlt["id"])
+                return json.dumps(
+                    {
+                        "gestoppt": ergebnis["gestoppt"],
+                        "deleted": True,
+                        "text": "; ".join(
+                            beschreiben(u) for u in ergebnis["gestoppt"]
+                        ),
+                    },
+                    ensure_ascii=False,
+                )
+            if name == "adjust_timer":
+                if not versatz:
+                    return json.dumps(
+                        {"error": "Sag mir, um wie viel ich verschieben soll."},
+                        ensure_ascii=False,
+                    )
+                uhr = dienst.anpassen(gewaehlt["id"], versatz)
+                richtung = "laenger" if versatz > 0 else "kuerzer"
+                return json.dumps(
+                    {
+                        "uhr": uhr,
+                        "text": f"{lesbar(abs(versatz))} {richtung}: {beschreiben(uhr)}.",
+                    },
+                    ensure_ascii=False,
+                )
+            aktion = str(args.get("action", "") or "").strip().lower()
+            if aktion in ("pause", "pausieren", "anhalten"):
+                uhr = dienst.pausieren(gewaehlt["id"])
+                text = f"Pausiert: {beschreiben(uhr)}."
+            elif aktion in ("resume", "weiter", "fortsetzen", "start"):
+                uhr = dienst.weiter(gewaehlt["id"])
+                text = f"Laeuft weiter: {beschreiben(uhr)}."
+            elif aktion in ("restart", "neustart", "reset", "zuruecksetzen"):
+                uhr = dienst.neustarten(gewaehlt["id"])
+                text = f"Neu gestartet: {beschreiben(uhr)}."
+            elif aktion in ("stop", "stopp", "beenden", "aus"):
+                ergebnis = dienst.stoppen(gewaehlt["id"])
+                return json.dumps(
+                    {
+                        "gestoppt": ergebnis["gestoppt"],
+                        "text": "; ".join(
+                            beschreiben(u) for u in ergebnis["gestoppt"]
+                        ),
+                    },
+                    ensure_ascii=False,
+                )
+            elif aktion in ("silence", "ruhe", "ton aus", "still"):
+                dienst.ruhe(gewaehlt["id"])
+                uhr = dienst.stand()["uhren"]
+                return json.dumps(
+                    {"uhren": uhr, "text": "Ton ist aus."}, ensure_ascii=False
+                )
+            else:
+                return json.dumps(
+                    {
+                        "error": "action muss pause, resume, restart, stop "
+                        "oder silence sein."
+                    },
+                    ensure_ascii=False,
+                )
+            return json.dumps({"uhr": uhr, "text": text}, ensure_ascii=False)
         except ZeitFehler as exc:
             return json.dumps({"error": str(exc)}, ensure_ascii=False)
         except (TypeError, ValueError):
@@ -3468,7 +3763,9 @@ class ToolBox:
 
         from app.services.cache_service import get_cache_service
 
+        name = _name_saeubern(name)
         src = source or self._source
+        _QUELLE.set(src)
         cache = get_cache_service()
         gemerkt = cache.holen(name, args)
         if gemerkt is not None:
@@ -3512,7 +3809,7 @@ class ToolBox:
         log_action(src, name, args, result, ok=ok)
         self._abgleichen(erwartung, ok, result, time.perf_counter() - begonnen)
         self._weltbild_pruefen(sicht, ok, result)
-        if ok:
+        if ok and not _zu_duenn(name, result):
             cache.merken(name, args, result)
         try:
             from app.services.erfahrung_service import get_erfahrung_service
@@ -3570,48 +3867,85 @@ class ToolBox:
             from app.services.browserwahl import wahl
             from app.services.websearch_service import search_web
 
-            frage = str(args.get("query", ""))
+            frage = str(args.get("query", "")).strip()
             anzahl = int(args.get("max_results", 6))
-            gewuenscht = aufloesen(str(args.get("browser", ""))) or JON
-            if gewuenscht != JON:
+            if not frage:
+                return json.dumps(
+                    {
+                        "error": "Ohne Suchbegriff geht nichts - gib query an."
+                    },
+                    ensure_ascii=False,
+                )
+            bisher = _SUCHEN.get() + 1
+            _SUCHEN.set(bisher)
+            if bisher > MAX_SUCHEN:
+                return json.dumps(
+                    {
+                        "error": (
+                            f"Genug gesucht ({MAX_SUCHEN} Suchen fuer diese Frage). "
+                            "Antworte jetzt mit dem, was die bisherigen Treffer "
+                            "hergeben, und sag ehrlich, was offen bleibt."
+                        ),
+                        "suchen": bisher - 1,
+                    },
+                    ensure_ascii=False,
+                )
+            gewaehlt = aufloesen(str(args.get("browser", "")))
+            if gewaehlt and gewaehlt != JON:
                 from urllib.parse import quote_plus
 
                 ziel = f"https://duckduckgo.com/?q={quote_plus(frage)}"
-                geoeffnet = browser_oeffnen(ziel, gewuenscht)
+                geoeffnet = browser_oeffnen(ziel, gewaehlt)
                 geoeffnet["frage"] = frage
                 geoeffnet["hinweis"] = (
-                    f"Die Suche laeuft in {bname(gewuenscht)}. Dort kann ich die "
+                    f"Die Suche laeuft in {bname(gewaehlt)}. Dort kann ich die "
                     "Treffer nicht mitlesen - sag Bescheid, wenn ich sie selbst "
                     "auswerten soll."
                 )
                 return json.dumps(geoeffnet, ensure_ascii=False)
-            if not args.get("schnell"):
-                from app.services.websuche_browser import suchen
+            from app.services.websuche_browser import suchen
 
+            async def ueber_jons_browser() -> dict | None:
                 try:
-                    ueber_browser = await asyncio.to_thread(suchen, frage, anzahl)
-                    if ueber_browser.get("treffer"):
-                        ueber_browser["browser"] = bname(JON)
-                        return json.dumps(ueber_browser, ensure_ascii=False)
-                    grund = "Die Suchseite lieferte keine Treffer."
+                    daten = await asyncio.to_thread(suchen, frage, anzahl)
                 except Exception as exc:
                     leise(exc, "services/tools")
-                    grund = str(exc)[:200]
-            else:
-                grund = ""
+                    return None
+                if not daten.get("treffer"):
+                    return None
+                daten["browser"] = bname(JON)
+                try:
+                    from app.services.websearch_service import texte_nachladen
+
+                    await texte_nachladen(daten["treffer"])
+                except Exception as exc:
+                    leise(exc, "services/tools")
+                return daten
+
+            if gewaehlt == JON:
+                daten = await ueber_jons_browser()
+                if daten is not None:
+                    return json.dumps(daten, ensure_ascii=False)
+            tief = args.get("read")
+            if tief is None:
+                niedrig = frage.lower()
+                tief = any(wort in niedrig for wort in ZAHLENFRAGE)
             try:
-                ergebnis = await search_web(
-                    frage, anzahl, bool(args.get("read", False))
-                )
-                ergebnis["browser"] = "Direktsuche"
-                if grund:
-                    ergebnis["hinweis"] = (
-                        "Jons Browser kam nicht durch, daher die direkte Suche: "
-                        + grund
-                    )
-                return json.dumps(ergebnis, ensure_ascii=False)
+                ergebnis = await search_web(frage, anzahl, bool(tief))
             except Exception as exc:
-                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+                ergebnis = {"treffer": [], "mager": True, "fehler": str(exc)[:200]}
+            if ergebnis.get("mager") and not args.get("nur_direkt"):
+                daten = await ueber_jons_browser()
+                if daten is not None:
+                    daten["hinweis"] = (
+                        "Die schnelle Direktsuche gab zu wenig her - diese Treffer "
+                        "kommen aus Jons Browser."
+                    )
+                    return json.dumps(daten, ensure_ascii=False)
+            if not ergebnis.get("treffer") and ergebnis.get("fehler"):
+                return json.dumps({"error": ergebnis["fehler"]}, ensure_ascii=False)
+            ergebnis["browser"] = "Direktsuche"
+            return json.dumps(ergebnis, ensure_ascii=False)
         if name == "webcam_look":
             from app.services.webcam_service import get_webcam_service
 
@@ -4147,7 +4481,7 @@ class ToolBox:
                 oeffnen(str(args.get("url", "")), str(args.get("browser", ""))),
                 ensure_ascii=False,
             )
-        if name in ("start_stopwatch", "start_timer", "stop_timer", "list_timers"):
+        if name in _ZEIT_TOOLS:
             return self._zeit(name, args)
         if name == "start_focus":
             from app.services.focus_service import get_focus_service
@@ -4321,26 +4655,6 @@ class ToolBox:
             return json.dumps(svc.list_processes(), ensure_ascii=False)
         if name == "lock_screen":
             return json.dumps({"locked": svc.lock_screen()})
-        if name == "set_alarm":
-            try:
-                minutes = args.get("in_minutes")
-                return json.dumps(
-                    svc.set_alarm(
-                        str(args.get("label", "") or args.get("text", "")),
-                        str(args.get("time", "") or ""),
-                        float(minutes) if minutes is not None else None,
-                    ),
-                    ensure_ascii=False,
-                )
-            except (ValueError, RuntimeError) as exc:
-                return json.dumps({"error": str(exc)}, ensure_ascii=False)
-        if name == "list_alarms":
-            return json.dumps(svc.list_alarms(), ensure_ascii=False)
-        if name == "delete_alarm":
-            try:
-                return json.dumps({"deleted": svc.delete_alarm(str(args.get("name", "")))})
-            except ValueError as exc:
-                return json.dumps({"error": str(exc)}, ensure_ascii=False)
         if name == "get_weather":
             try:
                 return json.dumps(

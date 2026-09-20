@@ -1,0 +1,19 @@
+{
+  "sammlung": "FelWorks Game Collection",
+  "herausgeber": "FelWorks",
+  "version": "1.0.0",
+  "spiele": [
+    {
+      "id": "katzenhof",
+      "titel": "Katzenhof",
+      "genre": "Cozy Farm-Simulation",
+      "icon": "🐈",
+      "typ": "web",
+      "pfad": "/katzenhof",
+      "kurz": "Ein verfallener Hof, sechs Katzen, ein Sommer Zeit.",
+      "beschreibung": "Du erbst einen kleinen Hof, auf dem nur noch eine nasse Katze unter dem Karren sitzt. Du gräbst Erde um, säst Katzenminze und Goldweizen, gießt abends und erntest am nächsten Morgen. Am Holzstapel machst du aus der Ernte Futter. Wer satt ist und gestreichelt wird, fasst Vertrauen — und zutrauliche Katzen bringen dir Münzen von ihren Streifzügen mit. Davon reparierst du den Zaun, den Brunnen, die Scheune, das große Beet und zuletzt die Feuerstelle. Mit jeder Reparatur traut sich eine weitere Katze auf den Hof. Sind alle sechs da und zufrieden, sitzt am Abend die ganze Runde am Feuer. Danach darfst du einfach weiterspielen: Es gibt keine Uhr, kein Verlieren und keinen Druck.",
+      "steuerung": "WASD laufen · E benutzen · 1 Hacke · 2 Samen · 3 Gießkanne · 4 Hand · Leertaste schlafen · Tab Hofübersicht · 1-5 dort bauen · Esc zurück",
+      "version": "1.0.0"
+    }
+  ]
+}

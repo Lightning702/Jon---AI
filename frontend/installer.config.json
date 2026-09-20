@@ -44,14 +44,11 @@
       ]
     },
     {
-      "from": "../spiele/HARMONIE",
-      "to": "HARMONIE",
+      "from": "../spiele/KATZENHOF",
+      "to": "KATZENHOF",
       "filter": [
         "jon-spiele.json",
-        "README.md",
-        "bin/**/*",
-        "!bin/*.log",
-        "vorschau/**/*"
+        "README.md"
       ]
     }
   ],

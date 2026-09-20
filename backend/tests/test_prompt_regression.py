@@ -17,7 +17,7 @@ from app.services.tools import select_tools
 
 PFLICHT_ABSCHNITTE = (
     "Du bist Jon",
-    "WEB UND BROWSER",
+    "KEIN FENSTER OHNE AUFTRAG",
     "browser_task",
     "RiskActionGuard",
     "browser_confirm",

@@ -98,9 +98,17 @@ lokalem Python) bleibt über die `build`-Sektion in `package.json` erhalten.
 `pi-installieren.sh` richtet das Backend auf einem Pi als systemd-Dienst (`jon.service`)
 ein: venv unter `backend/.venv`, schlanke Abhängigkeiten aus `backend/requirements-pi.txt`
 (ohne pyautogui/pygetwindow/pyperclip/pynput/opencv — alle Nutzungen sind lazy/guarded),
-`JON_LAN=true` in der `.env`, Web-App-Build nach `frontend/dist` (falls Node verfügbar;
-`ELECTRON_SKIP_BINARY_DOWNLOAD=1` spart den Electron-Download). Daten liegen auf dem Pi
-unter `~/.jon/data`. Shell-Skripte brauchen LF-Zeilenenden (`.gitattributes` erzwingt das).
+`JON_LAN=true` in der `.env`. Die Oberfläche wird auf dem Pi **nicht** gebaut: seit
+4.52.0 liegt der fertige Vite-Build als `webapp/` im Repo, und `web_app_dir()` nimmt
+`frontend/dist`, falls vorhanden, sonst `webapp/`. `pi-update.sh` löscht `frontend/dist`
+deshalb vor dem Pull, damit nie ein alter Bau gewinnt. Nach jeder Frontend-Änderung also
+`npm run build` und `frontend/dist` nach `webapp/` kopieren (alten Ordner vorher löschen,
+die Asset-Namen sind gehasht). Daten liegen auf dem Pi unter `~/.jon/data`. Shell-Skripte
+brauchen LF-Zeilenenden (`.gitattributes` erzwingt das).
+
+Die Web-App läuft am Pi über `http://<ip>:8756` in einem **unsicheren Kontext**: dort gibt
+es weder `navigator.mediaDevices` noch `navigator.clipboard`. Beides läuft deshalb über
+`frontend/src/lib/umgebung.ts` — dort prüfen, nie direkt auf `navigator` zugreifen.
 
 ## Deployment der Website
 

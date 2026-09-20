@@ -6,6 +6,7 @@ export const KARTEN_ARTEN = [
   "bild",
   "browser",
   "datei",
+  "zeit",
 ] as const;
 
 export type KartenArt = (typeof KARTEN_ARTEN)[number];

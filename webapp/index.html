@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#050506" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Jon" />
+    <title>Jon</title>
+    <script type="module" crossorigin src="./assets/index-D4OsqjR8.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CVzkqaOx.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="startfehler" hidden>
+      <div class="karte">
+        <h1>Jon startet nicht</h1>
+        <p id="startfehler-text"></p>
+        <pre id="startfehler-detail"></pre>
+        <button onclick="location.reload()">Seite neu laden</button>
+      </div>
+    </div>
+    <style>
+      #startfehler {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #050506;
+        color: rgba(255, 255, 255, 0.8);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        z-index: 9999;
+      }
+      #startfehler[hidden] {
+        display: none;
+      }
+      #startfehler .karte {
+        width: 100%;
+        max-width: 420px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 20px;
+      }
+      #startfehler h1 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #fcd34d;
+      }
+      #startfehler p {
+        margin: 0;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      #startfehler pre {
+        margin: 12px 0 0;
+        max-height: 180px;
+        overflow: auto;
+        white-space: pre-wrap;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 12px;
+        font-size: 11px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      #startfehler button {
+        margin-top: 16px;
+        width: 100%;
+        border: 1px solid rgba(251, 191, 36, 0.4);
+        border-radius: 12px;
+        background: rgba(251, 191, 36, 0.1);
+        padding: 9px 12px;
+        font-size: 12.5px;
+        color: #fde68a;
+        cursor: pointer;
+      }
+    </style>
+    <script>
+      (function () {
+        var erster = "";
+        function zeigen(grund) {
+          var schirm = document.getElementById("startfehler");
+          var wurzel = document.getElementById("root");
+          if (!schirm || (wurzel && wurzel.childElementCount > 0)) return;
+          document.getElementById("startfehler-text").textContent = grund;
+          document.getElementById("startfehler-detail").textContent = erster;
+          schirm.hidden = false;
+        }
+        function merken(text) {
+          if (!erster && text) erster = String(text);
+        }
+        window.addEventListener("error", function (e) {
+          merken((e && e.message) || "");
+          setTimeout(function () {
+            zeigen(
+              "Die Oberfläche ist beim Start abgebrochen. Meist fehlt dem Browser ein Recht, das es nur über localhost oder https gibt."
+            );
+          }, 400);
+        });
+        window.addEventListener("unhandledrejection", function (e) {
+          merken((e && e.reason && (e.reason.message || e.reason)) || "");
+        });
+        setTimeout(function () {
+          zeigen(
+            "Die Oberfläche lädt nicht. Prüfe, ob das Backend erreichbar ist und ob der Geräte-Schlüssel in der Adresse steht (…/app/?token=…)."
+          );
+        }, 12000);
+      })();
+    </script>
+  </body>
+</html>

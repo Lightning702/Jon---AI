@@ -234,7 +234,7 @@ class OpenAICompatibleProvider(LLMProvider):
         )
 
         for round_index in range(rounds):
-            watchdog = guard if round_index == 0 else 0.0
+            watchdog = guard if round_index == 0 else guard * 1.5
             caller = (
                 client.with_options(
                     timeout=max(watchdog, 8.0), max_retries=0

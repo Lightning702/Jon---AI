@@ -32,22 +32,22 @@
     "  vec3 key = normalize(uLight);",
     "  vec3 fill = normalize(vec3(0.85, 0.15, 0.5));",
     "  vec3 back = normalize(vec3(-0.3, 0.4, -1.0));",
-    "  float wrap = mix(0.22, 0.62, uFur);",
+    "  float wrap = mix(0.34, 0.68, uFur);",
     "  float dKey = max((dot(n, key) + wrap) / (1.0 + wrap), 0.0);",
     "  float dFill = max((dot(n, fill) + 0.55) / 1.55, 0.0);",
     "  float dBack = max(dot(n, back), 0.0);",
     "  float sky = n.y * 0.5 + 0.5;",
-    "  vec3 ambient = mix(vec3(0.30, 0.31, 0.38), vec3(0.92, 0.94, 1.0), sky) * uAmbient;",
+    "  vec3 ambient = mix(vec3(0.34, 0.32, 0.37), vec3(0.94, 0.95, 1.0), sky) * uAmbient;",
     "  vec3 light = ambient + vec3(1.0, 0.95, 0.88) * dKey * 0.92 +",
     "               vec3(0.55, 0.64, 0.92) * dFill * 0.3 +",
     "               vec3(0.9, 0.84, 0.78) * dBack * 0.16;",
     "  vec3 base = uColor * light;",
     "  vec3 h = normalize(key + v);",
-    "  float rough = mix(96.0, 14.0, uFur);",
+    "  float rough = mix(58.0, 12.0, uFur);",
     "  float spec = pow(max(dot(n, h), 0.0), rough) * uShine * (1.0 - uFur * 0.6);",
     "  float facing = 1.0 - max(dot(n, v), 0.0);",
     "  float fluff = pow(facing, 2.1) * uFur * (0.2 + dKey * 0.7);",
-    "  float fresnel = pow(facing, 4.5) * (1.0 - uFur) * 0.5;",
+    "  float fresnel = pow(facing, 3.4) * (1.0 - uFur) * 0.38;",
     "  vec3 color = base + vec3(1.0, 0.97, 0.92) * spec + uColor * fluff * 0.9 +",
     "               vec3(0.6, 0.68, 0.9) * fresnel;",
     "  vec3 x = color * 1.04;",
@@ -419,7 +419,7 @@
       const lid = state.sleep ? 0 : state.eyes;
       const open = state.mouth;
       const parts = [
-        part(meshes.sphere, state.face, [scaling(1, 1, 1)], 0.7, 0),
+        part(meshes.sphere, state.face, [scaling(1, 1, 1)], 0.55, 0.06),
         part(
           meshes.ring,
           state.accent,
@@ -428,17 +428,26 @@
           0
         ),
       ];
-      const eyeY = 0.17;
-      const eyeX = 0.33;
+      const eyeY = 0.13;
+      const eyeX = 0.34;
       const offen = Math.max(lid, 0.07);
-      const eyeZ = Math.sqrt(Math.max(1 - eyeX * eyeX - eyeY * eyeY, 0.04)) - 0.06;
+      const glanz = Math.max(offen, 0.4);
+      const pitch = -Math.asin(Math.max(-1, Math.min(1, eyeY)));
+      const dunkel = mix(state.accent, BLACK, 0.88);
       for (const sx of [-1, 1]) {
+        const yaw = Math.atan2(sx * eyeX, Math.sqrt(Math.max(1 - eyeX * eyeX - eyeY * eyeY, 0.04)));
+        const auge = (dx, dy, dz) => [
+          rotationY(yaw),
+          rotationX(pitch),
+          translation(0, 0, 0.96),
+          translation(dx, dy, dz),
+        ];
         parts.push(
           part(
             meshes.sphere,
             mix(state.accent, BLACK, 0.55),
-            [translation(sx * eyeX, eyeY, eyeZ), scaling(0.165, 0.165 * offen, 0.1)],
-            0.35,
+            [...auge(0, 0, 0), scaling(0.2, 0.2 * offen, 0.06)],
+            0.3,
             0
           )
         );
@@ -446,7 +455,16 @@
           part(
             meshes.sphere,
             state.accent,
-            [translation(sx * eyeX, eyeY, eyeZ + 0.035), scaling(0.13, 0.13 * offen, 0.09)],
+            [...auge(0, 0, 0.02), scaling(0.164, 0.164 * offen, 0.055)],
+            0.45,
+            0
+          )
+        );
+        parts.push(
+          part(
+            meshes.sphere,
+            dunkel,
+            [...auge(0, 0.004, 0.05), scaling(0.088, 0.088 * offen, 0.042)],
             0.9,
             0
           )
@@ -455,10 +473,16 @@
           part(
             meshes.sphere,
             WHITE,
-            [
-              translation(sx * eyeX - 0.048, eyeY + 0.052, eyeZ + 0.075),
-              scaling(0.038, 0.038 * Math.max(offen, 0.35), 0.03),
-            ],
+            [...auge(-0.052, 0.056, 0.074), scaling(0.042, 0.042 * glanz, 0.03)],
+            1,
+            0
+          )
+        );
+        parts.push(
+          part(
+            meshes.sphere,
+            WHITE,
+            [...auge(0.046, -0.052, 0.07), scaling(0.022, 0.022 * glanz, 0.017)],
             1,
             0
           )
@@ -468,9 +492,9 @@
         parts.push(
           part(
             meshes.sphere,
-            mix(state.accent, BLACK, 0.4),
-            [translation(0, -0.3, 0.83), scaling(0.26, 0.08 + open * 0.26, 0.11)],
-            0.6,
+            mix(state.accent, BLACK, 0.45),
+            [translation(0, -0.34, 0.82), scaling(0.2, 0.07 + open * 0.2, 0.1)],
+            0.55,
             0
           )
         );
@@ -478,27 +502,37 @@
         const perlen = 9;
         for (let i = 0; i < perlen; i++) {
           const t = i / (perlen - 1);
-          const x = (t - 0.5) * 0.66;
-          const y = -0.2 - Math.sin(t * Math.PI) * 0.16;
+          const x = (t - 0.5) * 0.58;
+          const y = -0.24 - Math.sin(t * Math.PI) * 0.12;
           const z = Math.sqrt(Math.max(1 - x * x - y * y, 0.04)) + 0.012;
-          const r = 0.062 - Math.abs(t - 0.5) * 0.022;
+          const r = 0.055 - Math.abs(t - 0.5) * 0.018;
           parts.push(
             part(meshes.sphere, state.accent, [translation(x, y, z), scaling(r, r, r * 0.7)], 0.9, 0)
           );
         }
       }
-      wangen(parts, -0.06, 0.86, 0.52, 0.145, 0);
+      wangen(parts, -0.2, 0.8, 0.62, 0.135, 0);
       return parts;
     }
 
     function augenPaar(parts, sx, y, z, lid, iris, weite) {
       const offen = Math.max(lid, 0.08);
+      const glanz = Math.max(offen, 0.42);
       parts.push(
         part(
           meshes.sphere,
-          [0.93, 0.92, 0.94],
-          [translation(sx * weite, y, z - 0.02), scaling(0.115, 0.115 * offen, 0.09)],
-          0.5,
+          [0.1, 0.09, 0.12],
+          [translation(sx * weite, y, z - 0.045), scaling(0.157, 0.157 * offen, 0.1)],
+          0.2,
+          0
+        )
+      );
+      parts.push(
+        part(
+          meshes.sphere,
+          [0.97, 0.96, 0.98],
+          [translation(sx * weite, y, z - 0.02), scaling(0.142, 0.142 * offen, 0.1)],
+          0.45,
           0
         )
       );
@@ -506,8 +540,17 @@
         part(
           meshes.sphere,
           iris,
-          [translation(sx * weite, y, z + 0.03), scaling(0.088, 0.09 * offen, 0.06)],
-          0.85,
+          [translation(sx * weite, y, z + 0.03), scaling(0.108, 0.112 * offen, 0.075)],
+          0.8,
+          0
+        )
+      );
+      parts.push(
+        part(
+          meshes.sphere,
+          mix(iris, [0.04, 0.03, 0.05], 0.55),
+          [translation(sx * weite, y - 0.012, z + 0.05), scaling(0.075, 0.086 * offen, 0.068)],
+          0.9,
           0
         )
       );
@@ -515,7 +558,7 @@
         part(
           meshes.sphere,
           [0.04, 0.03, 0.05],
-          [translation(sx * weite, y, z + 0.05), scaling(0.042, 0.072 * offen, 0.04)],
+          [translation(sx * weite, y, z + 0.075), scaling(0.05, 0.076 * offen, 0.05)],
           0.95,
           0
         )
@@ -525,8 +568,20 @@
           meshes.sphere,
           WHITE,
           [
-            translation(sx * weite - 0.032, y + 0.038, z + 0.07),
-            scaling(0.026, 0.026 * Math.max(offen, 0.4), 0.02),
+            translation(sx * weite - 0.042, y + 0.048, z + 0.115),
+            scaling(0.036, 0.036 * glanz, 0.028),
+          ],
+          1,
+          0
+        )
+      );
+      parts.push(
+        part(
+          meshes.sphere,
+          WHITE,
+          [
+            translation(sx * weite + 0.04, y - 0.045, z + 0.115),
+            scaling(0.019, 0.019 * glanz, 0.016),
           ],
           1,
           0
@@ -576,6 +631,18 @@
       }
     }
 
+    function kopfGruppe(teile, mitte, faktor) {
+      for (const teil of teile) {
+        teil.ops = [
+          translation(mitte[0], mitte[1], mitte[2]),
+          scaling(faktor, faktor, faktor),
+          translation(-mitte[0], -mitte[1], -mitte[2]),
+          ...teil.ops,
+        ];
+      }
+      return teile;
+    }
+
     function catParts() {
       const lid = state.sleep ? 0.05 : state.eyes;
       const body = CAT_BODY;
@@ -596,31 +663,32 @@
         0.13,
         Math.sin(state.time * 1.6) * 0.45
       );
-      parts.push(
+      const kopf = [];
+      kopf.push(
         part(meshes.sphere, head, [translation(0, 0.38, 0.12), scaling(0.62, 0.56, 0.58)], 0.25)
       );
-      parts.push(
-        part(meshes.sphere, head, [translation(0, 0.2, 0.46), scaling(0.34, 0.24, 0.26)], 0.25)
+      kopf.push(
+        part(meshes.sphere, head, [translation(0, 0.21, 0.44), scaling(0.33, 0.23, 0.22)], 0.25)
       );
       for (const sx of [-1, 1]) {
-        parts.push(
+        kopf.push(
           part(
             meshes.cone,
             head,
-            [translation(sx * 0.38, 0.84, 0.02), rotationZ(sx * -0.28), scaling(0.21, 0.3, 0.17)],
+            [translation(sx * 0.38, 0.8, 0.02), rotationZ(sx * -0.3), scaling(0.23, 0.26, 0.18)],
             0.2
           )
         );
-        parts.push(
+        kopf.push(
           part(
             meshes.cone,
             PINK,
-            [translation(sx * 0.37, 0.82, 0.09), rotationZ(sx * -0.28), scaling(0.11, 0.19, 0.1)],
+            [translation(sx * 0.37, 0.78, 0.09), rotationZ(sx * -0.3), scaling(0.12, 0.16, 0.1)],
             0.2,
             0.3
           )
         );
-        parts.push(
+        kopf.push(
           part(
             meshes.sphere,
             mix(head, WHITE, 0.3),
@@ -628,7 +696,7 @@
             0.2
           )
         );
-        parts.push(
+        kopf.push(
           part(
             meshes.sphere,
             [0.2, 0.2, 0.24],
@@ -637,7 +705,7 @@
             0
           )
         );
-        parts.push(
+        kopf.push(
           part(
             meshes.sphere,
             [0.2, 0.2, 0.24],
@@ -646,15 +714,16 @@
             0
           )
         );
-        augenPaar(parts, sx, 0.44, 0.62, lid, [0.62, 0.78, 0.4], 0.23);
+        augenPaar(kopf, sx, 0.44, 0.62, lid, [0.62, 0.78, 0.4], 0.23);
       }
-      parts.push(
+      kopf.push(
         part(meshes.sphere, WHITE, [translation(0, 0.2, 0.52), scaling(0.24, 0.15, 0.2)], 0.3)
       );
-      parts.push(
+      kopf.push(
         part(meshes.sphere, PINK, [translation(0, 0.27, 0.66), scaling(0.065, 0.048, 0.055)], 0.85, 0.2)
       );
-      wangen(parts, 0.28, 0.56, 0.34, 0.125, 1);
+      wangen(kopf, 0.28, 0.56, 0.34, 0.125, 1);
+      parts.push(...kopfGruppe(kopf, [0, 0.4, 0.16], 1.16));
       return parts;
     }
 
@@ -676,32 +745,33 @@
         0.14,
         Math.sin(state.time * 4.2) * 0.5
       );
-      parts.push(
+      const kopf = [];
+      kopf.push(
         part(meshes.sphere, DOG_HEAD, [translation(0, 0.38, 0.12), scaling(0.62, 0.58, 0.58)], 0.25)
       );
-      parts.push(
-        part(meshes.sphere, DOG_SNOUT, [translation(0, 0.19, 0.52), scaling(0.31, 0.23, 0.3)], 0.3)
+      kopf.push(
+        part(meshes.sphere, DOG_SNOUT, [translation(0, 0.2, 0.48), scaling(0.29, 0.22, 0.25)], 0.3)
       );
-      parts.push(
+      kopf.push(
         part(
           meshes.sphere,
           [0.14, 0.1, 0.08],
-          [translation(0, 0.27, 0.78), scaling(0.105, 0.082, 0.07)],
+          [translation(0, 0.27, 0.7), scaling(0.1, 0.08, 0.07)],
           1,
           0
         )
       );
-      parts.push(
+      kopf.push(
         part(
           meshes.sphere,
           [0.28, 0.19, 0.16],
-          [translation(0, 0.11, 0.72), scaling(0.14, 0.035, 0.09)],
+          [translation(0, 0.12, 0.66), scaling(0.13, 0.032, 0.08)],
           0.4,
           0
         )
       );
       for (const sx of [-1, 1]) {
-        parts.push(
+        kopf.push(
           part(
             meshes.sphere,
             DOG_EAR,
@@ -709,7 +779,7 @@
             0.2
           )
         );
-        parts.push(
+        kopf.push(
           part(
             meshes.sphere,
             mix(DOG_EAR, PINK, 0.35),
@@ -718,7 +788,7 @@
             0.4
           )
         );
-        parts.push(
+        kopf.push(
           part(
             meshes.sphere,
             mix(DOG_HEAD, WHITE, 0.25),
@@ -726,9 +796,10 @@
             0.2
           )
         );
-        augenPaar(parts, sx, 0.48, 0.6, lid, [0.42, 0.26, 0.14], 0.22);
+        augenPaar(kopf, sx, 0.48, 0.6, lid, [0.42, 0.26, 0.14], 0.22);
       }
-      wangen(parts, 0.31, 0.55, 0.36, 0.135, 1);
+      wangen(kopf, 0.31, 0.55, 0.36, 0.135, 1);
+      parts.push(...kopfGruppe(kopf, [0, 0.4, 0.16], 1.16));
       return parts;
     }
 

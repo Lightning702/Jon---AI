@@ -44,10 +44,11 @@ def _resolve_data_dir() -> Path:
 
 
 def web_app_dir() -> Path | None:
-    kandidaten = [ROOT_DIR / "frontend" / "dist"]
+    kandidaten = [ROOT_DIR / "frontend" / "dist", ROOT_DIR / "webapp"]
     bundled = getattr(sys, "_MEIPASS", "")
     if bundled:
         kandidaten.append(Path(bundled) / "frontend" / "dist")
+        kandidaten.append(Path(bundled) / "webapp")
     for pfad in kandidaten:
         if (pfad / "index.html").is_file():
             return pfad
@@ -81,7 +82,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.45.0"
+    app_version: str = "4.52.0"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = ""

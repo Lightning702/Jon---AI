@@ -5,7 +5,8 @@ import re
 import time
 from typing import AsyncIterator
 
-from app.core.config import get_settings
+from app.core.config import DATA_DIR, get_settings
+from app.core.store import atomic_write_json, read_json
 from app.core.logbook import logger as logbook_logger
 from app.db.database import session_scope
 from app.db.models import Conversation, Message
@@ -68,7 +69,16 @@ def heute_block() -> str:
         "haben. Was die Suche findet, gilt, auch wenn es deinem Wissen widerspricht: "
         "Kennst du ein Produkt oder Ereignis nicht, sag NIE, dass es das nicht gibt, "
         "sondern such danach. Rechne auch Zeitangaben ('naechstes Jahr', 'in drei "
-        "Wochen') immer ab dem heutigen Datum."
+        "Wochen') immer ab dem heutigen Datum. EINE Suche reicht: such einmal, lies "
+        "die Treffer und antworte damit. Eine zweite Suche machst du nur, wenn die "
+        "erste wirklich nichts Brauchbares hergab, und danach antwortest du mit dem, "
+        "was du hast - hoechstens zwei Suchen pro Frage. Reihenweise Nachschlagen "
+        "kostet den Nutzer nur Zeit. ZAHLEN ERFINDEST DU NIE: Preise, Betraege, "
+        "Datumsangaben, Versionsnummern und technische Werte nennst du nur, wenn sie "
+        "so im Suchergebnis stehen - im Titel, im Auszug oder im gelesenen "
+        "Seitentext. Steht der Preis nicht drin, sagst du genau das und nennst die "
+        "Seite, auf der er zu finden waere. Ein geschaetzter oder ausgedachter Preis "
+        "ist schlimmer als keiner."
     )
 
 
@@ -177,18 +187,54 @@ ALTERNATIVE_PROVIDERS = (
 )
 
 SLOW_ROUTE_MEMORY = 900.0
+SLOW_ROUTE_FILE = DATA_DIR / "langsame_wege.json"
 _slow_routes: dict[tuple[str, str], float] = {}
+_slow_loaded = False
+
+
+def _slow_laden() -> None:
+    global _slow_loaded
+    if _slow_loaded:
+        return
+    _slow_loaded = True
+    roh = read_json(SLOW_ROUTE_FILE, None)
+    if not isinstance(roh, dict):
+        return
+    jetzt = time.time()
+    for schluessel, stempel in roh.items():
+        anbieter, _, modell = str(schluessel).partition("|")
+        try:
+            wert = float(stempel)
+        except (TypeError, ValueError):
+            continue
+        if anbieter and modell and jetzt - wert < SLOW_ROUTE_MEMORY:
+            _slow_routes[(anbieter, modell)] = wert
+
+
+def _slow_sichern() -> None:
+    try:
+        atomic_write_json(
+            SLOW_ROUTE_FILE,
+            {f"{a}|{m}": wert for (a, m), wert in _slow_routes.items()},
+        )
+    except Exception as _fehler:
+        leise(_fehler, "services/chat_service")
 
 
 def mark_slow(provider: str, model: str) -> None:
+    _slow_laden()
     _slow_routes[(provider, model)] = time.time()
+    _slow_sichern()
 
 
 def mark_fast(provider: str, model: str) -> None:
-    _slow_routes.pop((provider, model), None)
+    _slow_laden()
+    if _slow_routes.pop((provider, model), None) is not None:
+        _slow_sichern()
 
 
 def is_slow(provider: str, model: str) -> bool:
+    _slow_laden()
     stamp = _slow_routes.get((provider, model), 0.0)
     return time.time() - stamp < SLOW_ROUTE_MEMORY
 
@@ -204,6 +250,15 @@ CARD_TOOLS = {
     "blender_render": "datei",
     "blender_export": "datei",
     "dateien_finden": "datei",
+    "start_timer": "zeit",
+    "start_stopwatch": "zeit",
+    "stop_timer": "zeit",
+    "list_timers": "zeit",
+    "adjust_timer": "zeit",
+    "control_timer": "zeit",
+    "set_alarm": "zeit",
+    "list_alarms": "zeit",
+    "delete_alarm": "zeit",
 }
 
 FORCED_PROMPTS = {
@@ -243,6 +298,15 @@ def scoped_tools(tools: list[dict], scope: str) -> list[dict]:
     ]
 
 
+def _zeit_karte(_data: dict) -> dict | None:
+    from app.services.zeit_service import get_zeit_service
+
+    uhren = get_zeit_service().stand().get("uhren", [])
+    if not uhren:
+        return None
+    return {"kind": "zeit", "data": {"uhren": uhren}}
+
+
 def card_payload(name: str | None, result: str | None) -> dict | None:
     kind = CARD_TOOLS.get(name or "")
     if kind is None or not result:
@@ -270,6 +334,8 @@ def card_payload(name: str | None, result: str | None) -> dict | None:
                 gesehen.add(pfad)
                 eindeutig.append(eintrag)
         return {"kind": kind, "data": {"dateien": eindeutig}}
+    if kind == "zeit":
+        return _zeit_karte(data)
     if kind == "deep_learning":
         task = data.get("task")
         if isinstance(task, dict) and task.get("id"):
@@ -297,6 +363,73 @@ TOOL_PROVIDERS = {
     "together",
     "xai",
 }
+
+
+
+async def openrouter_free_model(registry, model: str) -> str:
+    if model.endswith(":free"):
+        return model
+    try:
+        models = await registry.get("openrouter").list_models()
+    except Exception:
+        models = []
+    candidate = f"{model}:free"
+    if candidate in models:
+        return candidate
+    for name in OPENROUTER_FREE_DEFAULTS:
+        if name in models:
+            return name
+    return OPENROUTER_FREE_DEFAULTS[0]
+
+
+async def route_providers(registry, primary: str, model: str) -> list[str]:
+    usable = [primary]
+    if not get_settings_service().get().get("auto_failover", True):
+        return usable
+    for name in ALTERNATIVE_PROVIDERS:
+        if name in usable:
+            continue
+        try:
+            provider = registry.get(name)
+        except Exception:
+            continue
+        if not provider.available():
+            continue
+        try:
+            models = await provider.list_models()
+        except Exception:
+            continue
+        if name == "openrouter":
+            if (
+                (model.endswith(":free") and model in models)
+                or f"{model}:free" in models
+                or any(m in models for m in OPENROUTER_FREE_DEFAULTS)
+            ):
+                usable.append(name)
+        elif model in models:
+            usable.append(name)
+    healthy = [name for name in usable if not is_slow(name, model)]
+    stalled = [name for name in usable if is_slow(name, model)]
+    return healthy + stalled
+
+
+async def attempt_plan_for(
+    registry, primary: str, names: list[str], model: str
+) -> list[tuple[str, str]]:
+    attempts: list[tuple[str, str]] = []
+    for name in names:
+        if name == "openrouter" and name != primary:
+            attempts.append((name, await openrouter_free_model(registry, model)))
+        else:
+            attempts.append((name, model))
+    fallback = FALLBACK_MODELS.get(primary, "")
+    if primary == "openrouter" and fallback:
+        fallback = await openrouter_free_model(registry, fallback)
+    if fallback and fallback != model and (primary, model) in attempts:
+        attempts.insert(attempts.index((primary, model)) + 1, (primary, fallback))
+    healthy = [a for a in attempts if not is_slow(a[0], a[1])]
+    stalled = [a for a in attempts if is_slow(a[0], a[1])]
+    return healthy + stalled
 
 
 class ChatService:
@@ -428,67 +561,15 @@ class ChatService:
         return "\n\n".join(parts)
 
     async def openrouter_free(self, model: str) -> str:
-        if model.endswith(":free"):
-            return model
-        try:
-            models = await self._registry.get("openrouter").list_models()
-        except Exception:
-            models = []
-        candidate = f"{model}:free"
-        if candidate in models:
-            return candidate
-        for name in OPENROUTER_FREE_DEFAULTS:
-            if name in models:
-                return name
-        return OPENROUTER_FREE_DEFAULTS[0]
+        return await openrouter_free_model(self._registry, model)
 
     async def route(self, primary: str, model: str) -> list[str]:
-        usable = [primary]
-        if not get_settings_service().get().get("auto_failover", True):
-            return usable
-        for name in ALTERNATIVE_PROVIDERS:
-            if name in usable:
-                continue
-            try:
-                provider = self._registry.get(name)
-            except Exception:
-                continue
-            if not provider.available():
-                continue
-            try:
-                models = await provider.list_models()
-            except Exception:
-                continue
-            if name == "openrouter":
-                if (
-                    (model.endswith(":free") and model in models)
-                    or f"{model}:free" in models
-                    or any(m in models for m in OPENROUTER_FREE_DEFAULTS)
-                ):
-                    usable.append(name)
-            elif model in models:
-                usable.append(name)
-        healthy = [name for name in usable if not is_slow(name, model)]
-        stalled = [name for name in usable if is_slow(name, model)]
-        return healthy + stalled
+        return await route_providers(self._registry, primary, model)
 
     async def attempt_plan(
         self, primary: str, names: list[str], model: str
     ) -> list[tuple[str, str]]:
-        attempts: list[tuple[str, str]] = []
-        for name in names:
-            if name == "openrouter" and name != primary:
-                attempts.append((name, await self.openrouter_free(model)))
-            else:
-                attempts.append((name, model))
-        fallback = FALLBACK_MODELS.get(primary, "")
-        if primary == "openrouter" and fallback:
-            fallback = await self.openrouter_free(fallback)
-        if fallback and fallback != model and (primary, model) in attempts:
-            attempts.insert(attempts.index((primary, model)) + 1, (primary, fallback))
-        healthy = [a for a in attempts if not is_slow(a[0], a[1])]
-        stalled = [a for a in attempts if is_slow(a[0], a[1])]
-        return healthy + stalled
+        return await attempt_plan_for(self._registry, primary, names, model)
 
     async def _stream_route(
         self, attempts: list[tuple[str, str]], request: ChatRequest, executor, state: dict
@@ -777,6 +858,9 @@ class ChatService:
                 yield {"type": "done", "conversation_id": conversation_id}
                 return
 
+        from app.services.tools import runde_beginnen
+
+        runde_beginnen()
         browser_sitzung(conversation_id or payload.conversation_id or "standard")
         use_tools = provider_name in TOOL_PROVIDERS
         tool_source = payload.source or ("mini-jon" if slot == "emil" else "app")

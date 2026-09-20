@@ -54,7 +54,7 @@ BEKANNTE = {
 }
 
 TITEL = {
-    JON: "Jon-Browser",
+    JON: "Jons privater Browser",
     SYSTEM: "Standardbrowser",
     "chrome": "Google Chrome",
     "edge": "Microsoft Edge",

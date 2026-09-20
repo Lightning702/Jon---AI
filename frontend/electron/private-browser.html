@@ -578,6 +578,383 @@
         }
       });
 
+      let jonSkripte = null;
+      const jonWarte = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      const JON_ZIEL = `(wunsch) => {
+        const wert = String(wunsch || '').trim();
+        if (!wert) return null;
+        if (/^e\d+$/.test(wert)) return document.querySelector('[data-jon-el="' + wert + '"]');
+        if (/^([#.\[/]|xpath=|css=|text=)/.test(wert) || /[>:="']/.test(wert)) {
+          try {
+            const roh = wert.replace(/^css=/, '');
+            const treffer = document.querySelector(roh);
+            if (treffer) return treffer;
+          } catch (e) {}
+        }
+        const niedrig = wert.toLowerCase();
+        const kandidaten = Array.from(
+          document.querySelectorAll('button, a, input, textarea, select, [role="button"], [role="link"], label, summary')
+        );
+        const passend = (el) => {
+          const texte = [
+            el.innerText,
+            el.value,
+            el.getAttribute('aria-label'),
+            el.getAttribute('placeholder'),
+            el.getAttribute('title'),
+            el.getAttribute('name'),
+          ];
+          return texte.some((t) => t && String(t).replace(/\s+/g, ' ').trim().toLowerCase().includes(niedrig));
+        };
+        for (const el of kandidaten) {
+          const r = el.getBoundingClientRect();
+          if (r.width < 2 || r.height < 2) continue;
+          if (passend(el)) return el;
+        }
+        return null;
+      }`;
+
+      const JON_KLICK = `(id) => {
+        const el = (${JON_ZIEL})(id);
+        if (!el) return { gefunden: false };
+        try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {}
+        try { el.focus({ preventScroll: true }); } catch (e) {}
+        const r = el.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        for (const art of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) {
+          el.dispatchEvent(new MouseEvent(art, { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+        }
+        el.click();
+        return { gefunden: true };
+      }`;
+
+      const JON_FUELLEN = `(daten) => {
+        const el = (${JON_ZIEL})(daten.id);
+        if (!el) return { gefunden: false };
+        try { el.scrollIntoView({ block: 'center' }); } catch (e) {}
+        try { el.focus({ preventScroll: true }); } catch (e) {}
+        if (el.isContentEditable) {
+          el.textContent = daten.text;
+        } else {
+          const proto = el instanceof HTMLTextAreaElement
+            ? HTMLTextAreaElement.prototype
+            : HTMLInputElement.prototype;
+          const setter = Object.getOwnPropertyDescriptor(proto, 'value');
+          if (setter && setter.set) setter.set.call(el, daten.text);
+          else el.value = daten.text;
+        }
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return { gefunden: true };
+      }`;
+
+      const JON_TASTE = `(daten) => {
+        const el = daten.id
+          ? (${JON_ZIEL})(daten.id)
+          : document.activeElement || document.body;
+        if (!el) return { gefunden: false };
+        const opts = { key: daten.taste, code: daten.taste, bubbles: true, cancelable: true };
+        el.dispatchEvent(new KeyboardEvent('keydown', opts));
+        el.dispatchEvent(new KeyboardEvent('keypress', opts));
+        el.dispatchEvent(new KeyboardEvent('keyup', opts));
+        if (daten.taste === 'Enter') {
+          const form = el.form || (el.closest ? el.closest('form') : null);
+          if (form) {
+            if (form.requestSubmit) form.requestSubmit();
+            else form.submit();
+          }
+        }
+        return { gefunden: true };
+      }`;
+
+      const JON_WAHL = `(daten) => {
+        const el = (${JON_ZIEL})(daten.id);
+        if (!el || !el.options) return { gefunden: false };
+        const wunsch = String(daten.option || '').toLowerCase();
+        let treffer = -1;
+        for (let i = 0; i < el.options.length; i++) {
+          const o = el.options[i];
+          const text = (o.label || o.text || '').trim().toLowerCase();
+          if (text === wunsch || String(o.value).toLowerCase() === wunsch) { treffer = i; break; }
+          if (treffer < 0 && text.includes(wunsch) && wunsch) treffer = i;
+        }
+        if (treffer < 0) return { gefunden: true, gewaehlt: false };
+        el.selectedIndex = treffer;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return { gefunden: true, gewaehlt: true };
+      }`;
+
+      const JON_SCROLL = `(daten) => {
+        if (daten.richtung === 'anfang') window.scrollTo(0, 0);
+        else if (daten.richtung === 'ende') window.scrollTo(0, document.body.scrollHeight);
+        else window.scrollBy(0, (daten.menge || 600) * (daten.hoch ? -1 : 1));
+        return { y: window.scrollY };
+      }`;
+
+
+      const JON_DA = `(wunsch) => {
+        if (wunsch.id) return !!(${JON_ZIEL})(wunsch.id);
+        if (!wunsch.text) return document.readyState === 'complete';
+        return (document.body ? document.body.innerText : '').toLowerCase().includes(
+          String(wunsch.text).toLowerCase()
+        );
+      }`;
+
+
+      function jonAufruf(code, arg) {
+        return '(' + code + ')(' + JSON.stringify(arg === undefined ? null : arg) + ')';
+      }
+
+      async function jonJs(tab, code, arg) {
+        return await tab.view.executeJavaScript(jonAufruf(code, arg), true);
+      }
+
+      function jonTabListe() {
+        return tabs.map((t) => ({ tab: 't' + t.id, url: t.url, titel: t.title || '' }));
+      }
+
+      function jonTabFinden(kennung) {
+        const roh = String(kennung || '').replace(/^t/i, '');
+        return tabs.find((t) => String(t.id) === roh) || null;
+      }
+
+      async function jonGeladen(tab, grenze) {
+        const ende = Date.now() + (grenze || 15000);
+        await jonWarte(150);
+        while (Date.now() < ende) {
+          if (!tab.loading) return;
+          await jonWarte(150);
+        }
+      }
+
+      async function jonSchnappschuss(tab, mitText, grenze) {
+        if (!tab) return { url: '', titel: '', tabs: jonTabListe(), tab: '', interaktive_elemente: [] };
+        await jonGeladen(tab, 15000);
+        const daten = {
+          url: tab.url,
+          titel: tab.title || '',
+          laden: tab.loading ? 'laedt' : 'bereit',
+          tab: 't' + tab.id,
+          tabs: jonTabListe(),
+          browser: 'Jons privater Browser',
+        };
+        try {
+          const seite = await jonJs(
+            tab,
+            jonSkripte.seite,
+            mitText === false ? 400 : jonSkripte.text_limit
+          );
+          if (seite && typeof seite === 'object') {
+            daten.beschreibung = seite.beschreibung || '';
+            daten.ueberschriften = seite.ueberschriften || [];
+            if (mitText !== false) daten.seitentext = String(seite.text || '').trim();
+            daten.dialoge = seite.dialoge || 0;
+            daten.zustimmung_moeglich = !!seite.zustimmung_moeglich;
+            if (seite.titel && !daten.titel) daten.titel = seite.titel;
+            if (seite.url) daten.url = seite.url;
+          }
+        } catch (e) {
+          daten.hinweis = 'Der Seiteninhalt liess sich nicht lesen: ' + (e && e.message);
+        }
+        try {
+          daten.interaktive_elemente = await jonJs(
+            tab,
+            jonSkripte.elemente,
+            grenze || jonSkripte.max_elemente
+          );
+        } catch (e) {
+          daten.interaktive_elemente = [];
+        }
+        return daten;
+      }
+
+      async function jonAuftragAusfuehren(auftrag) {
+        if (auftrag.skripte) jonSkripte = auftrag.skripte;
+        if (!jonSkripte) throw new Error('Jon hat die Leseskripte nicht mitgeschickt.');
+        const args = auftrag.args || {};
+        const op = auftrag.op;
+        let tab = activeTab();
+
+        if (op === 'goto') {
+          const url = toUrl(String(args.url || ''));
+          if (!url) throw new Error('Keine Adresse angegeben.');
+          if (!tab) tab = createTab(url, true);
+          else {
+            tab.url = url;
+            tab.loading = true;
+            tab.view.loadURL(url);
+          }
+          return await jonSchnappschuss(tab, true);
+        }
+        if (op === 'read' || op === 'status') {
+          return await jonSchnappschuss(tab, op === 'read');
+        }
+        if (op === 'beschreiben') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          const code =
+            '(id) => { const el = document.querySelector(\'[data-jon-el="\' + id + \'"]\');' +
+            ' if (!el) return { gefunden: false, fehler: "Element nicht gefunden" };' +
+            ' const info = (' + jonSkripte.beschreibung + ')(el); info.gefunden = true; return info; }';
+          return await jonJs(tab, code, String(args.element || ''));
+        }
+        if (op === 'click') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          const treffer = await jonJs(tab, JON_KLICK, String(args.element || ''));
+          if (!treffer || !treffer.gefunden) {
+            throw new Error('Das Element ' + args.element + ' gibt es auf dieser Seite nicht mehr.');
+          }
+          await jonWarte(500);
+          const daten = await jonSchnappschuss(tab, args.mit_text !== false);
+          daten.geklickt = args.element;
+          return daten;
+        }
+        if (op === 'fill') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          const treffer = await jonJs(tab, JON_FUELLEN, {
+            id: String(args.element || ''),
+            text: String(args.text || ''),
+          });
+          if (!treffer || !treffer.gefunden) {
+            throw new Error('Das Feld ' + args.element + ' gibt es auf dieser Seite nicht mehr.');
+          }
+          if (args.enter) {
+            await jonJs(tab, JON_TASTE, { id: String(args.element || ''), taste: 'Enter' });
+            await jonWarte(700);
+          }
+          const daten = await jonSchnappschuss(tab, !!args.enter);
+          daten.ausgefuellt = args.element;
+          return daten;
+        }
+        if (op === 'press') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          const taste = String(args.taste || 'Enter') || 'Enter';
+          await jonJs(tab, JON_TASTE, { id: String(args.element || ''), taste: taste });
+          await jonWarte(600);
+          const daten = await jonSchnappschuss(tab, false);
+          daten.taste = taste;
+          return daten;
+        }
+        if (op === 'select') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          const treffer = await jonJs(tab, JON_WAHL, {
+            id: String(args.element || ''),
+            option: String(args.option || ''),
+          });
+          if (!treffer || !treffer.gefunden) {
+            throw new Error('Die Auswahl ' + args.element + ' gibt es nicht mehr.');
+          }
+          const daten = await jonSchnappschuss(tab, false);
+          daten.gewaehlt = args.option;
+          return daten;
+        }
+        if (op === 'scroll') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          const richtung = String(args.richtung || 'runter').toLowerCase();
+          await jonJs(tab, JON_SCROLL, {
+            richtung: ['anfang', 'top'].includes(richtung)
+              ? 'anfang'
+              : ['ende', 'bottom', 'unten'].includes(richtung)
+                ? 'ende'
+                : 'stueck',
+            hoch: ['hoch', 'up', 'oben'].includes(richtung),
+            menge: Number(args.menge || 600) || 600,
+          });
+          await jonWarte(400);
+          const daten = await jonSchnappschuss(tab, args.mit_text !== false);
+          daten.gescrollt = richtung;
+          return daten;
+        }
+        if (op === 'zustimmung') {
+          if (!tab) return { dialog: null };
+          let info = null;
+          try {
+            info = await tab.view.executeJavaScript('(' + jonSkripte.zustimmung + ')()', true);
+          } catch (e) {
+            info = null;
+          }
+          return { dialog: info };
+        }
+        if (op === 'wait_element' || op === 'wait_navigation') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          const grenze = Number(args.timeout || 10000) || 10000;
+          const ende = Date.now() + Math.min(grenze, 30000);
+          const wunsch = String(args.element || '');
+          while (Date.now() < ende) {
+            let da = false;
+            try {
+              da = await jonJs(
+                tab,
+                JON_DA,
+                /^e\d+$/i.test(wunsch) ? { id: wunsch } : { text: wunsch }
+              );
+            } catch (e) {}
+            if (da) break;
+            await jonWarte(300);
+          }
+          return await jonSchnappschuss(tab, true);
+        }
+        if (op === 'back' || op === 'forward' || op === 'reload') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          if (op === 'back' && tab.view.canGoBack()) tab.view.goBack();
+          else if (op === 'forward' && tab.view.canGoForward()) tab.view.goForward();
+          else if (op === 'reload') tab.view.reload();
+          await jonWarte(600);
+          return await jonSchnappschuss(tab, true);
+        }
+        if (op === 'tab_new') {
+          const url = String(args.url || '').trim();
+          const neu = createTab(url ? toUrl(url) : START_URL, true);
+          return await jonSchnappschuss(neu, true);
+        }
+        if (op === 'tab_switch') {
+          const ziel = jonTabFinden(args.tab);
+          if (!ziel) {
+            throw new Error(
+              'Tab ' + args.tab + ' gibt es nicht. Offen: ' +
+                (jonTabListe().map((t) => t.tab).join(', ') || 'keine')
+            );
+          }
+          setActive(ziel.id);
+          return await jonSchnappschuss(ziel, true);
+        }
+        if (op === 'tab_close') {
+          const ziel = args.tab ? jonTabFinden(args.tab) : tab;
+          if (ziel) closeTab(ziel.id);
+          const rest = activeTab();
+          if (!rest) return { url: '', titel: '', tabs: [], tab: '', interaktive_elemente: [] };
+          return await jonSchnappschuss(rest, false);
+        }
+        if (op === 'screenshot') {
+          if (!tab) throw new Error('Es ist kein Tab offen.');
+          const bild = await tab.view.capturePage();
+          return {
+            bild: bild.toDataURL(),
+            url: tab.url,
+            titel: tab.title || '',
+            browser: 'Jons privater Browser',
+          };
+        }
+        throw new Error('Der private Browser kennt die Aktion ' + op + ' nicht.');
+      }
+
+      window.jonPrivat.onAuftrag(async (auftrag) => {
+        if (!auftrag || !auftrag.id) return;
+        let antwort;
+        try {
+          const daten = await jonAuftragAusfuehren(auftrag);
+          antwort = { id: auftrag.id, ok: true, daten: daten || {} };
+        } catch (e) {
+          antwort = { id: auftrag.id, ok: false, fehler: String((e && e.message) || e) };
+        }
+        try {
+          await window.jonPrivat.ergebnis(antwort);
+        } catch (e) {}
+        if (antwort.ok) toast('🤖 Jon hat gerade etwas im privaten Browser gemacht.');
+      });
+
       window.jonPrivat.onOpenTab((url) => {
         if (url) createTab(url, true);
       });

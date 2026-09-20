@@ -17,6 +17,7 @@ from app.api.multiplayer_routes import MP_TCP_PORT, MP_WS_PORT, create_coop_app
 from app.api.multiplayer_routes import router as multiplayer_router
 from app.api.inbox_routes import router as inbox_router
 from app.api.handy_routes import router as handy_router
+from app.api.mediathek_routes import router as mediathek_router
 from app.api.zeit_routes import router as zeit_router
 from app.api.p2p_routes import create_chat_app
 from app.api.p2p_routes import router as p2p_router
@@ -160,6 +161,26 @@ async def _aufgaben_watcher() -> None:
                 )
         except Exception as fehler:
             _log.warning("Aufgabenlauf fehlgeschlagen: %s", fehler)
+
+
+async def _ausloeser_watcher() -> None:
+    from app.services.ausloeser_service import get_ausloeser_service
+
+    await asyncio.sleep(20)
+    try:
+        start = await asyncio.to_thread(get_ausloeser_service().beim_start)
+        if start.get("anzahl"):
+            _log.info("STEP ausloeser start %s", start["anzahl"])
+    except Exception as fehler:
+        _log.warning("Ausloeser beim Start fehlgeschlagen: %s", fehler)
+    while True:
+        await asyncio.sleep(60)
+        try:
+            ergebnis = await asyncio.to_thread(get_ausloeser_service().pruefen)
+            for eintrag in ergebnis.get("gestartet", []):
+                _log.info("STEP ausloeser %s", eintrag.get("titel", "")[:60])
+        except Exception as fehler:
+            _log.warning("Ausloeser fehlgeschlagen: %s", fehler)
 
 
 async def _hypothesen_watcher() -> None:
@@ -604,6 +625,7 @@ async def lifespan(app: FastAPI):
     _spawn("wahrnehmung_watcher", _wahrnehmung_watcher())
     _spawn("neugier_watcher", _neugier_watcher())
     _spawn("aufgaben_watcher", _aufgaben_watcher())
+    _spawn("ausloeser_watcher", _ausloeser_watcher())
     _spawn("hypothesen_watcher", _hypothesen_watcher())
     _spawn("fertigkeit_watcher", _fertigkeit_watcher())
     _spawn("clipboard_watcher", _clipboard_watcher())
@@ -652,6 +674,14 @@ async def lifespan(app: FastAPI):
         await get_phone_service().stop()
 
 
+class WebApp(StaticFiles):
+    async def get_response(self, path: str, scope):
+        antwort = await super().get_response(path, scope)
+        if antwort.headers.get("content-type", "").startswith("text/html"):
+            antwort.headers["Cache-Control"] = "no-store"
+        return antwort
+
+
 def create_app() -> FastAPI:
     setup_logging()
     get_token()
@@ -680,6 +710,7 @@ def create_app() -> FastAPI:
     app.include_router(inbox_router)
     app.include_router(handy_router)
     app.include_router(zeit_router)
+    app.include_router(mediathek_router)
     app.include_router(research_router)
     app.include_router(studio_router)
     app.include_router(browser_router)
@@ -696,6 +727,12 @@ def create_app() -> FastAPI:
     async def blockwelt():
         return FileResponse(game_file, media_type="text/html")
 
+    katzen_file = Path(__file__).resolve().parent / "static" / "katzenhof.html"
+
+    @app.get("/katzenhof")
+    async def katzenhof():
+        return FileResponse(katzen_file, media_type="text/html")
+
     private_file = Path(__file__).resolve().parent / "static" / "privat.html"
 
     @app.get("/privat")
@@ -708,7 +745,7 @@ def create_app() -> FastAPI:
 
     dist = web_app_dir()
     if dist is not None:
-        app.mount("/app", StaticFiles(directory=str(dist), html=True), name="app")
+        app.mount("/app", WebApp(directory=str(dist), html=True), name="app")
     else:
         _log.warning("Web-Oberflaeche nicht gefunden - /app bleibt aus")
     return app
@@ -756,6 +793,13 @@ def _free_port(host: str, port: int) -> None:
 
 
 def main() -> None:
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1].lower() in ("cli", "terminal", "jon"):
+        from app.cli import main as cli_main
+
+        cli_main(sys.argv[2:])
+        return
     settings = get_settings()
     host = "0.0.0.0" if settings.jon_lan else settings.host
     _free_port(settings.host, settings.port)

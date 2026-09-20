@@ -4,6 +4,7 @@ import {
   humanizeText,
   scoreText,
 } from "../lib/api";
+import { inZwischenablage } from "../lib/umgebung";
 
 const STYLES = [
   { id: "neutral", label: "Neutral" },
@@ -91,7 +92,7 @@ export default function Humanizer({ provider, model, onClose }: Props) {
   };
 
   const copy = () => {
-    void navigator.clipboard.writeText(output);
+    void inZwischenablage(output);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };

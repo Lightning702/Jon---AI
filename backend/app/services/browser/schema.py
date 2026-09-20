@@ -25,7 +25,8 @@ WERKZEUGE: list[tuple[str, str, dict[str, Any], list[str]]] = [
     ),
     (
         "goto",
-        "Oeffnet eine URL im Jon-Browser (Chromium, sichtbar). Die Sitzung bleibt "
+        "Oeffnet eine URL in Jons privatem Browser (sichtbar, ohne Spuren). Die "
+        "Sitzung bleibt "
         "zwischen Aufrufen offen. Lies die Seite danach mit browser_read.",
         {"url": _STR},
         ["url"],
@@ -130,7 +131,7 @@ WERKZEUGE: list[tuple[str, str, dict[str, Any], list[str]]] = [
         {"token": _STR, "abbrechen": _BOOL},
         ["token"],
     ),
-    ("close", "Schliesst das Jon-Browser-Fenster und beendet die Sitzung.", {}, []),
+    ("close", "Schliesst Jons privaten Browser und beendet die Sitzung.", {}, []),
 ]
 
 AGENT_OPS = (
@@ -192,7 +193,7 @@ def erklaeren(op: str, args: dict) -> str:
         art = " (nur Planung)" if args.get("dry_run") else ""
         return f"Browser-Agent{art}: {kurz(args.get('auftrag', ''))}"
     if op == "goto":
-        return f"Oeffnet im Jon-Browser: {kurz(args.get('url', ''))}"
+        return f"Oeffnet im privaten Browser: {kurz(args.get('url', ''))}"
     if op == "search":
         return f"Sucht im Browser nach: {kurz(args.get('query', ''))}"
     if op == "read":
@@ -240,5 +241,5 @@ def erklaeren(op: str, args: dict) -> str:
             return "Gibt diese Aktion frei:\n" + freigabe.zusammenfassung
         return "Gibt eine kritische Browser-Aktion frei."
     if op == "close":
-        return "Schliesst den Jon-Browser."
+        return "Schliesst den privaten Browser."
     return f"Browser-Aktion {op}."

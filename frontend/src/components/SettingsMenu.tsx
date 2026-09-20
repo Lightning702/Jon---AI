@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
   OllamaStatus,
   ToolMode,
@@ -12,8 +13,18 @@ import {
   saveOllamaConfig,
   saveUserSettings,
   setAutostart,
+  terminalEinrichten,
+  terminalEntfernen,
+  terminalStand,
 } from "../lib/api";
+import type { TerminalStand } from "../lib/api";
 import { setNaturalVoice } from "../lib/tts";
+import {
+  aufGeraetewechsel,
+  geraeteListe,
+  medienGeraete,
+  mikrofonMoeglich,
+} from "../lib/umgebung";
 import { Theme, applyTheme, readTheme } from "../lib/theme";
 import { useT } from "../hooks/useT";
 import ConnectionsModal from "./ConnectionsModal";
@@ -72,6 +83,14 @@ function Segmented({
   );
 }
 
+const EinfachContext = createContext(false);
+
+function Profi({ children }: { children: ReactNode }) {
+  const einfach = useContext(EinfachContext);
+  if (einfach) return null;
+  return <>{children}</>;
+}
+
 function Toggle({
   label,
   hint,
@@ -83,24 +102,30 @@ function Toggle({
   on: boolean;
   onClick: () => void;
 }) {
+  const einfach = useContext(EinfachContext);
   return (
     <button
       onClick={onClick}
       title={hint}
-      className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+      className="w-full flex flex-col gap-0.5 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-left"
     >
-      <span className="text-[11px] text-white/85 truncate">{label}</span>
-      <span
-        className={`w-7 h-4 shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
-          on ? "bg-gold/70" : "bg-white/15"
-        }`}
-      >
+      <span className="w-full flex items-center justify-between gap-2">
+        <span className="text-[11px] text-white/85 truncate">{label}</span>
         <span
-          className={`w-3 h-3 rounded-full bg-white transition-transform ${
-            on ? "translate-x-3" : ""
+          className={`w-7 h-4 shrink-0 rounded-full flex items-center px-0.5 transition-colors ${
+            on ? "bg-gold/70" : "bg-white/15"
           }`}
-        />
+        >
+          <span
+            className={`w-3 h-3 rounded-full bg-white transition-transform ${
+              on ? "translate-x-3" : ""
+            }`}
+          />
+        </span>
       </span>
+      {einfach && hint && (
+        <span className="text-[9.5px] leading-snug text-white/40">{hint}</span>
+      )}
     </button>
   );
 }
@@ -113,6 +138,22 @@ export default function SettingsMenu({
   onToolModeChange: (mode: ToolMode) => void;
 }) {
   const { lang, setLang } = useT();
+  const [einfach, setEinfach] = useState(() => {
+    try {
+      return localStorage.getItem("jon_einstellungen_stufe") !== "alles";
+    } catch {
+      return true;
+    }
+  });
+
+  const stufeSetzen = (wert: boolean) => {
+    setEinfach(wert);
+    try {
+      localStorage.setItem("jon_einstellungen_stufe", wert ? "einfach" : "alles");
+    } catch {
+      /* ohne Speicher bleibt die Wahl für diese Sitzung */
+    }
+  };
   const [open, setOpen] = useState(false);
   const [uninstallOpen, setUninstallOpen] = useState(false);
   const [diagnoseOpen, setDiagnoseOpen] = useState(false);
@@ -125,6 +166,9 @@ export default function SettingsMenu({
   const [clipboard, setClipboard] = useState(true);
   const [webcam, setWebcam] = useState(false);
   const [backupInfo, setBackupInfo] = useState("");
+  const [terminal, setTerminal] = useState<TerminalStand | null>(null);
+  const [terminalInfo, setTerminalInfo] = useState("");
+  const [terminalLaeuft, setTerminalLaeuft] = useState(false);
   const backupRef = useRef<HTMLInputElement>(null);
   const [voice, setVoice] = useState(true);
   const [cowork, setCowork] = useState(false);
@@ -181,9 +225,14 @@ export default function SettingsMenu({
   };
 
   const loadMics = async () => {
+    const geraete = medienGeraete();
+    if (!geraete) {
+      setMicList([]);
+      return;
+    }
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
-      const devices = await navigator.mediaDevices.enumerateDevices();
+      await geraete.getUserMedia({ audio: true }).catch(() => {});
+      const devices = await geraeteListe();
       const inputs = devices
         .filter((d) => d.kind === "audioinput")
         .map((d) => ({
@@ -192,6 +241,37 @@ export default function SettingsMenu({
         }));
       setMicList(inputs);
     } catch {}
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    void terminalStand()
+      .then(setTerminal)
+      .catch(() => setTerminal(null));
+  }, [open]);
+
+  const terminalSchalten = async () => {
+    if (terminalLaeuft) return;
+    setTerminalLaeuft(true);
+    setTerminalInfo("");
+    try {
+      const neu = terminal?.installiert
+        ? await terminalEntfernen()
+        : await terminalEinrichten();
+      setTerminal(neu);
+      setTerminalInfo(
+        neu.installiert
+          ? [
+              "Fertig — tipp in einem neuen Terminal einfach: jon",
+              ...(neu.hinweise ?? []),
+            ].join(" ")
+          : "Der Befehl jon wurde wieder entfernt."
+      );
+    } catch (err) {
+      setTerminalInfo(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTerminalLaeuft(false);
+    }
   };
 
   useEffect(() => {
@@ -236,7 +316,7 @@ export default function SettingsMenu({
     });
     void loadMics();
     void loadOllama();
-    navigator.mediaDevices.addEventListener("devicechange", loadMics);
+    const geraetewechselAus = aufGeraetewechsel(() => void loadMics());
     void (async () => {
       const backend = await getAutostart();
       if (backend) {
@@ -245,9 +325,7 @@ export default function SettingsMenu({
       }
       if (jonBridge?.getStartup) setStartup(await jonBridge.getStartup());
     })();
-    return () => {
-      navigator.mediaDevices.removeEventListener("devicechange", loadMics);
-    };
+    return geraetewechselAus;
   }, []);
 
   const togglePersonality = () => {
@@ -531,6 +609,31 @@ export default function SettingsMenu({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-9 z-50 w-56 glass rounded-xl border border-white/15 px-2 py-2 text-left max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain">
+            <EinfachContext.Provider value={einfach}>
+            <div className="flex gap-1 mb-2 p-0.5 rounded-full border border-white/10 bg-white/5">
+              {[
+                { wert: true, name: "Einfach" },
+                { wert: false, name: "Alles" },
+              ].map((eintrag) => (
+                <button
+                  key={eintrag.name}
+                  onClick={() => stufeSetzen(eintrag.wert)}
+                  className={`flex-1 h-6 rounded-full text-[10px] transition-colors ${
+                    einfach === eintrag.wert
+                      ? "bg-gold/70 text-black/80 font-medium"
+                      : "text-white/55 hover:text-white/85"
+                  }`}
+                >
+                  {eintrag.name}
+                </button>
+              ))}
+            </div>
+            {einfach && (
+              <div className="text-[9.5px] leading-snug text-white/40 px-0.5 mb-2">
+                Hier stehen die Schalter, die im Alltag zählen. „Alles“ zeigt jede
+                weitere Einstellung.
+              </div>
+            )}
             <Section title="PC-Steuerung durch Jon" />
             <Segmented
               value={toolMode}
@@ -585,6 +688,7 @@ export default function SettingsMenu({
                 onClick={toggleVoice}
               />
             </div>
+            <Profi>
             <Section title="Ollama" />
             <div className="space-y-1">
               <Toggle
@@ -759,7 +863,7 @@ export default function SettingsMenu({
                 onChange={(e) => pickWebBrowser(e.target.value)}
                 className="w-full bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white/85"
               >
-                <option value="jon">Jon-Browser (Standard, privat, Jon liest mit)</option>
+                <option value="jon">Jons privater Browser (Standard)</option>
                 <option value="system">Normaler Browser des PCs</option>
                 <option value="chrome">Google Chrome</option>
                 <option value="edge">Microsoft Edge</option>
@@ -769,9 +873,10 @@ export default function SettingsMenu({
                 <option value="vivaldi">Vivaldi</option>
               </select>
               <div className="text-[10px] text-white/40 px-0.5 leading-relaxed">
-                Jons eigener Browser surft privat, und nur dort kann Jon lesen und
-                klicken, was er öffnet. Wählst du einen anderen, landen Seiten
-                nur dort — sehen kann er sie dann nicht.
+                Jon macht alles im privaten Browser (Strg+Alt+P): suchen, öffnen, lesen,
+                klicken — ohne Verlauf, ohne Cookies, ohne Spuren in deinem
+                Browser. Wählst du einen anderen, landen Seiten nur dort — sehen
+                kann er sie dann nicht.
               </div>
               <div className="text-[10px] text-white/40 px-0.5 pt-1">
                 Wo liegen die Browserdaten?
@@ -920,6 +1025,7 @@ export default function SettingsMenu({
                 Ziele, Rückblick, Vorschläge und Jons Selbstbild siehst du mit /denken.
               </div>
             </div>
+            </Profi>
             <Section title="Sprache / Language" />
             <div className="pt-1">
               <div className="text-[10px] text-white/40 px-0.5 mb-1">
@@ -939,6 +1045,14 @@ export default function SettingsMenu({
               </select>
             </div>
             <Section title="Sprachsteuerung" />
+            {!mikrofonMoeglich() && (
+              <div className="mt-1 mb-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-2 text-[10.5px] leading-relaxed text-amber-200/90">
+                In diesem Browser gibt es kein Mikrofon: über eine Netzwerkadresse
+                wie http://192.168.x.x erlauben Browser keinen Mikrofonzugriff.
+                Sprachsteuerung und Diktat gehen hier nur am PC, am Pi über
+                localhost oder über https.
+              </div>
+            )}
             <div className="pt-1">
               <div className="text-[10px] text-white/40 px-0.5 mb-1">
                 Mikrofon
@@ -1003,6 +1117,51 @@ export default function SettingsMenu({
                 Mini Jon, dann auf das Pinsel-Symbol.
               </div>
             </div>
+            <Section title="Jon im Terminal" />
+            <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[11px] text-white/85">
+                    Befehl <span className="text-gold/80">jon</span>
+                  </div>
+                  <div className="text-[9.5px] leading-snug text-white/40">
+                    Überall im Terminal — CMD, PowerShell, macOS, Linux und im
+                    VS-Code-Terminal als Code-Modus.
+                  </div>
+                </div>
+                <button
+                  onClick={() => void terminalSchalten()}
+                  disabled={terminalLaeuft}
+                  className={`shrink-0 text-[10.5px] px-2.5 py-1 rounded-full border transition ${
+                    terminal?.installiert
+                      ? "border-white/15 bg-white/5 text-white/60 hover:bg-white/10"
+                      : "border-gold/40 bg-gold/15 text-gold/90 hover:bg-gold/25"
+                  } ${terminalLaeuft ? "opacity-50" : ""}`}
+                >
+                  {terminalLaeuft
+                    ? "…"
+                    : terminal?.installiert
+                      ? "Entfernen"
+                      : "Einrichten"}
+                </button>
+              </div>
+              {terminal?.installiert && (
+                <div className="mt-1 text-[9.5px] text-white/35 truncate">
+                  {terminal.befehl}
+                </div>
+              )}
+              {terminal?.neustart_noetig && (
+                <div className="mt-1 text-[9.5px] leading-snug text-gold/70">
+                  Öffne ein neues Terminal, damit der Befehl gefunden wird.
+                </div>
+              )}
+              {terminalInfo && (
+                <div className="mt-1 text-[9.5px] leading-snug text-gold/70">
+                  {terminalInfo}
+                </div>
+              )}
+            </div>
+            <Profi>
             <Section title="Tagesbriefing" />
             <input
               value={city}
@@ -1052,6 +1211,7 @@ export default function SettingsMenu({
                 {backupInfo}
               </div>
             )}
+            </Profi>
             <button
               onClick={() => {
                 setOpen(false);
@@ -1096,6 +1256,7 @@ export default function SettingsMenu({
               </span>
               <span className="text-red-300/60 text-[12px]">›</span>
             </button>
+            </EinfachContext.Provider>
           </div>
         </>
       )}

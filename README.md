@@ -6,7 +6,7 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-[![Version](https://img.shields.io/badge/Version-4.45.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.52.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -144,6 +144,9 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   Wissensbasis (komplett offline), aus der Jon beim Antworten zitiert
 - **🌅 Tagesbriefing** — täglich beim ersten Start und per `/briefing`: Wetter (Stadt im
   Zahnrad-Menü), Erinnerungen, Wecker und geplante Automationen
+- **⌨️ Jon im Terminal** — `jon` in CMD, PowerShell, macOS, Linux und VS Code: der volle Jon mit Logo, Menue und `jon>`; in VS Code startet er im Code-Modus (einrichten unter Zahnrad → Jon im Terminal)
+- **▶️ Player & Mediathek** — alles aus dem Downloader bleibt gespeichert und laeuft offline im Player, mit Vorschaubild, Suche und Playlist
+- **⏱️ Timer, Wecker & Stoppuhr** — eine Uhr im Chat mit drei Reitern; „erhöh um 7 Minuten“, „pausier“, „nochmal von vorn“ oder „Ton aus“ genügen, der Weckton kommt aus dem PC
 - **⚡ Schnellfrage-Overlay** — `Strg+Alt+Leertaste` öffnet überall ein kleines
   Spotlight-Fenster: Frage tippen, Antwort erscheint sofort, `Esc` schließt
 - **📋 Clipboard-Historie** — die letzten 50 kopierten Einträge, lokal gespeichert,
@@ -746,16 +749,24 @@ kann das Backend auf einem Raspberry Pi (ab Pi 4) laufen:
 2. `cd jon && bash pi-installieren.sh`
 3. API-Keys eintragen: `nano .env`, danach `sudo systemctl restart jon`
 
-Das Skript installiert alle Abhängigkeiten, baut die Web-App und richtet einen
-systemd-Dienst ein, der **bei jedem Hochfahren automatisch startet** und bei Abstürzen neu
-startet. Danach erreichst du Jon am Handy unter `http://<Pi-IP>:8756/app` — die
-**vollständige Adresse inklusive Geräte-Schlüssel** zeigt das Skript am Ende an. Einmal am
-Handy öffnen genügt, danach merkt sich der Browser den Schlüssel. Später findest du sie
-wieder mit:
+Das Skript installiert alle Abhängigkeiten und richtet einen systemd-Dienst ein, der
+**bei jedem Hochfahren automatisch startet** und bei Abstürzen neu startet. Die fertige
+Oberfläche liegt seit 4.52.0 als Ordner `webapp/` bei — der Pi braucht **kein Node.js**
+und baut nichts mehr selbst. Danach erreichst du Jon am Handy unter
+`http://<Pi-IP>:8756/app/?token=…` — die **vollständige Adresse inklusive
+Geräte-Schlüssel** zeigt das Skript am Ende an. Einmal am Handy öffnen genügt, danach
+merkt sich der Browser den Schlüssel. Später findest du ihn wieder mit:
 
 ```bash
 cat ~/.jon/data/access.token
 ```
+
+Auf die neueste Version bringst du den Pi mit `bash pi-update.sh` — das holt den neuen
+Stand, startet den Dienst neu und nennt am Ende wieder die Adresse mit Schlüssel.
+
+> **Mikrofon am Handy:** Über eine Adresse wie `http://192.168.x.x` geben Browser kein
+> Mikrofon frei — das erlauben sie nur über `localhost` oder `https`. Sprachsteuerung und
+> Diktat sind dort deshalb aus; alles andere funktioniert vollständig.
 
 Der PC-Betrieb ändert sich dadurch nicht: `start-jon.bat` funktioniert weiter wie gehabt.
 PC und Pi sind zwei getrennte Jons mit eigenen Einstellungen und eigenem Gedächtnis. Auf

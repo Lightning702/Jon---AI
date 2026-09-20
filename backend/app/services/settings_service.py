@@ -17,6 +17,8 @@ DEFAULTS = {
     "auto_failover": True,
     "provider": "",
     "model": "",
+    "terminal_provider": "",
+    "terminal_model": "",
     "theme": "dark",
     "pet_accent": "#d4af37",
     "pet_face": "#0a0a0e",
@@ -95,6 +97,7 @@ DEFAULTS = {
     "browser_sichtbar": True,
     "browser_persistent": True,
     "browser_speicher": "festplatte",
+    "browser_motor": "privat",
     "web_browser": "jon",
     "browser_plan_modus": "auto",
     "browser_dry_run": False,
@@ -113,7 +116,7 @@ DEFAULTS = {
     "neugier_pro_lauf": 3,
     "fertigkeit_auto": False,
     "planer_enabled": True,
-    "aufgaben_enabled": False,
+    "aufgaben_enabled": True,
     "aufgaben_budget": 20,
     "vorwaerts_enabled": True,
     "hypothesen_auto": False,
@@ -184,6 +187,19 @@ class SettingsService:
     def selection(self) -> tuple[str, str]:
         with self._lock:
             return self._data.get("provider", ""), self._data.get("model", "")
+
+    def terminal_selection(self) -> tuple[str, str]:
+        with self._lock:
+            return (
+                self._data.get("terminal_provider", ""),
+                self._data.get("terminal_model", ""),
+            )
+
+    def remember_terminal(self, provider: str, model: str) -> None:
+        with self._lock:
+            self._data["terminal_provider"] = str(provider or "")
+            self._data["terminal_model"] = str(model or "")
+            self._save()
 
     def _companion_selection(
         self, provider_key: str, model_key: str

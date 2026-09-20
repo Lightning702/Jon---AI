@@ -400,3 +400,30 @@ async def pairing_reset() -> dict:
     from app.core.auth import pair_url
 
     return {"token": token, "url": pair_url(settings.port, settings.jon_lan)}
+
+
+@router.get("/terminal")
+async def terminal_stand() -> dict:
+    from app.services.terminal_service import stand
+
+    return await asyncio.to_thread(stand)
+
+
+@router.post("/terminal")
+async def terminal_einrichten() -> dict:
+    from app.services.terminal_service import einrichten
+
+    ergebnis = await asyncio.to_thread(einrichten)
+    if ergebnis.get("error"):
+        raise HTTPException(status_code=500, detail=ergebnis["error"])
+    return ergebnis
+
+
+@router.delete("/terminal")
+async def terminal_entfernen() -> dict:
+    from app.services.terminal_service import entfernen
+
+    ergebnis = await asyncio.to_thread(entfernen)
+    if ergebnis.get("error"):
+        raise HTTPException(status_code=500, detail=ergebnis["error"])
+    return ergebnis

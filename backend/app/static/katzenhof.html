@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Katzenhof</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #14161f;
+        overflow: hidden;
+        font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+        color: #f3ead8;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #buehne {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      canvas {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        display: block;
+      }
+      #hilfe {
+        position: fixed;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        background: rgba(10, 12, 18, 0.82);
+        border: 1px solid rgba(243, 234, 216, 0.16);
+        border-radius: 10px;
+        padding: 7px 14px;
+        font-size: 11px;
+        letter-spacing: 0.03em;
+        color: rgba(243, 234, 216, 0.72);
+        pointer-events: none;
+        white-space: nowrap;
+        max-width: 96vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #tafel {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(8, 9, 14, 0.86);
+        backdrop-filter: blur(3px);
+      }
+      #tafel.an {
+        display: flex;
+      }
+      #tafelinhalt {
+        width: min(560px, 92vw);
+        max-height: 82vh;
+        overflow: auto;
+        background: #1c2030;
+        border: 2px solid #3d445e;
+        border-radius: 14px;
+        padding: 22px 24px;
+        line-height: 1.65;
+        font-size: 13px;
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        letter-spacing: 0.06em;
+      }
+      .zeile {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 4px 0;
+        border-bottom: 1px dashed rgba(243, 234, 216, 0.12);
+      }
+      .zeile:last-child {
+        border-bottom: none;
+      }
+      .dim {
+        color: rgba(243, 234, 216, 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="buehne"><canvas id="leinwand"></canvas></div>
+    <div id="hilfe">WASD laufen · E benutzen · 1-4 Werkzeug · Leertaste schlafen · Tab Hof · Esc zurück</div>
+    <div id="tafel"><div id="tafelinhalt"></div></div>
+    <script>
+      const BREIT = 480;
+      const HOCH = 270;
+      const KACHEL = 16;
+      const FELD_B = 40;
+      const FELD_H = 26;
+
+      const leinwand = document.getElementById("leinwand");
+      const ctx = leinwand.getContext("2d", { alpha: false });
+      const tafel = document.getElementById("tafel");
+      const tafelinhalt = document.getElementById("tafelinhalt");
+      const hilfe = document.getElementById("hilfe");
+
+      const GRAS = 0;
+      const WEG = 1;
+      const ERDE = 2;
+      const WASSER = 3;
+      const HOLZ = 4;
+      const BUSCH = 5;
+      const HAUS = 6;
+
+      const FARBEN = {
+        gras: ["#5d7a4a", "#61804e", "#5a7547"],
+        weg: ["#9c8763", "#a08b68"],
+        erde: ["#6b5136", "#715638"],
+        erdeNass: ["#4a382531", "#4c3a26"],
+        wasser: ["#3a6ea8", "#4278b4"],
+        holz: ["#7d5a38", "#8a6540"],
+        busch: ["#40603a", "#446640"],
+      };
+
+      const PFLANZEN = {
+        minze: { name: "Katzenminze", tage: 2, farbe: "#9fd6a0", bluete: "#cbb2f2", ertrag: 2 },
+        weizen: { name: "Goldweizen", tage: 3, farbe: "#c7b25c", bluete: "#e8d27a", ertrag: 3 },
+      };
+
+      const KATZEN = [
+        { id: "mimi", name: "Mimi", fell: "#e8c07a", muster: "#c99a4e", text: "Sie saß im Regen unter dem Karren." },
+        { id: "ruru", name: "Ruru", fell: "#8c8c96", muster: "#6e6e78", text: "Schläft am liebsten auf dem warmen Stein." },
+        { id: "pepp", name: "Pepp", fell: "#3b3b46", muster: "#2b2b34", text: "Hat vor der Scheune auf jemanden gewartet." },
+        { id: "kiki", name: "Kiki", fell: "#f0e4d2", muster: "#d9c6ac", text: "Kam mit dem ersten Sonnenstrahl über den Zaun." },
+        { id: "nino", name: "Nino", fell: "#d18a5a", muster: "#a96b42", text: "Bringt dir Dinge, die er unterwegs findet." },
+        { id: "smoo", name: "Smoo", fell: "#6a7f9c", muster: "#51647d", text: "Traut sich erst, wenn es ruhig ist." },
+      ];
+
+      const BAUTEN = [
+        { id: "zaun", name: "Der Zaun", preis: 6, text: "Der Hof hat wieder eine Grenze.", katze: "ruru" },
+        { id: "brunnen", name: "Der Brunnen", preis: 10, text: "Frisches Wasser, ohne den Weg zum Teich.", katze: "pepp" },
+        { id: "scheune", name: "Die Scheune", preis: 16, text: "Ein Dach für Vorräte und für Katzen.", katze: "kiki" },
+        { id: "beet", name: "Das große Beet", preis: 22, text: "Mehr Erde, mehr Ernte.", katze: "nino" },
+        { id: "feuer", name: "Die Feuerstelle", preis: 30, text: "Abends wird es hier warm und hell.", katze: "smoo" },
+      ];
+
+      const spiel = {
+        tag: 1,
+        zeit: 0.34,
+        werkzeug: 0,
+        muenzen: 0,
+        vorrat: { minze: 0, weizen: 0, futter: 2 },
+        boden: [],
+        pflanzen: new Map(),
+        gebaut: {},
+        katzen: [],
+        spieler: { x: 14 * KACHEL, y: 13 * KACHEL, rx: 0, ry: 1, schritt: 0, ruht: 0 },
+        stat: { gehackt: 0, geerntet: 0, futter: 0 },
+        schritt: 0,
+        meldung: "",
+        meldungZeit: 0,
+        schwelgen: 0,
+        abspann: false,
+      };
+
+      const WERKZEUGE = [
+        { id: "hacke", name: "Hacke", farbe: "#b98a52" },
+        { id: "samen", name: "Samen", farbe: "#9fd6a0" },
+        { id: "kanne", name: "Gießkanne", farbe: "#5f9ecf" },
+        { id: "hand", name: "Hand", farbe: "#f0cfa0" },
+      ];
+
+      function schluessel(x, y) {
+        return x + "," + y;
+      }
+
+      function zufall(n) {
+        return Math.floor(Math.random() * n);
+      }
+
+      function hofBauen() {
+        spiel.boden = [];
+        for (let y = 0; y < FELD_H; y++) {
+          const reihe = [];
+          for (let x = 0; x < FELD_B; x++) {
+            let art = GRAS;
+            if (y >= 17 && y <= 22 && x >= 5 && x <= 11) art = WASSER;
+            if (x === 16 && y > 6) art = WEG;
+            if (y === 12 && x > 5 && x < 36) art = WEG;
+            if (y < 3 || x < 2 || x > FELD_B - 3 || y > FELD_H - 3) art = BUSCH;
+            if (y >= 8 && y <= 11 && x >= 22 && x <= 30) art = ERDE;
+            if (y >= 6 && y <= 8 && x >= 9 && x <= 12) art = HOLZ;
+            if (y >= 7 && y <= 8 && x >= 17 && x <= 19) art = HAUS;
+            reihe.push(art);
+          }
+          spiel.boden.push(reihe);
+        }
+      }
+
+      function bodenArt(x, y) {
+        if (x < 0 || y < 0 || x >= FELD_B || y >= FELD_H) return BUSCH;
+        return spiel.boden[y][x];
+      }
+
+      function begehbar(x, y) {
+        const art = bodenArt(x, y);
+        return art !== WASSER && art !== BUSCH && art !== HOLZ && art !== HAUS;
+      }
+
+      function laden() {
+        try {
+          const roh = localStorage.getItem("katzenhof");
+          if (!roh) return false;
+          const daten = JSON.parse(roh);
+          spiel.tag = daten.tag || 1;
+          spiel.muenzen = daten.muenzen || 0;
+          spiel.vorrat = Object.assign(spiel.vorrat, daten.vorrat || {});
+          spiel.gebaut = daten.gebaut || {};
+          spiel.schritt = daten.schritt || 0;
+          spiel.stat = Object.assign(spiel.stat, daten.stat || {});
+          spiel.pflanzen = new Map(daten.pflanzen || []);
+          spiel.katzen = (daten.katzen || []).map((k) =>
+            Object.assign({ x: 200, y: 120, zx: 200, zy: 120, ruhe: 0, satt: 0.5, herz: 0 }, k)
+          );
+          if (daten.boden) spiel.boden = daten.boden;
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function sichern() {
+        try {
+          localStorage.setItem(
+            "katzenhof",
+            JSON.stringify({
+              tag: spiel.tag,
+              muenzen: spiel.muenzen,
+              vorrat: spiel.vorrat,
+              gebaut: spiel.gebaut,
+              schritt: spiel.schritt,
+              stat: spiel.stat,
+              pflanzen: Array.from(spiel.pflanzen.entries()),
+              boden: spiel.boden,
+              katzen: spiel.katzen.map((k) => ({
+                id: k.id,
+                name: k.name,
+                fell: k.fell,
+                muster: k.muster,
+                text: k.text,
+                herz: k.herz,
+                satt: k.satt,
+                x: k.x,
+                y: k.y,
+              })),
+            })
+          );
+        } catch (e) {}
+      }
+
+      function katzeHolen(id) {
+        const vorlage = KATZEN.find((k) => k.id === id);
+        if (!vorlage || spiel.katzen.some((k) => k.id === id)) return null;
+        const katze = Object.assign({}, vorlage, {
+          x: 16 * KACHEL,
+          y: 15 * KACHEL,
+          zx: 16 * KACHEL,
+          zy: 15 * KACHEL,
+          ruhe: 1.5,
+          satt: 0.55,
+          herz: 0,
+        });
+        spiel.katzen.push(katze);
+        return katze;
+      }
+
+      function melden(text) {
+        spiel.meldung = text;
+        spiel.meldungZeit = 3.4;
+      }
+
+      function kachelVor() {
+        const sp = spiel.spieler;
+        const kx = Math.floor((sp.x + KACHEL / 2) / KACHEL) + sp.rx;
+        const ky = Math.floor((sp.y + KACHEL / 2) / KACHEL) + sp.ry;
+        return { x: kx, y: ky };
+      }
+
+      function nahsteKatze() {
+        const sp = spiel.spieler;
+        let beste = null;
+        let abstand = 26;
+        for (const katze of spiel.katzen) {
+          const d = Math.hypot(katze.x - sp.x, katze.y - sp.y);
+          if (d < abstand) {
+            abstand = d;
+            beste = katze;
+          }
+        }
+        return beste;
+      }
+
+      function benutzen() {
+        const werkzeug = WERKZEUGE[spiel.werkzeug].id;
+        const ziel = kachelVor();
+        const art = bodenArt(ziel.x, ziel.y);
+        const k = schluessel(ziel.x, ziel.y);
+        const pflanze = spiel.pflanzen.get(k);
+        const katze = nahsteKatze();
+
+        if (werkzeug === "hand" && katze) {
+          if (spiel.vorrat.futter > 0 && katze.satt < 0.7) {
+            spiel.vorrat.futter--;
+            katze.satt = 1;
+            katze.herz = Math.min(3, katze.herz + 1);
+            melden(katze.name + " frisst und schnurrt.");
+            pruefeEnde();
+            return;
+          }
+          katze.ruhe = 2.4;
+          katze.herz = Math.min(3, katze.herz + (Math.random() < 0.35 ? 1 : 0));
+          melden(katze.name + " lässt sich streicheln.");
+          if (katze.herz >= 2 && Math.random() < 0.5) {
+            spiel.muenzen += 1;
+            melden(katze.name + " legt dir eine Münze hin.");
+          }
+          pruefeEnde();
+          return;
+        }
+
+        if (werkzeug === "hacke") {
+          if (art === GRAS) {
+            spiel.boden[ziel.y][ziel.x] = ERDE;
+            spiel.stat.gehackt++;
+            melden("Erde umgegraben.");
+          } else if (art === ERDE && pflanze) {
+            spiel.pflanzen.delete(k);
+            melden("Die Pflanze ist wieder weg.");
+          } else {
+            melden("Hier geht das nicht.");
+          }
+          return;
+        }
+
+        if (werkzeug === "samen") {
+          if (art !== ERDE) {
+            melden("Samen brauchen umgegrabene Erde.");
+            return;
+          }
+          if (pflanze) {
+            melden("Hier wächst schon etwas.");
+            return;
+          }
+          const sorte = spiel.tag % 2 === 0 ? "weizen" : "minze";
+          spiel.pflanzen.set(k, { sorte, stufe: 0, nass: false });
+          melden(PFLANZEN[sorte].name + " gesät.");
+          return;
+        }
+
+        if (werkzeug === "kanne") {
+          if (art === WASSER) {
+            melden("Die Kanne ist voll.");
+            return;
+          }
+          if (!pflanze) {
+            melden("Hier ist nichts zu gießen.");
+            return;
+          }
+          if (pflanze.nass) {
+            melden("Schon gegossen.");
+            return;
+          }
+          pflanze.nass = true;
+          melden("Gegossen.");
+          return;
+        }
+
+        if (werkzeug === "hand") {
+          if (pflanze && pflanze.stufe >= PFLANZEN[pflanze.sorte].tage) {
+            const sorte = PFLANZEN[pflanze.sorte];
+            spiel.vorrat[pflanze.sorte] += sorte.ertrag;
+            spiel.stat.geerntet++;
+            spiel.pflanzen.delete(k);
+            melden(sorte.ertrag + "x " + sorte.name + " geerntet.");
+            return;
+          }
+          if (art === HOLZ) {
+            futterMachen();
+            return;
+          }
+          melden("Nichts zu tun.");
+        }
+      }
+
+      function futterMachen() {
+        if (spiel.vorrat.minze < 1 || spiel.vorrat.weizen < 1) {
+          melden("Für Futter brauchst du 1 Minze und 1 Weizen.");
+          return;
+        }
+        spiel.vorrat.minze--;
+        spiel.vorrat.weizen--;
+        spiel.vorrat.futter += 2;
+        spiel.stat.futter++;
+        melden("2 Portionen Futter gemacht.");
+      }
+
+      function bauen(eintrag) {
+        if (spiel.gebaut[eintrag.id]) return;
+        if (spiel.muenzen < eintrag.preis) {
+          melden(eintrag.name + " kostet " + eintrag.preis + " Münzen.");
+          return;
+        }
+        spiel.muenzen -= eintrag.preis;
+        spiel.gebaut[eintrag.id] = true;
+        const neue = katzeHolen(eintrag.katze);
+        melden(eintrag.text + (neue ? " " + neue.name + " schaut vorbei." : ""));
+        if (eintrag.id === "beet") {
+          for (let y = 15; y <= 19; y++) {
+            for (let x = 22; x <= 30; x++) {
+              if (bodenArt(x, y) === GRAS) spiel.boden[y][x] = ERDE;
+            }
+          }
+        }
+        pruefeEnde();
+        sichern();
+      }
+
+      function pruefeEnde() {
+        if (spiel.abspann) return;
+        const alle = spiel.katzen.length >= KATZEN.length;
+        const zufrieden = spiel.katzen.every((k) => k.herz >= 2);
+        if (alle && zufrieden && spiel.gebaut.feuer) {
+          spiel.abspann = true;
+          spiel.schwelgen = 8;
+          melden("Alle sechs sind da. Am Feuer ist Platz für jeden.");
+        }
+      }
+
+      function schlafen() {
+        spiel.tag++;
+        spiel.zeit = 0.26;
+        for (const [k, pflanze] of spiel.pflanzen) {
+          if (pflanze.nass) {
+            pflanze.stufe = Math.min(PFLANZEN[pflanze.sorte].tage, pflanze.stufe + 1);
+            pflanze.nass = false;
+          }
+        }
+        for (const katze of spiel.katzen) {
+          katze.satt = Math.max(0, katze.satt - 0.35);
+          if (katze.satt <= 0.15 && katze.herz > 0) katze.herz -= 1;
+          if (katze.herz >= 2 && Math.random() < 0.6) spiel.muenzen += 1;
+        }
+        if (spiel.tag === 2 && !spiel.katzen.length) katzeHolen("mimi");
+        melden("Tag " + spiel.tag + ". Die Pflanzen sind gewachsen.");
+        sichern();
+      }
+
+      const SCHRITTE = [
+        {
+          text: "Nimm die Hacke (Taste 1) und grab mit E ein Stück Gras um.",
+          fertig: () => spiel.stat.gehackt > 0,
+        },
+        {
+          text: "Nimm die Samen (Taste 2) und säe mit E in die Erde.",
+          fertig: () => spiel.pflanzen.size > 0,
+        },
+        {
+          text: "Nimm die Gießkanne (Taste 3) und gieß die Saat mit E.",
+          fertig: () => Array.from(spiel.pflanzen.values()).some((p) => p.nass),
+        },
+        { text: "Schlaf eine Nacht: Leertaste.", fertig: () => spiel.tag > 1 },
+        {
+          text: "Ernte mit der Hand (Taste 4) und E, sobald die Blüte da ist.",
+          fertig: () => spiel.stat.geerntet > 0,
+        },
+        {
+          text: "Am Holzstapel machst du mit Taste 4 und E Futter (1 Minze + 1 Weizen).",
+          fertig: () => spiel.stat.futter > 0,
+        },
+        {
+          text: "Stell dich neben die Katze und füttere sie mit Taste 4 und E.",
+          fertig: () => spiel.katzen.some((k) => k.herz > 0),
+        },
+        {
+          text: "Drück Tab und bau den Zaun, sobald du 6 Münzen hast.",
+          fertig: () => !!spiel.gebaut.zaun,
+        },
+      ];
+
+      function schrittePruefen() {
+        while (spiel.schritt < SCHRITTE.length && SCHRITTE[spiel.schritt].fertig()) {
+          spiel.schritt++;
+          if (spiel.schritt === SCHRITTE.length) {
+            melden("Du kannst alles. Der Hof gehört dir.");
+          }
+        }
+      }
+
+      function tafelZeigen() {
+        const zeilen = [];
+        zeilen.push('<h2>Der Hof · Tag ' + spiel.tag + "</h2>");
+        zeilen.push(
+          '<div class="zeile"><span>Münzen</span><span>' + spiel.muenzen + "</span></div>"
+        );
+        zeilen.push(
+          '<div class="zeile"><span>Katzenminze</span><span>' + spiel.vorrat.minze + "</span></div>"
+        );
+        zeilen.push(
+          '<div class="zeile"><span>Goldweizen</span><span>' + spiel.vorrat.weizen + "</span></div>"
+        );
+        zeilen.push(
+          '<div class="zeile"><span>Futter</span><span>' + spiel.vorrat.futter + "</span></div>"
+        );
+        zeilen.push('<h2 style="margin-top:18px">Katzen</h2>');
+        if (!spiel.katzen.length) {
+          zeilen.push('<div class="dim">Noch ist keine da. Schlaf eine Nacht.</div>');
+        }
+        for (const katze of spiel.katzen) {
+          const herzen = "♥".repeat(katze.herz) + "♡".repeat(3 - katze.herz);
+          zeilen.push(
+            '<div class="zeile"><span>' +
+              katze.name +
+              ' <span class="dim">' +
+              katze.text +
+              "</span></span><span>" +
+              herzen +
+              "</span></div>"
+          );
+        }
+        zeilen.push('<h2 style="margin-top:18px">Aufbauen</h2>');
+        for (const eintrag of BAUTEN) {
+          const fertig = spiel.gebaut[eintrag.id];
+          zeilen.push(
+            '<div class="zeile"><span>' +
+              eintrag.name +
+              ' <span class="dim">' +
+              eintrag.text +
+              "</span></span><span>" +
+              (fertig ? "fertig" : eintrag.preis + " ♦ · Taste " + (BAUTEN.indexOf(eintrag) + 1)) +
+              "</span></div>"
+          );
+        }
+        zeilen.push(
+          '<div class="dim" style="margin-top:16px">Tab schließt die Übersicht. Am Holzstapel machst du aus 1 Minze und 1 Weizen zwei Portionen Futter.</div>'
+        );
+        tafelinhalt.innerHTML = zeilen.join("");
+        tafel.classList.add("an");
+      }
+
+      const tasten = {};
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          if (tafel.classList.contains("an")) tafel.classList.remove("an");
+          else tafelZeigen();
+          return;
+        }
+        if (e.key === "Escape") {
+          tafel.classList.remove("an");
+          return;
+        }
+        if (tafel.classList.contains("an")) {
+          const nummer = parseInt(e.key, 10);
+          if (nummer >= 1 && nummer <= BAUTEN.length) {
+            bauen(BAUTEN[nummer - 1]);
+            tafelZeigen();
+          }
+          return;
+        }
+        tasten[e.key.toLowerCase()] = true;
+        if (e.key >= "1" && e.key <= "4") spiel.werkzeug = parseInt(e.key, 10) - 1;
+        if (e.key.toLowerCase() === "e") benutzen();
+        if (e.key === " " || e.code === "Space") {
+          e.preventDefault();
+          schlafen();
+        }
+      });
+      window.addEventListener("keyup", (e) => {
+        tasten[e.key.toLowerCase()] = false;
+      });
+
+      function bewegen(dt) {
+        const sp = spiel.spieler;
+        let dx = 0;
+        let dy = 0;
+        if (tasten["a"] || tasten["arrowleft"]) dx -= 1;
+        if (tasten["d"] || tasten["arrowright"]) dx += 1;
+        if (tasten["w"] || tasten["arrowup"]) dy -= 1;
+        if (tasten["s"] || tasten["arrowdown"]) dy += 1;
+        if (dx || dy) {
+          const laenge = Math.hypot(dx, dy) || 1;
+          const tempo = 52 * dt;
+          const nx = sp.x + (dx / laenge) * tempo;
+          const ny = sp.y + (dy / laenge) * tempo;
+          const mx = Math.floor((nx + KACHEL / 2) / KACHEL);
+          const my = Math.floor((sp.y + KACHEL / 2) / KACHEL);
+          if (begehbar(mx, my)) sp.x = nx;
+          const my2 = Math.floor((ny + KACHEL / 2) / KACHEL);
+          const mx2 = Math.floor((sp.x + KACHEL / 2) / KACHEL);
+          if (begehbar(mx2, my2)) sp.y = ny;
+          sp.rx = Math.abs(dx) > Math.abs(dy) ? Math.sign(dx) : 0;
+          sp.ry = Math.abs(dy) >= Math.abs(dx) ? Math.sign(dy) : 0;
+          sp.schritt += dt * 7;
+        } else {
+          sp.schritt = 0;
+        }
+      }
+
+      function katzenBewegen(dt) {
+        for (const katze of spiel.katzen) {
+          if (katze.ruhe > 0) {
+            katze.ruhe -= dt;
+            continue;
+          }
+          const dx = katze.zx - katze.x;
+          const dy = katze.zy - katze.y;
+          const d = Math.hypot(dx, dy);
+          if (d < 3) {
+            katze.ruhe = 1.2 + Math.random() * 3.4;
+            let versuche = 0;
+            while (versuche < 12) {
+              const zx = 4 + zufall(FELD_B - 8);
+              const zy = 4 + zufall(FELD_H - 6);
+              if (begehbar(zx, zy)) {
+                katze.zx = zx * KACHEL;
+                katze.zy = zy * KACHEL;
+                break;
+              }
+              versuche++;
+            }
+            if (katze.herz >= 2 && Math.random() < 0.45) {
+              katze.zx = spiel.spieler.x + zufall(24) - 12;
+              katze.zy = spiel.spieler.y + zufall(24) - 12;
+            }
+          } else {
+            const tempo = (katze.herz >= 2 ? 26 : 20) * dt;
+            katze.x += (dx / d) * tempo;
+            katze.y += (dy / d) * tempo;
+          }
+        }
+      }
+
+      function uhrzeit() {
+        const stunden = Math.floor(spiel.zeit * 24);
+        const minuten = Math.floor((spiel.zeit * 24 - stunden) * 60 / 10) * 10;
+        return String(stunden).padStart(2, "0") + ":" + String(minuten).padStart(2, "0");
+      }
+
+      function himmel() {
+        const t = spiel.zeit;
+        if (t < 0.22) return ["#1b2240", "#2b3358"];
+        if (t < 0.32) return ["#4a4470", "#8a6a7a"];
+        if (t < 0.68) return ["#7fb8dd", "#a8d4e8"];
+        if (t < 0.8) return ["#d98f62", "#e8b489"];
+        return ["#2a2f52", "#3c3f68"];
+      }
+
+      function dunkel() {
+        const t = spiel.zeit;
+        if (t < 0.22) return 0.46;
+        if (t < 0.33) return 0.3 - (t - 0.22) * 2.2;
+        if (t < 0.7) return 0;
+        if (t < 0.82) return (t - 0.7) * 2.2;
+        return 0.42;
+      }
+
+      function pixel(x, y, b, h, farbe) {
+        ctx.fillStyle = farbe;
+        ctx.fillRect(x | 0, y | 0, b, h);
+      }
+
+      function kachelZeichnen(x, y, art, kx, ky) {
+        const wechsel = (kx * 7 + ky * 13) % 3;
+        if (art === GRAS) {
+          pixel(x, y, KACHEL, KACHEL, FARBEN.gras[wechsel]);
+          if ((kx * 5 + ky * 3) % 7 === 0) pixel(x + 4, y + 9, 2, 3, "#6c9a52");
+          if ((kx * 11 + ky * 5) % 9 === 0) pixel(x + 10, y + 4, 2, 2, "#e2e07a");
+        } else if (art === WEG) {
+          pixel(x, y, KACHEL, KACHEL, FARBEN.weg[wechsel % 2]);
+          pixel(x + 3, y + 6, 3, 2, "#7d6b50");
+          pixel(x + 9, y + 11, 4, 2, "#7d6b50");
+        } else if (art === ERDE) {
+          pixel(x, y, KACHEL, KACHEL, FARBEN.erde[wechsel % 2]);
+          pixel(x, y + 5, KACHEL, 1, "#5b4229");
+          pixel(x, y + 11, KACHEL, 1, "#5b4229");
+        } else if (art === WASSER) {
+          pixel(x, y, KACHEL, KACHEL, FARBEN.wasser[wechsel % 2]);
+          const welle = Math.sin(performance.now() / 420 + kx + ky) > 0.4;
+          if (welle) pixel(x + 3, y + 6, 6, 1, "#7fb0dd");
+        } else if (art === HOLZ) {
+          pixel(x, y, KACHEL, KACHEL, FARBEN.gras[wechsel]);
+          pixel(x + 1, y + 5, 14, 8, FARBEN.holz[0]);
+          pixel(x + 1, y + 5, 14, 2, FARBEN.holz[1]);
+          pixel(x + 4, y + 8, 2, 5, "#5e4128");
+          pixel(x + 10, y + 8, 2, 5, "#5e4128");
+        } else if (art === HAUS) {
+          pixel(x, y, KACHEL, KACHEL, FARBEN.gras[wechsel]);
+        } else if (art === BUSCH) {
+          pixel(x, y, KACHEL, KACHEL, FARBEN.busch[wechsel % 2]);
+          pixel(x + 3, y + 3, 5, 5, "#2f5228");
+          pixel(x + 9, y + 8, 4, 4, "#2f5228");
+        }
+      }
+
+      function pflanzeZeichnen(x, y, pflanze) {
+        const sorte = PFLANZEN[pflanze.sorte];
+        const reif = pflanze.stufe >= sorte.tage;
+        const hoehe = 3 + pflanze.stufe * 3;
+        if (pflanze.nass) pixel(x + 1, y + 12, 14, 3, "#4a3825");
+        pixel(x + 7, y + 14 - hoehe, 2, hoehe, "#4f7a3a");
+        pixel(x + 4, y + 13 - hoehe, 3, 2, sorte.farbe);
+        pixel(x + 9, y + 13 - hoehe, 3, 2, sorte.farbe);
+        if (reif) {
+          pixel(x + 6, y + 10 - hoehe, 4, 4, sorte.bluete);
+          pixel(x + 7, y + 9 - hoehe, 2, 2, "#fff3cf");
+        }
+      }
+
+      function katzeZeichnen(katze) {
+        const x = katze.x | 0;
+        const y = katze.y | 0;
+        const schlaeft = katze.ruhe > 1.6;
+        if (schlaeft) {
+          pixel(x + 2, y + 8, 12, 5, katze.fell);
+          pixel(x + 3, y + 7, 4, 4, katze.fell);
+          pixel(x + 11, y + 7, 3, 2, katze.muster);
+          pixel(x + 4, y + 8, 1, 1, "#2b2b34");
+          if (Math.sin(performance.now() / 700) > 0.7) {
+            pixel(x + 6, y + 3, 2, 2, "rgba(255,255,255,0.5)");
+          }
+          return;
+        }
+        pixel(x + 3, y + 7, 10, 6, katze.fell);
+        pixel(x + 3, y + 12, 2, 2, katze.muster);
+        pixel(x + 10, y + 12, 2, 2, katze.muster);
+        pixel(x + 2, y + 3, 7, 6, katze.fell);
+        pixel(x + 2, y + 2, 2, 2, katze.muster);
+        pixel(x + 7, y + 2, 2, 2, katze.muster);
+        pixel(x + 3, y + 5, 1, 1, "#2b2b34");
+        pixel(x + 6, y + 5, 1, 1, "#2b2b34");
+        pixel(x + 4, y + 7, 2, 1, "#d98fa0");
+        const schwanz = Math.sin(performance.now() / 300) * 2;
+        pixel(x + 13, y + 6 + schwanz, 2, 5, katze.muster);
+        if (katze.herz > 0) {
+          const blink = (performance.now() / 900 + katze.x) % 6 < 1.1;
+          if (blink) {
+            pixel(x + 6, y - 3, 2, 2, "#e86a8a");
+            pixel(x + 8, y - 3, 2, 2, "#e86a8a");
+            pixel(x + 7, y - 1, 2, 2, "#e86a8a");
+          }
+        }
+      }
+
+      function spielerZeichnen() {
+        const sp = spiel.spieler;
+        const x = sp.x | 0;
+        const y = sp.y | 0;
+        const wippe = Math.sin(sp.schritt) > 0 ? 1 : 0;
+        pixel(x + 4, y + 12 + wippe, 3, 3, "#40332a");
+        pixel(x + 9, y + 12 - wippe, 3, 3, "#40332a");
+        pixel(x + 3, y + 5, 10, 8, "#5d7fa8");
+        pixel(x + 3, y + 5, 10, 2, "#6e92bb");
+        pixel(x + 4, y, 8, 6, "#e8c9a0");
+        pixel(x + 3, y - 1, 10, 3, "#a97f4e");
+        pixel(x + 2, y + 1, 12, 1, "#8c6a41");
+        if (sp.ry >= 0) {
+          pixel(x + 5, y + 3, 1, 1, "#2b2b34");
+          pixel(x + 9, y + 3, 1, 1, "#2b2b34");
+        }
+        const werkzeug = WERKZEUGE[spiel.werkzeug];
+        pixel(x + (sp.rx >= 0 ? 13 : 1), y + 7, 2, 5, werkzeug.farbe);
+      }
+
+      function gebaeudeZeichnen(kx, ky) {
+        const x = kx * KACHEL;
+        const y = ky * KACHEL;
+        if (kx === 17 && ky === 8) {
+          pixel(x, y - 6, 34, 20, "#8a6a4a");
+          pixel(x, y - 12, 34, 8, "#a8503f");
+          pixel(x + 2, y - 10, 30, 3, "#bb5f4b");
+          pixel(x + 12, y + 2, 10, 12, "#5e4128");
+          pixel(x + 19, y + 8, 2, 2, "#e8c07a");
+          pixel(x + 4, y, 7, 6, "#7fb8dd");
+          pixel(x + 24, y, 7, 6, "#7fb8dd");
+        }
+      }
+
+      function bautenZeichnen() {
+        if (spiel.gebaut.zaun) {
+          for (let x = 2; x < FELD_B - 2; x += 2) {
+            pixel(x * KACHEL, 3 * KACHEL - 4, 2, 8, "#8a6540");
+            pixel(x * KACHEL, (FELD_H - 3) * KACHEL - 4, 2, 8, "#8a6540");
+          }
+          for (let y = 3; y < FELD_H - 3; y += 2) {
+            pixel(2 * KACHEL, y * KACHEL, 2, 8, "#8a6540");
+            pixel((FELD_B - 3) * KACHEL + 8, y * KACHEL, 2, 8, "#8a6540");
+          }
+        }
+        if (spiel.gebaut.brunnen) {
+          const x = 13 * KACHEL;
+          const y = 14 * KACHEL;
+          pixel(x, y, 16, 12, "#7d7a72");
+          pixel(x + 2, y + 2, 12, 8, "#3a6ea8");
+          pixel(x - 1, y - 8, 18, 3, "#8a6540");
+          pixel(x + 7, y - 8, 2, 8, "#5e4128");
+        }
+        if (spiel.gebaut.scheune) {
+          const x = 24 * KACHEL;
+          const y = 19 * KACHEL;
+          pixel(x, y - 4, 40, 20, "#9a6448");
+          pixel(x, y - 12, 40, 9, "#7a4030");
+          pixel(x + 14, y + 4, 12, 12, "#5e4128");
+          pixel(x + 4, y, 8, 6, "#c9a86a");
+        }
+        if (spiel.gebaut.feuer) {
+          const x = 19 * KACHEL;
+          const y = 21 * KACHEL;
+          pixel(x - 2, y + 6, 20, 4, "#5f574c");
+          pixel(x + 2, y + 2, 12, 5, "#7d5a38");
+          const flacker = 2 + Math.sin(performance.now() / 160) * 2;
+          pixel(x + 5, y - flacker, 6, 8 + flacker, "#e8834a");
+          pixel(x + 7, y + 1 - flacker, 3, 6, "#f5c86a");
+        }
+      }
+
+      function zeichnen() {
+        const [oben, unten] = himmel();
+        const verlauf = ctx.createLinearGradient(0, 0, 0, HOCH);
+        verlauf.addColorStop(0, oben);
+        verlauf.addColorStop(1, unten);
+        ctx.fillStyle = verlauf;
+        ctx.fillRect(0, 0, BREIT, HOCH);
+
+        const sp = spiel.spieler;
+        let kamX = Math.round(sp.x - BREIT / 2 + 8);
+        let kamY = Math.round(sp.y - HOCH / 2 + 8);
+        kamX = Math.max(0, Math.min(FELD_B * KACHEL - BREIT, kamX));
+        kamY = Math.max(0, Math.min(FELD_H * KACHEL - HOCH, kamY));
+
+        ctx.save();
+        ctx.translate(-kamX, -kamY);
+
+        const vonX = Math.max(0, Math.floor(kamX / KACHEL) - 1);
+        const bisX = Math.min(FELD_B, Math.ceil((kamX + BREIT) / KACHEL) + 1);
+        const vonY = Math.max(0, Math.floor(kamY / KACHEL) - 1);
+        const bisY = Math.min(FELD_H, Math.ceil((kamY + HOCH) / KACHEL) + 1);
+
+        for (let y = vonY; y < bisY; y++) {
+          for (let x = vonX; x < bisX; x++) {
+            kachelZeichnen(x * KACHEL, y * KACHEL, bodenArt(x, y), x, y);
+          }
+        }
+        for (const [k, pflanze] of spiel.pflanzen) {
+          const teile = k.split(",");
+          const px = parseInt(teile[0], 10);
+          const py = parseInt(teile[1], 10);
+          if (px < vonX || px > bisX || py < vonY || py > bisY) continue;
+          pflanzeZeichnen(px * KACHEL, py * KACHEL, pflanze);
+        }
+        bautenZeichnen();
+        gebaeudeZeichnen(17, 8);
+
+        const wesen = spiel.katzen.slice().concat([{ spieler: true, y: sp.y }]);
+        wesen.sort((a, b) => a.y - b.y);
+        for (const w of wesen) {
+          if (w.spieler) spielerZeichnen();
+          else katzeZeichnen(w);
+        }
+
+        const ziel = kachelVor();
+        if (bodenArt(ziel.x, ziel.y) !== BUSCH) {
+          ctx.strokeStyle = "rgba(255,255,255,0.35)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(ziel.x * KACHEL + 0.5, ziel.y * KACHEL + 0.5, KACHEL - 1, KACHEL - 1);
+        }
+        ctx.restore();
+
+        const nacht = dunkel();
+        if (nacht > 0.01) {
+          ctx.fillStyle = "rgba(18,20,46," + nacht.toFixed(2) + ")";
+          ctx.fillRect(0, 0, BREIT, HOCH);
+        }
+
+        leisteZeichnen();
+      }
+
+      function leisteZeichnen() {
+        ctx.fillStyle = "rgba(12,14,20,0.72)";
+        ctx.fillRect(0, 0, BREIT, 14);
+        ctx.fillStyle = "#f3ead8";
+        ctx.font = "8px monospace";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Tag " + spiel.tag, 5, 7);
+        ctx.fillText("♦ " + spiel.muenzen, 44, 7);
+        ctx.fillText("Futter " + spiel.vorrat.futter, 78, 7);
+        ctx.fillText("Minze " + spiel.vorrat.minze, 132, 7);
+        ctx.fillText("Weizen " + spiel.vorrat.weizen, 182, 7);
+        ctx.fillText("Katzen " + spiel.katzen.length + "/" + KATZEN.length, 238, 7);
+        ctx.fillText(uhrzeit(), BREIT - 40, 7);
+
+        for (let i = 0; i < WERKZEUGE.length; i++) {
+          const x = 6 + i * 22;
+          const y = HOCH - 20;
+          ctx.fillStyle = i === spiel.werkzeug ? "rgba(243,234,216,0.9)" : "rgba(12,14,20,0.6)";
+          ctx.fillRect(x, y, 18, 14);
+          ctx.fillStyle = WERKZEUGE[i].farbe;
+          ctx.fillRect(x + 7, y + 3, 4, 8);
+          ctx.fillStyle = i === spiel.werkzeug ? "#14161f" : "rgba(243,234,216,0.7)";
+          ctx.fillText(String(i + 1), x + 2, y + 7);
+        }
+
+        if (spiel.schritt < SCHRITTE.length) {
+          const text = SCHRITTE[spiel.schritt].text;
+          const breite = Math.min(BREIT - 20, text.length * 4.9 + 16);
+          ctx.fillStyle = "rgba(12,14,20,0.78)";
+          ctx.fillRect(BREIT - breite - 6, 18, breite, 13);
+          ctx.fillStyle = "#f5d9a0";
+          ctx.fillText(text, BREIT - breite + 2, 25);
+        }
+
+        if (spiel.meldungZeit > 0) {
+          const breite = Math.min(BREIT - 16, spiel.meldung.length * 5 + 12);
+          ctx.fillStyle = "rgba(12,14,20,0.85)";
+          ctx.fillRect((BREIT - breite) / 2, HOCH - 42, breite, 14);
+          ctx.fillStyle = "#f3ead8";
+          ctx.fillText(spiel.meldung, (BREIT - breite) / 2 + 6, HOCH - 35);
+        }
+
+        if (spiel.schwelgen > 0) {
+          ctx.fillStyle = "rgba(12,14,20,0.6)";
+          ctx.fillRect(0, HOCH / 2 - 18, BREIT, 36);
+          ctx.fillStyle = "#f5e2bb";
+          ctx.font = "10px monospace";
+          ctx.fillText("Der Hof ist wieder ein Zuhause.", BREIT / 2 - 88, HOCH / 2 - 4);
+          ctx.font = "8px monospace";
+          ctx.fillText("Spiel weiter, so lang du magst.", BREIT / 2 - 68, HOCH / 2 + 10);
+        }
+      }
+
+      function anpassen() {
+        const skala = Math.max(
+          1,
+          Math.floor(Math.min(window.innerWidth / BREIT, window.innerHeight / HOCH))
+        );
+        leinwand.width = BREIT;
+        leinwand.height = HOCH;
+        leinwand.style.width = BREIT * skala + "px";
+        leinwand.style.height = HOCH * skala + "px";
+        ctx.imageSmoothingEnabled = false;
+      }
+
+      let letzte = performance.now();
+      let sicherUhr = 0;
+
+      function schleife(jetzt) {
+        const dt = Math.min(0.05, (jetzt - letzte) / 1000);
+        letzte = jetzt;
+        if (!tafel.classList.contains("an")) {
+          bewegen(dt);
+          katzenBewegen(dt);
+          spiel.zeit = (spiel.zeit + dt / 240) % 1;
+        }
+        if (spiel.meldungZeit > 0) spiel.meldungZeit -= dt;
+        schrittePruefen();
+        if (spiel.schwelgen > 0) spiel.schwelgen -= dt;
+        sicherUhr += dt;
+        if (sicherUhr > 12) {
+          sicherUhr = 0;
+          sichern();
+        }
+        zeichnen();
+        requestAnimationFrame(schleife);
+      }
+
+      window.addEventListener("resize", anpassen);
+      anpassen();
+      if (!laden()) {
+        hofBauen();
+        katzeHolen("mimi");
+        melden("Ein alter Hof, eine Katze im Regen. Fang mit der Hacke an.");
+      }
+      if (!spiel.boden.length) hofBauen();
+      requestAnimationFrame(schleife);
+    </script>
+  </body>
+</html>

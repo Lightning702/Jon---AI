@@ -668,3 +668,74 @@ def _oberflaeche(box: Any, args: dict, name: str = "") -> str:
     if not ziel or str(args.get("aktion", "")).strip().lower() in ("liste", "zeigen"):
         return antwort(liste())
     return antwort(oeffnen(ziel))
+
+
+@werkzeug("ausloeser")
+def _ausloeser(box: Any, args: dict, name: str = "") -> str:
+    from app.services.ausloeser_service import AusloeserFehler, get_ausloeser_service
+
+    dienst = get_ausloeser_service()
+    aktion = str(args.get("aktion", "")).strip().lower()
+    try:
+        if aktion in ("", "liste", "zeigen"):
+            return antwort(dienst.liste())
+        if aktion in ("anlegen", "neu", "merken"):
+            return antwort(
+                dienst.anlegen(
+                    str(args.get("art", "taeglich")),
+                    str(args.get("auftrag", "")),
+                    str(args.get("titel", "")),
+                    str(args.get("zeit", "")),
+                    args.get("tage"),
+                    int(args.get("minuten", 0) or 0),
+                    str(args.get("ordner", "")),
+                    str(args.get("muster", "*")),
+                    int(args.get("budget", 15) or 15),
+                )
+            )
+        if aktion in ("aus", "pausieren", "stopp"):
+            return antwort(dienst.schalten(str(args.get("id", "")), False))
+        if aktion in ("an", "weiter", "einschalten"):
+            return antwort(dienst.schalten(str(args.get("id", "")), True))
+        if aktion in ("loeschen", "entfernen"):
+            return antwort(dienst.loeschen(str(args.get("id", ""))))
+        if aktion in ("pruefen", "jetzt"):
+            return antwort(dienst.pruefen())
+        return antwort({"error": f"Unbekannte Aktion: {aktion}"})
+    except AusloeserFehler as fehler:
+        return antwort({"error": str(fehler)})
+
+
+@werkzeug("bericht")
+def _bericht(box: Any, args: dict, name: str = "") -> str:
+    from app.services.aufgaben_service import get_aufgaben_service
+    from app.services.ausloeser_service import get_ausloeser_service
+    from app.services.rueckgaengig_service import get_rueckgaengig_service
+
+    grenze = max(1, min(30, int(args.get("anzahl", 8) or 8)))
+    stand = get_aufgaben_service().stand()
+    aenderungen = get_rueckgaengig_service().liste(grenze)
+    ausloeser = [
+        eintrag
+        for eintrag in get_ausloeser_service().liste()["ausloeser"]
+        if eintrag.get("aktiv")
+    ]
+    return antwort(
+        {
+            "aufgaben": {
+                "laeuft": stand.get("laeuft"),
+                "wartet": stand.get("wartet"),
+                "fertig": stand.get("fertig"),
+                "gescheitert": stand.get("gescheitert"),
+                "braucht_freigabe": stand.get("braucht_freigabe", []),
+                "offen": stand.get("offen", [])[:grenze],
+            },
+            "aenderungen": aenderungen,
+            "ausloeser": ausloeser,
+            "hinweis": (
+                "Sag dem Nutzer in kurzen Saetzen, was seit seiner letzten Anwesenheit "
+                "passiert ist. Nenne offene Freigaben zuerst. Jede Aenderung laesst "
+                "sich mit rueckgaengig und der id zuruecknehmen."
+            ),
+        }
+    )

@@ -30,6 +30,7 @@ import {
 } from "../lib/api";
 import { VoiceRecorder } from "../lib/recorder";
 import TypingDots from "./TypingDots";
+import { inZwischenablage } from "../lib/umgebung";
 
 const EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
 
@@ -318,14 +319,14 @@ export default function FriendsChat({
 
   const copyPeerCode = async (code: string) => {
     try {
-      await navigator.clipboard.writeText(code);
+      await inZwischenablage(code);
     } catch {}
     setCodeCopied(code);
     window.setTimeout(() => setCodeCopied(null), 1500);
   };
 
   const copyCode = () => {
-    void navigator.clipboard.writeText(identity.code);
+    void inZwischenablage(identity.code);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };

@@ -7,6 +7,7 @@ import {
   getJournal,
   transcribeAudio,
 } from "../lib/api";
+import { mikrofonOeffnen } from "../lib/umgebung";
 
 const MOOD = { gut: "🙂", neutral: "😐", schlecht: "🙁" } as const;
 
@@ -28,7 +29,7 @@ export default function Journal({ onClose }: { onClose: () => void }) {
   const startRec = async () => {
     setError("");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await mikrofonOeffnen({ audio: true });
       const rec = new MediaRecorder(stream);
       chunksRef.current = [];
       rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);

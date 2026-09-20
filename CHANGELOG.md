@@ -2,6 +2,148 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.52.0] — 2026-09-20
+
+### 🖥️ Kein schwarzer Bildschirm mehr am Raspberry Pi
+
+Wer Jon am Pi im WLAN aufgerufen hat — `http://<pi>:8756/app/?token=…` —, sah oft
+nur **Schwarz**. Grund: Über eine Netzwerkadresse gilt eine Seite dem Browser als
+unsicher, und dann gibt es `navigator.mediaDevices` schlicht nicht. Jons
+Sprachsteuerung hat beim Start genau daran gehorcht, ist gestolpert und hat die
+ganze Oberfläche mitgerissen, bevor das erste Pixel stand.
+
+Jetzt prüft Jon vorher, ob der Browser überhaupt ein Mikrofon herausgibt. Ist
+keines da, startet die Oberfläche trotzdem vollständig, der Mikrofonknopf ist
+durchgestrichen und die Einstellungen sagen in einem Satz, warum: über eine
+Netzwerkadresse erlauben Browser keinen Mikrofonzugriff, das geht nur über
+localhost oder https. Dasselbe gilt fürs Kopieren — wo die Zwischenablage
+gesperrt ist, kopiert Jon jetzt auf dem alten Weg statt mit einem Fehler
+abzubrechen.
+
+Und falls doch einmal etwas im Aufbau schiefgeht, bleibt der Bildschirm nicht
+schwarz: Jon zeigt eine Karte mit dem Fehlertext und einem Knopf zum Neuladen.
+
+### 🔑 Der Geräte-Schlüssel fragt nach, statt still zu bleiben
+
+Fehlt der Schlüssel oder ist er alt, kam bisher eine leere Oberfläche. Jetzt
+öffnet Jon ein kleines Feld, in das du den Schlüssel einfügst — mit dem Hinweis,
+wo er steht (`~/.jon/data/access.token` am Pi, Einstellungen → Diagnose am PC).
+
+### 📦 Die fertige Web-App liegt jetzt bei
+
+Der Pi musste die Oberfläche bisher selbst bauen — was auf kleinen Geräten gern am
+Arbeitsspeicher scheiterte und dann eine veraltete Version stehen ließ. Ab jetzt
+liegt die gebaute Web-App im Ordner `webapp/` im Projekt: `git pull`, Dienst neu
+starten, fertig. Node.js braucht der Pi nicht mehr. `pi-update.sh` räumt alte
+Bauten weg, nennt am Ende wieder die komplette Adresse **mit** Schlüssel, und die
+Oberfläche wird nicht mehr zwischengespeichert — ein Update kommt damit sofort am
+Handy an.
+
+## [4.51.3] — 2026-09-13
+
+### ⏱️ Eine Uhr für Timer, Wecker und Stoppuhr
+
+Timer, Wecker und Stoppuhr sind jetzt **eine einzige Uhr im Chat**, mit drei
+Reitern. Sie zeigt den Ring, die großen Ziffern und genau die Knöpfe, die zur
+gewählten Art passen: beim Timer die Restzeit und wann er abläuft, beim Wecker
+die Klingelzeit und wie lange es noch dauert, bei der Stoppuhr die laufende Zeit
+auf Zehntel genau. Läuft nichts, stellst du direkt in der Karte ein und drückst
+**Starten**.
+
+Jon versteht die Uhr auch im Gespräch: „erhöh um 7 Minuten“, „mach zwei Minuten
+weniger“, „Wecker eine halbe Stunde später“, „pausier mal“, „weiter“,
+„nochmal von vorn“, „stopp“ oder „Ton aus“. Welche Uhr gemeint ist, findet er
+selbst — über die Art (Timer, Wecker, Stoppuhr), über die Beschriftung
+(„der Pizza-Timer“) oder einfach die zuletzt gestartete.
+
+Der **Weckton kommt jetzt aus dem PC**, nicht nur aus dem Chatfenster. Läuft ein
+Timer ab, klingelt Jons Backend — auch wenn das Fenster im Hintergrund liegt.
+Wecker bekommen zusätzlich weiterhin einen echten Windows-Weckruf mit Popup, damit
+sie auch klingeln, wenn Jon geschlossen ist; doppelt tönt es dabei nie.
+
+Und Uhren, die du **über Telegram** startest, tauchen trotzdem im Chat auf: Jon
+meldet sie mit einer Karte, sobald du wieder am Rechner bist.
+
+### ⚡ Websuche in Sekunden statt Minuten
+
+Eine Frage ans Netz ging bisher durch Jons Browser: Fenster starten, Seite laden,
+Treffer auslesen. Jetzt sucht Jon **direkt** — in ein bis zwei Sekunden, ohne dass
+etwas aufgeht. Die Suchmaschinen laufen parallel statt nacheinander, und die
+Zeitlimits sind kuerzer. Gibt die schnelle Suche zu wenig her, holt Jon die Treffer
+still aus seinem Browser nach — der probiert jetzt auch mehrere Suchmaschinen
+durch, statt bei der ersten aufzugeben.
+
+**Ein Fenster geht nur noch auf, wenn du es sagst.** Fragst du etwas, sucht Jon
+still. Erst bei „oeffne“, „im Browser“, „geh auf“, „klick“, „ausfuellen“ oder
+„in den Warenkorb“ bekommt er Browser, Browser-Agent und open_url ueberhaupt in die
+Hand — bei einer reinen Frage stehen sie ihm gar nicht zur Verfuegung.
+
+**Und Jon sucht nicht mehr im Kreis.** Hoechstens drei Suchen pro Frage, danach
+antwortet er mit dem, was er hat. Vorher konnten daraus sechs Suchen und mehrere
+Minuten werden.
+
+**Er weiss wieder, welcher Tag heute ist.** Im Terminal fehlte der Hinweis auf das
+aktuelle Datum — deshalb kam dort „das neueste iPhone ist das 15“ aus dem
+Gedaechtnis statt aus der Suche. Jetzt gilt auch im Terminal: erst suchen, dann
+antworten.
+
+**Und er erfindet keine Zahlen mehr.** Preise, Betraege, Daten und Versionen
+nennt Jon nur, wenn sie wirklich im Suchergebnis stehen; findet er keinen Preis,
+sagt er das, statt einen zu raten. Bei Preisfragen liest er die Trefferseiten
+automatisch mit, damit die Zahl auch wirklich vor ihm liegt - das gilt auch fuer
+Treffer aus dem Browser. Duenne Ergebnisse landen nicht mehr im Zwischenspeicher,
+sonst haette eine schlechte Suche 15 Minuten lang nachgewirkt. Eine Suche ohne
+Suchbegriff wird gar nicht erst losgeschickt.
+
+**Haengt dein Modell, weicht Jon aus.** Das Terminal kann das jetzt genauso wie die
+App: Antwortet das gewaehlte Modell nicht, nimmt Jon ein anderes, sagt es dir — und
+deine Modellwahl bleibt gespeichert. Welches Modell zuletzt gehangen hat, merkt er
+sich ueber Sitzungen hinweg und probiert es nicht jedes Mal neu. Auch nach einem
+Werkzeug-Aufruf gibt es jetzt ein Zeitlimit; vorher konnte Jon dort beliebig lange
+haengen.
+
+### ⌨️ Jon in jedem Terminal
+
+Tipp `jon` — und du hast Jon komplett im Terminal. In Windows CMD, in PowerShell, im
+macOS Terminal, unter Linux und im integrierten Terminal von VS Code. Beim Start
+begruessen dich Logo, Menue und der Prompt `Du>`; von da an gilt der volle
+Funktionsumfang: Chat, Code, Dateien, System, Browser, Projekte, Tools, Gedaechtnis
+und der Agenten-Modus. `hilfe` zeigt Beispiele, Befehle und was Jon hier alles kann.
+
+In **VS Code** (auch Cursor, Windsurf und JetBrains) erkennt Jon den Editor von
+selbst und startet im **Code-Modus**: Er laedt den Ordner, nennt Projekttyp,
+Git-Zweig und Groesse und meldet sich mit `Du (code)>`. Ohne Editor reicht ein
+Projektordner — schon eine einzelne `index.html` genuegt. Im Code-Modus arbeitet Jon
+nur in diesem Ordner und schreibt direkt in die Dateien, statt Code im Chat
+auszugeben. `chat` und `code` wechseln jederzeit, `projekte` zeigt den Projektbaum.
+
+**Saetze sind keine Befehle mehr.** „Code mir mit HTML eine Website“ ging bisher als
+Befehl `code` durch und startete nur wieder die Projektanalyse. Jetzt gilt ein Wort
+nur dann als Befehl, wenn es allein steht (oder mit `/` davor) — alles andere geht an
+Jon. `/code bau mir ein Menue` schaltet um **und** erledigt den Auftrag gleich mit.
+
+Anbieter und Modell waehlst du mit `anbieter` und `modell` — die Wahl bleibt
+ueber Sitzungen hinweg gemerkt.
+
+Eingerichtet wird der Befehl in der App unter **Zahnrad → Jon im Terminal**: ein
+Klick, und `jon` liegt im PATH. Eine einzelne Frage geht auch direkt:
+`jon "erklaere mir dieses Projekt"`.
+
+### ▶️ Player — alle Downloads offline
+
+Was der Downloader holt, bleibt jetzt da. Videos und Musik wandern in Jons
+**Mediathek** und lassen sich im neuen **Player** (Werkzeuge → Player) jederzeit
+ohne Internet anschauen und anhoeren — mit Vorschaubild, Suche, Filter nach Video
+oder Musik, Weiter/Zurueck und Loeschen. Auch Playlists landen Song fuer Song
+darin, nicht nur als ZIP.
+
+### 🐾 Mini Jon, Katze und Hund sehen besser aus
+
+Die 3D-Modelle sind runder und lebendiger: groessere Koepfe in Kindchen-Proportion,
+Augen mit Iris, Pupille und zwei Glanzlichtern aus derselben Lichtrichtung, weichere
+Schatten und ein sanfteres Laecheln. Mini Jons Augen sitzen jetzt richtig auf der
+Kugel statt schief davor — suess statt sonderbar.
+
 ## [4.45.0] — 2026-09-12
 
 ### 🕶️ Alles wieder in Jons eigenem Browser

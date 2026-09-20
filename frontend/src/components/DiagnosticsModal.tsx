@@ -8,6 +8,7 @@ import {
   protokollUrl,
 } from "../lib/api";
 import { setToken } from "../lib/token";
+import { inZwischenablage } from "../lib/umgebung";
 
 function zeit(sekunden: number): string {
   if (sekunden < 90) return Math.round(sekunden) + " s";
@@ -72,7 +73,7 @@ export default function DiagnosticsModal({ onClose }: { onClose: () => void }) {
 
   const kopieren = async (text: string, was: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await inZwischenablage(text);
       setHinweis(was + " kopiert");
       setTimeout(() => setHinweis(""), 2200);
     } catch {
