@@ -620,3 +620,89 @@ def test_bing_weiterleitungen_werden_aufgeloest():
     adresse = f"https://www.bing.com/ck/a?!&&p=abc&u={roh}&ntb=1"
     assert _echte_url(adresse, "https://www.bing.com/search") == ziel
     assert _echte_url("https://x.de/seite", "https://www.bing.com/") == "https://x.de/seite"
+
+
+def test_gebuendelte_exe_startet_bei_cli_die_sitzung(monkeypatch):
+    import run_backend
+
+    gerufen: list[list[str]] = []
+
+    def falsche_cli(argv):
+        gerufen.append(list(argv))
+
+    import app.cli as cli_modul
+
+    monkeypatch.setattr(cli_modul, "main", falsche_cli)
+    monkeypatch.setattr(run_backend.sys, "argv", ["jon-backend.exe", "cli", "hallo"])
+    run_backend.main()
+    assert gerufen == [["hallo"]]
+
+
+def test_gebuendelte_exe_kennt_alle_drei_schluesselwoerter(monkeypatch):
+    import run_backend
+
+    import app.cli as cli_modul
+
+    for wort in ("cli", "terminal", "jon", "CLI", "Terminal"):
+        gerufen: list[list[str]] = []
+        monkeypatch.setattr(cli_modul, "main", lambda argv: gerufen.append(list(argv)))
+        monkeypatch.setattr(run_backend.sys, "argv", ["jon-backend.exe", wort])
+        run_backend.main()
+        assert gerufen == [[]], wort
+
+
+def test_ohne_schluesselwort_laeuft_weiter_zum_server(monkeypatch):
+    import run_backend
+
+    import app.cli as cli_modul
+
+    monkeypatch.setattr(
+        cli_modul, "main", lambda argv: pytest.fail("CLI haette nicht starten duerfen")
+    )
+    monkeypatch.setattr(run_backend.sys, "argv", ["jon-backend.exe"])
+    gestartet: list[bool] = []
+
+    class FakeUvicorn:
+        @staticmethod
+        def run(*_args, **_kwargs):
+            gestartet.append(True)
+
+    monkeypatch.setitem(sys.modules, "uvicorn", FakeUvicorn)
+    monkeypatch.setattr("app.main._free_port", lambda *_a, **_k: None)
+    run_backend.main()
+    assert gestartet == [True]
+
+
+def test_terminalbefehl_wird_nur_in_der_fertigen_app_angelegt(monkeypatch, tmp_path):
+    from app.services import terminal_service
+
+    monkeypatch.setattr(terminal_service, "_gebuendelt", lambda: None)
+    assert terminal_service.automatisch()["gemacht"] is False
+
+
+def test_terminalbefehl_legt_sich_beim_start_selbst_an(monkeypatch, tmp_path):
+    from app.services import terminal_service
+
+    exe = tmp_path / "jon-backend.exe"
+    exe.write_text("", encoding="utf-8")
+    ordner = tmp_path / "bin"
+    monkeypatch.setattr(terminal_service, "_gebuendelt", lambda: exe)
+    monkeypatch.setattr(terminal_service, "bin_ordner", lambda: ordner)
+    monkeypatch.setattr(terminal_service, "befehl_pfad", lambda: ordner / "jon.cmd")
+    monkeypatch.setattr(terminal_service, "im_pfad", lambda _o: True)
+    ergebnis = terminal_service.automatisch()
+    assert ergebnis["gemacht"] is True
+    inhalt = (ordner / "jon.cmd").read_text(encoding="utf-8")
+    assert str(exe) in inhalt
+    assert " cli " in inhalt
+    assert terminal_service.automatisch()["gemacht"] is False
+
+
+def test_abschalter_verhindert_die_automatik(monkeypatch, tmp_path):
+    from app.services import terminal_service
+
+    exe = tmp_path / "jon-backend.exe"
+    exe.write_text("", encoding="utf-8")
+    monkeypatch.setattr(terminal_service, "_gebuendelt", lambda: exe)
+    monkeypatch.setenv("JON_KEIN_TERMINAL_BEFEHL", "1")
+    assert terminal_service.automatisch()["gemacht"] is False

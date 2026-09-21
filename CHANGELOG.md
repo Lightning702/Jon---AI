@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.53.2] — 2026-09-21
+
+### ⌨️ `jon` im Terminal — jetzt auch in der fertigen App
+
+Der Befehl `jon` lief bisher **nur aus dem Quellcode**. In der installierten App
+und im portablen Paket ging er ins Leere: Die gebündelte `jon-backend.exe` startet
+über `run_backend.py`, und das hat ohne Rücksicht auf die Aufrufart immer den
+Server hochgefahren — die Abzweigung in die Terminal-Sitzung wurde nie erreicht.
+
+Jetzt erkennt auch die EXE `cli`, `terminal` und `jon` als erstes Wort und startet
+die Sitzung. Und du musst nichts mehr einschalten: Beim ersten Start der App legt
+Jon den Befehl selbst an (`%LOCALAPPDATA%\Jon\bin\jon.cmd`, unter macOS und Linux
+`~/.local/bin/jon`) und trägt den Ordner in den PATH ein. Neues Terminal öffnen,
+`jon` tippen — fertig. Zieht die App um oder kommt ein Update, zeigt der Befehl
+automatisch auf die neue Fassung.
+
+Wer das nicht will, entfernt es unter Einstellungen → Diagnose wieder oder setzt
+`JON_KEIN_TERMINAL_BEFEHL=1`.
+
 ## [4.53.1] — 2026-09-21
 
 ### 🔍 Warum schweigt der Telegram-Bot?

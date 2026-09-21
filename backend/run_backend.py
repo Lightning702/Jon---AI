@@ -4,9 +4,18 @@ import os
 import sys
 
 
+CLI_WOERTER = ("cli", "terminal", "jon")
+
+
 def main() -> None:
     if getattr(sys, "frozen", False):
         os.chdir(os.path.dirname(sys.executable))
+
+    if len(sys.argv) > 1 and sys.argv[1].lower() in CLI_WOERTER:
+        from app.cli import main as cli_main
+
+        cli_main(sys.argv[2:])
+        return
 
     import uvicorn
 

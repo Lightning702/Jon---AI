@@ -671,6 +671,19 @@ async def lifespan(app: FastAPI):
     from app.services.live_service import get_live_service
 
     _spawn("live", get_live_service().schleife())
+
+    async def _terminal_befehl() -> None:
+        from app.services.terminal_service import automatisch
+
+        try:
+            ergebnis = await asyncio.to_thread(automatisch)
+        except Exception as fehler:
+            note_error("terminal_befehl", fehler)
+            return
+        if ergebnis.get("gemacht"):
+            _log.info("STEP terminal befehl jon eingerichtet")
+
+    _spawn("terminal_befehl", _terminal_befehl())
     _log.info("STEP vor yield")
     yield
     _stop_all()

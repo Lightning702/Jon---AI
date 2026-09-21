@@ -51,11 +51,17 @@ Browser, Projekte, Tools, Gedaechtnis und der Agenten-Modus.
 
 ### Einrichten
 
-In der App: **Zahnrad → Jon im Terminal → Einrichten**. Jon legt den Befehl an und traegt
-ihn in den PATH ein (Windows: Nutzer-PATH, macOS/Linux: `~/.local/bin` und die Shell-
-Profile). Danach ein neues Terminal oeffnen — fertig.
+**Aus dem Download (Setup oder portables Paket) ist nichts zu tun:** Seit 4.53.2 legt Jon
+den Befehl beim ersten Start selbst an und traegt den Ordner in den PATH ein. Ein neues
+Terminal oeffnen, `jon` tippen — fertig. Die gebuendelte `jon-backend.exe` versteht dafuer
+`cli`, `terminal` und `jon` als erstes Wort; zieht die App um oder kommt ein Update, zeigt
+der Befehl von selbst auf die neue Fassung. Abschalten: `JON_KEIN_TERMINAL_BEFEHL=1`,
+entfernen unter **Zahnrad → Diagnose**.
 
-Ohne App geht es auch von Hand:
+Von Hand geht es weiterhin ueber **Zahnrad → Jon im Terminal → Einrichten** (Windows:
+Nutzer-PATH, macOS/Linux: `~/.local/bin` und die Shell-Profile).
+
+Im Quellcode-Betrieb:
 
 - **Als Befehl installieren:** `cd backend && pip install -e .`
 - **Ohne Installation:** im `backend`-Ordner `python -m app.cli` ausfuehren.

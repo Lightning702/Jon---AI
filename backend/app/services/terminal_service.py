@@ -210,6 +210,28 @@ def einrichten() -> dict:
     return ergebnis
 
 
+def _gleich(einer: str, anderer: str) -> bool:
+    zeichen = chr(13) + chr(10)
+    return einer.replace(zeichen, chr(10)) == anderer.replace(zeichen, chr(10))
+
+
+def automatisch() -> dict:
+    if _gebuendelt() is None:
+        return {"gemacht": False, "grund": "nur in der fertigen App"}
+    if os.environ.get("JON_KEIN_TERMINAL_BEFEHL"):
+        return {"gemacht": False, "grund": "abgeschaltet"}
+    pfad = befehl_pfad()
+    soll = _inhalt()
+    try:
+        if pfad.exists() and _gleich(pfad.read_text(encoding="utf-8"), soll):
+            return {"gemacht": False, "grund": "schon eingerichtet"}
+    except OSError as fehler:
+        leise(fehler, "services/terminal")
+    ergebnis = einrichten()
+    ergebnis["gemacht"] = "error" not in ergebnis
+    return ergebnis
+
+
 def entfernen() -> dict:
     pfad = befehl_pfad()
     try:

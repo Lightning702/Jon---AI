@@ -6,7 +6,7 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-[![Version](https://img.shields.io/badge/Version-4.53.1-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.53.2-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -144,7 +144,7 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
   Wissensbasis (komplett offline), aus der Jon beim Antworten zitiert
 - **🌅 Tagesbriefing** — täglich beim ersten Start und per `/briefing`: Wetter (Stadt im
   Zahnrad-Menü), Erinnerungen, Wecker und geplante Automationen
-- **⌨️ Jon im Terminal** — `jon` in CMD, PowerShell, macOS, Linux und VS Code: der volle Jon mit Logo, Menue und `jon>`; in VS Code startet er im Code-Modus (einrichten unter Zahnrad → Jon im Terminal)
+- **⌨️ Jon im Terminal** — `jon` in CMD, PowerShell, macOS, Linux und VS Code: der volle Jon mit Logo, Menue und `jon>`; in VS Code startet er im Code-Modus. Aus dem Download ist nichts einzurichten: Jon legt den Befehl beim ersten Start selbst an
 - **▶️ Player & Mediathek** — alles aus dem Downloader bleibt gespeichert und laeuft offline im Player, mit Vorschaubild, Suche und Playlist
 - **⏱️ Timer, Wecker & Stoppuhr** — eine Uhr im Chat mit drei Reitern; „erhöh um 7 Minuten“, „pausier“, „nochmal von vorn“ oder „Ton aus“ genügen, der Weckton kommt aus dem PC
 - **⚡ Schnellfrage-Overlay** — `Strg+Alt+Leertaste` öffnet überall ein kleines
