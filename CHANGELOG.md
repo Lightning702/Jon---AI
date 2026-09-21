@@ -2,6 +2,25 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.53.1] — 2026-09-21
+
+### 🔍 Warum schweigt der Telegram-Bot?
+
+Blieb ein Bot in einer Gruppe stumm, gab es bisher nichts zu sehen — Jon hat
+Telegram-Fehler still geschluckt. Jetzt zeigt **Einstellungen → Diagnose → Bot
+prüfen** in Klartext, woran es liegt: ob überhaupt ein Token auf diesem Gerät
+eingetragen ist (jedes Gerät braucht seinen eigenen Bot), wie der Bot heißt, ob
+sein **Privatsphäre-Modus** an ist, ob ein **Webhook** dazwischenfunkt, wie viele
+Nachrichten angekommen sind und — je Gruppe — wie viele davon Jon gesehen, als
+Anrede erkannt und beantwortet hat.
+
+Einen fremden Webhook räumt Jon dabei gleich selbst weg: Solange einer
+eingetragen ist, liefert Telegram **keine einzige** Nachricht an den Bot aus.
+Dasselbe passiert jetzt automatisch, wenn beim Abholen ein Konflikt gemeldet
+wird. Fehler landen außerdem im Protokoll, statt lautlos zu verschwinden.
+
+Neu dafür: `GET /api/system/telegram`.
+
 ## [4.53.0] — 2026-09-20
 
 ### 📺 Jon zeigt dir seinen Bildschirm — über Telegram

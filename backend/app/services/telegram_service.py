@@ -14,11 +14,15 @@ from app.core.config import DATA_DIR
 from app.services.settings_service import get_settings_service
 from app.core.store import atomic_write_bytes, atomic_write_text
 from app.core.fehler import leise
+from app.core.logbook import logger as logbook_logger
 
 HISTORY_FILE = DATA_DIR / "telegram_memory.json"
 HISTORY_KEEP = 40
 HISTORY_SEND = 12
 MORNING_STATE_FILE = DATA_DIR / "telegram_morning.json"
+
+
+_log = logbook_logger("telegram")
 
 
 class TelegramService:
@@ -35,6 +39,150 @@ class TelegramService:
         self._username_token = ""
         self._research_watch: dict[str, asyncio.Task] = {}
         self._last_home = 0.0
+        self._stand: dict = {
+            "letzte_abfrage": 0.0,
+            "letzter_fehler": "",
+            "fehler_zeit": 0.0,
+            "updates": 0,
+            "webhook_entfernt": 0.0,
+            "gruppen": {},
+        }
+
+    def _fehler_merken(self, text: str) -> None:
+        self._stand["letzter_fehler"] = str(text)[:400]
+        self._stand["fehler_zeit"] = time.time()
+        _log.warning("Telegram: %s", str(text)[:200])
+
+    def _gruppe_merken(self, chat: dict, feld: str) -> None:
+        chat_id = str(chat.get("id") or "")
+        if not chat_id:
+            return
+        gruppen = self._stand["gruppen"]
+        eintrag = gruppen.setdefault(
+            chat_id,
+            {
+                "titel": str(chat.get("title") or ""),
+                "gesehen": 0,
+                "erwaehnt": 0,
+                "geantwortet": 0,
+                "zuletzt": 0.0,
+            },
+        )
+        if chat.get("title"):
+            eintrag["titel"] = str(chat["title"])
+        eintrag[feld] = int(eintrag.get(feld, 0)) + 1
+        eintrag["zuletzt"] = time.time()
+        if len(gruppen) > 20:
+            aeltester = min(gruppen, key=lambda k: gruppen[k].get("zuletzt", 0.0))
+            gruppen.pop(aeltester, None)
+
+    async def _webhook_loesen(self) -> None:
+        token = self._token()
+        if not token:
+            return
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                await client.post(
+                    f"https://api.telegram.org/bot{token}/deleteWebhook",
+                    json={"drop_pending_updates": False},
+                )
+        except Exception as fehler:
+            leise(fehler, "services/telegram_service")
+            return
+        self._stand["webhook_entfernt"] = time.time()
+        _log.info("Telegram: Webhook entfernt, Jon holt die Nachrichten selbst")
+
+    async def diagnose(self) -> dict:
+        token = self._token()
+        stand = {
+            "token_gesetzt": bool(token),
+            "bot": "",
+            "bot_name": "",
+            "gruppen_erlaubt": None,
+            "liest_alles": None,
+            "webhook": "",
+            "webhook_fehler": "",
+            "offene_updates": 0,
+            "letzte_abfrage": self._stand["letzte_abfrage"],
+            "letzter_fehler": self._stand["letzter_fehler"],
+            "fehler_zeit": self._stand["fehler_zeit"],
+            "updates": self._stand["updates"],
+            "webhook_entfernt": self._stand["webhook_entfernt"],
+            "gruppen": [
+                {"chat_id": kennung, **werte}
+                for kennung, werte in self._stand["gruppen"].items()
+            ],
+            "hinweise": [],
+        }
+        if not token:
+            stand["hinweise"].append(
+                "Es ist kein Bot-Token eingetragen. Auf diesem Geraet laeuft also "
+                "kein Telegram-Bot - trag ihn unter Einstellungen -> Verbindungen "
+                "ein (jedes Geraet braucht seinen eigenen Bot)."
+            )
+            return stand
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                mich = (
+                    await client.get(f"https://api.telegram.org/bot{token}/getMe")
+                ).json()
+                haken = (
+                    await client.get(
+                        f"https://api.telegram.org/bot{token}/getWebhookInfo"
+                    )
+                ).json()
+        except Exception as fehler:
+            stand["hinweise"].append(f"Telegram ist nicht erreichbar: {fehler}")
+            return stand
+        if not mich.get("ok"):
+            stand["hinweise"].append(
+                "Telegram kennt diesen Token nicht (mehr): "
+                + str(mich.get("description") or "")
+            )
+            return stand
+        angaben = mich.get("result") or {}
+        stand["bot"] = str(angaben.get("username") or "")
+        stand["bot_name"] = str(angaben.get("first_name") or "")
+        stand["gruppen_erlaubt"] = bool(angaben.get("can_join_groups"))
+        stand["liest_alles"] = bool(angaben.get("can_read_all_group_messages"))
+        haken_daten = (haken.get("result") or {}) if haken.get("ok") else {}
+        stand["webhook"] = str(haken_daten.get("url") or "")
+        stand["webhook_fehler"] = str(haken_daten.get("last_error_message") or "")
+        stand["offene_updates"] = int(haken_daten.get("pending_update_count") or 0)
+        if stand["webhook"]:
+            stand["hinweise"].append(
+                "Fuer diesen Bot ist ein Webhook eingetragen - solange der steht, "
+                "bekommt Jon keine einzige Nachricht. Ich entferne ihn gleich; "
+                "danach sollte der Bot wieder antworten."
+            )
+            await self._webhook_loesen()
+        if stand["gruppen_erlaubt"] is False:
+            stand["hinweise"].append(
+                "Dieser Bot darf keinen Gruppen beitreten. Im BotFather: "
+                "/setjoingroups -> Enable."
+            )
+        gesehen = sum(int(g.get("gesehen", 0)) for g in stand["gruppen"])
+        erwaehnt = sum(int(g.get("erwaehnt", 0)) for g in stand["gruppen"])
+        if not stand["gruppen"]:
+            stand["hinweise"].append(
+                "In Gruppen ist bei diesem Bot noch keine Nachricht angekommen. "
+                "Meist liegt es am Privatsphaere-Modus: Aenderungen daran wirken "
+                "erst, wenn der Bot neu zur Gruppe hinzugefuegt wird. Im BotFather "
+                "/setprivacy -> Disable, dann den Bot aus der Gruppe nehmen und "
+                "wieder hinzufuegen."
+            )
+        elif gesehen and not erwaehnt:
+            stand["hinweise"].append(
+                "Nachrichten kommen an, aber keine Erwaehnung von @"
+                + (stand["bot"] or "botname")
+                + ". In Gruppen antwortet Jon nur, wenn du ihn so ansprichst."
+            )
+        if not stand["hinweise"]:
+            stand["hinweise"].append(
+                "Alles in Ordnung: Der Bot ist erreichbar und holt seine "
+                "Nachrichten selbst ab."
+            )
+        return stand
 
     def _load_histories(self) -> dict[str, list[dict]]:
         try:
@@ -120,6 +268,7 @@ class TelegramService:
         chat = message.get("chat") or {}
         chat_id = str(chat.get("id") or "")
         text = (message.get("text") or message.get("caption") or "").strip()
+        self._gruppe_merken(chat, "gesehen")
         if not chat_id or not text or text.startswith("/"):
             return
         sender_info = message.get("from") or {}
@@ -129,8 +278,15 @@ class TelegramService:
         memory = get_group_memory()
         memory.record(chat_id, sender, text, message_id=message.get("message_id"))
         username = await self.bot_username()
-        if not username or not is_mentioned(text, message.get("entities"), username):
+        if not username:
+            self._fehler_merken(
+                "Der eigene Bot-Name ist unbekannt (getMe antwortet nicht) - "
+                "deshalb erkenne ich Erwaehnungen in Gruppen nicht."
+            )
             return
+        if not is_mentioned(text, message.get("entities"), username):
+            return
+        self._gruppe_merken(chat, "erwaehnt")
         question = strip_mention(text, username) or "Hallo!"
         await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
         provider, model = get_settings_service().telegram_selection()
@@ -159,6 +315,7 @@ class TelegramService:
         memory.record(chat_id, "Jon", answer, bot="jon")
         await self.send(chat_id, answer)
         await self.send_cards(chat_id, cards)
+        self._gruppe_merken(chat, "geantwortet")
 
     async def send(self, chat_id: str | int, text: str) -> None:
         from app.services.text_format import ohne_tabellen
@@ -961,12 +1118,22 @@ class TelegramService:
                     params={"timeout": 25, "offset": self._offset},
                 )
                 data = response.json()
-        except Exception:
+        except Exception as fehler:
+            self._fehler_merken(f"Abruf fehlgeschlagen: {fehler}")
             await asyncio.sleep(10)
             return
         if not data.get("ok"):
+            grund = str(data.get("description") or "unbekannter Fehler")
+            self._fehler_merken(grund)
+            if "webhook" in grund.lower() or int(data.get("error_code") or 0) == 409:
+                await self._webhook_loesen()
+                await asyncio.sleep(2)
+                return
             await asyncio.sleep(30)
             return
+        self._stand["letzte_abfrage"] = time.time()
+        self._stand["letzter_fehler"] = ""
+        self._stand["updates"] += len(data.get("result", []))
         for update in data.get("result", []):
             self._offset = max(self._offset, int(update["update_id"]) + 1)
             edited = update.get("edited_message") or {}

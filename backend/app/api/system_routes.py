@@ -334,6 +334,13 @@ async def shutdown() -> dict:
     return {"stopping": True, "pid": os.getpid()}
 
 
+@router.get("/telegram")
+async def telegram_stand() -> dict:
+    from app.services.telegram_service import get_telegram_service
+
+    return await get_telegram_service().diagnose()
+
+
 @router.get("/diagnostics")
 async def diagnostics() -> dict:
     from app.core.auth import lan_address, rejected

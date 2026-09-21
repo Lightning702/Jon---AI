@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Jon",
-  "version": "4.53.0",
+  "version": "4.53.1",
   "description": "Verbindet den Browser mit deinem Jon: Seiten zusammenfassen, erklaeren, recherchieren, in Projekte und Wissen uebernehmen.",
   "action": {
     "default_title": "Jon",

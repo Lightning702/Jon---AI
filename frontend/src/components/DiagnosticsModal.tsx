@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import {
   Diagnose,
   Kopplung,
+  TelegramStand,
   getDiagnose,
   getKopplung,
+  getTelegramStand,
   neuesToken,
   protokollUrl,
 } from "../lib/api";
@@ -50,6 +52,8 @@ export default function DiagnosticsModal({ onClose }: { onClose: () => void }) {
   const [kopplung, setKopplung] = useState<Kopplung | null>(null);
   const [fehler, setFehler] = useState("");
   const [hinweis, setHinweis] = useState("");
+  const [telegram, setTelegram] = useState<TelegramStand | null>(null);
+  const [telegramLaedt, setTelegramLaedt] = useState(false);
   const [zeigeToken, setZeigeToken] = useState(false);
   const [laedt, setLaedt] = useState(true);
 
@@ -152,6 +156,92 @@ export default function DiagnosticsModal({ onClose }: { onClose: () => void }) {
               />
             </div>
           )}
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[11px] uppercase tracking-wider text-white/40">
+                Telegram
+              </div>
+              <button
+                onClick={() => {
+                  setTelegramLaedt(true);
+                  void getTelegramStand()
+                    .then(setTelegram)
+                    .catch(() => setTelegram(null))
+                    .finally(() => setTelegramLaedt(false));
+                }}
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10.5px] text-white/60 hover:bg-white/10"
+              >
+                {telegramLaedt ? "Prüfe…" : "Bot prüfen"}
+              </button>
+            </div>
+            {!telegram && (
+              <p className="text-[11px] text-white/45 leading-relaxed">
+                Antwortet dein Bot nicht — vor allem in einer Gruppe? Hier siehst du,
+                ob er erreichbar ist, ob ein Webhook dazwischenfunkt und ob
+                Nachrichten überhaupt ankommen.
+              </p>
+            )}
+            {telegram && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Feld
+                    name="Bot"
+                    wert={
+                      telegram.token_gesetzt
+                        ? telegram.bot
+                          ? "@" + telegram.bot
+                          : "Token passt nicht"
+                        : "kein Token auf diesem Gerät"
+                    }
+                    warnung={!telegram.bot}
+                  />
+                  <Feld
+                    name="Privatsphäre-Modus"
+                    wert={
+                      telegram.liest_alles === null
+                        ? "unbekannt"
+                        : telegram.liest_alles
+                          ? "aus (sieht alles)"
+                          : "an (nur Erwähnungen)"
+                    }
+                  />
+                  <Feld
+                    name="Webhook"
+                    wert={telegram.webhook ? telegram.webhook : "keiner"}
+                    warnung={!!telegram.webhook}
+                  />
+                  <Feld
+                    name="Nachrichten geholt"
+                    wert={String(telegram.updates)}
+                  />
+                </div>
+                {telegram.letzter_fehler && (
+                  <div className="rounded-lg border border-red-400/25 bg-red-400/10 px-2.5 py-1.5 text-[11px] text-red-200/90">
+                    Letzter Fehler: {telegram.letzter_fehler}
+                  </div>
+                )}
+                {telegram.gruppen.length > 0 && (
+                  <div className="space-y-1">
+                    {telegram.gruppen.map((g) => (
+                      <div key={g.chat_id} className="text-[11px] text-white/55">
+                        {g.titel || g.chat_id}: {g.gesehen} gesehen ·{" "}
+                        {g.erwaehnt} mit @-Anrede · {g.geantwortet} beantwortet
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {telegram.hinweise.map((h, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-gold/25 bg-gold/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-gold/90"
+                  >
+                    {h}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {kopplung && (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 space-y-2">

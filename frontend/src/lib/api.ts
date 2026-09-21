@@ -4005,3 +4005,34 @@ export function liveSeiteUrl(welcher = "alle"): string {
     BASE.replace(/\/api$/, "") + `/live?welcher=${encodeURIComponent(welcher)}`
   );
 }
+
+export interface TelegramStand {
+  token_gesetzt: boolean;
+  bot: string;
+  bot_name: string;
+  gruppen_erlaubt: boolean | null;
+  liest_alles: boolean | null;
+  webhook: string;
+  webhook_fehler: string;
+  offene_updates: number;
+  letzte_abfrage: number;
+  letzter_fehler: string;
+  fehler_zeit: number;
+  updates: number;
+  webhook_entfernt: number;
+  gruppen: {
+    chat_id: string;
+    titel: string;
+    gesehen: number;
+    erwaehnt: number;
+    geantwortet: number;
+    zuletzt: number;
+  }[];
+  hinweise: string[];
+}
+
+export async function getTelegramStand(): Promise<TelegramStand> {
+  const res = await fetch(`${BASE}/system/telegram`);
+  if (!res.ok) throw new Error("Telegram-Status nicht verfügbar");
+  return res.json();
+}

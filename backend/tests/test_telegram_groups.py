@@ -255,3 +255,113 @@ def test_mini_jon_endpoints():
     )
     res = client.post("/api/mini-jon/status", json={"status": "wach"}).json()
     assert res["status"] == "wach"
+
+
+def test_diagnose_sagt_es_wenn_kein_bot_token_da_ist(monkeypatch):
+    dienst = ts.TelegramService()
+    monkeypatch.setattr(dienst, "_token", lambda: "")
+    stand = asyncio.run(dienst.diagnose())
+    assert stand["token_gesetzt"] is False
+    assert any("kein Bot-Token" in h for h in stand["hinweise"])
+
+
+def test_gruppen_zaehler_merken_sich_gesehen_und_erwaehnt():
+    dienst = ts.TelegramService()
+    chat = {"id": -4711, "title": "Bots"}
+    dienst._gruppe_merken(chat, "gesehen")
+    dienst._gruppe_merken(chat, "gesehen")
+    dienst._gruppe_merken(chat, "erwaehnt")
+    eintrag = dienst._stand["gruppen"]["-4711"]
+    assert eintrag["titel"] == "Bots"
+    assert eintrag["gesehen"] == 2
+    assert eintrag["erwaehnt"] == 1
+    assert eintrag["geantwortet"] == 0
+
+
+def test_diagnose_nennt_fehlende_erwaehnung(monkeypatch):
+    dienst = ts.TelegramService()
+    monkeypatch.setattr(dienst, "_token", lambda: "123:abc")
+    dienst._gruppe_merken({"id": -1, "title": "Bots"}, "gesehen")
+
+    class FakeAntwort:
+        def __init__(self, daten):
+            self._daten = daten
+
+        def json(self):
+            return self._daten
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def get(self, url, **_kwargs):
+            if "getMe" in url:
+                return FakeAntwort(
+                    {
+                        "ok": True,
+                        "result": {
+                            "username": "pi_bot",
+                            "first_name": "Jon",
+                            "can_join_groups": True,
+                            "can_read_all_group_messages": False,
+                        },
+                    }
+                )
+            return FakeAntwort({"ok": True, "result": {"url": ""}})
+
+    monkeypatch.setattr(ts.httpx, "AsyncClient", lambda **_kwargs: FakeClient())
+    stand = asyncio.run(dienst.diagnose())
+    assert stand["bot"] == "pi_bot"
+    assert stand["liest_alles"] is False
+    assert any("@pi_bot" in h for h in stand["hinweise"])
+
+
+def test_diagnose_meldet_einen_webhook_und_raeumt_ihn_weg(monkeypatch):
+    dienst = ts.TelegramService()
+    monkeypatch.setattr(dienst, "_token", lambda: "123:abc")
+    entfernt: list[bool] = []
+
+    async def weg():
+        entfernt.append(True)
+
+    monkeypatch.setattr(dienst, "_webhook_loesen", weg)
+
+    class FakeAntwort:
+        def __init__(self, daten):
+            self._daten = daten
+
+        def json(self):
+            return self._daten
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def get(self, url, **_kwargs):
+            if "getMe" in url:
+                return FakeAntwort(
+                    {
+                        "ok": True,
+                        "result": {
+                            "username": "pi_bot",
+                            "can_join_groups": True,
+                            "can_read_all_group_messages": True,
+                        },
+                    }
+                )
+            return FakeAntwort(
+                {"ok": True, "result": {"url": "https://fremd/hook", "pending_update_count": 7}}
+            )
+
+    monkeypatch.setattr(ts.httpx, "AsyncClient", lambda **_kwargs: FakeClient())
+    stand = asyncio.run(dienst.diagnose())
+    assert stand["webhook"] == "https://fremd/hook"
+    assert stand["offene_updates"] == 7
+    assert entfernt == [True]
+    assert any("Webhook" in h for h in stand["hinweise"])
