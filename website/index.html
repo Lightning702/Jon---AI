@@ -1,513 +1,849 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jon von FelWorks — KI-Desktop-Assistent für Windows</title>
-<meta name="description" content="Jon ist der kostenlose KI-Desktop-Assistent von FelWorks für Windows: Multi-Provider-KI, Sprachsteuerung, Streaming, Systemsteuerung und lokale KI mit Ollama." />
-<meta name="author" content="FelWorks" />
-<meta name="publisher" content="FelWorks" />
-<meta name="robots" content="index,follow,max-image-preview:large" />
-<meta name="google-site-verification" content="DRqNjwTltnUKc7eFiXSUwdcAo1bu09bHe53X8ogjGsM" />
-<link rel="canonical" href="https://getjon.info/" />
-<meta property="og:type" content="website" />
-<meta property="og:site_name" content="Jon von FelWorks" />
-<meta property="og:title" content="Jon von FelWorks — KI-Desktop-Assistent für Windows" />
-<meta property="og:description" content="Jon ist der kostenlose KI-Desktop-Assistent von FelWorks für Windows: Multi-Provider-KI, Sprachsteuerung, Streaming, Systemsteuerung und lokale KI mit Ollama." />
-<meta property="og:url" content="https://getjon.info/" />
-<meta property="og:image" content="https://getjon.info/app/icon-512.png" />
-<meta property="og:locale" content="de_AT" />
-<meta name="twitter:card" content="summary" />
-<link rel="icon" type="image/png" sizes="192x192" href="/app/icon-192.png" />
-<link rel="apple-touch-icon" href="/app/icon-192.png" />
+<meta name="description" content="Jon ist der kostenlose KI-Desktop-Assistent von FelWorks für Windows: Multi-Provider-KI, Sprachsteuerung, Streaming, Systemsteuerung und lokale KI mit Ollama.">
+<meta name="author" content="FelWorks">
+<meta name="publisher" content="FelWorks">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="google-site-verification" content="DRqNjwTltnUKc7eFiXSUwdcAo1bu09bHe53X8ogjGsM">
+<link rel="canonical" href="https://getjon.info/">
+<meta name="theme-color" content="#05070e">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Jon von FelWorks">
+<meta property="og:title" content="Jon von FelWorks — KI-Desktop-Assistent für Windows">
+<meta property="og:description" content="Jon ist der kostenlose KI-Desktop-Assistent von FelWorks für Windows: Multi-Provider-KI, Sprachsteuerung, Streaming, Systemsteuerung und lokale KI mit Ollama.">
+<meta property="og:url" content="https://getjon.info/">
+<meta property="og:image" content="https://getjon.info/assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="de_AT">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://getjon.info/assets/img/og.jpg">
+<link rel="icon" type="image/png" sizes="192x192" href="app/icon-192.png">
+<link rel="apple-touch-icon" href="app/icon-192.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/instrument-serif-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+<script>document.documentElement.classList.add('js')</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://getjon.info/#felworks","name":"FelWorks","alternateName":["FelWorks Webentwicklung","Fel Works","Felworks"],"url":"https://getjon.info/","logo":"https://getjon.info/app/icon-512.png","description":"FelWorks (FelWorks Webentwicklung) aus Theresienfeld, Österreich, entwickelt Software – darunter Jon, den kostenlosen KI-Desktop-Assistenten für Windows, und die FelWorks Game Collection.","address":{"@type":"PostalAddress","streetAddress":"Grazerstraße 11","postalCode":"2604","addressLocality":"Theresienfeld","addressCountry":"AT"},"sameAs":["https://felworks.netlify.app/","https://felworks-impressum.netlify.app/","https://github.com/Lightning702","https://play.google.com/store/apps/developer?id=FelWorks"]},{"@type":"WebSite","@id":"https://getjon.info/#website","url":"https://getjon.info/","name":"Jon von FelWorks","alternateName":["Jon","getjon.info","FelWorks Jon"],"inLanguage":"de","publisher":{"@id":"https://getjon.info/#felworks"}},{"@type":"SoftwareApplication","@id":"https://getjon.info/#jon","name":"Jon","alternateName":["Jon KI-Desktop-Assistent","Jon von FelWorks"],"description":"Jon ist der kostenlose KI-Desktop-Assistent von FelWorks für Windows: Multi-Provider-KI, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis, Systemsteuerung und lokale KI mit Ollama.","url":"https://getjon.info/","image":"https://getjon.info/app/icon-512.png","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 10, Windows 11","inLanguage":"de","downloadUrl":"https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@id":"https://getjon.info/#felworks"},"publisher":{"@id":"https://getjon.info/#felworks"},"sameAs":["https://github.com/Lightning702/Jon---AI"]}]}</script>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E" />
-<style>
-:root{--gold:#d4af37;--gold-light:#f5d67b;--gold-dark:#9a7b1f;--ink:#050506;--ink2:#0b0b0f}
-*{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--gold) #050506}
-::-webkit-scrollbar{width:9px;height:9px;background:#050506}
-::-webkit-scrollbar-track{background:#050506}
-::-webkit-scrollbar-button{display:none;width:0;height:0}
-::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--gold-light),var(--gold),var(--gold-dark));border-radius:8px;border:2px solid #050506}
-::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ffe9a8,var(--gold-light),var(--gold))}
-::-webkit-scrollbar-corner{background:#050506}
-body{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#f5f5f7;background:radial-gradient(circle at 20% -10%,#15151f 0%,#050506 55%,#000 100%);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-.glow{position:fixed;width:600px;height:600px;border-radius:50%;filter:blur(120px);opacity:.18;pointer-events:none;z-index:0}
-.glow.a{background:var(--gold);top:-200px;right:-150px}
-.glow.b{background:#3a2f8f;bottom:-250px;left:-200px;opacity:.14}
-.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px}
-nav{display:flex;align-items:center;justify-content:space-between;padding:24px 0}
-.brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:2px}
-.brand .by{font-size:11px;font-weight:500;letter-spacing:1px;color:rgba(255,255,255,.45)}
-.dot{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 20px rgba(212,175,55,.6)}
-.gold{background:linear-gradient(90deg,var(--gold-light),var(--gold),var(--gold-dark));-webkit-background-clip:text;background-clip:text;color:transparent}
-nav a{color:rgba(255,255,255,.6);text-decoration:none;margin-left:28px;font-size:14px;transition:color .2s}
-nav a:hover{color:#fff}
-header{text-align:center;padding:90px 0 60px}
-header h1{font-size:clamp(44px,8vw,86px);line-height:1.02;font-weight:800;letter-spacing:-2px}
-header p{margin:26px auto 0;max-width:620px;color:rgba(255,255,255,.55);font-size:clamp(16px,2.4vw,20px);line-height:1.6}
-.cta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:40px}
-.btn{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:16px;font-weight:600;text-decoration:none;font-size:16px;transition:transform .15s,filter .15s,background .2s;border:1px solid transparent}
-.btn-primary{background:linear-gradient(90deg,var(--gold-light),var(--gold-dark));color:#000;box-shadow:0 0 30px rgba(212,175,55,.3)}
-.btn-primary:hover{transform:translateY(-2px);filter:brightness(1.08)}
-.btn-ghost{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:#fff;backdrop-filter:blur(12px)}
-.btn-ghost:hover{background:rgba(255,255,255,.1)}
-.mock{margin:70px auto 0;max-width:900px;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:rgba(11,11,15,.6);backdrop-filter:blur(24px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
-.mock-bar{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
-.mock-bar span{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.18)}
-.mock-body{display:grid;grid-template-columns:200px 1fr;min-height:300px}
-.mock-side{border-right:1px solid rgba(255,255,255,.06);padding:18px}
-.mock-side .item{height:34px;border-radius:9px;background:rgba(255,255,255,.04);margin-bottom:10px}
-.mock-side .item.active{background:rgba(212,175,55,.14);border:1px solid rgba(212,175,55,.3)}
-.mock-chat{padding:24px;display:flex;flex-direction:column;gap:14px}
-.bubble{max-width:75%;padding:13px 16px;border-radius:16px;font-size:14px;line-height:1.5}
-.bubble.u{align-self:flex-end;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));color:#000;border-bottom-right-radius:5px}
-.bubble.a{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-bottom-left-radius:5px}
-section{padding:70px 0}
-h2{text-align:center;font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-1px}
-.sub{text-align:center;color:rgba(255,255,255,.45);margin-top:14px;max-width:560px;margin-left:auto;margin-right:auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:48px}
-.card{padding:28px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);transition:transform .2s,border-color .2s}
-.card:hover{transform:translateY(-4px);border-color:rgba(212,175,55,.3)}
-.card .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:rgba(212,175,55,.12);margin-bottom:16px}
-.card h3{font-size:18px;margin-bottom:8px}
-.card p{color:rgba(255,255,255,.5);font-size:14px;line-height:1.6}
-.steps{max-width:720px;margin:48px auto 0;display:flex;flex-direction:column;gap:16px}
-.step{display:flex;gap:18px;align-items:flex-start;padding:22px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
-.step .n{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#000;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark))}
-.step code{display:block;margin-top:8px;font-family:"JetBrains Mono",Consolas,monospace;font-size:13px;color:var(--gold-light);background:rgba(0,0,0,.4);padding:10px 14px;border-radius:9px;overflow-x:auto}
-.step h4{font-size:16px}
-.step p{color:rgba(255,255,255,.5);font-size:14px;margin-top:4px}
-.req{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:40px}
-.chip{padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:13px;color:rgba(255,255,255,.7)}
-.video-wrap{position:relative;max-width:900px;margin:44px auto 0;border-radius:20px;overflow:hidden;border:2px solid rgba(212,175,55,.25);box-shadow:0 0 50px rgba(212,175,55,.12),0 20px 60px rgba(0,0,0,.5);background:#000}
-.video-wrap::before{content:"";display:block;padding-top:56.25%}
-.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-footer{text-align:center;padding:60px 0 40px;color:rgba(255,255,255,.35);font-size:13px;border-top:1px solid rgba(255,255,255,.06);margin-top:40px}
-.note{max-width:720px;margin:30px auto 0;padding:16px 20px;border-radius:14px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);font-size:13px;color:rgba(255,255,255,.65);text-align:center}
-.newbadge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px 6px 10px;border-radius:30px;background:linear-gradient(90deg,rgba(212,175,55,.20),rgba(143,226,143,.14));border:1px solid rgba(212,175,55,.55);font-size:13px;color:#f4e2ae;margin-bottom:22px;text-decoration:none;transition:.18s}
-.newbadge:hover{border-color:rgba(212,175,55,.9);transform:translateY(-1px)}
-.newbadge b{background:#d4af37;color:#0b0b0f;font-size:10.5px;letter-spacing:.1em;padding:3px 8px;border-radius:20px;font-weight:800}
-nav a.hot{color:#f4e2ae}
-nav a.hot::after{content:"NEU";display:inline-block;margin-left:6px;font-size:9px;letter-spacing:.08em;background:#d4af37;color:#0b0b0f;padding:2px 5px;border-radius:20px;font-weight:800;vertical-align:2px}
-.mp-hero{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:center;margin-top:44px}
-@media(max-width:860px){.mp-hero{grid-template-columns:1fr}}
-.mp-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
-.mp-steps li{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px 18px}
-.mp-steps b{display:block;margin-bottom:3px}
-.mp-steps .num{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:rgba(212,175,55,.16);border:1px solid rgba(212,175,55,.5);color:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-.mp-steps p{margin:0;font-size:14px;color:rgba(255,255,255,.62);line-height:1.5}
-.mp-card{border-radius:20px;background:rgba(8,11,20,.72);border:1px solid rgba(212,175,55,.32);padding:22px 24px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
-.mp-code{display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(212,175,55,.09);border:1px dashed rgba(212,175,55,.5);border-radius:14px;padding:14px 18px;margin-bottom:16px}
-.mp-code small{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:3px}
-.mp-code b{font-size:30px;letter-spacing:9px;color:var(--gold-light)}
-.mp-row{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.045);margin-bottom:8px;font-size:14px}
-.mp-dot{width:9px;height:9px;border-radius:50%;background:#8fe28f;flex:0 0 auto}
-.mp-row .who{flex:1;font-weight:600}
-.mp-tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:rgba(143,226,143,.16);color:#a8e9b4;border:1px solid rgba(143,226,143,.35)}
-.mp-row .ms{font-size:12px;color:rgba(255,255,255,.4);font-variant-numeric:tabular-nums}
-.mp-feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;margin-top:34px}
-.mp-feat div{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px 18px}
-.mp-feat h4{margin:0 0 6px;font-size:15px}
-.mp-feat p{margin:0;font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.55}
-.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;margin-top:48px}
-.game{border-radius:20px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);transition:transform .2s,border-color .2s}
-.game:hover{transform:translateY(-4px);border-color:rgba(212,175,55,.3)}
-.game img{display:block;width:100%;height:180px;object-fit:cover}
-.game .body{padding:24px}
-.game h3{font-size:19px;margin-bottom:4px}
-.game .genre{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(212,175,55,.8);margin-bottom:12px}
-.game p{color:rgba(255,255,255,.5);font-size:14px;line-height:1.6}
-.game .keys{margin-top:14px;font-size:12.5px;color:rgba(255,255,255,.32)}
-.about-card{max-width:760px;margin:44px auto 0;padding:34px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px)}
-.about-card p{color:rgba(255,255,255,.62);font-size:15px;line-height:1.75}
-.about-card p+p{margin-top:18px}
-.dl-hint{font-size:12.5px;color:rgba(255,255,255,.4);margin-top:14px;text-align:center}
-@media(max-width:640px){.mock-body{grid-template-columns:1fr}.mock-side{display:none}nav a{display:none}.video-wrap{border-radius:14px}}
-#cookie-banner{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:100;width:min(680px,calc(100vw - 32px));padding:20px 24px;border-radius:18px;background:rgba(11,11,15,.92);border:1px solid rgba(212,175,55,.3);backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.6);display:none}
-#cookie-banner.show{display:block;animation:cookieIn .35s ease}
-@keyframes cookieIn{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
-#cookie-banner h4{font-size:15px;margin-bottom:6px}
-#cookie-banner p{color:rgba(255,255,255,.55);font-size:13px;line-height:1.55}
-.cookie-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-.btn-sm{padding:10px 20px;border-radius:12px;font-size:14px;cursor:pointer;font-family:inherit}
-.cookie-link{background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;font-family:inherit;padding:0;transition:color .2s}
-.cookie-link:hover{color:var(--gold-light)}
-.footer-links{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 22px;margin-bottom:22px}
-.footer-links a,.footer-links .cookie-link{color:rgba(255,255,255,.55);text-decoration:none;font-size:14px;position:relative;transition:color .2s}
-.footer-links a::after{content:"";position:absolute;left:0;bottom:-4px;width:0;height:1px;background:linear-gradient(90deg,var(--gold-light),var(--gold-dark));transition:width .25s}
-.footer-links a:hover{color:var(--gold-light)}
-.footer-links a:hover::after{width:100%}
-.footer-meta{color:rgba(255,255,255,.3);font-size:12.5px}
-::selection{
-    background:#d4af37;
-    color:#050506;
-}
-
-::-moz-selection{
-    background:#d4af37;
-    color:#050506;
-}
-</style>
 </head>
-<body>
-<div class="glow a"></div>
-<div class="glow b"></div>
-<div class="wrap">
-<nav>
-<div class="brand"><div class="dot"></div><span class="gold">JON</span><span class="by">von FelWorks</span></div>
-<div>
-<a href="#install">Installation</a>
-<a href="#werkstatt">Dateien</a>
-<a href="#lernkreis">Lernkreis</a>
-<a href="#erweiterung">Browser</a>
-<a href="#games">Spiele</a>
-<a class="hot" href="ollama.html">Ollama</a>
-<a href="#about">Über mich</a>
-<a href="#download">Download</a>
-<a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
-</div>
-</nav>
+<body class="jon-site">
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-arrow-ur" viewBox="0 0 24 24"><path d="M7 17 17 7M8.5 7H17v8.5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 8-4 4 4 4M15.5 8l4 4-4 4M13.5 5l-3 14"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5v-3a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5v-3a4 4 0 0 1 7.5-2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6L12 3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M8.5 20h7M12 16.5V20"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M10 4.5a2 2 0 1 1 4 0V6h3a1 1 0 0 1 1 1v3h-1.5a2 2 0 1 0 0 4H18v3a1 1 0 0 1-1 1h-3v-1.5a2 2 0 1 0-4 0V18H7a1 1 0 0 1-1-1v-3h1.5a2 2 0 1 0 0-4H6V7a1 1 0 0 1 1-1h3V4.5Z"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="m9 4-5 2v14l5-2 6 2 5-2V4l-5 2-6-2Z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="i-gamepad" viewBox="0 0 24 24"><path d="M7 8h10a4 4 0 0 1 4 4v1.5a3.5 3.5 0 0 1-6.3 2.1l-.7-1.1h-4l-.7 1.1A3.5 3.5 0 0 1 3 13.5V12a4 4 0 0 1 4-4Z"/><path d="M8 10.5v3M6.5 12h3M15.5 11h.01M17 13h.01"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/><path d="M8 7.5h.01M8 16.5h.01"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5 13.8 9l5.7 1.8-5.7 1.8L12 18.2l-1.8-5.6-5.7-1.8L10.2 9 12 3.5Z"/><path d="M19 16v4M17 18h4"/></symbol>
+  <symbol id="i-cursor" viewBox="0 0 24 24"><path d="m5 4 6.5 16 2.3-6.7L20.5 11 5 4Z"/></symbol>
+  <symbol id="i-slides" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8.5 20h7M7.5 12.5l3-3 2.5 2 3.5-3.5"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.2a3.5 3.5 0 0 1 0 6.6M18.5 14.5a6.5 6.5 0 0 1 3 5.5"/></symbol>
+  <symbol id="i-call" viewBox="0 0 24 24"><path d="M5 4h3.5l1.5 4.5-2 1.5a11 11 0 0 0 6 6l1.5-2 4.5 1.5V19a1.5 1.5 0 0 1-1.5 1.5A15.5 15.5 0 0 1 3.5 5.5 1.5 1.5 0 0 1 5 4Z"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 3 10.5l7 2.5 2.5 7L21 3Z"/><path d="m10 13 4-4"/></symbol>
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8L3 12Z"/><circle cx="7.5" cy="7.5" r="1.3"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M5 3 2 6M19 3l3 3"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5v-12Z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/></symbol>
+  <symbol id="i-bars" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4.5 5.5h15a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H10l-4.5 3.5V17h-1a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></symbol>
+  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.3L3.5 17.5l3 3 5.7-5.7a4 4 0 0 0 5.3-5.3l-2.5 2.5-2.5-.5-.5-2.5 2.5-2.5Z"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M5 7h14M5 7l-3 7a3 3 0 0 0 6 0L5 7ZM19 7l-3 7a3 3 0 0 0 6 0l-3-7Z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0V8ZM12 17v4"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0M12 19.5h.01"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 5.4A15 15 0 0 1 22 9M2 9a15 15 0 0 1 3.1-2.1M5.5 12.5a10 10 0 0 1 4-2.2M16.2 10.9a10 10 0 0 1 2.3 1.6M9 16a5 5 0 0 1 6 0M12 19.5h.01"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9Z"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.2 2.3-2.4 3.5M6.6 6.6C4.4 8 2.8 10 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.9-3.5M4 4v4h4M4 13a8 8 0 0 0 14.9 3.5M20 20v-4h-4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="jon-face" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="#0b0b0e" stroke="#e2bd4c" stroke-width="7"/><circle cx="44" cy="52" r="8.5" fill="#eec657"/><circle cx="76" cy="52" r="8.5" fill="#eec657"/><circle cx="46.6" cy="49.4" r="2.6" fill="#fff"/><circle cx="78.6" cy="49.4" r="2.6" fill="#fff"/><path d="M40 72c10 11 30 11 40 0" fill="none" stroke="#e2bd4c" stroke-width="7" stroke-linecap="round"/></symbol>
+</svg>
 
-<header>
-<a class="newbadge" href="#werkstatt"><b>NEU 4.53.2</b> 📺 Jon zeigt dir seinen Bildschirm über Telegram — und deine Jons finden sich jetzt über das Internet</a>
-<h1>Dein <span class="gold">KI-Desktop</span><br>Assistent für Windows</h1>
-<p>Jon von <b>FelWorks</b> steuert deinen gesamten Computer intelligent. Multi-Provider-KI mit GPT-OSS 120B über NVIDIA, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis und voller Systemsteuerung — in einem eleganten Black-&-Gold-Design.</p>
-<div class="cta">
-<a class="btn btn-primary" href="#download">Jetzt herunterladen</a>
-<a class="btn btn-ghost" href="ollama.html">🦙 Ollama einrichten</a>
-<a class="btn btn-ghost" href="#features">Mehr erfahren</a>
-</div>
+<a class="skip" href="#inhalt">Zum Inhalt springen</a>
 
-<div class="mock">
-<div class="mock-bar"><span></span><span></span><span></span></div>
-<div class="mock-body">
-<div class="mock-side">
-<div class="item active"></div>
-<div class="item"></div>
-<div class="item"></div>
-<div class="item"></div>
-</div>
-<div class="mock-chat">
-<div class="bubble u">Öffne mein Projekt in VS Code und erklär mir die Architektur.</div>
-<div class="bubble a">Erledigt. Ich habe das Projekt geöffnet. Die Architektur folgt Clean Architecture mit klarer Trennung von Providern, Services und API-Schicht …</div>
-<div class="bubble u">Erstelle mir daraus eine Zusammenfassung als Datei.</div>
-<div class="bubble a">Gespeichert unter summary.md ✓</div>
-</div>
-</div>
-</div>
+<header class="nav" id="nav">
+  <div class="container nav__inner">
+    <a class="brand" href="index.html" aria-label="Jon von FelWorks – Startseite">
+      <svg class="brand__face" viewBox="0 0 120 120" aria-hidden="true"><use href="#jon-face"/></svg>
+      <span>Jon</span><small>von FelWorks</small>
+    </a>
+    <nav class="nav__links" id="menu" aria-label="Hauptnavigation">
+      <a href="#features">Funktionen</a>
+      <a href="#install">Installation</a>
+      <a href="#games">Spiele</a>
+      <a href="ollama.html">Ollama</a>
+      <a href="#about">Über mich</a>
+      <a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav__mobile-cta" href="#download">Jon herunterladen</a>
+    </nav>
+    <a class="btn btn--primary btn--sm nav__cta" href="#download"><svg class="i"><use href="#i-download"/></svg>Download</a>
+    <button class="nav__toggle" type="button" aria-controls="menu" aria-expanded="false" aria-label="Menü öffnen"><span></span><span></span></button>
+  </div>
 </header>
 
-<section id="features">
-<h2>Was Jon <span class="gold">kann</span></h2>
-<p class="sub">Nicht nur ein Chat — ein echter Assistent, der handelt. Neu in v4.34.7: <b>Jon am Handy</b> — läuft Jon auf einem Raspberry Pi, rufst du im WLAN <b>http://&lt;pi&gt;:8756/app</b> auf und bedienst die komplette Oberfläche mit dem Daumen: Unterhaltungen fahren als Schublade herein, die Kopfzeile schrumpft mit, Eingabefelder lösen kein Zoomen mehr aus, und die Eingabezeile bleibt über Browserleiste und Homebalken stehen. Am PC bleibt alles, wie es war. Aus v4.34.6: <b>Jon Maps versteht Filter</b> — sag „starte eine Route von meinem Standort zum nächsten Supermarkt" oder „zum Interspar in meiner Nähe", und Jon sucht den nächstgelegenen Treffer selbst, plant die Route und stellt die anderen Läden gleich daneben; ein Klick darauf rechnet die Route sofort dorthin um. 22 Filter von Supermarkt über Apotheke bis Bäckerei, dazu Marken- und Ladennamen. Und Jon hat das jetzt auch <b>unterwegs per Telegram</b> dabei — genau wie Mini Jon: Standort teilen, Route bekommen, Kartenpin aufs Handy, und mit <b>/lernen</b> startest du eine Tiefenrecherche von unterwegs, die dir Jon fertig in den Chat schickt, sobald sie durch ist. Dazu kannst du Jon im Zahnrad-Menü jetzt vollständig <b>deinstallieren</b> — mit Vorschau, was wirklich gelöscht wird. Aus v4.34.5: <b>Freunde auf der Karte</b> — gib deinen Standort für einzelne Freunde frei (standardmäßig aus) und sieh, wo sie gerade sind, verschlüsselt über Jons eigene Freundesverbindung. Dazu: die Verstorbenen in <b>ECHO</b> haben endlich ein Modell, im Multiplayer schauen Freunde wieder dorthin, wo sie hinsehen, die <b>Harmonischen Inseln</b> speichern ihren Spielstand und wachsen nach dem Leuchtturm weiter, und Mini Jon bekommt Wangen in 3D. Aus v4.34.4: <b>Jon Maps</b> — eine eigene Karten- und Navigationsplattform in Liquid Glass, mit Hell- und Dunkelmodus, 3D-Gebäuden, echtem Gelände, Globus-Ansicht, Suche, Routen für Fuß, Auto, Fahrrad und Bus &amp; Bahn, Street Exploration mit echten Straßenfotos und einem freien 3D-Erkundungsmodus als Mensch, Auto oder Flugzeug. Dazu <b>Jon Deep Learning</b>: Du gibst Jon ein Thema und ein Zeitbudget, er recherchiert eigenständig im Web, vergleicht Quellen, schreibt sein Wissen in Markdown-Dateien und baut daraus einen Skill, den er ab dann von selbst nutzt. Alles ohne Bezahl-API. Aus v4.34.1: <b>Koop auch in den neuen Spielen</b> — Harmonische Inseln und Blockwelt spielt ihr zu zweit über einen Freundschaftscode, und die Harmonischen Inseln haben jetzt ein Ziel: der Leuchtturm sagt dir, was ihm fehlt, und die Bewohner haben Wünsche. Aus v4.34.0: Die <b>Blockwelt</b> hat keinen Rand mehr — die Welt wächst weiter, solange du läufst, mit Ebenen, Wäldern, Wüsten, Schneeland und Gebirgen, 16 Blocksorten mit echten Texturen, TNT und Enderperle. Aus v4.33.9: die <b>Harmonischen Inseln</b>, ein ruhiges Aufbauspiel in isometrischer Schrägsicht, und der dritte Design-Modus <b>Cozy</b> in Weiß und Rosa. Aus v4.33.8: <b>Jon ruft dich an</b> — dein Handy klingelt wie bei einem normalen Anruf, über SIP direkt aus Jons Backend, ohne Anbieter und ohne Kosten pro Anruf. Dazu aus v4.33.6 die <b>Schwarzloch-Simulation STARFALL</b> nach dem relativistischen Flussprofil von Page und Thorne. Und aus v4.33: <b>Ollama komplett eingebaut — und teilbar</b>. Eigener Einstellungsbereich mit Serverstatus, Verbindungstest, Modellverwaltung und allen Reglern; der Server darf auf einem anderen PC oder über Tailscale laufen. Und mit der <b>Serverfreigabe</b> chatten deine Freunde per Freigabecode über deine Grafikkarte — teilen geht per Knopf direkt im Chat. Dazu neu: <b>echte 3D-Modelle</b> für Mini Jon, Katze und Hund. Dazu aus v3.36: Koop über zwei Geräte, und aus v3.35: Updates laufen direkt in der App.</p>
-<div class="grid">
-<div class="card"><div class="ic">📊</div><h3>Präsentationen mit Bewegung <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Sag das Thema, und Jon baut eine echte PowerPoint: <b>Folienübergänge</b> vom Blenden bis zum Morphen, <b>Animationen</b>, die Stichpunkte nacheinander einblenden, <b>echte Diagramme und Tabellen</b> zum Weiterbearbeiten und Bilder, die er selbst malt. Mit ausformuliertem Text und Sprechernotizen — nicht fünf Stichwörter pro Folie.</p></div>
-<div class="card"><div class="ic">📈</div><h3>Jon lernt aus Überraschungen <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Vor jeder Aktion sagt Jon sich, wie sicher sie klappt — aus seiner eigenen Statistik, nicht aus dem Bauch. Danach vergleicht er es mit dem, was wirklich passiert ist. <b>Weicht es ab, lernt er daraus:</b> als Erfahrung, als Notiz im Gedächtnis und, wenn etwas unerwartet bricht, als offene Frage, die er selbst klärt. Frag ihn ruhig: „wie sicher bist du dir?“ — du bekommst eine Zahl mit Begründung. <a href="#lernkreis" style="color:var(--gold-light)">Wie der Lernkreis funktioniert</a></p></div>
-<div class="card"><div class="ic">🗺️</div><h3>Pläne, die sich selbst korrigieren <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Größere Aufträge zerlegt Jon in Schritte mit Abhängigkeiten und arbeitet sie der Reihe nach ab. Scheitert einer, <b>plant er um</b>  — mit dem Fehler als Ausgangspunkt, nicht mit demselben Versuch. Läuft ein Plan glatt durch, merkt er ihn sich als <b>Fertigkeit</b> und macht ihn beim nächsten Mal in einem Rutsch. Riskante Schritte fragen weiterhin nach.</p></div>
-<div class="card"><div class="ic">🧩</div><h3>Jon im Browser <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Die <b>Jon-Erweiterung</b> für Chrome, Edge und Brave: Ein Klick auf das Jon-Symbol, und die offene Seite wird zusammengefasst, erklärt oder weiterrecherchiert — oder du legst sie in ein Projekt und in Jons Wissen. Rechtsklick auf jede Markierung → <b>Mit Jon …</b>. Gerechnet wird auf deinem PC, nicht in der Cloud. <a href="#erweiterung" style="color:var(--gold-light)">So richtest du sie ein</a></p></div>
-<div class="card"><div class="ic">🌐</div><h3>Browser-Agent <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Jon bekommt einen eigenen Browser und benutzt ihn wie du: „Such mir das Buch und leg es in den Warenkorb“ genügt — er plant, öffnet Seiten, liest sie über ihre sichtbaren Elemente, klickt und füllt Formulare aus. <b>Kaufen, buchen, absenden und löschen stoppt ein Wächter im Code</b> und fragt dich mit Anbieter, Betrag und Grund. Passwörter füllt er nie aus, Captchas umgeht er nicht — und versucht eine Website, ihm Anweisungen unterzuschieben, sagt er es dir.</p></div>
-<div class="card"><div class="ic">🧠</div><h3>Jon denkt mit <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Jon merkt sich, was passiert ist: „Was habe ich gestern gemacht?“ beantwortet er aus echten Daten. Er versteht „vorgestern“ und „letzte Woche“, verfolgt <b>Ziele</b> über Tage hinweg mit Frist und nächstem Schritt, arbeitet nachts nach und schlägt von selbst vor, was ansteht. Dazu ein <b>Risikowächter</b>, gesperrte Systemordner, ein Budget für Tag und Monat und ein Knopf zum Rückgängigmachen.</p></div>
-<div class="card"><div class="ic">📲</div><h3>Dein Handy als Gerät <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Aus der gekoppelten Handy-App wird ein Gerät, das Jon abfragen darf — genau so weit, wie du es freigibst. Akku, Benachrichtigungen, Dateien in beide Richtungen, Zwischenablage, Standort, Kontakte, Kamera: jede Funktion ein eigener Schalter, in drei Stufen von Standard bis Sensibel. „Jon, schick die PDF auf mein Handy.“</p></div>
-<div class="card"><div class="ic">🗺️</div><h3>Jon Maps <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Eine eigene Karte in Liquid Glass — mit 3D-Gebäuden, Gelände, Globus und Street Exploration. <b>Neu:</b> Jon bedient die Filter selbst. „Starte eine Route von meinem Standort zum nächsten Supermarkt" reicht: Er sucht den nächstgelegenen Treffer, plant Fuß-, Auto-, Fahrrad- oder ÖPNV-Route und zeigt die Alternativen als Chips — ein Klick, und die Route geht dorthin. Auch Ladennamen versteht er („zum Interspar in meiner Nähe"). Alles über OpenStreetMap, ohne Bezahl-API.</p></div>
-<div class="card"><div class="ic">✈️</div><h3>Jon unterwegs <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Über <b>Telegram</b> hast du Jon und Mini Jon in der Tasche: Standort teilen, Route zum nächsten Supermarkt bekommen, Kartenpin antippen und losgehen. Mit <b>/lernen &lt;Thema&gt;</b> startest du eine Tiefenrecherche, die am PC weiterläuft — fertig meldet sie sich von selbst im Chat. <a href="#unterwegs" style="color:var(--gold-light)">So richtest du es ein</a></p></div>
-<div class="card"><div class="ic">👥</div><h3>Online-Koop <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>ECHO, AETHERIA und die Blockwelt spielt ihr jetzt zu zweit: <b>Spiel erstellen</b>, 6-stelligen Freundschaftscode weitergeben, <b>beitreten</b> — fertig. Serverautoritativ, mit Lobby, Ping, Reconnect und geteilter Welt. <a href="#multiplayer" style="color:var(--gold-light)">So funktioniert es</a></p></div>
-<div class="card"><div class="ic">🙂</div><h3>Mini Jon <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">3D</span></h3><p>Neu: <b>echte 3D-Modelle</b>. Ein Schalter in „Mini Jon anpassen", und Mini Jon, Katze und Hund werden mit einem eigenen WebGL-Renderer plastisch gerendert — echte Geometrie, Licht, Glanzlicht, sprechender Mund und Blinzeln, mit Live-Vorschau im Dialog. Jons kleiner Sohn <b>Emil</b> lebt als niedlicher Kreis auf deinem Bildschirm — immer da, beim Hochfahren schon wach. Sag „Emil" oder „Mini Jon", er hört durchgehend zu, redet mit dir (mit lippensynchronem Mund), merkt sich euer Gespräch und kann alles, was Jon kann. Auch fürs Handy verfügbar. Farben und Gesicht frei anpassbar.</p></div>
-<div class="card"><div class="ic">👨‍💻</div><h3>Jon Code</h3><p>Ein Coding-Agent wie in einem Editor: Dateibaum, Code-Editor und Jon, der <b>ausschließlich im geöffneten Projektordner</b> arbeitet. Sag „schreib mir in index.html ein Login-Formular" — der Code landet direkt in dieser Datei, modern gestaltet mit Liquid Glass statt grauem Standard.</p></div>
-<div class="card"><div class="ic">📊</div><h3>PowerPoint</h3><p>„Mach mir eine Präsentation über den Klimawandel." Jon baut eine fertige <b>.pptx</b> mit Titelfolie, Karten, Kennzahlen, Zeitstrahl, Zitaten, Sprechernotizen und elf Farbwelten — und öffnet sie dir.</p></div>
-<div class="card"><div class="ic">🦙</div><h3>Ollama <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Lokale Modelle ganz ohne API-Key: eigener Einstellungsbereich mit <b>Serverstatus</b>, Verbindungstest, Modellverwaltung und allen Reglern (Temperatur, Top P, Top K, Max Tokens, Context Length, Keep Alive, Seed, System Prompt). Der Server darf auf diesem PC, im <b>Heimnetz</b> oder über <b>Tailscale</b> laufen — und du kannst ihn per <b>Freigabecode</b> für andere Jon-Nutzer freigeben. <a href="ollama.html" style="color:var(--gold-light)">Komplette Anleitung</a></p></div>
-<div class="card"><div class="ic">🆓</div><h3>Lokal &amp; gratis</h3><p>Ollama und LM Studio als lokale Modelle — ganz ohne API-Key und ohne Kosten. Plus Free-Tiers von NVIDIA, Gemini und Groq.</p></div>
-<div class="card"><div class="ic">📞</div><h3>Jon ruft an <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>„Ruf mich in 15 Minuten an." Dein Handy klingelt, du hebst ab, und Jon redet mit dir — er hört zu, antwortet, und du kannst ihn mitten im Satz unterbrechen. <b>Und andersherum:</b> du kannst Jon anrufen, auch von unterwegs mit mobilen Daten. Läuft über <b>SIP im eigenen Netz</b>: kein Twilio, kein Anbieter, <b>keine Kosten pro Anruf</b>. Auch wiederkehrend („jeden Montag um 18 Uhr").</p></div>
-<div class="card"><div class="ic">⏰</div><h3>Erinnerungen</h3><p>„Erinnere mich jeden Tag um 13 Uhr ans Trinken." Jon meldet sich mit Nachricht und Benachrichtigung.</p></div>
-<div class="card"><div class="ic">⚡</div><h3>Echtzeit-Streaming</h3><p>Antworten Token für Token, inklusive sichtbarem Denkprozess — mit großem Antwortlimit.</p></div>
-<div class="card"><div class="ic">🧠</div><h3>Langzeitgedächtnis</h3><p>Jon merkt sich Fakten über alle Unterhaltungen hinweg — lokal in SQLite.</p></div>
-<div class="card"><div class="ic">💻</div><h3>Systemsteuerung</h3><p>PowerShell, CMD, Programme, Explorer, VS Code — plus Systeminfos, Prozesse und Bildschirm sperren.</p></div>
-<div class="card"><div class="ic">📁</div><h3>Dateien &amp; Archive</h3><p>Lesen, schreiben, suchen, kopieren, verschieben, löschen und ZIP packen/entpacken.</p></div>
-<div class="card"><div class="ic">🛡️</div><h3>Erst fragen</h3><p>Jon fragt vor jeder Aktion um Erlaubnis. Jeder Befehl ist aufklappbar sichtbar — oder du erlaubst alles.</p></div>
-<div class="card"><div class="ic">🖱️</div><h3>Maus &amp; Tastatur</h3><p>Jon bewegt die Maus, klickt und tippt selbst — er bedient Apps wie du.</p></div>
-<div class="card"><div class="ic">🎙️</div><h3>Sprachsteuerung</h3><p>Sag einfach „Jon" — er hört zu, führt aus und antwortet dir mit Stimme.</p></div>
-<div class="card"><div class="ic">📚</div><h3>Skills &amp; eigenes Prompt</h3><p>Bearbeitbare Anleitungen (Web-Design, PowerPoint, Spiele …) und ein eigenes System-Prompt — bring Jon deine Arbeitsweise bei.</p></div>
-<div class="card"><div class="ic">🔑</div><h3>Konten &amp; Modelle</h3><p>OpenAI, Anthropic, Gemini, OpenRouter, Groq, xAI &amp; mehr per API-Key. Jon erkennt alle Modelle automatisch.</p></div>
-<div class="card"><div class="ic">📊</div><h3>Nutzung /usage</h3><p>Sieh real gemessene Tokens, Anfragen und Antwortzeiten pro Anbieter.</p></div>
-<div class="card"><div class="ic">🕹️</div><h3>Spiele eingebaut</h3><p>Die <a href="#games" style="color:var(--gold-light)">FelWorks Game Collection</a> gehört dazu: <b>ECHO</b> (Horror), <b>AETHERIA</b> (Open-World-RPG), <b>STARFALL</b> (Schwarzes Loch), die <b>Harmonischen Inseln</b> (cozy Aufbauspiel) und die <b>Blockwelt</b>. Zu finden unter Werkzeuge → Spiele, gestartet wird erst auf Klick. ECHO, AETHERIA und die Blockwelt haben <a href="#multiplayer" style="color:var(--gold-light)">Online-Koop</a> über Freundschaftscode.</p></div>
-<div class="card"><div class="ic">⬇️</div><h3>Downloader <span style="font-size:10px;letter-spacing:.1em;background:#d4af37;color:#0b0b0f;padding:2px 7px;border-radius:20px;vertical-align:2px">NEU</span></h3><p>Link einfügen, Jon liest Titel, Kanal, Dauer und Vorschaubild aus und lädt das Video in <b>bester Qualität, 1080p, 720p oder 480p</b> — oder nur die Tonspur als <b>MP3</b>. Läuft komplett auf deinem PC. <a href="#downloader" style="color:var(--gold-light)">Wie es funktioniert</a></p></div>
-<div class="card"><div class="ic">📱</div><h3>Handy-App</h3><p>Chatten, Apps öffnen, teilen, vorlesen, zuhören und Bilder analysieren — mit eigenem API-Key.</p></div>
-</div>
-</section>
+<main id="inhalt">
 
-<section id="install">
-<h2>In <span class="gold">3 Schritten</span> startklar</h2>
-<p class="sub">Der schnellste Weg: die fertige <a href="#download" style="color:var(--gold-light)">Jon-Setup.exe</a> — App, Mini Jon und Backend inklusive, API-Keys trägst du direkt in der App ein. Für Entwickler geht es auch aus dem Quellcode:</p>
-<div class="steps">
-<div class="step"><div class="n">1</div><div><h4>Projekt herunterladen &amp; API-Key setzen</h4><p>Lege deinen NVIDIA-Key in die Datei <b>.env</b>:</p><code>NVIDIA_API_KEY=nvapi-...
-DEFAULT_MODEL=openai/gpt-oss-120b</code></div></div>
-<div class="step"><div class="n">2</div><div><h4>Abhängigkeiten installieren</h4><code>cd backend &amp;&amp; pip install -r requirements.txt &amp;&amp; cd .. &amp;&amp;
-cd frontend &amp;&amp; npm install</code></div></div>
-<div class="step"><div class="n">3</div><div><h4>Jon starten</h4><p>Ein Doppelklick genügt:</p><code>start-jon.bat</code></div></div>
-</div>
-<div class="video-wrap">
-<iframe src="https://www.youtube.com/embed/tjVsXAmi750" title="Jon Installieren" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
-</div>
-<div class="req">
-<div class="chip">Windows 10 / 11</div>
-<div class="chip">Python 3.12+</div>
-<div class="chip">Node.js 20+</div>
-<div class="chip"><a href="ollama.html" style="color:inherit;text-decoration:none">API-Key oder Ollama (gratis)</a></div>
-</div>
-</section>
+  <section class="hero" id="start">
+    <div class="hero__bg" aria-hidden="true"></div>
+    <div class="container hero__grid">
+      <div class="hero__copy">
+        <a class="newbadge reveal" href="#werkstatt"><b>NEU 4.53.2</b> 📺 Jon zeigt dir seinen Bildschirm über Telegram — und deine Jons finden sich jetzt über das Internet</a>
+        <h1 class="reveal" style="--d:80ms">Dein <em>KI-Desktop</em><br>Assistent für Windows</h1>
+        <p class="lead reveal" style="--d:160ms">Jon von <strong>FelWorks</strong> steuert deinen gesamten Computer intelligent. Multi-Provider-KI mit GPT-OSS 120B über NVIDIA, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis und voller Systemsteuerung — in einem eleganten Black-&amp;-Gold-Design.</p>
+        <div class="hero__actions reveal" style="--d:240ms">
+          <a class="btn btn--primary" href="#download"><svg class="i"><use href="#i-download"/></svg>Jetzt herunterladen</a>
+          <a class="btn btn--ghost" href="ollama.html"><svg class="i"><use href="#i-server"/></svg>Ollama einrichten</a>
+          <a class="btn btn--ghost" href="#features">Mehr erfahren</a>
+        </div>
+        <ul class="proof reveal" style="--d:320ms">
+          <li><svg class="i"><use href="#i-code"/></svg>Kostenlos &amp; Open Source</li>
+          <li><svg class="i"><use href="#i-lock"/></svg>API-Keys bleiben lokal</li>
+          <li><svg class="i"><use href="#i-monitor"/></svg>Windows 10 &amp; 11</li>
+        </ul>
+      </div>
 
-<section id="app">
-<h2>Jon für dein <span class="gold">Handy</span></h2>
-<p class="sub">Die installierbare Web-App: Chatte mit Jon von unterwegs — mit deinem eigenen API-Key, gespeichert nur auf deinem Gerät.</p>
-<div class="steps">
-<div class="step"><div class="n">1</div><div><h4>App auf dem Handy öffnen</h4><p>Öffne diese Website auf deinem Handy und tippe unten auf „Handy-App öffnen".</p></div></div>
-<div class="step"><div class="n">2</div><div><h4>Zum Startbildschirm hinzufügen</h4><p>Im Browser-Menü „Zum Startbildschirm hinzufügen" wählen — Jon installiert sich wie eine echte App.</p></div></div>
-<div class="step"><div class="n">3</div><div><h4>Provider antippen &amp; Key einfügen</h4><p>Tippe auf NVIDIA, GLM oder einen anderen Provider, füge deinen API-Key ein — fertig. Der Key bleibt lokal auf deinem Handy.</p></div></div>
-</div>
-<p class="sub" style="margin-top:34px">Unterwegs kann Jon Apps öffnen (WhatsApp, YouTube, Maps, Kamera …), über das Teilen-Menü teilen, Antworten vorlesen, dir per Spracheingabe zuhören und angehängte Bilder analysieren. Kontakte, Nachrichten und fremde Dateien bleiben aus Sicherheitsgründen tabu — dafür nutzt Jon die bestmögliche offizielle Alternative.</p>
-<p class="sub" style="margin-top:16px">Lieber mit dem Kleinen reden? <b>Mini Jon (Emil)</b> gibt es jetzt auch fürs Handy — genauso klein und direkt wie am PC: antippen oder „Emil" sagen, er antwortet mit Stimme und merkt sich euer Gespräch.</p>
-<div class="cta" style="margin-top:40px">
-<a class="btn btn-primary" href="app/">📱 Handy-App öffnen</a>
-<a class="btn btn-ghost" href="app/mini.html">🙂 Mini Jon öffnen</a>
-</div>
-</section>
+      <div class="hero__visual reveal" style="--d:200ms" aria-hidden="true">
+        <div class="window window--jon">
+          <div class="window__bar">
+            <i></i><i></i><i></i>
+            <span class="window__title"><b></b>Jon</span>
+            <span class="window__status">lokal · verbunden</span>
+          </div>
+          <div class="window__main">
+            <div class="window__side"><i class="is-on"></i><i></i><i></i><i></i></div>
+            <div>
+              <div class="window__body">
+                <div class="msg msg--user">Öffne mein Projekt in VS Code und erklär mir die Architektur.</div>
+                <div class="msg msg--jon">Erledigt. Ich habe das Projekt geöffnet. Die Architektur folgt Clean Architecture mit klarer Trennung von Providern, Services und API-Schicht …</div>
+                <div class="msg msg--user">Erstelle mir daraus eine Zusammenfassung als Datei.</div>
+                <div class="msg msg--jon">Gespeichert unter <code>summary.md</code> ✓</div>
+              </div>
+              <div class="window__input"><span>Frag Jon etwas …</span><span class="window__send"><svg class="i"><use href="#i-arrow"/></svg></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="float float--chip">
+          <svg viewBox="0 0 120 120"><use href="#jon-face"/></svg>
+          <div><b>Mini Jon</b><small>Emil hört zu …</small></div>
+        </div>
+        <figure class="float float--game">
+          <img src="spiele/blockwelt-nativ.jpg" width="960" height="570" alt="">
+          <figcaption>Blockwelt<small>FelWorks Game Collection</small></figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="container">
+      <nav class="jump reveal" aria-label="Auf dieser Seite">
+        <a href="#features">Funktionen</a>
+        <a href="#install">Installation</a>
+        <a href="#app">Handy-App</a>
+        <a href="#unterwegs">Unterwegs</a>
+        <a href="#games">Spiele</a>
+        <a href="#multiplayer">Koop</a>
+        <a href="#downloader">Downloader</a>
+        <a href="#werkstatt">Dateien</a>
+        <a href="#lernkreis">Lernkreis</a>
+        <a href="#erweiterung">Browser</a>
+        <a href="#about">Über mich</a>
+        <a href="#download">Download</a>
+      </nav>
+    </div>
+  </section>
 
-<section id="unterwegs">
-<h2>Jon <span class="gold">unterwegs</span></h2>
-<p class="sub">Dein PC bleibt zu Hause, Jon nicht: Über einen eigenen Telegram-Bot schreibst oder sprichst du mit ihm von überall — und Mini Jon hat seinen eigenen Bot. <b>Neu in v4.34.6:</b> Beide haben jetzt Jon Maps und Jon Deep Learning dabei.</p>
-<div class="steps">
-<div class="step"><div class="n">1</div><div><h4>Bot anlegen &amp; verbinden</h4><p>Bei <b>@BotFather</b> in Telegram einen Bot erstellen, den Token in Jons Einstellungen einfügen, dem Bot einmal schreiben — dieser Chat gehört ab dann fest zu deinem PC. Für Mini Jon einen zweiten Bot mit eigenem Token.</p></div></div>
-<div class="step"><div class="n">2</div><div><h4>Standort teilen</h4><p>📎 → Standort. Ab dann ist „hier" wirklich dort, wo du bist: <i>„Route von meinem Standort zur nächsten Apotheke"</i> — Jon antwortet mit Dauer, Entfernung, einem <b>Kartenpin zum Antippen</b> und einem Routenlink fürs Handy.</p></div></div>
-<div class="step"><div class="n">3</div><div><h4>Von unterwegs lernen lassen</h4><p><code>/lernen Quantencomputer 30 Minuten</code> startet eine echte Tiefenrecherche auf deinem PC. <code>/lernstatus</code> zeigt den Stand, <code>/lernstop</code> bricht ab, <code>/lernweiter</code> macht weiter — und wenn Jon fertig ist, schickt er dir Zusammenfassung, Quellen und Dateien in den Chat.</p></div></div>
-<div class="step" style="margin-top:22px"><div class="n">📱</div><div><h4>Oder ganz ohne Telegram: der Pi im WLAN</h4><p>Läuft Jon auf einem <b>Raspberry Pi</b>, öffnest du am Handy einfach <b>http://&lt;pi&gt;:8756/app</b> — das ist die volle Jon-Oberfläche im Browser, <b>seit v4.34.7 fürs Handy gebaut</b>: Unterhaltungen als Schublade hinter ☰, mitschrumpfende Kopfzeile, Daumen-große Knöpfe, kein Zoom-Sprung beim Tippen und eine Eingabezeile, die über der Browserleiste bleibt. „Zum Startbildschirm hinzufügen" macht daraus eine App.</p></div></div>
-</div>
-<p class="sub" style="margin-top:34px">In Gruppen antworten Jon und Mini Jon nur, wenn sie mit @Namen angesprochen werden — und dort ganz bewusst mit kleinerem Werkzeugkasten: Karten, Routen, Websuche, Wetter und Deep Learning ja, dein PC und deine privaten Daten nein. Den vollen Zugriff hat nur der Chat, der mit deinem PC verbunden ist.</p>
-</section>
+  <section class="section section--tight" id="features">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Funktionen</p>
+        <h2>Was Jon <em>kann</em></h2>
+        <p class="section__lead">Nicht nur ein Chat — ein echter Assistent, der handelt.</p>
+      </header>
+      <details class="changelog reveal">
+        <summary><span>Neu in den letzten Versionen</span><span class="plus" aria-hidden="true"></span></summary>
+        <p>Neu in v4.34.7: <b>Jon am Handy</b> — läuft Jon auf einem Raspberry Pi, rufst du im WLAN <b>http://&lt;pi&gt;:8756/app</b> auf und bedienst die komplette Oberfläche mit dem Daumen: Unterhaltungen fahren als Schublade herein, die Kopfzeile schrumpft mit, Eingabefelder lösen kein Zoomen mehr aus, und die Eingabezeile bleibt über Browserleiste und Homebalken stehen. Am PC bleibt alles, wie es war. Aus v4.34.6: <b>Jon Maps versteht Filter</b> — sag „starte eine Route von meinem Standort zum nächsten Supermarkt" oder „zum Interspar in meiner Nähe", und Jon sucht den nächstgelegenen Treffer selbst, plant die Route und stellt die anderen Läden gleich daneben; ein Klick darauf rechnet die Route sofort dorthin um. 22 Filter von Supermarkt über Apotheke bis Bäckerei, dazu Marken- und Ladennamen. Und Jon hat das jetzt auch <b>unterwegs per Telegram</b> dabei — genau wie Mini Jon: Standort teilen, Route bekommen, Kartenpin aufs Handy, und mit <b>/lernen</b> startest du eine Tiefenrecherche von unterwegs, die dir Jon fertig in den Chat schickt, sobald sie durch ist. Dazu kannst du Jon im Zahnrad-Menü jetzt vollständig <b>deinstallieren</b> — mit Vorschau, was wirklich gelöscht wird. Aus v4.34.5: <b>Freunde auf der Karte</b> — gib deinen Standort für einzelne Freunde frei (standardmäßig aus) und sieh, wo sie gerade sind, verschlüsselt über Jons eigene Freundesverbindung. Dazu: die Verstorbenen in <b>ECHO</b> haben endlich ein Modell, im Multiplayer schauen Freunde wieder dorthin, wo sie hinsehen, die <b>Harmonischen Inseln</b> speichern ihren Spielstand und wachsen nach dem Leuchtturm weiter, und Mini Jon bekommt Wangen in 3D. Aus v4.34.4: <b>Jon Maps</b> — eine eigene Karten- und Navigationsplattform in Liquid Glass, mit Hell- und Dunkelmodus, 3D-Gebäuden, echtem Gelände, Globus-Ansicht, Suche, Routen für Fuß, Auto, Fahrrad und Bus &amp; Bahn, Street Exploration mit echten Straßenfotos und einem freien 3D-Erkundungsmodus als Mensch, Auto oder Flugzeug. Dazu <b>Jon Deep Learning</b>: Du gibst Jon ein Thema und ein Zeitbudget, er recherchiert eigenständig im Web, vergleicht Quellen, schreibt sein Wissen in Markdown-Dateien und baut daraus einen Skill, den er ab dann von selbst nutzt. Alles ohne Bezahl-API. Aus v4.34.1: <b>Koop auch in den neuen Spielen</b> — Harmonische Inseln und Blockwelt spielt ihr zu zweit über einen Freundschaftscode, und die Harmonischen Inseln haben jetzt ein Ziel: der Leuchtturm sagt dir, was ihm fehlt, und die Bewohner haben Wünsche. Aus v4.34.0: Die <b>Blockwelt</b> hat keinen Rand mehr — die Welt wächst weiter, solange du läufst, mit Ebenen, Wäldern, Wüsten, Schneeland und Gebirgen, 16 Blocksorten mit echten Texturen, TNT und Enderperle. Aus v4.33.9: die <b>Harmonischen Inseln</b>, ein ruhiges Aufbauspiel in isometrischer Schrägsicht, und der dritte Design-Modus <b>Cozy</b> in Weiß und Rosa. Aus v4.33.8: <b>Jon ruft dich an</b> — dein Handy klingelt wie bei einem normalen Anruf, über SIP direkt aus Jons Backend, ohne Anbieter und ohne Kosten pro Anruf. Dazu aus v4.33.6 die <b>Schwarzloch-Simulation STARFALL</b> nach dem relativistischen Flussprofil von Page und Thorne. Und aus v4.33: <b>Ollama komplett eingebaut — und teilbar</b>. Eigener Einstellungsbereich mit Serverstatus, Verbindungstest, Modellverwaltung und allen Reglern; der Server darf auf einem anderen PC oder über Tailscale laufen. Und mit der <b>Serverfreigabe</b> chatten deine Freunde per Freigabecode über deine Grafikkarte — teilen geht per Knopf direkt im Chat. Dazu neu: <b>echte 3D-Modelle</b> für Mini Jon, Katze und Hund. Dazu aus v3.36: Koop über zwei Geräte, und aus v3.35: Updates laufen direkt in der App.</p>
+      </details>
+      <div style="height:16px"></div>
+      <div class="feature-grid">
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-slides"/></svg></span>
+          <h3>Präsentationen mit Bewegung<span class="pill">Neu</span></h3>
+          <p>Sag das Thema, und Jon baut eine echte PowerPoint: <b>Folienübergänge</b> vom Blenden bis zum Morphen, <b>Animationen</b>, die Stichpunkte nacheinander einblenden, <b>echte Diagramme und Tabellen</b> zum Weiterbearbeiten und Bilder, die er selbst malt. Mit ausformuliertem Text und Sprechernotizen — nicht fünf Stichwörter pro Folie.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-trend"/></svg></span>
+          <h3>Jon lernt aus Überraschungen<span class="pill">Neu</span></h3>
+          <p>Vor jeder Aktion sagt Jon sich, wie sicher sie klappt — aus seiner eigenen Statistik, nicht aus dem Bauch. Danach vergleicht er es mit dem, was wirklich passiert ist. <b>Weicht es ab, lernt er daraus:</b> als Erfahrung, als Notiz im Gedächtnis und, wenn etwas unerwartet bricht, als offene Frage, die er selbst klärt. Frag ihn ruhig: „wie sicher bist du dir?“ — du bekommst eine Zahl mit Begründung. <a href="#lernkreis">Wie der Lernkreis funktioniert</a></p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-route"/></svg></span>
+          <h3>Pläne, die sich selbst korrigieren<span class="pill">Neu</span></h3>
+          <p>Größere Aufträge zerlegt Jon in Schritte mit Abhängigkeiten und arbeitet sie der Reihe nach ab. Scheitert einer, <b>plant er um</b> — mit dem Fehler als Ausgangspunkt, nicht mit demselben Versuch. Läuft ein Plan glatt durch, merkt er ihn sich als <b>Fertigkeit</b> und macht ihn beim nächsten Mal in einem Rutsch. Riskante Schritte fragen weiterhin nach.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-puzzle"/></svg></span>
+          <h3>Jon im Browser<span class="pill">Neu</span></h3>
+          <p>Die <b>Jon-Erweiterung</b> für Chrome, Edge und Brave: Ein Klick auf das Jon-Symbol, und die offene Seite wird zusammengefasst, erklärt oder weiterrecherchiert — oder du legst sie in ein Projekt und in Jons Wissen. Rechtsklick auf jede Markierung → <b>Mit Jon …</b>. Gerechnet wird auf deinem PC, nicht in der Cloud. <a href="#erweiterung">So richtest du sie ein</a></p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-globe"/></svg></span>
+          <h3>Browser-Agent<span class="pill">Neu</span></h3>
+          <p>Jon bekommt einen eigenen Browser und benutzt ihn wie du: „Such mir das Buch und leg es in den Warenkorb“ genügt — er plant, öffnet Seiten, liest sie über ihre sichtbaren Elemente, klickt und füllt Formulare aus. <b>Kaufen, buchen, absenden und löschen stoppt ein Wächter im Code</b> und fragt dich mit Anbieter, Betrag und Grund. Passwörter füllt er nie aus, Captchas umgeht er nicht — und versucht eine Website, ihm Anweisungen unterzuschieben, sagt er es dir.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-spark"/></svg></span>
+          <h3>Jon denkt mit<span class="pill">Neu</span></h3>
+          <p>Jon merkt sich, was passiert ist: „Was habe ich gestern gemacht?“ beantwortet er aus echten Daten. Er versteht „vorgestern“ und „letzte Woche“, verfolgt <b>Ziele</b> über Tage hinweg mit Frist und nächstem Schritt, arbeitet nachts nach und schlägt von selbst vor, was ansteht. Dazu ein <b>Risikowächter</b>, gesperrte Systemordner, ein Budget für Tag und Monat und ein Knopf zum Rückgängigmachen.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-phone"/></svg></span>
+          <h3>Dein Handy als Gerät<span class="pill">Neu</span></h3>
+          <p>Aus der gekoppelten Handy-App wird ein Gerät, das Jon abfragen darf — genau so weit, wie du es freigibst. Akku, Benachrichtigungen, Dateien in beide Richtungen, Zwischenablage, Standort, Kontakte, Kamera: jede Funktion ein eigener Schalter, in drei Stufen von Standard bis Sensibel. „Jon, schick die PDF auf mein Handy.“</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-map"/></svg></span>
+          <h3>Jon Maps<span class="pill">Neu</span></h3>
+          <p>Eine eigene Karte in Liquid Glass — mit 3D-Gebäuden, Gelände, Globus und Street Exploration. <b>Neu:</b> Jon bedient die Filter selbst. „Starte eine Route von meinem Standort zum nächsten Supermarkt" reicht: Er sucht den nächstgelegenen Treffer, plant Fuß-, Auto-, Fahrrad- oder ÖPNV-Route und zeigt die Alternativen als Chips — ein Klick, und die Route geht dorthin. Auch Ladennamen versteht er („zum Interspar in meiner Nähe"). Alles über OpenStreetMap, ohne Bezahl-API.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-send"/></svg></span>
+          <h3>Jon unterwegs<span class="pill">Neu</span></h3>
+          <p>Über <b>Telegram</b> hast du Jon und Mini Jon in der Tasche: Standort teilen, Route zum nächsten Supermarkt bekommen, Kartenpin antippen und losgehen. Mit <b>/lernen &lt;Thema&gt;</b> startest du eine Tiefenrecherche, die am PC weiterläuft — fertig meldet sie sich von selbst im Chat. <a href="#unterwegs">So richtest du es ein</a></p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-users"/></svg></span>
+          <h3>Online-Koop<span class="pill">Neu</span></h3>
+          <p>ECHO, AETHERIA und die Blockwelt spielt ihr jetzt zu zweit: <b>Spiel erstellen</b>, 6-stelligen Freundschaftscode weitergeben, <b>beitreten</b> — fertig. Serverautoritativ, mit Lobby, Ping, Reconnect und geteilter Welt. <a href="#multiplayer">So funktioniert es</a></p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-smile"/></svg></span>
+          <h3>Mini Jon<span class="pill">3D</span></h3>
+          <p>Neu: <b>echte 3D-Modelle</b>. Ein Schalter in „Mini Jon anpassen", und Mini Jon, Katze und Hund werden mit einem eigenen WebGL-Renderer plastisch gerendert — echte Geometrie, Licht, Glanzlicht, sprechender Mund und Blinzeln, mit Live-Vorschau im Dialog. Jons kleiner Sohn <b>Emil</b> lebt als niedlicher Kreis auf deinem Bildschirm — immer da, beim Hochfahren schon wach. Sag „Emil" oder „Mini Jon", er hört durchgehend zu, redet mit dir (mit lippensynchronem Mund), merkt sich euer Gespräch und kann alles, was Jon kann. Auch fürs Handy verfügbar. Farben und Gesicht frei anpassbar.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-code"/></svg></span>
+          <h3>Jon Code</h3>
+          <p>Ein Coding-Agent wie in einem Editor: Dateibaum, Code-Editor und Jon, der <b>ausschließlich im geöffneten Projektordner</b> arbeitet. Sag „schreib mir in index.html ein Login-Formular" — der Code landet direkt in dieser Datei, modern gestaltet mit Liquid Glass statt grauem Standard.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-slides"/></svg></span>
+          <h3>PowerPoint</h3>
+          <p>„Mach mir eine Präsentation über den Klimawandel." Jon baut eine fertige <b>.pptx</b> mit Titelfolie, Karten, Kennzahlen, Zeitstrahl, Zitaten, Sprechernotizen und elf Farbwelten — und öffnet sie dir.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-server"/></svg></span>
+          <h3>Ollama<span class="pill">Neu</span></h3>
+          <p>Lokale Modelle ganz ohne API-Key: eigener Einstellungsbereich mit <b>Serverstatus</b>, Verbindungstest, Modellverwaltung und allen Reglern (Temperatur, Top P, Top K, Max Tokens, Context Length, Keep Alive, Seed, System Prompt). Der Server darf auf diesem PC, im <b>Heimnetz</b> oder über <b>Tailscale</b> laufen — und du kannst ihn per <b>Freigabecode</b> für andere Jon-Nutzer freigeben. <a href="ollama.html">Komplette Anleitung</a></p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-tag"/></svg></span>
+          <h3>Lokal &amp; gratis</h3>
+          <p>Ollama und LM Studio als lokale Modelle — ganz ohne API-Key und ohne Kosten. Plus Free-Tiers von NVIDIA, Gemini und Groq.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-call"/></svg></span>
+          <h3>Jon ruft an<span class="pill">Neu</span></h3>
+          <p>„Ruf mich in 15 Minuten an." Dein Handy klingelt, du hebst ab, und Jon redet mit dir — er hört zu, antwortet, und du kannst ihn mitten im Satz unterbrechen. <b>Und andersherum:</b> du kannst Jon anrufen, auch von unterwegs mit mobilen Daten. Läuft über <b>SIP im eigenen Netz</b>: kein Twilio, kein Anbieter, <b>keine Kosten pro Anruf</b>. Auch wiederkehrend („jeden Montag um 18 Uhr").</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-clock"/></svg></span>
+          <h3>Erinnerungen</h3>
+          <p>„Erinnere mich jeden Tag um 13 Uhr ans Trinken." Jon meldet sich mit Nachricht und Benachrichtigung.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-bolt"/></svg></span>
+          <h3>Echtzeit-Streaming</h3>
+          <p>Antworten Token für Token, inklusive sichtbarem Denkprozess — mit großem Antwortlimit.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-db"/></svg></span>
+          <h3>Langzeitgedächtnis</h3>
+          <p>Jon merkt sich Fakten über alle Unterhaltungen hinweg — lokal in SQLite.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-monitor"/></svg></span>
+          <h3>Systemsteuerung</h3>
+          <p>PowerShell, CMD, Programme, Explorer, VS Code — plus Systeminfos, Prozesse und Bildschirm sperren.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-folder"/></svg></span>
+          <h3>Dateien &amp; Archive</h3>
+          <p>Lesen, schreiben, suchen, kopieren, verschieben, löschen und ZIP packen/entpacken.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-shield"/></svg></span>
+          <h3>Erst fragen</h3>
+          <p>Jon fragt vor jeder Aktion um Erlaubnis. Jeder Befehl ist aufklappbar sichtbar — oder du erlaubst alles.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-cursor"/></svg></span>
+          <h3>Maus &amp; Tastatur</h3>
+          <p>Jon bewegt die Maus, klickt und tippt selbst — er bedient Apps wie du.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-mic"/></svg></span>
+          <h3>Sprachsteuerung</h3>
+          <p>Sag einfach „Jon" — er hört zu, führt aus und antwortet dir mit Stimme.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-book"/></svg></span>
+          <h3>Skills &amp; eigenes Prompt</h3>
+          <p>Bearbeitbare Anleitungen (Web-Design, PowerPoint, Spiele …) und ein eigenes System-Prompt — bring Jon deine Arbeitsweise bei.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-key"/></svg></span>
+          <h3>Konten &amp; Modelle</h3>
+          <p>OpenAI, Anthropic, Gemini, OpenRouter, Groq, xAI &amp; mehr per API-Key. Jon erkennt alle Modelle automatisch.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-bars"/></svg></span>
+          <h3>Nutzung /usage</h3>
+          <p>Sieh real gemessene Tokens, Anfragen und Antwortzeiten pro Anbieter.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-gamepad"/></svg></span>
+          <h3>Spiele eingebaut</h3>
+          <p>Die <a href="#games">FelWorks Game Collection</a> gehört dazu: <b>ECHO</b> (Horror), <b>AETHERIA</b> (Open-World-RPG), <b>STARFALL</b> (Schwarzes Loch), die <b>Harmonischen Inseln</b> (cozy Aufbauspiel) und die <b>Blockwelt</b>. Zu finden unter Werkzeuge → Spiele, gestartet wird erst auf Klick. ECHO, AETHERIA und die Blockwelt haben <a href="#multiplayer">Online-Koop</a> über Freundschaftscode.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-download"/></svg></span>
+          <h3>Downloader<span class="pill">Neu</span></h3>
+          <p>Link einfügen, Jon liest Titel, Kanal, Dauer und Vorschaubild aus und lädt das Video in <b>bester Qualität, 1080p, 720p oder 480p</b> — oder nur die Tonspur als <b>MP3</b>. Läuft komplett auf deinem PC. <a href="#downloader">Wie es funktioniert</a></p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-phone"/></svg></span>
+          <h3>Handy-App</h3>
+          <p>Chatten, Apps öffnen, teilen, vorlesen, zuhören und Bilder analysieren — mit eigenem API-Key.</p>
+        </article>
+      </div>
+    </div>
+  </section>
 
-<section id="games">
-<h2>Jon <span class="gold">Spiele</span></h2>
-<p class="sub">Die FelWorks Game Collection ist Teil von Jon. Werkzeuge → Spiele → Starten — Jon bleibt dabei offen, nichts startet von allein. <b>Neu:</b> Harmonische Inseln, ein ruhiges Aufbauspiel in isometrischer Schrägsicht — und die Blockwelt läuft jetzt als eigenes Programm.</p>
-<div class="games">
-<div class="game">
-<img src="spiele/echo.jpg" alt="Screenshot aus ECHO" loading="lazy">
-<div class="body">
-<h3>🕯️ ECHO</h3>
-<div class="genre">Psychological Horror · FelWorks</div>
-<p>First-Person-Horror in einem seit Jahren geschlossenen Krankenhaus: 4 Etagen, 464 Räume, eine Regie, die auf dein Verhalten reagiert, und fünf Enden. <b>Neu:</b> in jedem Flur wartet mindestens ein Jumpscare mit eigenem Kreaturen-Modell, <b>H</b> blendet den direkten Weg zum Ziel ein — und zu zweit im Koop.</p>
-<div class="keys">WASD laufen · F Taschenlampe · H Wegweiser · Tab Tagebuch · 👥 Online-Koop</div>
-</div>
-</div>
-<div class="game">
-<img src="spiele/aetheria.jpg" alt="Screenshot aus AETHERIA" loading="lazy">
-<div class="body">
-<h3>🗡️ AETHERIA</h3>
-<div class="genre">Fantasy Open World RPG · FelWorks</div>
-<p>Offene Fantasy-Welt mit sechs Dörfern, Bewohnern, Aufträgen, Stufenaufstieg, Tag- und Nachtwechsel und einer Weltkarte. <b>Neu:</b> Online-Koop über Freundschaftscode — zwei Reisende, eine Welt, gemeinsame Quests und ein geteilter Tag-Nacht-Zyklus.</p>
-<div class="keys">WASD laufen · E sprechen &amp; sammeln · Tab Karte · Q Aufträge · 👥 Online-Koop</div>
-</div>
-</div>
-<div class="game">
-<img src="spiele/starfall.jpg" alt="Screenshot aus der STARFALL Schwarzloch-Simulation" loading="lazy">
-<div class="body">
-<h3>🕳️ STARFALL</h3>
-<div class="genre">Physik-Simulation · FelWorks</div>
-<p>Ein rotierendes Schwarzes Loch in Echtzeit — für jeden Bildpunkt wird eine Nullgeodäte in der Kerr-Metrik integriert. Gravitationslinse, Photonenring und die Scheibe, die durch die Lichtkrümmung gleichzeitig über und unter dem Horizont erscheint, entstehen aus der Rechnung, nicht aus einem Effekt. <b>Sechs Objekte</b> von Sagittarius&nbsp;A* bis M87*, Masse und Spin live verstellbar, alle Kennzahlen mitgerechnet. <b>Neu:</b> Die Scheibe strahlt nach dem relativistischen Flussprofil von Page und Thorne, mit Randverdunklung und endlicher Schichtdicke — und sobald du die Kamera stehen lässt, baut sich das Bild in voller Auflösung auf, bis der Photonenring messerscharf steht.</p>
-<div class="keys">1-6 Objekt · Ziehen drehen · Mausrad Abstand · V Ansicht · Pfeile Regler · 🕳️ Kerr-Metrik</div>
-</div>
-</div>
-<div class="game">
-<img src="spiele/harmonie.jpg" alt="Screenshot aus den Harmonischen Inseln" loading="lazy">
-<div class="body">
-<h3>🏝️ Harmonische Inseln</h3>
-<div class="genre">Cozy Aufbauspiel · FelWorks</div>
-<p>Ein schwebendes Archipel in der Abendsonne, von oben in echter 2.5D-Schrägsicht. Von der Herzinsel mit Markt, Werkstatt und Gildenhalle führen Holzbrücken zur Farm, zur Steinmutter und zur Werft. Der unfertige Leuchtturm sagt dir, was ihm fehlt: mal Korn von der Farm, mal Stein aus dem Berg, mal Bretter aus der Werkstatt. Sechs Stufen später brennt sein Licht und alle feiern. <b>Neu:</b> Über dem Kopf mancher Bewohner schwebt ein Wunsch — wer schenkt, bekommt ein Herz. Und zu zweit geht es auch. Die Bewohner leben ihr eigenes Leben — sie wandern über die Brücken, tragen selbst Bretter zur Baustelle, spielen mit ihren Haustieren und jubeln mit, wenn der Turm wächst. Kein Zeitdruck, kein Verlieren.</p>
-<div class="keys">WASD laufen · E sammeln &amp; abgeben · F schenken · K Koop · Tab Übersicht · 🌈 Goldstunde</div>
-</div>
-</div>
-<div class="game">
-<img src="spiele/blockwelt-nativ.jpg" alt="Screenshot aus der Blockwelt" loading="lazy">
-<div class="body">
-<h3><img src="spiele/blockwelt-icon-192.png" alt="" width="26" height="26" style="width:26px;height:26px;display:inline-block;border-radius:7px;vertical-align:-5px;margin-right:8px" loading="lazy">Blockwelt</h3>
-<div class="genre">Sandbox · FelWorks</div>
-<p>Die Voxel-Sandbox, in der Mini Jon mitspielt — als eigenes Programm, nicht im Browser. <b>Neu:</b> Die Welt hat keinen Rand. Felder entstehen, während du läufst, und werden hinter dir wieder freigegeben; aus Perlin-Rauschen wachsen Ebenen, Wälder, Wüsten mit Kakteen, Schneeland und Gebirge. 16 Blocksorten mit echten Texturen, die beim Start selbst gemalt werden, dazu TNT mit Lunte und die Enderperle, die dich dorthin versetzt, wo sie landet. Drück T, und Mini Jon baut dir Haus, Turm, Brücke, Baum oder Leuchtfeuer, Block für Block zum Zuschauen.</p>
-<div class="keys">WASD laufen · Links abbauen · Rechts setzen · 1-9 Block · T Mini Jon · K Koop · ∞ endlos</div>
-</div>
-</div>
-</div>
-<div class="note">Alle fünf sind im Download enthalten und starten erst, wenn du in Jon auf <b>Starten</b> klickst — jedes in einem eigenen Fenster. STARFALL und die Harmonischen Inseln erkennen schwache Grafikkarten und schalten dort selbst einen Gang zurück.</div>
-</section>
+  <section class="section" id="install">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Installation</p>
+        <h2>In <em>3 Schritten</em> startklar</h2>
+        <p class="section__lead">Der schnellste Weg: die fertige <a class="gold-link" href="#download">Jon-Setup.exe</a> — App, Mini Jon und Backend inklusive, API-Keys trägst du direkt in der App ein. Für Entwickler geht es auch aus dem Quellcode:</p>
+      </header>
+      <div class="steps-grid">
+        <article class="step-card reveal">
+          <span class="step-card__n">1</span>
+          <h3>Projekt herunterladen &amp; API-Key setzen</h3><p>Lege deinen NVIDIA-Key in die Datei <b>.env</b>:</p><code class="code">NVIDIA_API_KEY=nvapi-...
+DEFAULT_MODEL=openai/gpt-oss-120b</code>
+        </article>
+        <article class="step-card reveal" style="--d:60ms">
+          <span class="step-card__n">2</span>
+          <h3>Abhängigkeiten installieren</h3><code class="code">cd backend &amp;&amp; pip install -r requirements.txt &amp;&amp; cd .. &amp;&amp;
+cd frontend &amp;&amp; npm install</code>
+        </article>
+        <article class="step-card reveal" style="--d:120ms">
+          <span class="step-card__n">3</span>
+          <h3>Jon starten</h3><p>Ein Doppelklick genügt:</p><code class="code">start-jon.bat</code>
+        </article>
+      </div>
+      <div class="video reveal" data-video="tjVsXAmi750" data-title="Jon Installieren">
+        <img src="assets/img/video.webp" width="640" height="360" alt="" loading="lazy">
+        <button class="video__play" type="button" aria-label="Video „Jon Installieren“ abspielen">
+          <span class="video__btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7L8 5Z"/></svg></span>
+          <span class="video__title">Jon installieren – Video ansehen</span>
+          <span class="video__hint">Beim Abspielen wird das Video von YouTube geladen.</span>
+        </button>
+      </div>
+      <div class="chips-row reveal">
+        <span class="chip">Windows 10 / 11</span>
+        <span class="chip">Python 3.12+</span>
+        <span class="chip">Node.js 20+</span>
+        <a class="chip" href="ollama.html">API-Key oder Ollama (gratis)</a>
+      </div>
+    </div>
+  </section>
 
-<section id="multiplayer">
-<h2>Zusammen <span class="gold">spielen</span></h2>
-<p class="sub">ECHO, AETHERIA und die Blockwelt haben einen echten Online-Koop — serverautoritativ, mit Freundschaftscode, Lobby, Ping-Anzeige und automatischem Reconnect. Der Server ist Jon selbst: er läuft schon, wenn du <b>start-jon.bat</b> oder die <b>Jon.exe</b> startest. Seit v3.36.3 reicht im Heimnetz der Code allein — Jon sucht den Gastgeber im Netzwerk, dein Laptop findet deinen PC ohne eine einzige Einstellung.</p>
-<div class="mp-hero">
-<ol class="mp-steps">
-<li><span class="num">1</span><div><b>Spiel erstellen</b><p>Ein Klick — der Server legt eine Lobby an und würfelt einen 6-stelligen Freundschaftscode.</p></div></li>
-<li><span class="num">2</span><div><b>Code weitergeben</b><p>Zum Beispiel <b style="color:var(--gold-light);letter-spacing:3px">AB39KD</b>. Im gleichen Netzwerk ist das alles — für Spiele übers Internet gibt es zusätzlich die Einladung mit Adresse: <b>AB39KD@84.12.9.3:8760</b>, ein Klick zum Kopieren.</p></div></li>
-<li><span class="num">3</span><div><b>Beitreten und bereit</b><p>Dein Freund tippt den Code ein — Jon sucht den Gastgeber im Netzwerk und verbindet direkt zu ihm. Dann „Bereit“, der Host startet, beide spawnen gleichzeitig in dieselbe Welt.</p></div></li>
-</ol>
-<div class="mp-card">
-<div class="mp-code"><div><small>Freundschaftscode</small><b>AB39KD</b></div><span class="mp-tag">Lobby offen</span></div>
-<div class="mp-row"><span class="mp-dot"></span><span class="who">Felix</span><span class="mp-tag">Host</span><span class="ms">14 ms</span></div>
-<div class="mp-row"><span class="mp-dot"></span><span class="who">Jonas</span><span class="mp-tag">Bereit</span><span class="ms">28 ms</span></div>
-<div class="mp-row" style="opacity:.45"><span class="mp-dot" style="background:#3a4152"></span><span class="who">Freier Platz</span></div>
-</div>
-</div>
-<div class="mp-feat">
-<div><h4>🌍 Laptop findet PC von allein</h4><p>Im Heimnetz genügt der Code: Jon fragt über das Netzwerk, wer die Lobby hat, und schickt den Spieler direkt zum Gastgeber. Offen sind dafür nur die Koop-Ports <b>8760</b> (Browser), <b>8759</b> (ECHO/AETHERIA) und die Suche auf <b>UDP 8761</b> — Chat, Dateien und PC-Steuerung bleiben auf deinem Rechner. Blockt die Windows-Firewall, gibt ein Knopf in der Lobby die drei Ports frei. Übers Internet: Portfreigabe beim Gastgeber.</p></div>
-<div><h4>🛡️ Server hat das letzte Wort</h4><p>Positionen, Blöcke, Türen, Rätsel, Quests und der Spielstand werden serverseitig geprüft. Wer sich unmöglich bewegt, wird zurückgesetzt — Items lassen sich nicht herbeizaubern.</p></div>
-<div><h4>🎯 Flüssig statt ruckelig</h4><p>Delta-komprimierte Snapshots mit 20 Hz, Interpolation, Client-Prediction und Lag-Kompensation. Keine Teleports, kein Gummiband.</p></div>
-<div><h4>🔌 Verbindung abgerissen?</h4><p>Heartbeat, Ping, Paketverlust-Anzeige und automatischer Reconnect. Deine Sitzung bleibt auf dem Server erhalten — auch wenn Jon neu startet.</p></div>
-<div><h4>🧑‍🤝‍🧑 Eigener Charakter</h4><p>Jeder bekommt eine eigene PlayerID, ein eigenes Modell und ein Namensschild mit Ping. Laufen, rennen, ducken, springen, fallen, angreifen — alles synchron. Und jede Figur schaut dorthin, wohin ihr Spieler wirklich blickt, inklusive Kopfneigung.</p></div>
-<div><h4>🧱 Gemeinsame Welt</h4><p>Ein Blockwechsel, eine Tür, ein Hebel, ein gelöstes Rätsel, ein NPC-Gespräch: was einer tut, sieht der andere sofort. Auch Jons Bauaufträge in der Blockwelt.</p></div>
-</div>
-</section>
+  <section class="section section--tight" id="app">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Handy-App</p>
+        <h2>Jon für dein <em>Handy</em></h2>
+        <p class="section__lead">Die installierbare Web-App: Chatte mit Jon von unterwegs — mit deinem eigenen API-Key, gespeichert nur auf deinem Gerät.</p>
+      </header>
+      <div class="steps-grid">
+        <article class="step-card reveal">
+          <span class="step-card__n">1</span>
+          <h3>App auf dem Handy öffnen</h3><p>Öffne diese Website auf deinem Handy und tippe unten auf „Handy-App öffnen".</p>
+        </article>
+        <article class="step-card reveal" style="--d:60ms">
+          <span class="step-card__n">2</span>
+          <h3>Zum Startbildschirm hinzufügen</h3><p>Im Browser-Menü „Zum Startbildschirm hinzufügen" wählen — Jon installiert sich wie eine echte App.</p>
+        </article>
+        <article class="step-card reveal" style="--d:120ms">
+          <span class="step-card__n">3</span>
+          <h3>Provider antippen &amp; Key einfügen</h3><p>Tippe auf NVIDIA, GLM oder einen anderen Provider, füge deinen API-Key ein — fertig. Der Key bleibt lokal auf deinem Handy.</p>
+        </article>
+      </div>
+      <p class="prose reveal">Unterwegs kann Jon Apps öffnen (WhatsApp, YouTube, Maps, Kamera …), über das Teilen-Menü teilen, Antworten vorlesen, dir per Spracheingabe zuhören und angehängte Bilder analysieren. Kontakte, Nachrichten und fremde Dateien bleiben aus Sicherheitsgründen tabu — dafür nutzt Jon die bestmögliche offizielle Alternative.</p>
+      <p class="prose reveal">Lieber mit dem Kleinen reden? <b>Mini Jon (Emil)</b> gibt es jetzt auch fürs Handy — genauso klein und direkt wie am PC: antippen oder „Emil" sagen, er antwortet mit Stimme und merkt sich euer Gespräch.</p>
+      <div class="split-cta reveal">
+        <a class="btn btn--primary" href="app/index.html"><svg class="i"><use href="#i-phone"/></svg>Handy-App öffnen</a>
+        <a class="btn btn--ghost" href="app/mini.html"><svg class="i"><use href="#i-smile"/></svg>Mini Jon öffnen</a>
+        <a class="btn btn--ghost" href="https://play.google.com/store/apps/developer?id=FelWorks" target="_blank" rel="noopener">Jon – KI bei Google Play <svg class="i"><use href="#i-arrow-ur"/></svg></a>
+      </div>
+    </div>
+  </section>
 
-<section id="downloader">
-<h2>Der <span class="gold">Downloader</span></h2>
-<p class="sub">Ein Link genügt. Jon liest aus, was dahintersteckt, zeigt dir Titel, Kanal, Dauer und Vorschaubild — und lädt dann herunter, was du willst. Zu finden unter Werkzeuge → Downloader.</p>
-<div class="grid">
-<div class="card"><div class="ic">🔎</div><h3>Erst prüfen</h3><p>Bevor irgendetwas geladen wird, holt Jon die Eckdaten: <b>Titel, Kanal, Dauer, Vorschaubild</b>. So siehst du sofort, ob der Link stimmt — und wie groß das wird.</p></div>
-<div class="card"><div class="ic">🎬</div><h3>Video oder nur Ton</h3><p>Vier Qualitätsstufen — <b>beste verfügbare, 1080p, 720p, 480p</b> — oder du nimmst nur die Tonspur als <b>MP3</b>. Bei Playlists holt Jon gezielt den einen Titel, nicht die ganze Liste.</p></div>
-<div class="card"><div class="ic">📈</div><h3>Fortschritt live</h3><p>Prozent, Tempo und verbleibende Zeit laufen mit. Geht etwas schief, sagt Jon in ganzen Sätzen warum: Video privat, altersbeschränkt, im Land gesperrt, gelöscht — statt einer roten Fehlermeldung.</p></div>
-<div class="card"><div class="ic">💻</div><h3>Bleibt bei dir</h3><p>Der Downloader läuft <b>auf deinem eigenen PC</b>, nicht auf einem Server im Netz. Die Datei landet direkt bei dir, es geht nichts durch fremde Hände, und niemand führt Buch darüber, was du lädst.</p></div>
-</div>
-<div class="note">Der Downloader ist Teil der App und läuft lokal — auf dieser Website gibt es ihn bewusst nicht als Dienst zum Anklicken. Lade nur herunter, wozu du berechtigt bist: eigene Uploads, ausdrücklich freigegebene Inhalte oder was das Recht deines Landes für den privaten Gebrauch erlaubt. Die Nutzungsbedingungen der jeweiligen Plattform gelten weiterhin.</div>
-</section>
+  <section class="section" id="unterwegs">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Telegram</p>
+        <h2>Jon <em>unterwegs</em></h2>
+        <p class="section__lead">Dein PC bleibt zu Hause, Jon nicht: Über einen eigenen Telegram-Bot schreibst oder sprichst du mit ihm von überall — und Mini Jon hat seinen eigenen Bot. <b>Neu in v4.34.6:</b> Beide haben jetzt Jon Maps und Jon Deep Learning dabei.</p>
+      </header>
+      <div class="steps-grid">
+        <article class="step-card reveal">
+          <span class="step-card__n">1</span>
+          <h3>Bot anlegen &amp; verbinden</h3><p>Bei <b>@BotFather</b> in Telegram einen Bot erstellen, den Token in Jons Einstellungen einfügen, dem Bot einmal schreiben — dieser Chat gehört ab dann fest zu deinem PC. Für Mini Jon einen zweiten Bot mit eigenem Token.</p>
+        </article>
+        <article class="step-card reveal" style="--d:60ms">
+          <span class="step-card__n">2</span>
+          <h3>Standort teilen</h3><p>📎 → Standort. Ab dann ist „hier" wirklich dort, wo du bist: <i>„Route von meinem Standort zur nächsten Apotheke"</i> — Jon antwortet mit Dauer, Entfernung, einem <b>Kartenpin zum Antippen</b> und einem Routenlink fürs Handy.</p>
+        </article>
+        <article class="step-card reveal" style="--d:120ms">
+          <span class="step-card__n">3</span>
+          <h3>Von unterwegs lernen lassen</h3><p><code class="inline">/lernen Quantencomputer 30 Minuten</code> startet eine echte Tiefenrecherche auf deinem PC. <code class="inline">/lernstatus</code> zeigt den Stand, <code class="inline">/lernstop</code> bricht ab, <code class="inline">/lernweiter</code> macht weiter — und wenn Jon fertig ist, schickt er dir Zusammenfassung, Quellen und Dateien in den Chat.</p>
+        </article>
+        <article class="step-card step-card--wide reveal">
+          <span class="step-card__n step-card__n--icon"><svg class="i"><use href="#i-phone"/></svg></span>
+          <div><h3>Oder ganz ohne Telegram: der Pi im WLAN</h3><p>Läuft Jon auf einem <b>Raspberry Pi</b>, öffnest du am Handy einfach <b>http://&lt;pi&gt;:8756/app</b> — das ist die volle Jon-Oberfläche im Browser, <b>seit v4.34.7 fürs Handy gebaut</b>: Unterhaltungen als Schublade hinter ☰, mitschrumpfende Kopfzeile, Daumen-große Knöpfe, kein Zoom-Sprung beim Tippen und eine Eingabezeile, die über der Browserleiste bleibt. „Zum Startbildschirm hinzufügen" macht daraus eine App.</p></div>
+        </article>
+      </div>
+      <p class="prose reveal">In Gruppen antworten Jon und Mini Jon nur, wenn sie mit @Namen angesprochen werden — und dort ganz bewusst mit kleinerem Werkzeugkasten: Karten, Routen, Websuche, Wetter und Deep Learning ja, dein PC und deine privaten Daten nein. Den vollen Zugriff hat nur der Chat, der mit deinem PC verbunden ist.</p>
+    </div>
+  </section>
 
-<section id="werkstatt">
-<h2>Jon macht jetzt <span class="gold">Dateien</span></h2>
-<p class="sub">Nicht erklären, wie man eine PDF schreibt — sie schreiben. Eine echte Datei auf deiner Festplatte, am richtigen Ort, anklickbar im Chat.</p>
-<div class="grid">
-<div class="card"><div class="ic">📄</div><h3>Echte Dokumente</h3><p><b>PDF, Word, OpenDocument, Excel, ODS, CSV, Markdown, Text</b> und jede Code-Datei. Den Inhalt formuliert Jon vollständig aus — Überschriften, Absätze, Aufzählungen, nummerierte Schritte, bei Tabellen echte Zellen mit fetter Kopfzeile.</p></div>
-<div class="card"><div class="ic">📂</div><h3>Sein eigener Ordner</h3><p>Beim ersten Start legt Jon sich <b>Jon/</b> an, mit Fächern für Projekte, Dokumente, PDFs, Bilder, Videos, Blender, Code und mehr. Sagst du nichts dazu, sortiert er selbst ein — die PDF unter PDFs, das Skript unter Code.</p></div>
-<div class="card"><div class="ic">🖱️</div><h3>Im Ordner öffnen</h3><p>Jede Datei erscheint als Karte mit <b>Öffnen</b>, <b>Herunterladen</b> und <b>Im Ordner öffnen</b>. Der Knopf öffnet wirklich den Dateimanager — Explorer, Finder oder deinen Linux-Dateimanager, mit der Datei markiert.</p></div>
-<div class="card"><div class="ic">🗣️</div><h3>Dein Speicherort gewinnt</h3><p>„Speicher das auf dem Desktop." „Leg alles unter Desktop/Meine Projekte/Essen ab." „Mach einen Ordner namens YouTube Projekt." Der Ordner wird angelegt und benutzt — ohne dass du einen Pfad tippen musst.</p></div>
-</div>
-<div class="grid" style="margin-top:20px">
-<div class="card"><div class="ic">🧊</div><h3>3D mit Blender</h3><p>Beschreib die Szene — Jon schreibt das Python-Skript selbst, lässt Blender im Hintergrund laufen, <b>repariert eigene Fehler und versucht es erneut</b>, speichert die .blend-Datei, rendert ein Vorschaubild und exportiert nach fbx, obj, glb, gltf oder stl.</p></div>
-<div class="card"><div class="ic">🔎</div><h3>Er findet es wieder</h3><p>Jede Datei landet in einem Index mit Titel, Projekt und Zeit. <b>„Zeig mir die PDF über Essen von letzter Woche"</b> genügt — Jon sucht nach Bedeutung und Zeitraum, nicht nach Dateinamen.</p></div>
-<div class="card"><div class="ic">✈️</div><h3>Auch über Telegram</h3><p>Was Jon erzeugt, schickt er dir als Dokument in den Telegram-Chat — mit Namen und Ablageort. Zu große Dateien meldet er ehrlich, statt sie stumm zu verschlucken.</p></div>
-<div class="card"><div class="ic">🔐</div><h3>In klaren Grenzen</h3><p>Jon arbeitet in seinem Ordner, deinem Benutzerordner und Ordnern, die du freigibst. <b>Systemverzeichnisse sind gesperrt</b>, Pfad-Tricks laufen ins Leere, und nichts wird versehentlich überschrieben.</p></div>
-</div>
-</section>
+  <section class="section section--tight" id="games">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">FelWorks Game Collection</p>
+        <h2>Jon <em>Spiele</em></h2>
+        <p class="section__lead">Die FelWorks Game Collection ist Teil von Jon. Werkzeuge → Spiele → Starten — Jon bleibt dabei offen, nichts startet von allein. <b>Neu:</b> Harmonische Inseln, ein ruhiges Aufbauspiel in isometrischer Schrägsicht — und die Blockwelt läuft jetzt als eigenes Programm.</p>
+      </header>
+      <div class="games games--two">
+        <article class="game reveal">
+          <div class="game__media"><img src="spiele/echo.jpg" width="720" height="380" alt="Screenshot aus ECHO" loading="lazy"></div>
+          <div class="game__body">
+            <span class="game__tag">Psychological Horror · FelWorks</span>
+            <h3>ECHO</h3>
+            <p>First-Person-Horror in einem seit Jahren geschlossenen Krankenhaus: 4 Etagen, 464 Räume, eine Regie, die auf dein Verhalten reagiert, und fünf Enden. <b>Neu:</b> in jedem Flur wartet mindestens ein Jumpscare mit eigenem Kreaturen-Modell, <b>H</b> blendet den direkten Weg zum Ziel ein — und zu zweit im Koop.</p>
+            <div class="game__keys">WASD laufen · F Taschenlampe · H Wegweiser · Tab Tagebuch · Online-Koop</div>
+          </div>
+        </article>
+        <article class="game reveal" style="--d:60ms">
+          <div class="game__media"><img src="spiele/aetheria.jpg" width="720" height="380" alt="Screenshot aus AETHERIA" loading="lazy"></div>
+          <div class="game__body">
+            <span class="game__tag">Fantasy Open World RPG · FelWorks</span>
+            <h3>AETHERIA</h3>
+            <p>Offene Fantasy-Welt mit sechs Dörfern, Bewohnern, Aufträgen, Stufenaufstieg, Tag- und Nachtwechsel und einer Weltkarte. <b>Neu:</b> Online-Koop über Freundschaftscode — zwei Reisende, eine Welt, gemeinsame Quests und ein geteilter Tag-Nacht-Zyklus.</p>
+            <div class="game__keys">WASD laufen · E sprechen &amp; sammeln · Tab Karte · Q Aufträge · Online-Koop</div>
+          </div>
+        </article>
+        <article class="game reveal">
+          <div class="game__media"><img src="spiele/starfall.jpg" width="960" height="540" alt="Screenshot aus der STARFALL Schwarzloch-Simulation" loading="lazy"></div>
+          <div class="game__body">
+            <span class="game__tag">Physik-Simulation · FelWorks</span>
+            <h3>STARFALL</h3>
+            <p>Ein rotierendes Schwarzes Loch in Echtzeit — für jeden Bildpunkt wird eine Nullgeodäte in der Kerr-Metrik integriert. Gravitationslinse, Photonenring und die Scheibe, die durch die Lichtkrümmung gleichzeitig über und unter dem Horizont erscheint, entstehen aus der Rechnung, nicht aus einem Effekt. <b>Sechs Objekte</b> von Sagittarius&nbsp;A* bis M87*, Masse und Spin live verstellbar, alle Kennzahlen mitgerechnet. <b>Neu:</b> Die Scheibe strahlt nach dem relativistischen Flussprofil von Page und Thorne, mit Randverdunklung und endlicher Schichtdicke — und sobald du die Kamera stehen lässt, baut sich das Bild in voller Auflösung auf, bis der Photonenring messerscharf steht.</p>
+            <div class="game__keys">1-6 Objekt · Ziehen drehen · Mausrad Abstand · V Ansicht · Pfeile Regler · Kerr-Metrik</div>
+          </div>
+        </article>
+        <article class="game reveal" style="--d:60ms">
+          <div class="game__media"><img src="spiele/harmonie.jpg" width="960" height="570" alt="Screenshot aus den Harmonischen Inseln" loading="lazy"></div>
+          <div class="game__body">
+            <span class="game__tag">Cozy Aufbauspiel · FelWorks</span>
+            <h3>Harmonische Inseln</h3>
+            <p>Ein schwebendes Archipel in der Abendsonne, von oben in echter 2.5D-Schrägsicht. Von der Herzinsel mit Markt, Werkstatt und Gildenhalle führen Holzbrücken zur Farm, zur Steinmutter und zur Werft. Der unfertige Leuchtturm sagt dir, was ihm fehlt: mal Korn von der Farm, mal Stein aus dem Berg, mal Bretter aus der Werkstatt. Sechs Stufen später brennt sein Licht und alle feiern. <b>Neu:</b> Über dem Kopf mancher Bewohner schwebt ein Wunsch — wer schenkt, bekommt ein Herz. Und zu zweit geht es auch. Die Bewohner leben ihr eigenes Leben — sie wandern über die Brücken, tragen selbst Bretter zur Baustelle, spielen mit ihren Haustieren und jubeln mit, wenn der Turm wächst. Kein Zeitdruck, kein Verlieren.</p>
+            <div class="game__keys">WASD laufen · E sammeln &amp; abgeben · F schenken · K Koop · Tab Übersicht · Goldstunde</div>
+          </div>
+        </article>
+        <article class="game game--wide reveal">
+          <div class="game__media"><img src="spiele/blockwelt-nativ.jpg" width="960" height="570" alt="Screenshot aus der Blockwelt" loading="lazy"></div>
+          <div class="game__body">
+            <span class="game__tag">Sandbox · FelWorks</span>
+            <div class="game__head"><img src="spiele/blockwelt-icon-192.png" alt="" width="28" height="28" loading="lazy"><h3>Blockwelt</h3></div>
+            <p>Die Voxel-Sandbox, in der Mini Jon mitspielt — als eigenes Programm, nicht im Browser. <b>Neu:</b> Die Welt hat keinen Rand. Felder entstehen, während du läufst, und werden hinter dir wieder freigegeben; aus Perlin-Rauschen wachsen Ebenen, Wälder, Wüsten mit Kakteen, Schneeland und Gebirge. 16 Blocksorten mit echten Texturen, die beim Start selbst gemalt werden, dazu TNT mit Lunte und die Enderperle, die dich dorthin versetzt, wo sie landet. Drück T, und Mini Jon baut dir Haus, Turm, Brücke, Baum oder Leuchtfeuer, Block für Block zum Zuschauen.</p>
+            <div class="game__keys">WASD laufen · Links abbauen · Rechts setzen · 1-9 Block · T Mini Jon · K Koop · ∞ endlos</div>
+          </div>
+        </article>
+      </div>
+      <div class="note-box reveal"><svg class="i"><use href="#i-info"/></svg><p>Alle fünf sind im Download enthalten und starten erst, wenn du in Jon auf <b>Starten</b> klickst — jedes in einem eigenen Fenster. STARFALL und die Harmonischen Inseln erkennen schwache Grafikkarten und schalten dort selbst einen Gang zurück.</p></div>
+    </div>
+  </section>
 
-<section id="lernkreis">
-<h2>Jon lernt aus dem, was ihn <span class="gold">überrascht</span></h2>
-<p class="sub">Die meisten Assistenten handeln und hören dann auf. Jon sagt sich <b>vorher</b>, was er erwartet, vergleicht es mit dem Ergebnis — und der Unterschied ist sein Lehrstoff. Alles davon läuft lokal auf deinem Rechner.</p>
-<div class="grid">
-<div class="card"><div class="ic">1️⃣</div><h3>Erwarten</h3><p>Vor jedem Werkzeug schätzt Jon aus seiner eigenen Statistik, wie wahrscheinlich es klappt, und rechnet bekannte Stolpersteine im Bereich mit ein. Frag ihn „schaffst du das?“ — du bekommst eine Zahl mit Begründung statt eines freundlichen Ja.</p></div>
-<div class="card"><div class="ic">2️⃣</div><h3>Handeln</h3><p>Das Werkzeug läuft wie gewohnt — mit Risikowächter, Freigabe bei allem Heiklen und dem Knopf zum Rückgängigmachen. An der Sicherheit ändert der Lernkreis nichts.</p></div>
-<div class="card"><div class="ic">3️⃣</div><h3>Vergleichen</h3><p>Ergebnis und Dauer werden gegen die Erwartung gehalten. Der Abstand ist die <b>Überraschung</b>. Unter Denken → Gelernt siehst du, wie treffsicher Jon zuletzt war und welche Werkzeuge ihn am häufigsten überraschen.</p></div>
-<div class="card"><div class="ic">4️⃣</div><h3>Lernen</h3><p>Große Überraschungen werden zu Erfahrungen und zu Notizen im Gedächtnis. Bricht etwas unerwartet, das früher lief, legt Jon sich selbst die <b>offene Frage</b> hin, warum — und klärt sie auf Klick oder über Nacht.</p></div>
-</div>
-<div class="grid" style="margin-top:20px">
-<div class="card"><div class="ic">❓</div><h3>Er sagt, was er nicht weiß</h3><p>Statt zu raten, merkt sich Jon die Frage. Auch Widersprüche in seinem Gedächtnis werden zu Fragen, statt stumm nebeneinander zu stehen. Beantwortet er eine, landet die Antwort dauerhaft in seinem Wissen.</p></div>
-<div class="card"><div class="ic">🧰</div><h3>Fertigkeiten aus Gewohnheit</h3><p>Machst du denselben Ablauf immer wieder, findet Jon das Muster in seinem Protokoll und merkt es sich als <b>einen</b> Handgriff — mit Namen, Platzhaltern und Erfolgsquote. Danach erledigt er ihn in einem Rutsch.</p></div>
-<div class="card"><div class="ic">⚖️</div><h3>Er teilt sich den Aufwand ein</h3><p>Auf einen kurzen Zuruf antwortet Jon direkt. Bei einem vielschichtigen Auftrag holt er mehr Hintergrund heran, prüft sich strenger selbst und zerlegt die Sache in einen Plan. Du merkst nur, dass die Antworten passen.</p></div>
-<div class="card"><div class="ic">🎚️</div><h3>Alles abschaltbar</h3><p>Unter Einstellungen → Jons Denken. Erwartung, Aufwandsschätzung und das Sammeln offener Fragen laufen lokal und kosten nichts. Das nächtliche Klären und das automatische Lernen von Fertigkeiten sind bewusst aus, bis du sie einschaltest.</p></div>
-</div>
-</section>
+  <section class="section" id="multiplayer">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Online-Koop</p>
+        <h2>Zusammen <em>spielen</em></h2>
+        <p class="section__lead">ECHO, AETHERIA und die Blockwelt haben einen echten Online-Koop — serverautoritativ, mit Freundschaftscode, Lobby, Ping-Anzeige und automatischem Reconnect. Der Server ist Jon selbst: er läuft schon, wenn du <b>start-jon.bat</b> oder die <b>Jon.exe</b> startest. Seit v3.36.3 reicht im Heimnetz der Code allein — Jon sucht den Gastgeber im Netzwerk, dein Laptop findet deinen PC ohne eine einzige Einstellung.</p>
+      </header>
+      <div class="mp">
+        <ol class="steps reveal">
+          <li class="step"><span class="step__n">01</span><div><h3>Spiel erstellen</h3><p>Ein Klick — der Server legt eine Lobby an und würfelt einen 6-stelligen Freundschaftscode.</p></div></li>
+          <li class="step"><span class="step__n">02</span><div><h3>Code weitergeben</h3><p>Zum Beispiel <b class="gold-code">AB39KD</b>. Im gleichen Netzwerk ist das alles — für Spiele übers Internet gibt es zusätzlich die Einladung mit Adresse: <b>AB39KD@84.12.9.3:8760</b>, ein Klick zum Kopieren.</p></div></li>
+          <li class="step"><span class="step__n">03</span><div><h3>Beitreten und bereit</h3><p>Dein Freund tippt den Code ein — Jon sucht den Gastgeber im Netzwerk und verbindet direkt zu ihm. Dann „Bereit“, der Host startet, beide spawnen gleichzeitig in dieselbe Welt.</p></div></li>
+        </ol>
+        <div class="lobby reveal" style="--d:120ms" aria-hidden="true">
+          <div class="lobby__code"><div><small>Freundschaftscode</small><b>AB39KD</b></div><span class="tag tag--gold">Lobby offen</span></div>
+          <div class="lobby__row"><span class="lobby__dot"></span><span class="lobby__who">Felix</span><span class="tag">Host</span><span class="lobby__ms">14 ms</span></div>
+          <div class="lobby__row"><span class="lobby__dot"></span><span class="lobby__who">Jonas</span><span class="tag">Bereit</span><span class="lobby__ms">28 ms</span></div>
+          <div class="lobby__row lobby__row--off"><span class="lobby__dot lobby__dot--dim"></span><span class="lobby__who">Freier Platz</span></div>
+        </div>
+      </div>
+      <div class="minis">
+        <div class="mini reveal">
+          <h3><svg class="i"><use href="#i-wifi"/></svg>Laptop findet PC von allein</h3>
+          <p>Im Heimnetz genügt der Code: Jon fragt über das Netzwerk, wer die Lobby hat, und schickt den Spieler direkt zum Gastgeber. Offen sind dafür nur die Koop-Ports <b>8760</b> (Browser), <b>8759</b> (ECHO/AETHERIA) und die Suche auf <b>UDP 8761</b> — Chat, Dateien und PC-Steuerung bleiben auf deinem Rechner. Blockt die Windows-Firewall, gibt ein Knopf in der Lobby die drei Ports frei. Übers Internet: Portfreigabe beim Gastgeber.</p>
+        </div>
+        <div class="mini reveal" style="--d:60ms">
+          <h3><svg class="i"><use href="#i-shield"/></svg>Server hat das letzte Wort</h3>
+          <p>Positionen, Blöcke, Türen, Rätsel, Quests und der Spielstand werden serverseitig geprüft. Wer sich unmöglich bewegt, wird zurückgesetzt — Items lassen sich nicht herbeizaubern.</p>
+        </div>
+        <div class="mini reveal" style="--d:120ms">
+          <h3><svg class="i"><use href="#i-target"/></svg>Flüssig statt ruckelig</h3>
+          <p>Delta-komprimierte Snapshots mit 20 Hz, Interpolation, Client-Prediction und Lag-Kompensation. Keine Teleports, kein Gummiband.</p>
+        </div>
+        <div class="mini reveal">
+          <h3><svg class="i"><use href="#i-plug"/></svg>Verbindung abgerissen?</h3>
+          <p>Heartbeat, Ping, Paketverlust-Anzeige und automatischer Reconnect. Deine Sitzung bleibt auf dem Server erhalten — auch wenn Jon neu startet.</p>
+        </div>
+        <div class="mini reveal" style="--d:60ms">
+          <h3><svg class="i"><use href="#i-users"/></svg>Eigener Charakter</h3>
+          <p>Jeder bekommt eine eigene PlayerID, ein eigenes Modell und ein Namensschild mit Ping. Laufen, rennen, ducken, springen, fallen, angreifen — alles synchron. Und jede Figur schaut dorthin, wohin ihr Spieler wirklich blickt, inklusive Kopfneigung.</p>
+        </div>
+        <div class="mini reveal" style="--d:120ms">
+          <h3><svg class="i"><use href="#i-box"/></svg>Gemeinsame Welt</h3>
+          <p>Ein Blockwechsel, eine Tür, ein Hebel, ein gelöstes Rätsel, ein NPC-Gespräch: was einer tut, sieht der andere sofort. Auch Jons Bauaufträge in der Blockwelt.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<section id="erweiterung">
-<h2>Jon im <span class="gold">Browser</span></h2>
-<p class="sub">Die Jon-Erweiterung für Chrome, Edge und Brave. Sie enthält keinen zweiten Jon — sie spricht mit dem Jon, der auf deinem Rechner läuft. Dein Modell, dein Gedächtnis, deine Projekte.</p>
-<div class="grid">
-<div class="card"><div class="ic">⚡</div><h3>Ein Klick auf die Seite</h3><p>Zusammenfassen, erklären, weiterrecherchieren, markierten Text verbessern, zu Jons <b>Wissen</b> hinzufügen, in ein <b>Projekt</b> speichern — oder frei fragen. Die Antwort läuft Wort für Wort im Popup mit.</p></div>
-<div class="card"><div class="ic">🖱️</div><h3>Rechtsklick „Mit Jon …“</h3><p>Auf jeder Seite und jeder Markierung: erklären, zusammenfassen, übersetzen, recherchieren, zu Jon senden, zu einem Projekt hinzufügen, als Notiz speichern.</p></div>
-<div class="card"><div class="ic">🔒</div><h3>Datensparsam</h3><p>Kein dauerhaftes Content-Script: Die Seite wird nur gelesen, wenn du eine Aktion auslöst — und das lässt sich abschalten. Im Chat hat die Erweiterung nur Jons <b>Gast-Werkzeuge</b>: keine Dateien, keine Systembefehle. Der Geräte-Schlüssel bleibt im lokalen Speicher deines Browsers.</p></div>
-<div class="card"><div class="ic">💻</div><h3>Nichts geht in die Cloud</h3><p>Alles läuft über <b>127.0.0.1</b> zu deinem eigenen Jon. Läuft Jon gerade nicht, sagt die Erweiterung das — statt heimlich woanders zu fragen.</p></div>
-</div>
-<div class="steps" style="margin-top:34px">
-<div class="step"><div class="n">1</div><div><h4>Ordner holen</h4><p>Entweder den Download hier entpacken oder den Ordner <b>resources\extension</b> aus deiner Jon-Installation nehmen — die Erweiterung liegt jedem Windows-Paket bei.</p></div></div>
-<div class="step"><div class="n">2</div><div><h4>In den Browser laden</h4><p><b>chrome://extensions</b> öffnen, <b>Entwicklermodus</b> einschalten, <b>Entpackte Erweiterung laden</b> — und den Ordner auswählen.</p></div></div>
-<div class="step"><div class="n">3</div><div><h4>Mit deinem Jon verbinden</h4><p>In Jon: <b>Einstellungen → Diagnose → Kopplung</b>, Geräte-Schlüssel kopieren. In der Erweiterung: Jon-Symbol → ⚙ → Adresse und Schlüssel eintragen → <b>Verbindung testen</b>.</p></div></div>
-</div>
-<div class="cta" style="margin-top:30px">
-<a class="btn btn-primary" href="jon-erweiterung.zip" download>🧩 Erweiterung herunterladen (.zip)</a>
-</div>
-<div class="note">Chromium-Browser mit Manifest V3: Chrome, Edge, Brave, Vivaldi und Opera ab Version 116. Im Erweiterungscode stehen keine Passwörter, keine API-Schlüssel und keine Zugangsdaten.</div>
-</section>
+  <section class="section section--tight" id="downloader">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Downloader</p>
+        <h2>Der <em>Downloader</em></h2>
+        <p class="section__lead">Ein Link genügt. Jon liest aus, was dahintersteckt, zeigt dir Titel, Kanal, Dauer und Vorschaubild — und lädt dann herunter, was du willst. Zu finden unter Werkzeuge → Downloader.</p>
+      </header>
+      <div class="feature-grid feature-grid--4">
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-search"/></svg></span>
+          <h3>Erst prüfen</h3>
+          <p>Bevor irgendetwas geladen wird, holt Jon die Eckdaten: <b>Titel, Kanal, Dauer, Vorschaubild</b>. So siehst du sofort, ob der Link stimmt — und wie groß das wird.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-film"/></svg></span>
+          <h3>Video oder nur Ton</h3>
+          <p>Vier Qualitätsstufen — <b>beste verfügbare, 1080p, 720p, 480p</b> — oder du nimmst nur die Tonspur als <b>MP3</b>. Bei Playlists holt Jon gezielt den einen Titel, nicht die ganze Liste.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-trend"/></svg></span>
+          <h3>Fortschritt live</h3>
+          <p>Prozent, Tempo und verbleibende Zeit laufen mit. Geht etwas schief, sagt Jon in ganzen Sätzen warum: Video privat, altersbeschränkt, im Land gesperrt, gelöscht — statt einer roten Fehlermeldung.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-laptop"/></svg></span>
+          <h3>Bleibt bei dir</h3>
+          <p>Der Downloader läuft <b>auf deinem eigenen PC</b>, nicht auf einem Server im Netz. Die Datei landet direkt bei dir, es geht nichts durch fremde Hände, und niemand führt Buch darüber, was du lädst.</p>
+        </article>
+      </div>
+      <div class="note-box reveal"><svg class="i"><use href="#i-info"/></svg><p>Der Downloader ist Teil der App und läuft lokal — auf dieser Website gibt es ihn bewusst nicht als Dienst zum Anklicken. Lade nur herunter, wozu du berechtigt bist: eigene Uploads, ausdrücklich freigegebene Inhalte oder was das Recht deines Landes für den privaten Gebrauch erlaubt. Die Nutzungsbedingungen der jeweiligen Plattform gelten weiterhin.</p></div>
+    </div>
+  </section>
 
-<section id="about">
-<h2>Über <span class="gold">mich</span></h2>
-<div class="about-card">
-<p>Hi, ich bin Felix, ein leidenschaftlicher Softwareentwickler aus Österreich. Ich liebe es, Ideen in echte Projekte zu verwandeln und ständig neue Technologien zu entdecken. Egal ob moderne Webanwendungen, KI oder kreative Tools, ich probiere gerne Neues aus und entwickle Lösungen, die nicht nur funktionieren, sondern auch Spaß machen.</p>
-<p>Im Mittelpunkt steht dabei Jon, mein KI-Assistent. Für dieses Projekt experimentiere ich mit künstlicher Intelligenz, lokalen Sprachmodellen, Smart-Home-Integration und moderner Softwareentwicklung. Jon ist für mich nicht nur ein spannendes Projekt, sondern auch eine Möglichkeit, neue Ideen auszuprobieren und mich als Entwickler weiterzuentwickeln.</p>
-<p>Jon erscheint bei <a href="https://felworks.netlify.app/" target="_blank" rel="noopener" style="color:var(--gold-light)"><b>FelWorks</b></a> (FelWorks Webentwicklung) aus Theresienfeld in Österreich — genauso wie die <a href="#games" style="color:var(--gold-light)">FelWorks Game Collection</a>. Alle rechtlichen Angaben zu FelWorks stehen im <a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener" style="color:var(--gold-light)">Impressum</a>.</p>
-<p>Ich glaube daran, dass man nie ausgelernt hat. Deshalb verbringe ich viel Zeit damit, neue Programmiersprachen, Frameworks und Technologien auszuprobieren und mein Wissen in spannende Projekte einfließen zu lassen. Mein Ziel ist es, Software zu entwickeln, die nützlich, innovativ und einfach zu bedienen ist.</p>
-</div>
-</section>
+  <section class="section" id="werkstatt">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Werkstatt</p>
+        <h2>Jon macht jetzt <em>Dateien</em></h2>
+        <p class="section__lead">Nicht erklären, wie man eine PDF schreibt — sie schreiben. Eine echte Datei auf deiner Festplatte, am richtigen Ort, anklickbar im Chat.</p>
+      </header>
+      <div class="feature-grid feature-grid--4">
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-file"/></svg></span>
+          <h3>Echte Dokumente</h3>
+          <p><b>PDF, Word, OpenDocument, Excel, ODS, CSV, Markdown, Text</b> und jede Code-Datei. Den Inhalt formuliert Jon vollständig aus — Überschriften, Absätze, Aufzählungen, nummerierte Schritte, bei Tabellen echte Zellen mit fetter Kopfzeile.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-folder"/></svg></span>
+          <h3>Sein eigener Ordner</h3>
+          <p>Beim ersten Start legt Jon sich <b>Jon/</b> an, mit Fächern für Projekte, Dokumente, PDFs, Bilder, Videos, Blender, Code und mehr. Sagst du nichts dazu, sortiert er selbst ein — die PDF unter PDFs, das Skript unter Code.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-cursor"/></svg></span>
+          <h3>Im Ordner öffnen</h3>
+          <p>Jede Datei erscheint als Karte mit <b>Öffnen</b>, <b>Herunterladen</b> und <b>Im Ordner öffnen</b>. Der Knopf öffnet wirklich den Dateimanager — Explorer, Finder oder deinen Linux-Dateimanager, mit der Datei markiert.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-chat"/></svg></span>
+          <h3>Dein Speicherort gewinnt</h3>
+          <p>„Speicher das auf dem Desktop." „Leg alles unter Desktop/Meine Projekte/Essen ab." „Mach einen Ordner namens YouTube Projekt." Der Ordner wird angelegt und benutzt — ohne dass du einen Pfad tippen musst.</p>
+        </article>
+      </div>
+      <div class="feature-grid feature-grid--4">
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-box"/></svg></span>
+          <h3>3D mit Blender</h3>
+          <p>Beschreib die Szene — Jon schreibt das Python-Skript selbst, lässt Blender im Hintergrund laufen, <b>repariert eigene Fehler und versucht es erneut</b>, speichert die .blend-Datei, rendert ein Vorschaubild und exportiert nach fbx, obj, glb, gltf oder stl.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-search"/></svg></span>
+          <h3>Er findet es wieder</h3>
+          <p>Jede Datei landet in einem Index mit Titel, Projekt und Zeit. <b>„Zeig mir die PDF über Essen von letzter Woche"</b> genügt — Jon sucht nach Bedeutung und Zeitraum, nicht nach Dateinamen.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-send"/></svg></span>
+          <h3>Auch über Telegram</h3>
+          <p>Was Jon erzeugt, schickt er dir als Dokument in den Telegram-Chat — mit Namen und Ablageort. Zu große Dateien meldet er ehrlich, statt sie stumm zu verschlucken.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-lock"/></svg></span>
+          <h3>In klaren Grenzen</h3>
+          <p>Jon arbeitet in seinem Ordner, deinem Benutzerordner und Ordnern, die du freigibst. <b>Systemverzeichnisse sind gesperrt</b>, Pfad-Tricks laufen ins Leere, und nichts wird versehentlich überschrieben.</p>
+        </article>
+      </div>
+    </div>
+  </section>
 
-<section id="download">
-<h2><span class="gold">Download</span></h2>
-<p class="sub">Jon App mit Mini Jon und Backend — komplett in einem Paket. Wähle, wie du Jon haben willst.</p>
-<div class="cta" style="margin-top:44px">
-<a class="btn btn-primary" href="https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe">⬇ Jon-Setup.exe (Installer)</a>
-<a class="btn btn-primary" href="https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Windows.zip">📦 Jon als ZIP (portabel)</a>
-</div>
-<p class="dl-hint">Die .exe installiert Jon mit Startmenü- und Desktop-Verknüpfung. Die ZIP entpackst du einfach in einen Ordner und startest <b>Jon.exe</b> — gleiche App, gleiche Funktionen, keine Installation nötig. <b>Einmal installiert, bleibst du aktuell:</b> ab v3.35 lädt Jon neue Versionen selbst herunter, prüft sie und installiert sie auf Knopfdruck — deine Chats und Konten bleiben dabei unangetastet.</p>
-<div class="cta" style="margin-top:26px">
-<a class="btn btn-ghost" href="https://play.google.com/store/apps/developer?id=FelWorks" target="_blank" rel="noopener">📱 Jon – KI bei Google Play</a>
-<a class="btn btn-ghost" href="jon-erweiterung.zip" download>🧩 Browser-Erweiterung (.zip)</a>
-<a class="btn btn-ghost" href="jon.zip" download>Quellcode (.zip)</a>
-<a class="btn btn-ghost" href="https://build.nvidia.com" target="_blank" rel="noopener">NVIDIA API-Key holen</a>
-<a class="btn btn-ghost" href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
-</div>
-<div class="note">In beiden Varianten sind die Jon App, Mini Jon (Emil), die <a href="#games" style="color:var(--gold-light)">Spiele</a> und das komplette Backend enthalten — es startet automatisch mit. Deine API-Einstellungen trägst du direkt in der App ein (Zahnrad → <b>Konten</b>): Key einfügen, fertig. Alle Keys bleiben ausschließlich lokal auf deinem Gerät. Ganz ohne Key läuft Jon gratis mit <a href="ollama.html" style="color:var(--gold-light)">Ollama</a> oder LM Studio — seit v4.33 mit eigenem Einstellungsbereich, Serverstatus, Modellverwaltung und Serverfreigabe für andere Jon-Nutzer — teilen geht per Knopf direkt im Chat.</div>
-<div class="note">Windows zeigt beim ersten Start eventuell „Der Computer wurde durch Windows geschützt" oder der Browser warnt beim Download. Das ist die übliche SmartScreen-Meldung für neue Programme ohne (teures) Herausgeber-Zertifikat — keine Schadsoftware-Meldung. Jon ist Open Source, der komplette Quellcode ist <a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener" style="color:var(--gold-light)">auf GitHub einsehbar</a>. Zum Starten: <b>Weitere Informationen → Trotzdem ausführen</b>.</div>
-</section>
-</div>
+  <section class="section section--tight" id="lernkreis">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Lernkreis</p>
+        <h2>Jon lernt aus dem, was ihn <em>überrascht</em></h2>
+        <p class="section__lead">Die meisten Assistenten handeln und hören dann auf. Jon sagt sich <b>vorher</b>, was er erwartet, vergleicht es mit dem Ergebnis — und der Unterschied ist sein Lehrstoff. Alles davon läuft lokal auf deinem Rechner.</p>
+      </header>
+      <div class="feature-grid feature-grid--4">
+        <article class="card reveal">
+          <span class="card__num" aria-hidden="true">1</span>
+          <h3>Erwarten</h3>
+          <p>Vor jedem Werkzeug schätzt Jon aus seiner eigenen Statistik, wie wahrscheinlich es klappt, und rechnet bekannte Stolpersteine im Bereich mit ein. Frag ihn „schaffst du das?“ — du bekommst eine Zahl mit Begründung statt eines freundlichen Ja.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__num" aria-hidden="true">2</span>
+          <h3>Handeln</h3>
+          <p>Das Werkzeug läuft wie gewohnt — mit Risikowächter, Freigabe bei allem Heiklen und dem Knopf zum Rückgängigmachen. An der Sicherheit ändert der Lernkreis nichts.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__num" aria-hidden="true">3</span>
+          <h3>Vergleichen</h3>
+          <p>Ergebnis und Dauer werden gegen die Erwartung gehalten. Der Abstand ist die <b>Überraschung</b>. Unter Denken → Gelernt siehst du, wie treffsicher Jon zuletzt war und welche Werkzeuge ihn am häufigsten überraschen.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__num" aria-hidden="true">4</span>
+          <h3>Lernen</h3>
+          <p>Große Überraschungen werden zu Erfahrungen und zu Notizen im Gedächtnis. Bricht etwas unerwartet, das früher lief, legt Jon sich selbst die <b>offene Frage</b> hin, warum — und klärt sie auf Klick oder über Nacht.</p>
+        </article>
+      </div>
+      <div class="feature-grid feature-grid--4">
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-help"/></svg></span>
+          <h3>Er sagt, was er nicht weiß</h3>
+          <p>Statt zu raten, merkt sich Jon die Frage. Auch Widersprüche in seinem Gedächtnis werden zu Fragen, statt stumm nebeneinander zu stehen. Beantwortet er eine, landet die Antwort dauerhaft in seinem Wissen.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-tool"/></svg></span>
+          <h3>Fertigkeiten aus Gewohnheit</h3>
+          <p>Machst du denselben Ablauf immer wieder, findet Jon das Muster in seinem Protokoll und merkt es sich als <b>einen</b> Handgriff — mit Namen, Platzhaltern und Erfolgsquote. Danach erledigt er ihn in einem Rutsch.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-scale"/></svg></span>
+          <h3>Er teilt sich den Aufwand ein</h3>
+          <p>Auf einen kurzen Zuruf antwortet Jon direkt. Bei einem vielschichtigen Auftrag holt er mehr Hintergrund heran, prüft sich strenger selbst und zerlegt die Sache in einen Plan. Du merkst nur, dass die Antworten passen.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-sliders"/></svg></span>
+          <h3>Alles abschaltbar</h3>
+          <p>Unter Einstellungen → Jons Denken. Erwartung, Aufwandsschätzung und das Sammeln offener Fragen laufen lokal und kosten nichts. Das nächtliche Klären und das automatische Lernen von Fertigkeiten sind bewusst aus, bis du sie einschaltest.</p>
+        </article>
+      </div>
+    </div>
+  </section>
 
-<footer>
-<div class="footer-links">
-<a href="https://felworks.netlify.app/" target="_blank" rel="noopener">FelWorks</a>
-<a href="https://play.google.com/store/apps/developer?id=FelWorks" target="_blank" rel="noopener">Google Play</a>
-<a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener">Impressum</a>
-<a href="https://felworks-impressum.netlify.app/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
-<a href="https://felworks-impressum.netlify.app/support" target="_blank" rel="noopener">Support</a>
-<a href="https://felworks-impressum.netlify.app/nutzungsbedingungen" target="_blank" rel="noopener">Nutzungsbedingungen</a>
-<a href="ollama.html">Ollama-Doku</a>
-<a href="agb.html">AGB</a>
-<button class="cookie-link" onclick="jonShowCookieBanner()">Cookie-Einstellungen</button>
-</div>
-<div class="footer-meta">Jon — KI-Desktop-Assistent von FelWorks · v4.53.2 · Läuft lokal auf deinem Rechner</div>
-<div class="footer-meta">© 2026 FelWorks · Theresienfeld, Österreich</div>
+  <section class="section" id="erweiterung">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Browser-Erweiterung</p>
+        <h2>Jon im <em>Browser</em></h2>
+        <p class="section__lead">Die Jon-Erweiterung für Chrome, Edge und Brave. Sie enthält keinen zweiten Jon — sie spricht mit dem Jon, der auf deinem Rechner läuft. Dein Modell, dein Gedächtnis, deine Projekte.</p>
+      </header>
+      <div class="feature-grid feature-grid--4">
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-bolt"/></svg></span>
+          <h3>Ein Klick auf die Seite</h3>
+          <p>Zusammenfassen, erklären, weiterrecherchieren, markierten Text verbessern, zu Jons <b>Wissen</b> hinzufügen, in ein <b>Projekt</b> speichern — oder frei fragen. Die Antwort läuft Wort für Wort im Popup mit.</p>
+        </article>
+        <article class="card reveal" style="--d:60ms">
+          <span class="card__icon"><svg class="i"><use href="#i-cursor"/></svg></span>
+          <h3>Rechtsklick „Mit Jon …“</h3>
+          <p>Auf jeder Seite und jeder Markierung: erklären, zusammenfassen, übersetzen, recherchieren, zu Jon senden, zu einem Projekt hinzufügen, als Notiz speichern.</p>
+        </article>
+        <article class="card reveal" style="--d:120ms">
+          <span class="card__icon"><svg class="i"><use href="#i-lock"/></svg></span>
+          <h3>Datensparsam</h3>
+          <p>Kein dauerhaftes Content-Script: Die Seite wird nur gelesen, wenn du eine Aktion auslöst — und das lässt sich abschalten. Im Chat hat die Erweiterung nur Jons <b>Gast-Werkzeuge</b>: keine Dateien, keine Systembefehle. Der Geräte-Schlüssel bleibt im lokalen Speicher deines Browsers.</p>
+        </article>
+        <article class="card reveal">
+          <span class="card__icon"><svg class="i"><use href="#i-laptop"/></svg></span>
+          <h3>Nichts geht in die Cloud</h3>
+          <p>Alles läuft über <b>127.0.0.1</b> zu deinem eigenen Jon. Läuft Jon gerade nicht, sagt die Erweiterung das — statt heimlich woanders zu fragen.</p>
+        </article>
+      </div>
+      <div style="height:16px"></div>
+      <div class="steps-grid">
+        <article class="step-card reveal">
+          <span class="step-card__n">1</span>
+          <h3>Ordner holen</h3><p>Entweder den Download hier entpacken oder den Ordner <b>resources\extension</b> aus deiner Jon-Installation nehmen — die Erweiterung liegt jedem Windows-Paket bei.</p>
+        </article>
+        <article class="step-card reveal" style="--d:60ms">
+          <span class="step-card__n">2</span>
+          <h3>In den Browser laden</h3><p><b>chrome://extensions</b> öffnen, <b>Entwicklermodus</b> einschalten, <b>Entpackte Erweiterung laden</b> — und den Ordner auswählen.</p>
+        </article>
+        <article class="step-card reveal" style="--d:120ms">
+          <span class="step-card__n">3</span>
+          <h3>Mit deinem Jon verbinden</h3><p>In Jon: <b>Einstellungen → Diagnose → Kopplung</b>, Geräte-Schlüssel kopieren. In der Erweiterung: Jon-Symbol → ⚙ → Adresse und Schlüssel eintragen → <b>Verbindung testen</b>.</p>
+        </article>
+      </div>
+      <div class="split-cta reveal">
+        <a class="btn btn--primary" href="jon-erweiterung.zip" download><svg class="i"><use href="#i-puzzle"/></svg>Erweiterung herunterladen (.zip)</a>
+      </div>
+      <div class="note-box reveal"><svg class="i"><use href="#i-info"/></svg><p>Chromium-Browser mit Manifest V3: Chrome, Edge, Brave, Vivaldi und Opera ab Version 116. Im Erweiterungscode stehen keine Passwörter, keine API-Schlüssel und keine Zugangsdaten.</p></div>
+    </div>
+  </section>
+
+  <section class="section section--tight" id="about">
+    <div class="container about-card">
+      <div class="about-visual reveal" aria-hidden="true">
+        <svg viewBox="0 0 120 120"><use href="#jon-face"/></svg>
+        <div class="about-visual__place"><span>Jon · FelWorks</span><span>Theresienfeld · AT</span></div>
+      </div>
+      <div class="about-text">
+        <header class="section__head reveal">
+          <p class="kicker">Über mich</p>
+          <h2>Über <em>mich</em></h2>
+        </header>
+        <p class="body reveal">Hi, ich bin Felix, ein leidenschaftlicher Softwareentwickler aus Österreich. Ich liebe es, Ideen in echte Projekte zu verwandeln und ständig neue Technologien zu entdecken. Egal ob moderne Webanwendungen, KI oder kreative Tools, ich probiere gerne Neues aus und entwickle Lösungen, die nicht nur funktionieren, sondern auch Spaß machen.</p>
+        <p class="body reveal">Im Mittelpunkt steht dabei Jon, mein KI-Assistent. Für dieses Projekt experimentiere ich mit künstlicher Intelligenz, lokalen Sprachmodellen, Smart-Home-Integration und moderner Softwareentwicklung. Jon ist für mich nicht nur ein spannendes Projekt, sondern auch eine Möglichkeit, neue Ideen auszuprobieren und mich als Entwickler weiterzuentwickeln.</p>
+        <p class="body reveal">Jon erscheint bei <a href="https://felworks.netlify.app/" target="_blank" rel="noopener"><b>FelWorks</b></a> (FelWorks Webentwicklung) aus Theresienfeld in Österreich — genauso wie die <a href="#games">FelWorks Game Collection</a>. Alle rechtlichen Angaben zu FelWorks stehen im <a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener">Impressum</a>.</p>
+        <p class="body reveal">Ich glaube daran, dass man nie ausgelernt hat. Deshalb verbringe ich viel Zeit damit, neue Programmiersprachen, Frameworks und Technologien auszuprobieren und mein Wissen in spannende Projekte einfließen zu lassen. Mein Ziel ist es, Software zu entwickeln, die nützlich, innovativ und einfach zu bedienen ist.</p>
+        <div class="about__sign reveal">
+          <span class="about__avatar" aria-hidden="true">FH</span>
+          <div><b>Felix Heinisch</b><span>Entwickler von Jon · FelWorks</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tight" id="download">
+    <div class="container">
+      <div class="download reveal">
+        <p class="kicker">Download</p>
+        <h2><em>Download</em></h2>
+        <p class="section__lead">Jon App mit Mini Jon und Backend — komplett in einem Paket. Wähle, wie du Jon haben willst.</p>
+        <div class="split-cta">
+          <a class="btn btn--primary btn--lg" href="https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe"><svg class="i"><use href="#i-download"/></svg>Jon-Setup.exe (Installer)</a>
+          <a class="btn btn--primary btn--lg" href="https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Windows.zip"><svg class="i"><use href="#i-box"/></svg>Jon als ZIP (portabel)</a>
+        </div>
+        <p class="dl-hint">Die .exe installiert Jon mit Startmenü- und Desktop-Verknüpfung. Die ZIP entpackst du einfach in einen Ordner und startest <b>Jon.exe</b> — gleiche App, gleiche Funktionen, keine Installation nötig. <b>Einmal installiert, bleibst du aktuell:</b> ab v3.35 lädt Jon neue Versionen selbst herunter, prüft sie und installiert sie auf Knopfdruck — deine Chats und Konten bleiben dabei unangetastet.</p>
+        <div class="split-cta">
+          <a class="btn btn--ghost btn--sm" href="https://play.google.com/store/apps/developer?id=FelWorks" target="_blank" rel="noopener"><svg class="i"><use href="#i-phone"/></svg>Jon – KI bei Google Play</a>
+          <a class="btn btn--ghost btn--sm" href="jon-erweiterung.zip" download><svg class="i"><use href="#i-puzzle"/></svg>Browser-Erweiterung (.zip)</a>
+          <a class="btn btn--ghost btn--sm" href="jon.zip" download><svg class="i"><use href="#i-code"/></svg>Quellcode (.zip)</a>
+          <a class="btn btn--ghost btn--sm" href="https://build.nvidia.com" target="_blank" rel="noopener"><svg class="i"><use href="#i-key"/></svg>NVIDIA API-Key holen</a>
+          <a class="btn btn--ghost btn--sm" href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener"><svg class="i"><use href="#i-github"/></svg>GitHub</a>
+        </div>
+        <div class="note-box"><svg class="i"><use href="#i-info"/></svg><p>In beiden Varianten sind die Jon App, Mini Jon (Emil), die <a href="#games">Spiele</a> und das komplette Backend enthalten — es startet automatisch mit. Deine API-Einstellungen trägst du direkt in der App ein (Zahnrad → <b>Konten</b>): Key einfügen, fertig. Alle Keys bleiben ausschließlich lokal auf deinem Gerät. Ganz ohne Key läuft Jon gratis mit <a href="ollama.html">Ollama</a> oder LM Studio — seit v4.33 mit eigenem Einstellungsbereich, Serverstatus, Modellverwaltung und Serverfreigabe für andere Jon-Nutzer — teilen geht per Knopf direkt im Chat.</p></div>
+        <div class="note-box"><svg class="i"><use href="#i-shield"/></svg><p>Windows zeigt beim ersten Start eventuell „Der Computer wurde durch Windows geschützt" oder der Browser warnt beim Download. Das ist die übliche SmartScreen-Meldung für neue Programme ohne (teures) Herausgeber-Zertifikat — keine Schadsoftware-Meldung. Jon ist Open Source, der komplette Quellcode ist <a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">auf GitHub einsehbar</a>. Zum Starten: <b>Weitere Informationen → Trotzdem ausführen</b>.</p></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a class="brand" href="index.html" aria-label="Jon von FelWorks – Startseite">
+          <svg class="brand__face" viewBox="0 0 120 120" aria-hidden="true"><use href="#jon-face"/></svg>
+          <span>Jon</span><small>von FelWorks</small>
+        </a>
+        <p>Der kostenlose KI-Desktop-Assistent für Windows. Entwickelt von FelWorks in Theresienfeld, Österreich.</p>
+      </div>
+      <div>
+        <h4>Jon</h4>
+        <ul>
+          <li><a href="index.html#download">Download</a></li>
+          <li><a href="ollama.html">Ollama-Doku</a></li>
+          <li><a href="app/index.html">Handy-App</a></li>
+          <li><a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>FelWorks</h4>
+        <ul>
+          <li><a href="https://felworks.netlify.app/" target="_blank" rel="noopener">FelWorks</a></li>
+          <li><a href="https://play.google.com/store/apps/developer?id=FelWorks" target="_blank" rel="noopener">Google Play</a></li>
+          <li><a href="https://felworks-impressum.netlify.app/support" target="_blank" rel="noopener">Support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Rechtliches</h4>
+        <ul>
+          <li><a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener">Impressum</a></li>
+          <li><a href="https://felworks-impressum.netlify.app/datenschutz" target="_blank" rel="noopener">Datenschutz</a></li>
+          <li><a href="https://felworks-impressum.netlify.app/nutzungsbedingungen" target="_blank" rel="noopener">Nutzungsbedingungen</a></li>
+          <li><a href="agb.html">AGB</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__word" aria-hidden="true">Jon</div>
+    <div class="footer__bottom">
+      <div class="footer-meta">Jon — KI-Desktop-Assistent von FelWorks · v4.53.2 · Läuft lokal auf deinem Rechner</div>
+      <div class="footer-meta">© 2026 FelWorks · Theresienfeld, Österreich</div>
+    </div>
+  </div>
 </footer>
 
-<div id="cookie-banner" role="dialog" aria-label="Cookie-Hinweis">
-<h4>🍪 <span class="gold">Cookies</span></h4>
-<p>Diese Seite verwendet Cookies, um deine Einstellungen (z.&nbsp;B. deine Cookie-Auswahl und Sprachpräferenz) zu speichern. Es werden keine Tracking- oder Werbe-Cookies gesetzt und keine Daten an Dritte weitergegeben.</p>
-<div class="cookie-actions">
-<button class="btn btn-primary btn-sm" onclick="jonCookieChoice('all')">Alle akzeptieren</button>
-<button class="btn btn-ghost btn-sm" onclick="jonCookieChoice('essential')">Nur notwendige</button>
-</div>
-</div>
-
-<script>
-(function(){
-  var KEY="jon_cookie_consent";
-  function setCookie(name,value,days){
-    document.cookie=name+"="+encodeURIComponent(value)+"; max-age="+(days*86400)+"; path=/; SameSite=Lax";
-  }
-  function deleteCookie(name){
-    document.cookie=name+"=; max-age=0; path=/";
-  }
-  window.jonShowCookieBanner=function(){
-    document.getElementById("cookie-banner").classList.add("show");
-  };
-  window.jonCookieChoice=function(choice){
-    try{localStorage.setItem(KEY,choice);}catch(e){}
-    setCookie("jon_consent",choice,365);
-    if(choice==="essential"){deleteCookie("jon_prefs");}
-    else{setCookie("jon_prefs",JSON.stringify({lang:"de",theme:"dark"}),365);}
-    document.getElementById("cookie-banner").classList.remove("show");
-  };
-  var stored=null;
-  try{stored=localStorage.getItem(KEY);}catch(e){}
-  if(!stored){window.jonShowCookieBanner();}
-})();
-</script>
+<script src="assets/js/site.js" defer></script>
 </body>
 </html>
