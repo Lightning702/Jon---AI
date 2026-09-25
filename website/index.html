@@ -3,8 +3,23 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Jon — KI-Desktop-Assistent</title>
-<meta name="description" content="Jon ist der moderne KI-Desktop-Assistent fuer Windows. Multi-Provider, Streaming, Systemsteuerung. Jetzt herunterladen." />
+<title>Jon von FelWorks — KI-Desktop-Assistent für Windows</title>
+<meta name="description" content="Jon ist der kostenlose KI-Desktop-Assistent von FelWorks für Windows: Multi-Provider-KI, Sprachsteuerung, Streaming, Systemsteuerung und lokale KI mit Ollama." />
+<meta name="author" content="FelWorks" />
+<meta name="publisher" content="FelWorks" />
+<meta name="robots" content="index,follow,max-image-preview:large" />
+<link rel="canonical" href="https://getjon.info/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Jon von FelWorks" />
+<meta property="og:title" content="Jon von FelWorks — KI-Desktop-Assistent für Windows" />
+<meta property="og:description" content="Jon ist der kostenlose KI-Desktop-Assistent von FelWorks für Windows: Multi-Provider-KI, Sprachsteuerung, Streaming, Systemsteuerung und lokale KI mit Ollama." />
+<meta property="og:url" content="https://getjon.info/" />
+<meta property="og:image" content="https://getjon.info/app/icon-512.png" />
+<meta property="og:locale" content="de_AT" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" type="image/png" sizes="192x192" href="/app/icon-192.png" />
+<link rel="apple-touch-icon" href="/app/icon-192.png" />
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://getjon.info/#felworks","name":"FelWorks","alternateName":["FelWorks Webentwicklung","Fel Works","Felworks"],"url":"https://getjon.info/","logo":"https://getjon.info/app/icon-512.png","description":"FelWorks (FelWorks Webentwicklung) aus Theresienfeld, Österreich, entwickelt Software – darunter Jon, den kostenlosen KI-Desktop-Assistenten für Windows, und die FelWorks Game Collection.","address":{"@type":"PostalAddress","streetAddress":"Grazerstraße 11","postalCode":"2604","addressLocality":"Theresienfeld","addressCountry":"AT"},"sameAs":["https://felworks-impressum.netlify.app/","https://github.com/Lightning702"]},{"@type":"WebSite","@id":"https://getjon.info/#website","url":"https://getjon.info/","name":"Jon von FelWorks","alternateName":["Jon","getjon.info","FelWorks Jon"],"inLanguage":"de","publisher":{"@id":"https://getjon.info/#felworks"}},{"@type":"SoftwareApplication","@id":"https://getjon.info/#jon","name":"Jon","alternateName":["Jon KI-Desktop-Assistent","Jon von FelWorks"],"description":"Jon ist der kostenlose KI-Desktop-Assistent von FelWorks für Windows: Multi-Provider-KI, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis, Systemsteuerung und lokale KI mit Ollama.","url":"https://getjon.info/","image":"https://getjon.info/app/icon-512.png","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 10, Windows 11","inLanguage":"de","downloadUrl":"https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@id":"https://getjon.info/#felworks"},"publisher":{"@id":"https://getjon.info/#felworks"},"sameAs":["https://github.com/Lightning702/Jon---AI"]}]}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E" />
 <style>
 :root{--gold:#d4af37;--gold-light:#f5d67b;--gold-dark:#9a7b1f;--ink:#050506;--ink2:#0b0b0f}
@@ -23,6 +38,7 @@ body{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#f5f5f7;background:
 .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px}
 nav{display:flex;align-items:center;justify-content:space-between;padding:24px 0}
 .brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:2px}
+.brand .by{font-size:11px;font-weight:500;letter-spacing:1px;color:rgba(255,255,255,.45)}
 .dot{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 20px rgba(212,175,55,.6)}
 .gold{background:linear-gradient(90deg,var(--gold-light),var(--gold),var(--gold-dark));-webkit-background-clip:text;background-clip:text;color:transparent}
 nav a{color:rgba(255,255,255,.6);text-decoration:none;margin-left:28px;font-size:14px;transition:color .2s}
@@ -139,7 +155,7 @@ nav a.hot::after{content:"NEU";display:inline-block;margin-left:6px;font-size:9p
 <div class="glow b"></div>
 <div class="wrap">
 <nav>
-<div class="brand"><div class="dot"></div><span class="gold">JON</span></div>
+<div class="brand"><div class="dot"></div><span class="gold">JON</span><span class="by">von FelWorks</span></div>
 <div>
 <a href="#install">Installation</a>
 <a href="#werkstatt">Dateien</a>
@@ -156,7 +172,7 @@ nav a.hot::after{content:"NEU";display:inline-block;margin-left:6px;font-size:9p
 <header>
 <a class="newbadge" href="#werkstatt"><b>NEU 4.53.2</b> 📺 Jon zeigt dir seinen Bildschirm über Telegram — und deine Jons finden sich jetzt über das Internet</a>
 <h1>Dein <span class="gold">KI-Desktop</span><br>Assistent für Windows</h1>
-<p>Jon steuert deinen gesamten Computer intelligent. Multi-Provider-KI mit GPT-OSS 120B über NVIDIA, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis und voller Systemsteuerung — in einem eleganten Black-&-Gold-Design.</p>
+<p>Jon von <b>FelWorks</b> steuert deinen gesamten Computer intelligent. Multi-Provider-KI mit GPT-OSS 120B über NVIDIA, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis und voller Systemsteuerung — in einem eleganten Black-&-Gold-Design.</p>
 <div class="cta">
 <a class="btn btn-primary" href="#download">Jetzt herunterladen</a>
 <a class="btn btn-ghost" href="ollama.html">🦙 Ollama einrichten</a>
@@ -418,6 +434,7 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <div class="about-card">
 <p>Hi, ich bin Felix, ein leidenschaftlicher Softwareentwickler aus Österreich. Ich liebe es, Ideen in echte Projekte zu verwandeln und ständig neue Technologien zu entdecken. Egal ob moderne Webanwendungen, KI oder kreative Tools, ich probiere gerne Neues aus und entwickle Lösungen, die nicht nur funktionieren, sondern auch Spaß machen.</p>
 <p>Im Mittelpunkt steht dabei Jon, mein KI-Assistent. Für dieses Projekt experimentiere ich mit künstlicher Intelligenz, lokalen Sprachmodellen, Smart-Home-Integration und moderner Softwareentwicklung. Jon ist für mich nicht nur ein spannendes Projekt, sondern auch eine Möglichkeit, neue Ideen auszuprobieren und mich als Entwickler weiterzuentwickeln.</p>
+<p>Jon erscheint bei <b>FelWorks</b> (FelWorks Webentwicklung) aus Theresienfeld in Österreich — genauso wie die <a href="#games" style="color:var(--gold-light)">FelWorks Game Collection</a>. Alle rechtlichen Angaben zu FelWorks stehen im <a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener" style="color:var(--gold-light)">Impressum</a>.</p>
 <p>Ich glaube daran, dass man nie ausgelernt hat. Deshalb verbringe ich viel Zeit damit, neue Programmiersprachen, Frameworks und Technologien auszuprobieren und mein Wissen in spannende Projekte einfließen zu lassen. Mein Ziel ist es, Software zu entwickeln, die nützlich, innovativ und einfach zu bedienen ist.</p>
 </div>
 </section>
@@ -451,7 +468,8 @@ cd frontend &amp;&amp; npm install</code></div></div>
 <a href="agb.html">AGB</a>
 <button class="cookie-link" onclick="jonShowCookieBanner()">Cookie-Einstellungen</button>
 </div>
-<div class="footer-meta">Jon — KI-Desktop-Assistent · v4.53.2 · Läuft lokal auf deinem Rechner</div>
+<div class="footer-meta">Jon — KI-Desktop-Assistent von FelWorks · v4.53.2 · Läuft lokal auf deinem Rechner</div>
+<div class="footer-meta">© 2026 FelWorks · Theresienfeld, Österreich</div>
 </footer>
 
 <div id="cookie-banner" role="dialog" aria-label="Cookie-Hinweis">
