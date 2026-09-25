@@ -1,5 +1,5 @@
-const CACHE = "jon-mobile-v2";
-const SHELL = ["./", "./index.html", "./mini.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
+const CACHE = "jon-mobile-v3";
+const SHELL = ["./", "./index.html", "./mini.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "../assets/fonts/geist.woff2", "../assets/fonts/geist-mono.woff2"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
