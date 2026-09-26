@@ -5,7 +5,13 @@ import re
 import time
 from typing import AsyncIterator
 
-from app.core.config import DATA_DIR, get_settings
+from app.core.config import (
+    DATA_DIR,
+    NVIDIA_EMIL_MODELL,
+    NVIDIA_JON_MODELL,
+    get_settings,
+    lebendes_modell,
+)
 from app.core.store import atomic_write_json, read_json
 from app.core.logbook import logger as logbook_logger
 from app.db.database import session_scope
@@ -36,6 +42,7 @@ from app.services.verlauf_service import get_verlauf_service
 from app.services.systemprompt import EHRLICHKEIT as HONESTY_RULE
 from app.services.systemprompt import ENGLISCH
 from app.services.systemprompt import bauen as prompt_bauen
+from app.services.systemprompt import mit_herkunft
 from app.services.usage_service import get_usage_service
 
 _log = logbook_logger("chat")
@@ -160,10 +167,21 @@ def looks_like_tool_start(text: str) -> bool:
 
 
 FALLBACK_MODELS = {
-    "nvidia": "openai/gpt-oss-20b",
+    "nvidia": NVIDIA_JON_MODELL,
     "openrouter": "meta-llama/llama-3.1-8b-instruct:free",
     "groq": "llama-3.3-70b-versatile",
 }
+
+ZWEITER_ERSATZ = {
+    "nvidia": NVIDIA_EMIL_MODELL,
+}
+
+GEDULD_QUELLEN = {
+    "telegram": 45.0,
+    "telegram-gruppe": 45.0,
+}
+
+OLLAMA_UNGEEIGNET = ("embed", "image", ":cloud", "whisper", "tts")
 
 OPENROUTER_FREE_DEFAULTS = (
     "meta-llama/llama-3.3-70b-instruct:free",
@@ -423,6 +441,8 @@ async def attempt_plan_for(
         else:
             attempts.append((name, model))
     fallback = FALLBACK_MODELS.get(primary, "")
+    if fallback == model:
+        fallback = ZWEITER_ERSATZ.get(primary, "")
     if primary == "openrouter" and fallback:
         fallback = await openrouter_free_model(registry, fallback)
     if fallback and fallback != model and (primary, model) in attempts:
@@ -430,6 +450,75 @@ async def attempt_plan_for(
     healthy = [a for a in attempts if not is_slow(a[0], a[1])]
     stalled = [a for a in attempts if is_slow(a[0], a[1])]
     return healthy + stalled
+
+
+def grundmodell(provider: str, slot: str = "emil") -> str:
+    if provider == "ollama":
+        from app.services.ollama_service import get_ollama_service
+
+        return get_ollama_service().selected_model()
+    try:
+        from app.services.account_service import get_account_service
+
+        eigenes = get_account_service().default_model(provider)
+    except Exception:
+        eigenes = None
+    if eigenes:
+        return lebendes_modell(eigenes, provider)
+    settings = get_settings()
+    if provider == settings.default_provider:
+        return settings.model_for(slot)
+    return ""
+
+
+def ollama_geeignet(model: str) -> bool:
+    name = model.lower()
+    return bool(name) and not any(marke in name for marke in OLLAMA_UNGEEIGNET)
+
+
+async def ollama_ersatz(registry, primary: str) -> tuple[str, str] | None:
+    if primary == "ollama":
+        return None
+    if not get_settings_service().get().get("auto_failover", True):
+        return None
+    try:
+        provider = registry.get("ollama")
+    except Exception:
+        return None
+    if not provider.available():
+        return None
+    try:
+        models = await provider.list_models()
+    except Exception:
+        return None
+    if not models:
+        return None
+    try:
+        from app.services.ollama_service import get_ollama_service
+
+        gewaehlt = get_ollama_service().selected_model()
+    except Exception:
+        gewaehlt = ""
+    if gewaehlt and gewaehlt in models and ollama_geeignet(gewaehlt):
+        return "ollama", gewaehlt
+    for model in models:
+        if ollama_geeignet(model):
+            return "ollama", model
+    return None
+
+
+def mit_ollama_ersatz(
+    attempts: list[tuple[str, str]], ersatz: tuple[str, str] | None
+) -> list[tuple[str, str]]:
+    if ersatz is None or ersatz in attempts:
+        return attempts
+    if is_slow(*ersatz):
+        return [*attempts, ersatz]
+    stelle = next(
+        (i for i, (name, model) in enumerate(attempts) if is_slow(name, model)),
+        len(attempts),
+    )
+    return [*attempts[:stelle], ersatz, *attempts[stelle:]]
 
 
 class ChatService:
@@ -558,7 +647,7 @@ class ChatService:
                 parts.append(f"Der Nutzer heisst {username}. Sprich ihn so an.")
         except Exception as _fehler:
             leise(_fehler, "services/chat_service")
-        return "\n\n".join(parts)
+        return mit_herkunft("\n\n".join(parts))
 
     async def openrouter_free(self, model: str) -> str:
         return await openrouter_free_model(self._registry, model)
@@ -654,19 +743,26 @@ class ChatService:
         slot = self.slot_for(payload)
         if slot == "emil":
             pet_provider, pet_model = settings_service.pet_selection()
-            provider = (
-                payload.provider
-                or pet_provider
-                or saved_provider
-                or self._settings.default_provider
+            eigener = (
+                pet_provider or saved_provider or self._settings.default_provider
             )
-            model = payload.model or pet_model or self._settings.emil_model
+            provider = payload.provider or eigener
+            model = (
+                payload.model
+                or (pet_model if provider == eigener else "")
+                or grundmodell(provider)
+                or self._settings.emil_model
+            )
         else:
-            provider = (
-                payload.provider or saved_provider or self._settings.default_provider
+            eigener = saved_provider or self._settings.default_provider
+            provider = payload.provider or eigener
+            model = (
+                payload.model
+                or (saved_model if provider == eigener else "")
+                or grundmodell(provider, "jon")
+                or self._settings.jon_model
             )
-            model = payload.model or saved_model or self._settings.jon_model
-        return self._share_route(provider, model)
+        return self._share_route(provider, lebendes_modell(model, provider))
 
     def _ensure_conversation(self, payload: ChatIn, provider: str, model: str) -> str:
         with session_scope() as session:
@@ -761,6 +857,9 @@ class ChatService:
         attempts = await self.attempt_plan(chosen, names, model)
         if not attempts:
             attempts = [(chosen, model)]
+        attempts = mit_ollama_ersatz(
+            attempts, await ollama_ersatz(self._registry, chosen)
+        )
         provider_name = attempts[0][0]
         state = {"provider": provider_name}
 
@@ -894,6 +993,7 @@ class ChatService:
             seed=seed,
             tools=tools,
             slot=slot,
+            first_token_timeout=GEDULD_QUELLEN.get(payload.source, 0.0),
         )
 
         budget = get_budget_service()

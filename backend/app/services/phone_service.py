@@ -965,7 +965,9 @@ async def _persona(reason: str, test: bool) -> str:
         lines.append(f"Der Grund fuer den Anruf ist: {reason}.")
     if test:
         lines.append("Es ist ein Testanruf. Halte ihn sehr kurz.")
-    return "\n".join(line for line in lines if line)
+    from app.services.systemprompt import mit_herkunft
+
+    return mit_herkunft("\n".join(line for line in lines if line))
 
 
 _service: PhoneService | None = None

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.core.config import get_settings
+from app.core.config import get_settings, lebendes_modell
 from app.providers.base import ChatMessage, ChatRequest
 from app.providers.registry import get_registry
 
@@ -16,7 +16,7 @@ async def complete(
 ) -> str:
     settings = get_settings()
     provider = provider or settings.default_provider
-    model = model or settings.jon_model
+    model = lebendes_modell(model or settings.jon_model, provider)
     prov = get_registry().get(provider)
     messages = []
     if system:

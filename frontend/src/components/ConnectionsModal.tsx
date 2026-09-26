@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { UserSettings, saveUserSettings } from "../lib/api";
+import { useEffect, useState } from "react";
+import {
+  ProviderStatus,
+  UserSettings,
+  getProviders,
+  saveUserSettings,
+} from "../lib/api";
 import GeraetePanel from "./GeraetePanel";
 import HandyModal from "./HandyModal";
 
@@ -22,7 +27,8 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
     telegram_bot_token: settings.telegram_bot_token ?? "",
     mini_jon_bot_token: settings.mini_jon_bot_token ?? "",
     telegram_chat_id: settings.telegram_chat_id ?? "",
-    telegram_model: settings.telegram_model ?? "openai/gpt-oss-20b",
+    telegram_provider: settings.telegram_provider ?? "",
+    telegram_model: settings.telegram_model ?? "",
     telegram_morning: settings.telegram_morning ?? false,
     telegram_morning_time: settings.telegram_morning_time ?? "07:30",
     ha_url: settings.ha_url ?? "",
@@ -34,6 +40,23 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
   });
   const [saved, setSaved] = useState(false);
   const [kopplung, setKopplung] = useState(false);
+  const [providers, setProviders] = useState<ProviderStatus[]>([]);
+
+  useEffect(() => {
+    void getProviders()
+      .then(setProviders)
+      .catch(() => setProviders([]));
+  }, []);
+
+  const jonsAnbieter = settings.provider || "nvidia";
+  const telegramAnbieter = form.telegram_provider || jonsAnbieter;
+  const verfuegbar = providers.filter((p) => p.configured);
+  const telegramModelle =
+    providers.find((p) => p.provider === telegramAnbieter)?.models ?? [];
+  const ollamaLeer =
+    telegramAnbieter === "ollama" &&
+    providers.length > 0 &&
+    telegramModelle.length === 0;
 
   const set = (key: keyof typeof form, value: string | number | boolean) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -167,18 +190,58 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
               </div>
             )}
             <div className="text-[11px] text-white/40 pt-1">
-              Modell für Telegram (unterwegs zählt Tempo — in der App gilt weiter
-              dein normal gewähltes Modell). Wechselt Jon in der App zu einem
-              anderen Anbieter als NVIDIA, übernimmt Telegram automatisch Jons
-              Anbieter und Modell. Der Bot merkt sich eure Gespräche dauerhaft
-              und kennt Jons Gedächtnis (MEMORY.md):
+              KI für Telegram — unabhängig von der App. Wähle zum Beispiel{" "}
+              <code>ollama</code>, dann antwortet Jon in Telegram lokal über
+              Ollama, auch wenn er in der App eine API wie NVIDIA benutzt.
+              Antwortet ein Anbieter nicht, springt Jon auf ein Ersatzmodell und
+              zuletzt auf Ollama. Unterwegs wechselst du mit{" "}
+              <code>/anbieter</code> und <code>/modell</code> direkt im Chat.
             </div>
-            <input
-              className={field}
-              placeholder="openai/gpt-oss-20b"
-              value={form.telegram_model}
-              onChange={(e) => set("telegram_model", e.target.value)}
-            />
+            <div className="flex gap-2">
+              <select
+                className={`${field} [&>option]:bg-zinc-900`}
+                value={form.telegram_provider}
+                onChange={(e) => {
+                  set("telegram_provider", e.target.value);
+                  set("telegram_model", "");
+                }}
+              >
+                <option value="">Wie Jon ({jonsAnbieter})</option>
+                {verfuegbar.map((p) => (
+                  <option key={p.provider} value={p.provider}>
+                    {p.label || p.provider}
+                  </option>
+                ))}
+              </select>
+              <select
+                className={`${field} [&>option]:bg-zinc-900`}
+                value={form.telegram_model}
+                onChange={(e) => set("telegram_model", e.target.value)}
+              >
+                <option value="">Automatisch</option>
+                {form.telegram_model &&
+                  !telegramModelle.includes(form.telegram_model) && (
+                    <option value={form.telegram_model}>
+                      {form.telegram_model}
+                    </option>
+                  )}
+                {telegramModelle.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {ollamaLeer && (
+              <div className="text-[11px] text-amber-300/80">
+                Ollama liefert gerade keine Modelle. Starte Ollama und lade ein
+                Modell, z. B. <code>ollama pull gemma3</code>.
+              </div>
+            )}
+            <div className="text-[11px] text-white/40">
+              Der Bot merkt sich eure Gespräche dauerhaft und kennt Jons
+              Gedächtnis (MEMORY.md).
+            </div>
             <div className="flex items-center justify-between pt-2">
               <div className="text-[12px] text-white/70">
                 🌅 Guten-Morgen-Sprachnachricht

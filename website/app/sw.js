@@ -1,4 +1,4 @@
-const CACHE = "jon-mobile-v3";
+const CACHE = "jon-mobile-v4";
 const SHELL = ["./", "./index.html", "./mini.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "../assets/fonts/geist.woff2", "../assets/fonts/geist-mono.woff2"];
 
 self.addEventListener("install", (e) => {

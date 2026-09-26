@@ -177,3 +177,35 @@ def test_budgetgrenze_stoppt_die_anfrage(provider):
     finally:
         dienst.update({"budget_tokens_tag": vorher})
         budget.zuruecksetzen()
+
+
+def test_jon_nennt_felworks_als_herkunft(provider):
+    _lauf(_eingabe("Wer hat dich gemacht?"))
+    assert "Jon von FelWorks" in provider.systemprompt
+    assert provider.systemprompt.count("DEINE HERKUNFT") == 1
+
+
+def test_felworks_gilt_auf_jedem_weg():
+    from app.services.phone_service import _persona
+    from app.services.settings_service import get_settings_service
+    from app.services.telegram_group_service import _system_text
+
+    dienst = ChatService()
+    assert "Jon von FelWorks" in dienst._system_prompt(coding=True)
+    assert "Jon von FelWorks" in dienst._system_prompt(persona="junior")
+    einstellungen = get_settings_service()
+    vorher = einstellungen.custom_prompt()
+    try:
+        einstellungen.update(
+            {"custom_prompt": "Sei ein Pirat.", "prompt_mode": "replace"}
+        )
+        eigen = dienst._system_prompt()
+        assert "Sei ein Pirat." in eigen
+        assert "Jon von FelWorks" in eigen
+    finally:
+        einstellungen.update({"custom_prompt": vorher[0], "prompt_mode": vorher[1]})
+    assert "Jon von FelWorks" in asyncio.run(_persona("", True))
+    for gruppe in (True, False):
+        text = _system_text("papa", "jon_bot", "Anna", gruppe, "", "gast")
+        assert text.count("Jon von FelWorks") >= 1
+        assert text.count("DEINE HERKUNFT") == 1

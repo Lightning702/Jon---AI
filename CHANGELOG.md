@@ -2,6 +2,47 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.54.0] — 2026-09-26
+
+### 📲 Telegram antwortet wieder — auch wenn NVIDIA hakt
+
+Über Telegram kam mit NVIDIA oft gar keine Antwort. Drei Ursachen, alle behoben:
+
+- **Zu wenig Geduld.** Mit seinen rund 50 Werkzeugen braucht NVIDIA für das erste
+  Wort manchmal 20 Sekunden und mehr. Jon hat nach 20 Sekunden aufgegeben und das
+  Modell als „überlastet“ abgestempelt. In Telegram wartet er jetzt bis zu
+  45 Sekunden pro Versuch, insgesamt bis zu 5 Minuten.
+- **Tote Ersatzmodelle.** NVIDIA hat `openai/gpt-oss-120b` abgeschaltet (Antwort
+  410), `openai/gpt-oss-20b` hängt nur noch. Genau diese beiden waren Standard und
+  Ersatz. Neue Standards: `nvidia/nemotron-3-ultra-550b-a55b` für Jon und
+  `meta/muse-glimmer-30b` für Mini Jon und Telegram. Steht noch ein abgeschaltetes
+  Modell in der `.env` oder in den Einstellungen, nimmt Jon automatisch das neue.
+  Aus der Modellliste sind die toten Modelle verschwunden.
+- **Nachfragen hat die Antwort gelöscht.** Wer ungeduldig ein zweites Mal
+  geschrieben hat, hat damit die laufende Antwort abgebrochen, und es kam gar
+  nichts. Jetzt stellt Jon neue Nachrichten hinten an und beantwortet sie der
+  Reihe nach. `/stopp` bricht weiterhin alles ab.
+
+### 🦙 Ollama für Telegram — auch wenn Jon eine API benutzt
+
+- **Verbindungen → Telegram** hat jetzt eine Auswahl für Anbieter und Modell.
+  Wähle `ollama`, dann antwortet Jon in Telegram lokal über Ollama, während er in
+  der App bei NVIDIA oder einer anderen API bleibt. Freigegebene Ollama-Server
+  anderer Geräte (zum Beispiel vom Raspberry Pi) stehen ebenfalls zur Wahl.
+- **Direkt im Chat umschalten:** `/anbieter` zeigt alle verfügbaren Anbieter,
+  `/anbieter ollama` wechselt. `/modell` zeigt das aktuelle Modell und die
+  Ollama-Modelle, `/modell ollama gemma3` wählt eines, `/modell auto` folgt
+  wieder Jon.
+- **Ollama als letzte Rettung:** Antwortet kein API-Modell, springt Jon (bei
+  eingeschaltetem Anbieterwechsel) auf Ollama, statt mit einer Fehlermeldung
+  aufzugeben — in Telegram und in der App.
+
+### 🏷️ Jon von FelWorks
+
+Fragt jemand, wer Jon gemacht hat, nennt er FelWorks — jetzt überall: im Chat,
+im Terminal, am Telefon, in Telegram-Gruppen und in der Handy-Web-App. Das
+Sprachmodell im Hintergrund gibt er nicht mehr als seinen Hersteller aus.
+
 ## [4.53.2] — 2026-09-21
 
 ### ⌨️ `jon` im Terminal — jetzt auch in der fertigen App

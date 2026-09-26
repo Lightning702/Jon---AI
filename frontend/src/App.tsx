@@ -209,7 +209,7 @@ export default function App() {
   const { t } = useT();
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
   const [provider, setProvider] = useState("nvidia");
-  const [model, setModel] = useState("openai/gpt-oss-120b");
+  const [model, setModel] = useState("nvidia/nemotron-3-ultra-550b-a55b");
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [entries, setEntries] = useState<ChatEntry[]>([]);

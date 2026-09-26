@@ -24,6 +24,7 @@ class ChatRequest:
     stop: list[str] = field(default_factory=list)
     tools: list[dict] = field(default_factory=list)
     slot: str = "jon"
+    first_token_timeout: float = 0.0
 
 
 @dataclass

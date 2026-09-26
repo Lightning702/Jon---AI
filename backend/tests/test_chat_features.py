@@ -362,11 +362,11 @@ def test_modelle_pro_slot():
     from app.core.config import Settings
 
     s = Settings(
-        default_jon_model="openai/gpt-oss-120b",
-        default_emil_model="openai/gpt-oss-20b",
+        default_jon_model="nvidia/nemotron-3-ultra-550b-a55b",
+        default_emil_model="meta/muse-glimmer-30b",
     )
-    assert s.model_for("jon") == "openai/gpt-oss-120b"
-    assert s.model_for("emil") == "openai/gpt-oss-20b"
+    assert s.model_for("jon") == "nvidia/nemotron-3-ultra-550b-a55b"
+    assert s.model_for("emil") == "meta/muse-glimmer-30b"
     assert Settings(default_jon_model="a", default_emil_model="").emil_model == "a"
 
 

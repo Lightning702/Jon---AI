@@ -135,7 +135,7 @@ main{flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column
 
 <script>
 const PROVIDERS = {
-  nvidia: { label: "NVIDIA", base: "/nvidia/v1", model: "openai/gpt-oss-120b", url: "https://build.nvidia.com", tools: true },
+  nvidia: { label: "NVIDIA", base: "/nvidia/v1", model: "nvidia/nemotron-3-ultra-550b-a55b", url: "https://build.nvidia.com", tools: true },
   openai: { label: "OpenAI", base: "https://api.openai.com/v1", model: "gpt-4o-mini", url: "https://platform.openai.com/api-keys", tools: true },
   glm: { label: "GLM", base: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash", url: "https://open.bigmodel.cn", tools: true },
   deepseek: { label: "DeepSeek", base: "https://api.deepseek.com/v1", model: "deepseek-chat", url: "https://platform.deepseek.com", tools: true },
@@ -144,7 +144,7 @@ const PROVIDERS = {
   gemini: { label: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash", url: "https://aistudio.google.com/apikey", tools: false }
 };
 
-const SYSTEM_PROMPT = "Du bist Jon, ein freundlicher, schneller KI-Assistent auf dem Handy des Nutzers. Du kannst echte Aktionen auf dem Handy ausloesen: Apps und Webseiten oeffnen (open_app, open_url), etwas teilen (share), Text vorlesen (speak), Ort abfragen (get_location), Uhrzeit (get_time), im Web nachschlagen (http_get). Nutze die Tools, wenn eine Aktion sinnvoll ist, statt sie nur zu beschreiben. Aus Sicherheitsgruenden erlaubt das Handy-Web keinen Zugriff auf Kontakte, Nachrichten oder Dateien anderer Apps - sage das ehrlich und nutze stattdessen die bestmoegliche offizielle Alternative (z.B. WhatsApp per open_app oeffnen). Antworte knapp, praezise und auf Deutsch.";
+const SYSTEM_PROMPT = "Du bist Jon von FelWorks, ein freundlicher, schneller KI-Assistent auf dem Handy des Nutzers. FelWorks hat dich entwickelt, deine Heimat im Netz ist getjon.info. Fragt jemand, wer dich gemacht hat oder von wem du bist, sagst du immer: Ich bin Jon von FelWorks. Das Sprachmodell im Hintergrund ist nur dein austauschbarer Antrieb, nicht dein Hersteller - gib dich nie als dieses Modell aus und nenne nie dessen Firma als deinen Hersteller. Du kannst echte Aktionen auf dem Handy ausloesen: Apps und Webseiten oeffnen (open_app, open_url), etwas teilen (share), Text vorlesen (speak), Ort abfragen (get_location), Uhrzeit (get_time), im Web nachschlagen (http_get). Nutze die Tools, wenn eine Aktion sinnvoll ist, statt sie nur zu beschreiben. Aus Sicherheitsgruenden erlaubt das Handy-Web keinen Zugriff auf Kontakte, Nachrichten oder Dateien anderer Apps - sage das ehrlich und nutze stattdessen die bestmoegliche offizielle Alternative (z.B. WhatsApp per open_app oeffnen). Antworte knapp, praezise und auf Deutsch.";
 
 const APP_LINKS = {
   whatsapp: "https://wa.me/", youtube: "https://m.youtube.com/", maps: "https://maps.google.com/",
@@ -164,6 +164,7 @@ const TOOLS = [
 
 let keys = load("jon_m_keys", {});
 let models = load("jon_m_models", {});
+if (/^openai\/gpt-oss-|^meta\/llama-3\.1-8b-instruct$/.test(models.nvidia || "")) delete models.nvidia;
 let active = localStorage.getItem("jon_m_provider") || "nvidia";
 let history = load("jon_m_chat", []);
 let speakOn = localStorage.getItem("jon_m_speak") === "1";

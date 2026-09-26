@@ -141,7 +141,7 @@ body.busy .dbtn.stop{display:grid}
 
 <script>
 const PROVIDERS = {
-  nvidia: { label: "NVIDIA", base: "/nvidia/v1", model: "openai/gpt-oss-120b", url: "https://build.nvidia.com", tools: true },
+  nvidia: { label: "NVIDIA", base: "/nvidia/v1", model: "nvidia/nemotron-3-ultra-550b-a55b", url: "https://build.nvidia.com", tools: true },
   openai: { label: "OpenAI", base: "https://api.openai.com/v1", model: "gpt-4o-mini", url: "https://platform.openai.com/api-keys", tools: true },
   glm: { label: "GLM", base: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash", url: "https://open.bigmodel.cn", tools: true },
   deepseek: { label: "DeepSeek", base: "https://api.deepseek.com/v1", model: "deepseek-chat", url: "https://platform.deepseek.com", tools: true },
@@ -174,6 +174,7 @@ const $ = (id) => document.getElementById(id);
 
 let keys = load("jon_m_keys", {});
 let models = load("jon_m_models", {});
+if (/^openai\/gpt-oss-|^meta\/llama-3\.1-8b-instruct$/.test(models.nvidia || "")) delete models.nvidia;
 let active = localStorage.getItem("jon_m_provider") || "nvidia";
 let convo = load("jon_mini_chat", []);
 let speakOn = localStorage.getItem("jon_mini_speak") !== "0";

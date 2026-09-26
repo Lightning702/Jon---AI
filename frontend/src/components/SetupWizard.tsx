@@ -7,7 +7,7 @@ const PROVIDERS = [
     label: "NVIDIA",
     hint: "Kostenlos, empfohlen — Schlüssel auf build.nvidia.com",
     url: "https://build.nvidia.com",
-    model: "openai/gpt-oss-20b",
+    model: "meta/muse-glimmer-30b",
   },
   {
     id: "openai",

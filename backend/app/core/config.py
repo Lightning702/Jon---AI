@@ -17,6 +17,21 @@ else:
     ROOT_DIR = Path(__file__).resolve().parents[3]
 ENV_FILE = ROOT_DIR / ".env"
 
+NVIDIA_JON_MODELL = "nvidia/nemotron-3-ultra-550b-a55b"
+NVIDIA_EMIL_MODELL = "meta/muse-glimmer-30b"
+ABGESCHALTETE_MODELLE = {
+    "openai/gpt-oss-120b": NVIDIA_JON_MODELL,
+    "openai/gpt-oss-20b": NVIDIA_EMIL_MODELL,
+    "meta/llama-3.1-8b-instruct": NVIDIA_EMIL_MODELL,
+    "nvidia/llama-3.1-nemotron-70b-instruct": NVIDIA_JON_MODELL,
+}
+
+
+def lebendes_modell(model: str, provider: str = "nvidia") -> str:
+    if provider != "nvidia":
+        return model
+    return ABGESCHALTETE_MODELLE.get((model or "").strip(), model)
+
 
 def _writable(path: Path) -> bool:
     try:
@@ -82,7 +97,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.53.2"
+    app_version: str = "4.54.0"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = ""
@@ -93,8 +108,8 @@ class Settings(BaseSettings):
 
     default_provider: str = "nvidia"
     default_model: str = ""
-    default_jon_model: str = "openai/gpt-oss-120b"
-    default_emil_model: str = "openai/gpt-oss-20b"
+    default_jon_model: str = NVIDIA_JON_MODELL
+    default_emil_model: str = NVIDIA_EMIL_MODELL
 
     openai_api_key: str | None = None
     nvidia_api_key: str | None = None
@@ -170,15 +185,19 @@ class Settings(BaseSettings):
 
     @property
     def jon_model(self) -> str:
-        return (
+        return lebendes_modell(
             self.default_jon_model.strip()
             or self.default_model.strip()
-            or "openai/gpt-oss-120b"
+            or NVIDIA_JON_MODELL,
+            self.default_provider,
         )
 
     @property
     def emil_model(self) -> str:
-        return self.default_emil_model.strip() or self.jon_model
+        return (
+            lebendes_modell(self.default_emil_model.strip(), self.default_provider)
+            or self.jon_model
+        )
 
     def model_for(self, slot: str) -> str:
         return self.emil_model if slot == "emil" else self.jon_model

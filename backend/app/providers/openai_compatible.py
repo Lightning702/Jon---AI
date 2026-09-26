@@ -13,7 +13,7 @@ from openai import (
     InternalServerError,
 )
 
-from app.core.config import get_settings
+from app.core.config import get_settings, lebendes_modell
 from app.providers.base import (
     ChatRequest,
     LLMProvider,
@@ -116,7 +116,11 @@ class OpenAICompatibleProvider(LLMProvider):
                 ttl = MODELS_FAIL_TTL
             else:
                 curated = [m for m in self._default_models if m in remote]
-                rest = [m for m in remote if m not in curated]
+                rest = [
+                    m
+                    for m in remote
+                    if m not in curated and lebendes_modell(m, self.name) == m
+                ]
                 result = curated + rest
                 ttl = MODELS_CACHE_TTL
         except Exception:
@@ -222,7 +226,8 @@ class OpenAICompatibleProvider(LLMProvider):
         guard = (
             0.0
             if self.name in PATIENT_PROVIDERS
-            else settings.first_token_timeout * (2.0 if tools else 1.0)
+            else request.first_token_timeout
+            or settings.first_token_timeout * (2.0 if tools else 1.0)
         )
         max_tokens = request.max_tokens or DEFAULT_MAX_TOKENS
         effort = get_settings().reasoning_effort.strip().lower()

@@ -229,8 +229,8 @@ providers at runtime in the accounts area.
 ```
 NVIDIA_API_KEY=nvapi-...
 DEFAULT_PROVIDER=nvidia
-DEFAULT_JON_MODEL=openai/gpt-oss-120b
-DEFAULT_EMIL_MODEL=openai/gpt-oss-20b
+DEFAULT_JON_MODEL=nvidia/nemotron-3-ultra-550b-a55b
+DEFAULT_EMIL_MODEL=meta/muse-glimmer-30b
 ```
 
 #### 2. Backend

@@ -6,7 +6,7 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-[![Version](https://img.shields.io/badge/Version-4.53.2-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.54.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -483,7 +483,7 @@ auf deinem PC gespeichert.
 |---|---|---|
 | 📧 **E-Mail** | IMAP-Server, Adresse, App-Passwort | Gmail: `imap.gmail.com` + [App-Passwort](https://myaccount.google.com/apppasswords) (nicht dein normales Passwort!). GMX/Web.de: IMAP zuerst in den Konto-Einstellungen freischalten |
 | 📅 **Kalender** | ICS-URL | Google Kalender → Einstellungen → *Geheime Adresse im iCal-Format*. Geht auch mit Outlook, Apple, Nextcloud |
-| 📲 **Telegram** | Bot-Token | In Telegram `@BotFather` anschreiben → `/newbot` → Namen wählen → Token kopieren. Danach **deinem eigenen Bot** `/start` schreiben — der erste Chat wird automatisch mit deinem PC verknüpft, alle anderen werden abgewiesen. Telegram nutzt ein eigenes, schnelles Modell (`openai/gpt-oss-20b`), damit du unterwegs nicht wartest — App und Mini Jon behalten dein gewähltes Modell |
+| 📲 **Telegram** | Bot-Token | In Telegram `@BotFather` anschreiben → `/newbot` → Namen wählen → Token kopieren. Danach **deinem eigenen Bot** `/start` schreiben — der erste Chat wird automatisch mit deinem PC verknüpft, alle anderen werden abgewiesen. Telegram kann einen eigenen Anbieter nutzen — auch Ollama, wenn Jon in der App eine API wie NVIDIA benutzt (Verbindungen → Telegram, oder direkt im Chat mit `/anbieter ollama` und `/modell`). Antwortet ein Modell nicht, springt Jon auf ein Ersatzmodell und zuletzt auf Ollama |
 | 🎧 **Spotify** | Client-ID + Secret | [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → *Create app* → beliebiger Name, Redirect-URI `http://localhost` → ID und Secret kopieren. **Kein Premium nötig** |
 | 🏠 **Smart Home** | Home-Assistant-URL + Token | Home Assistant → Profil (unten links) → Sicherheit → *Langlebiges Zugriffstoken* |
 
@@ -1044,8 +1044,8 @@ verbindest du Anbieter zur Laufzeit im Konten-Bereich.
 ```
 NVIDIA_API_KEY=nvapi-...
 DEFAULT_PROVIDER=nvidia
-DEFAULT_JON_MODEL=openai/gpt-oss-120b
-DEFAULT_EMIL_MODEL=openai/gpt-oss-20b
+DEFAULT_JON_MODEL=nvidia/nemotron-3-ultra-550b-a55b
+DEFAULT_EMIL_MODEL=meta/muse-glimmer-30b
 ```
 
 Jon und Mini Jon laufen auf getrennten Modellen. Mit **einem** Key teilen sie ihn sich.

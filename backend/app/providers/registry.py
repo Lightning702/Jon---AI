@@ -28,13 +28,11 @@ class ProviderRegistry:
             base_url=s.nvidia_base_url,
             key_resolver=self._resolver("nvidia"),
             default_models=[
-                "openai/gpt-oss-120b",
-                "openai/gpt-oss-20b",
-                "meta/llama-3.1-70b-instruct",
-                "z-ai/glm-5.2",
-                "deepseek-ai/deepseek-r1",
-                "qwen/qwen2.5-coder-32b-instruct",
-                "nvidia/llama-3.1-nemotron-70b-instruct",
+                "nvidia/nemotron-3-ultra-550b-a55b",
+                "meta/muse-glimmer-30b",
+                "mistralai/mistral-nemotron",
+                "nvidia/nemotron-3.5-lightning-30b-a3b",
+                "nvidia/nemotron-3-super-120b-a12b",
             ],
             timeout=t,
         )

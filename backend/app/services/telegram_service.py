@@ -19,6 +19,8 @@ from app.core.logbook import logger as logbook_logger
 HISTORY_FILE = DATA_DIR / "telegram_memory.json"
 HISTORY_KEEP = 40
 HISTORY_SEND = 12
+ZEITLIMIT = 300
+OLLAMA_LISTE = 12
 MORNING_STATE_FILE = DATA_DIR / "telegram_morning.json"
 
 
@@ -32,7 +34,7 @@ class TelegramService:
         self._chat_service = None
         self._voice_reply: set[str] = set()
         self._voice_off: set[str] = set()
-        self._running: dict[str, asyncio.Task] = {}
+        self._running: dict[str, list[asyncio.Task]] = {}
         self._last_morning = self._load_morning()
         self._pending_place: dict[str, str] = {}
         self._username = ""
@@ -289,7 +291,7 @@ class TelegramService:
         self._gruppe_merken(chat, "erwaehnt")
         question = strip_mention(text, username) or "Hallo!"
         await self._api("sendChatAction", {"chat_id": chat_id, "action": "typing"})
-        provider, model = get_settings_service().telegram_selection()
+        provider, model = self.modellwahl()
         cards: list[dict] = []
         try:
             answer = await asyncio.wait_for(
@@ -308,7 +310,7 @@ class TelegramService:
                     source="telegram-gruppe",
                     cards=cards,
                 ),
-                timeout=180,
+                timeout=ZEITLIMIT,
             )
         except Exception:
             answer = FEHLER_ANTWORT
@@ -792,8 +794,153 @@ class TelegramService:
         )
         return {"role": "system", "content": system}
 
+    @staticmethod
+    def modellwahl() -> tuple[str, str]:
+        from app.core.config import get_settings, lebendes_modell
+        from app.services.chat_service import grundmodell
+
+        provider, model = get_settings_service().telegram_selection()
+        settings = get_settings()
+        provider = provider or settings.default_provider
+        model = model or grundmodell(provider) or settings.emil_model
+        return provider, lebendes_modell(model, provider)
+
+    async def _modell_stand(self) -> str:
+        from app.providers.registry import get_registry
+        from app.services.chat_service import ollama_geeignet
+
+        provider, model = self.modellwahl()
+        eigene = str(get_settings_service().get().get("telegram_provider") or "")
+        zeilen = [
+            f"🧠 Telegram nutzt gerade {provider} · {model}"
+            + ("" if eigene else " (wie Jon)")
+        ]
+        try:
+            ollama = get_registry().get("ollama")
+            modelle = (
+                [m for m in await ollama.list_models() if ollama_geeignet(m)]
+                if ollama.available()
+                else []
+            )
+        except Exception:
+            modelle = []
+        if modelle:
+            zeilen.append("")
+            zeilen.append("Ollama-Modelle auf diesem Geraet:")
+            zeilen.extend(f"• {m}" for m in modelle[:OLLAMA_LISTE])
+        zeilen.append("")
+        zeilen.append(
+            "Wechseln: /modell ollama · /modell ollama <Modell> · "
+            "/modell nvidia <Modell> · /modell auto = wieder wie Jon"
+        )
+        return "\n".join(zeilen)
+
+    async def _anbieter_stand(self) -> str:
+        from app.providers.registry import get_registry
+
+        provider, model = self.modellwahl()
+        eigene = str(get_settings_service().get().get("telegram_provider") or "")
+        zeilen = [
+            f"🔌 Telegram nutzt gerade {provider} · {model}"
+            + ("" if eigene else " (wie Jon)"),
+            "",
+            "Verfuegbare Anbieter:",
+        ]
+        for name, anbieter in get_registry().all().items():
+            try:
+                da = anbieter.available()
+            except Exception:
+                da = False
+            if da:
+                zeilen.append(f"• {name}" + (" ✓" if name == provider else ""))
+        zeilen.append("")
+        zeilen.append(
+            "Wechseln: /anbieter ollama · /anbieter nvidia · "
+            "/anbieter auto = wieder wie Jon · Modell waehlen: /modell"
+        )
+        return "\n".join(zeilen)
+
+    async def _anbieter_befehl(self, text: str) -> str:
+        teile = text.split()[1:]
+        if not teile:
+            return await self._anbieter_stand()
+        return await self._modell_befehl("/modell " + teile[0])
+
+    async def _modell_befehl(self, text: str) -> str:
+        from app.providers.base import ProviderError
+        from app.providers.registry import get_registry
+        from app.services.chat_service import grundmodell, ollama_geeignet
+
+        teile = text.split()[1:]
+        if not teile:
+            return await self._modell_stand()
+        settings = get_settings_service()
+        registry = get_registry()
+        wunsch = teile[0].strip().lower()
+        if wunsch in ("auto", "jon", "standard", "normal", "reset"):
+            settings.update({"telegram_provider": "", "telegram_model": ""})
+            provider, model = self.modellwahl()
+            return f"✅ Telegram folgt wieder Jon: {provider} · {model}"
+        if wunsch in registry.all():
+            provider = wunsch
+            suche = " ".join(teile[1:]).strip()
+        else:
+            provider = self.modellwahl()[0]
+            suche = " ".join(teile).strip()
+        try:
+            anbieter = registry.get(provider)
+        except ProviderError:
+            return f"Den Anbieter {provider} kenne ich nicht."
+        if not anbieter.available():
+            if provider == "ollama":
+                return (
+                    "Ollama ist auf diesem Geraet nicht eingerichtet. Schalte es "
+                    "am PC unter Einstellungen → Ollama ein oder verbinde einen "
+                    "freigegebenen Ollama-Server."
+                )
+            return f"Fuer {provider} ist kein API-Schluessel hinterlegt."
+        try:
+            modelle = await anbieter.list_models()
+        except Exception:
+            modelle = []
+        if provider == "ollama":
+            modelle = [m for m in modelle if ollama_geeignet(m)]
+            if not modelle:
+                return (
+                    "Ollama antwortet nicht oder hat noch kein Modell. Starte "
+                    "Ollama und lade ein Modell, z. B. mit: ollama pull gemma3"
+                )
+        if suche:
+            klein = suche.lower()
+            model = next((m for m in modelle if m.lower() == klein), "")
+            if not model:
+                model = next(
+                    (m for m in modelle if m.lower().startswith(klein)), ""
+                )
+            if not model:
+                model = next((m for m in modelle if klein in m.lower()), "")
+            if not model and not modelle:
+                model = suche
+            if not model:
+                auswahl = ", ".join(modelle[:OLLAMA_LISTE])
+                return (
+                    f"Das Modell {suche} gibt es bei {provider} nicht. "
+                    f"Zur Wahl: {auswahl}"
+                )
+        else:
+            model = grundmodell(provider)
+            if modelle and model not in modelle:
+                model = modelle[0]
+        settings.update({"telegram_provider": provider, "telegram_model": model})
+        hinweis = (
+            " Jon antwortet hier jetzt lokal ueber Ollama - auch wenn er am PC "
+            "eine API benutzt."
+            if provider == "ollama"
+            else ""
+        )
+        return f"✅ Telegram nutzt jetzt {provider} · {model}.{hinweis}"
+
     async def _answer(self, chat_id: str, text: str) -> tuple[str, list[dict]]:
-        from app.core.config import get_settings
         from app.schemas import ChatIn, MessageIn
         from app.services.chat_service import ChatService
 
@@ -803,16 +950,15 @@ class TelegramService:
         history.append({"role": "user", "content": text})
         del history[:-HISTORY_KEEP]
         self._save_histories()
-        provider, model = get_settings_service().telegram_selection()
-        settings = get_settings()
+        provider, model = self.modellwahl()
         messages = [self._system_message(), *history[-HISTORY_SEND:]]
         payload = ChatIn(
             messages=[MessageIn(**m) for m in messages],
             persist=False,
             tool_mode="allow",
             max_tokens=2048,
-            provider=provider or settings.default_provider,
-            model=model or settings.emil_model,
+            provider=provider,
+            model=model,
             slot="emil",
             source="telegram",
         )
@@ -980,15 +1126,15 @@ class TelegramService:
         cards: list[dict] = []
         try:
             answer, cards = await asyncio.wait_for(
-                self._answer(chat_id, text), timeout=180
+                self._answer(chat_id, text), timeout=ZEITLIMIT
             )
         except asyncio.CancelledError:
             typing.cancel()
             return
         except asyncio.TimeoutError:
             answer = (
-                "Das hat zu lange gedauert. Versuch es nochmal oder wähle am PC "
-                "ein schnelleres Modell."
+                "Das hat zu lange gedauert. Versuch es nochmal oder wechsle mit "
+                "/modell auf ein schnelleres Modell, z. B. /modell ollama."
             )
         except Exception as exc:
             answer = f"Da ist etwas schiefgelaufen: {exc}"
@@ -1001,18 +1147,37 @@ class TelegramService:
         await self.send_cards(chat_id, cards)
 
     def _launch(self, chat_id: str, text: str, voice: bool = False) -> None:
-        old = self._running.get(chat_id)
-        if old and not old.done():
-            old.cancel()
-        task = asyncio.create_task(self._handle(chat_id, text, voice))
-        self._running[chat_id] = task
+        laufend = [t for t in self._running.get(chat_id, []) if not t.done()]
+        vorher = laufend[-1] if laufend else None
+        task = asyncio.create_task(
+            self._der_reihe_nach(vorher, len(laufend), chat_id, text, voice)
+        )
+        laufend.append(task)
+        self._running[chat_id] = laufend
+
+    async def _der_reihe_nach(
+        self,
+        vorher: asyncio.Task | None,
+        wartend: int,
+        chat_id: str,
+        text: str,
+        voice: bool,
+    ) -> None:
+        if vorher is not None:
+            if wartend == 1:
+                await self.send(
+                    chat_id,
+                    "⏳ Ich beantworte noch deine vorige Nachricht, danach komme "
+                    "ich direkt zu dieser.",
+                )
+            await asyncio.wait({vorher})
+        await self._handle(chat_id, text, voice)
 
     async def _cancel_running(self, chat_id: str) -> bool:
-        task = self._running.get(chat_id)
-        if task and not task.done():
+        laufend = [t for t in self._running.pop(chat_id, []) if not t.done()]
+        for task in laufend:
             task.cancel()
-            return True
-        return False
+        return bool(laufend)
 
     def _morning_calendar(self, now: datetime) -> dict:
         from datetime import timedelta
@@ -1241,6 +1406,9 @@ class TelegramService:
                     "Befehle: /live = ich zeige dir meine Bildschirme live · "
                     "/live <Geraet> = Bildschirm eines anderen Jon (z.B. /live pi) · "
                     "/geraete = alle verbundenen Geraete · "
+                    "/anbieter = KI-Anbieter anzeigen oder wechseln (z.B. "
+                    "/anbieter ollama) · /modell = Modell anzeigen oder "
+                    "wechseln (z.B. /modell ollama gemma3) · "
                     "/livestop = Uebertragung beenden · /stimme = "
                     "ich antworte per Sprachnachricht · /endstimme = nur noch Text · "
                     "/lernen <Thema> = Tiefenrecherche starten · /lernstatus = Stand "
@@ -1248,6 +1416,12 @@ class TelegramService:
                     "fortsetzen · /stopp = laufende Aktion abbrechen · /reset = "
                     "Gespräch vergessen.",
                 )
+                continue
+            if text.split()[0].lower() in ("/modell", "/model", "/ki"):
+                await self.send(chat_id, await self._modell_befehl(text))
+                continue
+            if text.split()[0].lower() in ("/anbieter", "/provider"):
+                await self.send(chat_id, await self._anbieter_befehl(text))
                 continue
             if text.startswith("/geraete") or text.startswith("/geräte"):
                 await self.send(chat_id, await self._geraete_text())

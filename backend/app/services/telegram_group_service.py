@@ -165,7 +165,9 @@ def _system_text(
             f"\n\nDu chattest gerade privat mit {sender} auf Telegram. "
             "Antworte kurz und natuerlich, kein Markdown, keine Tabellen."
         )
-    return system + _tool_hint(scope)
+    from app.services.systemprompt import mit_herkunft
+
+    return mit_herkunft(system + _tool_hint(scope))
 
 
 _chat_service = None
@@ -318,9 +320,9 @@ class GroupBot:
         return str(get_settings_service().get().get(self.token_setting, "")).strip()
 
     def selection(self) -> tuple[str, str]:
-        from app.services.settings_service import get_settings_service
+        from app.services.telegram_service import TelegramService
 
-        return get_settings_service().telegram_selection()
+        return TelegramService.modellwahl()
 
     async def _api(
         self,

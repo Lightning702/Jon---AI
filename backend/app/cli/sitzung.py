@@ -327,7 +327,9 @@ class JonTerminal:
             "Du laeufst gerade im Terminal. Antworte knapp und ohne Markdown-Tabellen, "
             "Ueberschriften und Sternchen - reiner Text mit kurzen Absaetzen."
         )
-        return "\n\n".join(teile)
+        from app.services.systemprompt import mit_herkunft
+
+        return mit_herkunft("\n\n".join(teile))
 
     async def _runde(self, text: str) -> None:
         from app.services.tools import runde_beginnen
