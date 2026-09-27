@@ -257,6 +257,8 @@ export interface UserSettings {
   telegram_chat_id: string;
   telegram_provider: string;
   telegram_model: string;
+  telegram_aktionsvideo: boolean;
+  telegram_video_bildschirm: string;
   mini_jon_bot_token: string;
   pet_provider: string;
   pet_model: string;
@@ -353,6 +355,8 @@ const STANDARD_SETTINGS: UserSettings = {
     telegram_chat_id: "",
     telegram_provider: "",
     telegram_model: "",
+    telegram_aktionsvideo: true,
+    telegram_video_bildschirm: "maus",
     mini_jon_bot_token: "",
     pet_provider: "",
     pet_model: "meta/muse-glimmer-30b",

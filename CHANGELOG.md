@@ -2,6 +2,35 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.55.1] — 2026-09-27
+
+### 🎬 Dein Bildschirm als Video in Telegram
+
+- **`/live` ist jetzt Video:** Jon nimmt den Bildschirm samt Mauszeiger auf und
+  schickt alle 10 Sekunden ein neues Videostück, bis `/livestop` (höchstens
+  10 Minuten). `/live 2` nimmt den zweiten Monitor, `/live alle` alle, ohne Angabe
+  den Monitor mit der Maus. `/video` schickt sofort 15 Sekunden, `/video 40` länger.
+  Das bisherige Standbild gibt es weiter mit `/livebild`.
+- **Video nach Aktionen:** Sagst du Jon, er soll etwas öffnen, klicken oder
+  tippen, nimmt er auf, während er Maus, Tastatur, Programme oder den Browser
+  benutzt, und schickt dir das Video danach. Schaltbar mit `/video an|aus` und
+  unter **Verbindungen → Telegram**.
+- Aufgenommen wird mit ffmpeg (H.264). Fehlt ffmpeg, nimmt Jon mit OpenCV auf.
+
+### ⌨️ Jon im Terminal repariert
+
+- `jon` aus der fertigen App stürzte bei der ersten Nachricht mit „no such table:
+  memories“ ab: Das Terminal hat seine Datenbank nie eingerichtet. Jetzt schon —
+  und ein Fehler in einer Antwort beendet die Sitzung nicht mehr.
+- Die fertige App legt neben sich keinen leeren Datenordner mehr an, wenn es
+  schon Jon-Daten gibt, sondern nutzt sie — Terminal und App teilen sich damit
+  Gedächtnis, Einstellungen und Schlüssel.
+- Das Setup richtet den Befehl `jon` gleich bei der Installation ein, im
+  portablen Paket macht das `Jon einrichten.exe`.
+- `anbieter` zeigt Nummern (`anbieter 1`), warnt, wenn ein Anbieter noch keinen
+  Schlüssel hat, und mit `schluessel <anbieter> <key>` hinterlegst du ihn direkt
+  im Terminal.
+
 ## [4.54.0] — 2026-09-26
 
 ### 📲 Telegram antwortet wieder — auch wenn NVIDIA hakt

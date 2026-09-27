@@ -46,6 +46,8 @@ DEFAULTS = {
     "telegram_chat_id": "",
     "telegram_provider": "",
     "telegram_model": "",
+    "telegram_aktionsvideo": True,
+    "telegram_video_bildschirm": "maus",
     "mini_jon_bot_token": "",
     "pet_provider": "",
     "pet_model": "",

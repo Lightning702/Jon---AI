@@ -99,6 +99,8 @@ class SettingsIn(BaseModel):
     timeline_enabled: bool | None = None
     routine_enabled: bool | None = None
     telegram_morning: bool | None = None
+    telegram_aktionsvideo: bool | None = None
+    telegram_video_bildschirm: str | None = None
     telegram_morning_time: str | None = None
     pet_roam: bool | None = None
     pet_companion: str | None = None

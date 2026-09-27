@@ -6,7 +6,7 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-[![Version](https://img.shields.io/badge/Version-4.54.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.55.1-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -711,10 +711,20 @@ Felder werden nicht erfunden.
 Jon kann dir **zusehen lassen**, was auf seinen Bildschirmen passiert — ohne
 Fremdsoftware, ohne Konto irgendwo.
 
-- **Über Telegram:** `/live` schickt dir ein Bild, das sich im Chat laufend
-  erneuert (alle Monitore nebeneinander). `/livestop` beendet es. Ein echter
-  Telegram-Videoanruf ist nicht möglich — Anrufe gibt es dort nur zwischen
-  Personen, nicht für Bots; das mitwachsende Bild ist der Weg, der funktioniert.
+- **Über Telegram als Video:** `/live` nimmt den Bildschirm samt Mauszeiger auf
+  und schickt dir alle 10 Sekunden ein neues Videostück, bis `/livestop` (höchstens
+  10 Minuten am Stück). `/live 2` nimmt den zweiten Monitor, `/live alle` alle
+  zusammen, ohne Angabe den Monitor mit der Maus — die Wahl bleibt gemerkt.
+  `/video` schickt sofort 15 Sekunden, `/video 40` entsprechend länger.
+- **Video nach jeder Aktion:** Sagst du Jon in Telegram „öffne YouTube und such
+  nach …“ oder „klick“, nimmt er auf, während er Maus, Tastatur, Programme oder
+  den Browser benutzt, und schickt dir das Video danach. `/video aus` bzw.
+  `/video an` schaltet das um, ebenso **Verbindungen → Telegram**.
+- **Als Standbild:** `/livebild` schickt wie bisher ein Bild, das sich im Chat
+  laufend erneuert. Ein echter Telegram-Videoanruf ist nicht möglich — Anrufe gibt
+  es dort nur zwischen Personen, nicht für Bots.
+- Für die beste Qualität nutzt Jon **ffmpeg** (H.264). Fehlt es, nimmt er mit
+  OpenCV auf — das geht auch, die Dateien sind aber größer.
 - **Im Browser:** `http://<jon>:8756/live?token=…` zeigt dieselbe Übertragung
   flüssig, mit Vollbild, Monitorwahl und einstellbarem Tempo. Am PC führt
   **Einstellungen → Bildschirm live zeigen** direkt dorthin.

@@ -30,6 +30,12 @@ def main(argv: list[str] | None = None) -> None:
     modus = ""
     if args and args[0].lower() in ("code", "chat"):
         modus = args.pop(0).lower()
+    from app.db.database import init_db
+
+    try:
+        init_db()
+    except Exception as fehler:
+        leise(fehler, "cli")
     from app.cli.sitzung import JonTerminal
 
     terminal = JonTerminal(modus)

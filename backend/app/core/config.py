@@ -44,18 +44,32 @@ def _writable(path: Path) -> bool:
         return False
 
 
-def _resolve_data_dir() -> Path:
-    override = os.environ.get("JON_DATA_DIR")
-    if override:
-        return Path(override)
-    if FROZEN:
-        beside = Path(sys.executable).resolve().parent / "data"
-        if _writable(beside):
-            return beside
+def _hat_daten(pfad: Path) -> bool:
+    try:
+        return (pfad / "jon.db").stat().st_size > 0
+    except OSError:
+        return False
+
+
+def _gemeinsamer_ordner() -> Path:
     base = os.environ.get("LOCALAPPDATA")
     if base:
         return Path(base) / "Jon" / "data"
     return Path.home() / ".jon" / "data"
+
+
+def _resolve_data_dir() -> Path:
+    override = os.environ.get("JON_DATA_DIR")
+    if override:
+        return Path(override)
+    gemeinsam = _gemeinsamer_ordner()
+    if FROZEN:
+        beside = Path(sys.executable).resolve().parent / "data"
+        if not _hat_daten(beside) and _hat_daten(gemeinsam):
+            return gemeinsam
+        if _writable(beside):
+            return beside
+    return gemeinsam
 
 
 def web_app_dir() -> Path | None:
@@ -97,7 +111,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.54.0"
+    app_version: str = "4.55.1"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = ""

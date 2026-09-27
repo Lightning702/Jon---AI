@@ -51,9 +51,13 @@ Browser, Projekte, Tools, Gedaechtnis und der Agenten-Modus.
 
 ### Einrichten
 
-**Aus dem Download (Setup oder portables Paket) ist nichts zu tun:** Seit 4.53.2 legt Jon
-den Befehl beim ersten Start selbst an und traegt den Ordner in den PATH ein. Ein neues
-Terminal oeffnen, `jon` tippen — fertig. Die gebuendelte `jon-backend.exe` versteht dafuer
+**Aus dem Download (Setup oder portables Paket) ist nichts zu tun:** Seit 4.55.1 legt das
+Setup den Befehl schon bei der Installation an, im portablen Paket erledigt das
+`Jon einrichten.exe`; zusaetzlich prueft Jon bei jedem Start der App, ob er noch stimmt.
+Ein neues Terminal oeffnen, `jon` tippen — fertig. Findet die fertige App neben sich noch
+keine eigenen Daten, nimmt sie die vorhandenen Jon-Daten unter `%LOCALAPPDATA%\Jon\data`,
+damit Terminal und App dasselbe Gedaechtnis haben. Fehlt ein API-Schluessel, hinterlegst du
+ihn direkt im Terminal mit `schluessel nvidia <dein-schluessel>`. Die gebuendelte `jon-backend.exe` versteht dafuer
 `cli`, `terminal` und `jon` als erstes Wort; zieht die App um oder kommt ein Update, zeigt
 der Befehl von selbst auf die neue Fassung. Abschalten: `JON_KEIN_TERMINAL_BEFEHL=1`,
 entfernen unter **Zahnrad → Diagnose**.

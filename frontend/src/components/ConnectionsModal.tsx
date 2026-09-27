@@ -30,6 +30,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
     telegram_provider: settings.telegram_provider ?? "",
     telegram_model: settings.telegram_model ?? "",
     telegram_morning: settings.telegram_morning ?? false,
+    telegram_aktionsvideo: settings.telegram_aktionsvideo ?? true,
     telegram_morning_time: settings.telegram_morning_time ?? "07:30",
     ha_url: settings.ha_url ?? "",
     ha_token: settings.ha_token ?? "",
@@ -242,6 +243,32 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
               Der Bot merkt sich eure Gespräche dauerhaft und kennt Jons
               Gedächtnis (MEMORY.md).
             </div>
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-[12px] text-white/70">
+                🎬 Video nach Aktionen
+              </div>
+              <button
+                onClick={() =>
+                  set("telegram_aktionsvideo", !form.telegram_aktionsvideo)
+                }
+                className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+                  form.telegram_aktionsvideo ? "bg-gold/70" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    form.telegram_aktionsvideo ? "translate-x-4" : ""
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              Benutzt Jon auf deinen Wunsch Maus, Tastatur oder Programme, nimmt
+              er den Bildschirm dabei auf und schickt dir das Video. Mit{" "}
+              <code>/live</code> siehst du den Bildschirm laufend als Video,{" "}
+              <code>/video</code> schickt sofort ein kurzes Stück. Braucht
+              ffmpeg für die beste Qualität.
+            </p>
             <div className="flex items-center justify-between pt-2">
               <div className="text-[12px] text-white/70">
                 🌅 Guten-Morgen-Sprachnachricht

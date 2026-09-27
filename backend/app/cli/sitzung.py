@@ -286,7 +286,7 @@ class JonTerminal:
             leise(fehler, "cli")
             return
         if modelle and self.modell not in modelle:
-            self.modell = modelle[0]
+            self.modell = _erstes_passendes(self.anbieter, modelle)
             self._merken()
 
     def _prompt_text(self, text: str = "") -> str:
@@ -539,6 +539,8 @@ class JonTerminal:
     async def _anbieter_befehl(self, rest: str) -> None:
         alle = list(self.registry.all().keys())
         frei = self._verfuegbar()
+        if rest.isdigit() and 1 <= int(rest) <= len(alle):
+            rest = alle[int(rest) - 1]
         if rest:
             if rest in alle:
                 self.anbieter = rest
@@ -550,16 +552,54 @@ class JonTerminal:
                         f"Anbieter gemerkt: {rest} · Modell: {self.modell}", TUERKIS
                     )
                 )
+                if rest not in self._verfuegbar():
+                    self.sag(
+                        self.stift(
+                            f"  {rest} ist hier noch nicht einsatzbereit - es fehlt "
+                            f"der API-Schluessel. Hinterlege ihn mit: schluessel {rest} "
+                            "<dein-schluessel>",
+                            ROT,
+                        )
+                    )
             else:
                 self.sag(self.stift(f"Unbekannter Anbieter: {rest}", ROT))
             self.sag()
             return
         self.sag(self.stift("Anbieter", TUERKIS, FETT))
-        for name in alle:
+        for i, name in enumerate(alle, 1):
             bereit = "✓" if name in frei else "·"
             marke = "●" if name == self.anbieter else " "
-            self.sag(self.stift(f"  {marke} {bereit} {name}", HELL))
-        self.sag(self.stift("  Wechseln: anbieter <name>", MATT))
+            self.sag(self.stift(f"  {marke} {bereit} {i:>2}. {name}", HELL))
+        self.sag(self.stift("  Wechseln: anbieter <Nummer oder Name> · ✓ = einsatzbereit", MATT))
+        self.sag()
+
+    def _schluessel_befehl(self, rest: str) -> None:
+        from app.services.account_service import get_account_service
+
+        teile = rest.split()
+        if len(teile) != 2:
+            self.sag(
+                self.stift(
+                    "So geht's: schluessel <anbieter> <api-schluessel>, "
+                    "z. B. schluessel nvidia nvapi-...",
+                    MATT,
+                )
+            )
+            self.sag()
+            return
+        anbieter, schluessel = teile[0].lower(), teile[1]
+        try:
+            get_account_service().connect(anbieter, schluessel)
+        except ValueError as fehler:
+            self.sag(self.stift(f"Das ging nicht: {fehler}", ROT))
+            self.sag()
+            return
+        self.sag(
+            self.stift(
+                f"Schluessel fuer {anbieter} gespeichert - gilt auch in der App.",
+                TUERKIS,
+            )
+        )
         self.sag()
 
     async def _befehl(self, zeile: str) -> bool:
@@ -597,6 +637,8 @@ class JonTerminal:
             await self._modell_befehl(rest)
         elif wort in ("anbieter", "provider"):
             await self._anbieter_befehl(rest)
+        elif wort in _SCHLUESSEL:
+            self._schluessel_befehl(rest)
         elif wort == "agent":
             self.sag(
                 self.stift("Agenten-Modus", TUERKIS, FETT)
@@ -621,6 +663,8 @@ class JonTerminal:
             return False
         if len(teile) == 1 or zeile.startswith("/"):
             return True
+        if wort in _SCHLUESSEL:
+            return len(teile) == 3
         return wort in _MIT_WERT and len(teile) == 2
 
     def _zeichen(self) -> str:
@@ -681,11 +725,18 @@ class JonTerminal:
                 zeile, self.auftrag = self.auftrag, ""
                 if not zeile:
                     continue
-            await self._runde(zeile)
+            try:
+                await self._runde(zeile)
+            except Exception as fehler:
+                leise(fehler, "cli")
+                self.sag(self.stift(f"Fehler: {fehler}", ROT))
+                self.sag()
         self.sag(kunst.fuss(self.stift))
 
 
 _MIT_WERT = {"modell", "model", "anbieter", "provider"}
+
+_SCHLUESSEL = {"schluessel", "schlüssel", "key"}
 
 _BEFEHLE = {
     "hilfe",
@@ -710,6 +761,9 @@ _BEFEHLE = {
     "model",
     "anbieter",
     "provider",
+    "schluessel",
+    "schlüssel",
+    "key",
     "agent",
     "ende",
     "exit",
@@ -717,6 +771,20 @@ _BEFEHLE = {
     "beenden",
     "q",
 }
+
+
+def _erstes_passendes(anbieter: str, modelle: list[str]) -> str:
+    if anbieter != "ollama":
+        return modelle[0]
+    from app.services.chat_service import grundmodell, ollama_geeignet
+
+    try:
+        gewaehlt = grundmodell("ollama")
+    except Exception:
+        gewaehlt = ""
+    if gewaehlt in modelle and ollama_geeignet(gewaehlt):
+        return gewaehlt
+    return next((m for m in modelle if ollama_geeignet(m)), modelle[0])
 
 
 def _sauberer_name(name: str) -> str:

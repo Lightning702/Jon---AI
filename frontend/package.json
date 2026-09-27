@@ -1,6 +1,6 @@
 {
   "name": "jon-desktop",
-  "version": "4.54.0",
+  "version": "4.55.1",
   "description": "Jon - Der moderne KI-Desktop-Assistent",
   "author": "FelWorks",
   "license": "MIT",
@@ -112,7 +112,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Jon"
+      "shortcutName": "Jon",
+      "include": "electron/installer.nsh"
     }
   }
 }

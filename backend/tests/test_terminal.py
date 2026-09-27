@@ -145,12 +145,19 @@ def test_terminal_startet_im_projektordner_im_codemodus(ohne_editor, tmp_path):
 
 
 def test_jon_antwortet_ohne_anbieter_mit_klartext(monkeypatch, tmp_path, capsys):
-    monkeypatch.chdir(tmp_path)
-    terminal = JonTerminal("chat")
-    terminal.anbieter = "gibtesnicht"
     import asyncio
 
-    asyncio.run(terminal._runde("hallo"))
+    from app.services.settings_service import get_settings_service
+
+    monkeypatch.chdir(tmp_path)
+    einstellungen = get_settings_service()
+    einstellungen.update({"auto_failover": False})
+    try:
+        terminal = JonTerminal("chat")
+        terminal.anbieter = "gibtesnicht"
+        asyncio.run(terminal._runde("hallo"))
+    finally:
+        einstellungen.update({"auto_failover": True})
     assert "Fehler" in capsys.readouterr().out
 
 
@@ -706,3 +713,17 @@ def test_abschalter_verhindert_die_automatik(monkeypatch, tmp_path):
     monkeypatch.setattr(terminal_service, "_gebuendelt", lambda: exe)
     monkeypatch.setenv("JON_KEIN_TERMINAL_BEFEHL", "1")
     assert terminal_service.automatisch()["gemacht"] is False
+
+
+def test_terminal_nimmt_kein_cloud_oder_bildmodell_von_ollama(monkeypatch):
+    from app.cli import sitzung
+    from app.services import chat_service
+
+    monkeypatch.setattr(chat_service, "grundmodell", lambda anbieter, slot="emil": "")
+    modelle = ["gemini-3-flash-preview:cloud", "x/z-image-turbo:latest", "gemma3:270m"]
+    assert sitzung._erstes_passendes("ollama", modelle) == "gemma3:270m"
+    monkeypatch.setattr(
+        chat_service, "grundmodell", lambda anbieter, slot="emil": "x/z-image-turbo:latest"
+    )
+    assert sitzung._erstes_passendes("ollama", modelle) == "gemma3:270m"
+    assert sitzung._erstes_passendes("nvidia", ["a", "b"]) == "a"

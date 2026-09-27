@@ -21,6 +21,32 @@ HISTORY_KEEP = 40
 HISTORY_SEND = 12
 ZEITLIMIT = 300
 OLLAMA_LISTE = 12
+LIVE_STUECK = 10
+LIVE_DAUER = 600
+VIDEO_KURZ = 15
+VIDEO_MAX = 60
+VIDEO_GROESSE = 49 * 1024 * 1024
+DIREKT_ANFAENGE = (
+    "schreib",
+    "tipp",
+    "type ",
+    "drück",
+    "drueck",
+    "taste ",
+    "enter",
+    "eingabe",
+    "bestätigen",
+    "bestaetigen",
+    "senden",
+    "doppel",
+    "rechts",
+    "klick",
+    "links",
+    "maus",
+    "click",
+    "drauf",
+)
+BILDSCHIRM_WAHL = ("alle", "maus")
 MORNING_STATE_FILE = DATA_DIR / "telegram_morning.json"
 
 
@@ -35,6 +61,7 @@ class TelegramService:
         self._voice_reply: set[str] = set()
         self._voice_off: set[str] = set()
         self._running: dict[str, list[asyncio.Task]] = {}
+        self._live_videos: dict[str, asyncio.Task] = {}
         self._last_morning = self._load_morning()
         self._pending_place: dict[str, str] = {}
         self._username = ""
@@ -371,6 +398,162 @@ class TelegramService:
         except Exception:
             return False
 
+    async def video_senden(
+        self, chat_id: str | int, pfad: Path, beschriftung: str = ""
+    ) -> bool:
+        token = self._token()
+        if not token or not pfad.is_file():
+            return False
+        if pfad.stat().st_size > VIDEO_GROESSE:
+            await self.send(
+                chat_id,
+                f"Das Video ist zu gross fuer Telegram. Es liegt hier: {pfad}",
+            )
+            return True
+        try:
+            daten = await asyncio.to_thread(pfad.read_bytes)
+            async with httpx.AsyncClient(timeout=180) as client:
+                antwort = await client.post(
+                    f"https://api.telegram.org/bot{token}/sendVideo",
+                    data={
+                        "chat_id": str(chat_id),
+                        "caption": beschriftung[:900],
+                        "supports_streaming": "true",
+                    },
+                    files={"video": (pfad.name, daten, "video/mp4")},
+                )
+                if antwort.status_code < 400:
+                    return True
+                antwort = await client.post(
+                    f"https://api.telegram.org/bot{token}/sendDocument",
+                    data={"chat_id": str(chat_id), "caption": beschriftung[:900]},
+                    files={"document": (pfad.name, daten, "video/mp4")},
+                )
+                return antwort.status_code < 400
+        except Exception as fehler:
+            leise(fehler, "services/telegram_service")
+            return False
+
+    def _videowahl(self) -> str:
+        wert = str(get_settings_service().get().get("telegram_video_bildschirm") or "")
+        return wert.strip().lower() or "maus"
+
+    def _videowahl_merken(self, wunsch: str) -> None:
+        get_settings_service().update({"telegram_video_bildschirm": wunsch})
+
+    def _aktionsvideo(self):
+        if not get_settings_service().get().get("telegram_aktionsvideo", True):
+            return None
+        from app.services.bildschirm_video import Aktionsvideo
+
+        return Aktionsvideo(self._videowahl())
+
+    async def _aktionsvideo_senden(
+        self, chat_id: str, begleiter, nachlauf: float = 2.5
+    ) -> None:
+        if begleiter is None:
+            return
+        try:
+            pfad = await begleiter.beenden(nachlauf)
+        except Exception as fehler:
+            leise(fehler, "services/telegram_service")
+            return
+        if pfad is not None:
+            if not await self.video_senden(
+                chat_id, pfad, "🎬 So sah das gerade auf dem Bildschirm aus"
+            ):
+                await self.send(chat_id, "Das Video liess sich nicht schicken. 😕")
+        elif begleiter.fehler:
+            await self.send(chat_id, f"🎬 Kein Video: {begleiter.fehler}")
+
+    def _klingt_nach_direktbefehl(self, text: str) -> bool:
+        klein = text.strip().lower()
+        return klein.startswith(DIREKT_ANFAENGE) or "scroll" in klein
+
+    async def video_schicken(self, chat_id: str, sekunden: float) -> None:
+        from app.services.bildschirm_video import VideoFehler, clip
+
+        await self.send(chat_id, f"🎥 Ich nehme {int(sekunden)} Sekunden auf ...")
+        try:
+            pfad = await clip(self._videowahl(), sekunden)
+        except VideoFehler as fehler:
+            await self.send(chat_id, f"Das geht hier nicht: {fehler} 🙈")
+            return
+        if not await self.video_senden(
+            chat_id, pfad, f"🖥️ {self._rechnername()} · {datetime.now():%H:%M:%S}"
+        ):
+            await self.send(chat_id, "Das Video liess sich nicht schicken. 😕")
+
+    async def live_video_starten(self, chat_id: str, welcher: str) -> None:
+        alt = self._live_videos.get(chat_id)
+        if alt is not None and not alt.done():
+            await self.send(
+                chat_id, "Das Live-Video laeuft schon. /livestop beendet es."
+            )
+            return
+        self._live_videos[chat_id] = asyncio.create_task(
+            self._live_video_schleife(chat_id, welcher)
+        )
+
+    async def _live_video_schleife(self, chat_id: str, welcher: str) -> None:
+        from app.services.bildschirm_video import VideoFehler, clip
+
+        wo = {"alle": "alle Bildschirme", "maus": "Bildschirm mit der Maus"}.get(
+            welcher, f"Bildschirm {welcher}"
+        )
+        await self.send(
+            chat_id,
+            f"🔴 Live-Video von {self._rechnername()} ({wo}). Alle {LIVE_STUECK} "
+            "Sekunden kommt hier ein neues Stueck. /livestop beendet die Aufnahme.",
+        )
+        sendungen: list[asyncio.Task] = []
+        ende = time.monotonic() + LIVE_DAUER
+        nummer = 0
+        try:
+            while time.monotonic() < ende:
+                pfad = await clip(welcher, LIVE_STUECK)
+                nummer += 1
+                sendungen.append(
+                    asyncio.create_task(
+                        self.video_senden(
+                            chat_id,
+                            pfad,
+                            f"🔴 Live {nummer} · {datetime.now():%H:%M:%S}",
+                        )
+                    )
+                )
+            await self.send(
+                chat_id,
+                f"⏹️ Live-Video nach {LIVE_DAUER // 60} Minuten beendet. /live "
+                "startet es neu.",
+            )
+        except VideoFehler as fehler:
+            await self.send(chat_id, f"Das geht hier nicht: {fehler} 🙈")
+        finally:
+            if sendungen:
+                await asyncio.gather(*sendungen, return_exceptions=True)
+
+    async def _video_befehl(self, chat_id: str, text: str) -> None:
+        teile = text.split()[1:]
+        wunsch = teile[0].strip().lower() if teile else ""
+        einstellungen = get_settings_service()
+        if wunsch in ("an", "ein", "on"):
+            einstellungen.update({"telegram_aktionsvideo": True})
+            await self.send(
+                chat_id,
+                "🎬 Aktionsvideos sind an: Wenn ich Maus, Tastatur oder Programme "
+                "benutze, schicke ich dir danach das Video davon.",
+            )
+            return
+        if wunsch in ("aus", "off"):
+            einstellungen.update({"telegram_aktionsvideo": False})
+            await self.send(chat_id, "🎬 Aktionsvideos sind aus.")
+            return
+        sekunden = VIDEO_KURZ
+        if wunsch.isdigit():
+            sekunden = max(3, min(VIDEO_MAX, int(wunsch)))
+        await self.video_schicken(chat_id, sekunden)
+
     async def live_bild_senden(
         self, chat_id: str | int, daten: bytes, beschriftung: str = ""
     ) -> int:
@@ -469,6 +652,9 @@ class TelegramService:
     async def live_stoppen(self, chat_id: str) -> None:
         from app.services.live_service import get_live_service
 
+        video = self._live_videos.pop(chat_id, None)
+        if video is not None and not video.done():
+            video.cancel()
         dienst = get_live_service()
         dienst.telegram_los(chat_id)
         if not dienst.telegram_ziele():
@@ -780,7 +966,11 @@ class TelegramService:
             "bewegen. Uebergib x/y nur, wenn er ein konkretes Ziel nennt. "
             "keyboard_press drueckt einzelne Tasten, keyboard_hotkey "
             "Kombinationen, screenshot zeigt dir den Bildschirm. Fuehre solche "
-            "Befehle direkt aus, statt nachzufragen. "
+            "Befehle direkt aus, statt nachzufragen. Waehrend du Maus, Tastatur, "
+            "Programme oder den Browser benutzt, nimmt Jon den Bildschirm auf und "
+            "schickt das Video danach automatisch hier in den Chat - sag also nie, "
+            "du koenntest kein Video schicken. Ein Live-Video gibt es mit /live, "
+            "ein kurzes Video sofort mit /video. "
             "Unterwegs hast du auch Jon Maps und Jon Deep Learning dabei: Fuer "
             "Orte, Wege und Entfernungen nutze maps — action='umgebung' mit einem "
             "Filter wie supermarkt, apotheke oder tankstelle, action='route' mit "
@@ -940,7 +1130,9 @@ class TelegramService:
         )
         return f"✅ Telegram nutzt jetzt {provider} · {model}.{hinweis}"
 
-    async def _answer(self, chat_id: str, text: str) -> tuple[str, list[dict]]:
+    async def _answer(
+        self, chat_id: str, text: str, begleiter=None
+    ) -> tuple[str, list[dict]]:
         from app.schemas import ChatIn, MessageIn
         from app.services.chat_service import ChatService
 
@@ -975,6 +1167,8 @@ class TelegramService:
             if kind == "content":
                 parts.append(event.get("delta") or "")
             elif kind == "tool" and event.get("status") == "running":
+                if begleiter is not None and event.get("name"):
+                    await begleiter.werkzeug(str(event["name"]))
                 summary = event.get("summary") or event.get("name") or "Aktion"
                 if event.get("name"):
                     running_summaries[str(event["name"])] = str(summary)
@@ -1107,7 +1301,15 @@ class TelegramService:
         return None
 
     async def _handle(self, chat_id: str, text: str, voice: bool = False) -> None:
-        direct = await asyncio.to_thread(self._direct_control, text)
+        begleiter = self._aktionsvideo()
+        if begleiter is not None and self._klingt_nach_direktbefehl(text):
+            await begleiter.werkzeug("mouse_click")
+        try:
+            direct = await asyncio.to_thread(self._direct_control, text)
+        except BaseException:
+            if begleiter is not None:
+                await begleiter.verwerfen()
+            raise
         if direct is not None:
             history = self._histories.setdefault(chat_id, [])
             history.append({"role": "user", "content": text})
@@ -1121,15 +1323,21 @@ class TelegramService:
                 await self.send_voice(chat_id, direct)
             else:
                 await self.send(chat_id, direct)
+            await self._aktionsvideo_senden(chat_id, begleiter, 1.5)
             return
+        if begleiter is not None:
+            await begleiter.verwerfen()
+            begleiter = self._aktionsvideo()
         typing = asyncio.create_task(self._typing(chat_id))
         cards: list[dict] = []
         try:
             answer, cards = await asyncio.wait_for(
-                self._answer(chat_id, text), timeout=ZEITLIMIT
+                self._answer(chat_id, text, begleiter), timeout=ZEITLIMIT
             )
         except asyncio.CancelledError:
             typing.cancel()
+            if begleiter is not None:
+                await begleiter.verwerfen()
             return
         except asyncio.TimeoutError:
             answer = (
@@ -1144,6 +1352,7 @@ class TelegramService:
         if wants_voice:
             await self.send_voice(chat_id, answer)
         await self.send(chat_id, answer)
+        await self._aktionsvideo_senden(chat_id, begleiter)
         await self.send_cards(chat_id, cards)
 
     def _launch(self, chat_id: str, text: str, voice: bool = False) -> None:
@@ -1403,7 +1612,12 @@ class TelegramService:
                     "Schick mir gerne auch eine Sprachnachricht. Teile mir deinen "
                     "Standort (📎 → Standort), dann plane ich Routen ab hier — zum "
                     "Beispiel: Route zum nächsten Supermarkt.\n\n"
-                    "Befehle: /live = ich zeige dir meine Bildschirme live · "
+                    "Befehle: /live = Live-Video von meinem Bildschirm (alle 10 "
+                    "Sekunden ein neues Stueck, /live 2 = zweiter Bildschirm, "
+                    "/live alle = alle) · /video = sofort ein kurzes Video · "
+                    "/video an|aus = Video nach jeder Aktion mit Maus und "
+                    "Tastatur · /livebild = Standbild, das sich laufend "
+                    "aktualisiert · "
                     "/live <Geraet> = Bildschirm eines anderen Jon (z.B. /live pi) · "
                     "/geraete = alle verbundenen Geraete · "
                     "/anbieter = KI-Anbieter anzeigen oder wechseln (z.B. "
@@ -1426,16 +1640,29 @@ class TelegramService:
             if text.startswith("/geraete") or text.startswith("/geräte"):
                 await self.send(chat_id, await self._geraete_text())
                 continue
+            if text.startswith("/livestop"):
+                await self.live_stoppen(str(chat_id))
+                continue
+            if text.startswith("/livebild"):
+                teile = text.split(maxsplit=1)
+                wunsch = teile[1].strip().lower() if len(teile) > 1 else ""
+                await self.live_starten(str(chat_id), wunsch or "alle")
+                continue
             if text.startswith("/live"):
-                if text.startswith("/livestop"):
-                    await self.live_stoppen(str(chat_id))
-                    continue
                 teile = text.split(maxsplit=1)
                 wunsch = teile[1].strip() if len(teile) > 1 else ""
-                if wunsch and wunsch not in ("alle", "1", "2", "3", "4"):
+                klein = wunsch.lower()
+                if wunsch and klein not in BILDSCHIRM_WAHL and not klein.isdigit():
                     if await self.live_geraet(str(chat_id), wunsch):
                         continue
-                await self.live_starten(str(chat_id), wunsch or "alle")
+                if klein in BILDSCHIRM_WAHL or klein.isdigit():
+                    self._videowahl_merken(klein)
+                await self.live_video_starten(
+                    str(chat_id), klein or self._videowahl()
+                )
+                continue
+            if text.split()[0].lower() == "/video":
+                await self._video_befehl(str(chat_id), text)
                 continue
             if text.startswith("/reset"):
                 self._histories.pop(str(chat_id), None)

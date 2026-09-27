@@ -90,6 +90,26 @@ def verknuepfung(ziel: Path, exe: Path, symbol: Path, arbeitsordner: Path) -> st
     return ""
 
 
+def terminal_befehl(ordner: Path) -> str:
+    backend = ordner / "resources" / "jon-backend" / "jon-backend.exe"
+    if not backend.is_file():
+        return "jon-backend.exe fehlt"
+    try:
+        lauf = subprocess.run(
+            [str(backend), "terminal-einrichten"],
+            cwd=str(backend.parent),
+            capture_output=True,
+            text=True,
+            timeout=120,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except Exception as exc:
+        return str(exc)
+    if lauf.returncode != 0:
+        return (lauf.stdout or lauf.stderr or "unbekannter Fehler").strip()[-200:]
+    return ""
+
+
 def starten(exe: Path, ordner: Path) -> str:
     try:
         subprocess.Popen([str(exe)], cwd=str(ordner))
@@ -138,6 +158,13 @@ def main() -> int:
         _sagen(f"  Startmenue uebersprungen: {grund}")
     else:
         _sagen("  Startmenue-Eintrag angelegt")
+
+    grund = terminal_befehl(hier)
+    if grund:
+        _sagen(f"  Befehl jon im Terminal uebersprungen: {grund}")
+    else:
+        _sagen("  Befehl jon im Terminal eingerichtet - in einem neuen Terminal")
+        _sagen("  einfach jon eingeben")
 
     _sagen()
     if fehler:

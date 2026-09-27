@@ -70,6 +70,7 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "Jon",
-    "runAfterFinish": true
+    "runAfterFinish": true,
+    "include": "electron/installer.nsh"
   }
 }

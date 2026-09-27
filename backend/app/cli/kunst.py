@@ -277,6 +277,7 @@ def hilfe(stift: Stift, schmal: bool) -> str:
                 ("einstellungen", "Provider, Modell, Verzeichnis"),
                 ("modell <n>", "Modell waehlen — bleibt gemerkt"),
                 ("anbieter <n>", "Anbieter waehlen — bleibt gemerkt"),
+                ("schluessel <a> <k>", "API-Schluessel hinterlegen"),
                 ("neu", "Verlauf löschen"),
                 ("hilfe", "diese Übersicht"),
                 ("ende", "Jon beenden"),
