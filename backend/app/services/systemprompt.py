@@ -342,8 +342,10 @@ TEILE = (
 
 
 def bauen() -> str:
+    from app.services.personality import CONSCIENCE
+
     return "\n\n".join(
-        teil() if callable(teil) else teil for teil in TEILE
+        teil() if callable(teil) else teil for teil in (TEILE[0], CONSCIENCE, *TEILE[1:])
     )
 
 

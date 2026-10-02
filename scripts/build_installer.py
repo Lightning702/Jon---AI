@@ -27,9 +27,19 @@ def ensure_pyinstaller() -> None:
         run(f'"{sys.executable}" -m pip install --disable-pip-version-check pyinstaller', ROOT)
 
 
+def prepare_speech_model() -> None:
+    from faster_whisper.utils import download_model
+
+    target = BACKEND / "assets" / "models" / "whisper-base"
+    if not (target / "model.bin").is_file():
+        download_model("base", output_dir=str(target))
+
+
 def build_backend() -> None:
-    shutil.rmtree(BACKEND / "build", ignore_errors=True)
-    shutil.rmtree(BACKEND / "dist", ignore_errors=True)
+    for path in (BACKEND / "build", BACKEND / "dist"):
+        if not path.resolve().is_relative_to(ROOT.resolve()) or path.is_symlink():
+            raise RuntimeError("Unsicherer Build-Pfad")
+        shutil.rmtree(path, ignore_errors=True)
     liste = "requirements.lock" if (BACKEND / "requirements.lock").exists() else "requirements.txt"
     run(f'"{sys.executable}" -m pip install --disable-pip-version-check -r {liste}', BACKEND)
     run(f'"{sys.executable}" -m PyInstaller --noconfirm --clean jon-backend.spec', BACKEND)
@@ -140,8 +150,9 @@ def write_checksums(paths: list[Path]) -> Path:
 
 def main() -> None:
     ensure_pyinstaller()
-    build_backend()
     build_frontend()
+    prepare_speech_model()
+    build_backend()
     build_installer()
     portable = build_portable_zip()
     print("\nFertig!")

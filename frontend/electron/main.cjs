@@ -27,6 +27,7 @@ const API_BASE = "http://127.0.0.1:8756/api";
 let backendProcess = null;
 let tray = null;
 let quitting = false;
+let angemeldet = false;
 
 let jonToken = "";
 let backendErreichbar = false;
@@ -708,12 +709,59 @@ ipcMain.handle("private:clear", () => clearPrivateData());
 
 ipcMain.handle("quickask:hide", () => quickWindow && quickWindow.hide());
 ipcMain.handle("pet:toggle", () => togglePet());
-ipcMain.handle("pet:hide", () => petWindow && petWindow.hide());
-ipcMain.handle("pet:moveBy", (_event, dx, dy) => {
-  if (!petWindow) return;
-  const [x, y] = petWindow.getPosition();
-  petWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
+ipcMain.handle("pet:show", () => createPet());
+let petCaptureRestore = null;
+ipcMain.handle("pet:prepareScreen", async (event) => {
+  if (!petWindow || event.sender !== petWindow.webContents) return false;
+  petWindow.hide();
+  if (petCaptureRestore) clearTimeout(petCaptureRestore);
+  petCaptureRestore = setTimeout(() => { if (petWindow && !petWindow.isDestroyed()) petWindow.showInactive(); }, 75000);
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  return true;
 });
+ipcMain.handle("pet:restoreScreen", (event) => {
+  if (!petWindow || event.sender !== petWindow.webContents) return;
+  if (petCaptureRestore) clearTimeout(petCaptureRestore);
+  petCaptureRestore = null;
+  petWindow.showInactive();
+});
+ipcMain.handle("pet:hide", () => petWindow && petWindow.hide());
+  let petDrag = null;
+  const finishPetDrag = () => {
+    if (!petDrag) return;
+    clearInterval(petDrag.timer);
+    petDrag.window.removeListener("closed", finishPetDrag);
+    const moved = petDrag.moved;
+    petDrag = null;
+    if (petWindow && !petWindow.isDestroyed()) {
+      const [x, y] = petWindow.getPosition();
+      const [width, height] = petWindow.getSize();
+      const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+      const point = require("./petPosition.cjs").clampPosition({ x, y }, { width, height }, area);
+      petWindow.setPosition(point.x, point.y);
+    }
+    return moved;
+  };
+  ipcMain.handle("pet:beginDrag", (event) => {
+    if (!petWindow || event.sender !== petWindow.webContents) return;
+    finishPetDrag();
+    const cursor = screen.getCursorScreenPoint();
+    const [x, y] = petWindow.getPosition();
+    const offset = { x: cursor.x - x, y: cursor.y - y };
+    const started = Date.now();
+    petDrag = { window: petWindow, moved: 0, timer: setInterval(() => {
+      if (!petWindow || petWindow.isDestroyed() || Date.now() - started > 60000) { finishPetDrag(); return; }
+      const next = screen.getCursorScreenPoint();
+      petDrag.moved = Math.max(petDrag.moved, Math.hypot(next.x - cursor.x, next.y - cursor.y));
+      const point = require("./petPosition.cjs").dragPosition(next, offset);
+      petWindow.setPosition(point.x, point.y);
+    }, 16) };
+    petWindow.once("closed", finishPetDrag);
+  });
+  ipcMain.handle("pet:endDrag", (event) => {
+    if (!petWindow || event.sender !== petWindow.webContents) return 0;
+    return finishPetDrag() || 0;
+  });
 ipcMain.handle("pet:setIgnore", (_event, ignore) => {
   if (petWindow) petWindow.setIgnoreMouseEvents(!!ignore, { forward: true });
 });
@@ -952,17 +1000,21 @@ ipcMain.handle("private:ergebnis", (_event, antwort) => {
 });
 
 
-app.whenReady().then(() => {
-  session.defaultSession.setPermissionRequestHandler((_wc, _permission, cb) => cb(true));
-  if (app.isPackaged) {
-    app.setLoginItemSettings({ openAtLogin: true });
-  }
-  createWindow();
+function trayVorAnmeldung() {
+  if (!tray) return;
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Jon öffnen", click: toggleWindow },
+      { type: "separator" },
+      { label: "Jon beenden", click: () => void quitJon() },
+    ])
+  );
+}
+
+function nachAnmeldung() {
+  if (angemeldet || quitting) return;
+  angemeldet = true;
   createPet();
-  void startBackend();
-  setTimeout(() => void verknuepfungAnbieten(), 4000);
-  void tokenAbgleich();
-  void privatSchleife();
   globalShortcut.register("Control+Alt+J", toggleWindow);
   globalShortcut.register("Control+Alt+K", togglePet);
   globalShortcut.register("Control+Alt+Space", toggleQuickAsk);
@@ -976,8 +1028,7 @@ app.whenReady().then(() => {
       mainWindow.webContents.send("jon:explain-screen");
     }
   });
-  tray = new Tray(path.join(__dirname, "tray.png"));
-  tray.setToolTip("Jon — Strg+Alt+J");
+  if (!tray) return;
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Jon öffnen/verstecken", click: toggleWindow },
@@ -1000,6 +1051,26 @@ app.whenReady().then(() => {
       { label: "Jon beenden (auch das Backend)", click: () => void quitJon() },
     ])
   );
+}
+
+ipcMain.handle("anmeldung:ok", () => {
+  nachAnmeldung();
+  return true;
+});
+
+app.whenReady().then(() => {
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, cb) => cb(true));
+  if (app.isPackaged) {
+    app.setLoginItemSettings({ openAtLogin: true });
+  }
+  createWindow();
+  void startBackend();
+  setTimeout(() => void verknuepfungAnbieten(), 4000);
+  void tokenAbgleich();
+  void privatSchleife();
+  tray = new Tray(path.join(__dirname, "tray.png"));
+  tray.setToolTip("Jon — Strg+Alt+J");
+  trayVorAnmeldung();
   tray.on("click", toggleWindow);
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

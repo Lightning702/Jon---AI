@@ -27,6 +27,11 @@ def _konsole_vorbereiten() -> None:
 def main(argv: list[str] | None = None) -> None:
     _konsole_vorbereiten()
     args = list(argv if argv is not None else sys.argv[1:])
+    if args and args[0].lower() in ("harness", "jon-code", "jon-harness"):
+        from app.cli.harness import main as harness_main
+
+        harness_main(args[1:])
+        return
     modus = ""
     if args and args[0].lower() in ("code", "chat"):
         modus = args.pop(0).lower()

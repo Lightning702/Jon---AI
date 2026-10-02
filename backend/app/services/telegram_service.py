@@ -67,6 +67,7 @@ class TelegramService:
         self._username = ""
         self._username_token = ""
         self._research_watch: dict[str, asyncio.Task] = {}
+        self._harness_watch: dict[str, asyncio.Task] = {}
         self._last_home = 0.0
         self._stand: dict = {
             "letzte_abfrage": 0.0,
@@ -214,8 +215,10 @@ class TelegramService:
         return stand
 
     def _load_histories(self) -> dict[str, list[dict]]:
+        from app.core.krypto import json_lesen
+
         try:
-            data = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+            data = json_lesen(HISTORY_FILE, None, "telegram-verlauf")
             if isinstance(data, dict):
                 return {
                     str(key): value
@@ -227,11 +230,10 @@ class TelegramService:
         return {}
 
     def _save_histories(self) -> None:
+        from app.core.krypto import json_schreiben
+
         try:
-            atomic_write_text(HISTORY_FILE,
-                json.dumps(self._histories, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            json_schreiben(HISTORY_FILE, self._histories, "telegram-verlauf")
         except Exception as _fehler:
             leise(_fehler, "services/telegram_service")
 
@@ -355,6 +357,29 @@ class TelegramService:
                 "sendMessage",
                 {"chat_id": chat_id, "text": text[start : start + 3900]},
             )
+
+    async def _zeitanfrage_antwort(self, text: str, erlaubt: bool) -> str:
+        from app.services.handy_service import HandyFehler, get_handy_service
+
+        teile = text.split()
+        kurz = teile[1].strip().lower() if len(teile) > 1 else ""
+        dienst = get_handy_service()
+        offen = dienst.offene_zeitanfragen()
+        passend = [m for m in offen if not kurz or str(m.get("id", "")).lower().startswith(kurz)]
+        if not passend:
+            return "Diese Anfrage finde ich nicht." if offen else "Gerade ist keine Anfrage offen."
+        if len(passend) > 1 and not kurz:
+            return f"Mehrere Anfragen sind offen. Antworte mit Code, zum Beispiel /ja {passend[0]['id'][:4]}."
+        anfrage = passend[0]
+        daten = anfrage.get("daten") or {}
+        app = str(daten.get("name") or daten.get("app") or "die App")
+        try:
+            ergebnis = await dienst.zeitanfrage_beantworten(str(anfrage["geraet"]), str(anfrage["id"]), erlaubt)
+        except HandyFehler as exc:
+            return f"Das ging nicht: {exc}"
+        if erlaubt:
+            return f"✅ {anfrage.get('name') or 'Das Handy'} hat {ergebnis['minuten']} Minuten mehr {app}."
+        return f"Okay, keine Extra-Zeit für {app}."
 
     async def send_location(self, chat_id: str | int, punkt: dict) -> None:
         await self._api(
@@ -690,7 +715,9 @@ class TelegramService:
         from app.core.auth import lan_adressen
 
         settings = get_settings()
-        if not settings.jon_lan:
+        from app.core.heimnetz import lan_aktiv
+
+        if not lan_aktiv():
             return []
         marke = get_token()
         return [
@@ -1521,6 +1548,10 @@ class TelegramService:
                 if not edited:
                     await self._handle_group_message(message)
                 continue
+            bound_chat = str(get_settings_service().get().get("telegram_chat_id", "")).strip()
+            if bound_chat and str(chat_id) != bound_chat:
+                await self.send(chat_id, "Dieser Jon gehört schon jemand anderem. 🔒")
+                continue
             location = message.get("location") or message.get("venue", {}).get(
                 "location"
             )
@@ -1628,14 +1659,35 @@ class TelegramService:
                     "/lernen <Thema> = Tiefenrecherche starten · /lernstatus = Stand "
                     "der Recherche · /lernstop = abbrechen · /lernweiter = "
                     "fortsetzen · /stopp = laufende Aktion abbrechen · /reset = "
-                    "Gespräch vergessen.",
+                    "Gespräch vergessen.\n\nJon Harness: /projekte · /projekt <ID> · "
+                    "/harness <Auftrag> · /hstatus <ID> · /hstop <ID> · /diff <ID>. "
+                    "Shellbefehle werden einzeln mit /erlauben oder /ablehnen bestätigt.",
                 )
+                continue
+            from app.services.harness.messages import handle as harness_message, watch as harness_watch
+
+            harness_reply = await harness_message(text, f"telegram:{chat_id}")
+            if harness_reply is not None:
+                await self.send(chat_id, harness_reply["text"])
+                task_id = harness_reply.get("task_id")
+                if task_id and task_id not in self._harness_watch:
+                    watcher = asyncio.create_task(harness_watch(task_id, lambda value, target=chat_id: self.send(target, value)))
+                    self._harness_watch[task_id] = watcher
+                    def watcher_finished(done, key=task_id):
+                        self._harness_watch.pop(key, None)
+                        if not done.cancelled() and done.exception():
+                            leise(done.exception(), "telegram/harness")
+
+                    watcher.add_done_callback(watcher_finished)
                 continue
             if text.split()[0].lower() in ("/modell", "/model", "/ki"):
                 await self.send(chat_id, await self._modell_befehl(text))
                 continue
             if text.split()[0].lower() in ("/anbieter", "/provider"):
                 await self.send(chat_id, await self._anbieter_befehl(text))
+                continue
+            if text.split()[0].lower() in ("/ja", "/nein"):
+                await self.send(chat_id, await self._zeitanfrage_antwort(text, text.split()[0].lower() == "/ja"))
                 continue
             if text.startswith("/geraete") or text.startswith("/geräte"):
                 await self.send(chat_id, await self._geraete_text())
@@ -1671,6 +1723,14 @@ class TelegramService:
                 continue
             if text.startswith("/stopp") or text.startswith("/stop"):
                 stopped = await self._cancel_running(str(chat_id))
+                from app.services.harness import get_harness_service
+                from app.services.harness.service import TERMINAL
+
+                harness = get_harness_service()
+                for task in harness.list(f"telegram:{chat_id}"):
+                    if task["status"] not in TERMINAL:
+                        await harness.cancel(task["id"])
+                        stopped = True
                 await self.send(
                     chat_id,
                     "Abgebrochen. ⛔" if stopped else "Gerade läuft nichts, alles ruhig. 👍",

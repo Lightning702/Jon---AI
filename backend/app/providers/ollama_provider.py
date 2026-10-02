@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.services.tool_result import succeeded
+
 import asyncio
 import json
 import time
@@ -375,7 +377,7 @@ class OllamaProvider(OpenAICompatibleProvider):
                     yield StreamChunk(kind="tool", name=name, args=args)
                     try:
                         result = await tool_executor(name, args)
-                        ok = True
+                        ok = succeeded(result)
                     except Exception as exc:
                         result = f"Fehler: {exc}"
                         ok = False

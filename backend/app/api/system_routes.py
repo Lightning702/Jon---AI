@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from app.core.heimnetz import lan_aktiv
 from app.services.system_service import SystemService
 
 router = APIRouter(prefix="/api/system")
@@ -354,8 +355,8 @@ async def diagnostics() -> dict:
         "version": settings.app_version,
         "laufzeit": round(since_boot(), 1),
         "port": settings.port,
-        "lan": settings.jon_lan,
-        "adresse": lan_address() if settings.jon_lan else "127.0.0.1",
+        "lan": lan_aktiv(),
+        "adresse": lan_address() if lan_aktiv() else "127.0.0.1",
         "datenverzeichnis": str(DATA_DIR),
         "protokolldatei": str(LOG_FILE),
         "dienste": dienste,
@@ -388,10 +389,10 @@ async def pairing() -> dict:
     settings = get_settings()
     return {
         "token": get_token(),
-        "lan": settings.jon_lan,
+        "lan": lan_aktiv(),
         "adresse": lan_address(),
         "port": settings.port,
-        "url": pair_url(settings.port, settings.jon_lan),
+        "url": pair_url(settings.port, lan_aktiv()),
         "oberflaeche": web_app_dir() is not None,
         "env_datei": str(ENV_FILE),
     }
@@ -406,7 +407,7 @@ async def pairing_reset() -> dict:
     token = await asyncio.to_thread(reset_token)
     from app.core.auth import pair_url
 
-    return {"token": token, "url": pair_url(settings.port, settings.jon_lan)}
+    return {"token": token, "url": pair_url(settings.port, lan_aktiv())}
 
 
 @router.get("/terminal")

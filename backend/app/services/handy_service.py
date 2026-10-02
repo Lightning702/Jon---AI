@@ -3,16 +3,17 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import re
 import secrets
 import socket
 import threading
 import time
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, AsyncIterator
 
 from app.core.config import DATA_DIR
 from app.core.logbook import logger as logbook_logger
-from app.core.store import atomic_write_json, read_json
 
 _log = logbook_logger("handy")
 
@@ -38,6 +39,8 @@ TEXT_BUENDEL = 180
 TEXT_PAUSE = 0.35
 
 RECHTE_VORGABE = {
+    "apps": False,
+    "musik": False,
     "status": True,
     "dateien": True,
     "hinweise": False,
@@ -46,9 +49,20 @@ RECHTE_VORGABE = {
     "kontakte": False,
     "kamera": False,
     "mikrofon": False,
+    "durchsage": True,
+    "klingeln": True,
+    "regeln": True,
 }
 
+MELDUNG_ARTEN = ("sos", "gelesen", "zeitanfrage")
+_APP_KENNUNG = re.compile(r"[A-Za-z][A-Za-z0-9_.]{1,120}")
+_HINTERGRUND: set = set()
+MELDUNGEN_MAX = 30
+DURCHSAGEN_MAX = 20
+
 RECHTE_STUFEN = {
+    "apps": "standard",
+    "musik": "standard",
     "status": "standard",
     "dateien": "standard",
     "hinweise": "persoenlich",
@@ -57,9 +71,14 @@ RECHTE_STUFEN = {
     "kontakte": "persoenlich",
     "kamera": "sensibel",
     "mikrofon": "sensibel",
+    "durchsage": "standard",
+    "klingeln": "standard",
+    "regeln": "standard",
 }
 
 RECHTE_NAMEN = {
+    "apps": "Erlaubte Apps",
+    "musik": "Amazon Music",
     "status": "Gerätestatus",
     "dateien": "Dateien",
     "hinweise": "Benachrichtigungen",
@@ -68,6 +87,9 @@ RECHTE_NAMEN = {
     "kontakte": "Kontakte",
     "kamera": "Kamera",
     "mikrofon": "Mikrofon",
+    "durchsage": "Durchsagen",
+    "klingeln": "Klingeln lassen",
+    "regeln": "Bildschirmzeit",
 }
 
 
@@ -192,12 +214,19 @@ class HandyService:
         self._sitzung: dict | None = None
         self._warteschlangen: dict[str, list[asyncio.Queue]] = {}
         self._uebertragungen: dict[str, dict] = {}
-        self._auftraege: dict[str, asyncio.Future] = {}
+        self._auftraege: dict[str, tuple[str, asyncio.Future]] = {}
         self._postfaecher: dict[str, dict] = {}
         self._ausgang: dict[str, dict] = {}
+        self._neue_meldungen: list[dict] = []
 
     def _laden(self) -> dict:
-        roh = read_json(STORE, None)
+        from app.core.krypto import ist_klartext_datei, json_lesen
+
+        roh = json_lesen(STORE, None, "handy")
+        if isinstance(roh, dict) and ist_klartext_datei(STORE):
+            from app.core.krypto import json_schreiben
+
+            json_schreiben(STORE, roh, "handy")
         if not isinstance(roh, dict):
             roh = {}
         geraete = roh.get("geraete")
@@ -206,10 +235,12 @@ class HandyService:
         pc_id = str(roh.get("pc_id", "")).strip()
         if not pc_id:
             pc_id = secrets.token_hex(6)
-        return {"pc_id": pc_id, "geraete": geraete}
+        return {"pc_id": pc_id, "geraete": geraete, "bericht_woche": str(roh.get("bericht_woche") or "")}
 
     def _sichern(self) -> None:
-        atomic_write_json(STORE, self._data)
+        from app.core.krypto import json_schreiben
+
+        json_schreiben(STORE, self._data, "handy")
 
     def rechnername(self) -> str:
         try:
@@ -233,9 +264,13 @@ class HandyService:
         from app.core.config import get_settings
 
         settings = get_settings()
-        if not settings.jon_lan:
+        from app.core.heimnetz import lan_aktiv
+
+        if not lan_aktiv():
             return []
-        return [f"http://{host}:{settings.port}" for host in lan_adressen()]
+        from app.services.geraete_vpn import tailscale_status
+        vpn = tailscale_status().get("adressen", [])
+        return [f"http://{host}:{settings.port}" for host in dict.fromkeys([h for h in vpn if ":" not in h] + lan_adressen())]
 
     def _adresse(self) -> str:
         alle = self._adressen()
@@ -252,13 +287,14 @@ class HandyService:
             port = 1883
         return {"host": broker, "port": port}
 
-    def kopplung_starten(self) -> dict:
+    def kopplung_starten(self, direct_only: bool = False) -> dict:
         code = code_erzeugen()
         kennung = self.kennung()
         makler = self._makler()
         adressen = self._adressen()
         adresse = adressen[0] if adressen else ""
         sitzung = {
+            "direct_only": direct_only,
             "code": code,
             "thema": thema_fuer(code),
             "schluessel": schluessel_fuer_code(code),
@@ -274,6 +310,7 @@ class HandyService:
         nutzlast = {
             "v": PROTOKOLL,
             "t": "jon-pair",
+            "direct_only": direct_only,
             "n": kennung["name"],
             "c": code,
             "u": adresse,
@@ -298,7 +335,7 @@ class HandyService:
     def offenes_thema(self) -> str:
         with self._lock:
             sitzung = self._sitzung
-            if sitzung is None:
+            if sitzung is None or sitzung.get("direct_only"):
                 return ""
             if time.time() > sitzung["ablauf"] + NACHLAUF:
                 return ""
@@ -313,6 +350,7 @@ class HandyService:
                 sitzung["status"] = "abgelaufen"
             return {
                 "status": sitzung["status"],
+                "direct_only": bool(sitzung.get("direct_only")),
                 "geraet": sitzung.get("geraet"),
                 "rest": max(0, int(sitzung["ablauf"] - time.time())),
                 "code": sitzung["code"],
@@ -328,6 +366,8 @@ class HandyService:
             sitzung = self._sitzung
             if sitzung is None or sitzung["status"] != "wartet":
                 raise HandyFehler("Keine wartende Anfrage.")
+            if time.time() > sitzung["ablauf"]:
+                raise HandyFehler("Der Kopplungscode ist abgelaufen.")
             geraet = dict(sitzung.get("geraet") or {})
             if not angenommen:
                 sitzung["status"] = "abgelehnt"
@@ -344,7 +384,8 @@ class HandyService:
                 "token": token,
                 "erstellt": time.time(),
                 "gesehen": time.time(),
-                "rechte": dict(RECHTE_VORGABE),
+                "direct_only": bool(sitzung.get("direct_only")),
+                "rechte": {**RECHTE_VORGABE, **({"apps": True, "musik": True} if sitzung.get("direct_only") else {})},
                 "faehigkeiten": [],
                 "zustand": {},
                 "zustand_zeit": 0.0,
@@ -356,6 +397,7 @@ class HandyService:
             sitzung["status"] = "verbunden"
             sitzung["ergebnis"] = {
                 "status": "ok",
+                "direct_only": bool(sitzung.get("direct_only")),
                 "geraet": geraete_id,
                 "schluessel": _b64(schluessel),
                 "token": token,
@@ -384,6 +426,7 @@ class HandyService:
             "id": kennung,
             "name": eintrag.get("name", ""),
             "plattform": eintrag.get("plattform", ""),
+            "direct_only": bool(eintrag.get("direct_only")),
             "erstellt": eintrag.get("erstellt", 0),
             "gesehen": eintrag.get("gesehen", 0),
             "online": self.online(kennung),
@@ -393,6 +436,8 @@ class HandyService:
             "faehigkeiten": list(eintrag.get("faehigkeiten") or []),
             "zustand": dict(zustand) if isinstance(zustand, dict) else {},
             "zustand_zeit": float(eintrag.get("zustand_zeit") or 0.0),
+            "meldungen": list(reversed(list(eintrag.get("meldungen") or [])[-10:])),
+            "durchsagen": list(reversed(list(eintrag.get("durchsagen") or [])[-5:])),
         }
 
     def geraet_entfernen(self, geraete_id: str) -> bool:
@@ -503,6 +548,9 @@ class HandyService:
         self._gesehen(geraet["id"])
         if op == "ping":
             return {"rid": ruf, "ok": True, "pc": self.kennung()}
+        if op in ("audio-stt", "audio-tts"):
+            from app.services.geraete_funktionen import audio_ausfuehren
+            return {"rid": ruf, **await audio_ausfuehren(anfrage)}
         if op == "call":
             return {"rid": ruf, **await self._api(anfrage, geraet)}
         if op == "datei-start":
@@ -528,6 +576,10 @@ class HandyService:
             return {"rid": ruf, **await self.abholen(geraet["id"], anfrage)}
         if op == "datei-holen":
             return {"rid": ruf, **self.datei_holen(geraet["id"], anfrage)}
+        if op == "melden":
+            return {"rid": ruf, **await self.meldung_annehmen(geraet["id"], anfrage)}
+        if op == "abmelden":
+            return {"rid": ruf, "ok": self.geraet_entfernen(geraet["id"])}
         return {"rid": ruf, "ok": False, "fehler": "Unbekannte Anweisung."}
 
     def _aufraeumen(self) -> None:
@@ -610,6 +662,12 @@ class HandyService:
             self._uebertragungen.pop(kennung, None)
         pfad = await asyncio.to_thread(_datei_schreiben, name, inhalt)
         _log.info("Datei vom Handy gespeichert: %s (%s Bytes)", pfad, len(inhalt))
+        try:
+            from app.services.dateiindex_service import get_dateiindex_service
+
+            await asyncio.to_thread(get_dateiindex_service().merken, pfad, "", "", "", "", "handy")
+        except Exception as exc:
+            _log.warning("Datei vom Handy nicht im Index: %s", exc)
         return {"ok": True, "pfad": pfad, "groesse": len(inhalt), "name": name}
 
     def _pair_anmelden(self, anfrage: dict) -> dict:
@@ -663,17 +721,33 @@ class HandyService:
         kopf = {"X-Jon-Token": str(geraet.get("token", ""))}
         rumpf = anfrage.get("body")
         transport = httpx.ASGITransport(app=jon_app)
-        async with httpx.AsyncClient(
-            transport=transport, base_url="http://handy", timeout=180.0
-        ) as klient:
-            antwort = await klient.request(
-                methode,
-                pfad,
-                params=anfrage.get("query") or None,
-                json=rumpf if isinstance(rumpf, (dict, list)) else None,
-                headers=kopf,
-            )
+        from app.services.geraete_funktionen import HANDY_KONTEXT
+        marke = HANDY_KONTEXT.set(geraet["id"])
+        try:
+            async with httpx.AsyncClient(
+                transport=transport, base_url="http://handy", timeout=180.0
+            ) as klient:
+                antwort = await klient.request(
+                    methode,
+                    pfad,
+                    params=anfrage.get("query") or None,
+                    json=rumpf if isinstance(rumpf, (dict, list)) else None,
+                    headers=kopf,
+                )
+        finally:
+            HANDY_KONTEXT.reset(marke)
+        if anfrage.get("binary"):
+            import base64
+            if len(antwort.content) > 4_000_000:
+                return {"ok": False, "fehler": "Datei für direkte Vorschau zu groß."}
+            return {"ok": antwort.status_code < 400, "code": antwort.status_code, "data": base64.b64encode(antwort.content).decode("ascii"), "mime": antwort.headers.get("content-type", "application/octet-stream")}
         text = antwort.text
+        if antwort.status_code >= 400:
+            try:
+                detail = antwort.json().get("detail", "Anfrage abgelehnt")
+            except Exception:
+                detail = "Anfrage abgelehnt"
+            return {"ok": False, "code": antwort.status_code, "fehler": str(detail)[:500]}
         if len(text) > NACHRICHT_MAX:
             return {"ok": False, "fehler": "Antwort zu gross."}
         return {
@@ -703,8 +777,13 @@ class HandyService:
         methode = str(anfrage.get("method", "POST")).upper()
         pfad = str(anfrage.get("path", "/api/chat"))
         if pfad == "/api/chat":
-            async for stueck in self._chat_strom(ruf, anfrage.get("body")):
-                yield stueck
+            from app.services.geraete_funktionen import HANDY_KONTEXT
+            marke = HANDY_KONTEXT.set(geraet["id"])
+            try:
+                async for stueck in self._chat_strom(ruf, anfrage.get("body")):
+                    yield stueck
+            finally:
+                HANDY_KONTEXT.reset(marke)
             return
         kopf = {"X-Jon-Token": str(geraet.get("token", ""))}
         rumpf = anfrage.get("body")
@@ -923,15 +1002,20 @@ class HandyService:
                 "name",
                 "speicher_frei",
                 "diagnose",
+                "device_owner", "kiosk", "wake_word", "sprach_status", "amazon", "tiktok", "whatsapp",
+                "bildschirmzeit", "wecker", "version", "schritte", "apps", "kinder",
             )
             if zustand.get(schluessel) is not None
         }
+        if len(json.dumps(gekuerzt.get("bildschirmzeit") or {}, ensure_ascii=False)) > 8000:
+            gekuerzt.pop("bildschirmzeit", None)
         with self._lock:
             for eintrag in self._data["geraete"]:
                 if eintrag.get("id") != geraete_id:
                     continue
                 eintrag["zustand"] = gekuerzt
                 eintrag["zustand_zeit"] = time.time()
+                verlauf_merken(eintrag, gekuerzt)
                 eintrag["gesehen"] = time.time()
                 if faehigkeiten is not None:
                     eintrag["faehigkeiten"] = gefiltert
@@ -947,6 +1031,268 @@ class HandyService:
             "adressen": self._adressen(),
             "pc": self.kennung(),
         }
+
+    async def meldung_annehmen(self, geraete_id: str, anfrage: dict) -> dict:
+        art = str(anfrage.get("art", ""))
+        if art not in MELDUNG_ARTEN:
+            return {"ok": False, "fehler": "Diese Meldung kennt Jon nicht."}
+        roh = anfrage.get("daten")
+        daten = roh if isinstance(roh, dict) else {}
+        if len(json.dumps(daten, ensure_ascii=False)) > 4000:
+            return {"ok": False, "fehler": "Meldung zu gross."}
+        sauber = {
+            schluessel: wert
+            for schluessel, wert in daten.items()
+            if isinstance(schluessel, str) and isinstance(wert, (str, int, float, bool)) and len(schluessel) <= 40
+        }
+        meldung = {
+            "id": secrets.token_hex(6),
+            "art": art,
+            "zeit": time.time(),
+            "daten": sauber,
+            "quittiert": art not in ("sos", "zeitanfrage"),
+        }
+        name = "Handy"
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") != geraete_id:
+                    continue
+                name = str(eintrag.get("name") or name)
+                liste = list(eintrag.get("meldungen") or [])
+                liste.append(meldung)
+                eintrag["meldungen"] = liste[-MELDUNGEN_MAX:]
+                if art == "gelesen":
+                    kennung = str(sauber.get("kennung", ""))
+                    for durchsage in eintrag.get("durchsagen") or []:
+                        if durchsage.get("kennung") == kennung and not durchsage.get("gelesen"):
+                            durchsage["gelesen"] = meldung["zeit"]
+                self._sichern()
+                break
+            else:
+                return {"ok": False, "fehler": "Unbekanntes Geraet."}
+            self._neue_meldungen.append({**meldung, "geraet": geraete_id, "name": name})
+            self._neue_meldungen = self._neue_meldungen[-50:]
+        if art == "sos":
+            _log.warning("SOS von %s", name)
+            aufgabe = asyncio.create_task(_telegram_melden(sos_text(name, sauber), sauber))
+            _HINTERGRUND.add(aufgabe)
+            aufgabe.add_done_callback(_HINTERGRUND.discard)
+        if art == "zeitanfrage":
+            aufgabe = asyncio.create_task(_telegram_melden(zeitanfrage_text(name, sauber, meldung["id"])))
+            _HINTERGRUND.add(aufgabe)
+            aufgabe.add_done_callback(_HINTERGRUND.discard)
+        return {"ok": True, "id": meldung["id"]}
+
+    def wochenbericht(self, geraete_id: str, bis: str = "") -> dict:
+        eintrag = self._geraet(geraete_id)
+        if eintrag is None:
+            raise HandyFehler("Unbekanntes Geraet.")
+        return bericht_bauen(eintrag, bis)
+
+    def bericht_faellig(self, jetzt: datetime | None = None) -> str:
+        jetzt = jetzt or datetime.now()
+        if jetzt.weekday() != 6 or jetzt.hour < 18:
+            return ""
+        woche = jetzt.strftime("%G-W%V")
+        with self._lock:
+            if self._data.get("bericht_woche") == woche:
+                return ""
+        return woche
+
+    async def berichte_senden(self, woche: str) -> int:
+        with self._lock:
+            self._data["bericht_woche"] = woche
+            self._sichern()
+            eintraege = [dict(g) for g in self._data["geraete"] if g.get("verlauf")]
+        gesendet = 0
+        for eintrag in eintraege:
+            bericht = bericht_bauen(eintrag)
+            if not bericht["gesamt"] and not bericht["schritte"]:
+                continue
+            with self._lock:
+                self._neue_meldungen.append({
+                    "id": secrets.token_hex(6), "art": "bericht", "zeit": time.time(), "quittiert": True,
+                    "daten": {"bis": bericht["bis"], "gesamt": bericht["gesamt"]},
+                    "geraet": eintrag.get("id"), "name": str(eintrag.get("name") or "Handy"),
+                })
+                self._neue_meldungen = self._neue_meldungen[-50:]
+            await _telegram_melden(bericht_text(bericht))
+            gesendet += 1
+        return gesendet
+
+    def kinder_alter(self, geraete_id: str) -> int:
+        from app.core.kinderschutz import alter_pruefen
+
+        eintrag = self._geraet(geraete_id)
+        kinder = ((eintrag or {}).get("zustand") or {}).get("kinder")
+        if not isinstance(kinder, dict) or not kinder.get("an"):
+            return 0
+        return alter_pruefen(kinder.get("alter"))
+
+    def offene_zeitanfragen(self) -> list[dict]:
+        offen: list[dict] = []
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                for meldung in eintrag.get("meldungen") or []:
+                    if meldung.get("art") == "zeitanfrage" and not meldung.get("quittiert"):
+                        offen.append({**meldung, "geraet": eintrag.get("id"), "name": eintrag.get("name", "")})
+        return offen
+
+    async def zeitanfrage_beantworten(self, geraete_id: str, meldung_id: str, erlaubt: bool, minuten: int | None = None) -> dict:
+        self._pruefen(geraete_id, "regeln")
+        with self._lock:
+            gefunden = None
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") != geraete_id:
+                    continue
+                for meldung in eintrag.get("meldungen") or []:
+                    if meldung.get("id") == meldung_id and meldung.get("art") == "zeitanfrage":
+                        gefunden = meldung
+            if gefunden is None:
+                raise HandyFehler("Diese Anfrage gibt es nicht mehr.")
+            if gefunden.get("quittiert"):
+                raise HandyFehler("Diese Anfrage ist schon beantwortet.")
+            daten = dict(gefunden.get("daten") or {})
+        app = str(daten.get("app") or "")
+        try:
+            dauer = max(5, min(240, int(minuten if minuten is not None else daten.get("minuten") or 30)))
+        except (TypeError, ValueError):
+            dauer = 30
+        stand = None
+        if erlaubt:
+            stand = await self.regeln_setzen(geraete_id, {"extra": {app: dauer}})
+        zugestellt = True
+        try:
+            await self._ausfuehren(geraete_id, "zeitantwort", {"app": app, "name": str(daten.get("name") or app), "erlaubt": bool(erlaubt), "minuten": dauer, "anfrage": meldung_id}, wartezeit=20.0)
+        except HandyFehler:
+            zugestellt = False
+        with self._lock:
+            gefunden["quittiert"] = True
+            gefunden["antwort"] = {"erlaubt": bool(erlaubt), "minuten": dauer, "zeit": time.time()}
+            self._sichern()
+        return {"ok": True, "erlaubt": bool(erlaubt), "minuten": dauer, "bildschirmzeit": stand, "zugestellt": zugestellt}
+
+    def meldungen_neu(self) -> list[dict]:
+        with self._lock:
+            neu = self._neue_meldungen
+            self._neue_meldungen = []
+        return neu
+
+    def meldung_quittieren(self, geraete_id: str, meldung_id: str) -> bool:
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") != geraete_id:
+                    continue
+                for meldung in eintrag.get("meldungen") or []:
+                    if meldung.get("id") == meldung_id:
+                        meldung["quittiert"] = True
+                        self._sichern()
+                        return True
+        return False
+
+    def _pruefen(self, geraete_id: str, recht: str) -> None:
+        if self._geraet(geraete_id) is None:
+            raise HandyFehler("Unbekanntes Geraet.")
+        if not self.recht_erlaubt(geraete_id, recht):
+            raise HandyFehler(f"„{RECHTE_NAMEN.get(recht, recht)}“ ist für dieses Gerät ausgeschaltet.")
+        if not self.faehig(geraete_id, recht):
+            raise HandyFehler("Die App auf diesem Gerät kann das noch nicht. Bitte Jon Gerät aktualisieren.")
+
+    async def _ausfuehren(self, geraete_id: str, op: str, daten: dict, wartezeit: float = AUFTRAG_TTL) -> dict:
+        antwort = await self.auftrag(geraete_id, op, daten, wartezeit=wartezeit)
+        if not antwort.get("ok"):
+            raise HandyFehler(antwort.get("fehler") or "Das Gerät konnte das nicht ausführen.")
+        return dict(antwort.get("daten") or {})
+
+    async def durchsage(self, geraete_id: str, text: str, vorlesen: bool = True, von: str = "") -> dict:
+        self._pruefen(geraete_id, "durchsage")
+        sauber = " ".join(str(text).split())[:500]
+        if not sauber:
+            raise HandyFehler("Die Durchsage ist leer.")
+        kennung = secrets.token_hex(5)
+        absender = str(von).strip()[:40] or self.kennung().get("name") or "Jon"
+        ergebnis = await self._ausfuehren(
+            geraete_id,
+            "durchsage",
+            {"text": sauber, "vorlesen": bool(vorlesen), "von": absender, "kennung": kennung},
+        )
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") == geraete_id:
+                    liste = list(eintrag.get("durchsagen") or [])
+                    liste.append({"kennung": kennung, "text": sauber, "zeit": time.time(), "gelesen": None})
+                    eintrag["durchsagen"] = liste[-DURCHSAGEN_MAX:]
+                    self._sichern()
+                    break
+        return {**ergebnis, "kennung": kennung}
+
+    async def klingeln(self, geraete_id: str, sekunden: int = 30) -> dict:
+        self._pruefen(geraete_id, "klingeln")
+        try:
+            dauer = int(sekunden)
+        except (TypeError, ValueError):
+            dauer = 30
+        return await self._ausfuehren(geraete_id, "klingeln", {"sekunden": max(5, min(120, dauer))})
+
+    def _app_kennungen(self, geraete_id: str) -> set[str]:
+        bekannt = {"whatsapp", "tiktok", "amazon"}
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") != geraete_id:
+                    continue
+                zustand = eintrag.get("zustand") or {}
+                apps = zustand.get("apps") or (zustand.get("bildschirmzeit") or {}).get("apps") or []
+                for app in apps if isinstance(apps, list) else []:
+                    kennung = str(app.get("id") or "") if isinstance(app, dict) else ""
+                    if _APP_KENNUNG.fullmatch(kennung):
+                        bekannt.add(kennung)
+        return bekannt
+
+    async def regeln_setzen(self, geraete_id: str, regeln: dict) -> dict:
+        self._pruefen(geraete_id, "regeln")
+        bekannt = self._app_kennungen(geraete_id)
+        erlaubt: dict = {}
+        limits = regeln.get("limits")
+        if isinstance(limits, dict):
+            erlaubt["limits"] = {
+                str(app): max(0, min(24 * 60, int(wert)))
+                for app, wert in list(limits.items())[:60]
+                if str(app) in bekannt and isinstance(wert, (int, float))
+            }
+        nacht = regeln.get("nacht")
+        if isinstance(nacht, dict):
+            erlaubt["nacht"] = {
+                schluessel: nacht[schluessel]
+                for schluessel in ("an", "von", "bis", "tage", "apps")
+                if schluessel in nacht
+            }
+            if isinstance(erlaubt["nacht"].get("apps"), list):
+                erlaubt["nacht"]["apps"] = [str(app) for app in erlaubt["nacht"]["apps"][:60] if str(app) in bekannt]
+        extra = regeln.get("extra")
+        if isinstance(extra, dict):
+            jetzt = time.time()
+            erlaubt["ausnahmen"] = {
+                str(app): int((jetzt + max(1, min(240, int(wert))) * 60) * 1000)
+                for app, wert in list(extra.items())[:20]
+                if str(app) in bekannt and isinstance(wert, (int, float))
+            }
+        if "pause_minuten" in regeln:
+            try:
+                erlaubt["pause_minuten"] = max(0, min(24 * 60, int(regeln["pause_minuten"])))
+            except (TypeError, ValueError):
+                raise HandyFehler("Die Pause braucht eine Minutenzahl.")
+        if not erlaubt:
+            raise HandyFehler("Keine gültigen Regeln übergeben.")
+        stand = await self._ausfuehren(geraete_id, "regeln", erlaubt)
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") == geraete_id:
+                    zustand = dict(eintrag.get("zustand") or {})
+                    zustand["bildschirmzeit"] = stand
+                    eintrag["zustand"] = zustand
+                    self._sichern()
+                    break
+        return stand
 
     def zustand(self, geraete_id: str) -> dict:
         with self._lock:
@@ -1031,7 +1377,7 @@ class HandyService:
         schleife = asyncio.get_running_loop()
         zukunft: asyncio.Future = schleife.create_future()
         with self._lock:
-            self._auftraege[kennung] = zukunft
+            self._auftraege[kennung] = (geraete_id, zukunft)
         nutzlast = {"auftrag": kennung, "op": op}
         nutzlast.update(daten or {})
         try:
@@ -1048,8 +1394,11 @@ class HandyService:
     def antwort_annehmen(self, geraete_id: str, anfrage: dict) -> dict:
         kennung = str(anfrage.get("auftrag", ""))
         with self._lock:
-            zukunft = self._auftraege.get(kennung)
-        if zukunft is None or zukunft.done():
+            eintrag = self._auftraege.get(kennung)
+        if eintrag is None or eintrag[0] != geraete_id:
+            return {"ok": False, "fehler": "Auftrag unbekannt."}
+        zukunft = eintrag[1]
+        if zukunft.done():
             return {"ok": False, "fehler": "Auftrag unbekannt."}
         daten = anfrage.get("daten")
         zukunft.set_result(
@@ -1134,6 +1483,185 @@ class HandyService:
 
 
 _service: HandyService | None = None
+
+
+VERLAUF_TAGE = 42
+
+
+def _zahl(wert: object) -> int | None:
+    if isinstance(wert, bool) or not isinstance(wert, (int, float)):
+        return None
+    return int(wert)
+
+
+def verlauf_merken(eintrag: dict, zustand: dict) -> None:
+    zeit = zustand.get("bildschirmzeit") if isinstance(zustand.get("bildschirmzeit"), dict) else {}
+    tag = str(zeit.get("tag") or date.today().isoformat())
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", tag):
+        return
+    genutzt = {}
+    for app, wert in (zeit.get("genutzt") or {}).items():
+        minuten = _zahl(wert)
+        if minuten is not None and 0 <= minuten <= 1440 and re.match(r"^[A-Za-z][A-Za-z0-9_.]{0,120}$", str(app)):
+            genutzt[str(app)] = minuten
+    namen = {
+        str(a.get("id")): str(a.get("name") or a.get("id"))[:40]
+        for a in (zeit.get("apps") or [])
+        if isinstance(a, dict) and a.get("id")
+    }
+    schritte = zustand.get("schritte")
+    schritte = _zahl(schritte.get("heute") if isinstance(schritte, dict) else schritte) or 0
+    verlauf = dict(eintrag.get("verlauf") or {})
+    alt = dict(verlauf.get(tag) or {})
+    vorher = dict(alt.get("genutzt") or {})
+    for app, minuten in genutzt.items():
+        vorher[app] = max(int(vorher.get(app) or 0), minuten)
+    verlauf[tag] = {
+        "genutzt": vorher,
+        "namen": {**dict(alt.get("namen") or {}), **namen},
+        "schritte": max(int(alt.get("schritte") or 0), max(0, schritte)),
+    }
+    for alt_tag in sorted(verlauf)[:-VERLAUF_TAGE]:
+        verlauf.pop(alt_tag, None)
+    eintrag["verlauf"] = verlauf
+
+
+def bericht_bauen(eintrag: dict, bis: str = "") -> dict:
+    try:
+        ende = date.fromisoformat(bis) if bis else date.today()
+    except ValueError:
+        ende = date.today()
+    verlauf = eintrag.get("verlauf") or {}
+    woche = [ende - timedelta(days=i) for i in range(6, -1, -1)]
+    davor = [ende - timedelta(days=i) for i in range(13, 6, -1)]
+    namen: dict[str, str] = {}
+    apps: dict[str, int] = {}
+    tage = []
+    for tag in woche:
+        daten = verlauf.get(tag.isoformat()) or {}
+        genutzt = {k: int(v) for k, v in (daten.get("genutzt") or {}).items()}
+        namen.update(daten.get("namen") or {})
+        for app, minuten in genutzt.items():
+            apps[app] = apps.get(app, 0) + minuten
+        tage.append({
+            "tag": tag.isoformat(),
+            "wochentag": ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")[tag.weekday()],
+            "minuten": sum(genutzt.values()),
+            "schritte": int(daten.get("schritte") or 0),
+            "erfasst": tag.isoformat() in verlauf,
+        })
+    gesamt = sum(t["minuten"] for t in tage)
+    vorwoche = sum(sum(int(v) for v in ((verlauf.get(t.isoformat()) or {}).get("genutzt") or {}).values()) for t in davor)
+    erfasst = [t for t in tage if t["erfasst"]]
+    beginn = datetime.combine(woche[0], datetime.min.time()).timestamp()
+    schluss = datetime.combine(ende + timedelta(days=1), datetime.min.time()).timestamp()
+    meldungen = [m for m in eintrag.get("meldungen") or [] if beginn <= float(m.get("zeit") or 0) < schluss]
+    anfragen = [m for m in meldungen if m.get("art") == "zeitanfrage"]
+    return {
+        "geraet": eintrag.get("id"),
+        "name": str(eintrag.get("name") or "Handy"),
+        "von": woche[0].isoformat(),
+        "bis": ende.isoformat(),
+        "tage": tage,
+        "gesamt": gesamt,
+        "schnitt": round(gesamt / len(erfasst)) if erfasst else 0,
+        "vorwoche": vorwoche,
+        "apps": [
+            {"id": app, "name": namen.get(app) or app, "minuten": minuten}
+            for app, minuten in sorted(apps.items(), key=lambda paar: -paar[1])
+            if minuten > 0
+        ][:6],
+        "schritte": sum(t["schritte"] for t in tage),
+        "anfragen": len(anfragen),
+        "erlaubt": sum(1 for m in anfragen if (m.get("antwort") or {}).get("erlaubt")),
+        "sos": sum(1 for m in meldungen if m.get("art") == "sos"),
+    }
+
+
+def dauer_text(minuten: int) -> str:
+    stunden, rest = divmod(max(0, int(minuten)), 60)
+    if stunden and rest:
+        return f"{stunden} h {rest} min"
+    return f"{stunden} h" if stunden else f"{rest} min"
+
+
+def bericht_text(bericht: dict) -> str:
+    von = date.fromisoformat(bericht["von"])
+    bis = date.fromisoformat(bericht["bis"])
+    zeilen = [f"📊 Wochenbericht für {bericht['name']} ({von.day}.{von.month}. – {bis.day}.{bis.month}.)"]
+    zeile = f"Bildschirmzeit: {dauer_text(bericht['gesamt'])}"
+    if bericht["schnitt"]:
+        zeile += f" (Ø {dauer_text(bericht['schnitt'])} am Tag"
+        if bericht["vorwoche"]:
+            aenderung = round((bericht["gesamt"] - bericht["vorwoche"]) * 100 / bericht["vorwoche"])
+            zeile += f", {'+' if aenderung > 0 else '−' if aenderung < 0 else '±'}{abs(aenderung)} % zur Vorwoche"
+        zeile += ")"
+    zeilen.append(zeile)
+    if bericht["apps"]:
+        zeilen.append("Am meisten: " + " · ".join(f"{a['name']} {dauer_text(a['minuten'])}" for a in bericht["apps"][:3]))
+    if bericht["schritte"]:
+        zeilen.append(f"Schritte: {bericht['schritte']:,}".replace(",", ".") + f" (Ø {round(bericht['schritte'] / 7):,} am Tag)".replace(",", "."))
+    if bericht["anfragen"]:
+        zeilen.append(f"Extra-Zeit: {bericht['anfragen']} Anfrage{'n' if bericht['anfragen'] != 1 else ''}, {bericht['erlaubt']} erlaubt")
+    if bericht["sos"]:
+        zeilen.append(f"SOS ausgelöst: {bericht['sos']}×")
+    return chr(10).join(zeilen)
+
+
+def zeitanfrage_text(name: str, daten: dict, kennung: str) -> str:
+    app = str(daten.get("name") or daten.get("app") or "eine App")
+    minuten = daten.get("minuten") or 30
+    zeilen = [f"⏳ {name} möchte {minuten} Minuten mehr {app}."]
+    notiz = str(daten.get("text") or "").strip()
+    if notiz:
+        zeilen.append(f"„{notiz}“")
+    kurz = kennung[:4]
+    zeilen.append(f"Antworte /ja {kurz} oder /nein {kurz} – oder in Jon unter Einstellungen → Geräte.")
+    return chr(10).join(zeilen)
+
+
+def sos_karte(daten: dict) -> str:
+    breite, laenge = daten.get("lat"), daten.get("lon")
+    if isinstance(breite, bool) or isinstance(laenge, bool):
+        return ""
+    if not isinstance(breite, (int, float)) or not isinstance(laenge, (int, float)):
+        return ""
+    if not (-90 <= breite <= 90 and -180 <= laenge <= 180):
+        return ""
+    return f"https://www.openstreetmap.org/?mlat={breite:.5f}&mlon={laenge:.5f}#map=17/{breite:.5f}/{laenge:.5f}"
+
+
+def sos_text(name: str, daten: dict) -> str:
+    zeilen = [f"🆘 SOS von {name}!"]
+    zeitpunkt = daten.get("zeit")
+    if isinstance(zeitpunkt, (int, float)) and zeitpunkt > 0:
+        zeilen.append("Ausgelöst um " + time.strftime("%H:%M Uhr", time.localtime(float(zeitpunkt) / 1000)))
+    akku = daten.get("akku")
+    if isinstance(akku, (int, float)) and akku >= 0:
+        zeilen.append(f"Akku: {int(akku)} %" + (" (lädt)" if daten.get("laedt") else ""))
+    notiz = str(daten.get("text") or "").strip()
+    if notiz:
+        zeilen.append(f"Nachricht: {notiz}")
+    karte = sos_karte(daten)
+    if karte:
+        genau = daten.get("genau")
+        zeilen.append("Standort: " + karte + (f" (± {int(genau)} m)" if isinstance(genau, (int, float)) and genau > 0 else ""))
+    zeilen.append("Bitte gleich melden.")
+    return chr(10).join(zeilen)
+
+
+async def _telegram_melden(text: str, daten: dict | None = None) -> None:
+    try:
+        from app.services.settings_service import get_settings_service
+        from app.services.telegram_service import get_telegram_service
+
+        chat = str(get_settings_service().get().get("telegram_chat_id", "")).strip()
+        if chat:
+            await get_telegram_service().send(chat, text)
+            if sos_karte(daten or {}):
+                await get_telegram_service().send_location(chat, {"lat": float(daten["lat"]), "lon": float(daten["lon"]), "titel": "SOS-Standort"})
+    except Exception as exc:
+        _log.warning("SOS ging nicht an Telegram: %s", exc)
 
 
 def get_handy_service() -> HandyService:

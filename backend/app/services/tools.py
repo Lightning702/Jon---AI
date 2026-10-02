@@ -22,6 +22,7 @@ from app.services.risiko import pfad_pruefen
 from app.services.werkzeug_register import finden, finden_async, laden
 
 NETZ_TOOLS = {
+    "youtube_transkript",
     "web_search",
     "http_get",
     "download_file",
@@ -110,6 +111,7 @@ _INT = {"type": "integer"}
 _BOOL = {"type": "boolean"}
 
 SAFE_TOOLS = {
+    "youtube_transkript",
     "get_screen_info",
     "list_windows",
     "wait",
@@ -210,6 +212,8 @@ GUEST_TOOLS = {
 
 
 CORE_TOOLS = {
+    "understand_screen",
+    "harness_task",
     "run_powershell",
     "run_cmd",
     "start_program",
@@ -271,6 +275,7 @@ _CHDIR_RE = re.compile(
 )
 
 CODING_TOOLS = {
+    "harness_task",
     "run_powershell",
     "run_cmd",
     "project_overview",
@@ -299,6 +304,36 @@ CODING_TOOLS = {
     "list_skills",
     "read_skill",
     "wait",
+}
+
+WORK_ZUSATZ = {
+    "datei_erstellen",
+    "create_image",
+    "deep_learning",
+    "browser_task",
+    "maps",
+    "get_weather",
+    "web_search",
+    "open_url",
+    "create_pptx",
+    "read_pptx",
+    "read_pdf",
+    "http_get",
+    "download_file",
+    "remember_about_user",
+    "recall",
+    "ask_knowledge",
+}
+
+KLEIN_TOOLS = GUEST_TOOLS | {
+    "get_calendar",
+    "calendar_add",
+    "set_reminder",
+    "add_reminder",
+    "list_reminders",
+    "remember_about_user",
+    "recall",
+    "ask_knowledge",
 }
 
 TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
@@ -898,6 +933,11 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
 
 ANDROID_WOERTER = (
     "handy",
+    "durchsage",
+    "bildschirmzeit",
+    "klingeln",
+    "jon gerät",
+    "jon geraet",
     "smartphone",
     "telefon",
     "android",
@@ -925,12 +965,19 @@ def _connector_werkzeuge() -> list[dict]:
 
 
 def _connector_auswahl(text: str) -> set[str]:
-    if not any(word in text for word in ANDROID_WOERTER):
-        return set()
     from app.services.connectors import get_connector_manager
 
     try:
-        return get_connector_manager().namen()
+        verbinder = get_connector_manager()
+        gefunden = verbinder.auswahl(text)
+        if any(word in text for word in ANDROID_WOERTER):
+            gefunden |= {
+                werkzeug.name
+                for connector in verbinder.alle()
+                if connector.id == "android"
+                for werkzeug in connector.werkzeuge()
+            }
+        return gefunden
     except Exception:
         return set()
 
@@ -940,6 +987,8 @@ def select_tools(context: str) -> set[str] | None:
     if not text:
         return None
     allowed = set(CORE_TOOLS)
+    if "youtube.com/" in text or "youtu.be/" in text or "youtube" in text:
+        allowed.add("youtube_transkript")
     for names, keywords in TOOL_GROUPS.values():
         if any(word in text for word in keywords):
             allowed |= names
@@ -1849,6 +1898,8 @@ class ToolBox:
         reminders: ReminderService | None = None,
         root: str | None = None,
         source: str = "app",
+        slot: str = "jon",
+        persist: bool = True,
     ) -> None:
         self._service = service or SystemService()
         self._automation = automation or AutomationService()
@@ -1857,6 +1908,8 @@ class ToolBox:
         self._reminders = reminders or ReminderService()
         self._root = str(Path(root).expanduser().resolve()) if root else None
         self._source = source
+        self._slot = slot
+        self._persist = persist
 
     def _guard_path(self, value: Any) -> str:
         root = Path(self._root or "")
@@ -1887,15 +1940,29 @@ class ToolBox:
         if name == "run_powershell" and guarded.get("command"):
             self._guard_command(str(guarded["command"]))
             guarded["command"] = (
-                f'Set-Location -LiteralPath "{self._root}"; ' + str(guarded["command"])
+                "Set-Location -LiteralPath '" + str(self._root).replace("'", "''") + "'; " + str(guarded["command"])
             )
         if name == "run_cmd" and guarded.get("command"):
             self._guard_command(str(guarded["command"]))
             guarded["command"] = f'cd /d "{self._root}" && ' + str(guarded["command"])
         return guarded
 
-    def schema(self, context: str = "", coding: bool = False) -> list[dict]:
+    def schema(self, context: str = "", coding: bool = False, umfang: str = "") -> list[dict]:
         tools = self._all_tools()
+        if umfang == "klein":
+            return [
+                t for t in tools
+                if t["function"]["name"] in KLEIN_TOOLS or t["function"]["name"].startswith("fitness_")
+            ]
+        if coding and umfang == "alle":
+            gewaehlt = select_tools(context) or set()
+            return [
+                t for t in tools
+                if t["function"]["name"] in CODING_TOOLS
+                or t["function"]["name"] in WORK_ZUSATZ
+                or t["function"]["name"] in gewaehlt
+                or t["function"]["name"].startswith("fitness_")
+            ]
         if coding:
             return [t for t in tools if t["function"]["name"] in CODING_TOOLS]
         allowed = select_tools(context)
@@ -1908,6 +1975,13 @@ class ToolBox:
 
     def _eigene_tools(self) -> list[dict]:
         return [
+            _tool("understand_screen", "Liest den tatsächlich sichtbaren Inhalt des aktuellen Arbeitsfensters per Vision-Modell, etwa Codefehler, Text oder eine Latein-Hausübung. Nur auf einen konkreten Benutzerauftrag oder nach aktivierter Bildschirmbeobachtung verwenden. Liefert Beobachtung und sichtbaren Text, führt keine Bildschirmaktionen aus. Beachte Privatsphäre und Anbieterfreigabe. Bei fehlender Freigabe erkläre die Einstellung statt eine Beobachtung zu erfinden.", {"question": _STR}, []),
+            _tool(
+                "harness_task",
+                "Steuert Jon Harness für mehrschrittige Coding-Aufträge. actions: projects zeigt gespeicherte Projekte, start startet einen ausdrücklich beauftragten Auftrag im geöffneten/gewählten Projekt, status zeigt Fortschritt und ausstehende Freigaben, list zeigt Aufträge, stop bricht ab. Nutze für autonome Arbeit über mehrere Dateien. Berichte gestartete Aufgaben als laufend, nicht fertig. Shellfreigaben muss der Nutzer selbst mit den angezeigten /erlauben- oder /ablehnen-Befehlen geben. Wenn project fehlt, verwende den geöffneten Ordner; niemals einen Ordner erfinden.",
+                {"action": {"type": "string", "enum": ["projects", "start", "status", "list", "stop"]}, "goal": _STR, "project": _STR, "id": _STR},
+                ["action"],
+            ),
             _tool(
                 "run_powershell",
                 "Fuehrt einen Windows-PowerShell-Befehl auf dem PC des Nutzers aus und "
@@ -2185,12 +2259,13 @@ class ToolBox:
             ),
             _tool(
                 "team",
-                "Teilt eine groessere Rechercheaufgabe auf mehrere Teilagenten auf, "
+                "Teilt eine komplexe Fachfrage, Lernaufgabe, Planung oder Recherche auf spezialisierte Teilagenten auf, "
                 "laesst sie gleichzeitig arbeiten und fasst die Ergebnisse zusammen. "
                 "Nur fuer lesende Aufgaben (vergleichen, sammeln, pruefen).",
-                {"aufgabe": _STR, "agenten": _INT},
+                {"aufgabe": _STR, "agenten": _INT, "internet": {"type": "boolean", "description": "Nur bei ausdrücklich gewünschter Webrecherche einschalten; sonst false."}},
                 ["aufgabe"],
             ),
+            _tool("youtube_transkript", "Ruft echte YouTube-Untertitel ab und fasst den gesamten gesprochenen Inhalt zusammen. Bei einem YouTube-Link zuerst dieses Werkzeug verwenden, bevor du den Inhalt erklärst. Keine Videobilder werden angesehen. Keine erfundenen Transkripte, wenn Untertitel fehlen.", {"url": _STR}, ["url"]),
             _tool(
                 "lernen",
                 "Jon lernt aus seiner eigenen Arbeit. aktion='muster' zeigt "
@@ -3831,9 +3906,6 @@ class ToolBox:
         src = source or self._source
         _QUELLE.set(src)
         cache = get_cache_service()
-        gemerkt = cache.holen(name, args)
-        if gemerkt is not None:
-            return gemerkt
         try:
             from app.services.datenschutz_service import darf_raus
 
@@ -3846,6 +3918,10 @@ class ToolBox:
         except Exception as _fehler:
             leise(_fehler, "services/tools")
             hinweis = ""
+        cache_args = {"arguments": args, "workspace": self._root, "source": src}
+        gemerkt = cache.holen(name, cache_args)
+        if gemerkt is not None:
+            return gemerkt
         try:
             from app.services.weboeffnen import umleiten
 
@@ -3869,12 +3945,14 @@ class ToolBox:
             log_action(src, name, args, f"Fehler: {klartext}", ok=False)
             self._abgleichen(erwartung, False, klartext, time.perf_counter() - begonnen)
             return json.dumps({"error": klartext}, ensure_ascii=False)
-        ok = '"error"' not in result[:200]
+        from app.services.tool_result import succeeded
+
+        ok = succeeded(result)
         log_action(src, name, args, result, ok=ok)
         self._abgleichen(erwartung, ok, result, time.perf_counter() - begonnen)
         self._weltbild_pruefen(sicht, ok, result)
         if ok and not _zu_duenn(name, result):
-            cache.merken(name, args, result)
+            cache.merken(name, cache_args, result)
         try:
             from app.services.erfahrung_service import get_erfahrung_service
 
@@ -3892,6 +3970,15 @@ class ToolBox:
         return result
 
     async def _dispatch(self, name: str, args: dict[str, Any]) -> str:
+        if name == "understand_screen":
+            from app.services.mini_jon_agent import get_mini_jon_agent
+            from app.services.mini_jon_screen import analyze
+
+            return json.dumps(await analyze(get_mini_jon_agent(), str(args.get("question", ""))), ensure_ascii=False)
+        if name == "harness_task":
+            from app.services.harness.chat import execute
+
+            return json.dumps(await execute(args, _QUELLE.get() or self._source, self._root), ensure_ascii=False)
         if name.startswith("android_") or name.startswith("android."):
             from app.services.connectors import get_connector_manager
 
@@ -3954,6 +4041,15 @@ class ToolBox:
                     },
                     ensure_ascii=False,
                 )
+            from app.core.kinderschutz import KINDER_ALTER
+
+            if KINDER_ALTER.get():
+                try:
+                    ergebnis = await search_web(frage, anzahl, False)
+                except Exception as exc:
+                    ergebnis = {"treffer": [], "fehler": str(exc)[:200]}
+                ergebnis["kindersicher"] = True
+                return json.dumps(ergebnis, ensure_ascii=False)
             gewaehlt = aufloesen(str(args.get("browser", "")))
             if gewaehlt and gewaehlt != JON:
                 from urllib.parse import quote_plus
@@ -4106,7 +4202,16 @@ class ToolBox:
         return json.dumps(ergebnis, ensure_ascii=False)
 
     async def _create_image(self, args: dict[str, Any]) -> str:
+        from app.core.kinderschutz import KINDER_ALTER, kindgerecht
         from app.services.studio_service import StudioError, get_studio_service
+
+        if KINDER_ALTER.get() and (
+            str(args.get("kind") or "").lower() == "video" or not kindgerecht({"titel": args.get("prompt")})
+        ):
+            return json.dumps(
+                {"error": "Das geht im Kindermodus nicht. Schlag dem Kind ein anderes, kindgerechtes Bild vor."},
+                ensure_ascii=False,
+            )
 
         service = get_studio_service()
         kind = "video" if str(args.get("kind") or "").lower() == "video" else "bild"
@@ -4751,6 +4856,7 @@ class ToolBox:
                 )
             except Exception as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        persona = get_persona_service()
         if name == "journal":
             return json.dumps(
                 persona.append_journal(str(args.get("entry", ""))), ensure_ascii=False

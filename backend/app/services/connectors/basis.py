@@ -33,6 +33,7 @@ class Werkzeug:
 class Connector:
     id = ""
     name = ""
+    woerter: tuple[str, ...] = ()
 
     def bereit(self) -> bool:
         return True

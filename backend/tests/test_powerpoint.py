@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 
 import pytest
 
@@ -98,3 +99,19 @@ def test_werkzeug_nimmt_slides_als_json_string(tmp_path):
 def test_werkzeug_wird_bei_praesentationsfragen_angeboten():
     assert "create_pptx" in (select_tools("mach mir eine praesentation ueber hunde") or set())
     assert "create_pptx" in (select_tools("bau mir bitte folien fuer mein referat") or set())
+
+
+def test_relativer_pfad_landet_in_jons_ordner(tmp_path, monkeypatch):
+    from app.services import dateiraum_service
+
+    class Raum:
+        def zielpfad(self, name, wunsch=""):
+            ordner = tmp_path / "Jon" / (wunsch or "Documents")
+            ordner.mkdir(parents=True, exist_ok=True)
+            return {"pfad": str(ordner / name)}
+
+    monkeypatch.setattr(dateiraum_service, "get_dateiraum_service", lambda: Raum())
+    ergebnis = get_pptx_service().create("Probe", DECK[:2], "Jon-Test.pptx")
+    assert ergebnis["ok"]
+    assert Path(ergebnis["path"]) == tmp_path / "Jon" / "Documents" / "Jon-Test.pptx"
+    assert Path(ergebnis["path"]).is_file()

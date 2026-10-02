@@ -6,7 +6,9 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-[![Version](https://img.shields.io/badge/Version-4.55.1-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+Neu in 4.57.0: [Stimmen und Transkripte](docs/MEDIEN.md), [Jon Harness](docs/JON-HARNESS.md) und [MiniJon auf dem Handy](docs/MINIJON-HANDY.md).
+
+[![Version](https://img.shields.io/badge/Version-4.57.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -706,6 +708,24 @@ Felder werden nicht erfunden.
 
 ---
 
+## 🔐 Anmeldung
+
+Jon fragt bei **jedem Öffnen** nach Benutzername und Passwort — in der App und im Web
+(`http://<jon>:8756/app`). Beim ersten Start legst du beides fest.
+
+- In der App gibt es ohne Anmeldung weder Mini Jon noch Tastenkürzel. Schließt du das
+  Anmeldefenster, beendet sich Jon; nach fünf Fehlversuchen schließt sich die App ebenfalls.
+  Im Web sperrt Jon nach fünf Fehlversuchen für 60 Sekunden.
+- Ändern: **Zahnrad → Anmeldung ändern …** (jetziger Zugang, dann neuer Name und/oder
+  neues Passwort).
+- Vergessen: Der Link auf der Anmeldeseite führt zum
+  [FelWorks-Support](https://felworks-impressum.netlify.app/support). Wer Zugriff auf den
+  Rechner hat, kann den Zugang auch zurücksetzen, indem er `anmeldung.json` im
+  Datenordner löscht — beim nächsten Start legt man ihn neu an.
+- Gespeichert wird nichts im Klartext, sondern nur ein gesalzener Hash von Name und Passwort.
+- Telegram, die Browser-Erweiterung, die Handy-App und `jon` im Terminal verbinden sich
+  weiter über den Geräte-Schlüssel und brauchen keine Anmeldung.
+
 ## 📺 Bildschirm live zeigen
 
 Jon kann dir **zusehen lassen**, was auf seinen Bildschirmen passiert — ohne
@@ -818,6 +838,78 @@ PC und Pi sind zwei getrennte Jons mit eigenen Einstellungen und eigenem Gedäch
 dem Pi fehlen nur die PC-Steuerungs-Tools (Fenster, Maus/Tastatur, Screenshots,
 Zwischenablage) — alles andere (Chat, Web-Suche, Erinnerungen, Telegram, Freunde-Chat,
 Wissensbasis …) läuft dort genauso.
+
+### 📱 Jon Gerät (Android-App)
+
+Die App „Jon Gerät“ macht ein Android-Handy komplett zu Jon. Beim ersten Start fragt sie,
+wie Jon laufen soll – das lässt sich später jederzeit in den Einstellungen ändern:
+
+- **Mit Jon am PC oder Pi** – voller Umfang: Dateien, Programme, Fernsteuerung, Jon Chat
+- **Auf Jon verzichten** – eigener API-Schlüssel (OpenAI, Claude, Gemini, xAI, Mistral,
+  Groq, OpenRouter, DeepSeek, NVIDIA oder ein eigener OpenAI-kompatibler Server). Geht auch,
+  wenn das Handy mit einem Pi gekoppelt ist – die Verbindung bleibt dabei bestehen
+- **Offline** – die Modelle aus Googles AI Edge Gallery (Gemma 4, Gemma 3n, Qwen, DeepSeek …)
+  laufen per LiteRT-LM direkt auf dem Handy, ganz ohne Internet. Mit **Speicher sparen**
+  (Standard) behält Jon nur ein Modell, alle anderen werden nach dem Download gelöscht
+
+**Chat und Work:** Chat ist fürs Schreiben und kleine Aufgaben. **Work** kann alles – auf
+Wunsch mit Plan, dessen Schritte Jon live abhakt. Websites, Präsentationen, Dokumente und
+Podcasts landen als Ergebnis-Karte im Chat: **Ansehen** öffnet eine Website direkt in der
+App, Skripte laufen auf dem Pi, und jede Datei kannst du **aufs Handy oder auf den Pi**
+laden. Hochgeladene Bilder beschreibt Jon, Videos schaut er sich an, Sprachnachrichten und
+MP3s schreibt er ab – ebenfalls wahlweise auf dem Handy oder auf dem Pi gespeichert.
+
+**Befehle wie in Telegram:** Ein `/` im Eingabefeld zeigt alle Befehle, zum Beispiel
+`/video`, `/live`, `/website`, `/podcast`, `/wecker 6:30`, `/timer 10`, `/fokus 45`,
+`/schritte`, `/gym Bankdrücken 3x10 60kg`, `/offline` oder `/sos`.
+
+**Für die Familie:**
+
+- **Bildschirmzeit** mit Tageslimits pro App, **Schlafenszeit** und sofortiger Pause
+  (mit Gerätemodus sperrt Jon die Apps überall, sonst beim Öffnen über Jon)
+- **Wecker & Timer** am Handy – auch per Sprache („Hey Jon, weck mich um halb sieben“)
+- **Kamera** in Jon, Fotos landen in der Galerie unter „Jon“
+- **Durchsage vom PC** (wird laut vorgelesen, mit Lesebestätigung) und **Handy klingeln
+  lassen**, auch wenn es lautlos ist
+- **SOS-Knopf** im Menü: lange drücken, dann meldet Jon sich am PC (Hinweis, Chat-Eintrag,
+  blinkendes Fenster) und per Telegram – auf Wunsch mit Standort (Karte in Jon, Standort in
+  Telegram) und direktem Anruf danach
+- **Extra-Zeit anfragen:** Ist eine App gesperrt, bittet das Kind um 15, 30 oder 60 Minuten.
+  Die Anfrage kommt am PC als Karte im Chat und per Telegram an (`/ja` oder `/nein`), die
+  Antwort sofort am Handy
+- **Kinder-Modus:** Antworten passend zum Alter, Hausaufgaben-Hilfe Schritt für Schritt,
+  SafeSearch, nur sichere Werkzeuge – für Jon am PC oder Pi, den eigenen Zugang und die
+  Offline-KI
+- **Wochenbericht** jeden Sonntag um 18 Uhr per Telegram und in Jon, mit Balkendiagramm am PC
+  (Geräte → 📊 Woche) und am Handy (Bildschirmzeit)
+- **Eltern-Übersicht** am PC unter Einstellungen → Geräte: Bildschirmzeit, Limits,
+  Schlafenszeit, Pause, Durchsagen, Klingeln, Extra-Zeit-Anfragen und SOS-Meldungen
+- **Admin-PIN** schützt Kiosk und Einstellungen – auf Wunsch auch per Fingerabdruck
+
+**Mehrere Jons:** Ein Handy kann mit mehreren Jons gekoppelt sein, etwa mit dem Pi und dem PC.
+Unter **Einstellungen → Verbindungen** wechselst du per Tipp, und fällt der aktive aus, springt
+das Handy automatisch zum nächsten. Die freigegebenen Apps lassen sich in der Kindersicherung
+**verstecken** – dann zeigt Jon sie erst nach dem Entsperren der Verwaltung.
+
+**Rund ums Handy:** Freie App-Auswahl für den Kiosk, Teilen aus jeder App an Jon, Widget und
+Schnellzugriff-Kachel, Benachrichtigungen auch bei geschlossener App, Sicherung auf den PC
+oder Pi (täglich automatisch) oder als Datei, eine Datenschutz-Seite mit „Alle Daten
+löschen“ und die ganze App auch auf **Englisch** (Einstellungen → Sprache). Updates kommen
+ohne Kabel von deinem PC oder Pi; ein neues Handy lädt die App unter
+`http://<jon>:8756/geraet`. Ohne Tailscale koppelt ein Handy im selben WLAN, sobald im
+Assistenten „Jon-Gerät einrichten“ **Im Heimnetz erreichbar** an ist.
+
+**Fitness:** Schritte (mit Tagesziel und Verlauf), Trainings mit Sätzen und Gewichten,
+Rekorde und Serien – Jon trägt auch Sätze wie „Ich war im Gym, Bankdrücken 3x10 mit 60 kg“
+selbst ein. **Jon Chat** (Freunde-Chat) gibt es in der App ebenfalls.
+
+**Sprache:** Das Gespräch startet nur, wenn du tippst oder deutlich „Hey Jon“ bzw.
+„Hallo Jon“ sagst. Das Sprachmodell dafür (45 MB) lädt Jon beim Einschalten nach, so bleibt
+die App selbst bei rund 35 MB. Unter **Einstellungen → Freigaben** legst du fest, ob Jon vor Aktionen
+immer fragt, nur bei riskanten – oder nie („alles erlauben“). Am PC gibt es dieselbe Wahl
+unter „PC-Steuerung durch Jon“. Wird der Kiosk verlassen, ist Jon wieder eine normale App:
+Zurück oder Home schließt sie, und in den Einstellungen gibt es „Jon schließen“. Hält Android
+den Kiosk danach doch einmal fest, zeigt Jon oben „Jetzt neu starten“.
 
 ---
 

@@ -121,7 +121,7 @@
     <div class="hero__bg" aria-hidden="true"></div>
     <div class="container hero__grid">
       <div class="hero__copy">
-        <a class="newbadge reveal" href="#unterwegs"><b>NEU 4.55.1</b> 🎬 Dein Bildschirm als Video in Telegram — live mit /live und nach jeder Aktion, die Jon für dich macht</a>
+        <a class="newbadge reveal" href="#harness-medien"><b>NEU 4.57.0</b> Jon Harness, Fachteam, YouTube-Transkripte und MiniJon auf dem Handy</a>
         <h1 class="reveal" style="--d:80ms">Dein <em>KI-Desktop</em><br>Assistent für Windows</h1>
         <p class="lead reveal" style="--d:160ms">Jon von <strong>FelWorks</strong> steuert deinen gesamten Computer intelligent. Multi-Provider-KI mit GPT-OSS 120B über NVIDIA, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis und voller Systemsteuerung — in einem eleganten Black-&amp;-Gold-Design.</p>
         <div class="hero__actions reveal" style="--d:240ms">
@@ -427,7 +427,7 @@ cd frontend &amp;&amp; npm install</code>
       <header class="section__head reveal">
         <p class="kicker">Telegram</p>
         <h2>Jon <em>unterwegs</em></h2>
-        <p class="section__lead">Dein PC bleibt zu Hause, Jon nicht: Über einen eigenen Telegram-Bot schreibst oder sprichst du mit ihm von überall — und Mini Jon hat seinen eigenen Bot. <b>Neu in v4.55.1:</b> Mit <b>/live</b> siehst du deinen Bildschirm als Video, und sagst du Jon, er soll etwas öffnen oder anklicken, schickt er dir danach das Video davon. Aus v4.54.0: Telegram hat einen eigenen Anbieter — zum Beispiel Ollama, auch wenn Jon in der App eine API wie NVIDIA benutzt. Umschalten geht direkt im Chat mit <b>/anbieter</b> und <b>/modell</b>. Aus v4.34.6: Beide haben Jon Maps und Jon Deep Learning dabei.</p>
+        <p class="section__lead">Dein PC bleibt zu Hause, Jon nicht: Über einen eigenen Telegram-Bot schreibst oder sprichst du mit ihm von überall — und Mini Jon hat seinen eigenen Bot. <b>Aus v4.55.1:</b> Mit <b>/live</b> siehst du deinen Bildschirm als Video, und sagst du Jon, er soll etwas öffnen oder anklicken, schickt er dir danach das Video davon. Aus v4.54.0: Telegram hat einen eigenen Anbieter — zum Beispiel Ollama, auch wenn Jon in der App eine API wie NVIDIA benutzt. Umschalten geht direkt im Chat mit <b>/anbieter</b> und <b>/modell</b>. Aus v4.34.6: Beide haben Jon Maps und Jon Deep Learning dabei.</p>
       </header>
       <div class="steps-grid">
         <article class="step-card reveal">
@@ -773,10 +773,22 @@ cd frontend &amp;&amp; npm install</code>
     </div>
   </section>
 
+  <section class="section section--tight" id="harness-medien">
+    <div class="container">
+      <div class="section__head reveal"><p class="kicker">Neu in 4.57.0</p><h2>Gemeinsam <em>weiterkommen</em></h2><p class="section__lead">Jon arbeitet im Projekt, macht gesprochene Inhalte lesbar und begleitet dich mit MiniJon.</p></div>
+      <div class="feature-grid">
+        <article class="card reveal"><span class="card__icon"><svg class="i"><use href="#i-code"/></svg></span><h3>Jon Harness</h3><p>Ein eigener Arbeitsbereich mit Projekten links, Aufträgen, Änderungen und Prüfungen. Beschreibe dein Ziel; Jon liest und bearbeitet Dateien im gewählten Ordner. Befehle werden vor ihrer Ausführung zur Freigabe angezeigt. Auch als <b>jon-code</b> im Terminal.</p></article>
+        <article class="card reveal"><span class="card__icon"><svg class="i"><use href="#i-mic"/></svg></span><h3>Stimmen &amp; Transkripte</h3><p>Audio anhängen und <b>/transkript</b> senden: Die ganze Tonspur wird lokal in Text umgewandelt. Ein YouTube-Link liefert eine Zusammenfassung verfügbarer Untertitel. Mit <b>/podcast Dein Text</b> entsteht eine MP3 über Microsofts Sprachausgabe.</p></article>
+        <article class="card reveal"><span class="card__icon"><svg class="i"><use href="#i-phone"/></svg></span><h3>MiniJon &amp; Fachteam</h3><p>Ein animierter 3D-Begleiter für Coden, Lernen und Planen. Datierte Alltagsangaben bleiben gespeichert. Das Fachteam teilt größere Fragen auf, prüft Ergebnisse und zeigt offene Punkte. Android 1.6.0 bringt MiniJon über deine Apps und in den Jon-Kiosk.</p></article>
+      </div>
+      <div class="note-box reveal"><svg class="i"><use href="#i-info"/></svg><p>KI-Funktionen verwenden dein gewähltes Modell. YouTube-Zusammenfassungen brauchen zugängliche Untertitel. Das Windows-Paket enthält das lokale Sprachmodell für Transkripte; Sprachausgabe und Online-Anbieter benötigen Internet.</p></div>
+    </div>
+  </section>
+
   <section class="section section--tight" id="download">
     <div class="container">
       <div class="download reveal">
-        <p class="kicker">Download</p>
+        <p class="kicker">Download · Version 4.57.0</p>
         <h2><em>Download</em></h2>
         <p class="section__lead">Jon App mit Mini Jon und Backend — komplett in einem Paket. Wähle, wie du Jon haben willst.</p>
         <div class="split-cta">
@@ -786,6 +798,7 @@ cd frontend &amp;&amp; npm install</code>
         <p class="dl-hint">Die .exe installiert Jon mit Startmenü- und Desktop-Verknüpfung. Die ZIP entpackst du einfach in einen Ordner und startest <b>Jon.exe</b> — gleiche App, gleiche Funktionen, keine Installation nötig. <b>Einmal installiert, bleibst du aktuell:</b> ab v3.35 lädt Jon neue Versionen selbst herunter, prüft sie und installiert sie auf Knopfdruck — deine Chats und Konten bleiben dabei unangetastet.</p>
         <div class="split-cta">
           <a class="btn btn--ghost btn--sm" href="https://play.google.com/store/apps/developer?id=FelWorks" target="_blank" rel="noopener"><svg class="i"><use href="#i-phone"/></svg>Jon – KI bei Google Play</a>
+          <a class="btn btn--ghost btn--sm" href="https://github.com/Lightning702/Jon---AI/releases/download/v4.57.0/Jon-Geraet-1.6.0.apk"><svg class="i"><use href="#i-phone"/></svg>Jon Gerät 1.6.0 (.apk)</a>
           <a class="btn btn--ghost btn--sm" href="jon-erweiterung.zip" download><svg class="i"><use href="#i-puzzle"/></svg>Browser-Erweiterung (.zip)</a>
           <a class="btn btn--ghost btn--sm" href="jon.zip" download><svg class="i"><use href="#i-code"/></svg>Quellcode (.zip)</a>
           <a class="btn btn--ghost btn--sm" href="https://build.nvidia.com" target="_blank" rel="noopener"><svg class="i"><use href="#i-key"/></svg>NVIDIA API-Key holen</a>
@@ -838,7 +851,7 @@ cd frontend &amp;&amp; npm install</code>
     </div>
     <div class="footer__word" aria-hidden="true">Jon</div>
     <div class="footer__bottom">
-      <div class="footer-meta">Jon — KI-Desktop-Assistent von FelWorks · v4.55.1 · Läuft lokal auf deinem Rechner</div>
+      <div class="footer-meta">Jon — KI-Desktop-Assistent von FelWorks · v4.57.0 · Läuft lokal auf deinem Rechner</div>
       <div class="footer-meta">© 2026 FelWorks · Theresienfeld, Österreich</div>
     </div>
   </div>

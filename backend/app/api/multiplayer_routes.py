@@ -60,7 +60,7 @@ async def mp_status() -> dict:
         "ws_port": MP_WS_PORT,
         "udp_port": MP_UDP_PORT,
         "http_port": settings.port,
-        "lan": settings.jon_lan,
+        "lan": _lan_aktiv(),
         "addresses": local_addresses(),
         "invite_host": invite_host(),
     }
@@ -244,3 +244,9 @@ def create_coop_app() -> FastAPI:
         return FileResponse(GAME_PAGE, media_type="text/html")
 
     return app
+
+
+def _lan_aktiv() -> bool:
+    from app.core.heimnetz import lan_aktiv
+
+    return lan_aktiv()

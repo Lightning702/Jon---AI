@@ -58,11 +58,15 @@ def _rgb(value: str):
 
 
 def _target_path(path: str | None, title: str) -> Path:
-    if path:
-        target = Path(str(path)).expanduser()
-    else:
-        safe = "".join(c for c in title if c.isalnum() or c in " -_").strip() or "Praesentation"
-        target = DATA_DIR / "praesentationen" / f"{safe}.pptx"
+    safe = "".join(c for c in title if c.isalnum() or c in " -_").strip() or "Praesentation"
+    target = Path(str(path)).expanduser() if path else None
+    if target is None or not target.is_absolute():
+        from app.services.dateiraum_service import get_dateiraum_service
+
+        name = f"{Path(target.name).stem if target is not None else safe}.pptx"
+        wunsch = str(target.parent) if target is not None and str(target.parent) not in ("", ".") else ""
+        ziel = get_dateiraum_service().zielpfad(name, wunsch)
+        target = Path(ziel["pfad"]) if not ziel.get("error") else DATA_DIR / "praesentationen" / name
     if target.suffix.lower() != ".pptx":
         target = target.with_suffix(".pptx")
     target.parent.mkdir(parents=True, exist_ok=True)

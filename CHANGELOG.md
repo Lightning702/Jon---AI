@@ -2,6 +2,90 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.57.0] — 2026-10-02
+
+- YouTube-Links können anhand tatsächlich abgerufener Untertitel zusammengefasst werden. Videos ohne verfügbare Untertitel melden einen Fehler.
+- MP3, WAV, M4A, OGG, OPUS, FLAC, AAC und Videoton lassen sich mit `/transkript` vollständig lokal verschriften. Transkripte sind als Textdatei herunterladbar.
+- `/podcast Dein Text` erstellt eine MP3 aus dem vollständigen Text. Lange Texte werden in Abschnitten gesprochen; die Sprachausgabe nutzt Microsofts Dienst.
+- Neuer eigener Harness-Arbeitsbereich mit Projektleiste, Auftragssuche, Eingabefeld unten, Änderungsübersicht und farbiger Diff-Ansicht.
+- Fachteam mit acht Profilen, begrenzten parallelen Teilaufgaben, Gegenprüfung, Abbruch und dauerhaftem Auftragsverlauf. Fehler und Widersprüche bleiben als offene Prüfung sichtbar.
+- MiniJon begleitet Harness-Aufträge, verwendet seinen eigenen Modellzugang und zeigt Tätigkeiten als animierter 3D-Roboter. Ziehen zwischen Monitoren wurde korrigiert.
+- Datierte Alltagsangaben bleiben über Neustarts erhalten. Bildschirmhilfe prüft das aktuelle Fenster und die Freigabe des gewählten Anbieters.
+- Jon Gerät 1.6.0 enthält MiniJon als schwebenden Begleiter, das Fachteam und den Wechsel zwischen Overlay und Kiosk-Fenster.
+- Das Windows-Paket enthält das lokale Whisper-Sprachmodell. Medienaufträge können neben Fachteam und Harness weiterlaufen.
+
+## [4.56.1] — 2026-09-29
+
+### 📱 Jon Gerät 1.4.3 – die Handy-App für die ganze Familie
+
+- **Kiosk sauber verlassen:** Nach dem Beenden des Kiosk-Modus sind alle Apps sofort wieder
+  frei, und Jon sperrt das Handy beim Öffnen nicht mehr von selbst. Hängt Android doch einmal
+  an einer blockierten Systemseite fest, löst Jon das beim nächsten Start oder bietet
+  „Jetzt neu starten“ an.
+- **Viel kleiner:** Die App schrumpft von 130 MB auf 35 MB (Play-Paket 41 MB). Das
+  Sprachmodell für „Hey Jon“ und die Offline-Abschrift (45 MB) lädt Jon erst, wenn es
+  gebraucht wird – mit Prüfsumme gegen beschädigte Downloads.
+- **Speicher sparen:** Jon behält standardmäßig nur ein Offline-Modell und löscht die
+  anderen, sobald ein neues fertig ist. Unter Offline-KI steht, wie viel belegt ist, und
+  „Nur Standard behalten“ schafft auf einen Tipp Platz. Fehlt ein gewähltes Modell, antwortet
+  automatisch das Standardmodell.
+- **Mehrere Jons:** Das Handy kann mit mehreren Jons gekoppelt sein, zum Beispiel mit dem Pi
+  und dem PC. Unter Einstellungen → Verbindungen wechselst du per Tipp; fällt der aktive aus,
+  springt das Handy von selbst zum nächsten erreichbaren. Die bisherige Kopplung wird übernommen.
+- **Apps verstecken:** In der Kindersicherung lassen sich die freigegebenen Apps komplett
+  verstecken. Menü, Einstellungen und Bildschirmzeit zeigen sie erst wieder, wenn die
+  Verwaltung entsperrt ist – per Sprache („öffne WhatsApp“) gehen sie weiter.
+- **Neues App-Symbol:** ein schlichtes „j“ mit türkisem Punkt, auch als Themen-Icon, in der
+  Statusleiste und beim Start.
+
+- **Drei Wege:** mit Jon am PC oder Pi, mit eigenem API-Schlüssel („Auf Jon verzichten“)
+  oder ganz offline mit Gemma 4 & Co. direkt auf dem Handy. Die Offline-KI lädt Jon
+  vor, wenn du sie oft nutzt – die erste Antwort kommt dann ohne Wartezeit.
+- **Chat und Work** mit Plan, Ergebnis-Karten, Datei-Vorschau (Word, Excel, PowerPoint,
+  PDF), Podcasts, Websites und Befehlen wie in Telegram (`/website`, `/timer 10`, `/sos` …).
+- **Freie App-Auswahl:** Eltern legen fest, welche Apps aus Jon heraus erreichbar sind –
+  Limits, Schlafenszeit und Kiosk gelten dann genau für diese Apps.
+- **Updates ohne Kabel:** Die App holt neue Versionen von deinem PC oder Pi und
+  installiert sie selbst. Neue Handys laden sie unter `http://<jon>:8756/geraet` per QR-Code.
+  Jon auf dem Pi lässt sich direkt aus der App aktualisieren.
+- **Teilen mit Jon:** Texte, Links, Fotos und Dateien aus jeder App an Jon schicken.
+- **Im Hintergrund verbunden:** Jon Chat, Durchsagen und fertige Antworten kommen auch
+  bei geschlossener App als Benachrichtigung.
+- **Widget und Schnellzugriff:** Schritte und nächster Wecker auf dem Startbildschirm,
+  „Mit Jon sprechen“ als Kachel in den Schnelleinstellungen.
+- **Sicherung** auf den PC oder Pi (täglich automatisch, die letzten 10 bleiben) oder als
+  Datei in den Downloads – samt Wiederherstellung.
+- **Datenschutz-Seite** mit allen Berechtigungen und „Alle Daten löschen“.
+- **Englisch:** Die App gibt es jetzt auch auf Englisch (Einstellungen → Sprache), Jon
+  antwortet dann auf Englisch.
+- **Fingerabdruck statt Admin-PIN:** Mit Warnhinweis – kommt ein neuer Fingerabdruck am
+  Handy dazu, schaltet Jon die Funktion automatisch ab.
+
+### 👨‍👩‍👧 Familie
+
+- **Extra-Zeit anfragen:** Ist eine App gesperrt, kann das Kind um 15, 30 oder 60 Minuten
+  bitten. Die Anfrage erscheint am PC als Karte im Chat und unter Geräte, und per Telegram –
+  dort reicht `/ja` oder `/nein`. Die Antwort kommt sofort am Handy an.
+- **Kinder-Modus:** Antworten passend zum Alter, Hausaufgaben-Hilfe Schritt für Schritt statt
+  fertiger Lösungen, SafeSearch, nur sichere Werkzeuge und keine Webcam. Gilt für Jon am PC
+  oder Pi, für den eigenen Zugang und für die Offline-KI.
+- **Wochenbericht:** Jeden Sonntag um 18 Uhr Bildschirmzeit, meistgenutzte Apps, Schritte,
+  Extra-Zeit-Anfragen und SOS der Woche – per Telegram und als Karte in Jon. Am PC unter
+  Geräte → 📊 Woche, am Handy unter Bildschirmzeit.
+- **SOS mit Standort und Anruf:** Auf Wunsch schickt das SOS den Standort mit (Karte in Jon,
+  Standort in Telegram) und ruft danach direkt eine Nummer an.
+
+### 🏠 Heimnetz und zweites Handy
+
+- **Handys ohne Tailscale:** Mit „Im Heimnetz erreichbar“ koppeln Handys im selben WLAN
+  direkt mit Jon am PC – eingerichtet im Assistenten „Jon-Gerät einrichten“.
+
+### 🔐 Anmeldung
+
+- Jon fragt bei jedem Öffnen nach Benutzername und Passwort – in der App und im Web.
+  Telegram, Browser-Erweiterung, Handy-App und `jon` im Terminal verbinden sich weiter
+  über den Geräte-Schlüssel.
+
 ## [4.55.1] — 2026-09-27
 
 ### 🎬 Dein Bildschirm als Video in Telegram

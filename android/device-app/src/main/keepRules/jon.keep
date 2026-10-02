@@ -1,0 +1,14 @@
+-keep class com.sun.jna.** { *; }
+-keep class * implements com.sun.jna.** { *; }
+-dontwarn java.awt.**
+-dontwarn com.sun.jna.**
+-keep class org.vosk.** { *; }
+-keep class com.google.ai.edge.litertlm.** { *; }
+-dontwarn com.google.ai.edge.litertlm.**
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keepattributes JavascriptInterface,*Annotation*,Signature,InnerClasses,EnclosingMethod
+-keepclasseswithmembernames class * {
+    native <methods>;
+}

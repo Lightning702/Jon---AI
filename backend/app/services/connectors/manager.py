@@ -40,6 +40,18 @@ class ConnectorManager:
     def namen(self) -> set[str]:
         return {werkzeug.name for werkzeug in self.werkzeuge()}
 
+    def auswahl(self, text: str) -> set[str]:
+        gefunden: set[str] = set()
+        for connector in self._connectoren.values():
+            if not connector.woerter or not any(wort in text for wort in connector.woerter):
+                continue
+            try:
+                if connector.bereit():
+                    gefunden |= {werkzeug.name for werkzeug in connector.werkzeuge()}
+            except Exception as exc:
+                _log.warning("Connector %s meldet keine Werkzeuge: %s", connector.id, exc)
+        return gefunden
+
     def schema(self) -> list[dict]:
         return [werkzeug.schema() for werkzeug in self.werkzeuge()]
 
@@ -82,7 +94,11 @@ def get_connector_manager() -> ConnectorManager:
     global _manager
     if _manager is None:
         from app.services.connectors.android import AndroidConnector
+        from app.services.connectors.fitness import FitnessConnector
+        from app.services.connectors.studio import StudioConnector
 
         _manager = ConnectorManager()
         _manager.registrieren(AndroidConnector())
+        _manager.registrieren(FitnessConnector())
+        _manager.registrieren(StudioConnector())
     return _manager

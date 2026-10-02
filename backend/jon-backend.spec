@@ -73,6 +73,12 @@ for pkg in (
     "openpyxl",
     "reportlab",
     "odf",
+    "faster_whisper",
+    "ctranslate2",
+    "av",
+    "tokenizers",
+    "huggingface_hub",
+    "yt_dlp",
 ):
     try:
         d, b, h = collect_all(pkg)
@@ -96,6 +102,10 @@ hiddenimports += [
 ]
 
 datas += [("app/static", "app/static")]
+_model = Path(SPECPATH) / "assets" / "models" / "whisper-base"
+if not (_model / "model.bin").is_file():
+    raise RuntimeError("Das Whisper-Modell fehlt. scripts/build_installer.py verwenden.")
+datas += [(str(_model), "assets/models/whisper-base")]
 
 _web = Path(SPECPATH).parent / "frontend" / "dist"
 if (_web / "index.html").is_file():

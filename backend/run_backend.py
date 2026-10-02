@@ -33,8 +33,10 @@ def main() -> None:
     from app.core.config import get_settings
     from app.main import _free_port, app
 
+    from app.core.heimnetz import lan_aktiv
+
     settings = get_settings()
-    host = "0.0.0.0" if settings.jon_lan else settings.host
+    host = "0.0.0.0" if lan_aktiv() else settings.host
     _free_port(settings.host, settings.port)
     uvicorn.run(app, host=host, port=settings.port, reload=False)
 

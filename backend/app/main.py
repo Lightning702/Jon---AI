@@ -17,6 +17,7 @@ from app.api.multiplayer_routes import MP_TCP_PORT, MP_WS_PORT, create_coop_app
 from app.api.multiplayer_routes import router as multiplayer_router
 from app.api.inbox_routes import router as inbox_router
 from app.api.handy_routes import router as handy_router
+from app.api.anmeldung_routes import router as anmeldung_router
 from app.api.live_routes import router as live_router
 from app.api.verbund_routes import router as verbund_router
 from app.api.mediathek_routes import router as mediathek_router
@@ -32,7 +33,14 @@ from app.api.datei_routes import router as datei_router
 from app.api.denken_routes import router as denken_router
 from app.api.routes import accounts, providers, router
 from app.api.studio_routes import router as studio_router
+from app.api.mobile_routes import router as mobile_router
+from app.api.fitness_routes import router as fitness_router
+from app.api.geraet_app_routes import router as geraet_app_router
+from app.api.sicherung_routes import router as sicherung_router
 from app.api.system_routes import router as system_router
+from app.api.harness_routes import router as harness_router
+from app.api.agenten_routes import router as agenten_router
+from app.api.media_routes import router as media_router
 from app.core.auth import TokenMiddleware, get_token
 from app.core.config import ROOT_DIR, get_settings, web_app_dir
 from app.core.logbook import logger as logbook_logger
@@ -199,6 +207,37 @@ async def _hypothesen_watcher() -> None:
                 _log.info("STEP hypothesen %s", ergebnis)
         except Exception as fehler:
             _log.warning("Hypothesenlauf fehlgeschlagen: %s", fehler)
+
+
+async def _geraet_app_watcher() -> None:
+    from app.services.geraet_app_service import get_geraet_app_service
+
+    await asyncio.sleep(120)
+    while True:
+        try:
+            ergebnis = await get_geraet_app_service().von_github_holen()
+            if ergebnis.get("neu"):
+                _log.info("STEP jon geraet %s bereit", ergebnis.get("version"))
+        except Exception as fehler:
+            _log.info("Jon-Gerät-Abgleich mit GitHub übersprungen: %s", fehler)
+        await asyncio.sleep(6 * 3600)
+
+
+async def _wochenbericht_watcher() -> None:
+    from app.services.handy_service import get_handy_service
+    from app.services.settings_service import get_settings_service
+
+    await asyncio.sleep(90)
+    while True:
+        try:
+            dienst = get_handy_service()
+            woche = dienst.bericht_faellig()
+            if woche and get_settings_service().get().get("handy_wochenbericht", True):
+                anzahl = await dienst.berichte_senden(woche)
+                _log.info("STEP wochenbericht %s an %s Geraete", woche, anzahl)
+        except Exception as fehler:
+            _log.info("Wochenbericht übersprungen: %s", fehler)
+        await asyncio.sleep(600)
 
 
 async def _pflege_watcher() -> None:
@@ -625,6 +664,9 @@ async def lifespan(app: FastAPI):
     _spawn("initiative_watcher", _initiative_watcher())
     _spawn("konsolidierung_watcher", _konsolidierung_watcher())
     _spawn("wahrnehmung_watcher", _wahrnehmung_watcher())
+    from app.services.mini_jon_agent import get_mini_jon_agent
+
+    _spawn("mini_jon_context", get_mini_jon_agent().monitor())
     _spawn("neugier_watcher", _neugier_watcher())
     _spawn("aufgaben_watcher", _aufgaben_watcher())
     _spawn("ausloeser_watcher", _ausloeser_watcher())
@@ -635,6 +677,8 @@ async def lifespan(app: FastAPI):
     _spawn("task_watcher", _task_watcher())
     _spawn("telegram_watcher", _telegram_watcher())
     _spawn("group_bots_watcher", _group_bots_watcher())
+    _spawn("geraet_app_watcher", _geraet_app_watcher())
+    _spawn("wochenbericht_watcher", _wochenbericht_watcher())
     _spawn("morning_watcher", _morning_watcher())
     _spawn("companion_watcher", _companion_watcher())
     _spawn("phone_watcher", _phone_watcher())
@@ -686,6 +730,15 @@ async def lifespan(app: FastAPI):
     _spawn("terminal_befehl", _terminal_befehl())
     _log.info("STEP vor yield")
     yield
+    from app.services.harness import get_harness_service
+
+    await get_harness_service().close()
+    from app.services.agenten_service import get_agenten_service
+
+    await get_agenten_service().close()
+    from app.services.media_service import get_media_service
+
+    await get_media_service().close()
     _stop_all()
     with suppress(Exception):
         from app.services.phone_service import get_phone_service
@@ -721,6 +774,9 @@ def create_app() -> FastAPI:
     )
     app.include_router(router)
     app.include_router(system_router)
+    app.include_router(harness_router)
+    app.include_router(agenten_router)
+    app.include_router(media_router)
     app.include_router(p2p_router)
     app.include_router(multiplayer_router)
     app.include_router(phone_router)
@@ -730,10 +786,15 @@ def create_app() -> FastAPI:
     app.include_router(handy_router)
     app.include_router(zeit_router)
     app.include_router(mediathek_router)
+    app.include_router(anmeldung_router)
     app.include_router(live_router)
     app.include_router(verbund_router)
     app.include_router(research_router)
     app.include_router(studio_router)
+    app.include_router(mobile_router)
+    app.include_router(fitness_router)
+    app.include_router(geraet_app_router)
+    app.include_router(sicherung_router)
     app.include_router(browser_router)
     app.include_router(denken_router)
     app.include_router(datei_router)
@@ -832,7 +893,9 @@ def main() -> None:
         cli_main(sys.argv[2:])
         return
     settings = get_settings()
-    host = "0.0.0.0" if settings.jon_lan else settings.host
+    from app.core.heimnetz import lan_aktiv
+
+    host = "0.0.0.0" if lan_aktiv() else settings.host
     _free_port(settings.host, settings.port)
     uvicorn.run(
         "app.main:app",

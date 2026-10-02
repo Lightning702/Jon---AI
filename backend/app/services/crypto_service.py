@@ -14,7 +14,6 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from app.core.config import DATA_DIR
-from app.core.store import atomic_write_bytes
 from app.core.fehler import leise
 
 KEY_FILE = DATA_DIR / "chat_key.bin"
@@ -35,11 +34,18 @@ class CryptoService:
         self._shared: dict[str, bytes] = {}
 
     def _load(self) -> X25519PrivateKey:
+        from app.core.krypto import bytes_lesen, bytes_schreiben
+
         if KEY_FILE.exists():
-            try:
-                return X25519PrivateKey.from_private_bytes(KEY_FILE.read_bytes())
-            except Exception as _fehler:
-                leise(_fehler, "services/crypto_service")
+            roh = bytes_lesen(KEY_FILE, "chat-schluessel")
+            if roh is not None and len(roh) == 32:
+                try:
+                    private = X25519PrivateKey.from_private_bytes(roh)
+                    if KEY_FILE.read_bytes() == roh:
+                        bytes_schreiben(KEY_FILE, roh, "chat-schluessel")
+                    return private
+                except Exception as _fehler:
+                    leise(_fehler, "services/crypto_service")
         private = X25519PrivateKey.generate()
         raw = private.private_bytes(
             encoding=serialization.Encoding.Raw,
@@ -47,7 +53,7 @@ class CryptoService:
             encryption_algorithm=serialization.NoEncryption(),
         )
         KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        atomic_write_bytes(KEY_FILE, raw)
+        bytes_schreiben(KEY_FILE, raw, "chat-schluessel")
         return private
 
     def public_key(self) -> str:

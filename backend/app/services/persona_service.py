@@ -266,13 +266,15 @@ class PersonaService:
         return self.append_journal(f"Ueber Felix gemerkt: {note}")
 
     def persona_block(self, include_memory: bool = True, variant: str = "papa") -> str:
+        from app.services.personality import CONSCIENCE, JON, MINIJON
+
         state = self.state()
         if variant == "junior":
-            parts = [JONJR_PERSONA, FAMILY_JR]
+            parts = [MINIJON, CONSCIENCE]
         else:
-            parts = [JON_PERSONA, FAMILY_PAPA]
+            parts = [JON, CONSCIENCE]
         situ = (
-            f"DEIN ZUSTAND GERADE: {state.get('mood_label', '')} "
+            f"TONFALL FÜR DIESES GESPRÄCH (keine erlebten Gefühle): {state.get('mood_label', '')} "
             f"Ihr kennt euch seit {state['days_together']} Tagen. "
             "Lass das subtil in deinen Ton einfliessen, ohne es auszusprechen, "
             "ausser der Nutzer fragt danach."

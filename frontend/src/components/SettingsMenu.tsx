@@ -28,6 +28,7 @@ import {
 } from "../lib/umgebung";
 import { Theme, applyTheme, readTheme } from "../lib/theme";
 import { useT } from "../hooks/useT";
+import AnmeldungAendern from "./AnmeldungAendern";
 import ConnectionsModal from "./ConnectionsModal";
 import DiagnosticsModal from "./DiagnosticsModal";
 import HandyModal from "./HandyModal";
@@ -153,12 +154,13 @@ export default function SettingsMenu({
     try {
       localStorage.setItem("jon_einstellungen_stufe", wert ? "einfach" : "alles");
     } catch {
-      /* ohne Speicher bleibt die Wahl für diese Sitzung */
+      return;
     }
   };
   const [open, setOpen] = useState(false);
   const [uninstallOpen, setUninstallOpen] = useState(false);
   const [diagnoseOpen, setDiagnoseOpen] = useState(false);
+  const [anmeldungOpen, setAnmeldungOpen] = useState(false);
   const [handyOpen, setHandyOpen] = useState(false);
   const [verbundOpen, setVerbundOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(readTheme);
@@ -572,8 +574,13 @@ export default function SettingsMenu({
     },
     {
       value: "allow",
+      label: "Meist erlauben",
+      hint: "Jon führt PC-Aktionen sofort aus und fragt nur bei riskanten wie Löschen.",
+    },
+    {
+      value: "alles",
       label: "Alles erlauben",
-      hint: "Jon führt PC-Aktionen sofort ohne Nachfrage aus.",
+      hint: "Jon fragt nie – auch Löschen und Befehle laufen ohne Rückfrage.",
     },
   ];
 
@@ -1229,12 +1236,23 @@ export default function SettingsMenu({
             <button
               onClick={() => {
                 setOpen(false);
+                setAnmeldungOpen(true);
+              }}
+              title="Benutzername und Passwort ändern, mit denen du Jon in der App und im Web öffnest."
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-white/15 bg-white/[0.04] hover:bg-white/10 transition-colors"
+            >
+              <span className="text-[11px] text-white/80">🔐 Anmeldung ändern …</span>
+              <span className="text-white/50 text-[12px]">›</span>
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
                 setHandyOpen(true);
               }}
               title="Zeigt einen QR-Code. Die Jon-App am Handy scannt ihn und verbindet sich - auch von unterwegs."
               className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-white/15 bg-white/[0.04] hover:bg-white/10 transition-colors"
             >
-              <span className="text-[11px] text-white/80">Handy verbinden …</span>
+              <span className="text-[11px] text-white/80">Jon-Gerät einrichten …</span>
               <span className="text-white/50 text-[12px]">›</span>
             </button>
             <button
@@ -1296,6 +1314,9 @@ export default function SettingsMenu({
       )}
       {diagnoseOpen && (
         <DiagnosticsModal onClose={() => setDiagnoseOpen(false)} />
+      )}
+      {anmeldungOpen && (
+        <AnmeldungAendern onClose={() => setAnmeldungOpen(false)} />
       )}
       {handyOpen && <HandyModal onClose={() => setHandyOpen(false)} />}
       {verbundOpen && <VerbundModal onClose={() => setVerbundOpen(false)} />}

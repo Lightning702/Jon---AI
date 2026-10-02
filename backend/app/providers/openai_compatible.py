@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.services.tool_result import succeeded
+
 import asyncio
 import json
 import re
@@ -132,9 +134,9 @@ class OpenAICompatibleProvider(LLMProvider):
         return result
 
     async def describe_image(
-        self, model: str, data_url: str, prompt: str, max_tokens: int = 300
+        self, model: str, data_url: str, prompt: str, max_tokens: int = 300, slot: str = "jon"
     ) -> str:
-        client = self._client()
+        client = self._client(slot)
         completion = await client.with_options(
             timeout=45.0, max_retries=0
         ).chat.completions.create(
@@ -392,7 +394,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 yield StreamChunk(kind="tool", name=name, args=args)
                 try:
                     result = await tool_executor(name, args)
-                    ok = True
+                    ok = succeeded(result)
                 except Exception as exc:
                     result = f"Fehler: {exc}"
                     ok = False

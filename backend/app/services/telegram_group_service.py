@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import re
 import threading
 
 import httpx
 
 from app.core.config import DATA_DIR
-from app.core.store import atomic_write_text
 from app.core.fehler import leise
 
 GROUPS_FILE = DATA_DIR / "telegram_groups.json"
@@ -25,8 +23,10 @@ class GroupMemory:
         self._data: dict[str, list[dict]] = self._load()
 
     def _load(self) -> dict[str, list[dict]]:
+        from app.core.krypto import json_lesen
+
         try:
-            data = json.loads(GROUPS_FILE.read_text(encoding="utf-8"))
+            data = json_lesen(GROUPS_FILE, None, "telegram-gruppen")
             if isinstance(data, dict):
                 return {
                     str(key): value
@@ -38,11 +38,10 @@ class GroupMemory:
         return {}
 
     def _save(self) -> None:
+        from app.core.krypto import json_schreiben
+
         try:
-            atomic_write_text(GROUPS_FILE,
-                json.dumps(self._data, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            json_schreiben(GROUPS_FILE, self._data, "telegram-gruppen")
         except Exception as _fehler:
             leise(_fehler, "services/telegram_group_service")
 

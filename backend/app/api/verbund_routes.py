@@ -27,9 +27,9 @@ async def koppeln(payload: dict) -> dict:
     makler = payload.get("broker") if isinstance(payload.get("broker"), dict) else None
     try:
         return await asyncio.to_thread(
-            dienst.koppeln, str(payload.get("code", "")), makler
+            dienst.koppeln, str(payload.get("code", "")), makler, str(payload.get("adresse", ""))
         )
-    except VerbundFehler as exc:
+    except (VerbundFehler, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 

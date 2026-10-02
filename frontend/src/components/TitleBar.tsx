@@ -7,11 +7,13 @@ declare global {
       maximize: () => void;
       close: () => void;
       hide?: () => void;
+      showPet?: () => Promise<void>;
       installUpdate?: (path: string) => Promise<{ ok: boolean; error?: string }>;
       moveBy?: (dx: number, dy: number) => void;
       token?: string;
       getToken?: () => Promise<string>;
       onToken?: (cb: (value: string) => void) => void;
+      angemeldet?: () => void;
       platform: string;
     };
   }

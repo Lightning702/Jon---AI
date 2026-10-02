@@ -7,6 +7,8 @@ export const KARTEN_ARTEN = [
   "browser",
   "datei",
   "zeit",
+  "zeitanfrage",
+  "wochenbericht",
 ] as const;
 
 export type KartenArt = (typeof KARTEN_ARTEN)[number];

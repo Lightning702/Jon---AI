@@ -1,6 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { MotionConfig } from "framer-motion";
 import App from "./App";
+import Anmeldung from "./components/Anmeldung";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import { applyTheme, readTheme } from "./lib/theme";
@@ -12,8 +14,12 @@ applyTheme(readTheme());
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <MotionConfig reducedMotion="user">
+      <ErrorBoundary>
+        <Anmeldung>
+          <App />
+        </Anmeldung>
+      </ErrorBoundary>
+    </MotionConfig>
   </React.StrictMode>
 );

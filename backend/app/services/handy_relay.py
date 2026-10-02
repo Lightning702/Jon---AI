@@ -39,9 +39,10 @@ class HandyRelay:
         if not get_settings_service().get().get("handy_relay", True):
             return False
         dienst = get_handy_service()
-        if dienst.geraete():
+        if any(not g.get("direct_only") for g in dienst.geraete()):
             return True
-        return dienst.kopplung_status().get("status") in ("offen", "wartet")
+        stand = dienst.kopplung_status()
+        return not stand.get("direct_only") and stand.get("status") in ("offen", "wartet")
 
     async def start(self) -> None:
         self._loop = asyncio.get_running_loop()

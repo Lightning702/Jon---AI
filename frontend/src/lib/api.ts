@@ -62,7 +62,7 @@ export interface StreamEvent {
   oeffne?: string;
 }
 
-export type ToolMode = "ask" | "allow";
+export type ToolMode = "ask" | "allow" | "alles";
 
 export interface StreamHandlers {
   onMeta?: (e: StreamEvent) => void;
@@ -3334,12 +3334,64 @@ export interface HandyStand {
 }
 
 export interface HandyZustand {
+  kiosk?: boolean;
+  device_owner?: boolean;
+  wake_word?: boolean;
+  sprach_status?: string;
+  amazon?: boolean;
+  tiktok?: boolean;
+  whatsapp?: boolean;
   akku?: number;
   laedt?: boolean;
   netz?: string;
   android?: string;
   modell?: string;
   speicher_frei?: number;
+  version?: string;
+  bildschirmzeit?: HandyBildschirmzeit;
+  schritte?: { heute?: number; ziel?: number } | number;
+}
+
+export interface HandyNacht {
+  an: boolean;
+  von: string;
+  bis: string;
+  tage: number[];
+  apps: string[];
+}
+
+export interface HandyBildschirmzeit {
+  apps?: { id: string; name: string; paket?: string }[];
+  frei_bis?: Record<string, string>;
+  limits?: Record<string, number>;
+  genutzt?: Record<string, number>;
+  rest?: Record<string, number>;
+  gesperrt?: Record<string, string>;
+  nacht?: HandyNacht;
+  nacht_aktiv?: boolean;
+  nacht_ende?: string | null;
+  pause_aktiv?: boolean;
+  pause_ende?: string | null;
+  zugriff?: boolean;
+  verwaltet?: boolean;
+  tag?: string;
+}
+
+export interface HandyMeldung {
+  id: string;
+  art: string;
+  zeit: number;
+  daten: Record<string, string | number | boolean>;
+  quittiert: boolean;
+  geraet?: string;
+  name?: string;
+}
+
+export interface HandyDurchsage {
+  kennung: string;
+  text: string;
+  zeit: number;
+  gelesen: number | null;
 }
 
 export type HandyRechte = Record<string, boolean>;
@@ -3357,6 +3409,8 @@ export interface HandyGeraet {
   faehigkeiten?: string[];
   zustand?: HandyZustand;
   zustand_zeit?: number;
+  meldungen?: HandyMeldung[];
+  durchsagen?: HandyDurchsage[];
 }
 
 export async function handyKopplungStarten(): Promise<HandyKopplung> {
@@ -3503,6 +3557,124 @@ export async function handyDateiSenden(
     throw new Error(grund?.detail ?? "Datei konnte nicht gesendet werden");
   }
   return res.json();
+}
+
+async function handyAntwort<T>(res: Response, ersatz: string): Promise<T> {
+  if (!res.ok) {
+    const grund = await res.json().catch(() => null);
+    throw new Error(typeof grund?.detail === "string" ? grund.detail : ersatz);
+  }
+  return res.json();
+}
+
+export async function handyDurchsage(
+  id: string,
+  text: string,
+  vorlesen: boolean
+): Promise<Record<string, unknown>> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/durchsage`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, vorlesen }),
+    }
+  );
+  return handyAntwort(res, "Durchsage nicht zugestellt");
+}
+
+export async function handyKlingeln(
+  id: string,
+  sekunden = 30
+): Promise<Record<string, unknown>> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/klingeln`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sekunden }),
+    }
+  );
+  return handyAntwort(res, "Das Handy klingelt nicht");
+}
+
+export async function handyRegeln(
+  id: string,
+  regeln: {
+    limits?: Record<string, number>;
+    nacht?: Partial<HandyNacht>;
+    pause_minuten?: number;
+  }
+): Promise<{ bildschirmzeit: HandyBildschirmzeit }> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/regeln`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(regeln),
+    }
+  );
+  return handyAntwort(res, "Regeln nicht gespeichert");
+}
+
+export async function handyMeldungenNeu(): Promise<HandyMeldung[]> {
+  const res = await fetch(`${BASE}/handy/meldungen/neu`);
+  const daten = await handyAntwort<{ meldungen: HandyMeldung[] }>(
+    res,
+    "Meldungen nicht verfuegbar"
+  );
+  return Array.isArray(daten.meldungen) ? daten.meldungen : [];
+}
+
+export interface HandyBericht {
+  geraet: string;
+  name: string;
+  von: string;
+  bis: string;
+  tage: { tag: string; wochentag: string; minuten: number; schritte: number; erfasst: boolean }[];
+  gesamt: number;
+  schnitt: number;
+  vorwoche: number;
+  apps: { id: string; name: string; minuten: number }[];
+  schritte: number;
+  anfragen: number;
+  erlaubt: number;
+  sos: number;
+}
+
+export async function handyBericht(id: string, bis = ""): Promise<HandyBericht> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/bericht${bis ? `?bis=${encodeURIComponent(bis)}` : ""}`
+  );
+  return handyAntwort(res, "Wochenbericht nicht verfügbar");
+}
+
+export async function handyZeitanfrageBeantworten(
+  id: string,
+  meldung: string,
+  erlaubt: boolean,
+  minuten?: number
+): Promise<{ ok: boolean; erlaubt: boolean; minuten: number; zugestellt?: boolean }> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/zeitanfragen/${encodeURIComponent(meldung)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ erlaubt, minuten }),
+    }
+  );
+  return handyAntwort(res, "Antwort nicht gesendet");
+}
+
+export async function handyMeldungQuittieren(
+  id: string,
+  meldung: string
+): Promise<{ ok: boolean }> {
+  const res = await fetch(
+    `${BASE}/handy/devices/${encodeURIComponent(id)}/meldungen/${encodeURIComponent(meldung)}/quittieren`,
+    { method: "POST" }
+  );
+  return handyAntwort(res, "Nicht gespeichert");
 }
 
 export function handyQrUrl(text: string): string {

@@ -70,6 +70,15 @@ def _inhalt() -> str:
     )
 
 
+def _harness_inhalt() -> str:
+    return _inhalt().replace("cli %*", "cli harness %*").replace('cli "$@"', 'cli harness "$@"')
+
+
+def harness_pfade() -> list[Path]:
+    suffix = ".cmd" if _windows() else ""
+    return [bin_ordner() / (name + suffix) for name in ("jon-code", "jon-harness")]
+
+
 def _pfad_eintraege() -> list[str]:
     return [e for e in (os.environ.get("PATH") or "").split(os.pathsep) if e]
 
@@ -168,6 +177,7 @@ def stand() -> dict:
         "gebuendelt": _gebuendelt() is not None,
         "system": "windows" if _windows() else sys.platform,
         "neustart_noetig": pfad.exists() and not gefunden,
+        "harness_befehle": [str(p) for p in harness_pfade() if p.exists()],
     }
 
 
@@ -177,6 +187,10 @@ def einrichten() -> dict:
     try:
         ordner.mkdir(parents=True, exist_ok=True)
         atomic_write_text(pfad, _inhalt())
+        for command in harness_pfade():
+            atomic_write_text(command, _harness_inhalt())
+            if not _windows():
+                command.chmod(0o755)
     except OSError as fehler:
         leise(fehler, "services/terminal")
         return {"error": f"Der Befehl liess sich nicht anlegen: {fehler}"}
@@ -223,7 +237,7 @@ def automatisch() -> dict:
     pfad = befehl_pfad()
     soll = _inhalt()
     try:
-        if pfad.exists() and _gleich(pfad.read_text(encoding="utf-8"), soll):
+        if pfad.exists() and _gleich(pfad.read_text(encoding="utf-8"), soll) and all(p.exists() and _gleich(p.read_text(encoding="utf-8"), _harness_inhalt()) for p in harness_pfade()):
             return {"gemacht": False, "grund": "schon eingerichtet"}
     except OSError as fehler:
         leise(fehler, "services/terminal")
@@ -236,6 +250,8 @@ def entfernen() -> dict:
     pfad = befehl_pfad()
     try:
         pfad.unlink(missing_ok=True)
+        for command in harness_pfade():
+            command.unlink(missing_ok=True)
     except OSError as fehler:
         leise(fehler, "services/terminal")
         return {"error": f"Der Befehl liess sich nicht entfernen: {fehler}"}

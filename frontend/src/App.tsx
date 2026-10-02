@@ -33,6 +33,7 @@ import PrivateBrowser from "./components/PrivateBrowser";
 import Notes from "./components/Notes";
 import Games from "./components/Games";
 import ToolsModal from "./components/ToolsModal";
+import HarnessWorkspace from "./components/HarnessWorkspace";
 import Vault from "./components/Vault";
 import TokenGate from "./components/TokenGate";
 import Search from "./components/Search";
@@ -46,6 +47,7 @@ import { VoiceListener } from "./lib/voice";
 import { MIKROFON_FEHLT, mikrofonMoeglich } from "./lib/umgebung";
 import { applyTheme, istTheme } from "./lib/theme";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
+import MediaPanel from "./components/MediaPanel";
 import {
   ConversationSummary,
   P2PIdentity,
@@ -67,6 +69,7 @@ import {
   answerRequest,
   checkUpdate,
   getChatNotifications,
+  handyMeldungenNeu,
   getIdentity,
   getP2PInfo,
   getRequests,
@@ -221,14 +224,19 @@ export default function App() {
   );
   const [voiceState, setVoiceState] = useState<VoiceUiState>("idle");
   const [voiceDetail, setVoiceDetail] = useState<string | undefined>();
-  const [toolMode, setToolMode] = useState<ToolMode>(() =>
-    localStorage.getItem("jon_tool_mode") === "allow" ? "allow" : "ask"
-  );
+  const [toolMode, setToolMode] = useState<ToolMode>(() => {
+    const gespeichert = localStorage.getItem("jon_tool_mode");
+    return gespeichert === "allow" || gespeichert === "alles" ? gespeichert : "ask";
+  });
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const [accountsTab, setAccountsTab] = useState<
     "accounts" | "usage" | "skills" | null
   >(null);
   const [codeOpen, setCodeOpen] = useState(false);
+  const [harnessOpen, setHarnessOpen] = useState(false);
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const [mediaStart, setMediaStart] = useState({mode: "transcribe", text: "", auto: false});
+  const [mediaUploads, setMediaUploads] = useState<{id: string; name: string}[]>([]);
   const [codePath, setCodePath] = useState("");
   const [inboxOpen, setInboxOpen] = useState(false);
   const [humanizerOpen, setHumanizerOpen] = useState(false);
@@ -250,6 +258,7 @@ export default function App() {
   const [vaultOpen, setVaultOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const [toolsQuery, setToolsQuery] = useState("");
   const [petConfigOpen, setPetConfigOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -596,6 +605,159 @@ export default function App() {
       ]);
       if ("Notification" in window && Notification.permission === "granted") {
         new Notification("Jon — Uhr läuft", { body: namen });
+      }
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 5000);
+    return () => {
+      beendet = true;
+      window.clearInterval(timer);
+    };
+  }, [online]);
+
+  useEffect(() => {
+    if (!online) return;
+    let beendet = false;
+    const tick = async () => {
+      const liste = await handyMeldungenNeu().catch(() => []);
+      if (beendet || !liste.length) return;
+      for (const meldung of liste) {
+        const wer = meldung.name || "Handy";
+        const um = new Date(meldung.zeit * 1000).toLocaleTimeString("de-AT", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        if (meldung.art === "sos") {
+          const akku =
+            typeof meldung.daten.akku === "number" && meldung.daten.akku >= 0
+              ? ` Akku ${meldung.daten.akku} %${meldung.daten.laedt ? " (lädt)" : ""}.`
+              : "";
+          const notiz = meldung.daten.text ? ` Nachricht: „${String(meldung.daten.text)}“.` : "";
+          const breite = meldung.daten.lat, laenge = meldung.daten.lon;
+          const punkt =
+            typeof breite === "number" && typeof laenge === "number"
+              ? {
+                  id: `sos-${meldung.id}`,
+                  name: `SOS · ${wer}`,
+                  label: `SOS von ${wer} um ${um} Uhr`,
+                  lat: breite,
+                  lon: laenge,
+                  kind: "sos",
+                  category: "sos",
+                  address: {},
+                  bbox: null,
+                  distance_m: null,
+                  source: "handy",
+                  extra: {},
+                }
+              : null;
+          const ort = punkt
+            ? ` Standort${typeof meldung.daten.genau === "number" && meldung.daten.genau > 0 ? ` (± ${Math.round(meldung.daten.genau)} m)` : ""} siehst du auf der Karte.`
+            : "";
+          jonDesktop?.flashWindow?.();
+          setEntries((prev) => [
+            ...prev,
+            {
+              id: nextId(),
+              role: "assistant",
+              content: `🆘 **SOS von ${wer}** um ${um} Uhr.${akku}${notiz}${ort} Bitte gleich melden. Unter Einstellungen → Geräte kannst du es als erledigt markieren.`,
+              cards: punkt
+                ? karteAnhaengen(
+                    [],
+                    {
+                      kind: "maps",
+                      data: {
+                        aktion: "suche",
+                        ort: punkt,
+                        treffer: [punkt],
+                        karte: { center: { lat: punkt.lat, lon: punkt.lon }, zoom: 16, marker: [punkt] },
+                        text: `SOS-Standort von ${wer}`,
+                      },
+                    },
+                    nextId
+                  )
+                : undefined,
+            },
+          ]);
+          if ("Notification" in window && Notification.permission === "granted") {
+            const note = new Notification(`🆘 SOS von ${wer}`, {
+              body: `Ausgelöst um ${um} Uhr.${akku}${notiz}`,
+              requireInteraction: true,
+              tag: `sos-${meldung.id}`,
+            });
+            note.onclick = () => {
+              jonDesktop?.focusWindow?.();
+              note.close();
+            };
+          }
+        } else if (meldung.art === "bericht") {
+          setEntries((prev) => [
+            ...prev,
+            {
+              id: nextId(),
+              role: "assistant",
+              content: `📊 Der Wochenbericht für ${wer} ist da.`,
+              cards: karteAnhaengen(
+                [],
+                {
+                  kind: "wochenbericht",
+                  data: { geraet: meldung.geraet ?? "", bis: String(meldung.daten.bis || "") },
+                },
+                nextId
+              ),
+            },
+          ]);
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(`📊 Wochenbericht: ${wer}`, {
+              body: "Bildschirmzeit, Apps und Schritte der letzten sieben Tage.",
+            });
+          }
+        } else if (meldung.art === "zeitanfrage") {
+          const app = String(meldung.daten.name || meldung.daten.app || "eine App");
+          const minuten = Number(meldung.daten.minuten) || 30;
+          jonDesktop?.flashWindow?.();
+          setEntries((prev) => [
+            ...prev,
+            {
+              id: nextId(),
+              role: "assistant",
+              content: `⏳ **${wer}** fragt um ${um} Uhr nach ${minuten} Minuten mehr ${app}.`,
+              cards: karteAnhaengen(
+                [],
+                {
+                  kind: "zeitanfrage",
+                  data: {
+                    geraet: meldung.geraet ?? "",
+                    meldung: meldung.id,
+                    name: wer,
+                    app,
+                    minuten,
+                    text: meldung.daten.text ? String(meldung.daten.text) : "",
+                  },
+                },
+                nextId
+              ),
+            },
+          ]);
+          if ("Notification" in window && Notification.permission === "granted") {
+            const note = new Notification(`⏳ ${wer} möchte mehr Zeit`, {
+              body: `${minuten} Minuten mehr ${app}${meldung.daten.text ? ` – „${String(meldung.daten.text)}“` : ""}`,
+              tag: `zeit-${meldung.id}`,
+            });
+            note.onclick = () => {
+              jonDesktop?.focusWindow?.();
+              note.close();
+            };
+          }
+        } else if (
+          meldung.art === "gelesen" &&
+          "Notification" in window &&
+          Notification.permission === "granted"
+        ) {
+          new Notification("Jon — Durchsage gelesen", {
+            body: `${wer} hat deine Durchsage um ${um} Uhr gelesen.`,
+          });
+        }
       }
     };
     void tick();
@@ -1091,6 +1253,15 @@ export default function App() {
       }
     }
     const command = text.trim().toLowerCase();
+    if (/^\/(transkript|transcribe|stt|podcast|tts|audio)(\s|$)/i.test(command) || (attachments.some(item => item.mediaId) && /transkrib|transkript|verschrift|in text/i.test(text))) {
+      setMediaUploads(attachments.filter(item => item.mediaId).map(item => ({id: item.mediaId!, name: item.name})));
+      const speech = /^\/(podcast|tts|audio)(\s|$)/i.test(command);
+      const script = speech ? text.replace(/^\/\S+\s*/, "") : "";
+      setMediaStart({mode: speech ? "speech" : "transcribe", text: script, auto: speech ? !!script.trim() : attachments.some(item => item.mediaId)});
+      setMediaOpen(true);
+      return;
+    }
+    if (!forceTool && /https?:\/\/(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\//i.test(text)) forceTool = "youtube_transkript";
     if (command === "/usage" || command === "/nutzung") {
       setAccountsTab("usage");
       return;
@@ -1786,7 +1957,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
               )}
               <div className="relative">
                 <button
-                  onClick={() => setToolsMenuOpen((v) => !v)}
+                  onClick={() => { setToolsQuery(""); setToolsMenuOpen((v) => !v); }}
                   title="Werkzeuge & Apps"
                   className={`relative flex items-center gap-1 px-2.5 h-7 rounded-full border transition-colors ${
                     toolsMenuOpen
@@ -1808,6 +1979,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setToolsMenuOpen(false)} />
                     <div className="absolute right-0 top-9 z-50 w-56 glass rounded-xl border border-white/15 p-1.5 text-left max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain">
+                      <input autoFocus type="search" aria-label="Werkzeuge suchen" placeholder="Werkzeuge suchen …" value={toolsQuery} onChange={(e) => setToolsQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") setToolsMenuOpen(false); }} className="sticky top-0 mb-2 w-full rounded-lg border border-white/15 bg-surface px-2.5 py-2 text-xs text-white outline-none focus:border-gold/50" />
                       {([
                         {
                           title: t("tools_work"),
@@ -1819,6 +1991,9 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                             { icon: "🧠", label: "Deep Learning", hint: "/lerne", act: () => { setDeepTaskId(undefined); setDeepOpen(true); } },
                             { icon: "🎨", label: "Video / Foto", hint: "/bild", act: () => setStudioOpen(true) },
                             { icon: "</>", label: "Jon Code", act: () => setCodeOpen(true) },
+                            { icon: "🤖", label: "Jon Harness", hint: "MiniJon", act: () => setHarnessOpen(true) },
+                            { icon: "🎙️", label: "Stimmen & Transkripte", hint: "/transkript", act: () => setMediaOpen(true) },
+                            { icon: "✦", label: "Jon Fachteam", hint: "Agenten", act: () => setWerkzeugeOpen("agents") },
                             { icon: "✍️", label: "Humanisierer", act: () => setHumanizerOpen(true) },
                             { icon: "📌", label: "Haftnotizen", act: () => setNotesOpen(true) },
                             { icon: "📞", label: "Telefonanrufe", act: () => setPhoneOpen(true) },
@@ -1870,7 +2045,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                           badge?: number;
                           act: () => void;
                         }[];
-                      }[]).map((group) => (
+                      }[]).map((group) => ({ ...group, items: group.items.filter((item) => toolsQuery.trim().toLocaleLowerCase().split(/\s+/).every((word) => `${item.label} ${item.hint || ""} ${group.title}`.toLocaleLowerCase().includes(word))) })).filter((group) => group.items.length).map((group) => (
                         <div key={group.title} className="mb-1 last:mb-0">
                           <div className="text-[9px] uppercase tracking-wider text-white/30 px-2.5 pt-1.5 pb-1">
                             {group.title}
@@ -2117,9 +2292,12 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
       {gamesOpen !== null && (
         <Games onClose={() => setGamesOpen(null)} fokus={gamesOpen || undefined} />
       )}
+      {harnessOpen && <HarnessWorkspace onClose={() => setHarnessOpen(false)}/>}
+      {mediaOpen && <MediaPanel onClose={() => {setMediaOpen(false); setMediaStart({mode: "transcribe", text: "", auto: false}); setMediaUploads([]);}} uploads={mediaUploads} initialMode={mediaStart.mode} initialText={mediaStart.text} autoStart={mediaStart.auto}/>}
       {werkzeugeOpen !== null && (
         <ToolsModal
           start={werkzeugeOpen || undefined}
+          onHarness={() => {setWerkzeugeOpen(null); setHarnessOpen(true);}}
           onClose={() => setWerkzeugeOpen(null)}
         />
       )}

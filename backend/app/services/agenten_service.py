@@ -3,32 +3,18 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-import threading
 import time
-from dataclasses import dataclass, field
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
 
-from app.core.fehler import leise
+from app.core.config import DATA_DIR
+from app.core.store import atomic_write_text
+from app.services.agent_profiles import BOUNDARIES, PROFILES
 
 MAX_AGENTEN = 4
-MAX_SCHRITTE_JE_AGENT = 8
-GESAMT_TIMEOUT_S = 420.0
-
-AUFTEILUNG_SYSTEM = (
-    "Du teilst eine groessere Aufgabe in unabhaengige Teilaufgaben auf, die "
-    "gleichzeitig bearbeitet werden koennen. Antworte NUR mit JSON:\n"
-    '{"teile": [{"titel": "...", "auftrag": "...", "werkzeug": "web_search|'
-    'browser_task|keins"}]}\n'
-    "Hoechstens 4 Teile. Jeder Teil muss ohne die Ergebnisse der anderen loesbar "
-    "sein. Nur lesende, harmlose Teilaufgaben. Laesst sich die Aufgabe nicht sinnvoll "
-    "aufteilen, gib genau einen Teil zurueck."
-)
-
-ZUSAMMEN_SYSTEM = (
-    "Du bist der Koordinator. Du bekommst die urspruengliche Aufgabe und die "
-    "Ergebnisse mehrerer Teilagenten. Schreibe daraus eine einzige, klare Antwort "
-    "auf Deutsch in Fliesstext. Nenne konkrete Zahlen, Namen und Quellen aus den "
-    "Ergebnissen. Widersprechen sich Ergebnisse, sag das offen. Keine Tabellen."
-)
+GESAMT_TIMEOUT_S = 210
+TERMINAL = {"done", "needs_review", "failed", "cancelled", "interrupted"}
 
 
 @dataclass
@@ -38,147 +24,222 @@ class Teilergebnis:
     werkzeug: str
     ergebnis: str = ""
     fehler: str = ""
-    dauer: float = 0.0
+    dauer: float = 0
+    rolle: str = "general"
 
     def als_dict(self) -> dict:
-        return {
-            "titel": self.titel,
-            "auftrag": self.auftrag,
-            "werkzeug": self.werkzeug,
-            "ergebnis": self.ergebnis[:2000],
-            "fehler": self.fehler,
-            "dauer": round(self.dauer, 1),
-        }
-
-
-@dataclass
-class Lauf:
-    aufgabe: str
-    teile: list[Teilergebnis] = field(default_factory=list)
-    zusammenfassung: str = ""
-    gestartet: float = field(default_factory=time.time)
+        return {"titel": self.titel, "auftrag": self.auftrag, "werkzeug": self.werkzeug, "ergebnis": self.ergebnis[:12000], "fehler": self.fehler[:1000], "dauer": round(self.dauer, 1), "rolle": self.rolle, "status": "failed" if self.fehler else "done"}
 
 
 class AgentenService:
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._laeufe: dict[str, Lauf] = {}
+    def __init__(self, directory: Path | None = None, complete=None) -> None:
+        self.directory = directory or DATA_DIR / "fachteam"
+        self.directory.mkdir(parents=True, exist_ok=True)
+        self.complete = complete
+        self.runs: dict[str, dict] = {}
+        self.running: dict[str, asyncio.Task] = {}
+        for path in sorted(self.directory.glob("*.json"), key=lambda p: p.stat().st_mtime)[-50:]:
+            try:
+                run = json.loads(path.read_text(encoding="utf-8"))
+                if path.stem != run["id"] or not re.fullmatch(r"[a-f0-9]{32}", run["id"]):
+                    continue
+                if run["status"] not in TERMINAL:
+                    run.update(status="interrupted", ok=False, vollstaendig=False, fehler="Jon wurde neu gestartet. Der Auftrag wurde nicht automatisch wiederholt.")
+                    for part in run.get("teile", []):
+                        if part["status"] not in TERMINAL:
+                            part.update(status="interrupted")
+                    self._save(run)
+                self.runs[run["id"]] = run
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+
+    def _save(self, run: dict) -> None:
+        run["updated_at"] = time.time()
+        if run.get("persist", True):
+            atomic_write_text(self.directory / (run["id"] + ".json"), json.dumps(run, ensure_ascii=False))
+
+    def get(self, run_id: str) -> dict:
+        return json.loads(json.dumps(self.runs[run_id]))
+
+    def list(self, brief: bool = False) -> list[dict]:
+        values = [self.get(run["id"]) for run in sorted(self.runs.values(), key=lambda r: r["created_at"], reverse=True) if run.get("persist", True)]
+        if brief:
+            return [{k: r[k] for k in ("id", "aufgabe", "source", "status", "created_at", "updated_at")} for r in values]
+        return values
+
+    def delete(self, run_id: str) -> None:
+        if self.runs[run_id]["status"] not in TERMINAL:
+            raise ValueError("Bitte den laufenden Auftrag zuerst stoppen.")
+        (self.directory / (run_id + ".json")).unlink(missing_ok=True)
+        del self.runs[run_id]
 
     @staticmethod
-    def _json(text: str) -> dict | None:
-        roh = (text or "").strip()
-        if roh.startswith("```"):
-            roh = re.sub(r"^```[a-zA-Z]*\s*", "", roh)
-            roh = re.sub(r"```\s*$", "", roh).strip()
-        start, ende = roh.find("{"), roh.rfind("}")
-        if start < 0 or ende <= start:
-            return None
-        try:
-            daten = json.loads(roh[start : ende + 1])
-        except Exception as _fehler:
-            leise(_fehler, "services/agenten_service")
-            return None
-        return daten if isinstance(daten, dict) else None
+    def _json(text: str) -> dict:
+        raw = re.sub(r"^\x60\x60\x60(?:json)?\s*|\s*\x60\x60\x60$", "", (text or "").strip())
+        value = json.loads(raw)
+        if not isinstance(value, dict):
+            raise ValueError("Keine gültige strukturierte Antwort.")
+        return value
 
-    async def _aufteilen(self, aufgabe: str) -> list[dict]:
+    def _selection(self, slot: str) -> dict:
+        from app.services.settings_service import get_settings_service
+
+        settings = get_settings_service()
+        provider, model = settings.pet_selection() if slot == "emil" else settings.selection()
+        return {"provider": provider or None, "model": model or None, "slot": slot}
+
+    async def _model(self, system: str, data: dict, selection: dict, limit: int = 2200, timeout: float = 75) -> str:
         from app.services.llm import complete
+        from app.core.kinderschutz import KINDER_ALTER, kinder_prompt
 
+        if KINDER_ALTER.get():
+            system += "\n" + kinder_prompt(KINDER_ALTER.get())
+
+        result = await asyncio.wait_for((self.complete or complete)(system, json.dumps(data, ensure_ascii=False), **selection, max_tokens=limit, temperature=0.2), timeout)
+        if not isinstance(result, str) or not result.strip():
+            raise ValueError("Das Modell hat keine Antwort geliefert.")
+        return result.strip()
+
+    async def _aufteilen(self, run: dict, selection: dict) -> list[dict]:
+        allowed = run["roles"] or list(PROFILES)
         try:
-            antwort = await complete(
-                AUFTEILUNG_SYSTEM, aufgabe, max_tokens=700, temperature=0.3
-            )
-        except Exception as _fehler:
-            leise(_fehler, "services/agenten_service")
-            return [{"titel": aufgabe[:80], "auftrag": aufgabe, "werkzeug": "web_search"}]
-        daten = self._json(antwort) or {}
-        teile = [t for t in (daten.get("teile") or []) if isinstance(t, dict)]
-        if not teile:
-            return [{"titel": aufgabe[:80], "auftrag": aufgabe, "werkzeug": "web_search"}]
-        return teile[:MAX_AGENTEN]
+            raw = await self._model(BOUNDARIES + '\nTeile den Auftrag in unabhängige Teilfragen. Antworte nur als JSON: {"teile":[{"titel":"...","auftrag":"...","rolle":"Profil-ID","werkzeug":"keins oder web_search"}]}. Verwende höchstens die gewünschte Anzahl. Für eine einfache Aufgabe genügt ein Fachagent. Jede Teilfrage muss zur ursprünglichen Aufgabe beitragen.', {"aufgabe": run["aufgabe"], "max_agenten": run["max_agenten"], "profile": {key: PROFILES[key]["name"] for key in allowed}, "internet_erlaubt": run["research"]}, selection, 1200, 30)
+            parts = self._json(raw).get("teile")
+            if not isinstance(parts, list):
+                raise ValueError("Der Plan enthält keine Teilaufgaben.")
+            result = []
+            for part in parts[:run["max_agenten"]]:
+                if not isinstance(part, dict) or not str(part.get("auftrag", "")).strip():
+                    continue
+                role = part.get("rolle") if part.get("rolle") in allowed else allowed[0]
+                result.append({"titel": str(part.get("titel") or PROFILES[role]["name"])[:120], "auftrag": str(part["auftrag"])[:6000], "rolle": role, "werkzeug": "web_search" if run["research"] and part.get("werkzeug") == "web_search" else "keins", "status": "queued"})
+            if result:
+                return result
+        except Exception:
+            run["hinweis"] = "Aufteilung nicht verfügbar; ein Fachagent bearbeitet die gesamte Aufgabe."
+        return [{"titel": PROFILES[allowed[0]]["name"], "auftrag": run["aufgabe"], "rolle": allowed[0], "werkzeug": "keins", "status": "queued"}]
 
-    async def _teil_ausfuehren(self, teil: dict) -> Teilergebnis:
-        from app.services.risiko import bewerten
+    async def _teil_ausfuehren(self, teil: dict, selection: dict | None = None, original: str = "", research: bool = False) -> Teilergebnis:
+        from app.services.tool_result import succeeded
         from app.services.tools import ToolBox
 
         start = time.time()
-        titel = str(teil.get("titel", ""))[:120]
-        auftrag = str(teil.get("auftrag", "")) or titel
-        werkzeug = str(teil.get("werkzeug", "web_search"))
-        if werkzeug not in ("web_search", "browser_task"):
-            werkzeug = "web_search"
-        args = (
-            {"query": auftrag}
-            if werkzeug == "web_search"
-            else {"auftrag": auftrag, "max_schritte": MAX_SCHRITTE_JE_AGENT}
-        )
-        stufe = bewerten(werkzeug, args)
-        if stufe.risiko == "hoch":
-            return Teilergebnis(
-                titel, auftrag, werkzeug, fehler=f"Zu riskant: {stufe.grund}"
-            )
+        role = teil.get("rolle") if isinstance(teil.get("rolle"), str) and teil.get("rolle") in PROFILES else "general"
+        title = str(teil.get("titel") or PROFILES[role]["name"])[:120]
+        task = str(teil.get("auftrag") or title)[:10000]
+        tool = "web_search" if research and teil.get("werkzeug") == "web_search" else "keins"
         try:
-            ergebnis = await ToolBox(source="agenten").execute(werkzeug, args)
-            return Teilergebnis(
-                titel, auftrag, werkzeug, ergebnis=str(ergebnis), dauer=time.time() - start
-            )
+            sources = ""
+            if tool == "web_search":
+                sources = await asyncio.wait_for(ToolBox(source="agenten").execute(tool, {"query": task[:1500]}), 40)
+                if not succeeded(sources):
+                    raise ValueError("Die Recherche ist fehlgeschlagen: " + str(sources)[:500])
+            answer = await self._model(BOUNDARIES + "\nFachprofil: " + PROFILES[role]["focus"], {"urspruenglicher_auftrag": original[:12000], "teilauftrag": task, "recherchematerial": str(sources)[:16000]}, selection or self._selection("jon"))
+            return Teilergebnis(title, task, tool, answer, dauer=time.time()-start, rolle=role)
         except Exception as exc:
-            return Teilergebnis(
-                titel, auftrag, werkzeug, fehler=str(exc), dauer=time.time() - start
-            )
+            return Teilergebnis(title, task, tool, fehler=str(exc) or type(exc).__name__, dauer=time.time()-start, rolle=role)
 
-    async def bearbeiten(self, aufgabe: str, max_agenten: int = MAX_AGENTEN) -> dict:
-        from app.services.ereignis_service import get_ereignis_service
-        from app.services.llm import complete
+    def start(self, aufgabe: str, max_agenten: int = 3, source: str = "app", slot: str = "jon", research: bool = False, roles: list[str] | None = None, persist: bool = True, kinder: int | None = None) -> dict:
+        text = str(aufgabe).strip()
+        if not text or len(text) > 12000:
+            raise ValueError("Beschreibe eine Aufgabe mit höchstens 12.000 Zeichen.")
+        if len(self.running) >= 2:
+            raise ValueError("Zwei Fachteams arbeiten bereits. Warte auf ein Ergebnis oder stoppe einen Auftrag.")
+        if any(key not in PROFILES for key in (roles or [])):
+            raise ValueError("Unbekanntes Fachprofil.")
+        while len(self.runs) >= 50:
+            old = next((r for r in self.runs.values() if r["status"] in TERMINAL), None)
+            if old is None:
+                break
+            self.delete(old["id"])
+        run = {"id": uuid.uuid4().hex, "aufgabe": text, "source": source, "slot": "emil" if slot == "emil" else "jon", "research": bool(research), "roles": list(dict.fromkeys(roles or [])), "max_agenten": max(1, min(int(max_agenten), MAX_AGENTEN)), "status": "planning", "teile": [], "antwort": "", "pruefung": None, "fehler": "", "hinweis": "", "ok": False, "vollstaendig": False, "persist": persist, "created_at": time.time(), "updated_at": time.time()}
+        from app.core.kinderschutz import KINDER_ALTER
 
-        text = str(aufgabe or "").strip()
-        if not text:
-            return {"ok": False, "fehler": "Keine Aufgabe angegeben."}
-        teile = (await self._aufteilen(text))[: max(1, min(max_agenten, MAX_AGENTEN))]
-        lauf = Lauf(aufgabe=text)
-        with self._lock:
-            self._laeufe[str(int(lauf.gestartet))] = lauf
+        run["kinder"] = kinder or KINDER_ALTER.get()
+        self.runs[run["id"]] = run
+        self._save(run)
+        task = asyncio.create_task(self._run(run))
+        self.running[run["id"]] = task
+        task.add_done_callback(lambda _: self.running.pop(run["id"], None))
+        return self.get(run["id"])
 
+    async def _run(self, run: dict) -> None:
+        from app.core.kinderschutz import KINDER_ALTER
+
+        child_context = KINDER_ALTER.set(run.get("kinder"))
         try:
-            ergebnisse = await asyncio.wait_for(
-                asyncio.gather(*[self._teil_ausfuehren(t) for t in teile]),
-                timeout=GESAMT_TIMEOUT_S,
-            )
-        except asyncio.TimeoutError:
-            ergebnisse = [
-                Teilergebnis(
-                    str(t.get("titel", "")), str(t.get("auftrag", "")), "", fehler="Zeitlimit"
-                )
-                for t in teile
-            ]
-        lauf.teile = list(ergebnisse)
+            async with asyncio.timeout(GESAMT_TIMEOUT_S):
+                selection = self._selection(run["slot"])
+                run.update(provider=selection["provider"], model=selection["model"])
+                run["teile"] = await self._aufteilen(run, selection)
+                run["status"] = "working"
+                self._save(run)
 
-        zusammen = "\n\n".join(
-            f"### {t.titel}\n{t.ergebnis[:2500] or t.fehler}" for t in lauf.teile
-        )
-        try:
-            lauf.zusammenfassung = await complete(
-                ZUSAMMEN_SYSTEM,
-                f"Aufgabe: {text}\n\nTeilergebnisse:\n{zusammen}",
-                max_tokens=1200,
-                temperature=0.3,
-            )
+                async def work(part):
+                    part["status"] = "working"
+                    self._save(run)
+                    result = await self._teil_ausfuehren(part, selection, run["aufgabe"], run["research"])
+                    part.update(result.als_dict())
+                    self._save(run)
+
+                await asyncio.gather(*(work(part) for part in run["teile"]))
+                successful = [p for p in run["teile"] if p["status"] == "done"]
+                if not successful:
+                    raise ValueError("Kein Fachagent konnte die Aufgabe abschließen. Prüfe Modell und Verbindung.")
+                run.update(ok=True, status="verifying")
+                self._save(run)
+                try:
+                    review = await self._model(BOUNDARIES + '\nPrüfe die Ergebnisse unabhängig am Originalauftrag. Kontrolliere Herleitungen, Widersprüche, fehlende Teilfragen und unbelegte Behauptungen. Antworte ausschließlich als JSON: {"ok":true oder false,"probleme":["konkreter Fehler oder offene Frage"],"korrektur":"begründete Korrektur oder leer"}. Eine fehlende oder fehlerhafte Teilantwort bedeutet ok=false.', {"aufgabe": run["aufgabe"], "teile": run["teile"]}, selection, 1800, 45)
+                    review = self._json(review)
+                    if type(review.get("ok")) is not bool or not isinstance(review.get("probleme"), list) or not isinstance(review.get("korrektur"), str):
+                        raise ValueError("Die Gegenprüfung lieferte kein gültiges Ergebnis.")
+                    run["pruefung"] = {"ok": review["ok"] and not review["probleme"], "probleme": [str(x)[:1000] for x in review["probleme"][:12]], "korrektur": review["korrektur"][:6000]}
+                except Exception as exc:
+                    run["pruefung"] = {"ok": False, "probleme": ["Gegenprüfung nicht verfügbar: " + (str(exc) or type(exc).__name__)[:500]], "korrektur": ""}
+                run["status"] = "summarizing"
+                self._save(run)
+                try:
+                    run["antwort"] = await self._model(BOUNDARIES + "\nFasse die Teilergebnisse zu einer konkreten, verständlichen Antwort auf die Originalfrage zusammen. Beachte die Gegenprüfung, benenne ungelöste Widersprüche und fehlende Ergebnisse ausdrücklich. Keine erfundenen Quellen. Für MiniJon kurz und natürlich formulieren.", {"aufgabe": run["aufgabe"], "teile": run["teile"], "pruefung": run["pruefung"], "mini": run["slot"] == "emil"}, selection, 2600, 45)
+                    run["vollstaendig"] = len(successful) == len(run["teile"]) and run["pruefung"]["ok"]
+                except Exception as exc:
+                    run["fehler"] = "Zusammenfassung nicht verfügbar: " + (str(exc) or type(exc).__name__)[:500]
+                    run["antwort"] = "\n\n".join(p["titel"] + ":\n" + p["ergebnis"] for p in successful)
+                run["status"] = "done" if run["vollstaendig"] else "needs_review"
+        except asyncio.CancelledError:
+            run.update(status="cancelled", vollstaendig=False, fehler="Gestoppt. Vorliegende Teilergebnisse bleiben erhalten.")
+            raise
         except Exception as exc:
-            lauf.zusammenfassung = f"Zusammenfassung nicht moeglich: {exc}"
+            run.update(status="needs_review" if run["ok"] else "failed", vollstaendig=False, fehler="Zeitlimit erreicht." if isinstance(exc, TimeoutError) else str(exc)[:1000])
+        finally:
+            KINDER_ALTER.reset(child_context)
+            for part in run["teile"]:
+                if part["status"] not in TERMINAL:
+                    part.update(status="cancelled" if run["status"] == "cancelled" else "interrupted")
+            run["dauer"] = round(time.time()-run["created_at"], 1)
+            self._save(run)
 
-        get_ereignis_service().notieren(
-            "werkzeug",
-            f"Agententeam: {text[:80]}",
-            f"{len(lauf.teile)} Teilagenten",
-            quelle="agenten",
-            bedeutung=0.5,
-        )
-        return {
-            "ok": True,
-            "aufgabe": text,
-            "teile": [t.als_dict() for t in lauf.teile],
-            "antwort": lauf.zusammenfassung,
-            "dauer": round(time.time() - lauf.gestartet, 1),
-        }
+    async def cancel(self, run_id: str) -> dict:
+        run = self.runs[run_id]
+        task = self.running.get(run_id)
+        if task and not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+            if run["status"] not in TERMINAL:
+                run.update(status="cancelled", vollstaendig=False, fehler="Gestoppt.")
+                self._save(run)
+        return self.get(run_id)
+
+    async def bearbeiten(self, aufgabe: str, max_agenten: int = MAX_AGENTEN, **kwargs) -> dict:
+        run = self.start(aufgabe, max_agenten, **kwargs)
+        try:
+            await self.running[run["id"]]
+            return self.get(run["id"])
+        finally:
+            if not run["persist"]:
+                self.runs.pop(run["id"], None)
+
+    async def close(self) -> None:
+        await asyncio.gather(*(self.cancel(key) for key in list(self.running)))
 
 
 _service: AgentenService | None = None

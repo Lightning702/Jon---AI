@@ -14,6 +14,7 @@ _TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
 os.environ["JON_DATA_DIR"] = str(_TEST_DATA_DIR)
 os.environ["JON_TOKEN"] = "test-token-fuer-die-testsuite"
 os.environ["JON_ZEIT_STUMM"] = "1"
+os.environ["JON_SCHLUESSELSPEICHER"] = "datei"
 
 from app.core.config import DATA_DIR
 from app.db.database import init_db

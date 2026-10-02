@@ -264,6 +264,7 @@ CARD_TOOLS = {
     "create_image": "bild",
     "browser_task": "browser",
     "datei_erstellen": "datei",
+    "podcast_erstellen": "datei",
     "blender_szene": "datei",
     "blender_render": "datei",
     "blender_export": "datei",
@@ -622,10 +623,30 @@ class ChatService:
             lang = settings_service.get().get("language", "de")
             if lang == "en":
                 parts.append(ENGLISCH)
+        from app.services.learning_support import guidance
+
+        learning = guidance(user_text)
+        if learning:
+            parts.append(learning)
+        if persona == "junior":
+            from app.services.harness.messages import selection
+            from app.services.mini_jon_agent import get_mini_jon_agent
+
+            selected_root = selection("minijon")
+            if selected_root:
+                parts.append("GEWÄHLTES MINIJON-PROJEKT: " + selected_root + ". Für Coding-Aufträge harness_task verwenden. Auftrag starten, Fortschritt abfragen, nicht nur Tipps geben.")
+            screen_context = get_mini_jon_agent().screen_context()
+            if screen_context:
+                parts.append(screen_context)
         parts.append(heute_block())
         catalog = self._skills.catalog()
         if catalog:
             parts.append(catalog)
+        from app.services.daily_memory import get_daily_memory
+
+        daily = get_daily_memory().prompt_block()
+        if daily:
+            parts.append(daily)
         block = self._memory.prompt_block(text=user_text)
         if block:
             parts.append(block)
@@ -667,8 +688,14 @@ class ChatService:
             provider = self._registry.get(name)
             request.model = model
             started = False
+            executed = False
+
+            async def tracked_executor(*args, **kwargs):
+                nonlocal executed
+                executed = True
+                return await executor(*args, **kwargs)
             try:
-                async for chunk in provider.stream(request, executor):
+                async for chunk in provider.stream(request, tracked_executor if executor else None):
                     if not started:
                         started = True
                         state["provider"] = name
@@ -676,7 +703,7 @@ class ChatService:
                     yield chunk
                 return
             except Exception:
-                if started:
+                if started or executed:
                     raise
                 mark_slow(name, model)
                 if index + 1 < len(attempts):
@@ -713,7 +740,7 @@ class ChatService:
                         f"hier mit {fallback}. Deine Modellwahl bleibt unverändert.\n\n"
                     ),
                 )
-                async for chunk in provider.stream(request, executor):
+                async for chunk in provider.stream(request, tracked_executor if executor else None):
                     state["provider"] = name
                     yield chunk
                 return
@@ -833,7 +860,80 @@ class ChatService:
             "seed": seed if seed >= 0 else None,
         }
 
+    def _kinder_alter(self, payload: ChatIn) -> int:
+        from app.core.kinderschutz import alter_pruefen
+        from app.services.geraete_funktionen import HANDY_KONTEXT
+
+        geraet = HANDY_KONTEXT.get()
+        if geraet:
+            try:
+                from app.services.handy_service import get_handy_service
+
+                vom_geraet = get_handy_service().kinder_alter(geraet)
+            except Exception as exc:
+                leise(exc, "services/chat_service")
+                vom_geraet = 0
+            if vom_geraet:
+                return vom_geraet
+        return alter_pruefen(payload.kinder)
+
     async def stream(self, payload: ChatIn) -> AsyncIterator[dict]:
+        from app.core.kinderschutz import KINDER_ALTER
+
+        alter = self._kinder_alter(payload)
+        marke = KINDER_ALTER.set(alter)
+        try:
+            async for teil in self._stream(payload):
+                yield teil
+        finally:
+            try:
+                KINDER_ALTER.reset(marke)
+            except ValueError:
+                pass
+
+    async def _stream(self, payload: ChatIn) -> AsyncIterator[dict]:
+        from app.core.kinderschutz import KINDER_ALTER, kinder_prompt, werkzeuge_fuer_kinder
+
+        kinder = KINDER_ALTER.get()
+        latest_command = next((m.content for m in reversed(payload.messages) if m.role == "user"), "")
+        if payload.mode != "coding":
+            from app.services.daily_memory import get_daily_memory
+
+            answer = get_daily_memory().respond(latest_command)
+            if answer is not None:
+                provider_name, model_name = self.resolve(payload)
+                conversation_id = payload.conversation_id
+                if payload.persist:
+                    conversation_id = self._ensure_conversation(payload, provider_name, model_name)
+                    self._store_answer(conversation_id, answer, None)
+                yield {"type": "meta", "provider": provider_name, "model": model_name, "conversation_id": conversation_id, "from_memory": True}
+                yield {"type": "content", "delta": answer}
+                yield {"type": "done"}
+                return
+        if not kinder and latest_command.strip().startswith(("/hhelp", "/harness", "/hstatus", "/hstop", "/aufgaben", "/projekt", "/erlauben", "/ablehnen", "/diff")):
+            from app.services.harness.messages import handle
+
+            result = await handle(latest_command, "app")
+            if result is not None:
+                yield {"type": "content", "delta": result["text"]}
+                if result.get("task_id"):
+                    from app.services.harness import get_harness_service
+                    from app.services.harness.messages import describe
+                    from app.services.harness.service import TERMINAL
+
+                    harness = get_harness_service()
+                    task_id = result["task_id"]
+                    async for event in harness.stream(task_id):
+                        task = harness.get(task_id)
+                        if task["status"] in TERMINAL or task.get("pending"):
+                            yield {"type": "content", "delta": "\n\n" + describe(task)}
+                            break
+                        if event["type"] == "action":
+                            outcome = event["result"]
+                            line = str(outcome.get("error") or outcome.get("path") or event["tool"])
+                            yield {"type": "content", "delta": "\n" + line}
+                yield {"type": "done"}
+                return
         chosen, model = self.resolve(payload)
         slot = self.slot_for(payload)
         defaults = self._defaults_for(chosen)
@@ -902,6 +1002,10 @@ class ChatService:
                     ),
                 ),
             )
+        if kinder:
+            request_messages.insert(1, ChatMessage(role="system", content=kinder_prompt(kinder)))
+        if payload.sprache == "en" and get_settings_service().get().get("language", "de") != "en":
+            request_messages.insert(1, ChatMessage(role="system", content=ENGLISCH))
 
         verlauf = get_verlauf_service()
         gespeichert = verlauf.zusammenfassung(conversation_id or "")
@@ -925,7 +1029,7 @@ class ChatService:
 
         if payload.mode != "coding":
             last_user = latest_user
-            if wants_webcam(last_user):
+            if not kinder and wants_webcam(last_user):
                 from app.services.webcam_service import get_webcam_service
 
                 yield {
@@ -963,12 +1067,18 @@ class ChatService:
         browser_sitzung(conversation_id or payload.conversation_id or "standard")
         use_tools = provider_name in TOOL_PROVIDERS
         tool_source = payload.source or ("mini-jon" if slot == "emil" else "app")
-        toolbox = self._toolbox
+        from copy import copy
+
+        toolbox = copy(self._toolbox)
+        toolbox._slot = slot
+        toolbox._persist = payload.persist
         if payload.mode == "coding" and payload.workspace:
             toolbox = ToolBox(
                 memory=self._memory,
                 skills=self._skills,
                 root=payload.workspace,
+                slot=slot,
+                persist=payload.persist,
             )
         tool_context = " ".join(
             m.content for m in payload.messages if m.role == "user"
@@ -976,9 +1086,11 @@ class ChatService:
         coding_mode = payload.mode == "coding"
         forced = str(payload.force_tool or "").strip().lower()
         tools = scoped_tools(
-            toolbox.schema(tool_context, coding=coding_mode) if use_tools else [],
+            toolbox.schema(tool_context, coding=coding_mode, umfang=payload.werkzeuge) if use_tools else [],
             payload.tool_scope,
         )
+        if kinder:
+            tools = werkzeuge_fuer_kinder(tools)
         if forced and use_tools:
             tools = forced_tools(tools, forced)
             hint = FORCED_PROMPTS.get(forced)
@@ -1005,12 +1117,13 @@ class ChatService:
         if budget_hinweis:
             yield {"type": "hinweis", "message": budget_hinweis}
 
-        ask_mode = payload.tool_mode != "allow"
+        ask_mode = payload.tool_mode not in ("allow", "alles")
+        alles_erlaubt = payload.tool_mode == "alles"
         approvals = get_approval_service()
         pending_approvals: list[str] = []
 
         def needs_approval(name: str | None, args: dict | None = None) -> bool:
-            if not name:
+            if not name or alles_erlaubt:
                 return False
             try:
                 return braucht_freigabe(name, args or {}, ask_mode)
@@ -1088,6 +1201,13 @@ class ChatService:
                             "status": "done",
                             "ok": chunk.ok,
                         }
+                        if chunk.name == "harness_task" and chunk.ok:
+                            try:
+                                harness_result = json.loads(chunk.result or "{}")
+                                if harness_result.get("task_id"):
+                                    event["harness_task_id"] = harness_result["task_id"]
+                            except (TypeError, ValueError):
+                                pass
                         card = card_payload(chunk.name, chunk.result)
                         if card is not None:
                             event["card"] = card
@@ -1157,7 +1277,9 @@ class ChatService:
                             },
                             ensure_ascii=False,
                         )
-                    ok = approved and '"error"' not in result[:200]
+                    from app.services.tool_result import succeeded
+
+                    ok = approved and succeeded(result)
                     if ok:
                         tools_used.append(name)
                     done_event = {
@@ -1166,6 +1288,13 @@ class ChatService:
                         "status": "done",
                         "ok": ok,
                     }
+                    if name == "harness_task" and ok:
+                        try:
+                            harness_result = json.loads(result)
+                            if harness_result.get("task_id"):
+                                done_event["harness_task_id"] = harness_result["task_id"]
+                        except (TypeError, ValueError):
+                            pass
                     card = card_payload(name, result)
                     if card is not None:
                         done_event["card"] = card

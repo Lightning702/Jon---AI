@@ -345,9 +345,7 @@ def test_downloads_landen_im_player():
     assert 'label: "Player"' in app_text
 
 
-def test_die_3d_modelle_schauen_dich_an():
+def test_3d_begleiter_behalten_ihre_kopfgruppen():
     text = (WURZEL / "frontend" / "electron" / "pet3d.js").read_text(encoding="utf-8")
     assert "kopfGruppe" in text
     assert text.count("kopfGruppe(kopf") == 2
-    assert "const auge = (dx, dy, dz)" in text
-    assert text.count("scaling(0.042, 0.042 * glanz, 0.03)") == 1

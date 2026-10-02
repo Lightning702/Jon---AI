@@ -8,6 +8,7 @@ from datetime import datetime
 
 import httpx
 
+from app.core.kinderschutz import KINDER_ALTER, kindgerecht
 from app.services.research.web import (
     UnsafeUrl,
     check_url,
@@ -114,6 +115,8 @@ class WebSearch:
                         continue
                     gesehen.add(schluessel)
                     treffer.append(hit)
+            if KINDER_ALTER.get():
+                treffer = [h for h in treffer if kindgerecht(h)]
             treffer = treffer[:limit]
             if read and treffer:
                 await self._read_pages(client, treffer)
@@ -187,7 +190,7 @@ class WebSearch:
     ) -> list[dict]:
         response = await client.post(
             "https://lite.duckduckgo.com/lite/",
-            data={"q": query, "kl": "de-de"},
+            data={"q": query, "kl": "de-de", **({"kp": "1"} if KINDER_ALTER.get() else {})},
         )
         response.raise_for_status()
         seite = response.text
@@ -212,7 +215,7 @@ class WebSearch:
         self, client: httpx.AsyncClient, query: str, limit: int
     ) -> list[dict]:
         response = await client.get(
-            "https://html.duckduckgo.com/html/", params={"q": query, "kl": "de-de"}
+            "https://html.duckduckgo.com/html/", params={"q": query, "kl": "de-de", **({"kp": "1"} if KINDER_ALTER.get() else {})}
         )
         response.raise_for_status()
         seite = response.text

@@ -9,6 +9,20 @@ from app.core.fehler import leise
 
 SETTINGS_FILE = DATA_DIR / "user_settings.json"
 
+GEHEIME_FELDER = (
+    "mail_imap_password",
+    "calendar_ics_url",
+    "telegram_bot_token",
+    "mini_jon_bot_token",
+    "ha_token",
+    "spotify_client_secret",
+    "phone_sip_password",
+)
+
+
+def _zweck(feld: str) -> str:
+    return f"einstellung:{feld}"
+
 DEFAULTS = {
     "custom_prompt": "",
     "prompt_mode": "append",
@@ -35,6 +49,7 @@ DEFAULTS = {
     "maps_home_source": "",
     "clipboard_history": True,
     "handy_ordner": "",
+    "heimnetz": False,
     "webcam_enabled": False,
     "mail_imap_host": "",
     "mail_imap_user": "",
@@ -154,12 +169,28 @@ class SettingsService:
         )
         if isinstance(roh, dict):
             data = pruefen(roh, data)
+        from app.core.krypto import ist_verschluesselt, text_lesen
+
+        klartext = False
+        for feld in GEHEIME_FELDER:
+            wert = data.get(feld)
+            if wert and not ist_verschluesselt(wert):
+                klartext = True
+            data[feld] = text_lesen(wert, _zweck(feld))
+        if klartext:
+            self._data = data
+            self._save()
         return data
 
     def _save(self) -> None:
+        from app.core.krypto import text_verschluesseln
+
         try:
+            ablage = dict(self._data)
+            for feld in GEHEIME_FELDER:
+                ablage[feld] = text_verschluesseln(str(ablage.get(feld) or ""), _zweck(feld))
             atomic_write_text(SETTINGS_FILE,
-                json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
+                json.dumps(ablage, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception as _fehler:
             leise(_fehler, "services/settings_service")

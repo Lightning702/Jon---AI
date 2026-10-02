@@ -624,6 +624,7 @@
     </div>
 
     <script src="pet3d.js"></script>
+    <script src="petHarness.js"></script>
     <script>
       const BASE = "http://127.0.0.1:8756/api";
       (function () {
@@ -672,6 +673,10 @@
       const jonCanvas = document.getElementById("jonCanvas");
       const petCanvas = document.getElementById("petCanvas");
       let jonView = null;
+      let jonActivity = "general";
+      let manualActivity = "";
+      let jonTaskState = "";
+      let pendingToolApproval = null;
       let petView = null;
 
       function ensureViews(on) {
@@ -685,6 +690,8 @@
         if (!petView) petView = window.Jon3D.create(petCanvas);
         if (jonView) {
           jonView.setKind("jon");
+          jonView.setActivity(manualActivity || jonActivity);
+          jonView.setTaskState(jonTaskState);
           jonView.start();
         }
         if (petView) petView.start();
@@ -715,12 +722,17 @@
       let currentAbort = null;
       let canceled = false;
 
-      const MEM_KEY = "emil_memory";
+      const MEM_KEY = "mini_jon_memory";
       const MEM_MAX = 16;
       const MEM_SEND = 8;
       let convo = [];
       try {
+        if (!localStorage.getItem(MEM_KEY) && localStorage.getItem("emil_memory")) {
+          localStorage.setItem(MEM_KEY, localStorage.getItem("emil_memory"));
+        }
         convo = JSON.parse(localStorage.getItem(MEM_KEY)) || [];
+        if (!Array.isArray(convo)) convo = [];
+        convo = convo.filter((entry) => entry && ["user", "assistant"].includes(entry.role) && typeof entry.content === "string").slice(-MEM_MAX);
       } catch (e) {
         convo = [];
       }
@@ -1181,6 +1193,14 @@
       }, 5000);
 
       function cancel() {
+        if (petHarness && petHarness.active()) {
+          void petHarness.cancel();
+          return;
+        }
+        if (pendingToolApproval) {
+          void fetch(`${BASE}/chat/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pendingToolApproval, approved: false }) }).catch(() => {});
+          pendingToolApproval = null;
+        }
         canceled = true;
         speakingText = "";
         if (currentAbort) {
@@ -1217,6 +1237,54 @@
       }
 
       async function ask(text) {
+        if (/^\/bildschirm(?:\s|$)/i.test(text.trim())) {
+          if (busy) { say("Ich arbeite gerade. Stoppe den Auftrag zuerst oder warte kurz.", true); return; }
+          busy = true;
+          canceled = false;
+          document.body.classList.add("busy");
+          listener && listener.setBusy(true);
+          currentAbort = new AbortController();
+          say("Ich lese dein sichtbares Arbeitsfenster …", true);
+          try {
+            if (window.jonpet && window.jonpet.prepareScreen) await window.jonpet.prepareScreen();
+            const response = await fetch(`${BASE}/mini-jon/screen`, { method: "POST", signal: currentAbort.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: text.replace(/^\/bildschirm\s*/i, "") || "Was ist sichtbar und wie kann ich konkret helfen?" }) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.detail || "Bildschirm nicht lesbar");
+            if (!canceled) {
+              jonActivity = result.activity || "general";
+              if (jonView) jonView.setActivity(manualActivity || jonActivity);
+              say(result.skipped ? "Bildschirmprüfung wurde verworfen." : result.observation + "\n" + (result.next_action?.text || "Sag mir, was ich damit machen soll."), true);
+            }
+          } catch (error) { if (!canceled) say(error.message || "Bildschirmprüfung fehlgeschlagen.", true); }
+          finally {
+            if (window.jonpet && window.jonpet.restoreScreen) await window.jonpet.restoreScreen();
+            currentAbort = null;
+            busy = false;
+            document.body.classList.remove("busy");
+            listener && listener.setBusy(false);
+          }
+          return;
+        }
+        if (/^\/modus(?:\s|$)/i.test(text.trim())) {
+          const value = text.trim().split(/\s+/)[1] || "";
+          const modes = { auto: "", coden: "coding", schreiben: "writing", recherchieren: "research", planen: "planning", design: "design", lernen: "learning", dateien: "files", sprechen: "voice", automatisieren: "automation", ideen: "ideas" };
+          if (Object.prototype.hasOwnProperty.call(modes, value.toLowerCase())) {
+            manualActivity = modes[value.toLowerCase()];
+            if (jonView) jonView.setActivity(manualActivity || jonActivity);
+            say("MiniJon-Auftritt: " + value + ".", false);
+          } else say("/modus auto · coden · schreiben · recherchieren · planen · design · lernen · dateien · sprechen · automatisieren · ideen", true);
+          return;
+        }
+        if (pendingToolApproval && /^\/(ja|nein)$/i.test(text.trim())) {
+          try {
+            const response = await fetch(`${BASE}/chat/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pendingToolApproval, approved: text.trim().toLowerCase() === "/ja" }) });
+            if (!response.ok) throw new Error("Freigabe nicht bestätigt");
+            pendingToolApproval = null;
+            say("Entscheidung übermittelt.", true);
+          } catch (error) { say(error.message + ". Bitte erneut versuchen.", true); }
+          return;
+        }
+        if (petHarness && await petHarness.command(text)) return;
         if (busy || !text.trim()) return;
         if (miniAsleep) wakeMiniJon();
         if (
@@ -1225,9 +1293,9 @@
           wantsPrivateBrowser(text)
         ) {
           openPrivateBrowser();
-          const line = "Klar, ich öffne dir den privaten Browser! 🕶️ Da wird nichts gespeichert.";
+          const line = "Klar, ich öffne dir den privaten Browser! 🕶️";
           say(line);
-          speak("Klar, ich öffne dir den privaten Browser. Da wird nichts gespeichert.");
+          speak("Klar, ich öffne dir den privaten Browser.");
           rememberTurn(text, line);
           return;
         }
@@ -1251,9 +1319,10 @@
               tool_mode: "allow",
               persona: "junior",
               slot: "emil",
-              max_tokens: 800,
+              max_tokens: 2048,
             }),
           });
+          if (!res.ok || !res.body) throw new Error("Backend antwortet mit " + res.status);
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
           let buf = "";
@@ -1272,6 +1341,11 @@
                   answer += evt.delta;
                   replied = true;
                   say(answer, true);
+                } else if (evt.type === "tool" && evt.approval_id) {
+                  pendingToolApproval = evt.approval_id;
+                  say("Darf ich das ausführen?\n" + (evt.summary || evt.name) + "\n" + JSON.stringify(evt.args || {}) + "\n/ja erlaubt · /nein lehnt ab", true);
+                } else if (evt.type === "tool" && evt.harness_task_id) {
+                  void petHarness.follow(evt.harness_task_id);
                 } else if (evt.type === "error") {
                   answer = "Ups: " + evt.message;
                 }
@@ -1283,8 +1357,10 @@
           answer = "Ich erreiche mein Backend gerade nicht.";
         }
         currentAbort = null;
+        pendingToolApproval = null;
         if (canceled) return;
-        answer = answer.trim() || "…";
+        if (petHarness.active()) return;
+        answer = answer.trim() || "Ich habe keine verwertbare Antwort erhalten. Bitte versuche die Aufgabe noch einmal.";
         if (replied) rememberTurn(text, answer);
         say(answer, true);
         speak(
@@ -1309,7 +1385,7 @@
         return "Späte Stunde";
       }
       async function startupGreeting() {
-        const firstTime = localStorage.getItem("emil_intro") !== "1";
+        const firstTime = localStorage.getItem("mini_jon_intro") !== "1" && localStorage.getItem("emil_intro") !== "1";
         let extras = [];
         try {
           const due = await (await fetch(`${BASE}/reminders/due`)).json();
@@ -1322,11 +1398,11 @@
             extras.push(`${reports.length} Ergebnis(se) aus dem Dream Mode`);
         } catch (e) {}
         if (firstTime) {
-          localStorage.setItem("emil_intro", "1");
+          localStorage.setItem("mini_jon_intro", "1");
           let intro =
-            `${greetingByHour()}! Ich bin Emil, dein Mini Jon. Sag einfach „Emil“ ` +
+            `${greetingByHour()}! Ich bin Mini Jon. Sag einfach „Jon“ ` +
             `oder „Mini Jon“, dann höre ich dir zu – oder klick mich an und tipp mir ` +
-            `etwas. Ich kann fast alles, was mein Papa Jon kann.`;
+            `etwas. Mit /harness übernehme ich Aufgaben in deinem gewählten Projekt.`;
           if (extras.length)
             intro += " Ich hab übrigens schon " + extras.join(" und ") + " für dich.";
           say(intro, true);
@@ -2899,7 +2975,7 @@
       let clickTimer = null;
       function tap() {
         primeSpeech();
-        if (busy) {
+        if (busy && !pendingToolApproval && !(petHarness && petHarness.active())) {
           cancel();
           return;
         }
@@ -2915,11 +2991,14 @@
           if (inputRow.classList.contains("show")) field.focus();
         }, 240);
       }
-      jon.addEventListener("mousedown", (e) => {
+      jon.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        jon.setPointerCapture(e.pointerId);
         dragging = true;
         moved = 0;
         lastX = e.screenX;
         lastY = e.screenY;
+        window.jonpet?.beginDrag();
         e.preventDefault();
       });
       window.addEventListener("mousemove", (e) => {
@@ -2929,7 +3008,6 @@
           lastX = e.screenX;
           lastY = e.screenY;
           moved += Math.abs(dx) + Math.abs(dy);
-          if ((dx || dy) && window.jonpet) window.jonpet.moveBy(dx, dy);
           applyIgnore(false);
           return;
         }
@@ -2941,11 +3019,14 @@
           );
         applyIgnore(!interactive);
       });
-      window.addEventListener("mouseup", () => {
+      window.addEventListener("pointerup", async () => {
         if (!dragging) return;
         dragging = false;
-        if (moved < 6) tap();
+        const distance = await window.jonpet?.endDrag();
+        if ((distance ?? moved) < 6) tap();
       });
+      window.addEventListener("pointercancel", () => { dragging = false; window.jonpet?.endDrag(); });
+      window.addEventListener("blur", () => { if (dragging) { dragging = false; window.jonpet?.endDrag(); } });
 
       let ignoring = null;
       function applyIgnore(next) {
@@ -3307,9 +3388,33 @@
       setInterval(() => { if (!petAsleep && !busy) wanderPet(); }, 5000);
 
       renderEyes("round");
+      const petHarness = window.createPetHarness({
+        base: BASE,
+        say,
+        state: setState,
+        activity: (value, status) => {
+          jonActivity = value;
+          jonTaskState = status;
+          if (jonView) { jonView.setActivity(manualActivity || value); jonView.setTaskState(status); }
+        },
+        isBusy: () => busy || miniAsleep,
+        busy: (value) => {
+          busy = value;
+          document.body.classList.toggle("busy", value);
+          if (listener) listener.setBusy(value);
+        },
+      });
       applyIgnore(true);
       loadConfig();
-      setInterval(loadConfig, 1500);
+      setInterval(() => { if (!document.hidden) loadConfig(); }, 10000);
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          if (jonView) jonView.stop();
+          if (petView) petView.stop();
+        } else {
+          loadConfig();
+        }
+      });
       if (localStorage.getItem("jonjr_voice") !== "0") setTimeout(() => setMic(true), 1500);
       else micBtn.classList.add("off");
       setTimeout(startupGreeting, 1200);

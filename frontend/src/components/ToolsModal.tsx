@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { SkillKurz, Werkzeug, WerkzeugGruppe, werkzeuge } from "../lib/api";
 import GeraetePanel from "./GeraetePanel";
 import HandyModal from "./HandyModal";
+import HarnessPanel from "./HarnessPanel";
+import AgentTeam from "./AgentTeam";
+import {harnessRequest} from "../lib/harness";
 
 const STUFENFARBE: Record<string, string> = {
   standard: "bg-emerald-500/15 text-emerald-200",
@@ -24,9 +27,11 @@ function Marke({ text, ton }: { text: string; ton: string }) {
 export default function ToolsModal({
   onClose,
   start,
+  onHarness,
 }: {
   onClose: () => void;
   start?: string;
+  onHarness?: () => void;
 }) {
   const [gruppen, setGruppen] = useState<WerkzeugGruppe[]>([]);
   const [skills, setSkills] = useState<SkillKurz[]>([]);
@@ -43,7 +48,7 @@ export default function ToolsModal({
         setGruppen(daten.gruppen);
         setSkills(daten.skills ?? []);
         const gewuenscht = start ?? "handy";
-        if (!daten.gruppen.some((g) => g.id === gewuenscht)) {
+        if (!["harness", "agents"].includes(gewuenscht) && !daten.gruppen.some((g) => g.id === gewuenscht)) {
           setAktiv(daten.gruppen[0]?.id ?? "");
         }
       } catch (e) {
@@ -102,6 +107,8 @@ export default function ToolsModal({
 
         <div className="px-5 pt-3">
           <input
+            aria-label="Werkzeuge durchsuchen"
+            type="search"
             value={suche}
             onChange={(e) => setSuche(e.target.value)}
             placeholder="Suchen … z. B. Handy, Datei, Kalender"
@@ -112,6 +119,8 @@ export default function ToolsModal({
         <div className="flex-1 min-h-0 flex gap-3 px-5 py-3">
           {!suche.trim() && (
             <div className="w-[190px] shrink-0 overflow-y-auto pr-1 space-y-1">
+              <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "harness" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => onHarness ? onHarness() : setAktiv("harness")}>🤖 Jon Harness</button>
+              <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "agents" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("agents")}>✦ Jon Fachteam</button>
               {gruppen.map((g) => (
                 <button
                   key={g.id}
@@ -142,6 +151,10 @@ export default function ToolsModal({
               </div>
             )}
 
+            {suche.trim() && /harness|agent|minijon|mitarbeiten|coden|coding/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => { setSuche(""); if (onHarness) onHarness(); else setAktiv("harness"); }}>🤖 Jon Harness öffnen · Projekte bearbeiten und mit MiniJon arbeiten</button>}
+            {!suche.trim() && aktiv === "harness" && <HarnessPanel />}
+            {suche.trim() && /team|agent|latein|lernen|fach|planung/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => {setSuche(""); setAktiv("agents");}}>✦ Jon Fachteam öffnen · Spezialisieren und gegenprüfen</button>}
+            {!suche.trim() && aktiv === "agents" && <AgentTeam request={harnessRequest}/>}
             {!suche.trim() && gruppenSkill && (
               <div className="rounded-xl border border-gold/25 bg-gold/[0.06] px-3 py-2.5">
                 <div className="text-[11px] text-gold/90">
@@ -196,7 +209,7 @@ export default function ToolsModal({
               </div>
             ))}
 
-            {!laedt && liste.length === 0 && (
+            {!laedt && liste.length === 0 && aktiv !== "harness" && (
               <div className="text-[12px] text-white/40">
                 {suche.trim()
                   ? "Nichts gefunden."

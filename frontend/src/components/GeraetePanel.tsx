@@ -10,6 +10,7 @@ import {
   handyRechtSetzen,
   saveUserSettings,
 } from "../lib/api";
+import GeraetFamilie from "./GeraetFamilie";
 
 const STUFEN: { id: string; titel: string; hinweis: string }[] = [
   {
@@ -29,9 +30,16 @@ const STUFEN: { id: string; titel: string; hinweis: string }[] = [
   },
 ];
 
+const NEUE_RECHTE = ["durchsage", "klingeln", "regeln"];
+
 const REIHE = [
+  "apps",
+  "musik",
   "status",
   "dateien",
+  "durchsage",
+  "klingeln",
+  "regeln",
   "hinweise",
   "zwischenablage",
   "standort",
@@ -206,7 +214,7 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
           onClick={onPair}
           className="shrink-0 px-3 py-1.5 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 text-[11px] text-gold/90"
         >
-          Handy verbinden …
+          Jon-Gerät einrichten …
         </button>
       </div>
 
@@ -246,7 +254,7 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
 
       {geraete.length === 0 && (
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-4 text-[11px] text-white/45">
-          Noch kein Handy verbunden. Über „Handy verbinden …“ zeigt Jon einen
+          Noch kein Handy verbunden. Über „Jon-Gerät einrichten …“ zeigt Jon einen
           Code und einen QR-Code für die Jon-App am Handy.
         </div>
       )}
@@ -328,13 +336,29 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
               </div>
             </div>
 
+            <GeraetFamilie
+              geraet={geraet}
+              neuLaden={() => void laden()}
+              melden={(text, istFehler) => {
+                if (istFehler) {
+                  setInfo("");
+                  setFehler(text);
+                } else {
+                  setFehler("");
+                  setInfo(text);
+                }
+              }}
+            />
+
             <div className="space-y-2">
               <div className="text-[10px] uppercase tracking-wider text-white/35">
                 Berechtigungen
               </div>
               {STUFEN.map((stufe) => {
                 const schluessel = REIHE.filter(
-                  (name) => (stufen[name] ?? "standard") === stufe.id
+                  (name) =>
+                    (stufen[name] ?? "standard") === stufe.id &&
+                    (!NEUE_RECHTE.includes(name) || faehig.includes(name))
                 );
                 if (schluessel.length === 0) return null;
                 return (

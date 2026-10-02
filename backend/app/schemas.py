@@ -20,7 +20,7 @@ class ChatIn(BaseModel):
     seed: int | None = None
     conversation_id: str | None = None
     persist: bool = True
-    tool_mode: str = Field(default="ask", pattern="^(ask|allow)$")
+    tool_mode: str = Field(default="ask", pattern="^(ask|allow|alles)$")
     tool_scope: str = Field(default="", pattern="^(gast|voll)?$")
     mode: str = Field(default="chat", pattern="^(chat|coding)$")
     persona: str = Field(default="papa", pattern="^(papa|junior)$")
@@ -29,6 +29,9 @@ class ChatIn(BaseModel):
     active_file: str | None = None
     source: str = ""
     force_tool: str = ""
+    werkzeuge: str = Field(default="", pattern="^(alle|klein)?$")
+    kinder: int = Field(default=0, ge=0, le=17)
+    sprache: str = Field(default="", pattern="^(de|en)?$")
 
 
 class ApproveIn(BaseModel):
@@ -484,6 +487,7 @@ class HealthOut(BaseModel):
     default_model: str
     available_providers: list[str]
     token_file: str = ""
+    system: str = ""
 
 
 class TrashRestoreIn(BaseModel):

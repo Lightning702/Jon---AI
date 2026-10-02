@@ -107,17 +107,42 @@ class AccountService:
         self._data: dict[str, dict] = self._load()
 
     def _load(self) -> dict:
-        if ACCOUNTS_FILE.exists():
-            try:
-                return json.loads(ACCOUNTS_FILE.read_text(encoding="utf-8"))
-            except Exception:
-                return {}
-        return {}
+        from app.core.krypto import ist_verschluesselt, text_lesen
+
+        if not ACCOUNTS_FILE.exists():
+            return {}
+        try:
+            daten = json.loads(ACCOUNTS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        if not isinstance(daten, dict):
+            return {}
+        klartext = False
+        for anbieter, eintrag in daten.items():
+            if not isinstance(eintrag, dict) or not eintrag.get("api_key"):
+                continue
+            if not ist_verschluesselt(eintrag["api_key"]):
+                klartext = True
+            eintrag["api_key"] = text_lesen(eintrag["api_key"], f"api-key:{anbieter}")
+        if klartext:
+            self._data = daten
+            self._save()
+        return daten
 
     def _save(self) -> None:
+        from app.core.krypto import text_verschluesseln
+
         try:
+            ablage = {}
+            for anbieter, eintrag in self._data.items():
+                kopie = dict(eintrag) if isinstance(eintrag, dict) else eintrag
+                if isinstance(kopie, dict) and kopie.get("api_key"):
+                    kopie["api_key"] = text_verschluesseln(
+                        str(kopie["api_key"]), f"api-key:{anbieter}"
+                    )
+                ablage[anbieter] = kopie
             atomic_write_text(ACCOUNTS_FILE,
-                json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
+                json.dumps(ablage, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except Exception as _fehler:
             leise(_fehler, "services/account_service")

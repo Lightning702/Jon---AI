@@ -13,11 +13,14 @@ from app.core.fehler import leise
 SKILLS_DIR = ROOT_DIR / "skills"
 SECRET_KEYS = {
     "mail_imap_password",
+    "calendar_ics_url",
     "telegram_bot_token",
+    "mini_jon_bot_token",
     "ha_token",
     "spotify_client_secret",
+    "phone_sip_password",
 }
-SKIP = {"backend.log", "chat_key.bin"}
+SKIP = {"backend.log", "chat_key.bin", "master.key", "krypto.json", "access.token"}
 
 
 def export_backup(include_keys: bool = False) -> bytes:
@@ -75,7 +78,7 @@ def import_backup(raw: bytes) -> dict:
             target = SKILLS_DIR / Path(name[7:]).name
         else:
             continue
-        if ".." in Path(name).parts:
+        if ".." in Path(name).parts or Path(name).name in SKIP:
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
         with archive.open(name) as source, target.open("wb") as handle:

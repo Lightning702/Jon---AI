@@ -10,7 +10,6 @@ import time
 from app.core.config import DATA_DIR
 from app.core.fehler import leise
 from app.core.logbook import logger as logbook_logger
-from app.core.store import atomic_write_json, read_json
 from app.services.handy_service import (
     _entschluesseln,
     _unb64,
@@ -187,13 +186,19 @@ class VerbundService:
         self._draehte: dict[str, Draht] = {}
 
     def _laden(self) -> dict:
-        daten = read_json(SPEICHER, _leer())
+        from app.core.krypto import ist_klartext_datei, json_lesen, json_schreiben
+
+        daten = json_lesen(SPEICHER, _leer(), "verbund")
         if not isinstance(daten, dict) or "geraete" not in daten:
             return _leer()
+        if ist_klartext_datei(SPEICHER):
+            json_schreiben(SPEICHER, daten, "verbund")
         return daten
 
     def _sichern(self) -> None:
-        atomic_write_json(SPEICHER, self._daten)
+        from app.core.krypto import json_schreiben
+
+        json_schreiben(SPEICHER, self._daten, "verbund")
 
     def _eigener_name(self) -> str:
         from app.services.handy_service import get_handy_service
@@ -272,13 +277,14 @@ class VerbundService:
                 self._sichern()
         return geaendert
 
-    def koppeln(self, code: str, makler: dict | None = None) -> dict:
+    def koppeln(self, code: str, makler: dict | None = None, adresse: str = "") -> dict:
         sauber = code_saeubern(str(code or ""))
         if len(sauber) < 8:
             raise VerbundFehler("Der Code sieht nicht vollstaendig aus.")
         host = str((makler or {}).get("host", "") or "broker.hivemq.com")
         port = int((makler or {}).get("port", 1883) or 1883)
-        draht = self._draht(host, port)
+        from app.services.geraete_vpn import DirektDraht
+        draht = DirektDraht(adresse) if adresse else self._draht(host, port)
         thema = f"{BASIS}/code/{thema_fuer(sauber)}"
         schluessel = schluessel_fuer_code(sauber)
         kennung = thema_fuer(sauber)
@@ -342,9 +348,8 @@ class VerbundService:
             "geraete_id": str(ergebnis.get("geraet") or ""),
             "schluessel": str(ergebnis.get("schluessel") or ""),
             "token": str(ergebnis.get("token") or ""),
-            "adressen": [
-                str(a) for a in (ergebnis.get("adressen") or []) if str(a).strip()
-            ],
+            "adressen": list(dict.fromkeys(([draht.adresse] if adresse else []) + [str(a) for a in (ergebnis.get("adressen") or []) if str(a).strip()])),
+            "direct_only": bool(adresse) or bool(ergebnis.get("direct_only")),
             "broker": {"host": str(broker.get("host")), "port": int(broker.get("port"))},
             "plattform": "",
             "erstellt": time.time(),
@@ -375,6 +380,8 @@ class VerbundService:
         if direkt is not None:
             self._merken(eintrag, "heimnetz")
             return direkt
+        if eintrag.get("direct_only"):
+            raise VerbundFehler("Pi über LAN/VPN nicht erreichbar. Tailscale prüfen.")
         antwort = await asyncio.to_thread(
             self._ueber_relais, eintrag, methode, pfad, rumpf, query, wartezeit
         )
@@ -400,25 +407,21 @@ class VerbundService:
             return None
         import httpx
 
-        kopf = {"X-Jon-Token": str(eintrag.get("token", ""))}
-        for basis in adressen[:3]:
-            ziel = basis.rstrip("/") + (pfad if pfad.startswith("/") else "/" + pfad)
+        from app.services.handy_service import _verschluesseln, _entschluesseln
+        schluessel = _unb64(str(eintrag.get("schluessel", "")))
+        kennung = str(eintrag.get("geraete_id", ""))
+        aad = f"dev:{kennung}".encode()
+        inhalt = {"op": "call", "rid": secrets.token_hex(8), "method": methode.upper(), "path": pfad, "body": rumpf, "query": query}
+        paket = {"v": 2, "k": "dev", "i": kennung, **_verschluesseln(schluessel, aad, inhalt)}
+        for basis in adressen[:4]:
             try:
-                async with httpx.AsyncClient(timeout=6.0) as klient:
-                    antwort = await klient.request(
-                        methode.upper(),
-                        ziel,
-                        params=query or None,
-                        json=rumpf if isinstance(rumpf, (dict, list)) else None,
-                        headers=kopf,
-                    )
+                async with httpx.AsyncClient(timeout=12.0, follow_redirects=False) as klient:
+                    antwort = await klient.post(basis.rstrip("/") + "/api/handy/gate", json=paket)
+                antwort.raise_for_status()
+                daten = _entschluesseln(schluessel, aad, antwort.json())
+                return {"ok": bool(daten.get("ok")), "code": int(daten.get("code", 0)), "text": str(daten.get("text", ""))}
             except Exception:
                 continue
-            return {
-                "ok": antwort.status_code < 400,
-                "code": antwort.status_code,
-                "text": antwort.text,
-            }
         return None
 
     def _ueber_relais(

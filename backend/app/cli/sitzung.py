@@ -327,6 +327,9 @@ class JonTerminal:
             "Du laeufst gerade im Terminal. Antworte knapp und ohne Markdown-Tabellen, "
             "Ueberschriften und Sternchen - reiner Text mit kurzen Absaetzen."
         )
+        from app.services.personality import CONSCIENCE, JON
+
+        teile.extend([JON, CONSCIENCE])
         from app.services.systemprompt import mit_herkunft
 
         return mit_herkunft("\n\n".join(teile))
@@ -355,6 +358,12 @@ class JonTerminal:
             anfrage.model = modell
             begonnen = False
             gezeigt = False
+            ausgefuehrt = False
+
+            async def tracked_executor(*args, **kwargs):
+                nonlocal ausgefuehrt
+                ausgefuehrt = True
+                return await box.execute(*args, **kwargs)
             beschriftet = False
             try:
                 anbieter = self.registry.get(name)
@@ -363,7 +372,7 @@ class JonTerminal:
                 continue
             gelaufen = True
             try:
-                async for stueck in anbieter.stream(anfrage, box.execute):
+                async for stueck in anbieter.stream(anfrage, tracked_executor):
                     if not begonnen:
                         begonnen = True
                         mark_fast(name, modell)
@@ -392,7 +401,7 @@ class JonTerminal:
                 break
             except Exception as fehler:
                 mark_slow(name, modell)
-                if gezeigt:
+                if gezeigt or ausgefuehrt:
                     self.sag("\n" + self.stift(f"Fehler: {fehler}", ROT))
                     return
                 if stelle + 1 >= len(versuche):
@@ -640,15 +649,9 @@ class JonTerminal:
         elif wort in _SCHLUESSEL:
             self._schluessel_befehl(rest)
         elif wort == "agent":
-            self.sag(
-                self.stift("Agenten-Modus", TUERKIS, FETT)
-                + self.stift(
-                    "\n  Beschreib einfach dein Ziel — Jon plant, ändert Dateien, "
-                    "startet Builds\n  und Tests und arbeitet, bis es fertig ist.",
-                    HELL,
-                )
-            )
-            self.sag()
+            from app.cli.harness import HarnessTerminal
+
+            await HarnessTerminal(self.ordner, self.anbieter, self.modell, 40).session(rest)
         else:
             return True
         return True

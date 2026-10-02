@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import io
+import json
 import tempfile
+import urllib.parse
+import urllib.request
+import wave
 from pathlib import Path
 
 import speech_recognition as sr
@@ -18,10 +22,48 @@ def _get_whisper():
     try:
         from faster_whisper import WhisperModel
 
-        _whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
+        bundled = Path(__file__).resolve().parents[2] / "assets" / "models" / "whisper-base"
+        _whisper_model = WhisperModel(str(bundled) if (bundled / "model.bin").is_file() else "base", device="cpu", compute_type="int8")
     except Exception:
         _whisper_failed = True
     return _whisper_model
+
+
+GOOGLE_SPRACHE = "http://www.google.com/speech-api/v2/recognize"
+GOOGLE_SCHLUESSEL = "AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw"
+
+
+def _google_rohdaten(data: bytes, language: str) -> str:
+    with wave.open(io.BytesIO(data), "rb") as wav:
+        if wav.getsampwidth() != 2 or wav.getnchannels() != 1:
+            return ""
+        rate = wav.getframerate()
+        pcm = wav.readframes(wav.getnframes())
+    if not pcm:
+        return ""
+    query = urllib.parse.urlencode(
+        {"client": "chromium", "lang": language, "key": GOOGLE_SCHLUESSEL, "pFilter": 0}
+    )
+    anfrage = urllib.request.Request(
+        f"{GOOGLE_SPRACHE}?{query}",
+        data=pcm,
+        headers={"Content-Type": f"audio/l16; rate={rate};"},
+    )
+    with urllib.request.urlopen(anfrage, timeout=20) as antwort:
+        text = antwort.read().decode("utf-8", errors="replace")
+    for zeile in text.splitlines():
+        if not zeile.strip():
+            continue
+        try:
+            ergebnis = json.loads(zeile).get("result") or []
+        except ValueError:
+            continue
+        for eintrag in ergebnis:
+            for alternative in eintrag.get("alternative") or []:
+                satz = str(alternative.get("transcript", "")).strip()
+                if satz:
+                    return satz[:1].upper() + satz[1:]
+    return ""
 
 
 class VoiceService:
@@ -48,6 +90,10 @@ class VoiceService:
                     Path(temp_path).unlink(missing_ok=True)
             except Exception as _fehler:
                 leise(_fehler, "services/voice_service")
+        try:
+            return _google_rohdaten(data, language)
+        except Exception as _fehler:
+            leise(_fehler, "services/voice_service")
         with sr.AudioFile(io.BytesIO(data)) as source:
             audio = self._recognizer.record(source)
         try:
@@ -69,7 +115,9 @@ async def synthesize_speech(
 ) -> bytes:
     import edge_tts
 
-    clean = text.strip()[:1200]
+    clean = text.strip()
+    if len(clean) > 80000:
+        raise ValueError("Die Sprachausgabe unterstützt höchstens 80.000 Zeichen pro Auftrag.")
     if not clean:
         return b""
     communicate = edge_tts.Communicate(

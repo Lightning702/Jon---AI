@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 import time
 
 from fastapi import APIRouter, HTTPException, Request
@@ -114,6 +115,7 @@ async def health() -> HealthOut:
         default_model=settings.jon_model,
         available_providers=registry.available(),
         token_file=str(TOKEN_FILE),
+        system="windows" if sys.platform.startswith("win") else "mac" if sys.platform == "darwin" else "linux",
     )
 
 

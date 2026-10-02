@@ -309,12 +309,30 @@ async def _initiative(box: Any, args: dict, name: str = "") -> str:
 @werkzeug_async("team")
 async def _team(box: Any, args: dict, name: str = "") -> str:
     from app.services.agenten_service import get_agenten_service
+    from app.services.tools import _QUELLE
 
     return antwort(
         await get_agenten_service().bearbeiten(
-            str(args.get("aufgabe", "")), int(args.get("agenten", 3) or 3)
+            str(args.get("aufgabe", "")), int(args.get("agenten", 3) or 3),
+            source=_QUELLE.get() or box._source,
+            slot=getattr(box, "_slot", "jon"),
+            persist=getattr(box, "_persist", True),
+            research=args.get("internet") is True,
         )
     )
+
+
+@werkzeug_async("youtube_transkript")
+async def _youtube_transkript(box: Any, args: dict, name: str = "") -> str:
+    import asyncio
+    from app.services.media_service import fetch_youtube, get_media_service
+
+    data = await asyncio.to_thread(fetch_youtube, str(args.get("url", "")))
+    text = data.pop("text")
+    data["zusammenfassung"] = await get_media_service().summarize(text, data["title"], slot=getattr(box, "slot", "jon"))
+    data["zeichen"] = len(text)
+    data["hinweis"] = "Aus den Untertiteln, nicht aus einer Sichtung der Videobilder."
+    return antwort(data)
 
 
 @werkzeug_async("lernen")

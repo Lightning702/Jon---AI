@@ -48,11 +48,12 @@ async def gate_stream(request: Request) -> StreamingResponse:
 
 
 @router.post("/pairing/start")
-async def pairing_start() -> dict:
+async def pairing_start(direct_only: bool = False) -> dict:
     from app.services.handy_relay import get_handy_relay
 
-    daten = get_handy_service().kopplung_starten()
-    daten["relay"] = await asyncio.to_thread(get_handy_relay().sofort)
+    daten = await asyncio.to_thread(get_handy_service().kopplung_starten, direct_only)
+    if not direct_only:
+        daten["relay"] = await asyncio.to_thread(get_handy_relay().sofort)
     return daten
 
 
@@ -87,6 +88,18 @@ async def pairing_qr(text: str, groesse: int = 640) -> Response:
 
 
 def _qr_png(text: str, groesse: int) -> bytes | None:
+    if len(text) > 4096:
+        return None
+    groesse = max(128, min(1024, groesse))
+    try:
+        import io
+        import qrcode
+        bild = qrcode.make(text)
+        puffer = io.BytesIO()
+        bild.save(puffer, format="PNG")
+        return puffer.getvalue()
+    except ImportError:
+        pass
     try:
         import cv2
         import numpy as np
@@ -170,6 +183,94 @@ async def device_file(device_id: str, payload: dict) -> dict:
     return ergebnis
 
 
+def _nur_eltern() -> None:
+    from app.services.geraete_funktionen import HANDY_KONTEXT
+
+    if HANDY_KONTEXT.get():
+        raise HTTPException(status_code=403, detail="Das geht nur in Jon am PC oder Pi.")
+
+
+@router.post("/devices/{device_id}/durchsage")
+async def device_announce(device_id: str, payload: dict) -> dict:
+    _nur_eltern()
+    try:
+        return await get_handy_service().durchsage(
+            device_id,
+            str(payload.get("text", "")),
+            bool(payload.get("vorlesen", True)),
+            str(payload.get("von", "")),
+        )
+    except HandyFehler as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/devices/{device_id}/klingeln")
+async def device_ring(device_id: str, payload: dict | None = None) -> dict:
+    _nur_eltern()
+    try:
+        return await get_handy_service().klingeln(device_id, (payload or {}).get("sekunden", 30))
+    except HandyFehler as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/devices/{device_id}/regeln")
+async def device_rules(device_id: str, payload: dict) -> dict:
+    _nur_eltern()
+    try:
+        return {"bildschirmzeit": await get_handy_service().regeln_setzen(device_id, payload)}
+    except HandyFehler as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/meldungen/neu")
+async def alerts_new() -> dict:
+    _nur_eltern()
+    return {"meldungen": get_handy_service().meldungen_neu()}
+
+
+@router.post("/devices/{device_id}/meldungen/{meldung_id}/quittieren")
+async def alert_ack(device_id: str, meldung_id: str) -> dict:
+    _nur_eltern()
+    return {"ok": get_handy_service().meldung_quittieren(device_id, meldung_id)}
+
+
+@router.get("/devices/{device_id}/bericht")
+def wochenbericht(device_id: str, bis: str = "") -> dict:
+    _nur_eltern()
+    try:
+        return get_handy_service().wochenbericht(device_id, bis)
+    except HandyFehler as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/mein-bericht")
+def mein_wochenbericht() -> dict:
+    from app.services.geraete_funktionen import HANDY_KONTEXT
+
+    geraet = HANDY_KONTEXT.get()
+    if not geraet:
+        raise HTTPException(status_code=404, detail="Nur für gekoppelte Handys.")
+    try:
+        return get_handy_service().wochenbericht(geraet)
+    except HandyFehler as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.post("/devices/{device_id}/zeitanfragen/{meldung_id}")
+async def zeitanfrage_beantworten(device_id: str, meldung_id: str, payload: dict) -> dict:
+    _nur_eltern()
+    minuten = payload.get("minuten")
+    try:
+        return await get_handy_service().zeitanfrage_beantworten(
+            device_id,
+            meldung_id,
+            bool(payload.get("erlaubt")),
+            int(minuten) if isinstance(minuten, (int, float)) else None,
+        )
+    except HandyFehler as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
 @router.get("/connectors")
 async def connectors() -> dict:
     from app.services.connectors import get_connector_manager
@@ -195,3 +296,9 @@ async def system() -> dict:
     from app.services.geraet_service import uebersicht
 
     return await asyncio.to_thread(uebersicht)
+
+
+@router.get("/vpn")
+async def vpn_status() -> dict:
+    from app.services.geraete_vpn import tailscale_status
+    return await asyncio.to_thread(tailscale_status)

@@ -1,6 +1,6 @@
 {
   "name": "jon-desktop",
-  "version": "4.55.1",
+  "version": "4.57.0",
   "description": "Jon - Der moderne KI-Desktop-Assistent",
   "author": "FelWorks",
   "license": "MIT",
@@ -11,13 +11,17 @@
     "dev": "concurrently -k \"npm run dev:vite\" \"wait-on tcp:127.0.0.1:5173 && npm run dev:electron\"",
     "build": "tsc -b && vite build",
     "start": "node electron/launch.cjs",
-    "package": "npm run build && electron-builder"
+    "package": "npm run build && electron-builder",
+    "build:mobile": "tsc -p mobile/tsconfig.json && vite build --config mobile/vite.config.ts"
   },
   "dependencies": {
     "framer-motion": "^11.15.0",
+    "lucide-react": "^1.48.0",
     "maplibre-gl": "^5.24.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",

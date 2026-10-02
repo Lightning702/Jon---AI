@@ -6,6 +6,7 @@ import threading
 import time
 
 from app.core.config import DATA_DIR
+from app.services.tool_result import succeeded
 from app.core.fehler import leise
 from app.core.store import atomic_write_text
 
@@ -18,16 +19,11 @@ LEBENSDAUER = {
     "get_weather": 1800,
     "http_get": 600,
     "maps": 3600,
-    "ask_knowledge": 600,
-    "list_documents": 300,
-    "read_pdf": 3600,
-    "read_pptx": 3600,
     "system_info": 60,
     "list_printers": 3600,
     "scan_network": 600,
     "smarthome_devices": 120,
     "spotify_search": 900,
-    "project_overview": 120,
 }
 
 
@@ -90,7 +86,7 @@ class CacheService:
             return
         if not wert or len(wert) > MAX_ANTWORT:
             return
-        if '"error"' in wert[:200] or '"fehler"' in wert[:200]:
+        if not succeeded(wert):
             return
         schluessel = _schluessel(name, args)
         with self._lock:

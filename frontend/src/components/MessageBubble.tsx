@@ -5,6 +5,7 @@ import { toolDetail, toolLabel } from "../lib/toolInfo";
 import { ohneTabellen } from "../lib/text";
 import type { MapsCardData } from "../lib/maps";
 import type { BrowserTaskDaten, JonDatei, JonUhr, JonWecker, StudioWork } from "../lib/api";
+import type { ZeitAnfrageDaten } from "./ZeitAnfrageCard";
 
 const MapsCard = lazy(() => import("./MapsCard"));
 const DeepLearningCard = lazy(() => import("./DeepLearningCard"));
@@ -12,6 +13,8 @@ const BildCard = lazy(() => import("./BildCard"));
 const DateiCard = lazy(() => import("./DateiCard"));
 const BrowserCard = lazy(() => import("./BrowserCard"));
 const ZeitCard = lazy(() => import("./ZeitCard"));
+const ZeitAnfrageCard = lazy(() => import("./ZeitAnfrageCard"));
+const Wochenbericht = lazy(() => import("./Wochenbericht"));
 
 export interface ToolStep {
   name: string;
@@ -32,7 +35,9 @@ export type ChatCard =
   | { id: string; kind: "bild"; data: StudioWork }
   | { id: string; kind: "browser"; data: BrowserTaskDaten }
   | { id: string; kind: "datei"; data: { dateien: JonDatei[] } }
-  | { id: string; kind: "zeit"; data: { uhren: JonUhr[]; wecker?: JonWecker[] } };
+  | { id: string; kind: "zeit"; data: { uhren: JonUhr[]; wecker?: JonWecker[] } }
+  | { id: string; kind: "zeitanfrage"; data: ZeitAnfrageDaten }
+  | { id: string; kind: "wochenbericht"; data: { geraet: string; bis?: string } };
 
 export interface ChatEntry {
   id: string;
@@ -193,6 +198,10 @@ export default function MessageBubble({
                     uhren={card.data.uhren ?? []}
                     wecker={card.data.wecker}
                   />
+                ) : card.kind === "zeitanfrage" ? (
+                  <ZeitAnfrageCard key={card.id} data={card.data} />
+                ) : card.kind === "wochenbericht" ? (
+                  <Wochenbericht key={card.id} geraet={card.data.geraet} bis={card.data.bis} />
                 ) : (
                   <DeepLearningCard
                     key={card.id}

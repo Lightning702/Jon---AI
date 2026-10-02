@@ -638,6 +638,10 @@ class StudioService:
             params["model"] = model
         if negative:
             params["negative"] = negative
+        from app.core.kinderschutz import KINDER_ALTER
+
+        if KINDER_ALTER.get():
+            params["safe"] = "true"
         url = f"https://image.pollinations.ai/prompt/{quote(prompt[:900], safe='')}"
         async with self._client(240.0) as client:
             response = await client.get(url, params=params)

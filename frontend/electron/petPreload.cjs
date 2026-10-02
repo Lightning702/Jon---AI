@@ -8,8 +8,11 @@ contextBridge.exposeInMainWorld("jonTokenHolen", () =>
 
 contextBridge.exposeInMainWorld("jonpet", {
   showApp: () => ipcRenderer.invoke("app:show"),
+  prepareScreen: () => ipcRenderer.invoke("pet:prepareScreen"),
+  restoreScreen: () => ipcRenderer.invoke("pet:restoreScreen"),
   hide: () => ipcRenderer.invoke("pet:hide"),
-  moveBy: (dx, dy) => ipcRenderer.invoke("pet:moveBy", dx, dy),
+  beginDrag: () => ipcRenderer.invoke("pet:beginDrag"),
+  endDrag: () => ipcRenderer.invoke("pet:endDrag"),
   setIgnore: (ignore) => ipcRenderer.invoke("pet:setIgnore", ignore),
   openPrivate: () => ipcRenderer.invoke("private:open"),
   openPrivateInApp: () => ipcRenderer.invoke("private:open-in-app"),

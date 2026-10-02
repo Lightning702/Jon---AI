@@ -16,7 +16,6 @@ from typing import Any
 import httpx
 
 from app.core.config import DATA_DIR
-from app.core.store import atomic_write_text
 from app.core.fehler import leise
 
 SHARE_FILE = DATA_DIR / "ollama_share.json"
@@ -94,10 +93,9 @@ class OllamaShareService:
     def _load(self) -> dict:
         data = {"share": dict(SHARE_DEFAULTS), "grants": {}, "invites": {}, "remotes": {}}
         if SHARE_FILE.exists():
-            try:
-                stored = json.loads(SHARE_FILE.read_text(encoding="utf-8"))
-            except Exception:
-                stored = {}
+            from app.core.krypto import json_lesen
+
+            stored = json_lesen(SHARE_FILE, {}, "ollama-freigabe")
             if isinstance(stored, dict):
                 share = stored.get("share")
                 if isinstance(share, dict):
@@ -114,11 +112,11 @@ class OllamaShareService:
         return data
 
     def _save(self) -> None:
+        from app.core.krypto import json_schreiben
+
         try:
             SHARE_FILE.parent.mkdir(parents=True, exist_ok=True)
-            atomic_write_text(SHARE_FILE,
-                json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            json_schreiben(SHARE_FILE, self._data, "ollama-freigabe")
         except Exception as _fehler:
             leise(_fehler, "services/ollama_share_service")
 

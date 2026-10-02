@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { extractAttachment } from "../lib/api";
+import {uploadMedia} from "../lib/media";
 import { SlashCommand, matchCommands } from "../lib/commands";
 import { useT } from "../hooks/useT";
 
@@ -11,6 +12,7 @@ export interface PendingAttachment {
   content?: string;
   error?: string;
   pfad?: string;
+  mediaId?: string;
 }
 
 interface Props {
@@ -28,7 +30,8 @@ const COMMAND_INPUT = /^\/[a-zA-Z0-9äöüßÄÖÜ_-]*$/;
 const kindIcon = (kind: string, status: string) => {
   if (status === "loading") return "⏳";
   if (status === "error") return "⚠️";
-  if (kind === "image") return "🖼️";
+    if (kind === "image") return "🖼️";
+    if (kind === "audio") return "🎙️";
   if (kind === "pdf") return "📄";
   return "📎";
 };
@@ -63,6 +66,11 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
     for (const file of Array.from(files)) {
       const id = nextAttId();
       const mime = file.type || "";
+      if (mime.startsWith("audio/") || mime.startsWith("video/") || /\.(mp3|wav|m4a|ogg|opus|flac|aac|wma|mp4|webm|mov|mkv)$/i.test(file.name)) {
+        setAttachments(prev => [...prev, {id, name: file.name, kind: "audio", status: "loading"}]);
+        void uploadMedia(file).then(value => setAttachments(prev => prev.map(item => item.id === id ? {...item, status: "ready", mediaId: value.id, content: "Audiodatei hochgeladen. Verwende /transkript für den vollständigen Text."} : item))).catch(e => setAttachments(prev => prev.map(item => item.id === id ? {...item, status: "error", error: e.message} : item)));
+        continue;
+      }
       const kind = mime.startsWith("image/")
         ? "image"
         : mime === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
@@ -278,7 +286,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
               ref={fileRef}
               type="file"
               multiple
-              accept=".pdf,.txt,.md,.csv,.json,.log,.py,.js,.ts,.tsx,.html,.css,image/*"
+              accept=".pdf,.txt,.md,.csv,.json,.log,.py,.js,.ts,.tsx,.html,.css,image/*,audio/*,video/*,.mp3,.m4a,.flac,.opus"
               className="hidden"
               onChange={(e) => {
                 if (e.target.files) addFiles(e.target.files);
