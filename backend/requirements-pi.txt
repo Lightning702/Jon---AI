@@ -13,6 +13,7 @@ audioop-lts>=0.2; python_version >= "3.13"
 pypdf>=5.0
 edge-tts>=6.1
 cryptography>=43.0
+argon2-cffi>=25.1
 paho-mqtt>=2.0
 yt-dlp>=2026.1.1
 faster-whisper>=1.2

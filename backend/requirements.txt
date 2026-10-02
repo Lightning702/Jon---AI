@@ -18,6 +18,7 @@ python-pptx>=1.0
 opencv-python>=4.10
 edge-tts>=6.1
 cryptography>=43.0
+argon2-cffi>=25.1
 paho-mqtt>=2.0
 yt-dlp>=2026.1.1
 pynput>=1.7
