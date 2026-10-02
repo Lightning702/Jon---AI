@@ -8,6 +8,8 @@ Eine MP3 oder andere Audiodatei im Chat anhängen und `/transkript` senden. Alte
 
 Die gesamte Tonspur wird mit dem lokalen Whisper-Modell transkribiert. Das Windows-Paket enthält dieses Modell. Im Quellcodebetrieb wird es beim ersten Gebrauch heruntergeladen; hierfür ist einmalig Internet nötig. Bei langsamen Rechnern dauern lange Aufnahmen entsprechend länger.
 
+Für einen Pi aus dem Quellcode müssen die aktuellen Abhängigkeiten aus `backend/requirements-pi.txt` in seiner bestehenden Python-Umgebung installiert sein. Ein reines Code-Update installiert keine fehlenden Bibliotheken.
+
 **Vollständiges Transkript herunterladen** liefert die gesamte Textdatei. Bei langen Ergebnissen ist nur die Bildschirmvorschau gekürzt. Die optionale Zusammenfassung übergibt das Transkript abschnittsweise an das eingestellte KI-Modell. Erkennungsfehler können vorkommen.
 
 ## YouTube zusammenfassen
