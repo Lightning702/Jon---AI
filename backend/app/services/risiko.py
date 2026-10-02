@@ -13,6 +13,7 @@ EXTERN = "extern"
 ZERSTOEREND = "zerstoerend"
 
 LESE_TOOLS = {
+    "team",
     "get_screen_info",
     "list_windows",
     "wait",

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "../../electron/pet3d.js";
 import { motion } from "framer-motion";
+import MiniJonWork from "./MiniJonWork";
 import {
   ProviderStatus,
   getProviders,
@@ -409,6 +410,10 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
                   : "Mini Jon plaudert — ein schnelles Modell antwortet in ~2 s. Deine Auswahl hier gilt immer. Steht der Anbieter auf „Wie Jon“, übernimmt Mini Jon Jons Anbieter und Modell, sobald Jon nicht auf NVIDIA läuft."}
               </div>
             </div>
+          </div>
+
+          <div className="w-full">
+            <MiniJonWork />
           </div>
 
           <div className="w-full flex items-center justify-between pt-1">

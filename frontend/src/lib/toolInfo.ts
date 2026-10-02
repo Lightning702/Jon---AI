@@ -99,6 +99,8 @@ export const TOOL_LABELS: Record<string, string> = {
   browser_status: "Browser-Status",
   browser_confirm: "Aktion freigeben",
   browser_close: "Browser schließen",
+  team: "Fachteam",
+  harness_task: "Jon Harness",
 };
 
 export function toolLabel(name: string): string {

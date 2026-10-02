@@ -37,6 +37,7 @@ class StartTask(BaseModel):
     provider: str = ""
     model: str = ""
     max_steps: int = Field(default=40, ge=1, le=100)
+    companion: bool = False
 
 
 class Approval(BaseModel):

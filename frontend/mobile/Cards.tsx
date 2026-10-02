@@ -4,6 +4,9 @@ import {AlarmClock, ChevronRight, Download, Film, Globe, LoaderCircle, Play, Tel
 import {api, binary, call, enc, saveFile} from "./bridge";
 import {Markdown, PiImage, errorText, saveStudio, showImage, spring} from "./ui";
 import {openFile} from "./Viewer";
+import FachteamKarte from "../src/components/agenten/FachteamKarte";
+import HarnessKarte from "../src/components/agenten/HarnessKarte";
+import {agentenAnfrage} from "./agenten";
 
 const MapCard = lazy(() => import("./MapCard"));
 
@@ -130,6 +133,8 @@ export function ResultCards({cards, notify, ohneDateien = false}: {cards: any[];
     if (card.kind === "maps") return <Suspense key={i} fallback={<div className="map-slot"><div className="map-card"><div className="map-mini"><span className="slide-skeleton"/></div></div></div>}><MapCard data={data}/></Suspense>;
     if (card.kind === "browser") return <div className="card" key={i}><h4><Globe/>{data.titel || "Browser-Aufgabe"}</h4>{data.auftrag && <p>{data.auftrag}</p>}{(data.schritte || []).slice(-4).map((s: any, n: number) => <p key={n} className="small muted">{typeof s === "string" ? s : s.text || s.beschreibung || s.aktion}</p>)}{data.url && <button className="text-link small" onClick={() => call("copy", {text: data.url}).then(() => notify("Link kopiert."))}>{data.url}</button>}</div>;
     if (card.kind === "deep_learning") return <Research key={i} data={data} notify={notify}/>;
+    if (card.kind === "agenten" && data.id) return <div className="agenten-karte" key={i}><FachteamKarte id={data.id} aufgabe={data.aufgabe} request={agentenAnfrage}/></div>;
+    if (card.kind === "harness" && data.id) return <div className="agenten-karte" key={i}><HarnessKarte id={data.id} request={agentenAnfrage}/></div>;
     return null;
   })}</>;
 }

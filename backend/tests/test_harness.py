@@ -27,8 +27,8 @@ async def finish(service, task):
     return service.get(task["id"])
 
 
-@pytest.mark.parametrize("source,slot", [("minijon", "emil"), ("app", "jon")])
-def test_harness_and_specialist_use_channel_credentials(tmp_path, monkeypatch, source, slot):
+@pytest.mark.parametrize("source,companion", [("minijon", False), ("app", True), ("app", False)])
+def test_harness_uses_jon_model_and_minijon_only_accompanies(tmp_path, monkeypatch, source, companion):
     from app.services import mini_jon_agent
 
     agent = MiniJonAgent(tmp_path / "agent.json")
@@ -46,16 +46,37 @@ def test_harness_and_specialist_use_channel_credentials(tmp_path, monkeypatch, s
 
     async def run():
         service = HarnessService(tmp_path / "tasks", model)
-        task = service.start("Projekt prüfen", str(tmp_path), source=source)
-        if source == "minijon":
-            assert agent.state["task_id"] == task["id"]
+        task = service.start("Projekt prüfen", str(tmp_path), source=source, companion=companion)
+        assert task["companion"] == (companion or source == "minijon")
+        assert agent.state["task_id"] == (task["id"] if task["companion"] else "")
         result = await finish(service, task)
         assert result["status"] == "done"
         assert result["specialists"][0]["status"] == "done"
+        assert result["specialists"][0]["profil"] == "coding"
         assert not agent.state["task_id"]
 
     asyncio.run(run())
-    assert calls == [slot, slot, slot]
+    assert calls == ["jon", "jon", "jon"]
+
+
+def test_harness_reads_wrapped_json_and_stops_after_repeated_format_errors(tmp_path):
+    from app.services.harness.service import aktion_lesen
+
+    assert aktion_lesen('Gern! {"tool":"finish","args":{"summary":"ok"}} Fertig.')["tool"] == "finish"
+    assert aktion_lesen('```json\n{"tool":"list","args":{}}\n```')["tool"] == "list"
+    with pytest.raises(ValueError):
+        aktion_lesen("Ich würde zuerst die Dateien lesen.")
+
+    async def model(*args, **kwargs):
+        return "Ich schaue mir das an."
+
+    async def run():
+        service = HarnessService(tmp_path / "tasks", model)
+        result = await finish(service, service.start("Projekt prüfen", str(tmp_path)))
+        assert result["status"] == "failed"
+        assert "stärkeres Modell" in result["summary"]
+
+    asyncio.run(run())
 
 
 def test_workspace_requires_read_and_rejects_concurrent_edit(tmp_path):

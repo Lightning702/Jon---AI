@@ -9,6 +9,8 @@ export const KARTEN_ARTEN = [
   "zeit",
   "zeitanfrage",
   "wochenbericht",
+  "agenten",
+  "harness",
 ] as const;
 
 export type KartenArt = (typeof KARTEN_ARTEN)[number];

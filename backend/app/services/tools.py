@@ -214,6 +214,7 @@ GUEST_TOOLS = {
 CORE_TOOLS = {
     "understand_screen",
     "harness_task",
+    "team",
     "run_powershell",
     "run_cmd",
     "start_program",
@@ -276,6 +277,7 @@ _CHDIR_RE = re.compile(
 
 CODING_TOOLS = {
     "harness_task",
+    "team",
     "run_powershell",
     "run_cmd",
     "project_overview",
@@ -598,6 +600,11 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "merk dir",
             "notier",
             "team",
+            "fachteam",
+            "agenten",
+            "experten",
+            "gegenpruef",
+            "gegenprüf",
             "vergleich",
             "recherche",
             "lern",
@@ -2259,9 +2266,12 @@ class ToolBox:
             ),
             _tool(
                 "team",
-                "Teilt eine komplexe Fachfrage, Lernaufgabe, Planung oder Recherche auf spezialisierte Teilagenten auf, "
-                "laesst sie gleichzeitig arbeiten und fasst die Ergebnisse zusammen. "
-                "Nur fuer lesende Aufgaben (vergleichen, sammeln, pruefen).",
+                "Startet Jons Fachteam: zerlegt eine komplexe Fachfrage, Lernaufgabe, Planung, Analyse oder Recherche "
+                "in Teilaufgaben fuer spezialisierte Fachagenten (Latein, Mathe, Programmierung, Recherche, Planung, "
+                "Schreiben, Gestaltung), laesst sie gleichzeitig arbeiten, prueft die Ergebnisse gegen und fasst sie zusammen. "
+                "Der Nutzer sieht die Agenten live animiert im Chat. Nutze es, wenn der Nutzer nach Agenten, Experten oder "
+                "einem Team fragt oder eine Aufgabe mehrere unabhaengige Perspektiven braucht. Nur fuer lesende Aufgaben; "
+                "fuer Codeaenderungen ist harness_task zustaendig.",
                 {"aufgabe": _STR, "agenten": _INT, "internet": {"type": "boolean", "description": "Nur bei ausdrücklich gewünschter Webrecherche einschalten; sonst false."}},
                 ["aufgabe"],
             ),

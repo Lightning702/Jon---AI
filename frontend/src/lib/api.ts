@@ -2471,46 +2471,60 @@ export async function streamChat(
   handlers: StreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
-  const res = await fetch(`${BASE}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal,
-  });
+  let beendet = false;
+  const beenden = (conversationId?: string) => {
+    if (beendet) return;
+    beendet = true;
+    handlers.onDone?.(conversationId);
+  };
+  try {
+    const res = await fetch(`${BASE}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    });
 
-  if (!res.ok || !res.body) {
-    handlers.onError?.(`HTTP ${res.status}`);
-    return;
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const parts = buffer.split("\n\n");
-    buffer = parts.pop() ?? "";
-    for (const part of parts) {
-      const line = part.trim();
-      if (!line.startsWith("data:")) continue;
-      const json = line.slice(5).trim();
-      if (!json) continue;
-      let evt: StreamEvent;
-      try {
-        evt = JSON.parse(json);
-      } catch {
-        continue;
-      }
-      if (evt.type === "meta") handlers.onMeta?.(evt);
-      else if (evt.type === "content") handlers.onContent?.(evt.delta ?? "");
-      else if (evt.type === "reasoning") handlers.onReasoning?.(evt.delta ?? "");
-      else if (evt.type === "tool") handlers.onTool?.(evt);
-      else if (evt.type === "error") handlers.onError?.(evt.message ?? "error");
-      else if (evt.type === "done") handlers.onDone?.(evt.conversation_id);
+    if (!res.ok || !res.body) {
+      const daten = await res.json().catch(() => ({}));
+      handlers.onError?.(typeof daten.detail === "string" ? daten.detail : `Jon antwortet mit Fehler ${res.status}.`);
+      return;
     }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() ?? "";
+      for (const part of parts) {
+        const line = part.trim();
+        if (!line.startsWith("data:")) continue;
+        const json = line.slice(5).trim();
+        if (!json) continue;
+        let evt: StreamEvent;
+        try {
+          evt = JSON.parse(json);
+        } catch {
+          continue;
+        }
+        if (evt.type === "meta") handlers.onMeta?.(evt);
+        else if (evt.type === "content") handlers.onContent?.(evt.delta ?? "");
+        else if (evt.type === "reasoning") handlers.onReasoning?.(evt.delta ?? "");
+        else if (evt.type === "tool") handlers.onTool?.(evt);
+        else if (evt.type === "error") handlers.onError?.(evt.message ?? "error");
+        else if (evt.type === "done") beenden(evt.conversation_id);
+      }
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") throw e;
+    handlers.onError?.(e instanceof Error && e.message ? `Verbindung zu Jon unterbrochen: ${e.message}` : "Verbindung zu Jon unterbrochen.");
+  } finally {
+    beenden();
   }
 }
 

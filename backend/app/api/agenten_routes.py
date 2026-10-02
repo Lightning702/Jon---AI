@@ -1,8 +1,12 @@
+import time
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.services.agent_profiles import PROFILES
 from app.services.agenten_service import get_agenten_service
+from app.services.harness import get_harness_service
+from app.services.harness.service import TERMINAL
 
 router = APIRouter(prefix="/api/agents")
 
@@ -18,10 +22,7 @@ class StartTeam(BaseModel):
 
 def find(run_id: str) -> dict:
     try:
-        run = get_agenten_service().get(run_id)
-        if not run.get("persist", True):
-            raise KeyError(run_id)
-        return run
+        return get_agenten_service().get(run_id)
     except KeyError:
         raise HTTPException(404, "Fachauftrag nicht gefunden.")
 
@@ -29,6 +30,16 @@ def find(run_id: str) -> dict:
 @router.get("/profiles")
 async def profiles() -> list[dict]:
     return [{"id": key, **value} for key, value in PROFILES.items()]
+
+
+@router.get("/live")
+async def live() -> dict:
+    harness = []
+    for task in get_harness_service().list():
+        if task["status"] in TERMINAL and time.time() - task.get("updated_at", 0) > 8:
+            continue
+        harness.append({"id": task["id"], "goal": task["goal"][:300], "root": task["root"], "source": task["source"], "status": task["status"], "step": task.get("step", 0), "steps": len(task.get("steps", [])), "changes": len(task.get("changes", [])), "pending": bool(task.get("pending")), "specialists": [{"role": item.get("role", ""), "profil": item.get("profil", ""), "status": item.get("status", "")} for item in task.get("specialists", [])], "updated_at": task.get("updated_at", 0)})
+    return {"teams": get_agenten_service().live(), "harness": harness[:6]}
 
 
 @router.get("/runs")

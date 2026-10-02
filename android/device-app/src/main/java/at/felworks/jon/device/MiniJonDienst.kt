@@ -88,10 +88,10 @@ class MiniJonDienst : Service() {
         super.onCreate()
         manager = getSystemService(WINDOW_SERVICE) as WindowManager
         val notifications = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notifications.createNotificationChannel(NotificationChannel("mini-jon", "MiniJon", NotificationManager.IMPORTANCE_LOW))
+        notifications.createNotificationChannel(NotificationChannel("mini-jon", "Funke", NotificationManager.IMPORTANCE_LOW))
         val open = PendingIntent.getActivity(this, 881, Intent(this, MainActivity::class.java).putExtra("oeffnen", "minijon"), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val stop = PendingIntent.getService(this, 882, Intent(this, MiniJonDienst::class.java).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val notice = NotificationCompat.Builder(this, "mini-jon").setSmallIcon(R.drawable.ic_mikro).setContentTitle("MiniJon ist bei dir")
+        val notice = NotificationCompat.Builder(this, "mini-jon").setSmallIcon(R.drawable.ic_mikro).setContentTitle("Funke ist bei dir")
             .setContentText("Antippen zum Öffnen · jederzeit ausblendbar").setContentIntent(open).setOngoing(true)
             .addAction(0, "Ausblenden", stop).build()
         if (Build.VERSION.SDK_INT >= 34) startForeground(883, notice, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE) else startForeground(883, notice)
@@ -169,14 +169,14 @@ class MiniJonDienst : Service() {
                 override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse {
                     val uri = request?.url
                     val name = uri?.path?.removePrefix("/")
-                    if (uri?.host == "minijon.local" && name in setOf("index.html", "pet3d.js")) {
-                        return WebResourceResponse(if (name == "pet3d.js") "text/javascript" else "text/html", "UTF-8", assets.open("mini-jon/$name"))
+                    if (uri?.host == "minijon.local" && name in setOf("index.html", "funke.js")) {
+                        return WebResourceResponse(if (name == "funke.js") "text/javascript" else "text/html", "UTF-8", assets.open("mini-jon/$name"))
                     }
                     return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
                 }
             }
             loadUrl("https://minijon.local/index.html")
-            contentDescription = "MiniJon. Antippen zum Sprechen, ziehen zum Verschieben."
+            contentDescription = "Funke. Antippen zum Sprechen, ziehen zum Verschieben."
         }
         pet = web
         view.addView(web, LinearLayout.LayoutParams(if (open) dp(90) else width, dp(108)).apply { gravity = Gravity.CENTER_HORIZONTAL })
@@ -191,7 +191,7 @@ class MiniJonDienst : Service() {
             view.addView(ScrollView(this).apply { addView(text) }, LinearLayout.LayoutParams(-1, 0, 1f))
             approvals = LinearLayout(this).also { view.addView(it) }
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            val input = EditText(this).apply { hint = "Frag MiniJon …"; setHintTextColor(Color.GRAY); setTextColor(Color.WHITE); textSize = 15f; maxLines = 3; inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES; filters = arrayOf(android.text.InputFilter.LengthFilter(4000)); setPadding(dp(10), dp(4), dp(10), dp(4)) }
+            val input = EditText(this).apply { hint = "Aufgabe für Funke …"; setHintTextColor(Color.GRAY); setTextColor(Color.WHITE); textSize = 15f; maxLines = 3; inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES; filters = arrayOf(android.text.InputFilter.LengthFilter(4000)); setPadding(dp(10), dp(4), dp(10), dp(4)) }
             row.addView(input, LinearLayout.LayoutParams(0, -2, 1f))
             send = button(if (job?.isActive == true) "Stopp" else "Los") { if (job?.isActive == true) { job?.cancel() } else { val question = input.text.toString().trim(); if (question.isNotEmpty()) { input.setText(""); (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(input.windowToken, 0); ask(question) } } }
             row.addView(send, LinearLayout.LayoutParams(dp(66), dp(48)))
@@ -241,7 +241,7 @@ class MiniJonDienst : Service() {
             val conversationKey = "conversation_$server"
             val messages = runCatching { JSONArray(prefs.getString(historyKey, "[]")) }.getOrDefault(JSONArray())
             messages.put(JSONObject().put("role", "user").put("content", question))
-            val body = KinderModus.anfrage(this@MiniJonDienst, JSONObject().put("messages", messages).put("persona", "junior").put("slot", "emil").put("source", "handy").put("persist", true).put("tool_mode", "ask"))
+            val body = KinderModus.anfrage(this@MiniJonDienst, JSONObject().put("messages", messages).put("persona", "funke").put("source", "handy").put("persist", true).put("tool_mode", "ask"))
             prefs.getString(conversationKey, null)?.takeIf { it.isNotBlank() }?.let { body.put("conversation_id", it) }
             val result = StringBuilder()
             var finished = false

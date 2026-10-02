@@ -318,6 +318,7 @@ async def _team(box: Any, args: dict, name: str = "") -> str:
             slot=getattr(box, "_slot", "jon"),
             persist=getattr(box, "_persist", True),
             research=args.get("internet") is True,
+            run_id=str(args.get("_lauf") or "") or None,
         )
     )
 

@@ -6,9 +6,9 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-Neu in 4.57.0: [Stimmen und Transkripte](docs/MEDIEN.md), [Jon Harness](docs/JON-HARNESS.md) und [MiniJon auf dem Handy](docs/MINIJON-HANDY.md).
+Neu in 4.58.0: [Jons Fachteam live im Chat](docs/FACHTEAM.md), ein neuer [Jon Harness](docs/JON-HARNESS.md) mit Jons eigenem Modell und [Funke, dein Begleiter auf dem Handy](docs/FUNKE-HANDY.md).
 
-[![Version](https://img.shields.io/badge/Version-4.57.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.58.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
