@@ -21,15 +21,15 @@ import {AppSymbol, useApps} from "./Apps";
 import {DatenschutzPage} from "./Datenschutz";
 import {UpdatesPage} from "./Updates";
 import {SicherungPage} from "./Sicherung";
-import {Sparkles} from "lucide-react";
-import {MiniJonPage} from "./MiniJon";
+import {Flame} from "lucide-react";
+import {FunkePage} from "./Funke";
 import {Circle, Fehlergrenze, JonMark, Lightbox, Modal, WaveIcon, errorText, handleBack, spring} from "./ui";
 import {Umgebung, useChats} from "./useChats";
 
 type Route = {key: string; id: string; arg?: any};
 
 const routes: Record<string, (p: PageProps) => React.ReactElement> = {
-  minijon: MiniJonPage,
+  minijon: FunkePage,
   images: ImagesPage, library: LibraryPage, projects: ProjectsPage, remote: RemotePage, tasks: TasksPage, plugins: PluginsPage,
   search: SearchPage, archive: ArchivePage, apps: AppsPage, settings: SettingsPage, providers: ProvidersPage, device: DevicePage,
   "voice-settings": VoiceSettingsPage, security: SecurityPage, pair: PairPage, viewer: ViewerPage,
@@ -38,7 +38,7 @@ const routes: Record<string, (p: PageProps) => React.ReactElement> = {
 };
 
 const nav: {id: string; label: string; icon: React.ReactNode; pi?: boolean}[] = [
-  {id: "minijon", label: "MiniJon", icon: <Sparkles/>},
+  {id: "minijon", label: "Funke", icon: <Flame/>},
   {id: "jonchat", label: "Jon Chat", icon: <MessagesSquare/>, pi: true},
   {id: "kamera", label: "Kamera", icon: <Camera/>},
   {id: "uhr", label: "Wecker & Timer", icon: <AlarmClock/>},

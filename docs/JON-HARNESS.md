@@ -1,6 +1,6 @@
 # Jon Harness und MiniJon
 
-Stand: 2. Oktober 2026. App, Desktop-Begleiter und Terminal bleiben getrennte Oberflächen. Der Harness öffnet in der App einen eigenen Arbeitsbereich mit Projektleiste, Eingabefeld unten und einer separaten Diff-Ansicht. MiniJon verwendet im vorhandenen 3D-Modus einen neuen WebGL-Roboter mit Körper, Kopfhörern, Mimik und zehn Aufgaben-Requisiten.
+Stand: 2. Oktober 2026, Jon 4.58.0. Der Harness öffnet in der App einen eigenen Arbeitsbereich mit Projektleiste, Eingabefeld unten, animierter Live-Ansicht und separater Diff-Ansicht. Er arbeitet immer mit Jons Modell aus den Einstellungen – auch wenn der Auftrag aus MiniJon kommt. MiniJon kann den Fortschritt nur noch als Begleiter anzeigen.
 
 ## Einstieg
 
@@ -20,9 +20,11 @@ Der Terminal-Client nutzt ein erreichbares Jon-Backend. Wenn keine Verbindung au
 
 ## App, MiniJon und Telegram
 
-In der App unter **Werkzeuge → Jon Harness** einen Projektordner und Auftrag wählen. Die Werkzeugliste hat eine Suche. Der Harness zeigt Plan, Änderungen, Prüfungen und konkrete Befehlsfreigaben. Die Auswahl **MiniJon** im Eingabefeld verbindet den Begleiter mit der laufenden Aufgabe. Unter **MiniJon Einstellungen** werden die Bildschirm- und Privatsphäre-Einstellungen verwaltet.
+In der App unter **Werkzeuge → Jon Harness** einen Projektordner und Auftrag wählen. Die Werkzeugliste hat eine Suche. Der Harness zeigt Plan, Änderungen, Prüfungen und konkrete Befehlsfreigaben. Der Schalter **MiniJon begleitet** im Eingabefeld lässt MiniJon den Fortschritt auf dem Bildschirm zeigen; das Modell bleibt Jons Modell. MiniJons Bildschirm- und Privatsphäre-Einstellungen liegen jetzt unter **Mini Jon anpassen**.
 
-Der Harness kann bis zu vier begrenzte Fachaufträge delegieren. Diese Teilagenten lesen die ausgewählten Projektdateien und liefern Analysen; Änderungen und Prüfungen bleiben im Hauptauftrag nachvollziehbar. Für komplexe Alltagsfragen gibt es außerdem das Fachteam-Werkzeug. Spezialisierung ersetzt keine fachliche Kontrolle.
+Startet Jon im normalen Chat einen Harness-Auftrag, erscheint dort eine Live-Karte mit Jon-Kern, kreisendem Werkzeug-Satelliten (lesen, ändern, testen …), Fachagenten, Arbeitsplan, Freigabe-Knöpfen und Änderungszahlen. **Im Harness öffnen** springt direkt in den Arbeitsbereich.
+
+Der Harness kann bis zu vier begrenzte Fachaufträge delegieren. Diese Teilagenten nutzen die Fachprofile des Fachteams (zum Beispiel Programmierung, Recherche, Gestaltung), lesen die ausgewählten Projektdateien und liefern Analysen; Änderungen und Prüfungen bleiben im Hauptauftrag nachvollziehbar. Antwortet das Modell mehrfach nicht im Werkzeugformat, bricht der Harness mit einem klaren Hinweis auf ein stärkeres Modell ab. JSON mit Begleittext oder Codeblock wird toleriert. Für komplexe Alltagsfragen gibt es außerdem das Fachteam-Werkzeug. Spezialisierung ersetzt keine fachliche Kontrolle.
 
 ```text
 /hhelp
@@ -78,7 +80,7 @@ Kontexterkennung ist standardmäßig aus. Eingeschaltet liest sie lokal unter Wi
 
 Die zusätzliche Bildschirmanalyse wird separat eingeschaltet. `/bildschirm` erfasst das aktive Fenster; MiniJon wird dabei ausgeblendet. Bilder werden nur im Arbeitsspeicher verarbeitet. Externe Vision-Anbieter benötigen eine ausdrückliche Freigabe für den jeweiligen Anbieter und Endpunkt. Die Erkennung prüft vor und nach der Aufnahme den Fensterkontext und die Privatsphäre-Einstellung. Unsichere Erkennung führt zur Rückfrage. Bei manuellen fachlichen Fragen folgt auf die Texterkennung eine gesonderte fachliche Modellprüfung. Automatische Beobachtung führt keine erkannten Anweisungen aus.
 
-MiniJon lässt sich über Monitorgrenzen ziehen. Erst beim Loslassen wird seine Position auf dem Zielbildschirm begrenzt. Die Handy-Version und das datierte Alltagsgedächtnis sind in [MINIJON-HANDY.md](MINIJON-HANDY.md) beschrieben.
+MiniJon lässt sich über Monitorgrenzen ziehen. Erst beim Loslassen wird seine Position auf dem Zielbildschirm begrenzt. Auf dem Handy übernimmt [Funke](FUNKE-HANDY.md) die Rolle des Begleiters.
 
 Die zehn Auftritte sind über `/modus` wählbar. Automatisch erkannte Tätigkeiten decken die erkennbaren App-Kategorien ab; ein Harness-Auftrag zeigt den Coding-Auftritt. Ideen und Automatisieren lassen sich bewusst wählen. Der manuelle Auftritt gilt für das aktuelle Fenster. Der 3D-Modus bleibt über die vorhandenen MiniJon-Einstellungen auswählbar.
 

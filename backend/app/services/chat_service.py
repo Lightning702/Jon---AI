@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import time
+import uuid
 from typing import AsyncIterator
 
 from app.core.config import (
@@ -1138,7 +1139,45 @@ class ChatService:
             except Exception:
                 return "mittel"
 
+        vorab_teams: list[str] = []
+        genutzte_teams: list[str] = []
+
+        def team_vorbereiten(name: str | None, args: dict | None, event: dict) -> None:
+            if name != "team":
+                return
+            if genutzte_teams:
+                lauf = genutzte_teams.pop(0)
+            else:
+                lauf = uuid.uuid4().hex
+                vorab_teams.append(lauf)
+            karte = {"kind": "agenten", "data": {"id": lauf, "aufgabe": str((args or {}).get("aufgabe", ""))[:600]}}
+            event["card"] = karte
+            event["agent_run_id"] = lauf
+            karten.append(karte)
+
+        def mit_lauf(name: str | None, args: dict) -> dict:
+            if name != "team":
+                return args
+            if vorab_teams:
+                lauf = vorab_teams.pop(0)
+            else:
+                lauf = uuid.uuid4().hex
+                genutzte_teams.append(lauf)
+            return {**args, "_lauf": lauf}
+
+        def harness_karte(result: str | None, event: dict) -> None:
+            try:
+                daten = json.loads(result or "{}")
+            except (TypeError, ValueError):
+                return
+            if isinstance(daten, dict) and daten.get("task_id"):
+                event["harness_task_id"] = daten["task_id"]
+                karte = {"kind": "harness", "data": {"id": daten["task_id"]}}
+                event["card"] = karte
+                karten.append(karte)
+
         async def gated_executor(name: str, args: dict) -> str:
+            args = mit_lauf(name, args)
             if needs_approval(name, args):
                 approval_id = (
                     pending_approvals.pop(0) if pending_approvals else None
@@ -1191,6 +1230,7 @@ class ChatService:
                             approval_id = approvals.create()
                             pending_approvals.append(approval_id)
                             event["approval_id"] = approval_id
+                        team_vorbereiten(chunk.name, chunk.args, event)
                         yield event
                     elif chunk.kind == "tool_result":
                         if chunk.ok and chunk.name:
@@ -1202,12 +1242,7 @@ class ChatService:
                             "ok": chunk.ok,
                         }
                         if chunk.name == "harness_task" and chunk.ok:
-                            try:
-                                harness_result = json.loads(chunk.result or "{}")
-                                if harness_result.get("task_id"):
-                                    event["harness_task_id"] = harness_result["task_id"]
-                            except (TypeError, ValueError):
-                                pass
+                            harness_karte(chunk.result, event)
                         card = card_payload(chunk.name, chunk.result)
                         if card is not None:
                             event["card"] = card
@@ -1254,6 +1289,8 @@ class ChatService:
                     if needs_approval(name, args):
                         approval_id = approvals.create()
                         event["approval_id"] = approval_id
+                    team_vorbereiten(name, args, event)
+                    lauf_args = mit_lauf(name, args)
                     yield event
                     approved = (
                         await approvals.wait(approval_id)
@@ -1263,7 +1300,7 @@ class ChatService:
                     if approved:
                         try:
                             result = await toolbox.execute(
-                                name, args, source=tool_source
+                                name, lauf_args, source=tool_source
                             )
                         except Exception as exc:
                             result = json.dumps(
@@ -1289,12 +1326,7 @@ class ChatService:
                         "ok": ok,
                     }
                     if name == "harness_task" and ok:
-                        try:
-                            harness_result = json.loads(result)
-                            if harness_result.get("task_id"):
-                                done_event["harness_task_id"] = harness_result["task_id"]
-                        except (TypeError, ValueError):
-                            pass
+                        harness_karte(result, done_event)
                     card = card_payload(name, result)
                     if card is not None:
                         done_event["card"] = card

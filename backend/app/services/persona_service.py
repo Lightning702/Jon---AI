@@ -266,11 +266,13 @@ class PersonaService:
         return self.append_journal(f"Ueber Felix gemerkt: {note}")
 
     def persona_block(self, include_memory: bool = True, variant: str = "papa") -> str:
-        from app.services.personality import CONSCIENCE, JON, MINIJON
+        from app.services.personality import CONSCIENCE, FUNKE, JON, MINIJON
 
         state = self.state()
         if variant == "junior":
             parts = [MINIJON, CONSCIENCE]
+        elif variant == "funke":
+            parts = [FUNKE, CONSCIENCE]
         else:
             parts = [JON, CONSCIENCE]
         situ = (

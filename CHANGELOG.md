@@ -2,6 +2,41 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.58.0] — 2026-10-02
+
+### ✦ Jons Fachteam – live animiert, überall
+
+- **Fest in Jon eingebaut:** Jon setzt sein Fachteam jetzt selbst ein, sobald eine Aufgabe mehrere Perspektiven braucht oder du nach Agenten fragst – in App, Web, Telegram und am Handy. Das Team arbeitet nur lesend und fragt deshalb nicht mehr nach Freigabe.
+- **Live-Karte im Chat:** Jons Kern in der Mitte, die Fachagenten fliegen heraus, Datenströme fließen entlang der Verbindungen, die Gegenprüfung läuft als Radar-Scan, beim Bündeln fließen die Ergebnisse zurück. Jeder Agent zeigt Status, Dauer und Ergebnis; das Team lässt sich in der Karte stoppen.
+- **Agenten-Dock:** Läufe aus Telegram, vom Handy oder aus dem Terminal erscheinen unten rechts als kleine kreisende Pille – ein Tipp öffnet alle laufenden Teams und Harness-Aufträge.
+- **Werkzeuge → Fachteam** neu gestaltet: Fachrichtungen als farbige Chips, Agentenzahl, Webrecherche und Verlauf.
+
+### 🛠️ Jon Harness repariert
+
+- **Jons Modell statt MiniJons:** Der Harness lief bisher standardmäßig mit MiniJons kleinem Plauder-Modell und konnte deshalb kaum coden. Jetzt nutzt er immer Jons Modell; MiniJon begleitet nur noch auf Wunsch.
+- **Robuster:** Werkzeug-JSON mit Begleittext oder Codeblock wird erkannt. Hält ein Modell das Format dauerhaft nicht ein, bricht der Harness mit einem klaren Hinweis ab, statt alle Schritte zu verbrauchen.
+- **Fachagenten im Harness** nutzen die Fachprofile des Teams.
+- **Live-Karte im Chat** mit Werkzeug-Satellit, Arbeitsplan, Freigabe-Knöpfen und „Im Harness öffnen“.
+- **Neuer Arbeitsbereich** in Jons Gold-auf-Tinte-Look mit animiertem Rahmen, solange Jon arbeitet.
+
+### 🔥 Funke – dein neuer Begleiter auf dem Handy (Jon Gerät 1.7.0)
+
+- **Funke ersetzt MiniJon auf dem Handy:** ein leuchtender Funke mit Gesicht und acht Stimmungen, der mit Jons vollem Modell und allen Werkzeugen Aufgaben komplett übernimmt.
+- **Schnellaktionen** für Timer, Erinnerungen, Tagesplan, Lernen, Fachteam und Wetter, Diktat, Freigaben direkt im Gespräch und ein Verlauf, der bleibt.
+- **Über allen Apps:** Die schwebende Figur ist jetzt Funke – orange und funkensprühend, während er arbeitet, und freut sich, wenn er fertig ist.
+- **Fachteam- und Harness-Karten** auch im normalen Handy-Chat, dazu neue Vorschläge auf der Startseite.
+
+### 🔄 Sicher aktualisieren
+
+- **`jon-aktualisieren.bat`:** Doppelklick im Jon-Ordner holt die neue Version. Es wird nichts gelöscht: Eigene Dateien und lokale Änderungen bleiben erhalten, vorher wird ein Sicherungsstand angelegt. Ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas zu verändern.
+- **Eingebauter Updater repariert:** Er hat lokale Änderungen bisher in den Git-Stash geschoben und danach nicht zurückgeholt. Jetzt arbeitet er wie die neue Update-Datei – ohne Stash, mit Sicherungsstand und Konfliktprüfung.
+
+### ✨ Oberfläche
+
+- **Neuer Startbildschirm** mit animiertem Jon-Kern und Vorschlägen für Fachteam, Harness, Entdecken und Jon Maps.
+- **Chat-Blasen** mit animierten Werkzeug-Chips, einem atmenden Jon-Kern statt „Jon schreibt …“ und frei stehenden Karten ohne Doppelrahmen.
+- **Behoben:** Nach einem Fehler beim Start (zum Beispiel ohne erreichbares Modell) blieb die Eingabe im „Stop“-Zustand hängen. Verbindungsabbrüche beenden jetzt jede Antwort sauber.
+
 ## [4.57.0] — 2026-10-02
 
 - YouTube-Links können anhand tatsächlich abgerufener Untertitel zusammengefasst werden. Videos ohne verfügbare Untertitel melden einen Fehler.

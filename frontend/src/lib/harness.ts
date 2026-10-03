@@ -1,20 +1,7 @@
 import { BASE } from "./api";
+import type { HarnessAuftrag } from "../components/agenten/daten";
 
-export interface HarnessTask {
-  id: string;
-  goal: string;
-  root: string;
-  source: string;
-  status: string;
-  step: number;
-  steps: string[];
-  summary: string;
-  specialists?: { role: string; question: string; status: string; result?: string; error?: string }[];
-  pending: null | { id: string; notice: string; args: { command: string; cwd: string; timeout: number } };
-  changes: { path: string; diff: string }[];
-  checks: { command: string; output: string; ok: boolean; exit_code: number; revision: number }[];
-  log?: { time: number; type: string; tool: string; message: string }[];
-}
+export type HarnessTask = HarnessAuftrag;
 
 export const finished = new Set(["done", "needs_review", "failed", "cancelled", "interrupted"]);
 export const taskLabels: Record<string, string> = { planning: "Plant", working: "Arbeitet", verifying: "Prüft", waiting_approval: "Freigabe nötig", cancelling: "Stoppt", cancelled: "Gestoppt", interrupted: "Unterbrochen", done: "Abgeschlossen", needs_review: "Prüfung offen", failed: "Fehlgeschlagen" };

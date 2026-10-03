@@ -848,7 +848,7 @@ const WOERTER: Record<string, string> = {
   "„Hey Jon“": "“Hey Jon”",
   "Jon hört lokal auf sein Aktivierungswort": "Jon listens locally for his wake word",
   "Durch Sprechen unterbrechen": "Interrupt by speaking",
-  "Wie bei Mini Jon: einfach reinreden": "Like Mini Jon: just talk over him",
+  "Wie im echten Gespräch: einfach reinreden": "Like a real conversation: just talk over it",
   "Stimme testen": "Test voice",
   "Gespräch starten": "Start conversation",
   "Das Mikrofon in der Eingabezeile wandelt deine Sprache in Text um. Die blaue Taste „Stimme“ startet ein echtes Gespräch mit Jon. Spracherkennung und Stimme laufen über deinen Pi.": "The microphone in the input line turns your speech into text. The blue “Voice” button starts a real conversation with Jon. Speech recognition and voice run through your Pi.",

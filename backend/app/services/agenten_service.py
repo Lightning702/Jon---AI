@@ -15,6 +15,7 @@ from app.services.agent_profiles import BOUNDARIES, PROFILES
 MAX_AGENTEN = 4
 GESAMT_TIMEOUT_S = 210
 TERMINAL = {"done", "needs_review", "failed", "cancelled", "interrupted"}
+PRIVAT_HALTEN_S = 900
 
 
 @dataclass
@@ -112,12 +113,12 @@ class AgentenService:
                 if not isinstance(part, dict) or not str(part.get("auftrag", "")).strip():
                     continue
                 role = part.get("rolle") if part.get("rolle") in allowed else allowed[0]
-                result.append({"titel": str(part.get("titel") or PROFILES[role]["name"])[:120], "auftrag": str(part["auftrag"])[:6000], "rolle": role, "werkzeug": "web_search" if run["research"] and part.get("werkzeug") == "web_search" else "keins", "status": "queued"})
+                result.append({"titel": str(part.get("titel") or PROFILES[role]["name"])[:120], "auftrag": str(part["auftrag"])[:6000], "rolle": role, "rolle_name": PROFILES[role]["name"], "werkzeug": "web_search" if run["research"] and part.get("werkzeug") == "web_search" else "keins", "status": "queued"})
             if result:
                 return result
         except Exception:
             run["hinweis"] = "Aufteilung nicht verfügbar; ein Fachagent bearbeitet die gesamte Aufgabe."
-        return [{"titel": PROFILES[allowed[0]]["name"], "auftrag": run["aufgabe"], "rolle": allowed[0], "werkzeug": "keins", "status": "queued"}]
+        return [{"titel": PROFILES[allowed[0]]["name"], "auftrag": run["aufgabe"], "rolle": allowed[0], "rolle_name": PROFILES[allowed[0]]["name"], "werkzeug": "keins", "status": "queued"}]
 
     async def _teil_ausfuehren(self, teil: dict, selection: dict | None = None, original: str = "", research: bool = False) -> Teilergebnis:
         from app.services.tool_result import succeeded
@@ -139,7 +140,15 @@ class AgentenService:
         except Exception as exc:
             return Teilergebnis(title, task, tool, fehler=str(exc) or type(exc).__name__, dauer=time.time()-start, rolle=role)
 
-    def start(self, aufgabe: str, max_agenten: int = 3, source: str = "app", slot: str = "jon", research: bool = False, roles: list[str] | None = None, persist: bool = True, kinder: int | None = None) -> dict:
+    def live(self) -> list[dict]:
+        result = []
+        for run in sorted(self.runs.values(), key=lambda r: r["created_at"], reverse=True):
+            if run["status"] in TERMINAL and time.time() - run.get("updated_at", 0) > 8:
+                continue
+            result.append({"id": run["id"], "aufgabe": run["aufgabe"][:300], "source": run["source"], "status": run["status"], "created_at": run["created_at"], "updated_at": run.get("updated_at", 0), "teile": [{"titel": p.get("titel", ""), "rolle": p.get("rolle", "general"), "rolle_name": p.get("rolle_name", ""), "status": p.get("status", "queued")} for p in run.get("teile", [])]})
+        return result[:6]
+
+    def start(self, aufgabe: str, max_agenten: int = 3, source: str = "app", slot: str = "jon", research: bool = False, roles: list[str] | None = None, persist: bool = True, kinder: int | None = None, run_id: str | None = None) -> dict:
         text = str(aufgabe).strip()
         if not text or len(text) > 12000:
             raise ValueError("Beschreibe eine Aufgabe mit höchstens 12.000 Zeichen.")
@@ -152,7 +161,8 @@ class AgentenService:
             if old is None:
                 break
             self.delete(old["id"])
-        run = {"id": uuid.uuid4().hex, "aufgabe": text, "source": source, "slot": "emil" if slot == "emil" else "jon", "research": bool(research), "roles": list(dict.fromkeys(roles or [])), "max_agenten": max(1, min(int(max_agenten), MAX_AGENTEN)), "status": "planning", "teile": [], "antwort": "", "pruefung": None, "fehler": "", "hinweis": "", "ok": False, "vollstaendig": False, "persist": persist, "created_at": time.time(), "updated_at": time.time()}
+        key = run_id if isinstance(run_id, str) and re.fullmatch(r"[a-f0-9]{32}", run_id) and run_id not in self.runs else uuid.uuid4().hex
+        run = {"id": key, "aufgabe": text, "source": source, "slot": "emil" if slot == "emil" else "jon", "research": bool(research), "roles": list(dict.fromkeys(roles or [])), "max_agenten": max(1, min(int(max_agenten), MAX_AGENTEN)), "status": "planning", "teile": [], "antwort": "", "pruefung": None, "fehler": "", "hinweis": "", "ok": False, "vollstaendig": False, "persist": persist, "created_at": time.time(), "updated_at": time.time()}
         from app.core.kinderschutz import KINDER_ALTER
 
         run["kinder"] = kinder or KINDER_ALTER.get()
@@ -176,7 +186,7 @@ class AgentenService:
                 self._save(run)
 
                 async def work(part):
-                    part["status"] = "working"
+                    part.update(status="working", begonnen=time.time())
                     self._save(run)
                     result = await self._teil_ausfuehren(part, selection, run["aufgabe"], run["research"])
                     part.update(result.als_dict())
@@ -236,7 +246,7 @@ class AgentenService:
             return self.get(run["id"])
         finally:
             if not run["persist"]:
-                self.runs.pop(run["id"], None)
+                asyncio.get_running_loop().call_later(PRIVAT_HALTEN_S, self.runs.pop, run["id"], None)
 
     async def close(self) -> None:
         await asyncio.gather(*(self.cancel(key) for key in list(self.running)))

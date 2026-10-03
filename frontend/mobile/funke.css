@@ -1,0 +1,108 @@
+.funke-seite{--glut:#7fd3ff;--glut-2:#6b5cff;padding-bottom:calc(var(--safe-bottom, 0px) + 32px)}
+.funke-seite.zustand-listening{--glut:#5ff0c8;--glut-2:#2f8cff}
+.funke-seite.zustand-thinking{--glut:#a98bff;--glut-2:#5b3dff}
+.funke-seite.zustand-working{--glut:#ffc56b;--glut-2:#ff6b9a}
+.funke-seite.zustand-happy{--glut:#ffe07a;--glut-2:#ff9f43}
+.funke-seite.zustand-sleeping{--glut:#7a86c9;--glut-2:#3a3f7a}
+.funke-seite.zustand-error{--glut:#ff8f87;--glut-2:#c2413a}
+
+.funke-held{position:relative;display:flex;flex-direction:column;align-items:center;padding:6px 16px 18px;text-align:center}
+.funke-held::before{content:"";position:absolute;left:50%;top:40px;width:340px;height:300px;transform:translateX(-50%);background:radial-gradient(closest-side,color-mix(in srgb,var(--glut) 26%,transparent),color-mix(in srgb,var(--glut-2) 10%,transparent) 55%,transparent);filter:blur(10px);pointer-events:none;transition:background .6s}
+.funke-verbindung{position:relative;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);padding:5px 11px;border-radius:999px;background:color-mix(in srgb,var(--surface) 40%,transparent);border:1px solid var(--line)}
+.funke-verbindung i{width:7px;height:7px;border-radius:50%;background:var(--muted-2)}
+.funke-verbindung i.an{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.funke-figur{position:relative;width:230px;height:230px;margin:4px auto 0;border-radius:50%;touch-action:manipulation}
+.funke-figur canvas{position:relative;width:100%;height:100%;display:block}
+.funke-glanz{position:absolute;inset:30px;border-radius:50%;border:1px solid color-mix(in srgb,var(--glut) 22%,transparent);animation:funke-ring 5s linear infinite;pointer-events:none}
+.funke-glanz::after{content:"";position:absolute;left:50%;top:-4px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--glut);box-shadow:0 0 12px var(--glut)}
+.zustand-working .funke-glanz,.zustand-thinking .funke-glanz{animation-duration:1.6s}
+.zustand-sleeping .funke-glanz{animation-play-state:paused;opacity:.4}
+.funke-blase{position:relative;margin:4px auto 0;max-width:300px;padding:11px 16px;border-radius:20px;background:color-mix(in srgb,var(--card) 82%,transparent);border:1px solid color-mix(in srgb,var(--glut) 26%,var(--line));font-size:15px;line-height:1.45;color:var(--fg);box-shadow:0 10px 30px color-mix(in srgb,var(--glut) 10%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.funke-blase::before{content:"";position:absolute;left:50%;top:-6px;width:12px;height:12px;margin-left:-6px;transform:rotate(45deg);background:inherit;border-left:1px solid color-mix(in srgb,var(--glut) 26%,var(--line));border-top:1px solid color-mix(in srgb,var(--glut) 26%,var(--line))}
+@keyframes funke-ring{to{transform:rotate(360deg)}}
+
+.funke-aktionen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding:6px 16px 16px}
+.funke-aktionen button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:12px 11px 11px;border-radius:20px;background:linear-gradient(160deg,color-mix(in srgb,var(--farbe) 13%,var(--card)),var(--card) 70%);border:1px solid color-mix(in srgb,var(--farbe) 22%,var(--line));text-align:left;min-width:0}
+.funke-aktion-icon{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;margin-bottom:5px;background:color-mix(in srgb,var(--farbe) 22%,transparent);color:var(--farbe)}
+:root[data-theme=light] .funke-aktion-icon{color:color-mix(in srgb,var(--farbe) 60%,#000)}
+.funke-aktion-icon svg{width:18px;height:18px;stroke-width:2.2}
+.funke-aktionen strong{font-size:13.5px;font-weight:650}
+.funke-aktionen small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+.funke-fehler{margin:0 16px 12px;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--danger) 12%,transparent);color:color-mix(in srgb,var(--danger) 70%,var(--fg));font-size:13px;line-height:1.5;overflow:hidden}
+.funke-fehler span{flex:1}
+.funke-fehler button{font-weight:700;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,var(--danger) 18%,transparent)}
+
+.funke-gespraech{display:flex;flex-direction:column;gap:12px;padding:4px 16px 8px}
+.funke-leer{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:20px;border:1px dashed var(--line-2);color:var(--muted);font-size:13px;line-height:1.55}
+.funke-leer p{margin:0}
+.funke-leer svg{width:20px;height:20px;color:var(--glut);flex-shrink:0;margin-top:1px}
+.funke-zeile{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.funke-zeile.user{justify-content:flex-end}
+.funke-zeile.user .funke-text{background:var(--bubble);color:var(--fg);border-radius:20px 20px 6px 20px;padding:10px 14px;max-width:84%;margin-left:auto;font-size:15px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+:root[data-theme=light] .funke-zeile.user .funke-text{color:#10122e}
+.funke-zeile.user .funke-inhalt{display:flex;flex-direction:column;align-items:flex-end;max-width:100%}
+.funke-inhalt{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.funke-zeile.assistant .funke-text{font-size:15px;line-height:1.55;overflow-wrap:anywhere}
+.funke-zeile.assistant .funke-text p:last-child{margin-bottom:0}
+.funke-avatar{width:26px;height:26px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;flex-shrink:0;margin-top:2px;background:radial-gradient(circle at 35% 30%,#fff6dc,var(--glut) 55%,var(--glut-2));box-shadow:0 0 14px color-mix(in srgb,var(--glut) 55%,transparent)}
+.funke-avatar.aktiv{animation:funke-puls 1.4s ease-in-out infinite}
+@keyframes funke-puls{50%{transform:scale(.86);box-shadow:0 0 22px color-mix(in srgb,var(--glut) 80%,transparent)}}
+.funke-schritte{display:flex;flex-wrap:wrap;gap:6px}
+.funke-schritt{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:5px 10px 5px 8px;border-radius:999px;font-size:12px;background:var(--surface);color:var(--fg-2);border:1px solid var(--line)}
+.funke-schritt span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.funke-schritt svg{width:13px;height:13px;color:var(--ok);stroke-width:3}
+.funke-schritt.fehler{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 30%,transparent)}
+.funke-schritt.laeuft{border-color:color-mix(in srgb,var(--glut) 45%,transparent);background:color-mix(in srgb,var(--glut) 12%,var(--surface))}
+.funke-schritt.laeuft span:last-child{background:linear-gradient(90deg,var(--muted) 0%,var(--fg) 40%,var(--muted) 80%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:funke-schimmer 1.6s linear infinite}
+.funke-spinner{width:11px;height:11px;border-radius:50%;border:1.6px solid color-mix(in srgb,var(--glut) 30%,transparent);border-top-color:var(--glut);animation:funke-ring .8s linear infinite;flex-shrink:0}
+@keyframes funke-schimmer{from{background-position:100% 0}to{background-position:-100% 0}}
+.funke-tippt{display:flex;gap:5px;padding:8px 2px}
+.funke-tippt i{width:7px;height:7px;border-radius:50%;background:var(--glut);animation:funke-huepf 1.1s ease-in-out infinite}
+.funke-tippt i:nth-child(2){animation-delay:.15s}
+.funke-tippt i:nth-child(3){animation-delay:.3s}
+@keyframes funke-huepf{30%{transform:translateY(-5px);opacity:1}0%,60%,100%{opacity:.4}}
+.funke-freigabe{padding:14px;border-radius:20px;border:1px solid color-mix(in srgb,#ffc56b 45%,transparent);background:color-mix(in srgb,#ffc56b 9%,var(--card))}
+.funke-freigabe strong{display:flex;align-items:center;gap:8px;font-size:14px;color:#ffc56b}
+:root[data-theme=light] .funke-freigabe strong{color:#9a6a05}
+.funke-freigabe strong svg{width:18px;height:18px}
+.funke-freigabe p{font-size:13px;color:var(--fg-2);margin:8px 0 12px;overflow-wrap:anywhere}
+.funke-freigabe div{display:flex;gap:8px}
+.funke-freigabe button{flex:1;min-height:44px;border-radius:14px;background:var(--surface);font-weight:600;font-size:14px}
+.funke-freigabe button.ja{background:#ffc56b;color:#241a05}
+
+.funke-eingabe{position:sticky;bottom:calc(var(--safe-bottom, 0px) + 10px);z-index:5;display:flex;align-items:flex-end;gap:6px;margin:6px 16px 6px;padding:6px 6px 6px 16px;border-radius:26px;background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid var(--line-2);box-shadow:0 14px 40px rgba(0,0,0,.35);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:border-color .25s,box-shadow .25s}
+.funke-eingabe:focus-within{border-color:color-mix(in srgb,var(--glut) 55%,transparent);box-shadow:0 14px 40px rgba(0,0,0,.35),0 0 0 4px color-mix(in srgb,var(--glut) 14%,transparent)}
+.funke-eingabe textarea{flex:1;min-height:44px;max-height:140px;padding:11px 0;font-size:16px;line-height:1.4;field-sizing:content}
+.funke-eingabe textarea::placeholder{color:var(--muted)}
+.funke-mikro,.funke-senden{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.funke-mikro{color:var(--fg-2)}
+.funke-senden{background:radial-gradient(circle at 35% 30%,#fff6dc,var(--glut) 55%,var(--glut-2));color:#121233;box-shadow:0 6px 18px color-mix(in srgb,var(--glut) 40%,transparent)}
+.funke-senden:disabled{background:var(--surface-2);color:var(--muted);box-shadow:none;opacity:1}
+.funke-senden.stopp{background:var(--fg);color:var(--bg)}
+.funke-senden svg{width:20px;height:20px;stroke-width:2.6}
+.funke-senden.stopp svg{width:14px;height:14px}
+.funke-leeren{display:block;margin:2px auto 14px;font-size:12px;color:var(--muted);padding:8px 12px}
+
+.funke-karte{margin:12px 16px 0;padding:16px;border-radius:24px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.funke-karte.spalte{flex-direction:column;align-items:stretch}
+.funke-karte-kopf{display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0;text-align:left}
+.funke-karte-kopf>span{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:color-mix(in srgb,var(--farbe) 18%,transparent);color:var(--farbe)}
+.funke-karte-kopf>span svg{width:18px;height:18px}
+.funke-karte-kopf strong{display:block;font-size:14.5px;font-weight:650}
+.funke-karte-kopf p{margin:3px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.funke-schalter{position:relative;width:52px;height:32px;border-radius:999px;background:var(--surface-3);flex-shrink:0;transition:background .25s}
+.funke-schalter i{position:absolute;left:4px;top:4px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:transform .25s var(--ease)}
+.funke-schalter.an{background:linear-gradient(90deg,var(--glut),var(--glut-2))}
+.funke-schalter.an i{transform:translateX(20px)}
+.funke-hinweis{font-size:12.5px;color:var(--muted);margin:0}
+.funke-erinnerung{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.funke-erinnerung small{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+.funke-erinnerung strong{font-size:14px;font-weight:500}
+.funke-erinnerung button{padding:8px;color:var(--muted)}
+.funke-erinnerung button svg{width:18px;height:18px}
+.funke-karte .agent-team{margin-top:14px}
+.agenten-karte{margin:2px 0}
+@media (prefers-reduced-motion:reduce){.funke-glanz,.funke-avatar.aktiv,.funke-spinner,.funke-tippt i,.funke-schritt.laeuft span:last-child{animation:none}}
+.home-shortcuts button{border-color:color-mix(in srgb,#7fd3ff 26%,transparent);background:linear-gradient(90deg,color-mix(in srgb,#6b5cff 14%,transparent),color-mix(in srgb,#7fd3ff 8%,transparent));color:var(--fg)}
+.home-shortcuts .mini-dot{width:10px;height:10px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:radial-gradient(circle at 35% 30%,#fff6dc,#7fd3ff 55%,#6b5cff);box-shadow:0 0 12px #7fd3ff99;animation:funke-puls 2.2s ease-in-out infinite}

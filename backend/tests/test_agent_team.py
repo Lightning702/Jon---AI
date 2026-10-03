@@ -116,7 +116,22 @@ def test_limit_cancel_before_start_and_private_run(tmp_path):
         result = await service.bearbeiten("Privat", persist=False)
         assert result["status"] == "done"
         assert not (tmp_path / (result["id"] + ".json")).exists()
-        assert result["id"] not in service.runs
+        assert result["id"] not in [item["id"] for item in service.list()]
+        assert service.get(result["id"])["status"] == "done"
+    asyncio.run(run())
+
+
+def test_preassigned_run_id_and_live_view(tmp_path):
+    service = AgentenService(tmp_path, model_for([]))
+    key = "b" * 32
+    async def run():
+        started = service.start("Latein prüfen", run_id=key)
+        assert started["id"] == key
+        assert any(item["id"] == key for item in service.live())
+        await service.running[key]
+        assert service.get(key)["teile"][0]["rolle_name"] == "Latein"
+        assert service.start("Noch einmal", run_id=key)["id"] != key
+        assert service.start("Ungültig", run_id="../etc")["id"] != "../etc"
     asyncio.run(run())
 
 
@@ -163,3 +178,54 @@ def test_api_auth_validation_and_results(tmp_path, monkeypatch):
             assert (await client.delete("/api/agents/runs/" + key)).status_code == 200
             assert (await client.get("/api/agents/runs/" + key)).status_code == 404
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("ankuendigung_zuerst", [True, False])
+def test_chat_shows_live_card_with_the_run_id_the_team_uses(monkeypatch, ankuendigung_zuerst):
+    from app.providers.base import StreamChunk
+    from app.providers.registry import get_registry
+    from app.schemas import ChatIn, MessageIn
+    from app.services.chat_service import ChatService
+    from app.services.tools import ToolBox
+
+    genutzt = []
+
+    async def ausfuehren(self, name, args, source=None):
+        genutzt.append(args.get("_lauf"))
+        return json.dumps({"id": args.get("_lauf"), "status": "done", "antwort": "Fertig"})
+
+    class Anbieter:
+        name = "openai"
+
+        def available(self):
+            return True
+
+        async def list_models(self):
+            return ["modell"]
+
+        async def stream(self, request, tool_executor=None):
+            args = {"aufgabe": "Prüfe den Satz aus zwei Perspektiven"}
+            if ankuendigung_zuerst:
+                yield StreamChunk(kind="tool", name="team", args=args)
+                ergebnis = await tool_executor("team", args)
+            else:
+                ergebnis = await tool_executor("team", args)
+                yield StreamChunk(kind="tool", name="team", args=args)
+            yield StreamChunk(kind="tool_result", name="team", ok=True, result=ergebnis)
+            yield StreamChunk(delta="Das Fachteam ist fertig.", kind="content")
+
+    registry = get_registry()
+    monkeypatch.setattr(registry, "get", lambda name: Anbieter(), raising=False)
+    monkeypatch.setattr("app.services.chat_service.get_registry", lambda: registry, raising=False)
+    monkeypatch.setattr(ToolBox, "execute", ausfuehren)
+
+    async def sammeln():
+        payload = ChatIn(messages=[MessageIn(role="user", content="Lass dein Fachteam den Satz prüfen")], persist=False, provider="openai", model="modell", tool_mode="ask")
+        return [event async for event in ChatService().stream(payload)]
+
+    events = asyncio.run(sammeln())
+    karten = [e["card"] for e in events if e.get("type") == "tool" and e.get("card")]
+    assert len(karten) == 1
+    assert karten[0]["kind"] == "agenten"
+    assert genutzt == [karten[0]["data"]["id"]]
+    assert not any(e.get("approval_id") for e in events if e.get("type") == "tool")

@@ -651,7 +651,7 @@ export default function CodeAgent({
             setEntries((prev) =>
               prev.map((e) =>
                 e.id === assistant.id
-                  ? { ...e, content: e.content + `\n\n[Fehler] ${message}` }
+                  ? { ...e, content: (e.content ? e.content + "\n\n" : "") + `[Fehler] ${message}` }
                   : e
               )
             );
@@ -1013,7 +1013,7 @@ export default function CodeAgent({
           setEntries((prev) =>
             prev.map((e) =>
               e.id === assistant.id
-                ? { ...e, content: e.content + `\n\n[Fehler] ${message}`, streaming: false }
+                ? { ...e, content: (e.content ? e.content + "\n\n" : "") + `[Fehler] ${message}`, streaming: false }
                 : e
             )
           ),

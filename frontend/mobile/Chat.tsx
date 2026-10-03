@@ -1,6 +1,6 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {Archive, ArrowDown, ArrowUp, BookOpen, CalendarPlus, Camera, Check, CloudSun, Cpu, Dumbbell, FileUp, Globe, Home, Image as ImageIcon, Laptop, ListChecks, MapPin, Mic, MoreVertical, MousePointerClick, Music2, Paperclip, Pencil, Pin, Plus, Podcast, Presentation, Search, Server, Share2, ShieldAlert, Smartphone, Sparkles, Square, SquarePen, Telescope, Terminal, ThumbsDown, ThumbsUp, Timer, Trash2, Volume2, Wrench, X, ChevronDown, ChevronRight, Copy, FileText, Folder, FolderPlus} from "lucide-react";
+import {Archive, ArrowDown, Code2, Users, ArrowUp, BookOpen, CalendarPlus, Camera, Check, CloudSun, Cpu, Dumbbell, FileUp, Globe, Home, Image as ImageIcon, Laptop, ListChecks, MapPin, Mic, MoreVertical, MousePointerClick, Music2, Paperclip, Pencil, Pin, Plus, Podcast, Presentation, Search, Server, Share2, ShieldAlert, Smartphone, Sparkles, Square, SquarePen, Telescope, Terminal, ThumbsDown, ThumbsUp, Timer, Trash2, Volume2, Wrench, X, ChevronDown, ChevronRight, Copy, FileText, Folder, FolderPlus} from "lucide-react";
 import {api, call, haptic, listen, native, toBase64} from "./bridge";
 import {Chats, LANG, Message, Step} from "./useChats";
 import {ResultCards, FilePill} from "./Cards";
@@ -54,6 +54,8 @@ export const shortModel = (model: string) => (model || "").split("/").pop() || "
 
 function stepIcon(step: Step) {
   const n = String(step.name || "");
+  if (n === "team") return <Users/>;
+  if (n === "harness_task") return <Code2/>;
   if (/datei|file|read|write|blender|dokument/.test(n)) return <FileText/>;
   if (/cmd|shell|powershell|terminal|run/.test(n)) return <Terminal/>;
   if (/web|browser|search|such|research|webseite/.test(n)) return <Globe/>;
@@ -351,6 +353,7 @@ export function ChatScreen({shell, openDrawer, onEdge}: {shell: Shell; openDrawe
   const suggestions: {icon: React.ReactNode; label: React.ReactNode; run: () => void; emoji?: boolean}[] = [
     ...homePins.slice(0, 2).map(item => ({icon: <Pin/>, label: <>{state.chats[item.id]?.title || item.title}</>, run: () => chats.open(item.id).catch(e => notify(errorText(e)))})),
     ...(work ? [
+      ...(piWeg && conn.connected ? [{icon: <Code2/>, label: <>Harness im Projekt coden lassen</>, run: () => {setText("Starte den Harness in meinem Projekt und "); setTimeout(() => input.current?.focus(), 60);}}] : []),
       {icon: "🌐", emoji: true, label: <>Eine Website bauen und ansehen</>, run: () => {setTool(tools.find(t => t.id === "website") || null); input.current?.focus();}},
       {icon: "🎙️", emoji: true, label: <>Einen Podcast aufnehmen lassen</>, run: () => {setTool(tools.find(t => t.id === "podcast") || null); input.current?.focus();}},
       conn.connected ? {icon: <Laptop/>, label: <>Auf deinem Pi arbeiten <em>· {conn.name || "Pi"}</em></>, run: () => push("remote")} : {icon: <FileUp/>, label: <>Datei hochladen und auswerten</>, run: uploadFragen}
@@ -360,10 +363,11 @@ export function ChatScreen({shell, openDrawer, onEdge}: {shell: Shell; openDrawe
         {icon: "📷", emoji: true, label: <>Aufgabe fotografieren</>, run: () => {setText("Hilf mir bei dieser Aufgabe Schritt für Schritt."); fotografieren();}}
       ] : []),
       ...(lastChat ? [{icon: <Sparkles/>, label: <>{state.chats?.[lastChat.id]?.title || lastChat.title}</>, run: () => chats.open(lastChat.id).catch(e => notify(errorText(e)))}] : []),
+      ...(piWeg && conn.connected ? [{icon: <Users/>, label: <>Fachteam gründlich prüfen lassen</>, run: () => {setText("Lass dein Fachteam gründlich prüfen: "); setTimeout(() => input.current?.focus(), 60);}}] : []),
       {icon: "📷", emoji: true, label: <>Foto machen und Jon fragen</>, run: fotografieren},
       {icon: "⏰", emoji: true, label: <>Wecker & Timer</>, run: () => push("uhr")}
     ])
-  ].slice(0, 3);
+  ].slice(0, 4);
 
   const lokalTitel = shell.lokal?.modelle?.find((m: any) => m.name === (c.provider === "handy" ? c.model : shell.lokal?.standard))?.titel;
   const modelName = c.provider === "handy" ? lokalTitel || c.model : shell.weg?.weg === "solo" ? shortModel(shell.weg?.solo?.modell || "") : shell.weg?.weg === "lokal" ? lokalTitel || "Handy-KI" : shortModel(c.model || shell.defaults?.model || "") || "Automatisch";
@@ -400,7 +404,7 @@ export function ChatScreen({shell, openDrawer, onEdge}: {shell: Shell; openDrawe
       {empty ? <Circle label="Temporärer Chat" className={c.temp ? "on" : ""} onClick={() => {chats.update({temp: !c.temp}); notify(c.temp ? "Temporärer Chat aus." : "Temporärer Chat: wird nirgends gespeichert.");}}>{c.temp ? <span style={{color: "#9fbcff", display: "flex"}}><DashedChat/></span> : <DashedChat/>}</Circle>
         : <div className="pill-group"><button aria-label="Neuer Chat" onClick={() => {haptic("tick"); chats.create(c.mode);}}><SquarePen/></button><button aria-label="Chatmenü" onClick={() => {haptic("tick"); setMenu(true);}}><MoreVertical/></button></div>}
     </header>
-    <nav className="home-shortcuts" aria-label="Schnellzugriff"><button onClick={() => push("minijon")}><span className="mini-dot"/>MiniJon öffnen<span className="hint">Dein kleiner Begleiter</span><ChevronRight size={16}/></button></nav>
+    <nav className="home-shortcuts" aria-label="Schnellzugriff"><button onClick={() => push("minijon")}><span className="mini-dot"/>Funke öffnen<span className="hint">Dein Begleiter, der anpackt</span><ChevronRight size={16}/></button></nav>
     {empty && <button className={`model-chip ${offline ? "offline" : ""} ${!piWeg ? "handy" : ""}`} onClick={() => conn.paired || !piWeg ? shell.openModel() : push("pair")}><span className="led"/>{!piWeg ? <>{providerId === "handy" ? <Cpu size={14}/> : <Smartphone size={14}/>}{c.temp ? "Temporär · " : ""}{modelName} · {providerLabel(shell.providers, providerId)}</> : !conn.paired ? "Mit deinem Pi verbinden" : offline ? "Pi offline · Verbindung wird gesucht" : `${c.temp ? "Temporär · " : ""}${modelName}${providerId ? ` · ${providerLabel(shell.providers, providerId)}` : ""}`}<ChevronDown/></button>}
     {find !== null && <div className="inline-search"><Search size={18}/><input autoFocus placeholder="Im Chat suchen" value={find} onChange={e => setFind(e.target.value)}/><small>{find.trim() ? visible.length : ""}</small><button className="icon-btn" onClick={() => setFind(null)}><X/></button></div>}
     {empty ? <div className="empty-hero">

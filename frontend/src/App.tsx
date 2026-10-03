@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
 import MessageBubble, { ChatEntry } from "./components/MessageBubble";
@@ -48,6 +48,9 @@ import { MIKROFON_FEHLT, mikrofonMoeglich } from "./lib/umgebung";
 import { applyTheme, istTheme } from "./lib/theme";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import MediaPanel from "./components/MediaPanel";
+import AgentenDock from "./components/agenten/AgentenDock";
+import StartHero from "./components/StartHero";
+import { harnessRequest } from "./lib/harness";
 import {
   ConversationSummary,
   P2PIdentity,
@@ -234,6 +237,8 @@ export default function App() {
   >(null);
   const [codeOpen, setCodeOpen] = useState(false);
   const [harnessOpen, setHarnessOpen] = useState(false);
+  const [harnessTask, setHarnessTask] = useState<string | undefined>(undefined);
+  const imChat = useMemo(() => new Set(entries.flatMap((e) => (e.cards ?? []).filter((c) => c.kind === "agenten" || c.kind === "harness").map((c) => String((c.data as { id?: string }).id ?? "")))), [entries]);
   const [mediaOpen, setMediaOpen] = useState(false);
   const [mediaStart, setMediaStart] = useState({mode: "transcribe", text: "", auto: false});
   const [mediaUploads, setMediaUploads] = useState<{id: string; name: string}[]>([]);
@@ -1128,7 +1133,7 @@ export default function App() {
           setEntries((prev) =>
             prev.map((e) =>
               e.id === assistantEntry.id
-                ? { ...e, content: e.content + `\n\n[Fehler] ${message}`, streaming: false }
+                ? { ...e, content: (e.content ? e.content + "\n\n" : "") + `[Fehler] ${message}`, streaming: false }
                 : e
             )
           );
@@ -1874,7 +1879,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
           setEntries((prev) =>
             prev.map((e) =>
               e.id === assistantEntry.id
-                ? { ...e, content: e.content + `\n\n[Fehler] ${message}`, streaming: false }
+                ? { ...e, content: (e.content ? e.content + "\n\n" : "") + `[Fehler] ${message}`, streaming: false }
                 : e
             )
           );
@@ -1991,7 +1996,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                             { icon: "🧠", label: "Deep Learning", hint: "/lerne", act: () => { setDeepTaskId(undefined); setDeepOpen(true); } },
                             { icon: "🎨", label: "Video / Foto", hint: "/bild", act: () => setStudioOpen(true) },
                             { icon: "</>", label: "Jon Code", act: () => setCodeOpen(true) },
-                            { icon: "🤖", label: "Jon Harness", hint: "MiniJon", act: () => setHarnessOpen(true) },
+                            { icon: "🤖", label: "Jon Harness", hint: "Coding-Agent", act: () => setHarnessOpen(true) },
                             { icon: "🎙️", label: "Stimmen & Transkripte", hint: "/transkript", act: () => setMediaOpen(true) },
                             { icon: "✦", label: "Jon Fachteam", hint: "Agenten", act: () => setWerkzeugeOpen("agents") },
                             { icon: "✍️", label: "Humanisierer", act: () => setHumanizerOpen(true) },
@@ -2150,12 +2155,13 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
           >
             <RoutineBanner />
             {entries.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <h1 className="text-4xl font-bold gold-text mb-3">
-                  {t("empty_title")}
-                </h1>
-                <p className="text-white/40 max-w-md">{t("empty_hint")}</p>
-              </div>
+              <StartHero
+                titel={t("empty_title")}
+                hinweis={t("empty_hint")}
+                onVorschlag={(text) => {
+                  if (online && !streaming) void send(text, []);
+                }}
+              />
             )}
             {entries.map((e) => (
               <MessageBubble
@@ -2185,6 +2191,10 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                   setDeepOpen(true);
                 }}
                 onOpenStudio={() => setStudioOpen(true)}
+                onOpenHarness={(id) => {
+                  setHarnessTask(id);
+                  setHarnessOpen(true);
+                }}
               />
             ))}
           </div>
@@ -2292,7 +2302,8 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
       {gamesOpen !== null && (
         <Games onClose={() => setGamesOpen(null)} fokus={gamesOpen || undefined} />
       )}
-      {harnessOpen && <HarnessWorkspace onClose={() => setHarnessOpen(false)}/>}
+      {harnessOpen && <HarnessWorkspace initialTask={harnessTask} onClose={() => {setHarnessOpen(false); setHarnessTask(undefined);}}/>}
+      {!harnessOpen && <AgentenDock request={harnessRequest} ausblenden={imChat} onHarness={(id) => {setHarnessTask(id); setHarnessOpen(true);}}/>}
       {mediaOpen && <MediaPanel onClose={() => {setMediaOpen(false); setMediaStart({mode: "transcribe", text: "", auto: false}); setMediaUploads([]);}} uploads={mediaUploads} initialMode={mediaStart.mode} initialText={mediaStart.text} autoStart={mediaStart.auto}/>}
       {werkzeugeOpen !== null && (
         <ToolsModal

@@ -380,7 +380,7 @@ export function VoiceSettingsPage({shell, back}: PageProps) {
       <div className="group">
         <Row icon={<Mic/>} label="Mikrofon" detail={d.rechte?.mikrofon ? "Erlaubt" : "Noch nicht erlaubt"} right={d.rechte?.mikrofon ? <span className="badge ok">Erlaubt</span> : undefined} onClick={() => call("permission", {name: "mikrofon"}).then(load).catch(e => shell.notify(errorText(e)))}/>
         <Row icon={<Sparkles/>} label="„Hey Jon“" detail={modellText} right={<Switch on={!!d.wake} onChange={v => call("set", {name: "wake", value: v}).then(setD).catch(e => shell.notify(errorText(e)))}/>}/>
-        <Row icon={<Volume2/>} label="Durch Sprechen unterbrechen" detail="Wie bei Mini Jon: einfach reinreden" right={<Switch on={d.unterbrechen !== false} onChange={v => call("set", {name: "unterbrechen", value: v}).then(setD).catch(e => shell.notify(errorText(e)))}/>}/>
+        <Row icon={<Volume2/>} label="Durch Sprechen unterbrechen" detail="Wie im echten Gespräch: einfach reinreden" right={<Switch on={d.unterbrechen !== false} onChange={v => call("set", {name: "unterbrechen", value: v}).then(setD).catch(e => shell.notify(errorText(e)))}/>}/>
       </div>
       <div className="gap"/>
       <div className="group compact">

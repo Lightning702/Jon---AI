@@ -18,7 +18,7 @@ if (Test-Path -LiteralPath $webAssets) {
 }
 New-Item -ItemType Directory -Path $webAssets -Force | Out-Null
 Copy-Item -Path (Join-Path $projectRoot 'frontend/mobile-dist/*') -Destination $webAssets -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $projectRoot 'frontend/electron/pet3d.js') -Destination (Join-Path $assets 'mini-jon/pet3d.js') -Force
+Copy-Item -LiteralPath (Join-Path $projectRoot 'frontend/mobile/funke.js') -Destination (Join-Path $assets 'mini-jon/funke.js') -Force
 Push-Location $androidPath
 try {
     $buildTasks = @(':device-app:assembleDirektRelease', ':device-app:testDirektDebugUnitTest')
