@@ -26,6 +26,11 @@ Alle nennenswerten Änderungen an Jon.
 - **Über allen Apps:** Die schwebende Figur ist jetzt Funke – orange und funkensprühend, während er arbeitet, und freut sich, wenn er fertig ist.
 - **Fachteam- und Harness-Karten** auch im normalen Handy-Chat, dazu neue Vorschläge auf der Startseite.
 
+### 🔄 Sicher aktualisieren
+
+- **`jon-aktualisieren.bat`:** Doppelklick im Jon-Ordner holt die neue Version. Es wird nichts gelöscht: Eigene Dateien und lokale Änderungen bleiben erhalten, vorher wird ein Sicherungsstand angelegt. Ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas zu verändern.
+- **Eingebauter Updater repariert:** Er hat lokale Änderungen bisher in den Git-Stash geschoben und danach nicht zurückgeholt. Jetzt arbeitet er wie die neue Update-Datei – ohne Stash, mit Sicherungsstand und Konfliktprüfung.
+
 ### ✨ Oberfläche
 
 - **Neuer Startbildschirm** mit animiertem Jon-Kern und Vorschlägen für Fachteam, Harness, Entdecken und Jon Maps.

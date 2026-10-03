@@ -78,6 +78,86 @@ async def _update_installed_app():
     yield "DONE\n"
 
 
+GIT_UMGEBUNG = {"GIT_TERMINAL_PROMPT": "0", "GIT_MERGE_AUTOEDIT": "no", "GIT_EDITOR": "true", "LC_ALL": "C"}
+
+
+async def git(root: Path, *argumente: str) -> tuple[int, str]:
+    programm = shutil.which("git")
+    if not programm:
+        return 127, "Git wurde nicht gefunden."
+    prozess = await asyncio.create_subprocess_exec(
+        programm, *argumente,
+        cwd=str(root),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env={**os.environ, **GIT_UMGEBUNG},
+    )
+    ausgabe, _ = await prozess.communicate()
+    return prozess.returncode or 0, ausgabe.decode("utf-8", errors="replace").strip()
+
+
+def _zeilen(text: str) -> list[str]:
+    return [zeile.strip() for zeile in text.splitlines() if zeile.strip()]
+
+
+async def git_aktualisieren(root: Path, ergebnis: dict, ziel: str = "main"):
+    ergebnis.update(ok=False, dateien=[], konflikte=[])
+    code, remotes = await git(root, "remote")
+    if code != 0 or not _zeilen(remotes):
+        yield "Kein Git-Server eingetragen. Lade die neue Version von https://getjon.info.\n"
+        return
+    remote = "origin" if "origin" in _zeilen(remotes) else _zeilen(remotes)[0]
+    if (root / ".git" / "MERGE_HEAD").exists() or (root / ".git" / "rebase-merge").exists() or (root / ".git" / "rebase-apply").exists():
+        yield "Im Jon-Ordner läuft gerade ein unvollständiges Zusammenführen. Bitte zuerst abschließen.\n"
+        return
+    code, ausgabe = await git(root, "fetch", remote, ziel)
+    if code != 0:
+        yield f"Neue Version konnte nicht geladen werden: {ausgabe[-500:]}\n"
+        return
+    code, neu = await git(root, "rev-parse", "FETCH_HEAD")
+    if code != 0:
+        yield "Die geladene Version ist nicht lesbar.\n"
+        return
+    code, vorher = await git(root, "rev-parse", "HEAD")
+    if code != 0:
+        yield "Der Jon-Ordner hat noch keinen Git-Stand.\n"
+        return
+    code, basis = await git(root, "merge-base", "HEAD", neu)
+    if code == 0 and basis == neu:
+        yield "Jon ist bereits auf dem neuesten Stand.\n"
+        ergebnis.update(ok=True, aktuell=True)
+        return
+    code, kommend = await git(root, "diff", "--name-only", basis if code == 0 else "HEAD", neu)
+    kommende = set(_zeilen(kommend))
+    _, lokal = await git(root, "diff", "--name-only", "HEAD")
+    _, unversioniert = await git(root, "ls-files", "--others", "--exclude-standard")
+    konflikte = sorted(kommende & (set(_zeilen(lokal)) | set(_zeilen(unversioniert))))
+    if konflikte:
+        ergebnis["konflikte"] = konflikte
+        yield "Die neue Version ändert Dateien, die du selbst bearbeitet hast:\n"
+        for name in konflikte[:20]:
+            yield f"  {name}\n"
+        yield "Ich habe nichts verändert, damit deine Arbeit sicher bleibt. Sichere oder committe diese Dateien und starte das Update dann erneut.\n"
+        return
+    sicherung = "sicherung-vor-update-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    await git(root, "branch", sicherung, "HEAD")
+    yield f"Sicherungsstand angelegt: {sicherung}\n"
+    if _zeilen(lokal):
+        yield f"Deine {len(_zeilen(lokal))} lokal geänderten Dateien bleiben unverändert erhalten.\n"
+    identitaet: list[str] = []
+    if not (await git(root, "config", "user.email"))[1]:
+        identitaet = ["-c", "user.name=Jon Update", "-c", "user.email=update@jon.local"]
+    code, ausgabe = await git(root, *identitaet, "merge", "--no-edit", neu)
+    if code != 0:
+        await git(root, "merge", "--abort")
+        yield f"Zusammenführen nicht möglich, alles zurückgesetzt auf deinen Stand: {ausgabe[-500:]}\n"
+        return
+    _, nachher = await git(root, "rev-parse", "HEAD")
+    _, dateien = await git(root, "diff", "--name-only", vorher, nachher)
+    ergebnis.update(ok=True, dateien=_zeilen(dateien), sicherung=sicherung)
+    yield f"Aktualisiert: {len(_zeilen(dateien))} Dateien neu, nichts gelöscht, was dir gehört.\n"
+
+
 async def perform_update():
     from app.services.update_service import install_mode
 
@@ -116,69 +196,19 @@ async def perform_update():
         yield f"Fehler beim Backup: {e}\nAbbruch.\n"
         return
 
-    yield "Schritt 3: Git Update...\n"
-    try:
-        if os.name == 'nt':
-            proc = await asyncio.create_subprocess_shell(
-                "git stash",
-                cwd=str(root_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
-            )
-        else:
-            proc = await asyncio.create_subprocess_exec(
-                "git", "stash",
-                cwd=str(root_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
-            )
-        stdout, _ = await proc.communicate()
-        yield f"Git stash: {stdout.decode('utf-8', errors='replace').strip()}\n"
-
-        if os.name == 'nt':
-            proc2 = await asyncio.create_subprocess_shell(
-                "git pull",
-                cwd=str(root_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
-            )
-        else:
-            proc2 = await asyncio.create_subprocess_exec(
-                "git", "pull",
-                cwd=str(root_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
-            )
-        stdout2, _ = await proc2.communicate()
-        pull_output = stdout2.decode('utf-8', errors='replace').strip()
-        yield f"Git pull: {pull_output}\n"
-
-        if proc2.returncode != 0:
-            yield "Git pull fehlgeschlagen, mache Rollback...\n"
-            if os.name == 'nt':
-                proc3 = await asyncio.create_subprocess_shell(
-                    "git stash pop",
-                    cwd=str(root_dir),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT
-                )
-            else:
-                proc3 = await asyncio.create_subprocess_exec(
-                    "git", "stash", "pop",
-                    cwd=str(root_dir),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT
-                )
-            await proc3.communicate()
-            yield "Rollback abgeschlossen. Abbruch.\n"
-            return
-
-    except Exception as e:
-        yield f"Git-Fehler: {e}\nAbbruch.\n"
+    yield "Schritt 3: Hole die neue Version, ohne etwas zu löschen...\n"
+    ergebnis: dict = {}
+    async for zeile in git_aktualisieren(root_dir, ergebnis):
+        yield zeile
+    if not ergebnis.get("ok"):
+        yield "Abbruch. Dein Jon-Ordner ist unverändert.\n"
         return
-
-    req_changed = "requirements.txt" in pull_output
-    frontend_changed = "frontend/" in pull_output
+    if ergebnis.get("aktuell"):
+        yield "DONE\n"
+        return
+    geaendert = ergebnis.get("dateien", [])
+    req_changed = any(name.startswith("backend/requirements") for name in geaendert)
+    frontend_changed = any(name.startswith("frontend/") for name in geaendert)
 
     if req_changed:
         yield "Schritt 4: Installiere Backend-Abhängigkeiten...\n"
