@@ -3,6 +3,29 @@ import type { HarnessAuftrag } from "../components/agenten/daten";
 
 export type HarnessTask = HarnessAuftrag;
 
+export interface HarnessSitzung {
+  id: string;
+  title: string;
+  root: string;
+  source: string;
+  created_at: number;
+  updated_at: number;
+  status: string;
+  tasks: number;
+  running: boolean;
+  last_task: string;
+}
+
+export interface VorschauZustand {
+  status: "aus" | "startet" | "laeuft" | "beendet" | "fehler" | "gestoppt";
+  url?: string;
+  art?: string;
+  befehl?: string;
+  log?: string[];
+  hinweis?: string;
+  erkannt: { art: string; skript?: string; befehl?: string; installieren?: boolean; ordner?: string; datei?: string };
+}
+
 export const finished = new Set(["done", "needs_review", "failed", "cancelled", "interrupted"]);
 export const taskLabels: Record<string, string> = { planning: "Plant", working: "Arbeitet", verifying: "Prüft", waiting_approval: "Freigabe nötig", cancelling: "Stoppt", cancelled: "Gestoppt", interrupted: "Unterbrochen", done: "Abgeschlossen", needs_review: "Prüfung offen", failed: "Fehlgeschlagen" };
 

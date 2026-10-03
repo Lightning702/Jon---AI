@@ -74,7 +74,7 @@ def test_harness_reads_wrapped_json_and_stops_after_repeated_format_errors(tmp_p
         service = HarnessService(tmp_path / "tasks", model)
         result = await finish(service, service.start("Projekt prüfen", str(tmp_path)))
         assert result["status"] == "failed"
-        assert "stärkeres Modell" in result["summary"]
+        assert "keine gültigen Harness-Schritte" in result["summary"]
 
     asyncio.run(run())
 

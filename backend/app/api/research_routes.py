@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from app.schemas import ResearchControlIn, ResearchStartIn
 from app.services.research import get_research_service
+from app.services.premium import PremiumNoetig
 
 router = APIRouter(prefix="/api/research")
 
@@ -28,6 +29,8 @@ async def research_start(payload: ResearchStartIn) -> dict:
             payload.model,
             payload.depth,
         )
+    except PremiumNoetig:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

@@ -99,6 +99,10 @@ class ResearchService:
         model: str | None = None,
         depth: str = "normal",
     ) -> dict[str, Any]:
+        from app.services.premium import get_premium
+
+        get_premium().pruefen("recherche")
+
         text = topic.strip()
         if not text:
             raise ValueError("Ohne Thema kann Jon nicht lernen")

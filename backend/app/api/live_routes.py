@@ -19,6 +19,10 @@ async def stand() -> dict:
 
 @router.post("/start")
 async def start(payload: dict) -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("fernsteuerung")
+
     try:
         return get_live_service().starten(
             str(payload.get("welcher", "alle") or "alle"),

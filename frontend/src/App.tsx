@@ -108,6 +108,8 @@ import {
   BASE,
 } from "./lib/api";
 import type { JonUhr } from "./lib/api";
+import { istPremium, premiumLaden } from "./lib/premium";
+import { beobachtungsMeldungen } from "./components/BeobachtenPanel";
 
 const jonDesktop = (window as unknown as {
   jon?: {
@@ -432,7 +434,7 @@ export default function App() {
           localStorage.setItem("jon_briefing", today);
           await runBriefing();
         }
-        if (now.getDay() === 0 && localStorage.getItem("jon_weekly") !== today) {
+        if (now.getDay() === 0 && localStorage.getItem("jon_weekly") !== today && istPremium(await premiumLaden())) {
           localStorage.setItem("jon_weekly", today);
           await runDataPrompt(async () => WEEKLY_PROMPT(await getWeekly()));
         }
@@ -787,6 +789,16 @@ export default function App() {
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("Jon — Erinnerung", { body: r.text });
+        }
+      }
+      for (const b of await beobachtungsMeldungen()) {
+        const fund = b.treffer;
+        setEntries((prev) => [
+          ...prev,
+          { id: nextId(), role: "assistant", content: `🔔 Es ist so weit: **${b.frage}**\n\n${fund?.beweis ?? ""}${fund?.quelle ? `\n\nQuelle: ${fund.quelle}` : ""}` },
+        ]);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Jon — Beobachtung eingetreten", { body: b.frage });
         }
       }
       const calendarDue = await getCalendarDue();
@@ -1999,6 +2011,8 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                             { icon: "🤖", label: "Jon Harness", hint: "Coding-Agent", act: () => setHarnessOpen(true) },
                             { icon: "🎙️", label: "Stimmen & Transkripte", hint: "/transkript", act: () => setMediaOpen(true) },
                             { icon: "✦", label: "Jon Fachteam", hint: "Agenten", act: () => setWerkzeugeOpen("agents") },
+                            { icon: "👁️", label: "Beobachten", hint: "Jon meldet sich", act: () => setWerkzeugeOpen("beobachten") },
+                            { icon: "✉️", label: "Support", hint: "Fehler & Ideen", act: () => setWerkzeugeOpen("support") },
                             { icon: "✍️", label: "Humanisierer", act: () => setHumanizerOpen(true) },
                             { icon: "📌", label: "Haftnotizen", act: () => setNotesOpen(true) },
                             { icon: "📞", label: "Telefonanrufe", act: () => setPhoneOpen(true) },

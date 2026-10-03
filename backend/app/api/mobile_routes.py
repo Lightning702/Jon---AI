@@ -238,6 +238,10 @@ def zip_folder(payload: dict) -> dict:
 
 @router.post("/ausfuehren")
 async def run_file(payload: dict) -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("fernsteuerung")
+
     import shutil
     import sys
     import time
@@ -334,6 +338,10 @@ def _befehl_zeile(name: str, args: str, info: str) -> str:
 
 @router.post("/befehl")
 async def command(payload: dict) -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("fernsteuerung")
+
     from app.services.telegram_extras import is_learn_command, research_command
 
     text = " ".join(str(payload.get("text", "")).split())

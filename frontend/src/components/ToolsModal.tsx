@@ -4,6 +4,8 @@ import GeraetePanel from "./GeraetePanel";
 import HandyModal from "./HandyModal";
 import HarnessPanel from "./HarnessPanel";
 import AgentTeam from "./AgentTeam";
+import BeobachtenPanel from "./BeobachtenPanel";
+import SupportPanel from "./SupportPanel";
 import {harnessRequest} from "../lib/harness";
 
 const STUFENFARBE: Record<string, string> = {
@@ -48,7 +50,7 @@ export default function ToolsModal({
         setGruppen(daten.gruppen);
         setSkills(daten.skills ?? []);
         const gewuenscht = start ?? "handy";
-        if (!["harness", "agents"].includes(gewuenscht) && !daten.gruppen.some((g) => g.id === gewuenscht)) {
+        if (!["harness", "agents", "beobachten", "support"].includes(gewuenscht) && !daten.gruppen.some((g) => g.id === gewuenscht)) {
           setAktiv(daten.gruppen[0]?.id ?? "");
         }
       } catch (e) {
@@ -121,6 +123,8 @@ export default function ToolsModal({
             <div className="w-[190px] shrink-0 overflow-y-auto pr-1 space-y-1">
               <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "harness" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => onHarness ? onHarness() : setAktiv("harness")}>🤖 Jon Harness</button>
               <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "agents" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("agents")}>✦ Jon Fachteam</button>
+              <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "beobachten" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("beobachten")}>👁️ Beobachten</button>
+              <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "support" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("support")}>✉️ Support</button>
               {gruppen.map((g) => (
                 <button
                   key={g.id}
@@ -155,6 +159,10 @@ export default function ToolsModal({
             {!suche.trim() && aktiv === "harness" && <HarnessPanel />}
             {suche.trim() && /team|agent|latein|lernen|fach|planung/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => {setSuche(""); setAktiv("agents");}}>✦ Jon Fachteam öffnen · Spezialisieren und gegenprüfen</button>}
             {!suche.trim() && aktiv === "agents" && <AgentTeam request={harnessRequest}/>}
+            {suche.trim() && /beobacht|erinner|bescheid|release|rauskommt/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => {setSuche(""); setAktiv("beobachten");}}>👁️ Beobachten öffnen · Jon meldet sich, sobald etwas eintritt</button>}
+            {suche.trim() && /support|hilfe|fehler|problem|vorschlag|kontakt|mail/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => {setSuche(""); setAktiv("support");}}>✉️ Support öffnen · Probleme, Fehler und Vorschläge an FelWorks</button>}
+            {!suche.trim() && aktiv === "beobachten" && <BeobachtenPanel/>}
+            {!suche.trim() && aktiv === "support" && <SupportPanel/>}
             {!suche.trim() && gruppenSkill && (
               <div className="rounded-xl border border-gold/25 bg-gold/[0.06] px-3 py-2.5">
                 <div className="text-[11px] text-gold/90">

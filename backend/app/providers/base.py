@@ -25,6 +25,7 @@ class ChatRequest:
     tools: list[dict] = field(default_factory=list)
     slot: str = "jon"
     first_token_timeout: float = 0.0
+    context_window: int = 0
 
 
 @dataclass

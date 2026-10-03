@@ -1,6 +1,6 @@
 # Jon Harness und MiniJon
 
-Stand: 2. Oktober 2026, Jon 4.58.0. Der Harness öffnet in der App einen eigenen Arbeitsbereich mit Projektleiste, Eingabefeld unten, animierter Live-Ansicht und separater Diff-Ansicht. Er arbeitet immer mit Jons Modell aus den Einstellungen – auch wenn der Auftrag aus MiniJon kommt. MiniJon kann den Fortschritt nur noch als Begleiter anzeigen.
+Stand: 3. Oktober 2026, Jon 4.58.1. Der Harness öffnet in der App einen eigenen Arbeitsbereich mit Sitzungsleiste, Eingabefeld unten, animierter Live-Ansicht, Diff-Ansicht und Projektvorschau. Er arbeitet immer mit Jons Modell aus den Einstellungen – auch wenn der Auftrag aus MiniJon kommt. MiniJon kann den Fortschritt nur noch als Begleiter anzeigen.
 
 ## Einstieg
 
@@ -17,6 +17,43 @@ jon-harness -C "C:\Projekte\MeineApp" "Ergänze die Suchfunktion"
 Beide Befehle starten denselben Coding-Harness. Im bestehenden Jon-Terminal öffnet `agent <Auftrag>` ebenfalls den Harness. Die Befehle wurden über Jons vorhandenen Installer in den Benutzerpfad installiert. Sie verwenden den aktuellen Arbeitsordner und die vorhandene Modellkonfiguration. Mit `--provider`, `--model` und `--max-steps` lassen sich diese Werte pro Aufruf wählen.
 
 Der Terminal-Client nutzt ein erreichbares Jon-Backend. Wenn keine Verbindung aufgebaut werden kann, startet er den lokalen Harness. Authentifizierungsfehler führen nicht zu einem stillen Wechsel. Ein älteres laufendes Backend muss neu gestartet werden.
+
+## Sitzungen
+
+Ein Auftrag im Harness eröffnet eine Sitzung. Jeder weitere Auftrag, den du im Eingabefeld schickst, bleibt in dieser Sitzung: Jon bekommt die früheren Aufträge, ihre Zusammenfassungen, die geänderten Dateien und die Prüfergebnisse mit und liest betroffene Dateien vor einer Änderung erneut. Frühere Aufträge erscheinen im Verlauf eingeklappt, der aktuelle vollständig. **Änderungen** zeigt alle Dateien der Sitzung. Solange ein Auftrag läuft, wartet das Eingabefeld, bis er fertig ist. **Neue Sitzung** beginnt ein neues Thema.
+
+Startet Jon im normalen Chat einen Harness-Auftrag, setzt er die zuletzt aktive Sitzung desselben Projekts fort, wenn sie in den letzten drei Stunden benutzt wurde. Mit `new_session` im Werkzeug `harness_task` beginnt er bewusst neu. In Telegram setzt `/harness <Auftrag>` die laufende Sitzung fort, `/hneu <Auftrag>` beginnt eine neue.
+
+```text
+GET  /api/harness/threads
+GET  /api/harness/threads/{id}
+POST /api/harness/tasks   {"root": "...", "goal": "...", "thread": "<Sitzung oder leer>"}
+```
+
+## Projektvorschau
+
+**Vorschau** in der oberen Leiste oder in der linken Schiene öffnet dein Projekt neben dem Verlauf. Die Gerätewahl schaltet zwischen Desktop, Tablet (820 px) und Handy (390 px).
+
+- **Statische Seiten:** Findet Jon eine `index.html` im Projekt oder in `dist`, `build`, `public`, `docs`, `www`, `site` oder `out` (sonst die erste HTML-Datei), startet er einen lokalen Server auf `127.0.0.1` mit zufälligem Port. Der Server liefert keine versteckten Dateien, keine `.env`, keine Schlüssel- und Zugangsdateien und beantwortet nur Anfragen an seine eigene Adresse.
+- **Node-Projekte:** Hat `package.json` ein Skript `dev`, `start`, `preview` oder `serve`, zeigt Jon den Befehl und startet ihn erst nach deinem Klick, bei fehlendem `node_modules` mit vorherigem `npm install`. Die Adresse liest Jon aus der Ausgabe. Der Server läuft mit deinen Benutzerrechten und lässt sich jederzeit stoppen; beim Beenden von Jon wird er mit allen Unterprozessen beendet.
+- Nach jedem Auftrag mit Änderungen lädt die Vorschau automatisch neu.
+
+```text
+GET  /api/harness/preview?root=...
+POST /api/harness/preview        {"root": "..."}
+POST /api/harness/preview/stop   {"root": "..."}
+```
+
+## Modelle: NVIDIA und Ollama
+
+Der Harness verwendet einen eigenen, geduldigeren Modellzugang als der Chat:
+
+- Bis zu 150 Sekunden Wartezeit auf das erste Token. Bei 429, 500 bis 504, 529, Überlastung und Verbindungsabbrüchen bis zu drei Wiederholungen nach 2, 5 und 12 Sekunden, danach Jons Ersatzroute mit bis zu vier Modellen. Jeder Versuch steht als Hinweis im Aktivitätsverlauf.
+- `<think>`-Blöcke werden entfernt. Liefert ein Modell sein Ergebnis nur im Reasoning-Kanal, wird dieses gelesen.
+- Für Ollama fordert der Harness mindestens 16.384 Token Kontext an. Meldet Ollama zu wenig Speicher, arbeitet er mit der eingestellten Kontextlänge und einer kompakten Anleitung weiter. Dateiliste, Verlauf und frühere Aufträge werden passend zum Fenster gekürzt; die letzte Aktion bleibt vollständig.
+- Für Coding-Aufträge eignen sich Modelle ab etwa 7 bis 8 Milliarden Parametern, zum Beispiel `qwen2.5-coder:7b` lokal oder ein großes NVIDIA-Modell.
+- Unter Windows laufen Befehle in PowerShell 5.1 mit `-ExecutionPolicy Bypass`. Das Modell erfährt die Shell und trennt Befehle mit `;`.
+- Ändert ein Modell eine Datei ohne vorherigen Plan, gilt der Auftrag als Plan. Viermal derselbe Werkzeugfehler hintereinander beendet den Auftrag mit `needs_review` und einer klaren Meldung.
 
 ## App, MiniJon und Telegram
 
@@ -89,6 +126,10 @@ Die Figur rendert höchstens 30 Bilder pro Sekunde, schlafend 15. Verborgene Fen
 Jon spricht als warmer, direkter Kollege mit trockenem Humor. MiniJon bleibt kürzer und verspielter. Beide erhalten einen gemeinsamen Verhaltenskompass: Ergebnisse prüfen, Grenzen und Stopps beachten, Fehler eingestehen, keine erfundenen Erinnerungen oder Gefühle behaupten. Das implementiert Verhalten, kein erlebtes Gewissen.
 
 ## Prüfung
+
+Für 4.58.1 bestanden 95 gezielte Harness-, Fachteam- und Zuverlässigkeitstests, darunter neue Tests für Sitzungen, Vorschau (inklusive gesperrter `.env` und fremdem Host), Wiederholungen bei 429/503, Ausweichmodelle, Reasoning-Antworten, den Ollama-Speicherrückfall und das Kontextbudget. Im Browser lief ein vollständiger Ablauf mit einem lokalen Testmodell: Startseite anlegen, Folgeauftrag in derselben Sitzung, Vorschau öffnen und Handybreite. Echte NVIDIA- und Ollama-Modelle wurden in dieser Umgebung nicht angesprochen; die Fehlerfälle wurden mit nachgebauten Anbieterantworten geprüft.
+
+Frühere Prüfung (4.58.0):
 
 Der vollständige Backend-Lauf ergab 1.087 bestandene Tests, einen übersprungenen Test und einen Timeout im Live-Wikipedia-Browsertest unter gleichzeitiger Build-Last. Dieser Test bestand beim separaten Wiederholen. Anschließend bestanden 95 gezielte Nachtests und nach der letzten Bildschirmkorrektur nochmals 48 betroffene Tests. Fünf Node-Tests prüfen Aufgabenfreigaben und Monitorwechsel. Desktop- und Mobile-Build waren erfolgreich. Die zehn 3D-Varianten, die mobile Navigation und der Harness wurden im Browser geprüft. Ein synthetisches Lateinbild deckte einen fachlichen Fehler des Vision-Modells auf; die daraufhin getrennte fachliche Prüfung erkannte das AcI-Subjekt korrekt. Das bestätigt dieses Beispiel, nicht die Richtigkeit beliebiger Hausaufgaben.
 

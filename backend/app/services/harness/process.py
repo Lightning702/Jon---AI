@@ -8,7 +8,7 @@ import subprocess
 
 async def run_command(command: str, cwd: str, timeout: int = 180) -> dict:
     options = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {"start_new_session": True}
-    argv = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference = 'Stop'\n" + command + "\nif ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }"] if os.name == "nt" else ["/bin/sh", "-c", command]
+    argv = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "$ErrorActionPreference = 'Stop'\n" + command + "\nif ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }"] if os.name == "nt" else ["/bin/sh", "-c", command]
     process = await asyncio.create_subprocess_exec(*argv, cwd=cwd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, **options)
     job = None
     if os.name == "nt":

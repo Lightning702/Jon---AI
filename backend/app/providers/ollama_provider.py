@@ -110,6 +110,8 @@ class OllamaProvider(OpenAICompatibleProvider):
         options["top_p"] = float(request.top_p)
         if request.max_tokens:
             options["num_predict"] = int(request.max_tokens)
+        if request.context_window > int(options.get("num_ctx") or 0):
+            options["num_ctx"] = int(request.context_window)
         if request.seed is not None:
             options["seed"] = int(request.seed)
         if request.stop:

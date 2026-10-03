@@ -39,6 +39,9 @@ from app.api.geraet_app_routes import router as geraet_app_router
 from app.api.sicherung_routes import router as sicherung_router
 from app.api.system_routes import router as system_router
 from app.api.harness_routes import router as harness_router
+from app.api.premium_routes import router as premium_router
+from app.api.beobachten_routes import router as beobachten_router
+from app.api.support_routes import router as support_router
 from app.api.agenten_routes import router as agenten_router
 from app.api.media_routes import router as media_router
 from app.core.auth import TokenMiddleware, get_token
@@ -55,6 +58,34 @@ async def _warm_caches() -> None:
         await providers()
     with suppress(Exception):
         await accounts()
+
+
+async def _beobachten_watcher() -> None:
+    from app.services.beobachten import TAKT_S, get_beobachten
+
+    await asyncio.sleep(45)
+    while True:
+        try:
+            anzahl = await get_beobachten().runde()
+            if anzahl:
+                _log.info("STEP beobachten %s geprueft", anzahl)
+        except Exception as fehler:
+            _log.warning("Beobachten fehlgeschlagen: %s", fehler)
+        await asyncio.sleep(TAKT_S)
+
+
+async def _premium_erneuern() -> None:
+    from app.services.premium import get_premium
+
+    await asyncio.sleep(20)
+    while True:
+        try:
+            if get_premium().braucht_erneuerung():
+                await get_premium().erneuern()
+                _log.info("STEP premium Lizenz erneuert")
+        except Exception as fehler:
+            _log.warning("Premium-Lizenz konnte nicht erneuert werden: %s", fehler)
+        await asyncio.sleep(6 * 3600)
 
 
 async def _initiative_watcher() -> None:
@@ -654,6 +685,8 @@ async def lifespan(app: FastAPI):
 
     with suppress(Exception):
         get_research_service().boot()
+    _spawn("premium", _premium_erneuern())
+    _spawn("beobachten", _beobachten_watcher())
     from app.services.p2p_service import get_p2p_service
 
     p2p = get_p2p_service()
@@ -733,6 +766,9 @@ async def lifespan(app: FastAPI):
     from app.services.harness import get_harness_service
 
     await get_harness_service().close()
+    from app.services.harness.vorschau import get_vorschau
+
+    await get_vorschau().close()
     from app.services.agenten_service import get_agenten_service
 
     await get_agenten_service().close()
@@ -763,6 +799,14 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         lifespan=lifespan,
     )
+    from app.services.premium import PremiumNoetig
+
+    @app.exception_handler(PremiumNoetig)
+    async def premium_noetig(request, exc: PremiumNoetig):
+        from fastapi.responses import JSONResponse
+
+        return JSONResponse(status_code=402, content={"detail": exc.text, "premium": exc.feature})
+
     app.add_middleware(TokenMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -775,6 +819,9 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(system_router)
     app.include_router(harness_router)
+    app.include_router(premium_router)
+    app.include_router(beobachten_router)
+    app.include_router(support_router)
     app.include_router(agenten_router)
     app.include_router(media_router)
     app.include_router(p2p_router)

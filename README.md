@@ -6,11 +6,11 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-Neu in 4.58.0: [Jons Fachteam live im Chat](docs/FACHTEAM.md), ein neuer [Jon Harness](docs/JON-HARNESS.md) mit Jons eigenem Modell und [Funke, dein Begleiter auf dem Handy](docs/FUNKE-HANDY.md).
+Neu in 4.58.1: [Jon Premium](docs/PREMIUM.md) mit Standard, Premium und Admin, [Beobachten](docs/BEOBACHTEN.md), Support in den Werkzeugen, [Jon im Browser ausprobieren](docs/DEMO-PI.md), und der [Jon Harness](docs/JON-HARNESS.md) arbeitet in Sitzungen weiter, zeigt eine Live-Vorschau und läuft mit NVIDIA und Ollama deutlich zuverlässiger. Seit 4.58.0: [Jons Fachteam live im Chat](docs/FACHTEAM.md) und [Funke, dein Begleiter auf dem Handy](docs/FUNKE-HANDY.md).
 
 **Jon aktualisieren, ohne etwas zu verlieren:** Doppelklick auf `jon-aktualisieren.bat` im Jon-Ordner. Deine eigenen Dateien und Änderungen bleiben erhalten; ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas anzufassen.
 
-[![Version](https://img.shields.io/badge/Version-4.58.0-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.58.1-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

@@ -1,0 +1,11 @@
+{
+  "name": "jon-netlify-funktionen",
+  "private": true,
+  "description": "Abhängigkeiten der Netlify-Funktionen für Jon Premium",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.3"
+  }
+}

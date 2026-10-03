@@ -192,6 +192,10 @@ def _nur_eltern() -> None:
 
 @router.post("/devices/{device_id}/durchsage")
 async def device_announce(device_id: str, payload: dict) -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("familie")
+
     _nur_eltern()
     try:
         return await get_handy_service().durchsage(
@@ -215,6 +219,10 @@ async def device_ring(device_id: str, payload: dict | None = None) -> dict:
 
 @router.post("/devices/{device_id}/regeln")
 async def device_rules(device_id: str, payload: dict) -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("familie")
+
     _nur_eltern()
     try:
         return {"bildschirmzeit": await get_handy_service().regeln_setzen(device_id, payload)}

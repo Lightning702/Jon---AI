@@ -72,6 +72,10 @@ class ScreenService:
         return {"observation": clean}
 
     async def explain(self) -> dict:
+        from app.services.premium import get_premium
+
+        get_premium().pruefen("bildschirm")
+
         settings = get_settings()
         user = get_settings_service()
         saved_provider, saved_model = user.selection()

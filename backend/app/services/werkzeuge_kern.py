@@ -306,6 +306,23 @@ async def _initiative(box: Any, args: dict, name: str = "") -> str:
     return antwort({"vorschlaege": dienst.alle()})
 
 
+@werkzeug_async("beobachten")
+async def _beobachten(box: Any, args: dict, name: str = "") -> str:
+    from app.services.beobachten import get_beobachten
+
+    dienst = get_beobachten()
+    aktion = str(args.get("aktion", "liste")).strip().lower()
+    try:
+        if aktion == "anlegen":
+            eintrag = dienst.anlegen(str(args.get("frage", "")), str(args.get("bedingung", "")), args.get("intervall_stunden") or 24)
+            return antwort({"ok": True, "beobachtung": eintrag, "hinweis": f"Jon prüft das alle {eintrag['intervall_stunden']:g} Stunden, solange er auf dem PC oder Pi läuft, und meldet sich in der App und über Telegram."})
+        if aktion == "stoppen":
+            return antwort({"ok": True, "beobachtung": dienst.stoppen(str(args.get("id", "")))})
+        return antwort({"ok": True, "beobachtungen": [{k: e.get(k) for k in ("id", "frage", "bedingung", "status", "letzter_check", "intervall_stunden", "treffer")} for e in dienst.liste()]})
+    except (ValueError, KeyError) as fehler:
+        return antwort({"error": str(fehler).strip("'\"")})
+
+
 @werkzeug_async("team")
 async def _team(box: Any, args: dict, name: str = "") -> str:
     from app.services.agenten_service import get_agenten_service

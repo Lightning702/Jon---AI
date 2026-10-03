@@ -50,12 +50,12 @@
 .harness-companion-dot{width:7px;height:7px;border-radius:50%;background:#e5c889;flex:none;box-shadow:0 0 10px rgba(229,200,137,.6)}
 .harness-empty-project{padding:12px;font-size:12px;justify-content:flex-start!important;color:#d6c9a6!important;border:1px dashed rgba(229,200,137,.3)!important}
 
-.harness-main{min-height:0;min-width:0;display:flex;flex-direction:column}
+.harness-main{min-height:0;min-width:0;display:flex;flex-direction:column;container-type:inline-size;container-name:harness-main}
 .harness-topbar{display:flex;align-items:center;gap:10px;min-height:54px;padding:12px 20px;border-bottom:1px solid var(--h-line);background:rgba(13,13,17,.6);backdrop-filter:blur(14px)}
 .harness-topbar>button{padding:4px;color:#999}
 .harness-topbar>svg{color:var(--h-accent)}
-.harness-topbar strong{font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.harness-topbar-actions{margin-left:auto;display:flex;align-items:center;gap:14px}
+.harness-topbar strong{flex:0 1 auto;min-width:48px;font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.harness-topbar-actions{margin-left:auto;flex:none;display:flex;align-items:center;gap:10px}
 .harness-topbar-actions button{color:#969696;padding:4px}
 .harness-status{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#e5c889;white-space:nowrap;padding:4px 10px;border-radius:999px;background:rgba(229,200,137,.1)}
 .status-waiting_approval,.status-needs_review{color:#f3c56b;background:rgba(243,197,107,.1)}
@@ -146,7 +146,7 @@
 .harness-review{min-width:0;overflow:auto;border-left:1px solid var(--h-line);background:rgba(16,16,20,.9)}
 .harness-review>header{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:8px;padding:18px 14px;border-bottom:1px solid var(--h-line);font-size:12px;background:rgba(16,16,20,.95);backdrop-filter:blur(10px)}
 .harness-review>header svg{color:var(--h-accent)}
-.harness-review>header button{margin-left:auto;color:#999}
+.harness-review>header>button{margin-left:auto;color:#999}
 .harness-review>details{border-bottom:1px solid var(--h-line)}
 .harness-review summary{display:flex;align-items:center;gap:6px;padding:13px 12px;font-size:11px;cursor:pointer;list-style:none;font-family:ui-monospace,Consolas,monospace}
 .harness-review summary::-webkit-details-marker{display:none}
@@ -173,6 +173,73 @@
 @media(max-width:1100px){.harness-shell{grid-template-columns:46px 228px minmax(0,1fr)}.harness-with-review{grid-template-columns:46px minmax(0,1fr) minmax(280px,40%)}.harness-with-review>.harness-sidebar{display:none}.harness-sidebar-hidden{grid-template-columns:46px minmax(0,1fr)}.harness-access,.harness-model{display:none}.harness-feed{padding:20px 24px}.harness-composer-wrap{padding:10px 24px}}
 @media(max-width:760px){.harness-shell{grid-template-columns:46px minmax(0,1fr)}.harness-shell>.harness-sidebar{display:none}.harness-topbar{padding:12px}.harness-topbar-actions{gap:8px}.harness-status{font-size:10px}.harness-feed{padding:16px}.harness-composer-wrap{padding:8px 12px}.harness-with-review>.harness-review{position:absolute;left:46px;right:0;top:0;bottom:0;z-index:2}.harness-composer-bar .harness-project-badge{max-width:100px}.harness-suggestions{grid-template-columns:1fr}.harness-welcome h1{font-size:22px}.harness-user-message{max-width:94%}}
 @media(prefers-reduced-motion:reduce){.harness-workspace,.harness-spin,.harness-rail-logo.aktiv::after,.harness-composer.arbeitet::before,.state-working,.state-planning,.state-verifying,.state-waiting_approval,.harness-companion.an svg{animation:none}.harness-feed{scroll-behavior:auto}.harness-shell button{transition:none}}
+.harness-rail button.an{color:var(--h-accent);background:rgba(229,200,137,.1)}
+.harness-anzahl{flex:none;font-style:normal;font-size:10px;font-weight:650;min-width:18px;height:16px;padding:0 5px;border-radius:999px;display:grid;place-items:center;color:#d8c89c;background:rgba(229,200,137,.12)}
+.harness-topbar-zahl{flex:none;font-size:10.5px;color:#a8977a;padding:2px 8px;border-radius:999px;border:1px solid var(--h-line-2)}
+.harness-topbar-actions .harness-topbar-knopf{gap:6px;padding:5px 10px;font-size:11.5px;color:#b7b3aa;border:1px solid var(--h-line-2)}
+.harness-topbar-actions .harness-topbar-knopf.an{color:#f0dfb4;border-color:rgba(229,200,137,.45);background:rgba(229,200,137,.1)}
+.harness-topbar-knopf em{font-style:normal;font-size:10px;font-weight:650;min-width:17px;height:16px;padding:0 5px;border-radius:999px;display:grid;place-items:center;color:#1b160a;background:var(--h-accent)}
+.harness-trenner{display:flex;align-items:center;gap:12px;margin:18px 0 4px;color:#77746d;font-size:10.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}
+.harness-trenner::before,.harness-trenner::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--h-line-2),transparent)}
+.harness-frueher{border:1px solid var(--h-line);border-radius:14px;background:rgba(255,255,255,.02);transition:border-color .2s}
+.harness-frueher[open]{border-color:var(--h-line-2)}
+.harness-frueher summary{display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer;list-style:none;font-size:12px;color:#c9c5bb}
+.harness-frueher summary::-webkit-details-marker{display:none}
+.harness-frueher summary>svg{margin-left:auto;color:#666;transition:transform .2s}
+.harness-frueher[open] summary>svg{transform:rotate(90deg)}
+.harness-frueher-zahl{display:flex;gap:6px;font-size:11px;color:#8f8c84}
+.harness-frueher-zahl b{font-weight:500}
+.harness-frueher>p{padding:0 14px 12px;font-size:12px;line-height:1.75;color:#b5b2aa;white-space:pre-wrap;overflow-wrap:anywhere}
+.harness-frueher-dateien{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 14px}
+.harness-frueher-dateien button{gap:5px!important;padding:4px 9px;font:11px ui-monospace,Consolas,monospace;color:#cdbb8e;border:1px solid var(--h-line-2);border-radius:8px!important}
+.harness-folge{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.harness-folge button{padding:7px 12px;font-size:11.5px;color:#c9c5bb;border:1px solid var(--h-line-2);border-radius:999px!important;background:rgba(255,255,255,.02)}
+.harness-folge button:hover:not(:disabled){border-color:rgba(229,200,137,.4);color:#f0dfb4}
+.harness-sitzung-hinweis{display:flex;align-items:center;gap:7px;margin:-2px 0 8px;font-size:10.5px;color:#a8977a}
+.harness-sitzung-hinweis span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.harness-sitzung-hinweis button{flex:none;padding:3px 9px;font-size:10.5px;color:#cfc6ae;border:1px solid var(--h-line-2);border-radius:999px!important}
+.harness-changes-head .harness-vorschau-cta{margin-left:0;gap:6px;color:#1b160a;border:0;background:radial-gradient(circle at 34% 28%,#fff1c9,#e5c889 55%,#b8901f)}
+.harness-changes-head .harness-vorschau-cta:hover:not(:disabled){filter:brightness(1.08);background:radial-gradient(circle at 34% 28%,#fff1c9,#e5c889 55%,#b8901f)}
+.harness-log li.hinweis b{color:#f3c56b}
+.harness-rechts{min-width:0;min-height:0;display:flex}
+.harness-rechts>.harness-review{flex:1}
+.harness-mit-vorschau.harness-with-review{grid-template-columns:52px 240px minmax(0,1fr) minmax(360px,46%)}
+.harness-mit-vorschau.harness-sidebar-hidden.harness-with-review{grid-template-columns:52px minmax(0,1fr) minmax(360px,52%)}
+.harness-vorschau{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.harness-vorschau>header{flex:none}
+.harness-vorschau>header>button{margin-left:0!important}
+.harness-geraete{margin-left:auto;display:flex;gap:2px;padding:2px;border-radius:10px;border:1px solid var(--h-line-2)}
+.harness-geraete button{width:28px;height:24px;border-radius:8px!important;color:#8f8c84}
+.harness-geraete button.an{color:#1b160a;background:var(--h-accent)!important}
+.harness-review>header .harness-geraete svg{color:inherit}
+.harness-vorschau>header>strong+button{margin-left:auto!important}
+.harness-vorschau-leiste{flex:none;display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--h-line)}
+.harness-vorschau-leiste input{flex:1;min-width:0;padding:6px 10px;border-radius:9px;border:1px solid var(--h-line-2);background:#0b0b0e;color:#cfcac0;font:11px ui-monospace,Consolas,monospace;outline:none}
+.harness-vorschau-leiste button{width:30px;height:28px;color:#b7b3aa}
+.harness-vorschau-fehler{display:flex;align-items:flex-start;gap:8px;margin:10px 12px 0;padding:9px 11px;border-radius:10px;font-size:11.5px;line-height:1.6;color:#f4b6b0;background:rgba(242,139,130,.08);border:1px solid rgba(242,139,130,.2)}
+.harness-vorschau-fehler svg{flex:none;margin-top:2px}
+.harness-vorschau-buehne{flex:1;min-height:0;display:flex;justify-content:center;padding:12px;background:radial-gradient(600px 300px at 50% 0,rgba(229,200,137,.05),transparent 70%),repeating-linear-gradient(45deg,rgba(255,255,255,.012) 0 10px,transparent 10px 20px)}
+.harness-vorschau-rahmen{max-width:100%;height:100%;border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--h-line-2);box-shadow:0 20px 60px rgba(0,0,0,.45);animation:harness-erscheinen .35s cubic-bezier(.2,.8,.2,1)}
+.harness-vorschau-rahmen iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+.harness-vorschau-start{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:16px}
+.harness-vorschau-karte{display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;padding:26px 18px;border-radius:16px;border:1px solid var(--h-line-2);background:linear-gradient(180deg,rgba(229,200,137,.06),rgba(255,255,255,.015));animation:harness-erscheinen .35s cubic-bezier(.2,.8,.2,1)}
+.harness-vorschau-karte>svg{box-sizing:content-box;padding:12px;border-radius:14px;color:var(--h-accent);background:rgba(229,200,137,.12)}
+.harness-vorschau-karte strong{font-size:14px;font-weight:650}
+.harness-vorschau-karte span{font-size:11.5px;line-height:1.7;color:#8f8c84;max-width:340px}
+.harness-vorschau-karte code{font:11px ui-monospace,Consolas,monospace;padding:5px 10px;border-radius:8px;color:#e2d6b8;background:#0b0b0e;border:1px solid var(--h-line-2);overflow-wrap:anywhere}
+.harness-vorschau-knopf{margin-top:6px;gap:7px!important;padding:9px 16px;font-size:12px;font-weight:650;color:#1b160a!important;border-radius:999px!important;background:radial-gradient(circle at 34% 28%,#fff1c9,#e5c889 55%,#b8901f)!important;box-shadow:0 8px 22px rgba(229,200,137,.25)}
+.harness-vorschau-knopf:hover:not(:disabled){filter:brightness(1.08)}
+.harness-vorschau-lade{display:flex;flex-direction:column;align-items:center;gap:8px;padding:34px 18px;text-align:center;color:var(--h-accent)}
+.harness-vorschau-lade strong{color:#eeece6;font-size:13px}
+.harness-vorschau-lade span{font:11px ui-monospace,Consolas,monospace;color:#8f8c84}
+.harness-vorschau-log{flex:none;max-height:240px;overflow:auto;margin:0;padding:10px 12px;border-radius:10px;background:#0a0a0d;border:1px solid var(--h-line);font:10.5px/1.7 ui-monospace,Consolas,monospace;color:#a9a59c;white-space:pre-wrap;overflow-wrap:anywhere}
+.harness-vorschau-start>.harness-muted{display:flex;align-items:center;gap:7px}
+@keyframes harness-erscheinen{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+@media(max-width:1100px){.harness-mit-vorschau.harness-with-review,.harness-mit-vorschau.harness-sidebar-hidden.harness-with-review{grid-template-columns:46px minmax(0,1fr) minmax(320px,50%)}.harness-topbar-knopf span{display:none}}
+@media(max-width:760px){.harness-with-review>.harness-rechts{position:absolute;left:46px;right:0;top:0;bottom:0;z-index:2}.harness-shell{position:relative}.harness-sitzung-hinweis span{white-space:normal}}
+@container harness-main (max-width:720px){.harness-access,.harness-model,.harness-topbar-zahl{display:none}.harness-topbar-knopf span{display:none}}
+@container harness-main (max-width:560px){.harness-companion span{display:none}.harness-companion{width:30px;padding:0!important}.harness-composer-bar .harness-project-badge{max-width:120px}.harness-feed{padding:18px 16px}.harness-composer-wrap{padding:8px 14px}.harness-sitzung-hinweis span{white-space:normal}}
+@media(prefers-reduced-motion:reduce){.harness-vorschau-rahmen,.harness-vorschau-karte{animation:none}}
 .mini-activity{display:flex;align-items:center;gap:9px;font-size:12px;color:#a5a09a;min-width:0}
 .mini-activity canvas{width:70px;height:60px;flex:none}
 .mini-activity span{min-width:0;overflow-wrap:anywhere;line-height:1.6}
