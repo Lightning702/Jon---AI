@@ -2,6 +2,27 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.59.0] — 2026-10-03
+
+### 💬 Harness-Sitzungen
+
+- **Ein Chat pro Thema:** Ein neuer Auftrag im Harness startet keinen neuen Chat mehr. Folgeaufträge landen in derselben Sitzung, Jon kennt dabei die früheren Aufträge, ihre Ergebnisse und die geänderten Dateien. Mit **Neue Sitzung** beginnst du bewusst ein neues Thema.
+- **Übersichtlicher Verlauf:** Frühere Aufträge der Sitzung klappen kompakt zusammen, der aktuelle bleibt voll sichtbar. Die Änderungsansicht zeigt alle Dateien der ganzen Sitzung. Vorschläge für den nächsten Schritt erscheinen, sobald Jon fertig ist.
+- **Auch im Chat und in Telegram:** Startet Jon im normalen Chat erneut einen Harness-Auftrag im selben Projekt, arbeitet er in der laufenden Sitzung weiter. In Telegram setzt `/harness` die Sitzung fort, `/hneu` beginnt eine neue.
+
+### 🖥️ Projektvorschau
+
+- **Vorschau direkt im Harness:** Ein Klick auf **Vorschau** zeigt dein Projekt neben dem Verlauf, wahlweise in Desktop-, Tablet- oder Handybreite. Statische Seiten (index.html, dist, build, public …) öffnet Jon sofort über einen lokalen Server, der keine Geheimnisdateien wie `.env` ausliefert. Projekte mit `dev`-, `start`- oder `preview`-Skript startet Jon nach deinem Klick mit `npm run …` und erkennt die Adresse automatisch.
+- **Lädt neu, wenn Jon fertig ist:** Nach jedem Auftrag mit Änderungen aktualisiert sich die Vorschau selbst. Protokoll, Neu laden, Im Browser öffnen und Stoppen sind eingebaut.
+
+### 🛠️ Zuverlässig mit NVIDIA und Ollama
+
+- **NVIDIA:** Statt nach 10 Sekunden ohne erstes Token aufzugeben, wartet der Harness bis zu 150 Sekunden, wiederholt bei 429, 5xx und Zeitüberschreitungen automatisch mit kurzen Pausen und weicht auf Jons Ersatzmodelle aus. Denkblöcke (`<think>`) und reine Reasoning-Antworten werden richtig gelesen. Jeder Wiederholversuch erscheint als Hinweis im Verlauf.
+- **Ollama:** Der Harness fordert ein Kontextfenster von 16.384 Token an, damit Anweisungen und Dateien nicht mehr abgeschnitten werden. Reicht der Speicher nicht, fällt er automatisch auf die eingestellte Länge und eine kompakte Anleitung zurück. Der Kontext wird passend zum Fenster gekürzt, die letzte Aktion bleibt vollständig.
+- **Windows:** PowerShell-Befehle laufen mit `-ExecutionPolicy Bypass`, damit `npm`, `npx` und Co. nicht an der Ausführungsrichtlinie scheitern. Das Modell erfährt, welche Shell läuft, und schreibt keine `&&`-Ketten mehr für PowerShell.
+- **Kein Leerlauf mehr:** Ändert ein Modell eine Datei ohne Plan, nimmt Jon den Auftrag als Plan, statt den Schritt abzulehnen. Macht das Modell viermal hintereinander denselben Fehler, hält der Harness mit einer klaren Meldung an, statt alle 40 Schritte zu verbrauchen.
+- **Fachteam:** Nutzt denselben zuverlässigen Modellzugang mit Wiederholungen und Ersatzmodellen.
+
 ## [4.58.0] — 2026-10-02
 
 ### ✦ Jons Fachteam – live animiert, überall

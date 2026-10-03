@@ -38,7 +38,7 @@ async def handle(text: str, source: str) -> dict | None:
         return None
     command = parts[0].lower().split("@")[0]
     rest = parts[1].strip() if len(parts) > 1 else ""
-    known = {"/hhelp", "/harness", "/code", "/projekt", "/projekte", "/aufgaben", "/hstatus", "/hstop", "/erlauben", "/ablehnen", "/diff", "/kontext", "/privat", "/ruhe"}
+    known = {"/hhelp", "/harness", "/code", "/hneu", "/projekt", "/projekte", "/aufgaben", "/hstatus", "/hstop", "/erlauben", "/ablehnen", "/diff", "/kontext", "/privat", "/ruhe"}
     if command not in known:
         return None
     service = get_harness_service()
@@ -52,7 +52,7 @@ async def handle(text: str, source: str) -> dict | None:
 
     try:
         if command == "/hhelp":
-            return {"text": "Jon Harness: /projekte zeigt deine Projekte. /projekt <Name> wählt den Arbeitsordner. /harness <Auftrag> startet die Arbeit. /aufgaben zeigt Aufträge, /hstatus <ID> den Stand, /diff <ID> Änderungen, /hstop <ID> stoppt. Shellbefehle benötigen die angezeigte Einzelfreigabe. MiniJon: /kontext an aktiviert lokale App-Erkennung, /privat an pausiert sie, /ruhe reduziert Hinweise."}
+            return {"text": "Jon Harness: /projekte zeigt deine Projekte. /projekt <Name> wählt den Arbeitsordner. /harness <Auftrag> arbeitet in der laufenden Sitzung weiter, /hneu <Auftrag> beginnt eine neue. /aufgaben zeigt Aufträge, /hstatus <ID> den Stand, /diff <ID> Änderungen, /hstop <ID> stoppt. Shellbefehle benötigen die angezeigte Einzelfreigabe. MiniJon: /kontext an aktiviert lokale App-Erkennung, /privat an pausiert sie, /ruhe reduziert Hinweise."}
         if command in {"/projekt", "/projekte"}:
             projects = get_project_service().list()
             if command == "/projekte" or not rest:
@@ -62,14 +62,15 @@ async def handle(text: str, source: str) -> dict | None:
                 raise ValueError("Bitte ein eindeutiges, in Jon gespeichertes Projekt wählen. /projekte zeigt die Auswahl.")
             selection(source, matches[0]["root"])
             return {"text": f'Projekt gewählt: {matches[0]["name"]}'}
-        if command in {"/harness", "/code"}:
+        if command in {"/harness", "/code", "/hneu"}:
             if not rest:
                 return {"text": "/projekte · /projekt <ID> · /harness <Auftrag> · /hstatus <ID> · /hstop <ID> · /diff <ID>\nShellbefehle: /erlauben <Aufgabe> <Freigabe> oder /ablehnen <Aufgabe> <Freigabe>"}
             root = selection(source)
             if not root or not get_project_service().find_by_root(root):
                 raise ValueError("Zuerst mit /projekt ein gespeichertes Projekt wählen.")
-            task = service.start(rest, root, source=source)
-            return {"text": describe(task), "task_id": task["id"]}
+            thread = "" if command == "/hneu" else service.fortsetzbar(root, source)
+            task = service.start(rest, root, source=source, thread=thread)
+            return {"text": ("Weiter in derselben Sitzung.\n" if thread else "") + describe(task), "task_id": task["id"]}
         if command == "/aufgaben":
             return {"text": "\n\n".join(describe(t) for t in service.list(source if remote else "")[:5]) or "Keine Harness-Aufträge."}
         if command in {"/hstatus", "/hstop", "/diff"}:

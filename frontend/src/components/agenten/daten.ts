@@ -52,6 +52,7 @@ export interface Spezialist {
 
 export interface HarnessAuftrag {
   id: string;
+  thread?: string;
   goal: string;
   root: string;
   source: string;

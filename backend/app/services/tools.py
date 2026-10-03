@@ -1986,7 +1986,7 @@ class ToolBox:
             _tool(
                 "harness_task",
                 "Steuert Jon Harness für mehrschrittige Coding-Aufträge. actions: projects zeigt gespeicherte Projekte, start startet einen ausdrücklich beauftragten Auftrag im geöffneten/gewählten Projekt, status zeigt Fortschritt und ausstehende Freigaben, list zeigt Aufträge, stop bricht ab. Nutze für autonome Arbeit über mehrere Dateien. Berichte gestartete Aufgaben als laufend, nicht fertig. Shellfreigaben muss der Nutzer selbst mit den angezeigten /erlauben- oder /ablehnen-Befehlen geben. Wenn project fehlt, verwende den geöffneten Ordner; niemals einen Ordner erfinden.",
-                {"action": {"type": "string", "enum": ["projects", "start", "status", "list", "stop"]}, "goal": _STR, "project": _STR, "id": _STR},
+                {"action": {"type": "string", "enum": ["projects", "start", "status", "list", "stop"]}, "goal": _STR, "project": _STR, "id": _STR, "new_session": {"type": "boolean", "description": "Nur true, wenn der Nutzer ausdrücklich eine neue, unabhängige Harness-Sitzung will. Sonst arbeitet der Harness in der letzten Sitzung des Projekts weiter und kennt deren Ergebnisse."}},
                 ["action"],
             ),
             _tool(

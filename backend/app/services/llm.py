@@ -13,6 +13,7 @@ async def complete(
     max_tokens: int = 4096,
     temperature: float = 0.9,
     slot: str = "jon",
+    first_token_timeout: float = 0.0,
 ) -> str:
     settings = get_settings()
     provider = provider or settings.default_provider
@@ -30,6 +31,7 @@ async def complete(
         max_tokens=max_tokens,
         tools=[],
         slot=slot,
+        first_token_timeout=first_token_timeout,
     )
     parts: list[str] = []
     async for chunk in prov.stream(request, None):

@@ -29,8 +29,9 @@ async def execute(args: dict, source: str, root: str | None) -> dict:
             target = root or selection(source)
         if not target:
             return {"error": "Noch kein Projekt gewählt. Zeige projects und frage nach dem gewünschten Projekt."}
-        task = service.start(str(args.get("goal", "")), target, source=source)
-        return {"task_id": task["id"], "status": task["status"], "text": describe(task), "next": f'/hstatus {task["id"]} zeigt Fortschritt und Freigaben.'}
+        thread = "" if args.get("new_session") is True else service.fortsetzbar(target)
+        task = service.start(str(args.get("goal", "")), target, source=source, thread=thread)
+        return {"task_id": task["id"], "thread": task["thread"], "continued": bool(thread), "status": task["status"], "text": describe(task), "next": f'/hstatus {task["id"]} zeigt Fortschritt und Freigaben.'}
     if action in {"status", "stop"}:
         task = service.get(str(args.get("id", "")))
         if action == "stop":

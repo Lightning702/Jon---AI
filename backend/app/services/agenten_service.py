@@ -13,7 +13,7 @@ from app.core.store import atomic_write_text
 from app.services.agent_profiles import BOUNDARIES, PROFILES
 
 MAX_AGENTEN = 4
-GESAMT_TIMEOUT_S = 210
+GESAMT_TIMEOUT_S = 480
 TERMINAL = {"done", "needs_review", "failed", "cancelled", "interrupted"}
 PRIVAT_HALTEN_S = 900
 
@@ -96,7 +96,22 @@ class AgentenService:
         if KINDER_ALTER.get():
             system += "\n" + kinder_prompt(KINDER_ALTER.get())
 
-        result = await asyncio.wait_for((self.complete or complete)(system, json.dumps(data, ensure_ascii=False), **selection, max_tokens=limit, temperature=0.2), timeout)
+        if self.complete is None:
+            from app.services.harness.modell import ERSTES_TOKEN_S, WARTEN, denken_entfernen, voruebergehend
+
+            result = ""
+            for versuch in range(len(WARTEN) + 1):
+                try:
+                    result = denken_entfernen(await asyncio.wait_for(complete(system, json.dumps(data, ensure_ascii=False), **selection, max_tokens=limit, temperature=0.2, first_token_timeout=ERSTES_TOKEN_S), max(timeout, ERSTES_TOKEN_S + 60)))
+                    break
+                except asyncio.CancelledError:
+                    raise
+                except Exception as fehler:
+                    if versuch == len(WARTEN) or not voruebergehend(fehler):
+                        raise
+                    await asyncio.sleep(WARTEN[versuch])
+        else:
+            result = await asyncio.wait_for(self.complete(system, json.dumps(data, ensure_ascii=False), **selection, max_tokens=limit, temperature=0.2), timeout)
         if not isinstance(result, str) or not result.strip():
             raise ValueError("Das Modell hat keine Antwort geliefert.")
         return result.strip()

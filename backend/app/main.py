@@ -733,6 +733,9 @@ async def lifespan(app: FastAPI):
     from app.services.harness import get_harness_service
 
     await get_harness_service().close()
+    from app.services.harness.vorschau import get_vorschau
+
+    await get_vorschau().close()
     from app.services.agenten_service import get_agenten_service
 
     await get_agenten_service().close()
