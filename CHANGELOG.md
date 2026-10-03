@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.58.2] — 2026-10-03
+
+### 🧈 Flüssiger
+
+- **Premium-Dialog neu gestaltet:** fester Kopf, eine ruhige Scroll-Fläche mit schlanker Scrollbar und eine feste Leiste unten mit Tarifwahl und Kaufknopf. Beim Scrollen bekommen Kopf und Leiste eine feine Kante.
+- **Kein Stottern mehr:** Keine Unschärfe-Filter mehr hinter scrollenden Flächen, keine Höhen- und Breiten-Animationen mehr, nur noch GPU-freundliche Einblendungen. Gemessen ohne Grafikkarte: Premium-Dialog und Werkzeuge scrollen mit 60 statt 30 Bildern pro Sekunde, der Dialog öffnet sich mit 60 statt 20.
+- **Harness und Beobachten:** zeichnen beim Abfragen nur noch neu, wenn sich wirklich etwas geändert hat. Der Harness scrollt nur noch mit, wenn du unten bist, und springt nicht gegen dein eigenes Scrollen.
+
 ## [4.58.1] — 2026-10-03
 
 ### ✦ Jon Premium, Standard und Admin
@@ -23,12 +31,6 @@ Alle nennenswerten Änderungen an Jon.
 ### 🌐 Jon ausprobieren
 
 - **`getjon.info/testen/`:** Besucher schreiben mit Jon und MiniJon, finden Orte und Routen und transkribieren Sprache. Das läuft auf deinem Pi in einem abgeschotteten Dienst ohne Werkzeuge, ohne Gedächtnis und mit Ratenbegrenzung. Einrichtung per `scripts/demo-pi-einrichten.sh`.
-
-### 🧈 Flüssiger
-
-- **Premium-Dialog neu gestaltet:** fester Kopf, eine ruhige Scroll-Fläche mit schlanker Scrollbar und eine feste Leiste unten mit Tarifwahl und Kaufknopf. Beim Scrollen bekommen Kopf und Leiste eine feine Kante.
-- **Kein Stottern mehr:** Keine Unschärfe-Filter mehr hinter scrollenden Flächen, keine Höhen- und Breiten-Animationen mehr, nur noch GPU-freundliche Einblendungen. Gemessen ohne Grafikkarte: Premium-Dialog und Werkzeuge scrollen mit 60 statt 30 Bildern pro Sekunde, der Dialog öffnet sich mit 60 statt 20.
-- **Harness und Beobachten:** zeichnen beim Abfragen nur noch neu, wenn sich wirklich etwas geändert hat. Der Harness scrollt nur noch mit, wenn du unten bist, und springt nicht gegen dein eigenes Scrollen.
 
 ### 🛠️ Behoben
 
