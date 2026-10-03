@@ -10,6 +10,10 @@ Alle nennenswerten Änderungen an Jon.
 - **Kein Stottern mehr:** Keine Unschärfe-Filter mehr hinter scrollenden Flächen, keine Höhen- und Breiten-Animationen mehr, nur noch GPU-freundliche Einblendungen. Gemessen ohne Grafikkarte: Premium-Dialog und Werkzeuge scrollen mit 60 statt 30 Bildern pro Sekunde, der Dialog öffnet sich mit 60 statt 20.
 - **Harness und Beobachten:** zeichnen beim Abfragen nur noch neu, wenn sich wirklich etwas geändert hat. Der Harness scrollt nur noch mit, wenn du unten bist, und springt nicht gegen dein eigenes Scrollen.
 
+### 🌐 Neue Testseite
+
+- **getjon.info/testen/ neu gestaltet:** im Look der Hauptseite mit Navigation und Fußzeile, einem Demo-Fenster mit Modus-Leiste (Jon, MiniJon, Maps, Transkribieren), Vorschlägen zum Losschreiben, Tipp-Anzeige, formatierten Antworten, Trefferliste und Karte für Orte und Routen, Live-Pegel beim Aufnehmen und Drag-and-drop für Audiodateien. Auf dem Handy sauber und ohne seitliches Scrollen.
+
 ## [4.58.1] — 2026-10-03
 
 ### ✦ Jon Premium, Standard und Admin
