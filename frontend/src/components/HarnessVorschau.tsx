@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from "react";
-import {AnimatePresence, motion} from "framer-motion";
 import {ExternalLink, Loader2, Monitor, Play, Power, RotateCw, Smartphone, Tablet, TriangleAlert, X} from "lucide-react";
 import {harnessRequest, VorschauZustand} from "../lib/harness";
 
@@ -63,11 +62,11 @@ export default function HarnessVorschau({root, neuLaden, onClose}: {root: string
       <button title="Im Browser öffnen" aria-label="Im Browser öffnen" onClick={() => window.open(zustand.url, "_blank")}><ExternalLink size={15}/></button>
       <button title="Vorschau stoppen" aria-label="Vorschau stoppen" disabled={busy} onClick={() => void stoppen()}><Power size={15}/></button>
     </div>}
-    <AnimatePresence>{fehler && <motion.p className="harness-vorschau-fehler" role="alert" initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}}><TriangleAlert size={14}/>{fehler}</motion.p>}</AnimatePresence>
+    {fehler && <p className="harness-vorschau-fehler" role="alert"><TriangleAlert size={14}/>{fehler}</p>}
     {laeuft && zustand?.url ? <div className="harness-vorschau-buehne">
-      <motion.div className="harness-vorschau-rahmen" animate={{width: breite}} transition={{type: "spring", stiffness: 200, damping: 26}}>
+      <div key={geraet} className="harness-vorschau-rahmen" style={{width: breite}}>
         <iframe key={runde} title="Projektvorschau" src={zustand.url} sandbox="allow-scripts allow-forms allow-same-origin allow-modals allow-popups allow-downloads"/>
-      </motion.div>
+      </div>
     </div> : <div className="harness-vorschau-start">
       {!zustand && <p className="harness-muted"><Loader2 size={14} className="harness-spin"/> Prüfe das Projekt …</p>}
       {zustand?.status === "startet" && <>

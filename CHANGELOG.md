@@ -24,6 +24,12 @@ Alle nennenswerten Änderungen an Jon.
 
 - **`getjon.info/testen/`:** Besucher schreiben mit Jon und MiniJon, finden Orte und Routen und transkribieren Sprache. Das läuft auf deinem Pi in einem abgeschotteten Dienst ohne Werkzeuge, ohne Gedächtnis und mit Ratenbegrenzung. Einrichtung per `scripts/demo-pi-einrichten.sh`.
 
+### 🧈 Flüssiger
+
+- **Premium-Dialog neu gestaltet:** fester Kopf, eine ruhige Scroll-Fläche mit schlanker Scrollbar und eine feste Leiste unten mit Tarifwahl und Kaufknopf. Beim Scrollen bekommen Kopf und Leiste eine feine Kante.
+- **Kein Stottern mehr:** Keine Unschärfe-Filter mehr hinter scrollenden Flächen, keine Höhen- und Breiten-Animationen mehr, nur noch GPU-freundliche Einblendungen. Gemessen ohne Grafikkarte: Premium-Dialog und Werkzeuge scrollen mit 60 statt 30 Bildern pro Sekunde, der Dialog öffnet sich mit 60 statt 20.
+- **Harness und Beobachten:** zeichnen beim Abfragen nur noch neu, wenn sich wirklich etwas geändert hat. Der Harness scrollt nur noch mit, wenn du unten bist, und springt nicht gegen dein eigenes Scrollen.
+
 ### 🛠️ Behoben
 
 - **„[Fehler] nvidia:“ ohne Text:** Große NVIDIA-Modelle wie Nemotron Ultra denken manchmal länger als 20 Sekunden still. Die Verbindung brach dann mit einer leeren Meldung ab. Pausen bis 180 Sekunden sind jetzt erlaubt, und jede Fehlermeldung sagt klar, was passiert ist.

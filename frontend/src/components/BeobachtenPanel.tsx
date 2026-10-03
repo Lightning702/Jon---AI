@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { BellRing, Check, ExternalLink, Eye, Loader2, Plus, RotateCw, Square, Trash2, TriangleAlert } from "lucide-react";
 import { BASE } from "../lib/api";
 import "./beobachten.css";
@@ -45,8 +44,14 @@ export default function BeobachtenPanel() {
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
 
+  const zuletzt = useRef("");
   const laden = async () => {
-    try {setListe(await anfrage<Beobachtung[]>("/beobachten")); setFehler("");}
+    try {
+      const neu = await anfrage<Beobachtung[]>("/beobachten");
+      const text = JSON.stringify(neu);
+      if (text !== zuletzt.current) {zuletzt.current = text; setListe(neu);}
+      setFehler("");
+    }
     catch (e) {setFehler(e instanceof Error ? e.message : "Liste nicht erreichbar");}
     finally {setLaedt(false);}
   };
@@ -88,11 +93,11 @@ export default function BeobachtenPanel() {
         <button type="submit" disabled={busy === "neu" || frage.trim().length < 3}>{busy === "neu" ? <Loader2 size={14} className="bo-dreh" /> : <Plus size={14} />}Beobachten</button>
       </div>
     </form>
-    <AnimatePresence>{fehler && <motion.div className="bo-fehler" role="alert" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><TriangleAlert size={14} />{fehler}</motion.div>}</AnimatePresence>
+    {fehler && <div className="bo-fehler bo-ein" role="alert"><TriangleAlert size={14} />{fehler}</div>}
     {laedt && <p className="bo-leer"><Loader2 size={14} className="bo-dreh" />Lädt …</p>}
     {!laedt && !liste.length && <p className="bo-leer">Noch nichts beobachtet.</p>}
     <div className="bo-liste">
-      <AnimatePresence initial={false}>{liste.map(b => <motion.article key={b.id} layout className={"bo-eintrag bo-" + b.status} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
+      {liste.map((b, i) => <article key={b.id} className={"bo-eintrag bo-" + b.status} style={{ ["--i" as string]: i }}>
         <div className="bo-eintrag-kopf">
           <span className="bo-punkt" />
           <strong title={b.bedingung}>{b.frage}</strong>
@@ -106,7 +111,7 @@ export default function BeobachtenPanel() {
           {b.status === "aktiv" && <button disabled={!!busy} onClick={() => void handeln("s" + b.id, () => anfrage(`/beobachten/${b.id}/stoppen`, "POST"))}><Square size={11} />Stoppen</button>}
           <button className="bo-weg" disabled={!!busy} aria-label="Beobachtung löschen" onClick={() => void handeln("l" + b.id, () => anfrage(`/beobachten/${b.id}`, "DELETE"))}><Trash2 size={12} /></button>
         </div>
-      </motion.article>)}</AnimatePresence>
+      </article>)}
     </div>
   </div>;
 }
