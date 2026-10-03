@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, Clapperboard, CloudDownload, CloudUpload, Code2, Copy, Crown, ExternalLink, Flame, Gamepad2, Gem, Globe, GraduationCap, HeartHandshake, KeyRound, Loader2, Lock, Mic, Palette, ScanEye, ShieldCheck, Smartphone, Sparkles, Users, Workflow, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { Check, ChevronDown, Clapperboard, CloudDownload, CloudUpload, Code2, Copy, Crown, ExternalLink, Flame, Gamepad2, Gem, Globe, GraduationCap, HeartHandshake, KeyRound, Loader2, Lock, LogOut, Mic, Palette, ScanEye, ShieldCheck, Smartphone, Sparkles, Users, Workflow, X } from "lucide-react";
 import { istPremium, premiumAnfrage, PremiumAnlass, PremiumStatus } from "../lib/premium";
 import "./premium.css";
 
@@ -11,6 +11,7 @@ const KOPF: Record<string, { titel: string; text: string; icon: typeof Code2 }> 
   premium: { titel: "Jon Premium", text: "Alle Premium-Funktionen sind freigeschaltet. Danke, dass du Jon unterstützt!", icon: Gem },
   admin: { titel: "Admin", text: "Alles ist unbegrenzt freigeschaltet. Deine Admin-Lizenz ist signiert und an dieses Gerät gebunden.", icon: Crown },
 };
+const SANFT = { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] };
 
 function datum(sekunden: number) {
   return sekunden ? new Date(sekunden * 1000).toLocaleDateString("de-AT", { day: "2-digit", month: "long", year: "numeric" }) : "";
@@ -28,10 +29,14 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
   const [syncPasswort, setSyncPasswort] = useState("");
   const [sync, setSync] = useState<{ zeit: number; verfuegbar?: boolean } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const fenster = useRef<HTMLDivElement>(null);
+  const inhalt = useRef<HTMLDivElement>(null);
+  const mehrBereich = useRef<HTMLElement>(null);
   const stufe = status?.stufe || "standard";
   const kopf = KOPF[stufe];
   const premium = istPremium(status);
   const anlassFeature = status?.features.find(f => f.key === anlass?.feature);
+  const gewaehlt = status?.plaene.find(p => p.key === plan);
 
   useEffect(() => {
     const taste = (e: KeyboardEvent) => {if (e.key === "Escape") onClose();};
@@ -40,8 +45,30 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
   }, [onClose]);
 
   useEffect(() => {
+    const el = inhalt.current;
+    const rahmen = fenster.current;
+    if (!el || !rahmen) return;
+    let bild = 0;
+    const messen = () => {
+      bild = 0;
+      rahmen.dataset.oben = el.scrollTop > 2 ? "1" : "";
+      rahmen.dataset.unten = el.scrollTop + el.clientHeight < el.scrollHeight - 2 ? "1" : "";
+    };
+    const planen = () => {if (!bild) bild = requestAnimationFrame(messen);};
+    messen();
+    el.addEventListener("scroll", planen, { passive: true });
+    const beobachter = new ResizeObserver(planen);
+    beobachter.observe(el);
+    return () => {el.removeEventListener("scroll", planen); beobachter.disconnect(); cancelAnimationFrame(bild);};
+  }, []);
+
+  useEffect(() => {
     if (premium) void premiumAnfrage<{ zeit: number; verfuegbar: boolean }>("/premium/sync").then(setSync).catch(() => setSync(null));
   }, [premium]);
+
+  useEffect(() => {
+    if (mehr) requestAnimationFrame(() => mehrBereich.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  }, [mehr]);
 
   const handeln = async (name: string, fn: () => Promise<unknown>, erfolg = "") => {
     setBusy(name);
@@ -82,65 +109,76 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
     window.open(url, "_blank");
   });
 
-  return createPortal(<motion.div className="pm-schleier" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={e => {if (e.target === e.currentTarget) onClose();}}>
-    <motion.div role="dialog" aria-modal="true" aria-label="Jon Premium" className={"pm-fenster pm-" + stufe} initial={{ opacity: 0, y: 18, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.98 }} transition={{ type: "spring", stiffness: 260, damping: 26 }}>
-      <button className="pm-zu" aria-label="Schließen" onClick={onClose}><X size={18} /></button>
+  const adminAnmelden = () => handeln("admin", async () => {await premiumAnfrage("/premium/admin", { passwort }); setPasswort(""); setMehr(false);}, "Willkommen, Admin. Alles ist unbegrenzt freigeschaltet.");
+
+  return createPortal(<motion.div className="pm-schleier" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={SANFT} onMouseDown={e => {if (e.target === e.currentTarget) onClose();}}>
+    <motion.div ref={fenster} role="dialog" aria-modal="true" aria-label="Jon Premium" className={"pm-fenster pm-" + stufe} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={SANFT}>
       <header className="pm-kopf">
-        <div className="pm-emblem"><kopf.icon size={30} /><span className="pm-ring" /></div>
-        <div>
+        <div className="pm-emblem"><kopf.icon size={26} /><span className="pm-ring" /></div>
+        <div className="pm-kopf-text">
           <span className="pm-etikett">Deine Stufe</span>
           <h2>{kopf.titel}</h2>
           <p>{kopf.text}</p>
           {premium && <small>{status?.inhaber ? status.inhaber + " · " : ""}{status?.gueltig_bis ? "gültig bis " + datum(status.gueltig_bis) + (status.abo ? ", verlängert sich automatisch" : "") : "unbegrenzt"}</small>}
         </div>
+        <button className="pm-zu" aria-label="Schließen" onClick={onClose}><X size={18} /></button>
       </header>
-      <AnimatePresence>{anlass?.feature && !premium && <motion.div className="pm-anlass" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}><Lock size={15} /><span>{anlass.text || `${anlassFeature?.name || "Diese Funktion"} gibt es mit Jon Premium.`}</span></motion.div>}</AnimatePresence>
-      {status?.hinweis && <div className="pm-hinweis">{status.hinweis}</div>}
-      <AnimatePresence>{fehler && <motion.div className="pm-fehler" role="alert" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{fehler}</motion.div>}</AnimatePresence>
-      <AnimatePresence>{meldung && <motion.div className="pm-ok" role="status" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><Check size={15} />{meldung}</motion.div>}</AnimatePresence>
-      {!premium && <section className="pm-plaene">
-        {status?.plaene.map(p => <button key={p.key} className={"pm-plan " + (plan === p.key ? "an" : "")} onClick={() => setPlan(p.key)} aria-pressed={plan === p.key}>
-          {p.hinweis && <em>{p.hinweis}</em>}
-          <span>{p.name}</span>
-          <strong>{p.preis}</strong>
-          <small>{p.zeitraum} · inkl. MwSt.</small>
-        </button>)}
-        <button className="pm-kaufen" disabled={!!busy || warten} onClick={() => void kaufen()}>{warten || busy === "kaufen" ? <Loader2 size={17} className="pm-dreh" /> : <Gem size={17} />}{warten ? "Warte auf deine Zahlung …" : "Premium holen"}</button>
-        {warten && <p className="pm-klein">Stripe ist in deinem Browser geöffnet. Sobald die Zahlung durch ist, schaltet sich Jon hier von selbst frei. <button onClick={() => {clearTimeout(timer.current); setWarten(false);}}>Abbrechen</button></p>}
-      </section>}
-      <section className="pm-features">
-        {status?.features.map((f, i) => {
-          const Icon = ICONS[f.key] || Sparkles;
-          return <motion.div key={f.key} className={"pm-feature " + (f.frei ? "frei " : "") + (anlass?.feature === f.key ? "markiert" : "")} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 * i }}>
-            <span className="pm-feature-icon"><Icon size={16} /></span>
-            <span className="pm-feature-text"><b>{f.name}</b><small>{f.beschreibung}</small>{!f.frei && f.kontingent > 0 && <small className="pm-kontingent">Kostenlos: {f.kontingent} pro Tag · heute {Math.min(f.verbraucht, f.kontingent)} genutzt</small>}</span>
-            {f.frei ? <Check size={15} className="pm-check" /> : <Lock size={14} className="pm-schloss" />}
-          </motion.div>;
-        })}
-      </section>
-      {premium && <section className="pm-block">
-        <h3><CloudUpload size={15} />Cloud-Sync</h3>
-        <p className="pm-klein">Gedächtnis, Persona und Einstellungen werden auf diesem Gerät mit deinem Sicherungspasswort verschlüsselt. FelWorks kann sie nicht lesen. {sync?.zeit ? "Letzte Sicherung: " + new Date(sync.zeit * 1000).toLocaleString("de-AT") : "Noch keine Sicherung in der Cloud."}</p>
-        <div className="pm-zeile">
-          <input type="password" placeholder="Sicherungspasswort (mind. 8 Zeichen)" aria-label="Sicherungspasswort" value={syncPasswort} onChange={e => setSyncPasswort(e.target.value)} />
-          <button disabled={!!busy || syncPasswort.length < 8} onClick={() => void handeln("hoch", async () => {setSync(await premiumAnfrage("/premium/sync/hochladen", { passwort: syncPasswort }));}, "Gesichert. Auf einem anderen Gerät holst du alles mit demselben Passwort zurück.")}>{busy === "hoch" ? <Loader2 size={14} className="pm-dreh" /> : <CloudUpload size={14} />}Sichern</button>
-          <button disabled={!!busy || syncPasswort.length < 8 || !sync?.zeit} onClick={() => void handeln("runter", async () => {const r = await premiumAnfrage<{ erinnerungen: number }>("/premium/sync/holen", { passwort: syncPasswort }); setMeldung(`Wiederhergestellt: ${r.erinnerungen} neue Erinnerungen und deine Einstellungen.`);})}>{busy === "runter" ? <Loader2 size={14} className="pm-dreh" /> : <CloudDownload size={14} />}Holen</button>
-        </div>
-      </section>}
-      <section className="pm-aktionen">
-        {stufe === "premium" && <button disabled={!!busy} onClick={() => void oeffnen("/premium/portal")}><ExternalLink size={14} />Abo, Rechnungen & Zahlungsart</button>}
-        {premium && status?.token && <button onClick={() => void navigator.clipboard?.writeText(status.token).then(() => setMeldung("Lizenzschlüssel kopiert. Auf einem weiteren Gerät unter „Lizenzschlüssel eingeben“ einfügen (bis zu drei Geräte)."))}><Copy size={14} />Lizenzschlüssel kopieren</button>}
-        <button onClick={() => setMehr(v => !v)} aria-expanded={mehr}><KeyRound size={14} />{mehr ? "Weniger" : "Lizenz eingeben oder Admin"}</button>
-        {premium && <button className="pm-leise" disabled={!!busy} onClick={() => void handeln("ab", () => premiumAnfrage("/premium/abmelden", {}), "Abgemeldet. Jon läuft jetzt als Standard.")}>Abmelden</button>}
-      </section>
-      <AnimatePresence>{mehr && <motion.section className="pm-block" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-        <h3><KeyRound size={15} />Lizenzschlüssel eingeben</h3>
-        <div className="pm-zeile"><input placeholder="JON1.…" aria-label="Lizenzschlüssel" value={token} onChange={e => setToken(e.target.value.trim())} /><button disabled={!!busy || token.length < 20} onClick={() => void handeln("token", async () => {await premiumAnfrage("/premium/lizenz", { token }); setToken("");}, "Lizenz übernommen.")}>{busy === "token" ? <Loader2 size={14} className="pm-dreh" /> : <Check size={14} />}Übernehmen</button></div>
-        <h3><ShieldCheck size={15} />Als Admin anmelden</h3>
-        <div className="pm-zeile"><input type="password" placeholder="Admin-Passwort" aria-label="Admin-Passwort" value={passwort} onChange={e => setPasswort(e.target.value)} onKeyDown={e => {if (e.key === "Enter" && passwort) void handeln("admin", async () => {await premiumAnfrage("/premium/admin", { passwort }); setPasswort("");}, "Willkommen, Admin. Alles ist unbegrenzt freigeschaltet.");}} /><button disabled={!!busy || !passwort} onClick={() => void handeln("admin", async () => {await premiumAnfrage("/premium/admin", { passwort }); setPasswort("");}, "Willkommen, Admin. Alles ist unbegrenzt freigeschaltet.")}>{busy === "admin" ? <Loader2 size={14} className="pm-dreh" /> : <Crown size={14} />}Anmelden</button></div>
-        <p className="pm-klein">Das Passwort wird nur an den FelWorks-Lizenzserver geschickt, nie gespeichert. Der Server stellt eine signierte Admin-Lizenz für genau dieses Gerät aus. Geräte-ID: <code>{status?.geraet}</code></p>
-      </motion.section>}</AnimatePresence>
-      <footer className="pm-fuss"><ShieldCheck size={13} />Zahlung, Rechnung und Steuer laufen sicher über Stripe. Jon speichert keine Zahlungsdaten und keinen geheimen Schlüssel.</footer>
+
+      <div className="pm-inhalt" ref={inhalt}>
+        {anlass?.feature && !premium && <div className="pm-anlass pm-ein"><Lock size={15} /><span>{anlass.text || `${anlassFeature?.name || "Diese Funktion"} gibt es mit Jon Premium.`}</span></div>}
+        {status?.hinweis && <div className="pm-hinweis pm-ein">{status.hinweis}</div>}
+        {fehler && <div className="pm-fehler pm-ein" role="alert">{fehler}</div>}
+        {meldung && <div className="pm-ok pm-ein" role="status"><Check size={15} />{meldung}</div>}
+
+        <section className="pm-features" aria-label="Funktionen">
+          {status?.features.map((f, i) => {
+            const Icon = ICONS[f.key] || Sparkles;
+            return <div key={f.key} className={"pm-feature " + (f.frei ? "frei " : "") + (anlass?.feature === f.key ? "markiert" : "")} style={{ ["--i" as string]: i }}>
+              <span className="pm-feature-icon"><Icon size={16} /></span>
+              <span className="pm-feature-text"><b>{f.name}</b><small>{f.beschreibung}</small>{!f.frei && f.kontingent > 0 && <small className="pm-kontingent">Kostenlos: {f.kontingent} pro Tag · heute {Math.min(f.verbraucht, f.kontingent)} genutzt</small>}</span>
+              {f.frei ? <Check size={15} className="pm-check" /> : <Lock size={14} className="pm-schloss" />}
+            </div>;
+          })}
+        </section>
+
+        {premium && <section className="pm-block pm-ein">
+          <h3><CloudUpload size={15} />Cloud-Sync</h3>
+          <p className="pm-klein">Gedächtnis, Persona und Einstellungen werden auf diesem Gerät mit deinem Sicherungspasswort verschlüsselt. FelWorks kann sie nicht lesen. {sync?.zeit ? "Letzte Sicherung: " + new Date(sync.zeit * 1000).toLocaleString("de-AT") : "Noch keine Sicherung in der Cloud."}</p>
+          <div className="pm-zeile">
+            <input type="password" placeholder="Sicherungspasswort (mind. 8 Zeichen)" aria-label="Sicherungspasswort" value={syncPasswort} onChange={e => setSyncPasswort(e.target.value)} />
+            <button disabled={!!busy || syncPasswort.length < 8} onClick={() => void handeln("hoch", async () => {setSync(await premiumAnfrage("/premium/sync/hochladen", { passwort: syncPasswort }));}, "Gesichert. Auf einem anderen Gerät holst du alles mit demselben Passwort zurück.")}>{busy === "hoch" ? <Loader2 size={14} className="pm-dreh" /> : <CloudUpload size={14} />}Sichern</button>
+            <button disabled={!!busy || syncPasswort.length < 8 || !sync?.zeit} onClick={() => void handeln("runter", async () => {const r = await premiumAnfrage<{ erinnerungen: number }>("/premium/sync/holen", { passwort: syncPasswort }); setMeldung(`Wiederhergestellt: ${r.erinnerungen} neue Erinnerungen und deine Einstellungen.`);})}>{busy === "runter" ? <Loader2 size={14} className="pm-dreh" /> : <CloudDownload size={14} />}Holen</button>
+          </div>
+        </section>}
+
+        <button className={"pm-mehr " + (mehr ? "offen" : "")} onClick={() => setMehr(v => !v)} aria-expanded={mehr}><KeyRound size={14} />{premium ? "Lizenz eingeben oder als Admin anmelden" : "Schon einen Lizenzschlüssel oder Admin?"}<ChevronDown size={14} className="pm-pfeil" /></button>
+        {mehr && <section className="pm-block pm-ein" ref={mehrBereich}>
+          <h3><KeyRound size={15} />Lizenzschlüssel eingeben</h3>
+          <div className="pm-zeile"><input placeholder="JON1.…" aria-label="Lizenzschlüssel" value={token} onChange={e => setToken(e.target.value.trim())} /><button disabled={!!busy || token.length < 20} onClick={() => void handeln("token", async () => {await premiumAnfrage("/premium/lizenz", { token }); setToken(""); setMehr(false);}, "Lizenz übernommen.")}>{busy === "token" ? <Loader2 size={14} className="pm-dreh" /> : <Check size={14} />}Übernehmen</button></div>
+          <h3><ShieldCheck size={15} />Als Admin anmelden</h3>
+          <div className="pm-zeile"><input type="password" placeholder="Admin-Passwort" aria-label="Admin-Passwort" value={passwort} onChange={e => setPasswort(e.target.value)} onKeyDown={e => {if (e.key === "Enter" && passwort && !busy) void adminAnmelden();}} /><button disabled={!!busy || !passwort} onClick={() => void adminAnmelden()}>{busy === "admin" ? <Loader2 size={14} className="pm-dreh" /> : <Crown size={14} />}Anmelden</button></div>
+          <p className="pm-klein">Das Passwort geht nur an den FelWorks-Lizenzserver und wird nicht gespeichert. Der Server stellt eine signierte Admin-Lizenz für genau dieses Gerät aus. Geräte-ID: <code>{status?.geraet}</code></p>
+        </section>}
+
+        <p className="pm-fuss"><ShieldCheck size={13} />Zahlung, Rechnung und Steuer laufen sicher über Stripe. Jon speichert keine Zahlungsdaten und keinen geheimen Schlüssel.</p>
+      </div>
+
+      <footer className="pm-leiste">
+        {!premium ? <>
+          <div className="pm-tarife" role="radiogroup" aria-label="Tarif">
+            {status?.plaene.map(p => <button key={p.key} role="radio" aria-checked={plan === p.key} className={plan === p.key ? "an" : ""} onClick={() => setPlan(p.key)} disabled={warten}>
+              <span className="pm-tarif-text"><span>{p.name}</span><b>{p.preis}</b></span>
+              {p.hinweis && <em>{p.hinweis}</em>}
+            </button>)}
+          </div>
+          <button className="pm-kaufen" disabled={!!busy || warten} onClick={() => void kaufen()}>{warten || busy === "kaufen" ? <Loader2 size={17} className="pm-dreh" /> : <Gem size={17} />}{warten ? "Warte auf Zahlung …" : "Premium holen"}</button>
+          <p className="pm-leiste-text">{warten ? <>Stripe ist im Browser geöffnet. Nach der Zahlung schaltet sich Jon von selbst frei. <button onClick={() => {clearTimeout(timer.current); setWarten(false);}}>Abbrechen</button></> : <>{gewaehlt ? `${gewaehlt.preis} ${gewaehlt.zeitraum}` : ""} inkl. MwSt. · jederzeit kündbar</>}</p>
+        </> : <div className="pm-aktionen">
+          {stufe === "premium" && <button disabled={!!busy} onClick={() => void oeffnen("/premium/portal")}>{busy === "/premium/portal" ? <Loader2 size={14} className="pm-dreh" /> : <ExternalLink size={14} />}Abo, Rechnungen & Zahlungsart</button>}
+          {status?.token && <button onClick={() => void navigator.clipboard?.writeText(status.token).then(() => setMeldung("Lizenzschlüssel kopiert. Auf einem weiteren Gerät unter „Lizenz eingeben“ einfügen (bis zu drei Geräte)."))}><Copy size={14} />Lizenzschlüssel kopieren</button>}
+          <button className="pm-leise" disabled={!!busy} onClick={() => void handeln("ab", () => premiumAnfrage("/premium/abmelden", {}), "Abgemeldet. Jon läuft jetzt als Standard.")}><LogOut size={14} />Abmelden</button>
+        </div>}
+      </footer>
     </motion.div>
   </motion.div>, document.body);
 }

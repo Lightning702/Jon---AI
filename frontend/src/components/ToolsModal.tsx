@@ -6,6 +6,7 @@ import HarnessPanel from "./HarnessPanel";
 import AgentTeam from "./AgentTeam";
 import BeobachtenPanel from "./BeobachtenPanel";
 import SupportPanel from "./SupportPanel";
+import "./beobachten.css";
 import {harnessRequest} from "../lib/harness";
 
 const STUFENFARBE: Record<string, string> = {
@@ -91,7 +92,7 @@ export default function ToolsModal({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70">
-      <div className="glass rounded-2xl border border-white/15 w-[720px] max-w-[94vw] h-[80vh] flex flex-col">
+      <div className="werkzeug-fenster rounded-2xl border border-white/15 w-[720px] max-w-[94vw] h-[80vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div>
             <div className="text-white/90 font-semibold">🧰 Werkzeuge</div>
@@ -120,7 +121,7 @@ export default function ToolsModal({
 
         <div className="flex-1 min-h-0 flex gap-3 px-5 py-3">
           {!suche.trim() && (
-            <div className="w-[190px] shrink-0 overflow-y-auto pr-1 space-y-1">
+            <div className="werkzeug-scroll w-[190px] shrink-0 overflow-y-auto pr-1 space-y-1">
               <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "harness" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => onHarness ? onHarness() : setAktiv("harness")}>🤖 Jon Harness</button>
               <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "agents" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("agents")}>✦ Jon Fachteam</button>
               <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "beobachten" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("beobachten")}>👁️ Beobachten</button>
@@ -145,7 +146,7 @@ export default function ToolsModal({
             </div>
           )}
 
-          <div className="flex-1 min-w-0 overflow-y-auto space-y-2">
+          <div className="werkzeug-scroll flex-1 min-w-0 overflow-y-auto space-y-2 pr-1">
             {laedt && (
               <div className="text-[12px] text-white/40">Wird geladen …</div>
             )}

@@ -51,7 +51,7 @@
 .harness-empty-project{padding:12px;font-size:12px;justify-content:flex-start!important;color:#d6c9a6!important;border:1px dashed rgba(229,200,137,.3)!important}
 
 .harness-main{min-height:0;min-width:0;display:flex;flex-direction:column;container-type:inline-size;container-name:harness-main}
-.harness-topbar{display:flex;align-items:center;gap:10px;min-height:54px;padding:12px 20px;border-bottom:1px solid var(--h-line);background:rgba(13,13,17,.6);backdrop-filter:blur(14px)}
+.harness-topbar{display:flex;align-items:center;gap:10px;min-height:54px;padding:12px 20px;border-bottom:1px solid var(--h-line);background:#0f0f13}
 .harness-topbar>button{padding:4px;color:#999}
 .harness-topbar>svg{color:var(--h-accent)}
 .harness-topbar strong{flex:0 1 auto;min-width:48px;font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -62,7 +62,7 @@
 .status-done{color:#7fe0a4;background:rgba(127,224,164,.1)}
 .status-failed,.status-cancelled,.status-interrupted{color:#f28b82;background:rgba(242,139,130,.1)}
 
-.harness-feed{flex:1;min-height:0;overflow:auto;padding:26px 30px 36px;scrollbar-width:thin;scrollbar-color:#3a3a40 transparent;scroll-behavior:smooth}
+.harness-feed{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:26px 30px 36px;scrollbar-width:thin;scrollbar-color:#3a3a40 transparent}
 .harness-thread{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .harness-user-message{margin:0 0 8px auto;max-width:86%;padding:14px 18px;border-radius:20px 20px 6px 20px;background:linear-gradient(135deg,rgba(245,214,123,.92),rgba(184,144,31,.9));color:#1a1408;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 10px 30px rgba(184,144,31,.18)}
 .harness-specialists{display:flex;flex-direction:column;gap:8px}
@@ -144,7 +144,7 @@
 .harness-suggestions button svg{color:var(--h-accent);flex:none}
 
 .harness-review{min-width:0;overflow:auto;border-left:1px solid var(--h-line);background:rgba(16,16,20,.9)}
-.harness-review>header{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:8px;padding:18px 14px;border-bottom:1px solid var(--h-line);font-size:12px;background:rgba(16,16,20,.95);backdrop-filter:blur(10px)}
+.harness-review>header{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:8px;padding:18px 14px;border-bottom:1px solid var(--h-line);font-size:12px;background:#111115}
 .harness-review>header svg{color:var(--h-accent)}
 .harness-review>header>button{margin-left:auto;color:#999}
 .harness-review>details{border-bottom:1px solid var(--h-line)}
@@ -243,3 +243,9 @@
 .mini-activity{display:flex;align-items:center;gap:9px;font-size:12px;color:#a5a09a;min-width:0}
 .mini-activity canvas{width:70px;height:60px;flex:none}
 .mini-activity span{min-width:0;overflow-wrap:anywhere;line-height:1.6}
+.harness-feed::-webkit-scrollbar,.harness-review::-webkit-scrollbar,.harness-sidebar::-webkit-scrollbar,.harness-vorschau-start::-webkit-scrollbar,.harness-vorschau-log::-webkit-scrollbar{width:10px;height:10px}
+.harness-feed::-webkit-scrollbar-track,.harness-review::-webkit-scrollbar-track,.harness-sidebar::-webkit-scrollbar-track,.harness-vorschau-start::-webkit-scrollbar-track,.harness-vorschau-log::-webkit-scrollbar-track{background:transparent;margin:4px 0}
+.harness-feed::-webkit-scrollbar-thumb,.harness-review::-webkit-scrollbar-thumb,.harness-sidebar::-webkit-scrollbar-thumb,.harness-vorschau-start::-webkit-scrollbar-thumb,.harness-vorschau-log::-webkit-scrollbar-thumb{border:3px solid transparent;background-clip:padding-box;border-radius:999px;background-color:rgba(229,200,137,.2)}
+.harness-feed:hover::-webkit-scrollbar-thumb,.harness-review:hover::-webkit-scrollbar-thumb,.harness-sidebar:hover::-webkit-scrollbar-thumb{background-color:rgba(229,200,137,.36)}
+.harness-review,.harness-sidebar{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(229,200,137,.25) transparent}
+.harness-vorschau-rahmen{animation:harness-erscheinen .28s cubic-bezier(.2,.8,.2,1) both}

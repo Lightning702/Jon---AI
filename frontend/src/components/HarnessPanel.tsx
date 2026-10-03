@@ -66,6 +66,9 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
   const composer = useRef<HTMLTextAreaElement>(null);
   const feed = useRef<HTMLElement>(null);
   const vorher = useRef<Record<string, string>>({});
+  const sitzungsStand = useRef("");
+  const aufgabenStand = useRef("");
+  const amEnde = useRef(true);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -90,13 +93,15 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
         if (!document.hidden) {
           const list = await harnessRequest<HarnessSitzung[]>("/harness/threads", undefined, undefined, controller.signal);
           if (controller.signal.aborted) return;
-          setSitzungen(list);
+          const sitzungsText = JSON.stringify(list);
+          if (sitzungsText !== sitzungsStand.current) {sitzungsStand.current = sitzungsText; setSitzungen(list);}
           if (!selected && !drafting && list.length) {setSelected(list[0].id); setRoot(list[0].root);}
           if (selected) {
             try {
               const data = await harnessRequest<{root: string; tasks: HarnessTask[]}>(`/harness/threads/${selected}`, undefined, undefined, controller.signal);
               if (controller.signal.aborted) return;
-              setTasks(data.tasks);
+              const stand = JSON.stringify(data.tasks.map(t => [t.id, t.status, t.updated_at, t.step, t.log?.length, t.changes.length, t.checks.length, t.pending?.id, t.specialists?.map(a => a.status).join(), t.summary.length]));
+              if (stand !== aufgabenStand.current) {aufgabenStand.current = stand; setTasks(data.tasks);}
               fast = data.tasks.some(t => !finished.has(t.status));
               let geaendert = false;
               for (const t of data.tasks) {
@@ -125,8 +130,8 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
   const letzte = tasks.at(-1);
   const working = tasks.some(t => !finished.has(t.status));
   const action = async (fn: () => Promise<void>) => {setBusy(true); setError(""); try {await fn();} catch (e) {setError(e instanceof Error ? e.message : "Aktion fehlgeschlagen");} finally {setBusy(false);}};
-  const choose = (item: HarnessSitzung) => {if (item.id === selected) return; setDrafting(false); setSelected(item.id); setTasks([]); setRoot(item.root); setRechts(r => r === "aenderungen" ? null : r);};
-  const newTask = (projekt?: string) => {setDrafting(true); setSelected(""); setTasks([]); setGoal(""); setRechts(r => r === "aenderungen" ? null : r); if (projekt) setRoot(projekt); setTimeout(() => composer.current?.focus(), 30);};
+  const choose = (item: HarnessSitzung) => {if (item.id === selected) return; aufgabenStand.current = ""; amEnde.current = true; setDrafting(false); setSelected(item.id); setTasks([]); setRoot(item.root); setRechts(r => r === "aenderungen" ? null : r);};
+  const newTask = (projekt?: string) => {aufgabenStand.current = ""; setDrafting(true); setSelected(""); setTasks([]); setGoal(""); setRechts(r => r === "aenderungen" ? null : r); if (projekt) setRoot(projekt); setTimeout(() => composer.current?.focus(), 30);};
   const pick = () => action(async () => {
     const path = await pickFolderDialog();
     if (!path) return;
@@ -171,7 +176,17 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
   }, [tasks]);
   const imThread = !!selected && !drafting && !!tasks.length;
   const sendbar = !busy && !working && !!goal.trim() && !!root.trim();
-  useEffect(() => {if (working) feed.current?.scrollTo({top: feed.current.scrollHeight});}, [working, letzte?.log?.length, letzte?.pending?.id, tasks.length]);
+  useEffect(() => {
+    const el = feed.current;
+    if (!el) return;
+    const merken = () => {amEnde.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140;};
+    el.addEventListener("scroll", merken, {passive: true});
+    return () => el.removeEventListener("scroll", merken);
+  }, []);
+  useEffect(() => {
+    const el = feed.current;
+    if (working && el && amEnde.current) requestAnimationFrame(() => {el.scrollTop = el.scrollHeight;});
+  }, [working, letzte?.log?.length, letzte?.pending?.id, tasks.length]);
   const umschalten = (ziel: Exclude<Rechts, null>) => setRechts(r => r === ziel ? null : ziel);
   const liste = (items: HarnessSitzung[], eingerueckt = false) => items.map(item => <button key={item.id} className={(selected === item.id && !drafting ? "selected " : "") + (eingerueckt ? "" : "harness-recent")} onClick={() => choose(item)}><span>{item.title}</span>{item.tasks > 1 && <em className="harness-anzahl" title={`${item.tasks} Aufträge in dieser Sitzung`}>{item.tasks}</em>}<i className={"harness-state-dot state-" + item.status} title={taskLabels[item.status] || item.status}/></button>);
 

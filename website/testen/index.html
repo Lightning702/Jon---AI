@@ -3,265 +3,242 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jon ausprobieren · FelWorks</title>
-<meta name="description" content="Probier Jon direkt im Browser aus: mit Jon und MiniJon schreiben, Orte und Routen finden, Sprache transkribieren.">
-<meta name="theme-color" content="#07070a">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="../premium/premium.css">
-<style>
-.dm{max-width:860px;margin:30px auto 0}
-.dm-status{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-.dm-status i{width:9px;height:9px;border-radius:50%;background:#666}
-.dm-status.an i{background:#7fe0a4;box-shadow:0 0 12px rgba(127,224,164,.7)}
-.dm-status.aus i{background:#f28b82}
-.dm-reiter{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 14px}
-.dm-reiter button{height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);font:inherit;font-size:14px;cursor:pointer}
-.dm-reiter button[aria-selected=true]{color:#1b160a;border-color:transparent;background:linear-gradient(135deg,#fff1c9,var(--gold))}
-.dm-karte{border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.02);overflow:hidden}
-.dm-verlauf{height:min(56vh,520px);overflow:auto;padding:18px;display:flex;flex-direction:column;gap:10px}
-.dm-blase{max-width:82%;padding:12px 15px;border-radius:18px;line-height:1.65;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
-.dm-blase.du{margin-left:auto;color:#1b160a;background:linear-gradient(135deg,rgba(245,214,123,.95),rgba(184,144,31,.92));border-bottom-right-radius:6px}
-.dm-blase.jon{background:rgba(255,255,255,.05);border:1px solid var(--line);border-bottom-left-radius:6px}
-.dm-blase.minijon{background:rgba(255,140,60,.08);border:1px solid rgba(255,140,60,.25)}
-.dm-eingabe{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
-.dm-eingabe input{flex:1;min-width:0;height:46px;padding:0 14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#0b0b0e;color:var(--text);font:inherit;font-size:15px;outline:none}
-.dm-eingabe input:focus{border-color:rgba(229,200,137,.55)}
-.dm-eingabe button,.dm-knopf{height:46px;padding:0 18px;border:0;border-radius:14px;font:inherit;font-weight:700;color:#1b160a;cursor:pointer;background:radial-gradient(circle at 30% 20%,#fff1c9,var(--gold) 50%,#b8901f)}
-.dm-eingabe button:disabled,.dm-knopf:disabled{opacity:.5;cursor:default}
-.dm-feld{padding:18px;display:grid;gap:10px}
-.dm-zeile{display:flex;gap:8px;flex-wrap:wrap}
-.dm-zeile input,.dm-zeile select{flex:1;min-width:160px;height:46px;padding:0 14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#0b0b0e;color:var(--text);font:inherit;outline:none}
-.dm-ergebnis{font-size:15px;line-height:1.7;color:var(--text)}
-.dm-ergebnis small{color:var(--muted)}
-.dm-karte iframe{width:100%;height:340px;border:0;border-radius:16px;background:#111}
-.dm-aufnahme{display:flex;align-items:center;gap:12px}
-.dm-aufnahme .an{background:radial-gradient(circle at 30% 20%,#ffd0c8,#f28b82 55%,#b33a2f);color:#fff}
-.dm-hinweis{font-size:13px;color:#857f72;line-height:1.6;margin:12px 4px 0}
-[hidden]{display:none!important}
-</style>
+<title>Jon ausprobieren · Live-Demo · Jon von FelWorks</title>
+<meta name="description" content="Probier Jon direkt im Browser aus: mit Jon und MiniJon schreiben, Orte und Routen finden und Sprache transkribieren. Kostenlos und ohne Anmeldung.">
+<meta name="theme-color" content="#05070e">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://getjon.info/testen/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Jon ausprobieren · Live-Demo">
+<meta property="og:description" content="Schreib mit Jon und MiniJon, finde Orte und Routen und transkribiere Sprache, direkt im Browser.">
+<meta property="og:url" content="https://getjon.info/testen/">
+<meta property="og:image" content="https://getjon.info/assets/img/og.jpg">
+<link rel="icon" type="image/png" sizes="192x192" href="../app/icon-192.png">
+<link rel="preload" href="../assets/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../assets/fonts/instrument-serif-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/css/site.css">
+<link rel="stylesheet" href="testen.css">
+<script>document.documentElement.classList.add('js')</script>
 </head>
-<body>
-<main class="pm-seite">
-  <nav class="pm-nav"><a class="pm-logo" href="/"><i></i>JON</a><a class="zurueck" href="/#download">Jon herunterladen</a></nav>
-  <section class="pm-held">
-    <span class="pm-etikett">✦ Live-Demo</span>
-    <h1>Jon ausprobieren</h1>
-    <p>Schreib mit Jon und MiniJon, finde Orte und Routen oder lass Sprache transkribieren. Die Demo läuft auf einem Jon-Gerät von FelWorks und kann nichts auf deinem Computer steuern.</p>
-    <p style="margin-top:14px"><span class="dm-status" id="status"><i></i>Verbinde …</span></p>
-  </section>
-  <section class="dm">
-    <div class="dm-reiter" role="tablist">
-      <button role="tab" data-reiter="jon" aria-selected="true">Jon</button>
-      <button role="tab" data-reiter="minijon" aria-selected="false">MiniJon</button>
-      <button role="tab" data-reiter="maps" aria-selected="false">Maps</button>
-      <button role="tab" data-reiter="transkript" aria-selected="false">Transkribieren</button>
-    </div>
-    <div class="dm-karte" id="chat">
-      <div class="dm-verlauf" id="verlauf" aria-live="polite"></div>
-      <form class="dm-eingabe" id="chatform"><input id="text" maxlength="1500" placeholder="Schreib Jon etwas …" autocomplete="off" aria-label="Nachricht"><button id="senden">Senden</button></form>
-    </div>
-    <div class="dm-karte" id="maps" hidden>
-      <div class="dm-feld">
-        <form class="dm-zeile" id="ortform"><input id="ort" placeholder="Ort suchen, z. B. Schloss Schönbrunn" maxlength="200" aria-label="Ort"><button class="dm-knopf">Finden</button></form>
-        <form class="dm-zeile" id="routeform"><input id="von" placeholder="Von" maxlength="200" aria-label="Start"><input id="nach" placeholder="Nach" maxlength="200" aria-label="Ziel"><select id="modus" aria-label="Fortbewegung"><option value="auto">Auto</option><option value="fahrrad">Fahrrad</option><option value="fuss">Zu Fuß</option></select><button class="dm-knopf">Route</button></form>
-        <div class="dm-ergebnis" id="kartenergebnis"></div>
-        <iframe id="karte" title="Karte" hidden loading="lazy"></iframe>
+<body class="jon-site">
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="jon-face" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="#0b0b0e" stroke="#e2bd4c" stroke-width="7"/><circle cx="44" cy="52" r="8.5" fill="#eec657"/><circle cx="76" cy="52" r="8.5" fill="#eec657"/><circle cx="46.6" cy="49.4" r="2.6" fill="#fff"/><circle cx="78.6" cy="49.4" r="2.6" fill="#fff"/><path d="M40 72c10 11 30 11 40 0" fill="none" stroke="#e2bd4c" stroke-width="7" stroke-linecap="round"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="t-chat" viewBox="0 0 24 24"><path d="M4.5 6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-4.5 3.5v-3.5h0a2 2 0 0 1-1-1.7Z"/></symbol>
+  <symbol id="t-spark" viewBox="0 0 24 24"><path d="M12 3.5 13.8 9l5.7 1.8-5.7 1.8L12 18.2l-1.8-5.6-5.7-1.8L10.2 9 12 3.5Z"/></symbol>
+  <symbol id="t-map" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.4-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.6 12 21 12 21Z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+  <symbol id="t-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+  <symbol id="t-send" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></symbol>
+  <symbol id="t-neu" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5"/></symbol>
+  <symbol id="t-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></symbol>
+  <symbol id="t-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></symbol>
+  <symbol id="t-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7"/></symbol>
+  <symbol id="t-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14"/></symbol>
+  <symbol id="t-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></symbol>
+  <symbol id="t-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="t-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5v-3a4 4 0 0 1 8 0v3"/></symbol>
+</svg>
+
+<a class="skip" href="#demo">Zur Demo springen</a>
+
+<header class="nav" id="nav">
+  <div class="container nav__inner">
+    <a class="brand" href="../index.html" aria-label="Jon von FelWorks – Startseite">
+      <svg class="brand__face" viewBox="0 0 120 120" aria-hidden="true"><use href="#jon-face"/></svg>
+      <span>Jon</span><small>von FelWorks</small>
+    </a>
+    <nav class="nav__links" id="menu" aria-label="Hauptnavigation">
+      <a href="../index.html#features">Funktionen</a>
+      <a href="../index.html#install">Installation</a>
+      <a href="../index.html#games">Spiele</a>
+      <a href="../ollama.html">Ollama</a>
+      <a href="./" aria-current="page">Ausprobieren</a>
+      <a href="../premium/">Premium</a>
+      <a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav__mobile-cta" href="../index.html#download">Jon herunterladen</a>
+    </nav>
+    <a class="btn btn--primary btn--sm nav__cta" href="../index.html#download"><svg class="i"><use href="#i-download"/></svg>Download</a>
+    <button class="nav__toggle" type="button" aria-controls="menu" aria-expanded="false" aria-label="Menü öffnen"><span></span><span></span></button>
+  </div>
+</header>
+
+<main id="inhalt" class="tv">
+  <section class="tv-held">
+    <div class="tv-held-glanz" aria-hidden="true"></div>
+    <div class="container tv-held-raster">
+      <div class="tv-held-text">
+        <span class="tv-status" id="status" data-zustand="verbinden"><i></i><span>Verbinde mit Jon …</span></span>
+        <h1>Sprich mit Jon.<br><em>Direkt im Browser.</em></h1>
+        <p>Schreib mit Jon und MiniJon, finde Orte und Routen oder lass Sprache in Text verwandeln. Kostenlos, ohne Anmeldung, und die Demo kann nichts auf deinem Computer steuern.</p>
+        <div class="tv-held-knoepfe">
+          <a class="btn btn--primary btn--lg" href="#demo">Jetzt ausprobieren<svg class="i"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn--ghost btn--lg" href="../index.html#download"><svg class="i"><use href="#i-download"/></svg>Jon herunterladen</a>
+        </div>
+      </div>
+      <div class="tv-orb" aria-hidden="true">
+        <div class="tv-orb-ring tv-orb-ring--1"></div>
+        <div class="tv-orb-ring tv-orb-ring--2"></div>
+        <div class="tv-orb-kern"><svg viewBox="0 0 120 120"><use href="#jon-face"/></svg></div>
+        <span class="tv-orb-chip tv-orb-chip--1"><svg><use href="#t-chat"/></svg>Chat</span>
+        <span class="tv-orb-chip tv-orb-chip--2"><svg><use href="#t-map"/></svg>Maps</span>
+        <span class="tv-orb-chip tv-orb-chip--3"><svg><use href="#t-mic"/></svg>Sprache</span>
       </div>
     </div>
-    <div class="dm-karte" id="transkript" hidden>
-      <div class="dm-feld">
-        <div class="dm-aufnahme"><button class="dm-knopf" id="aufnehmen">🎙️ Aufnahme starten</button><span id="zeit" class="dm-status"></span></div>
-        <div class="dm-zeile"><input type="file" id="datei" accept="audio/*" aria-label="Audiodatei"></div>
-        <div class="dm-ergebnis" id="transkripttext"></div>
+  </section>
+
+  <section class="container tv-demo" id="demo" aria-label="Live-Demo">
+    <div class="tv-fenster">
+      <div class="tv-leiste">
+        <span class="tv-ampel" aria-hidden="true"><i></i><i></i><i></i></span>
+        <strong>Jon · Live-Demo</strong>
+        <span class="tv-leiste-status" id="status-klein">Verbinde …</span>
+      </div>
+      <div class="tv-innen">
+        <div class="tv-modi" role="tablist" aria-label="Was möchtest du ausprobieren?">
+          <button role="tab" id="tab-jon" aria-controls="panel-chat" aria-selected="true" data-modus="jon"><span class="tv-modus-icon"><svg><use href="#t-chat"/></svg></span><span><b>Jon</b><small>Fragen, schreiben, erklären</small></span></button>
+          <button role="tab" id="tab-minijon" aria-controls="panel-chat" aria-selected="false" data-modus="minijon"><span class="tv-modus-icon tv-modus-icon--mini"><svg><use href="#t-spark"/></svg></span><span><b>MiniJon</b><small>Kurz, verspielt, witzig</small></span></button>
+          <button role="tab" id="tab-maps" aria-controls="panel-maps" aria-selected="false" data-modus="maps"><span class="tv-modus-icon"><svg><use href="#t-map"/></svg></span><span><b>Maps</b><small>Orte und Routen</small></span></button>
+          <button role="tab" id="tab-transkript" aria-controls="panel-transkript" aria-selected="false" data-modus="transkript"><span class="tv-modus-icon"><svg><use href="#t-mic"/></svg></span><span><b>Transkribieren</b><small>Sprache zu Text</small></span></button>
+          <div class="tv-modi-fuss"><svg><use href="#t-lock"/></svg><span>Nichts wird gespeichert. Die Demo kann nichts auf deinem Gerät steuern.</span></div>
+        </div>
+
+        <div class="tv-flaeche">
+          <section class="tv-panel tv-chat" id="panel-chat" role="tabpanel" aria-labelledby="tab-jon">
+            <div class="tv-chat-kopf">
+              <span class="tv-avatar" id="chat-avatar"><svg viewBox="0 0 120 120"><use href="#jon-face"/></svg></span>
+              <div><strong id="chat-name">Jon</strong><small id="chat-unter">Dein KI-Assistent von FelWorks</small></div>
+              <button class="tv-klein-knopf" id="neu" type="button"><svg><use href="#t-neu"/></svg>Neues Gespräch</button>
+            </div>
+            <div class="tv-verlauf" id="verlauf" aria-live="polite"></div>
+            <div class="tv-vorschlaege" id="vorschlaege"></div>
+            <form class="tv-eingabe" id="chatform">
+              <textarea id="text" rows="1" maxlength="1500" placeholder="Schreib Jon etwas …" aria-label="Nachricht"></textarea>
+              <span class="tv-zaehler" id="zaehler"></span>
+              <button class="tv-senden" id="senden" type="submit" aria-label="Senden" disabled><svg><use href="#t-send"/></svg></button>
+            </form>
+          </section>
+
+          <section class="tv-panel tv-maps" id="panel-maps" role="tabpanel" aria-labelledby="tab-maps" hidden>
+            <form class="tv-suche" id="ortform">
+              <svg><use href="#t-search"/></svg>
+              <input id="ort" placeholder="Ort suchen, z. B. Schloss Schönbrunn" maxlength="200" aria-label="Ort suchen" autocomplete="off">
+              <button class="btn btn--primary btn--sm" type="submit">Finden</button>
+            </form>
+            <form class="tv-route" id="routeform">
+              <div class="tv-route-felder">
+                <label><span class="tv-route-punkt"></span><input id="von" placeholder="Start" maxlength="200" aria-label="Start" autocomplete="off"></label>
+                <label><span class="tv-route-punkt tv-route-punkt--ziel"></span><input id="nach" placeholder="Ziel" maxlength="200" aria-label="Ziel" autocomplete="off"></label>
+              </div>
+              <div class="tv-segment" role="radiogroup" aria-label="Fortbewegung">
+                <button type="button" role="radio" aria-checked="true" data-modus="auto">Auto</button>
+                <button type="button" role="radio" aria-checked="false" data-modus="fahrrad">Rad</button>
+                <button type="button" role="radio" aria-checked="false" data-modus="fuss">Zu Fuß</button>
+              </div>
+              <button class="btn btn--ghost btn--sm" type="submit"><svg class="i"><use href="#t-route"/></svg>Route</button>
+            </form>
+            <div class="tv-karten-raster">
+              <div class="tv-treffer" id="kartenergebnis"><p class="tv-leer">Suche einen Ort oder berechne eine Route. Die Daten kommen aus OpenStreetMap.</p></div>
+              <div class="tv-karte"><iframe id="karte" title="Karte" loading="lazy" hidden></iframe><div class="tv-karte-leer" id="karte-leer"><svg><use href="#t-map"/></svg><span>Hier erscheint die Karte</span></div></div>
+            </div>
+          </section>
+
+          <section class="tv-panel tv-transkript" id="panel-transkript" role="tabpanel" aria-labelledby="tab-transkript" hidden>
+            <div class="tv-aufnahme">
+              <button class="tv-mikro" id="aufnehmen" type="button" aria-label="Aufnahme starten"><span class="tv-mikro-welle"></span><svg class="tv-mikro-an"><use href="#t-mic"/></svg><svg class="tv-mikro-aus"><use href="#t-stop"/></svg></button>
+              <div class="tv-aufnahme-text">
+                <strong id="aufnahme-titel">Tippe zum Aufnehmen</strong>
+                <small id="aufnahme-zeit">Bis zu 60 Sekunden, Jon wandelt es in Text um.</small>
+              </div>
+              <canvas class="tv-pegel" id="pegel" width="560" height="64" aria-hidden="true"></canvas>
+            </div>
+            <label class="tv-drop" id="drop">
+              <input type="file" id="datei" accept="audio/*" hidden>
+              <svg><use href="#t-upload"/></svg>
+              <span><b>Audiodatei hierher ziehen</b> oder klicken zum Auswählen</span>
+            </label>
+            <div class="tv-ergebnis" id="transkript-ergebnis" hidden>
+              <div class="tv-ergebnis-kopf"><strong>Erkannter Text</strong><button class="tv-klein-knopf" id="kopieren" type="button"><svg><use href="#t-copy"/></svg><span>Kopieren</span></button></div>
+              <p id="transkripttext"></p>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
-    <p class="dm-hinweis">Die Demo hat ein paar Nachrichten pro zehn Minuten. Gespräche werden nicht gespeichert. Die Vollversion mit PC-Steuerung, Harness, Fachteam und Funke gibt es kostenlos zum Download, mehr mit <a href="/premium/">Jon Premium</a>.</p>
+    <p class="tv-hinweis">Die Demo läuft auf einem Jon-Gerät von FelWorks. Pro Besucher gibt es ein paar Nachrichten in zehn Minuten, damit es für alle schnell bleibt.</p>
   </section>
-  <footer class="pm-fuss"><span>© FelWorks · Österreich</span><span><a href="/support/">Support</a> · <a href="/datenschutz-app.html">Datenschutz</a></span></footer>
+
+  <section class="container tv-mehr" aria-label="Mehr von Jon">
+    <div class="tv-karten">
+      <article class="tv-info">
+        <span class="tv-info-icon"><svg><use href="#t-chat"/></svg></span>
+        <h2>In der Demo</h2>
+        <ul><li>Chat mit Jon und MiniJon</li><li>Orte suchen und Routen berechnen</li><li>Sprache in Text verwandeln</li></ul>
+      </article>
+      <article class="tv-info tv-info--gold">
+        <span class="tv-info-icon"><svg viewBox="0 0 120 120"><use href="#jon-face"/></svg></span>
+        <h2>In der Vollversion</h2>
+        <ul><li>Jon steuert deinen PC per Sprache und Chat</li><li>Langzeitgedächtnis, Kalender, Beobachten</li><li>Lokale KI mit Ollama oder dein eigener Anbieter</li></ul>
+      </article>
+      <article class="tv-info">
+        <span class="tv-info-icon"><svg><use href="#t-spark"/></svg></span>
+        <h2>Mit Premium</h2>
+        <ul><li>Harness Pro und Fachteam ohne Limit</li><li>Funke am Handy und Fernsteuerung</li><li>Studio, Recherche und Cloud-Sync</li></ul>
+      </article>
+    </div>
+    <div class="tv-cta">
+      <div><h2>Gefällt dir Jon?</h2><p>Lade ihn kostenlos herunter. Er läuft auf deinem eigenen Rechner.</p></div>
+      <div class="tv-cta-knoepfe">
+        <a class="btn btn--primary btn--lg" href="../index.html#download"><svg class="i"><use href="#i-download"/></svg>Jon herunterladen</a>
+        <a class="btn btn--gold-ghost btn--lg" href="../premium/">Premium ansehen</a>
+      </div>
+    </div>
+  </section>
 </main>
-<script>
-let basis = "";
-let reiter = "jon";
-const verlaeufe = {jon: [], minijon: []};
-const $ = id => document.getElementById(id);
-const status = (text, art) => {$("status").className = "dm-status " + art; $("status").lastChild.textContent = text;};
 
-async function verbinden() {
-  try {
-    basis = (await (await fetch("/.netlify/functions/demo-adresse")).json()).url || "";
-    if (!basis) throw new Error();
-    const r = await fetch(basis + "/demo/status", {signal: AbortSignal.timeout(8000)});
-    if (!r.ok) throw new Error();
-    status("Jon ist online", "an");
-  } catch {
-    status("Die Demo ist gerade offline. Schau später wieder vorbei.", "aus");
-  }
-}
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a class="brand" href="../index.html" aria-label="Jon von FelWorks – Startseite">
+          <svg class="brand__face" viewBox="0 0 120 120" aria-hidden="true"><use href="#jon-face"/></svg>
+          <span>Jon</span><small>von FelWorks</small>
+        </a>
+        <p>Der kostenlose KI-Desktop-Assistent für Windows. Entwickelt von FelWorks in Theresienfeld, Österreich.</p>
+      </div>
+      <div>
+        <h4>Jon</h4>
+        <ul>
+          <li><a href="../index.html#download">Download</a></li>
+          <li><a href="../premium/">Premium</a></li>
+          <li><a href="../ollama.html">Ollama-Doku</a></li>
+          <li><a href="https://github.com/Lightning702/Jon---AI" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>FelWorks</h4>
+        <ul>
+          <li><a href="https://felworks.netlify.app/" target="_blank" rel="noopener">FelWorks</a></li>
+          <li><a href="../support/">Support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Rechtliches</h4>
+        <ul>
+          <li><a href="https://felworks-impressum.netlify.app" target="_blank" rel="noopener">Impressum</a></li>
+          <li><a href="https://felworks-impressum.netlify.app/datenschutz" target="_blank" rel="noopener">Datenschutz</a></li>
+          <li><a href="../agb.html">AGB</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <div class="footer-meta">Jon — KI-Desktop-Assistent von FelWorks · Live-Demo</div>
+      <div class="footer-meta">© 2026 FelWorks · Theresienfeld, Österreich</div>
+    </div>
+  </div>
+</footer>
 
-function blase(text, wer) {
-  const el = document.createElement("div");
-  el.className = "dm-blase " + wer;
-  el.textContent = text;
-  $("verlauf").appendChild(el);
-  $("verlauf").scrollTop = $("verlauf").scrollHeight;
-  return el;
-}
-
-function zeigen() {
-  $("verlauf").innerHTML = "";
-  if (!verlaeufe[reiter].length) blase(reiter === "minijon" ? "Hey, ich bin MiniJon! 👋 Frag mich was – ich bin klein, aber schlau." : "Hallo, ich bin Jon. Wobei kann ich dir helfen?", reiter);
-  for (const n of verlaeufe[reiter]) blase(n.content, n.role === "user" ? "du" : reiter);
-  $("text").placeholder = reiter === "minijon" ? "Schreib MiniJon etwas …" : "Schreib Jon etwas …";
-}
-
-document.querySelectorAll("[data-reiter]").forEach(knopf => knopf.addEventListener("click", () => {
-  reiter = knopf.dataset.reiter;
-  document.querySelectorAll("[data-reiter]").forEach(k => k.setAttribute("aria-selected", String(k === knopf)));
-  $("chat").hidden = !(reiter === "jon" || reiter === "minijon");
-  $("maps").hidden = reiter !== "maps";
-  $("transkript").hidden = reiter !== "transkript";
-  if (!$("chat").hidden) zeigen();
-}));
-
-$("chatform").addEventListener("submit", async e => {
-  e.preventDefault();
-  const text = $("text").value.trim();
-  if (!text || !basis) return;
-  const persona = reiter;
-  const verlauf = verlaeufe[persona];
-  verlauf.push({role: "user", content: text});
-  blase(text, "du");
-  $("text").value = "";
-  $("senden").disabled = true;
-  const antwort = blase("…", persona);
-  let inhalt = "";
-  try {
-    const r = await fetch(basis + "/demo/chat", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({persona, nachrichten: verlauf.slice(-12)})});
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || "Jon antwortet gerade nicht.");
-    const leser = r.body.getReader();
-    const decoder = new TextDecoder();
-    let puffer = "";
-    for (;;) {
-      const {value, done} = await leser.read();
-      if (done) break;
-      puffer += decoder.decode(value, {stream: true});
-      const teile = puffer.split("\n\n");
-      puffer = teile.pop();
-      for (const teil of teile) {
-        if (!teil.startsWith("data: ")) continue;
-        const daten = JSON.parse(teil.slice(6));
-        if (daten.fehler) throw new Error(daten.fehler);
-        if (daten.delta) {inhalt += daten.delta; antwort.textContent = inhalt; $("verlauf").scrollTop = $("verlauf").scrollHeight;}
-      }
-    }
-    verlauf.push({role: "assistant", content: inhalt || "…"});
-  } catch (fehler) {
-    antwort.textContent = typeof fehler.message === "string" && fehler.message ? fehler.message : "Jon antwortet gerade nicht.";
-    verlauf.pop();
-  } finally {
-    $("senden").disabled = false;
-  }
-});
-
-function karte(lat, lon) {
-  const d = 0.012;
-  $("karte").src = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - d},${lat - d},${lon + d},${lat + d}&layer=mapnik&marker=${lat},${lon}`;
-  $("karte").hidden = false;
-}
-
-$("ortform").addEventListener("submit", async e => {
-  e.preventDefault();
-  const q = $("ort").value.trim();
-  if (!q || !basis) return;
-  $("kartenergebnis").textContent = "Suche …";
-  try {
-    const r = await fetch(basis + "/demo/orte?q=" + encodeURIComponent(q));
-    const daten = await r.json();
-    if (!r.ok) throw new Error(daten.detail || "Suche fehlgeschlagen.");
-    if (!daten.treffer.length) {$("kartenergebnis").textContent = "Nichts gefunden."; return;}
-    const t = daten.treffer[0];
-    $("kartenergebnis").innerHTML = "";
-    const b = document.createElement("b"); b.textContent = t.name || q;
-    const s = document.createElement("small"); s.textContent = " " + (t.label || "");
-    $("kartenergebnis").append(b, s);
-    karte(t.lat, t.lon);
-  } catch (fehler) {$("kartenergebnis").textContent = fehler.message;}
-});
-
-$("routeform").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (!basis) return;
-  $("kartenergebnis").textContent = "Berechne Route …";
-  try {
-    const r = await fetch(basis + "/demo/route", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({von: $("von").value.trim(), nach: $("nach").value.trim(), modus: $("modus").value})});
-    const daten = await r.json();
-    if (!r.ok) throw new Error(daten.detail || "Route nicht berechenbar.");
-    const route = daten.route || {};
-    const meter = route.distance_m || 0;
-    const sekunden = route.duration_s || 0;
-    $("kartenergebnis").textContent = `${daten.von.name || "Start"} → ${daten.nach.name || "Ziel"}: ${(meter / 1000).toFixed(1)} km, etwa ${Math.max(1, Math.round(sekunden / 60))} Minuten.`;
-    karte((daten.von.lat + daten.nach.lat) / 2, (daten.von.lon + daten.nach.lon) / 2);
-  } catch (fehler) {$("kartenergebnis").textContent = fehler.message;}
-});
-
-function wav(puffer) {
-  const rate = 16000;
-  const kanal = puffer.getChannelData(0);
-  const schritt = puffer.sampleRate / rate;
-  const laenge = Math.floor(kanal.length / schritt);
-  const daten = new DataView(new ArrayBuffer(44 + laenge * 2));
-  const schreiben = (o, t) => [...t].forEach((c, i) => daten.setUint8(o + i, c.charCodeAt(0)));
-  schreiben(0, "RIFF"); daten.setUint32(4, 36 + laenge * 2, true); schreiben(8, "WAVE"); schreiben(12, "fmt ");
-  daten.setUint32(16, 16, true); daten.setUint16(20, 1, true); daten.setUint16(22, 1, true); daten.setUint32(24, rate, true);
-  daten.setUint32(28, rate * 2, true); daten.setUint16(32, 2, true); daten.setUint16(34, 16, true); schreiben(36, "data"); daten.setUint32(40, laenge * 2, true);
-  for (let i = 0; i < laenge; i++) daten.setInt16(44 + i * 2, Math.max(-1, Math.min(1, kanal[Math.floor(i * schritt)])) * 0x7fff, true);
-  return new Blob([daten], {type: "audio/wav"});
-}
-
-async function transkribieren(blob) {
-  if (!basis) return;
-  $("transkripttext").textContent = "Jon hört zu …";
-  try {
-    const kontext = new AudioContext();
-    const puffer = await kontext.decodeAudioData(await blob.arrayBuffer());
-    if (puffer.duration > 60) throw new Error("In der Demo bitte höchstens eine Minute.");
-    const r = await fetch(basis + "/demo/transkript", {method: "POST", headers: {"Content-Type": "audio/wav"}, body: wav(puffer)});
-    const daten = await r.json();
-    if (!r.ok) throw new Error(daten.detail || "Transkription fehlgeschlagen.");
-    $("transkripttext").textContent = daten.text || "Ich habe nichts verstanden.";
-  } catch (fehler) {$("transkripttext").textContent = fehler.message || "Die Aufnahme ließ sich nicht lesen.";}
-}
-
-let rekorder = null;
-let start = 0;
-let uhr = 0;
-$("aufnehmen").addEventListener("click", async () => {
-  if (rekorder) {rekorder.stop(); return;}
-  try {
-    const strom = await navigator.mediaDevices.getUserMedia({audio: true});
-    const stuecke = [];
-    rekorder = new MediaRecorder(strom);
-    rekorder.ondataavailable = e => stuecke.push(e.data);
-    rekorder.onstop = () => {
-      strom.getTracks().forEach(t => t.stop());
-      clearInterval(uhr);
-      $("zeit").textContent = "";
-      $("aufnehmen").textContent = "🎙️ Aufnahme starten";
-      $("aufnehmen").classList.remove("an");
-      rekorder = null;
-      void transkribieren(new Blob(stuecke, {type: stuecke[0]?.type || "audio/webm"}));
-    };
-    rekorder.start();
-    start = Date.now();
-    $("aufnehmen").textContent = "⏹ Aufnahme beenden";
-    $("aufnehmen").classList.add("an");
-    uhr = setInterval(() => {const s = Math.round((Date.now() - start) / 1000); $("zeit").textContent = s + " s"; if (s >= 60) rekorder?.stop();}, 500);
-  } catch {$("transkripttext").textContent = "Ohne Mikrofon-Freigabe geht es nicht. Du kannst auch eine Audiodatei wählen.";}
-});
-$("datei").addEventListener("change", e => {const f = e.target.files[0]; if (f) void transkribieren(f);});
-
-zeigen();
-verbinden();
-</script>
+<script src="../assets/js/site.js" defer></script>
+<script src="testen.js" defer></script>
 </body>
 </html>

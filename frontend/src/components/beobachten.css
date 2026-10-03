@@ -20,7 +20,8 @@
 .bo-warn svg,.bo-fehler svg{flex:none;margin-top:2px}
 .bo-leer{display:flex;align-items:center;gap:8px;font-size:12px;color:#77736a;padding:6px 4px}
 .bo-liste{display:flex;flex-direction:column;gap:8px}
-.bo-eintrag{padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);overflow:hidden}
+.bo-eintrag{padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);overflow:hidden;animation:bo-ein .28s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(min(var(--i,0),8) * 25ms);transition:border-color .2s,opacity .2s}
+.bo-eintrag:hover{border-color:rgba(229,200,137,.22)}
 .bo-erfuellt{border-color:rgba(127,224,164,.35);background:linear-gradient(160deg,rgba(127,224,164,.08),rgba(255,255,255,.015))}
 .bo-gestoppt{opacity:.62}
 .bo-eintrag-kopf{display:flex;align-items:center;gap:9px}
@@ -45,8 +46,10 @@
 .bo-knoepfe .bo-weg:hover:not(:disabled){color:#f28b82;border-color:rgba(242,139,130,.4);background:rgba(242,139,130,.07)}
 .bo-dreh{animation:bo-dreh 1.2s linear infinite}
 @keyframes bo-dreh{to{transform:rotate(360deg)}}
+@keyframes bo-ein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.bo-ein{animation:bo-ein .22s cubic-bezier(.2,.8,.2,1) both}
 @keyframes bo-puls{50%{opacity:.4}}
-@media(prefers-reduced-motion:reduce){.bo-icon::after,.bo-punkt,.bo-dreh{animation:none}}
+@media(prefers-reduced-motion:reduce){.bo-icon::after,.bo-punkt,.bo-dreh,.bo-eintrag,.bo-ein{animation:none}}
 .sp-arten{display:flex;flex-wrap:wrap;gap:6px}
 .sp-arten button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.1);font-size:11.5px;color:#bdb7a8;transition:border-color .2s,background .2s,color .2s}
 .sp-arten button:hover{border-color:rgba(229,200,137,.4)}
@@ -60,3 +63,10 @@
 .sp-mail.aus{opacity:.4;pointer-events:none}
 .sp-mail:hover,.sp-kopieren:hover{border-color:rgba(229,200,137,.45)!important}
 .bo-neu .sp-infos input[type=checkbox]{flex:none;width:15px;height:15px;padding:0;border-radius:4px}
+.werkzeug-fenster{background:linear-gradient(180deg,#141418,#0f0f13);box-shadow:0 24px 70px rgba(0,0,0,.55);contain:layout paint;animation:bo-ein .2s cubic-bezier(.2,.8,.2,1) both}
+html.light .werkzeug-fenster{background:rgba(252,251,246,.98)}
+.werkzeug-scroll{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgb(var(--gold-rgb) / .28) transparent}
+.werkzeug-scroll::-webkit-scrollbar{width:10px}
+.werkzeug-scroll::-webkit-scrollbar-track{background:transparent;margin:4px 0}
+.werkzeug-scroll::-webkit-scrollbar-thumb{border:3px solid transparent;background-clip:padding-box;border-radius:999px;background-color:rgb(var(--gold-rgb) / .24)}
+.werkzeug-scroll:hover::-webkit-scrollbar-thumb{background-color:rgb(var(--gold-rgb) / .4)}
