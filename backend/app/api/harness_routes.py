@@ -12,6 +12,7 @@ from app.services.harness import get_harness_service
 from app.services.harness.messages import handle, selection
 from app.services.harness.vorschau import get_vorschau
 from app.services.mini_jon_agent import get_mini_jon_agent
+from app.services.premium import PremiumNoetig
 
 router = APIRouter(prefix="/api")
 
@@ -64,6 +65,8 @@ def task_or_404(task_id: str) -> dict:
 async def start(payload: StartTask) -> dict:
     try:
         return get_harness_service().start(**payload.model_dump())
+    except PremiumNoetig:
+        raise
     except (ValueError, OSError) as exc:
         raise HTTPException(400, str(exc))
 
@@ -105,6 +108,8 @@ async def approve(task_id: str, payload: Approval) -> dict:
     task_or_404(task_id)
     try:
         return get_harness_service().approve(task_id, payload.approval_id, payload.allow)
+    except PremiumNoetig:
+        raise
     except ValueError as exc:
         raise HTTPException(409, str(exc))
 
@@ -139,6 +144,8 @@ async def agent_state() -> dict:
 async def agent_config(payload: dict) -> dict:
     try:
         return get_mini_jon_agent().configure(payload)
+    except PremiumNoetig:
+        raise
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 
@@ -192,8 +199,12 @@ async def screen(payload: ScreenQuestion) -> dict:
 
     try:
         return await analyze(get_mini_jon_agent(), payload.question)
+    except PremiumNoetig:
+        raise
     except (ValueError, OSError, TimeoutError) as exc:
         raise HTTPException(400, str(exc) or "Bildschirmanalyse hat zu lange gedauert.")
+    except PremiumNoetig:
+        raise
     except Exception:
         raise HTTPException(502, "Das Vision-Modell ist nicht erreichbar oder unterstützt keine Bilder. Prüfe Anbieter und Vision-Modell.")
 
@@ -203,7 +214,13 @@ class PreviewRequest(BaseModel):
 
 
 def preview_root(root: str) -> Path:
+    from app.services.premium import get_premium
     from app.services.project_service import get_project_service
+
+    if not get_premium().premium():
+        from app.services.premium import PremiumNoetig
+
+        raise PremiumNoetig("harness", "Die Projektvorschau im Harness gibt es mit Jon Premium.")
 
     project = get_project_service().find_by_root(root)
     if not project:
@@ -223,6 +240,8 @@ async def preview_state(root: str) -> dict:
 async def preview_start(payload: PreviewRequest) -> dict:
     try:
         return await get_vorschau().starten(preview_root(payload.root))
+    except PremiumNoetig:
+        raise
     except (ValueError, OSError) as exc:
         raise HTTPException(400, str(exc))
 

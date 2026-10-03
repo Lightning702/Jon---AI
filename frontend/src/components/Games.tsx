@@ -9,6 +9,9 @@ import {
   startSpiel,
   stopSpiel,
 } from "../lib/api";
+import { istPremium, usePremium } from "../lib/premium";
+
+const FREIE_SPIELE = new Set(["blockwelt"]);
 
 const STATUS_TEXT: Record<SpielStatus, string> = {
   bereit: "bereit",
@@ -100,6 +103,7 @@ export default function Games({ onClose, fokus }: { onClose: () => void; fokus?:
     }
   };
 
+  const premium = istPremium(usePremium());
   const karte = (spiel: Spiel) => {
     const arbeitet = busy === spiel.id;
     const startbar = spiel.status === "bereit" || spiel.status === "laeuft";
@@ -128,7 +132,7 @@ export default function Games({ onClose, fokus }: { onClose: () => void; fokus?:
           <div className="absolute left-3 right-3 bottom-2 flex items-end justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[14px] font-semibold text-white/95 truncate">
-                {spiel.icon} {spiel.titel}
+                {spiel.icon} {spiel.titel}{!premium && !FREIE_SPIELE.has(spiel.id) && <span className="ml-2 align-middle text-[10px] font-semibold text-gold/80 border border-gold/30 rounded-full px-1.5 py-px">Premium</span>}
               </div>
               {spiel.genre && <div className="text-[10.5px] text-white/50 truncate">{spiel.genre}</div>}
             </div>

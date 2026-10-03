@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from app.services.media_service import get_media_service
+from app.services.premium import PremiumNoetig
 
 router = APIRouter(prefix="/api/media")
 
@@ -20,6 +21,8 @@ class MediaTask(BaseModel):
 async def upload(request: Request, name: str = "audio.mp3") -> dict:
     try:
         return await get_media_service().upload(name, request.stream())
+    except PremiumNoetig:
+        raise
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 
@@ -28,6 +31,8 @@ async def upload(request: Request, name: str = "audio.mp3") -> dict:
 async def start(payload: MediaTask) -> dict:
     try:
         return get_media_service().start(**payload.model_dump())
+    except PremiumNoetig:
+        raise
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 

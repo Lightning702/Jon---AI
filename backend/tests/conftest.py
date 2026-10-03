@@ -39,3 +39,19 @@ def _init_with_token(self, *args, **kwargs):
 
 
 _TestClient.__init__ = _init_with_token
+
+
+import pytest
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "standard: Test läuft mit der kostenlosen Standard-Stufe")
+
+
+@pytest.fixture(autouse=True)
+def _premium_stufe(request, monkeypatch):
+    if request.node.get_closest_marker("standard"):
+        return
+    from app.services.premium import Premium
+
+    monkeypatch.setattr(Premium, "stufe", lambda self: "admin")

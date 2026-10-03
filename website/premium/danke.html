@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Danke · Jon Premium</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#07070a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="premium.css">
+</head>
+<body>
+<main class="pm-seite">
+  <nav class="pm-nav"><a class="pm-logo" href="/"><i></i>JON</a><a class="zurueck" href="/premium/">Jon Premium</a></nav>
+  <section class="pm-held" id="warten">
+    <div class="pm-ring"></div>
+    <h1>Einen Moment …</h1>
+    <p>Stripe bestätigt gerade deine Zahlung.</p>
+  </section>
+  <section class="pm-held" id="fertig" hidden>
+    <span class="pm-etikett">✦ Willkommen bei Jon Premium</span>
+    <h1>Danke!</h1>
+    <p>Deine Zahlung ist angekommen. Die Rechnung bekommst du per E-Mail von Stripe.</p>
+  </section>
+  <section id="schluessel" hidden>
+    <div class="pm-schritte">
+      <div class="pm-schritt"><span>1</span><div><b>Hast du den Kauf in Jon gestartet?</b><p>Dann ist Jon schon freigeschaltet. Oben links neben „JON“ steht jetzt „Premium“. Du kannst dieses Fenster schließen.</p></div></div>
+      <div class="pm-schritt"><span>2</span><div><b>Sonst: Lizenzschlüssel einfügen</b><p>Kopiere den Schlüssel unten, öffne Jon, tippe oben links auf „Standard“ → „Lizenz eingeben oder Admin“ und füge ihn ein. Er funktioniert auf bis zu drei Geräten.</p></div></div>
+    </div>
+    <div class="pm-token"><textarea id="token" readonly aria-label="Lizenzschlüssel"></textarea><button id="kopieren">Kopieren</button></div>
+  </section>
+  <div id="meldung"></div>
+  <footer class="pm-fuss"><span>© FelWorks · Österreich</span><span><a href="/support/">Support</a></span></footer>
+</main>
+<script>
+const id = new URLSearchParams(location.search).get("session_id") || "";
+const meldung = (text, art = "fehler") => {document.getElementById("meldung").innerHTML = `<div class="pm-meldung ${art}"></div>`; document.querySelector("#meldung div").textContent = text;};
+async function abholen(versuch) {
+  try {
+    const antwort = await fetch("/.netlify/functions/premium-lizenz", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({aktion: "abholen", session_id: id})});
+    const daten = await antwort.json().catch(() => ({}));
+    if (!antwort.ok) throw new Error(daten.fehler || "Die Lizenz konnte nicht abgeholt werden.");
+    if (daten.token) {
+      document.getElementById("warten").hidden = true;
+      document.getElementById("fertig").hidden = false;
+      document.getElementById("schluessel").hidden = false;
+      document.getElementById("token").value = daten.token;
+      return;
+    }
+  } catch (e) {
+    if (versuch > 3) {meldung(e.message); return;}
+  }
+  if (versuch < 40) setTimeout(() => abholen(versuch + 1), 3000);
+  else meldung("Die Zahlung ist noch nicht bestätigt. Lade die Seite in ein paar Minuten neu oder schreib an den Support.", "info");
+}
+if (!/^cs_[A-Za-z0-9_]+$/.test(id)) meldung("Diese Seite braucht eine Kauf-ID von Stripe.");
+else abholen(0);
+document.getElementById("kopieren").addEventListener("click", async () => {
+  const feld = document.getElementById("token");
+  try {await navigator.clipboard.writeText(feld.value);} catch {feld.select(); document.execCommand("copy");}
+  document.getElementById("kopieren").textContent = "Kopiert ✓";
+});
+</script>
+</body>
+</html>

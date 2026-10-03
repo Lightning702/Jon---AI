@@ -517,6 +517,10 @@ class StudioService:
         provider: str = "",
         image: str = "",
     ) -> dict:
+        from app.services.premium import get_premium
+
+        get_premium().pruefen("studio")
+
         prompt = prompt.strip()
         if not prompt:
             raise StudioError("Beschreibe zuerst, was Jon erstellen soll.")

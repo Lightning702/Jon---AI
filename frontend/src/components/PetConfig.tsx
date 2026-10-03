@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import "../../electron/pet3d.js";
 import { motion } from "framer-motion";
 import MiniJonWork from "./MiniJonWork";
+import { istPremium, premiumOeffnen, usePremium } from "../lib/premium";
 import {
   ProviderStatus,
   getProviders,
@@ -145,10 +146,16 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
     return () => view.stop();
   }, [cfg.pet_3d, cfg.pet_accent, cfg.pet_face, cfg.pet_cheeks, preview]);
 
+  const premium = istPremium(usePremium());
   const update = (patch: Partial<Cfg>) => {
+    if (!premium && ((patch.pet_3d && !cfg.pet_3d) || (patch.pet_companion && patch.pet_companion !== "none" && patch.pet_companion !== cfg.pet_companion))) {
+      premiumOeffnen("aussehen", "Das 3D-Modell und die Begleiter Katze und Hund gibt es mit Jon Premium.");
+      return false;
+    }
     const next = { ...cfg, ...patch };
     setCfg(next);
     void saveUserSettings(patch);
+    return true;
   };
 
   const reset = () => {
@@ -158,8 +165,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
   };
 
   const pickCompanion = (value: Companion) => {
-    update({ pet_companion: value });
-    setPreview(value === "none" ? "jon" : value);
+    if (update({ pet_companion: value })) setPreview(value === "none" ? "jon" : value);
   };
 
   const eyeOptions: { value: Eyes; label: string }[] = [
@@ -260,7 +266,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
           <div className="w-full space-y-4">
             <div className="flex items-center justify-between">
               <div className="min-w-0 pr-3">
-                <div className="text-[13px] text-white/80">3D-Modell</div>
+                <div className="text-[13px] text-white/80">3D-Modell{!premium && <span className="ml-2 text-[10px] font-semibold text-gold/80 border border-gold/30 rounded-full px-1.5 py-px">Premium</span>}</div>
                 <div className="text-[11px] text-white/40 leading-snug">
                   Mini Jon, Katze und Hund als echte 3D-Modelle mit Licht und
                   Tiefe statt flacher Zeichnung.
@@ -361,7 +367,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
                         : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
                     }`}
                   >
-                    {o.label}
+                    {o.label}{!premium && o.value !== "none" && " 🔒"}
                   </button>
                 ))}
               </div>

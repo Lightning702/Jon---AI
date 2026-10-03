@@ -1552,6 +1552,11 @@ class TelegramService:
             if bound_chat and str(chat_id) != bound_chat:
                 await self.send(chat_id, "Dieser Jon gehört schon jemand anderem. 🔒")
                 continue
+            from app.services.premium import PremiumNoetig, get_premium
+
+            if not get_premium().premium():
+                await self.send(chat_id, PremiumNoetig("fernsteuerung").text + " Öffne Jon am PC und tippe oben links neben „JON“ auf „Standard“.")
+                continue
             location = message.get("location") or message.get("venue", {}).get(
                 "location"
             )

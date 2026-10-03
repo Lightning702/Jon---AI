@@ -215,6 +215,7 @@ CORE_TOOLS = {
     "understand_screen",
     "harness_task",
     "team",
+    "beobachten",
     "run_powershell",
     "run_cmd",
     "start_program",
@@ -1445,6 +1446,13 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Zeigt Jons Vorschlaege."
     if name == "team":
         return f"Laesst mehrere Agenten arbeiten an: {_shorten(args.get('aufgabe', ''))}"
+    if name == "beobachten":
+        aktion = str(args.get("aktion", "liste"))
+        if aktion == "anlegen":
+            return f"Beobachtet ab jetzt: {_shorten(args.get('frage', ''))}"
+        if aktion == "stoppen":
+            return "Stoppt eine Beobachtung."
+        return "Zeigt die laufenden Beobachtungen."
     if name == "lernen":
         return f"Lernt aus der eigenen Arbeit ({_shorten(args.get('aktion', 'muster'))})."
     if name == "rueckgaengig":
@@ -2274,6 +2282,16 @@ class ToolBox:
                 "fuer Codeaenderungen ist harness_task zustaendig.",
                 {"aufgabe": _STR, "agenten": _INT, "internet": {"type": "boolean", "description": "Nur bei ausdrücklich gewünschter Webrecherche einschalten; sonst false."}},
                 ["aufgabe"],
+            ),
+            _tool(
+                "beobachten",
+                "Jon beobachtet etwas im Internet und meldet sich von selbst, sobald es eintritt. Nutze aktion='anlegen', wenn der Nutzer "
+                "sagt 'Erinnere mich, wenn ...', 'Sag mir Bescheid, sobald ...' oder 'Melde dich, wenn ... rauskommt', zum Beispiel ein Produkt "
+                "erscheint, ein Termin feststeht oder ein Preis sinkt. frage ist die Suchanfrage, bedingung beschreibt eindeutig, wann es erfüllt ist. "
+                "Jon prüft standardmäßig alle 24 Stunden mit der Websuche, solange er läuft, und meldet sich in der App und über Telegram. "
+                "aktion='liste' zeigt alle Beobachtungen, aktion='stoppen' beendet eine (id).",
+                {"aktion": {"type": "string", "enum": ["anlegen", "liste", "stoppen"]}, "frage": _STR, "bedingung": _STR, "intervall_stunden": {"type": "number", "description": "Wie oft geprüft wird, Standard 24"}, "id": _STR},
+                ["aktion"],
             ),
             _tool("youtube_transkript", "Ruft echte YouTube-Untertitel ab und fasst den gesamten gesprochenen Inhalt zusammen. Bei einem YouTube-Link zuerst dieses Werkzeug verwenden, bevor du den Inhalt erklärst. Keine Videobilder werden angesehen. Keine erfundenen Transkripte, wenn Untertitel fehlen.", {"url": _STR}, ["url"]),
             _tool(
@@ -3928,6 +3946,12 @@ class ToolBox:
         except Exception as _fehler:
             leise(_fehler, "services/tools")
             hinweis = ""
+        from app.services.premium import get_premium, werkzeug_feature
+
+        feature = werkzeug_feature(name, args)
+        if feature and not get_premium().erlaubt(feature):
+            log_action(src, name, args, "premium", ok=False)
+            return json.dumps({"error": get_premium().sperrtext(feature), "premium": feature}, ensure_ascii=False)
         cache_args = {"arguments": args, "workspace": self._root, "source": src}
         gemerkt = cache.holen(name, cache_args)
         if gemerkt is not None:

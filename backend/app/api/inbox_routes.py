@@ -17,6 +17,10 @@ async def inbox_feed(limit: int = 12, days: int = 7) -> dict:
 
 @router.post("/analyze")
 async def inbox_analyze(payload: InboxAnalyzeIn) -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("automatik")
+
     service = get_inbox_service()
     text = payload.text
     subject = payload.betreff
@@ -54,6 +58,10 @@ async def inbox_analyze(payload: InboxAnalyzeIn) -> dict:
 
 @router.post("/action")
 async def inbox_action(payload: InboxActionIn) -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("automatik")
+
     if not payload.bestaetigt:
         raise HTTPException(
             status_code=403,

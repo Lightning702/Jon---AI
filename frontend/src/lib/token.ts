@@ -1,4 +1,5 @@
 import { BASE } from "./api";
+import { premiumPruefen } from "./premium";
 
 const HEADER = "X-Jon-Token";
 const STORAGE_KEY = "jon.token";
@@ -128,6 +129,7 @@ export function installTokenFetch(): void {
     const antwort = value
       ? await original(input, mitSchluessel(init, vorhandene, value))
       : await original(input, init);
+    if (antwort.status === 402) premiumPruefen(antwort);
     if (antwort.status !== 401 || input instanceof Request) {
       if (antwort.status === 401) melden();
       return antwort;

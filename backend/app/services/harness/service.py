@@ -206,6 +206,9 @@ class HarnessService:
                 raise ValueError("In diesem Arbeitsordner läuft bereits ein Harness-Auftrag.")
         if len(self.running) >= 4:
             raise ValueError("Es laufen bereits vier Aufträge.")
+        from app.services.premium import get_premium
+
+        get_premium().verbrauchen("harness")
         lease = WorkspaceLease(self.directory / "locks", str(workspace.root))
         task_id = uuid.uuid4().hex[:12]
         companion = bool(companion or source == "minijon")
@@ -288,6 +291,10 @@ class HarnessService:
         if name == "search":
             return workspace.search(str(args["text"]))
         if name == "delegate":
+            from app.services.premium import get_premium
+
+            if not get_premium().premium():
+                raise ValueError("Fachagenten im Harness gibt es mit Jon Premium. Arbeite ohne delegate weiter.")
             from app.services.agent_profiles import BOUNDARIES, PROFILES
 
             if len(task.get("specialists", [])) >= 4:

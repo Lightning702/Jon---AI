@@ -474,6 +474,13 @@ async def get_user_settings() -> dict:
 
 @router.put("/settings")
 async def update_user_settings(payload: SettingsIn) -> dict:
+    from app.services.premium import get_premium
+
+    if not get_premium().premium():
+        jetzt = get_settings_service().get()
+        if (payload.pet_3d and not jetzt.get("pet_3d")) or (payload.pet_companion not in (None, "", "none", jetzt.get("pet_companion"))):
+            get_premium().pruefen("aussehen")
+
     result = get_settings_service().update(payload.model_dump(exclude_none=True))
     if payload.model and result.get("provider") == "ollama":
         get_ollama_service().update({"model": payload.model})
@@ -747,6 +754,10 @@ async def routine_suggestions() -> dict:
 
 @router.post("/routine/accept")
 async def routine_accept(payload: RoutineActionIn) -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("automatik")
+
     from app.services.routine_service import get_routine_service
 
     result = get_routine_service().accept(payload.id)
@@ -833,6 +844,11 @@ async def games_list(frisch: bool = False) -> dict:
 
 @router.post("/games/{spiel_id}/start")
 async def games_start(spiel_id: str) -> dict:
+    from app.services.premium import FREIE_SPIELE, get_premium
+
+    if spiel_id.lower() not in FREIE_SPIELE:
+        get_premium().pruefen("spiele")
+
     from app.services.arcade_service import SpielFehler, get_arcade_service
 
     try:
@@ -1346,6 +1362,10 @@ async def tools_catalog() -> dict:
 
 @router.get("/weekly")
 async def weekly() -> dict:
+    from app.services.premium import get_premium
+
+    get_premium().pruefen("automatik")
+
     return await asyncio.to_thread(get_briefing_service().weekly_data)
 
 

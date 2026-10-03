@@ -1,6 +1,6 @@
 # Jon Harness und MiniJon
 
-Stand: 3. Oktober 2026, Jon 4.59.0. Der Harness öffnet in der App einen eigenen Arbeitsbereich mit Sitzungsleiste, Eingabefeld unten, animierter Live-Ansicht, Diff-Ansicht und Projektvorschau. Er arbeitet immer mit Jons Modell aus den Einstellungen – auch wenn der Auftrag aus MiniJon kommt. MiniJon kann den Fortschritt nur noch als Begleiter anzeigen.
+Stand: 3. Oktober 2026, Jon 4.58.1. Der Harness öffnet in der App einen eigenen Arbeitsbereich mit Sitzungsleiste, Eingabefeld unten, animierter Live-Ansicht, Diff-Ansicht und Projektvorschau. Er arbeitet immer mit Jons Modell aus den Einstellungen – auch wenn der Auftrag aus MiniJon kommt. MiniJon kann den Fortschritt nur noch als Begleiter anzeigen.
 
 ## Einstieg
 
@@ -127,7 +127,7 @@ Jon spricht als warmer, direkter Kollege mit trockenem Humor. MiniJon bleibt kü
 
 ## Prüfung
 
-Für 4.59.0 bestanden 95 gezielte Harness-, Fachteam- und Zuverlässigkeitstests, darunter neue Tests für Sitzungen, Vorschau (inklusive gesperrter `.env` und fremdem Host), Wiederholungen bei 429/503, Ausweichmodelle, Reasoning-Antworten, den Ollama-Speicherrückfall und das Kontextbudget. Im Browser lief ein vollständiger Ablauf mit einem lokalen Testmodell: Startseite anlegen, Folgeauftrag in derselben Sitzung, Vorschau öffnen und Handybreite. Echte NVIDIA- und Ollama-Modelle wurden in dieser Umgebung nicht angesprochen; die Fehlerfälle wurden mit nachgebauten Anbieterantworten geprüft.
+Für 4.58.1 bestanden 95 gezielte Harness-, Fachteam- und Zuverlässigkeitstests, darunter neue Tests für Sitzungen, Vorschau (inklusive gesperrter `.env` und fremdem Host), Wiederholungen bei 429/503, Ausweichmodelle, Reasoning-Antworten, den Ollama-Speicherrückfall und das Kontextbudget. Im Browser lief ein vollständiger Ablauf mit einem lokalen Testmodell: Startseite anlegen, Folgeauftrag in derselben Sitzung, Vorschau öffnen und Handybreite. Echte NVIDIA- und Ollama-Modelle wurden in dieser Umgebung nicht angesprochen; die Fehlerfälle wurden mit nachgebauten Anbieterantworten geprüft.
 
 Frühere Prüfung (4.58.0):
 

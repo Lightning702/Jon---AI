@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import PremiumAbzeichen from "./PremiumAbzeichen";
 
 declare global {
   interface Window {
@@ -60,6 +61,7 @@ export default function TitleBar() {
       <div className="flex items-center gap-2">
         <div className="w-3 h-3 rounded-full bg-gold shadow-gold" />
         <span className="text-sm font-semibold tracking-wide gold-text">JON</span>
+        <PremiumAbzeichen />
       </div>
       {api && (
         <div className="no-drag flex items-center gap-1">

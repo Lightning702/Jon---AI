@@ -6,6 +6,8 @@ import asyncio
 import json
 import re
 import time
+
+import httpx
 from typing import AsyncIterator, Callable
 
 from openai import (
@@ -38,6 +40,18 @@ ROLE_PREFIX = re.compile(
     r"^\s*(?:assistant|system|user|model)\s*[:\n]+", re.IGNORECASE
 )
 STOP_SEQUENCES = ["<|eot_id|>", "<|start_header_id|>", "<|end_header_id|>"]
+STREAM_PAUSE_S = 180.0
+
+
+def fehlertext(exc: BaseException) -> str:
+    text = str(exc).strip()
+    if isinstance(exc, httpx.ReadTimeout):
+        return f"Die Verbindung ist mitten in der Antwort abgerissen (über {STREAM_PAUSE_S:.0f} Sekunden keine Daten). Der Anbieter ist überlastet. Versuche es erneut oder wähle ein anderes Modell."
+    if isinstance(exc, (httpx.RemoteProtocolError, httpx.ReadError)):
+        return "Der Anbieter hat die Verbindung mitten in der Antwort getrennt. Versuche es erneut oder wähle ein anderes Modell."
+    if isinstance(exc, httpx.TimeoutException):
+        return "Zeitüberschreitung bei der Verbindung zum Anbieter. Versuche es erneut."
+    return text or f"{type(exc).__name__} ohne Fehlermeldung"
 
 
 def clean_lead(text: str) -> str:
@@ -207,7 +221,7 @@ class OpenAICompatibleProvider(LLMProvider):
                     payload["max_tokens"] = max(MIN_MAX_TOKENS, tokens // 2)
                     last = exc
                     continue
-                raise ProviderError(f"{self.name}: {exc}") from exc
+                raise ProviderError(f"{self.name}: {fehlertext(exc)}") from exc
         raise ProviderError(
             f"{self.name}: Server ueberlastet (mehrere Fehlversuche): {last}"
         ) from last
@@ -244,7 +258,7 @@ class OpenAICompatibleProvider(LLMProvider):
             watchdog = guard if round_index == 0 else guard * 1.5
             caller = (
                 client.with_options(
-                    timeout=max(watchdog, 8.0), max_retries=0
+                    timeout=httpx.Timeout(max(STREAM_PAUSE_S, watchdog), connect=max(watchdog, 8.0)), max_retries=0
                 )
                 if watchdog > 0
                 else client
@@ -349,11 +363,11 @@ class OpenAICompatibleProvider(LLMProvider):
                                 slot["args"] += fn.arguments
             except TRANSIENT_ERRORS as exc:
                 if content_acc or calls:
-                    raise ProviderError(f"{self.name}: {exc}") from exc
+                    raise ProviderError(f"{self.name}: {fehlertext(exc)}") from exc
                 await asyncio.sleep(0.6)
                 continue
             except Exception as exc:
-                raise ProviderError(f"{self.name}: {exc}") from exc
+                raise ProviderError(f"{self.name}: {fehlertext(exc)}") from exc
 
             if lead_open and lead:
                 cleaned = clean_lead(lead)

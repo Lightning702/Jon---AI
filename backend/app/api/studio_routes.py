@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 
 from app.schemas import StudioConnectIn, StudioGenerateIn
 from app.services.studio_service import StudioError, get_studio_service
+from app.services.premium import PremiumNoetig
 
 router = APIRouter(prefix="/api/studio", tags=["studio"])
 
@@ -25,6 +26,8 @@ async def studio_connect(payload: StudioConnectIn) -> dict:
             payload.video_model or "",
             payload.size or "",
         )
+    except PremiumNoetig:
+        raise
     except StudioError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -46,6 +49,8 @@ async def studio_generate(payload: StudioGenerateIn) -> dict:
             payload.provider or "",
             payload.image or "",
         )
+    except PremiumNoetig:
+        raise
     except StudioError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
@@ -61,6 +66,8 @@ async def studio_gallery() -> dict:
 async def studio_delete(entry_id: str) -> dict:
     try:
         return get_studio_service().delete(entry_id)
+    except PremiumNoetig:
+        raise
     except StudioError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
@@ -69,6 +76,8 @@ async def studio_delete(entry_id: str) -> dict:
 async def studio_save(entry_id: str, folder: str = "") -> dict:
     try:
         return get_studio_service().save_copy(entry_id, folder)
+    except PremiumNoetig:
+        raise
     except StudioError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
@@ -79,6 +88,8 @@ async def studio_save(entry_id: str, folder: str = "") -> dict:
 async def studio_file(name: str) -> FileResponse:
     try:
         path = get_studio_service().file(name)
+    except PremiumNoetig:
+        raise
     except StudioError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})

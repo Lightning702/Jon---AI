@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jon Premium · FelWorks</title>
+<meta name="description" content="Jon Premium: Harness Pro, Fachteam, Funke am Handy, Fernsteuerung, Studio, Recherche, Cloud-Sync und mehr. Sicher bezahlt über Stripe.">
+<meta name="theme-color" content="#07070a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="premium.css">
+</head>
+<body>
+<main class="pm-seite">
+  <nav class="pm-nav"><a class="pm-logo" href="/"><i></i>JON</a><a class="zurueck" href="/">Zur Startseite</a></nav>
+  <section class="pm-held">
+    <span class="pm-etikett">✦ Jon Premium</span>
+    <h1>Alles, was Jon kann.<br>Ohne Grenzen.</h1>
+    <p>Jon bleibt kostenlos. Mit Premium arbeitet der Harness unbegrenzt, dein Fachteam prüft so oft du willst, Funke übernimmt am Handy, und Jon sichert dein Gedächtnis verschlüsselt in der Cloud.</p>
+  </section>
+  <section class="pm-plaene" role="group" aria-label="Tarif wählen">
+    <button class="pm-plan" data-plan="monat" aria-pressed="false"><span>Monatlich</span><strong>6,99 €</strong><small>pro Monat · inkl. MwSt.</small></button>
+    <button class="pm-plan" data-plan="jahr" aria-pressed="true"><em>2 Monate geschenkt</em><span>Jährlich</span><strong>59,99 €</strong><small>pro Jahr · inkl. MwSt.</small></button>
+  </section>
+  <button class="pm-knopf" id="kaufen">Premium holen</button>
+  <p class="pm-klein">Sicher bezahlt über Stripe, mit Rechnung und automatisch berechneter Steuer. Jederzeit kündbar. Am einfachsten startest du den Kauf direkt in Jon: oben links neben „JON“ auf „Standard“ tippen, dann schaltet sich Jon nach der Zahlung von selbst frei.</p>
+  <div id="meldung"></div>
+  <section class="pm-grid" aria-label="Premium-Funktionen">
+    <div class="pm-karte"><i>⌘</i><b>Jon Harness Pro</b><p>Unbegrenzte Aufträge, Projektvorschau und Fachagenten im Coding-Agenten.</p></div>
+    <div class="pm-karte"><i>👥</i><b>Fachteam</b><p>Bis zu vier Fachagenten mit unabhängiger Gegenprüfung, so oft du willst.</p></div>
+    <div class="pm-karte"><i>🔥</i><b>Funke am Handy</b><p>Dein Begleiter mit allen Werkzeugen, auch über allen Apps.</p></div>
+    <div class="pm-karte"><i>📱</i><b>Fernsteuerung</b><p>PC per Telegram und Handy-App steuern, Freigaben unterwegs.</p></div>
+    <div class="pm-karte"><i>🎓</i><b>Deep Learning &amp; Recherche</b><p>Lange Recherche-Berichte und Lernpläne mit Quellen.</p></div>
+    <div class="pm-karte"><i>🎬</i><b>Studio</b><p>Video, Foto und Präsentationen erstellen.</p></div>
+    <div class="pm-karte"><i>🎙️</i><b>Stimmen &amp; Transkripte</b><p>Lange Audiodateien, Sprecher und Export.</p></div>
+    <div class="pm-karte"><i>👁️</i><b>Bildschirmanalyse</b><p>Jon sieht und prüft, was auf deinem Bildschirm ist.</p></div>
+    <div class="pm-karte"><i>🌐</i><b>Browser-Agent</b><p>Jon erledigt Aufgaben selbstständig im Browser.</p></div>
+    <div class="pm-karte"><i>🎨</i><b>MiniJon-Aussehen</b><p>Alle zehn Auftritte, 3D-Modell, Katze und Hund.</p></div>
+    <div class="pm-karte"><i>👨‍👩‍👧</i><b>Familienpaket</b><p>Regeln, Durchsagen und Berichte für die Geräte deiner Familie.</p></div>
+    <div class="pm-karte"><i>☁️</i><b>Cloud-Sync &amp; Backup</b><p>Gedächtnis und Einstellungen Ende-zu-Ende verschlüsselt sichern.</p></div>
+    <div class="pm-karte"><i>⚙️</i><b>Alltags-Automatisierung</b><p>Inbox, Wochenbericht und wiederkehrende Abläufe.</p></div>
+    <div class="pm-karte"><i>🎮</i><b>Alle Spiele</b><p>Alle Spiele und Welten statt nur Blockwelt.</p></div>
+  </section>
+  <footer class="pm-fuss"><span>© FelWorks · Österreich</span><span><a href="/agb.html">AGB</a> · <a href="/datenschutz-app.html">Datenschutz</a> · <a href="/support/">Support</a></span></footer>
+</main>
+<script>
+const plaene = [...document.querySelectorAll(".pm-plan")];
+let plan = "jahr";
+plaene.forEach(knopf => knopf.addEventListener("click", () => {plan = knopf.dataset.plan; plaene.forEach(k => k.setAttribute("aria-pressed", String(k === knopf)));}));
+const meldung = (text, art = "info") => {document.getElementById("meldung").innerHTML = `<div class="pm-meldung ${art}"></div>`; document.querySelector("#meldung div").textContent = text;};
+if (new URLSearchParams(location.search).has("abgebrochen")) meldung("Der Kauf wurde abgebrochen. Es wurde nichts abgebucht.");
+const kaufen = document.getElementById("kaufen");
+kaufen.addEventListener("click", async () => {
+  kaufen.disabled = true;
+  kaufen.innerHTML = '<span class="pm-lade"></span> Stripe wird geöffnet …';
+  try {
+    const antwort = await fetch("/.netlify/functions/premium-checkout", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({plan})});
+    const daten = await antwort.json().catch(() => ({}));
+    if (!antwort.ok || !daten.url) throw new Error(daten.fehler || "Der Kauf konnte nicht gestartet werden.");
+    location.href = daten.url;
+  } catch (e) {
+    meldung(e.message, "fehler");
+    kaufen.disabled = false;
+    kaufen.textContent = "Premium holen";
+  }
+});
+</script>
+</body>
+</html>

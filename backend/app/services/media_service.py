@@ -173,6 +173,10 @@ class MediaService:
             raise
 
     def start(self, kind: str, upload_id: str = "", url: str = "", text: str = "", voice: str = "de-DE-ConradNeural", summarize: bool = False) -> dict:
+        from app.services.premium import get_premium
+
+        get_premium().pruefen("stimmen")
+
         if len(self.running) >= 2:
             raise ValueError("Zwei Medienaufträge laufen bereits. Warte kurz oder stoppe einen Auftrag.")
         if kind not in {"transcribe", "youtube", "speech"}:

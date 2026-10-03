@@ -164,6 +164,10 @@ class AgentenService:
         return result[:6]
 
     def start(self, aufgabe: str, max_agenten: int = 3, source: str = "app", slot: str = "jon", research: bool = False, roles: list[str] | None = None, persist: bool = True, kinder: int | None = None, run_id: str | None = None) -> dict:
+        from app.services.premium import get_premium
+
+        get_premium().verbrauchen("fachteam")
+
         text = str(aufgabe).strip()
         if not text or len(text) > 12000:
             raise ValueError("Beschreibe eine Aufgabe mit höchstens 12.000 Zeichen.")

@@ -2,7 +2,31 @@
 
 Alle nennenswerten Änderungen an Jon.
 
-## [4.59.0] — 2026-10-03
+## [4.58.1] — 2026-10-03
+
+### ✦ Jon Premium, Standard und Admin
+
+- **Drei Stufen, sichtbar neben „JON“:** Oben links steht jetzt „Standard“, „Premium“ oder „Admin“, am Handy im Chat-Kopf. Ein Klick öffnet den Premium-Dialog mit allen Funktionen, Tagesgrenzen, Tarifen, Lizenzeingabe und Admin-Anmeldung.
+- **Premium:** Harness Pro, Fachteam ohne Limit, Funke am Handy, Fernsteuerung, Deep Learning und Recherche, Studio, Stimmen und Transkripte, Bildschirmanalyse, Browser-Agent, MiniJon-Aussehen, Familienpaket, Cloud-Sync, Alltags-Automatisierung und alle Spiele. Standard bleibt kostenlos mit 3 Harness-Aufträgen und 1 Fachteam-Lauf pro Tag.
+- **Bezahlen über Stripe:** Checkout mit Abo (6,99 €/Monat oder 59,99 €/Jahr inkl. MwSt.), automatische Rechnungen, Stripe Tax und Kundenportal. Jon schaltet sich nach der Zahlung von selbst frei. Neue Seiten `getjon.info/premium/` und eine Dankesseite mit Lizenzschlüssel.
+- **Fälschungssicher:** Lizenzen sind mit Ed25519 signiert und an bis zu drei Geräte gebunden. Der geheime Stripe-Key und der Signierschlüssel liegen nur in Netlify, nie im Git, im Download oder in der App. Admin gibt es nur mit dem Admin-Passwort des Lizenzservers.
+- **Cloud-Sync:** Gedächtnis und Einstellungen Ende-zu-Ende verschlüsselt sichern und auf ein anderes Gerät holen.
+
+### 👁️ Beobachten
+
+- „Erinnere mich, wenn das Tiiny AI Pocket Lab rauskommt.“ Jon prüft das jetzt selbstständig jeden Tag mit der Websuche, entscheidet nur mit eindeutigem Beleg und Quelle und meldet sich genau einmal in der App und über Telegram. Liste unter **Werkzeuge → Beobachten**. Jon prüft, solange er auf PC oder Pi läuft.
+
+### ✉️ Support
+
+- **Werkzeuge → Support:** Probleme, Fehler, Vorschläge und Wünsche für neue Standard- oder Premium-Funktionen direkt an FelWorks schicken, wahlweise auch über das eigene E-Mail-Programm. Die Website hat dazu eine Support-Seite.
+
+### 🌐 Jon ausprobieren
+
+- **`getjon.info/testen/`:** Besucher schreiben mit Jon und MiniJon, finden Orte und Routen und transkribieren Sprache. Das läuft auf deinem Pi in einem abgeschotteten Dienst ohne Werkzeuge, ohne Gedächtnis und mit Ratenbegrenzung. Einrichtung per `scripts/demo-pi-einrichten.sh`.
+
+### 🛠️ Behoben
+
+- **„[Fehler] nvidia:“ ohne Text:** Große NVIDIA-Modelle wie Nemotron Ultra denken manchmal länger als 20 Sekunden still. Die Verbindung brach dann mit einer leeren Meldung ab. Pausen bis 180 Sekunden sind jetzt erlaubt, und jede Fehlermeldung sagt klar, was passiert ist.
 
 ### 💬 Harness-Sitzungen
 

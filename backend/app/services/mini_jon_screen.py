@@ -107,6 +107,12 @@ def blocked(agent, context: dict) -> bool:
 
 
 async def analyze(agent, question: str = "", automatic: bool = False) -> dict:
+    from app.services.premium import get_premium
+
+    if automatic and not get_premium().premium():
+        return {"skipped": True}
+    get_premium().pruefen("bildschirm")
+
     from app.services.mini_jon_agent import foreground
 
     if agent.screen_lock.locked():

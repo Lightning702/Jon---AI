@@ -1269,6 +1269,13 @@
           const value = text.trim().split(/\s+/)[1] || "";
           const modes = { auto: "", coden: "coding", schreiben: "writing", recherchieren: "research", planen: "planning", design: "design", lernen: "learning", dateien: "files", sprechen: "voice", automatisieren: "automation", ideen: "ideas" };
           if (Object.prototype.hasOwnProperty.call(modes, value.toLowerCase())) {
+            if (modes[value.toLowerCase()]) {
+              const stufe = await fetch(`${BASE}/premium`).then(r => r.json()).catch(() => ({ stufe: "standard" }));
+              if (stufe.stufe !== "premium" && stufe.stufe !== "admin") {
+                say("Die zehn MiniJon-Auftritte gibt es mit Jon Premium. Schalte es in Jon oben links neben „JON“ frei.", true);
+                return;
+              }
+            }
             manualActivity = modes[value.toLowerCase()];
             if (jonView) jonView.setActivity(manualActivity || jonActivity);
             say("MiniJon-Auftritt: " + value + ".", false);

@@ -7,6 +7,7 @@ from app.services.agent_profiles import PROFILES
 from app.services.agenten_service import get_agenten_service
 from app.services.harness import get_harness_service
 from app.services.harness.service import TERMINAL
+from app.services.premium import PremiumNoetig
 
 router = APIRouter(prefix="/api/agents")
 
@@ -51,6 +52,8 @@ async def runs(brief: bool = False) -> list[dict]:
 async def start(payload: StartTeam) -> dict:
     try:
         return get_agenten_service().start(**payload.model_dump(), slot="emil" if payload.source == "minijon" else "jon")
+    except PremiumNoetig:
+        raise
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 
@@ -71,6 +74,8 @@ async def delete(run_id: str) -> dict:
     find(run_id)
     try:
         get_agenten_service().delete(run_id)
+    except PremiumNoetig:
+        raise
     except ValueError as exc:
         raise HTTPException(409, str(exc))
     return {"ok": True}

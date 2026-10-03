@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support · Jon von FelWorks</title>
+<meta name="description" content="Probleme, Fehler, Vorschläge oder Ideen für neue Funktionen? Schreib direkt an FelWorks.">
+<meta name="theme-color" content="#07070a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23d4af37'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../premium/premium.css">
+<style>
+.sp-form{max-width:640px;margin:34px auto 0;display:grid;gap:12px}
+.sp-form label{display:grid;gap:6px;font-size:13px;color:var(--muted)}
+.sp-form input,.sp-form select,.sp-form textarea{width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#0b0b0e;color:var(--text);font:inherit;font-size:15px;outline:none}
+.sp-form textarea{min-height:170px;resize:vertical}
+.sp-form input:focus,.sp-form select:focus,.sp-form textarea:focus{border-color:rgba(229,200,137,.55)}
+.sp-versteckt{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<main class="pm-seite">
+  <nav class="pm-nav"><a class="pm-logo" href="/"><i></i>JON</a><a class="zurueck" href="/">Zur Startseite</a></nav>
+  <section class="pm-held">
+    <span class="pm-etikett">✉ Support</span>
+    <h1>Wie können wir helfen?</h1>
+    <p>Ein Problem, ein Fehler, ein Vorschlag oder eine Idee für eine neue Standard- oder Premium-Funktion? Schreib uns. Du kannst auch direkt an <a href="mailto:felix.heinisch12@gmail.com">felix.heinisch12@gmail.com</a> schreiben.</p>
+  </section>
+  <form class="sp-form" name="support" method="POST" action="/support/danke.html" data-netlify="true" netlify-honeypot="bot-feld">
+    <input type="hidden" name="form-name" value="support">
+    <p class="sp-versteckt"><label>Nicht ausfüllen <input name="bot-feld"></label></p>
+    <label>Worum geht es?<select name="art"><option>Problem</option><option>Fehler melden</option><option>Vorschlag</option><option>Neue Standard-Funktion</option><option>Neue Premium-Funktion</option><option>Frage</option></select></label>
+    <label>Betreff<input name="betreff" required minlength="3" maxlength="160"></label>
+    <label>Nachricht<textarea name="nachricht" required minlength="10" maxlength="8000"></textarea></label>
+    <label>Deine E-Mail für die Antwort (optional)<input type="email" name="email" maxlength="200"></label>
+    <input type="hidden" name="version">
+    <input type="hidden" name="stufe">
+    <input type="hidden" name="system">
+    <button class="pm-knopf" type="submit">Nachricht senden</button>
+  </form>
+  <footer class="pm-fuss"><span>© FelWorks · Österreich</span><span><a href="/premium/">Premium</a> · <a href="/datenschutz-app.html">Datenschutz</a></span></footer>
+</main>
+</body>
+</html>
