@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Check, ChevronDown, Clapperboard, CloudDownload, CloudUpload, Code2, Copy, Crown, ExternalLink, Flame, Gamepad2, Gem, Globe, GraduationCap, HeartHandshake, KeyRound, Loader2, Lock, LogOut, Mic, Palette, ScanEye, ShieldCheck, Smartphone, Sparkles, Users, Workflow, Wrench, X } from "lucide-react";
-import { istPremium, premiumAnfrage, PremiumAnlass, PremiumStatus } from "../lib/premium";
-import EntwicklerCodes from "./EntwicklerCodes";
+import { istPremium, premiumAnfrage, PremiumAnlass, premiumLaden, PremiumStatus } from "../lib/premium";
+import TeamZentrale from "./TeamZentrale";
 import "./premium.css";
 
 const ICONS: Record<string, typeof Code2> = { harness: Code2, fachteam: Users, funke: Flame, fernsteuerung: Smartphone, recherche: GraduationCap, studio: Clapperboard, stimmen: Mic, bildschirm: ScanEye, browser: Globe, aussehen: Palette, familie: HeartHandshake, sync: CloudUpload, automatik: Workflow, spiele: Gamepad2 };
 const KOPF: Record<string, { titel: string; text: string; icon: typeof Code2 }> = {
   standard: { titel: "Jon Standard", text: "Kostenlos: Chat mit deinen Modellen, Werkzeuge, Gedächtnis, Kalender und MiniJon. Mit Premium schaltest du alles frei.", icon: Sparkles },
   premium: { titel: "Jon Premium", text: "Alle Premium-Funktionen sind freigeschaltet. Danke, dass du Jon unterstützt!", icon: Gem },
-  admin: { titel: "Admin", text: "Alles ist unbegrenzt freigeschaltet. Hier erzeugst du Entwickler-Codes für andere Personen und Geräte.", icon: Crown },
-  entwickler: { titel: "Entwickler", text: "Alles ist unbegrenzt freigeschaltet. Deine Entwickler-Lizenz ist signiert, an dieses Gerät gebunden und gilt für immer.", icon: Wrench },
+  admin: { titel: "Admin", text: "Alles ist unbegrenzt freigeschaltet. In der Team-Zentrale steuerst du Codes, Team, Beta-Schalter, Nutzung und deinen Pi.", icon: Crown },
+  entwickler: { titel: "Entwickler", text: "Alles ist unbegrenzt freigeschaltet und gilt für immer. In der Team-Zentrale schreibst du dem Admin, meldest Fehler, teilst Skills und siehst Jon unter die Haube.", icon: Wrench },
 };
 const SANFT = { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] };
 
@@ -137,7 +137,7 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
         {fehler && <div className="pm-fehler pm-ein" role="alert">{fehler}</div>}
         {meldung && <div className="pm-ok pm-ein" role="status"><Check size={15} />{meldung}</div>}
 
-        {stufe === "admin" && (status?.codes ? <EntwicklerCodes onFehler={setFehler} /> : <div className="pm-hinweis pm-ein">Entwickler-Codes erzeugst du mit einer Admin-Lizenz von deinem Pi. Melde dich dafür einmal unten unter „Lizenz oder Code eingeben“ mit dem Admin-Code an.</div>)}
+        {status?.team ? <TeamZentrale status={status} onFehler={setFehler} onNeuLaden={() => void premiumLaden()} /> : stufe === "admin" && <div className="pm-hinweis pm-ein">Codes erzeugst du mit einer Admin-Lizenz von deinem Pi. Melde dich dafür einmal unten unter „Lizenz oder Code eingeben“ mit dem Admin-Code an.</div>}
 
         <section className="pm-features" aria-label="Funktionen">
           {status?.features.map((f, i) => {
@@ -185,7 +185,7 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
           <p className="pm-leiste-text">{warten ? <>Stripe ist im Browser geöffnet. Nach der Zahlung schaltet sich Jon von selbst frei. <button onClick={() => {clearTimeout(timer.current); setWarten(false);}}>Abbrechen</button></> : <>{gewaehlt ? `${gewaehlt.preis} ${gewaehlt.zeitraum}` : ""} inkl. MwSt. · jederzeit kündbar</>}</p>
         </> : <div className="pm-aktionen">
           {stufe === "premium" && <button disabled={!!busy} onClick={() => void oeffnen("/premium/portal")}>{busy === "/premium/portal" ? <Loader2 size={14} className="pm-dreh" /> : <ExternalLink size={14} />}Abo, Rechnungen & Zahlungsart</button>}
-          {status?.token && stufe === "premium" && <button onClick={() => void navigator.clipboard?.writeText(status.token).then(() => setMeldung("Lizenzschlüssel kopiert. Auf einem weiteren Gerät unter „Lizenz eingeben“ einfügen (bis zu drei Geräte)."))}><Copy size={14} />Lizenzschlüssel kopieren</button>}
+          {status?.token && status.abo && <button onClick={() => void navigator.clipboard?.writeText(status.token).then(() => setMeldung("Lizenzschlüssel kopiert. Auf einem weiteren Gerät unter „Lizenz eingeben“ einfügen (bis zu drei Geräte)."))}><Copy size={14} />Lizenzschlüssel kopieren</button>}
           <button className="pm-leise" disabled={!!busy} onClick={() => void handeln("ab", () => premiumAnfrage("/premium/abmelden", {}), "Abgemeldet. Jon läuft jetzt als Standard.")}><LogOut size={14} />Abmelden</button>
         </div>}
       </footer>

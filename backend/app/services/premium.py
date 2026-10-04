@@ -4,6 +4,8 @@ import base64
 import hashlib
 import json
 import os
+import platform
+import re
 import secrets
 import subprocess
 import sys
@@ -24,6 +26,14 @@ CODE_OEFFENTLICH = "dkdz3y9XOspsQOQdubK5s2rqZ0L4+hkwqWzq1EuWuyQ="
 VERSION = "JON1"
 STUFEN = {"standard": "Standard", "premium": "Premium", "admin": "Admin", "entwickler": "Entwickler"}
 UNBEGRENZT = {"premium", "admin", "entwickler"}
+TEAM = {"admin", "entwickler"}
+TEAM_AKTIONEN = {"liste", "erstellen", "bearbeiten", "geraet-entfernen", "sperren", "team/liste", "team/ungelesen", "team/senden", "team/gelesen", "team/anhang", "team/stimme", "team/status", "team/loeschen", "flags/liste", "flags/setzen", "statistik", "llm/kontingent", "pi/status", "pi/neustart", "pi/log", "pi/aktualisieren", "skills/liste", "skills/teilen", "skills/holen", "skills/entfernen"}
+GEHEIM_MUSTER = re.compile(r"(?:nvapi-|sk-|sk_live_|sk_test_|rk_live_|ghp_|gsk_|xai-|AIza)[A-Za-z0-9_\-]{8,}|Bearer\s+\S+|JON1\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+")
+GEHEIM_FELD = re.compile(r"(?i)\b(token|key|passwort|password|secret|api_key|apikey)(\s*[=:]\s*)\S+")
+
+
+def schwaerzen(text: str) -> str:
+    return GEHEIM_FELD.sub(lambda m: m.group(1) + m.group(2) + "[entfernt]", GEHEIM_MUSTER.sub("[entfernt]", text or ""))
 PLAENE = [{"key": "monat", "name": "Monatlich", "preis": "6,99 €", "zeitraum": "pro Monat"}, {"key": "jahr", "name": "Jährlich", "preis": "59,99 €", "zeitraum": "pro Jahr", "hinweis": "2 Monate geschenkt"}]
 FEATURES = {
     "harness": ("Jon Harness Pro", "Unbegrenzte Aufträge, Projektvorschau und Fachagenten im Harness"),
@@ -66,7 +76,7 @@ def lesen(token: str, oeffentlich: str = "") -> dict:
     teile = (token or "").strip().split(".")
     if len(teile) != 3 or teile[0] != VERSION:
         raise ValueError("Das ist kein gültiger Jon-Lizenzschlüssel.")
-    for schluessel, stufen in ((oeffentlich or OEFFENTLICH, {"premium", "admin"}), (CODE_OEFFENTLICH, {"admin", "entwickler"})):
+    for schluessel, stufen in ((oeffentlich or OEFFENTLICH, {"premium", "admin"}), (CODE_OEFFENTLICH, {"admin", "entwickler", "premium"})):
         if not schluessel:
             continue
         try:
@@ -124,6 +134,7 @@ class Premium:
         self.directory = Path(directory or DATA_DIR)
         self.datei = self.directory / "lizenz.json"
         self.nutzung_datei = self.directory / "premium_nutzung.json"
+        self.zustand_datei = self.directory / "team_zustand.json"
         self.lock = threading.Lock()
         self._geraet = ""
         self._cache: tuple[str, dict] | None = None
@@ -161,6 +172,7 @@ class Premium:
 
     def abmelden(self) -> dict:
         self.datei.unlink(missing_ok=True)
+        self.zustand_datei.unlink(missing_ok=True)
         self._cache = None
         return self.status()
 
@@ -193,6 +205,50 @@ class Premium:
     def vom_codeserver(self) -> bool:
         daten = self.lizenz()
         return bool(daten) and not daten.get("fehler") and daten.get("quelle") == "codes"
+
+    def im_team(self) -> bool:
+        return self.stufe() in TEAM and self.vom_codeserver()
+
+    def zustand(self) -> dict:
+        try:
+            wert = json.loads(self.zustand_datei.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            wert = {}
+        return wert if isinstance(wert, dict) else {}
+
+    def _zustand_setzen(self, **werte) -> dict:
+        neu = {**self.zustand(), **werte}
+        self.directory.mkdir(parents=True, exist_ok=True)
+        atomic_write_text(self.zustand_datei, json.dumps(neu, ensure_ascii=False))
+        return neu
+
+    def flags(self) -> dict:
+        if not self.im_team():
+            return {}
+        zustand = self.zustand()
+        gespeichert = zustand["flags"] if isinstance(zustand.get("flags"), dict) else {k: True for k in ("beta", "inspektor", "modell", "skills", "fehlerbericht")}
+        if self.stufe() == "admin":
+            return {**{k: True for k in ("beta", "inspektor", "modell", "skills", "fehlerbericht")}, **{k: True for k in gespeichert}}
+        return {k: bool(v) for k, v in gespeichert.items()}
+
+    def flag(self, schluessel: str) -> bool:
+        if not self.im_team():
+            return False
+        if self.stufe() == "admin":
+            return True
+        return bool((self.zustand().get("flags") or {}).get(schluessel, True))
+
+    def felworks_schluessel(self) -> str | None:
+        return self.token() if self.flag("modell") else None
+
+    def beta_aktiv(self) -> bool:
+        return self.flag("beta") and bool(self.zustand().get("beta"))
+
+    def beta_setzen(self, an: bool) -> dict:
+        if not self.flag("beta"):
+            raise ValueError("Beta-Versionen gibt es für Entwickler und Admins, wenn der Admin sie freigegeben hat.")
+        self._zustand_setzen(beta=bool(an))
+        return self.status()
 
     def _nutzung(self) -> dict:
         heute = date.today().isoformat()
@@ -252,6 +308,11 @@ class Premium:
             "token": self.token() if stufe != "standard" else "",
             "offen": bool(self.offen),
             "codes": stufe == "admin" and self.vom_codeserver(),
+            "team": stufe in TEAM and self.vom_codeserver(),
+            "haupt": bool(stufe == "admin" and daten.get("pk")),
+            "flags": self.flags(),
+            "beta": self.beta_aktiv(),
+            "ungelesen": int(self.zustand().get("ungelesen") or 0) if stufe in TEAM else 0,
             "plaene": PLAENE,
             "features": [{"key": key, "name": name, "beschreibung": text, "frei": stufe != "standard", "kontingent": KONTINGENT.get(key, 0), "verbraucht": int(nutzung.get(key, 0))} for key, (name, text) in FEATURES.items()],
         }
@@ -313,7 +374,14 @@ class Premium:
 
     async def einloesen(self, code: str) -> dict:
         antwort = await self.codeserver("einloesen", {"code": code.strip(), "geraet": self.geraet()})
-        return self.speichern(antwort["token"])
+        self.zustand_datei.unlink(missing_ok=True)
+        status = self.speichern(antwort["token"])
+        if self.im_team():
+            try:
+                return await self.erneuern()
+            except Exception:
+                return status
+        return status
 
     async def admin(self, passwort: str) -> dict:
         return await self.einloesen(passwort)
@@ -323,11 +391,16 @@ class Premium:
         if not token:
             return self.status()
         if self.vom_codeserver():
+            anfrage = {"token": token, "geraet": self.geraet()}
+            if self.stufe() in TEAM:
+                anfrage["bericht"] = self.bericht()
             try:
-                antwort = await self.codeserver("erneuern", {"token": token, "geraet": self.geraet()})
+                antwort = await self.codeserver("erneuern", anfrage)
             except Abgelehnt:
                 self.abmelden()
                 raise
+            if "flags" in antwort:
+                self._zustand_setzen(flags=antwort.get("flags") or {}, ungelesen=int(antwort.get("ungelesen") or 0), rolle=antwort.get("rolle", ""), geprueft=time.time())
             return self.speichern(antwort["token"])
         antwort = await self.rufen("lizenz", {"aktion": "erneuern", "token": token, "geraet": self.geraet()})
         return self.speichern(antwort["token"])
@@ -340,8 +413,59 @@ class Premium:
     async def codes(self) -> dict:
         return await self.codeserver("liste", self._admin_lizenz())
 
-    async def code_erstellen(self, name: str, geraete: int) -> dict:
-        return await self.codeserver("erstellen", {**self._admin_lizenz(), "name": name.strip(), "geraete": geraete})
+    async def code_erstellen(self, name: str, geraete: int, art: str = "entwickler", tage: int = 0) -> dict:
+        return await self.codeserver("erstellen", {**self._admin_lizenz(), "name": name.strip(), "geraete": geraete, "art": art, "tage": tage})
+
+    def bericht(self) -> dict:
+        from app.services.inspektor import get_inspektor
+
+        return {"version": get_settings().app_version, "system": f"{platform.system()} {platform.release()}", "nutzung": get_inspektor().nutzung()}
+
+    def _team_lizenz(self) -> dict:
+        if not self.im_team():
+            raise ValueError("Das gibt es nur für Entwickler und Admins.")
+        return {"token": self.token(), "geraet": self.geraet()}
+
+    async def team(self, aktion: str, daten: dict | None = None) -> dict:
+        if aktion not in TEAM_AKTIONEN:
+            raise ValueError("Unbekannte Aktion.")
+        antwort = await self.codeserver(aktion, {**(daten or {}), **self._team_lizenz()})
+        if isinstance(antwort, dict) and "ungelesen" in antwort:
+            self._zustand_setzen(ungelesen=int(antwort.get("ungelesen") or 0))
+        return antwort
+
+    def systembericht(self) -> str:
+        from app.services.settings_service import get_settings_service
+
+        anbieter, modell = get_settings_service().selection()
+        return f"Jon {get_settings().app_version} · {STUFEN[self.stufe()]} · {platform.system()} {platform.release()} · Python {platform.python_version()} · Modell {anbieter or '-'} / {modell or '-'}"
+
+    async def fehlerbericht(self, text: str, bild: bool = False) -> dict:
+        if not self.flag("fehlerbericht"):
+            raise ValueError("Fehlerberichte mit einem Klick hat der Admin für dich ausgeschaltet.")
+        import asyncio
+
+        from app.core.logbook import export_text
+
+        log = schwaerzen("\n".join(export_text().splitlines()[-220:]))
+        anhang = {"system": self.systembericht(), "log": log}
+        if bild:
+            try:
+                from app.services.system_service import SystemService
+
+                anhang["bild"] = await asyncio.to_thread(SystemService().screenshot_data_url, 1280, 55)
+            except Exception:
+                anhang["system"] += " · Bildschirmfoto nicht möglich"
+        return await self.team("team/senden", {"art": "fehler", "text": text.strip() or "Fehlerbericht", "an": "admin", "anhang": anhang})
+
+    async def skill_installieren(self, kennung: str) -> dict:
+        import asyncio
+
+        from app.services.skill_service import SkillService
+
+        skill = await self.team("skills/holen", {"id": kennung})
+        ergebnis = await asyncio.to_thread(SkillService().write, str(skill["name"]), str(skill["inhalt"]))
+        return {**ergebnis, "titel": skill.get("titel", skill["name"])}
 
     async def code_sperren(self, kennung: str, gesperrt: bool = True) -> dict:
         return await self.codeserver("sperren", {**self._admin_lizenz(), "id": kennung, "gesperrt": gesperrt})

@@ -1,20 +1,45 @@
 # Admin- und Entwickler-Codes über den Pi
 
-Stand: 4. Oktober 2026, Jon 4.59.2.
+Stand: 4. Oktober 2026, Jon 4.61.1.
 
-Der FelWorks-Codeserver läuft auf deinem Raspberry Pi und vergibt zwei Stufen:
+Der FelWorks-Codeserver läuft auf deinem Raspberry Pi und vergibt drei Arten von Codes:
 
-| Stufe | Wer | Was |
+| Code | Beginnt mit | Was er freischaltet |
 |---|---|---|
-| Admin | du, mit dem Admin-Code | Alles unbegrenzt. Im Premium-Dialog erzeugst und sperrst du Entwickler-Codes. |
-| Entwickler | wer einen Entwickler-Code von dir bekommt | Alles unbegrenzt wie Admin, aber keine Codes erzeugen. In Jon steht oben links „Entwickler“. |
+| Admin | `ADM-` | Volle Rechte wie dein eigener Admin-Code, auch Codes erzeugen und die Team-Zentrale steuern. |
+| Entwickler | `ENT-` | Alles unbegrenzt und die Team-Zentrale für Entwickler, aber keine Codes. In Jon steht oben links „Entwickler“. |
+| Premium | `PRE-` | Alle Premium-Funktionen, für 7 Tage, 30 Tage, 3 Monate, 1 Jahr oder für immer ab dem Einlösen. Ohne Team-Zentrale. |
+
+Dein eigener Admin-Code ist der Haupt-Admin und lässt sich nicht sperren. Admin-Codes kannst du jederzeit sperren.
+
+## Team-Zentrale
+
+Admins und Entwickler sehen im Dialog oben links die Team-Zentrale:
+
+| Bereich | Admin | Entwickler |
+|---|---|---|
+| Codes | erzeugen, umbenennen, Art und Laufzeit ändern, sperren, Geräte entfernen | – |
+| Team | Rundschreiben, Antworten, Status für Ideen | Ideen, Fehler und Nachrichten an den Admin oder ans Team, Stimmen für Ideen |
+| Fehler melden | – | Version, System, Protokoll ohne Geheimnisse und Bildschirmfoto mit einem Klick |
+| Geräte & Nutzung | Geräte, Versionen, Anfragen, Tokens, Modelle, Werkzeuge, FelWorks-Kontingent | – |
+| Beta-Schalter | Funktionen für alle oder ausgewählte Entwickler, eigene Schalter | – |
+| Pi | Dienste, Neustart, Protokolle, RAM, Platte, Temperatur, Aktualisieren | – |
+| Skills | teilen, installieren, entfernen | teilen, installieren, eigene entfernen |
+| Inspektor | jede Modellanfrage im Detail | jede Modellanfrage im Detail |
+| Einstellungen | Beta-Versionen | Beta-Versionen, Übersicht der Vorteile |
+
+Neue Team-Nachrichten von Entwicklern, neu eingelöste Team-Codes und geteilte Skills meldet dir Jon auf dem Pi per Telegram, wenn dort ein Telegram-Chat verbunden ist.
+
+Der Modellzugang über FelWorks läuft unter `/codes/llm/v1` als OpenAI-kompatible Schnittstelle. Der Pi gibt Anfragen mit seinem eigenen NVIDIA-Schlüssel weiter, der Schlüssel verlässt den Pi nicht. Das Tageskontingent pro Gerät stellst du unter „Geräte & Nutzung“ ein (Standard 300), Admins haben kein Limit.
+
+Weitere Dateien im geheimen Ordner auf dem Pi: `team.json` (Nachrichten), `flags.json` (Beta-Schalter), `statistik.json` (Nutzungszahlen ohne Inhalte), `skills.json` (geteilte Skills) und `llm.json` (Kontingent).
 
 ## Benutzen
 
 - Admin werden: In Jon oben links auf „Standard“ → „Schon einen Lizenzschlüssel, Entwickler- oder Admin-Code?“ → Admin-Code eingeben → „Einlösen“.
 - Codes erzeugen: Als Admin oben links auf „Admin“ klicken. Ganz oben steht „Entwickler-Codes“. Name eintragen, Anzahl Geräte wählen, „Code erzeugen“. Der Code (`ENT-XXXX-XXXX-XXXX-XXXX-XXXX`) wird genau einmal angezeigt.
 - Code einlösen: Auf dem anderen Gerät genauso wie beim Admin-Code, nur mit dem `ENT-…`-Code.
-- Codes gelten für immer. Sperren: In der Liste auf „Sperren“. Das Gerät fällt bei der nächsten Prüfung auf Standard zurück, sobald es online ist. Mit „Freigeben“ geht es wieder.
+- Admin- und Entwickler-Codes gelten für immer, Premium-Codes so lange wie gewählt. Sperren: In der Liste auf „Sperren“. Das Gerät fällt bei der nächsten Prüfung auf Standard zurück, sobald es online ist. Mit „Freigeben“ geht es wieder.
 
 ## Wie Codes geschützt sind
 

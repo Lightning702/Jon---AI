@@ -342,6 +342,23 @@ async def telegram_stand() -> dict:
     return await get_telegram_service().diagnose()
 
 
+class Meldung(BaseModel):
+    text: str
+
+
+@router.post("/telegram/melden")
+async def telegram_melden(daten: Meldung) -> dict:
+    from app.services.beobachten import _telegram
+
+    text = daten.text.strip()[:3500]
+    if not text:
+        raise HTTPException(status_code=400, detail="Die Meldung ist leer.")
+    try:
+        return {"gesendet": await _telegram(text)}
+    except Exception as fehler:
+        raise HTTPException(status_code=502, detail=f"Telegram nicht erreichbar: {fehler}")
+
+
 @router.get("/diagnostics")
 async def diagnostics() -> dict:
     from app.core.auth import lan_address, rejected

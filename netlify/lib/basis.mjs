@@ -85,7 +85,7 @@ export function lesen(token) {
     if (e instanceof Fehler) throw e;
   }
   if (!gueltig) throw new Fehler(403, "Die Signatur des Lizenzschlüssels ist ungültig.");
-  if (!(vomCodeserver ? ["admin", "entwickler"] : ["premium", "admin"]).includes(inhalt.stufe)) throw new Fehler(400, "Der Lizenzschlüssel enthält keine gültige Stufe.");
+  if (!(vomCodeserver ? ["admin", "entwickler", "premium"] : ["premium", "admin"]).includes(inhalt.stufe)) throw new Fehler(400, "Der Lizenzschlüssel enthält keine gültige Stufe.");
   return inhalt;
 }
 

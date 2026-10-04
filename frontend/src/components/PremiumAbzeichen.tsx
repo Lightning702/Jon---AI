@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Crown, Gem, Sparkles, Wrench } from "lucide-react";
-import { premiumLaden, PremiumAnlass, usePremium } from "../lib/premium";
+import { premiumLaden, PremiumAnlass, teamAnfrage, usePremium } from "../lib/premium";
 import PremiumDialog from "./PremiumDialog";
 import "./premium.css";
 
@@ -17,6 +17,15 @@ export default function PremiumAbzeichen() {
   const zuletzt = useRef<Record<string, number>>({});
   const stufe = status?.stufe || "standard";
   const Icon = ICON[stufe];
+  const team = !!status?.team;
+
+  useEffect(() => {
+    if (!team) return;
+    const pruefen = () => {if (!document.hidden) void teamAnfrage("team/ungelesen").then(() => premiumLaden()).catch(() => {});};
+    pruefen();
+    const takt = setInterval(pruefen, 120000);
+    return () => clearInterval(takt);
+  }, [team]);
 
   useEffect(() => {
     const merken = () => {eingabe.current = Date.now();};
@@ -49,6 +58,7 @@ export default function PremiumAbzeichen() {
     <button type="button" className={"no-drag pm-abzeichen pm-abzeichen-" + stufe} title={TITEL[stufe]} onClick={() => {setAnlass(null); setOffen(true); void premiumLaden();}}>
       <Icon size={11} />
       <span>{status?.name || "Standard"}</span>
+      {team && !!status?.ungelesen && <em className="pm-abzeichen-neu" aria-label={`${status.ungelesen} neue Team-Nachrichten`}>{status.ungelesen > 9 ? "9+" : status.ungelesen}</em>}
     </button>
     <AnimatePresence>{toast && !offen && <motion.button type="button" className="no-drag pm-toast" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} onClick={() => {setAnlass(toast); setToast(null); setOffen(true);}}>
       <Gem size={14} /><span>{toast.text || "Das ist eine Premium-Funktion."}</span><b>Ansehen</b>
