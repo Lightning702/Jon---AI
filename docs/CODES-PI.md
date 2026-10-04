@@ -1,6 +1,6 @@
 # Admin- und Entwickler-Codes über den Pi
 
-Stand: 4. Oktober 2026, Jon 4.59.1.
+Stand: 4. Oktober 2026, Jon 4.59.2.
 
 Der FelWorks-Codeserver läuft auf deinem Raspberry Pi und vergibt zwei Stufen:
 
@@ -14,7 +14,7 @@ Der FelWorks-Codeserver läuft auf deinem Raspberry Pi und vergibt zwei Stufen:
 - Admin werden: In Jon oben links auf „Standard“ → „Schon einen Lizenzschlüssel, Entwickler- oder Admin-Code?“ → Admin-Code eingeben → „Einlösen“.
 - Codes erzeugen: Als Admin oben links auf „Admin“ klicken. Ganz oben steht „Entwickler-Codes“. Name eintragen, Anzahl Geräte wählen, „Code erzeugen“. Der Code (`ENT-XXXX-XXXX-XXXX-XXXX-XXXX`) wird genau einmal angezeigt.
 - Code einlösen: Auf dem anderen Gerät genauso wie beim Admin-Code, nur mit dem `ENT-…`-Code.
-- Sperren: In der Liste auf „Sperren“. Das Gerät fällt bei der nächsten Erneuerung auf Standard zurück, spätestens nach 14 Tagen. Mit „Freigeben“ geht es wieder.
+- Codes gelten für immer. Sperren: In der Liste auf „Sperren“. Das Gerät fällt bei der nächsten Prüfung auf Standard zurück, sobald es online ist. Mit „Freigeben“ geht es wieder.
 
 ## Wie Codes geschützt sind
 
@@ -24,7 +24,8 @@ Der FelWorks-Codeserver läuft auf deinem Raspberry Pi und vergibt zwei Stufen:
   - `admin.json`: nur ein scrypt-Hash des Admin-Codes mit eigenem Salz, nicht der Code selbst.
   - `codes.json`: Entwickler-Codes nur als HMAC-SHA256-Fingerabdruck mit einem geheimen Pfeffer. Dazu Name, letzte vier Zeichen, Geräte und Datum. Den Code selbst sieht nur der Admin einmal beim Erzeugen.
 - Ein Code hat 20 Zeichen aus 30 Buchstaben und Ziffern, also etwa 98 Bit Zufall. Raten ist aussichtslos. Zusätzlich bremst der Server: nach 8 falschen Versuchen in 15 Minuten ist für diese Adresse Pause, und insgesamt nimmt er höchstens 120 Fehlversuche pro Stunde an. Jeder Fehlversuch wartet 1,2 Sekunden.
-- Wer einen Code einlöst, bekommt eine signierte Lizenz (`JON1.…`) für genau sein Gerät. Jon prüft sie offline mit dem öffentlichen Schlüssel. Admin-Lizenzen gelten 90 Tage, Entwickler-Lizenzen 14 Tage, beide erneuern sich automatisch über den Pi.
+- Wer einen Code einlöst, bekommt eine signierte Lizenz (`JON1.…`) für genau sein Gerät. Jon prüft sie offline mit dem öffentlichen Schlüssel. Admin- und Entwickler-Lizenzen haben kein Ablaufdatum und gelten für immer, auch wenn der Pi nicht erreichbar ist.
+- Damit Sperren trotzdem wirken, fragt Jon alle 6 Stunden beim Pi nach. Antwortet der Pi „gesperrt“ oder „Admin-Code geändert“, löscht Jon die Lizenz und läuft als Standard weiter. Ist der Pi nicht erreichbar, bleibt alles, wie es ist.
 - Auf anderen Geräten funktioniert das, weil Jon den Pi über die feste Tailscale-Funnel-Adresse `https://felworks.tail661828.ts.net/codes` erreicht, auch außerhalb deines Heimnetzes. Eine andere Adresse setzt man mit der Umgebungsvariable `JON_CODES_URL`.
 - Cloud-Sync gilt auch für Admin und Entwickler. Netlify prüft deren Lizenzen mit demselben öffentlichen Schlüssel.
 
@@ -38,7 +39,7 @@ bash scripts/codes-pi-einrichten.sh
 
 Das Skript legt den Benutzerdienst `jon-codes` an (Port 8791, nur lokal), fragt beim ersten Mal nach dem Admin-Code und gibt den Server über Tailscale Funnel unter `/codes` frei. Andere Funnel-Pfade bleiben unverändert.
 
-Admin-Code ändern: `cd ~/Jon---AI/backend && .venv/bin/python -m app.codeserver admin` und den neuen Code eingeben. Alte Admin-Lizenzen enden bei der nächsten Erneuerung.
+Admin-Code ändern: `cd ~/Jon---AI/backend && .venv/bin/python -m app.codeserver admin` und den neuen Code eingeben. Alte Admin-Lizenzen enden bei der nächsten Prüfung.
 
 Admin-Lizenz für ein Gerät direkt ausstellen, ohne Code: `.venv/bin/python -m app.codeserver lizenz <Geräte-ID>`. Die Geräte-ID steht im Premium-Dialog unter „Lizenz oder Code eingeben“.
 

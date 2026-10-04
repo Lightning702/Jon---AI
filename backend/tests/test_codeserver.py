@@ -46,7 +46,7 @@ def test_admin_code_liefert_signierte_admin_lizenz_ohne_klartext_auf_der_platte(
     assert antwort.status_code == 200 and antwort.json()["stufe"] == "admin"
     inhalt = server.lesen(antwort.json()["token"])
     assert inhalt["stufe"] == "admin" and inhalt["geraete"] == [GERAET] and inhalt["quelle"] == "codes"
-    assert inhalt["exp"] - server.uhr() == 90 * 86400
+    assert "exp" not in inhalt
     for datei in server.ordner.iterdir():
         assert ADMIN not in datei.read_text(encoding="utf-8")
     assert client.get("/codes/status").json() == {"ok": True, "oeffentlich": server.oeffentlich(), "admin": True}
@@ -85,9 +85,10 @@ def test_geraetegrenze_sperren_und_erneuern(server, client):
     assert client.post("/codes/einloesen", json={"code": code, "geraet": ANDERES}).status_code == 200
     voll = client.post("/codes/einloesen", json={"code": code, "geraet": "c" * 20})
     assert voll.status_code == 403 and "1 Geräten" in voll.json()["detail"]
-    server.uhr.wert += 5 * 86400
+    server.uhr.wert += 5000 * 86400
     erneuert = client.post("/codes/erneuern", json={"token": token, "geraet": ANDERES}).json()["token"]
-    assert server.lesen(erneuert)["exp"] == server.uhr() + 14 * 86400
+    assert "exp" not in server.lesen(erneuert) and server.lesen(erneuert)["iat"] == int(server.uhr())
+    assert client.post("/codes/liste", json={"token": admin, "geraet": GERAET}).status_code == 200
     assert client.post("/codes/erneuern", json={"token": token, "geraet": GERAET}).status_code == 403
     assert client.post("/codes/sperren", json={"token": admin, "geraet": GERAET, "id": kennung}).json()["codes"][0]["gesperrt"]
     gesperrt = client.post("/codes/erneuern", json={"token": token, "geraet": ANDERES})
@@ -168,7 +169,7 @@ def test_jon_loest_codes_ein_zeigt_entwickler_und_verwaltet_codes_als_admin(jon,
         status = await jon.eingeben(neu["code"])
         assert status["stufe"] == "entwickler" and status["name"] == "Entwickler" and status["inhaber"] == "Lena"
         assert not status["codes"] and all(f["frei"] for f in status["features"])
-        assert jon.premium()
+        assert jon.premium() and status["gueltig_bis"] == 0 and jon.braucht_erneuerung()
         jon.pruefen("studio")
         for _ in range(5):
             jon.verbrauchen("harness")
@@ -187,3 +188,15 @@ def test_premium_schluessel_vom_codeserver_wird_nicht_als_premium_akzeptiert(jon
     falsch = server.signieren({"stufe": "premium", "geraete": [jon.geraet()], "exp": time.time() + 3600})
     with pytest.raises(ValueError, match="keine gültige Stufe"):
         jon.speichern(falsch)
+
+
+def test_codes_gelten_fuer_immer_auch_wenn_der_pi_nicht_erreichbar_ist(jon, server):
+    jon.speichern(server.entwickler_token({"id": "abcdefabcdef", "name": "Offline"}, jon.geraet()))
+
+    async def nicht_erreichbar(name, daten):
+        raise ConnectionError("Der FelWorks-Codeserver ist nicht erreichbar.")
+
+    jon.codeserver = nicht_erreichbar
+    with pytest.raises(ConnectionError):
+        asyncio.run(jon.erneuern())
+    assert jon.stufe() == "entwickler" and jon.status()["gueltig_bis"] == 0 and not jon.status()["hinweis"]

@@ -353,6 +353,8 @@ class Premium:
 
     def braucht_erneuerung(self) -> bool:
         daten = self.lizenz()
+        if self.vom_codeserver():
+            return True
         return bool(daten) and not daten.get("fehler") and bool(daten.get("exp")) and float(daten["exp"]) - time.time() < 10 * 86400
 
 

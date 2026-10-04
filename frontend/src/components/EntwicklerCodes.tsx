@@ -61,7 +61,7 @@ export default function EntwicklerCodes({ onFehler }: { onFehler: (text: string)
       <span className="pm-codes-icon"><Wrench size={17} /></span>
       <div>
         <h3>Entwickler-Codes</h3>
-        <p>Wer einen Code einlöst, bekommt alles unbegrenzt wie du und heißt in Jon „Entwickler“. Neue Codes erzeugen kann nur der Admin.</p>
+        <p>Wer einen Code einlöst, bekommt alles unbegrenzt wie du und heißt in Jon „Entwickler“. Codes gelten für immer, bis du sie sperrst. Neue Codes erzeugen kann nur der Admin.</p>
       </div>
       {codes && <span className="pm-codes-zahl"><b>{aktiv}</b> aktiv</span>}
     </div>
@@ -95,7 +95,7 @@ export default function EntwicklerCodes({ onFehler }: { onFehler: (text: string)
           <small>{c.ende ? `endet auf ${c.ende} · ` : ""}{c.geraete}/{c.max_geraete} {c.max_geraete === 1 ? "Gerät" : "Geräte"} · seit {wann(c.erstellt)}{c.zuletzt ? ` · zuletzt ${wann(c.zuletzt)}` : " · noch nicht benutzt"}</small>
         </span>
         <span className={"pm-code-status " + (c.gesperrt ? "aus" : "an")}>{c.gesperrt ? "Gesperrt" : "Aktiv"}</span>
-        <button type="button" className="pm-code-knopf" disabled={!!busy} onClick={() => void sperren(c)} title={c.gesperrt ? "Wieder freigeben" : "Sperren: Jon fällt dort spätestens nach 14 Tagen auf Standard zurück"}>{busy === c.id ? <Loader2 size={13} className="pm-dreh" /> : c.gesperrt ? <RotateCcw size={13} /> : <Ban size={13} />}{c.gesperrt ? "Freigeben" : "Sperren"}</button>
+        <button type="button" className="pm-code-knopf" disabled={!!busy} onClick={() => void sperren(c)} title={c.gesperrt ? "Wieder freigeben" : "Sperren: Jon fällt dort bei der nächsten Prüfung auf Standard zurück"}>{busy === c.id ? <Loader2 size={13} className="pm-dreh" /> : c.gesperrt ? <RotateCcw size={13} /> : <Ban size={13} />}{c.gesperrt ? "Freigeben" : "Sperren"}</button>
       </div>)}
     </div>
     <p className="pm-klein pm-codes-fuss"><ShieldCheck size={12} />Codes prüft dein FelWorks-Codeserver auf dem Raspberry Pi. Er speichert nur Fingerabdrücke und stellt signierte Lizenzen für einzelne Geräte aus.</p>
