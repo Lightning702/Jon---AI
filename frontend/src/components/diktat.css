@@ -1,0 +1,22 @@
+.dk-knopf{flex:none;display:flex;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;margin-bottom:.125rem;border-radius:.75rem;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.45);transition:color .15s,border-color .15s,background-color .15s,transform .12s}
+.dk-knopf:hover:not(:disabled){color:#e5c889;border-color:rgba(229,200,137,.45);background:rgba(229,200,137,.07)}
+.dk-knopf:active:not(:disabled){transform:scale(.94)}
+.dk-knopf:disabled{opacity:.4;cursor:default}
+.dk-knopf.wandelt{opacity:1;color:#e5c889;border-color:rgba(229,200,137,.45)}
+.dk-knopf:focus-visible,.dk-stopp:focus-visible{outline:2px solid rgba(229,200,137,.7);outline-offset:2px}
+.dk-aufnahme{flex:none;display:flex;align-items:center;gap:.6rem;height:2.75rem;margin-bottom:.125rem;padding:0 .3rem 0 .75rem;border-radius:.75rem;border:1px solid rgba(242,139,130,.45);background:linear-gradient(135deg,rgba(242,139,130,.14),rgba(242,139,130,.05));animation:dk-ein .18s cubic-bezier(.2,.8,.2,1) both}
+.dk-pegel{display:flex;align-items:center;gap:3px;height:20px}
+.dk-pegel i{width:3px;height:100%;border-radius:3px;background:#f6b8b1;transform-origin:center;transition:transform 80ms linear}
+.dk-zeit{min-width:2.4rem;font-size:12px;font-weight:600;color:#f6d2cd;font-variant-numeric:tabular-nums}
+.dk-stopp{display:grid;place-items:center;width:2.1rem;height:2.1rem;border-radius:.6rem;color:#fff;background:#e5534b;box-shadow:0 0 0 0 rgba(229,83,75,.55);animation:dk-puls 1.6s ease-out infinite;transition:filter .15s,transform .12s}
+.dk-stopp:hover{filter:brightness(1.1)}
+.dk-stopp:active{transform:scale(.94)}
+.dk-dreh{animation:dk-dreh 1s linear infinite}
+.dk-hinweis{display:flex;align-items:center;gap:.4rem;padding:0 .6rem .4rem;font-size:11.5px;color:rgba(255,255,255,.5)}
+.dk-hinweis.fehler{color:#f6b8b1}
+.dk-hinweis b{color:#e5c889;font-weight:600}
+@media(min-width:768px){.dk-knopf{width:2.25rem;height:2.25rem}.dk-aufnahme{height:2.25rem}.dk-stopp{width:1.75rem;height:1.75rem}}
+@keyframes dk-puls{0%{box-shadow:0 0 0 0 rgba(229,83,75,.55)}80%,100%{box-shadow:0 0 0 8px rgba(229,83,75,0)}}
+@keyframes dk-dreh{to{transform:rotate(360deg)}}
+@keyframes dk-ein{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.dk-stopp,.dk-dreh,.dk-aufnahme{animation:none}}

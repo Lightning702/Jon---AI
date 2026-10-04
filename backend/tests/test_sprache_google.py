@@ -46,3 +46,19 @@ def test_rohdaten_ohne_flac(monkeypatch):
 def test_stereo_wird_nicht_als_rohdaten_gesendet(monkeypatch):
     monkeypatch.setattr(voice_service.urllib.request, "urlopen", lambda *a, **k: (_ for _ in ()).throw(AssertionError("kein Aufruf erwartet")))
     assert voice_service._google_rohdaten(_wav(2), "de-DE") == ""
+
+
+def test_whisper_bekommt_jons_namen_als_hinweis(monkeypatch):
+    aufrufe = []
+
+    class Segment:
+        text = " Hallo Jon "
+
+    class Modell:
+        def transcribe(self, pfad, **werte):
+            aufrufe.append(werte)
+            return [Segment()], None
+
+    monkeypatch.setattr(voice_service, "_get_whisper", lambda: Modell())
+    assert voice_service.VoiceService().transcribe_wav(_wav()) == "Hallo Jon"
+    assert aufrufe[0]["language"] == "de" and "Jon" in aufrufe[0]["initial_prompt"]
