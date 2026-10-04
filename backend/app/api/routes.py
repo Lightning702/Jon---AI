@@ -174,6 +174,19 @@ async def providers() -> list[ProviderStatus]:
                 locked=True,
             )
         )
+    from app.services.premium import get_premium
+
+    if get_premium().felworks_schluessel():
+        felworks = registry.all().get("felworks")
+        found.append(
+            ProviderStatus(
+                provider="felworks",
+                configured=True,
+                env_var="",
+                models=await _models_for(felworks, timeout) or list(getattr(felworks, "_default_models", [])),
+                label="FelWorks · über den Pi",
+            )
+        )
     return found
 
 

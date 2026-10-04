@@ -371,6 +371,7 @@ def card_payload(name: str | None, result: str | None) -> dict | None:
 
 TOOL_PROVIDERS = {
     "nvidia",
+    "felworks",
     "openai",
     "deepseek",
     "mistral",

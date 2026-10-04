@@ -23,19 +23,67 @@ export interface PremiumStatus {
   token: string;
   offen: boolean;
   codes: boolean;
+  team: boolean;
+  haupt: boolean;
+  flags: Record<string, boolean>;
+  beta: boolean;
+  ungelesen: number;
   plaene: { key: string; name: string; preis: string; zeitraum: string; hinweis?: string }[];
   features: PremiumFeature[];
+}
+
+export type CodeArt = "entwickler" | "premium" | "admin";
+
+export interface CodeGeraet {
+  geraet: string;
+  kurz: string;
+  seit: number;
+  version?: string;
+  system?: string;
+  zuletzt?: number;
+  ablauf?: number;
 }
 
 export interface EntwicklerCode {
   id: string;
   name: string;
+  art: CodeArt;
+  tage: number;
   erstellt: number;
   zuletzt: number;
   geraete: number;
+  geraete_liste: CodeGeraet[];
   max_geraete: number;
   gesperrt: boolean;
   ende: string;
+}
+
+export interface TeamNachricht {
+  id: string;
+  zeit: number;
+  von: { id: string; name: string; rolle: string };
+  an: string;
+  art: "idee" | "fehler" | "nachricht" | "rundschreiben";
+  text: string;
+  antwort_auf: string;
+  status?: string;
+  stimmen: number;
+  meine_stimme: boolean;
+  gelesen: boolean;
+  von_mir: boolean;
+  anhang: null | { system: string; log: string; bild: boolean };
+}
+
+export interface TeamStand {
+  nachrichten: TeamNachricht[];
+  ungelesen: number;
+  ich: { id: string; name: string; rolle: string; haupt: boolean };
+  mitglieder: { id: string; name: string; rolle: string }[];
+  status: Record<string, string>;
+}
+
+export function teamAnfrage<T>(aktion: string, body: unknown = {}): Promise<T> {
+  return premiumAnfrage<T>("/premium/team/" + aktion, body);
 }
 
 export interface PremiumAnlass {

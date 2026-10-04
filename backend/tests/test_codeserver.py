@@ -184,8 +184,8 @@ def test_jon_loest_codes_ein_zeigt_entwickler_und_verwaltet_codes_als_admin(jon,
     asyncio.run(ablauf())
 
 
-def test_premium_schluessel_vom_codeserver_wird_nicht_als_premium_akzeptiert(jon, server):
-    falsch = server.signieren({"stufe": "premium", "geraete": [jon.geraet()], "exp": time.time() + 3600})
+def test_unbekannte_stufen_vom_codeserver_werden_abgelehnt(jon, server):
+    falsch = server.signieren({"stufe": "superadmin", "geraete": [jon.geraet()], "quelle": "codes"})
     with pytest.raises(ValueError, match="keine gültige Stufe"):
         jon.speichern(falsch)
 
@@ -200,3 +200,304 @@ def test_codes_gelten_fuer_immer_auch_wenn_der_pi_nicht_erreichbar_ist(jon, serv
     with pytest.raises(ConnectionError):
         asyncio.run(jon.erneuern())
     assert jon.stufe() == "entwickler" and jon.status()["gueltig_bis"] == 0 and not jon.status()["hinweis"]
+
+
+def _admin(client):
+    return client.post("/codes/einloesen", json={"code": ADMIN, "geraet": GERAET}).json()["token"]
+
+
+def _code(client, admin, **werte):
+    return client.post("/codes/erstellen", json={"token": admin, "geraet": GERAET, **werte}).json()
+
+
+def _einloesen(client, code, geraet):
+    return client.post("/codes/einloesen", json={"code": code, "geraet": geraet}).json()
+
+
+DRITTES = "c" * 20
+
+
+def test_premium_codes_mit_laufzeit_und_fuer_immer(server, client):
+    admin = _admin(client)
+    monat = _code(client, admin, name="Gewinnspiel", art="premium", tage=30)
+    assert monat["code"].startswith("PRE-") and monat["codes"][0]["art"] == "premium" and monat["codes"][0]["tage"] == 30
+    eingeloest = _einloesen(client, monat["code"], ANDERES)
+    inhalt = server.lesen(eingeloest["token"])
+    assert eingeloest["stufe"] == "premium" and inhalt["stufe"] == "premium" and inhalt["exp"] == int(server.uhr()) + 30 * 86400
+    immer = _code(client, admin, art="premium")
+    assert "exp" not in server.lesen(_einloesen(client, immer["code"], ANDERES)["token"])
+    server.uhr.wert += 31 * 86400
+    abgelaufen = client.post("/codes/erneuern", json={"token": eingeloest["token"], "geraet": ANDERES})
+    assert abgelaufen.status_code == 403 and "abgelaufen" in abgelaufen.json()["detail"]
+    assert client.post("/codes/team/liste", json={"token": eingeloest["token"], "geraet": ANDERES}).status_code == 403
+
+
+def test_admin_codes_geben_volle_rechte_und_lassen_sich_sperren(server, client):
+    admin = _admin(client)
+    neu = _code(client, admin, name="Zweiter Admin", art="admin")
+    assert neu["code"].startswith("ADM-")
+    zweiter = _einloesen(client, neu["code"], ANDERES)
+    assert zweiter["stufe"] == "admin" and "pk" not in server.lesen(zweiter["token"])
+    erzeugt = client.post("/codes/erstellen", json={"token": zweiter["token"], "geraet": ANDERES, "art": "entwickler"})
+    assert erzeugt.status_code == 200 and len(erzeugt.json()["codes"]) == 2
+    kennung = neu["codes"][0]["id"]
+    bearbeitet = client.post("/codes/bearbeiten", json={"token": admin, "geraet": GERAET, "id": kennung, "name": "Co-Admin", "max_geraete": 5}).json()["codes"]
+    assert next(c for c in bearbeitet if c["id"] == kennung)["name"] == "Co-Admin"
+    client.post("/codes/sperren", json={"token": admin, "geraet": GERAET, "id": kennung})
+    assert client.post("/codes/liste", json={"token": zweiter["token"], "geraet": ANDERES}).status_code == 403
+    client.post("/codes/sperren", json={"token": admin, "geraet": GERAET, "id": kennung, "gesperrt": False})
+    frei = client.post("/codes/geraet-entfernen", json={"token": admin, "geraet": GERAET, "id": kennung, "entfernen": ANDERES}).json()["codes"]
+    assert next(c for c in frei if c["id"] == kennung)["geraete"] == 0
+    assert client.post("/codes/liste", json={"token": zweiter["token"], "geraet": ANDERES}).status_code == 403
+
+
+def test_team_nachrichten_ideen_und_rundschreiben(server, client, monkeypatch):
+    gemeldet = []
+    monkeypatch.setattr(server, "_melden_im_hintergrund", gemeldet.append)
+    admin = _admin(client)
+    anna_code = _code(client, admin, name="Anna")
+    anna = _einloesen(client, anna_code["code"], ANDERES)["token"]
+    ben = _einloesen(client, _code(client, admin, name="Ben")["code"], DRITTES)["token"]
+    privat = client.post("/codes/team/senden", json={"token": anna, "geraet": ANDERES, "art": "idee", "text": "Dunkelmodus für MiniJon"}).json()
+    idee = privat["nachrichten"][-1]
+    assert idee["art"] == "idee" and idee["status"] == "neu" and idee["von"]["name"] == "Anna"
+    assert any("Dunkelmodus" in g for g in gemeldet)
+    assert client.post("/codes/team/liste", json={"token": ben, "geraet": DRITTES}).json()["nachrichten"] == []
+    client.post("/codes/team/senden", json={"token": anna, "geraet": ANDERES, "art": "nachricht", "text": "Hallo Team", "an": "team"})
+    assert [n["text"] for n in client.post("/codes/team/liste", json={"token": ben, "geraet": DRITTES}).json()["nachrichten"]] == ["Hallo Team"]
+    assert client.post("/codes/team/senden", json={"token": ben, "geraet": DRITTES, "art": "rundschreiben", "text": "x"}).status_code == 403
+    adminsicht = client.post("/codes/team/liste", json={"token": admin, "geraet": GERAET}).json()
+    assert adminsicht["ungelesen"] == 2 and {m["name"] for m in adminsicht["mitglieder"]} == {"Anna", "Ben"}
+    client.post("/codes/team/senden", json={"token": admin, "geraet": GERAET, "art": "rundschreiben", "text": "Bitte 4.61 testen"})
+    client.post("/codes/team/senden", json={"token": admin, "geraet": GERAET, "art": "nachricht", "text": "Danke Anna", "an": anna_code["codes"][0]["id"], "antwort_auf": idee["id"]})
+    bensicht = client.post("/codes/team/liste", json={"token": ben, "geraet": DRITTES}).json()
+    assert [n["text"] for n in bensicht["nachrichten"]] == ["Hallo Team", "Bitte 4.61 testen"] and bensicht["ungelesen"] == 2
+    annasicht = client.post("/codes/team/liste", json={"token": anna, "geraet": ANDERES}).json()
+    assert "Danke Anna" in [n["text"] for n in annasicht["nachrichten"]]
+    gestimmt = client.post("/codes/team/stimme", json={"token": anna, "geraet": ANDERES, "id": idee["id"]}).json()
+    assert next(n for n in gestimmt["nachrichten"] if n["id"] == idee["id"])["stimmen"] == 1
+    assert client.post("/codes/team/status", json={"token": anna, "geraet": ANDERES, "id": idee["id"], "status": "geplant"}).status_code == 403
+    geplant = client.post("/codes/team/status", json={"token": admin, "geraet": GERAET, "id": idee["id"], "status": "geplant"}).json()
+    assert next(n for n in geplant["nachrichten"] if n["id"] == idee["id"])["status"] == "geplant"
+    assert client.post("/codes/team/gelesen", json={"token": admin, "geraet": GERAET}).json() == {"ungelesen": 0}
+    assert client.post("/codes/team/ungelesen", json={"token": admin, "geraet": GERAET}).json()["ungelesen"] == 0
+
+
+def test_fehlerbericht_mit_bild_und_schalter(server, client, monkeypatch):
+    monkeypatch.setattr(server, "_melden_im_hintergrund", lambda text: None)
+    admin = _admin(client)
+    tester = _einloesen(client, _code(client, admin, name="Tester")["code"], ANDERES)["token"]
+    bild = "data:image/jpeg;base64," + "A" * 100
+    antwort = client.post("/codes/team/senden", json={"token": tester, "geraet": ANDERES, "art": "fehler", "text": "Absturz", "anhang": {"system": "Jon 4.60", "log": "Zeile", "bild": bild}}).json()
+    nachricht = antwort["nachrichten"][-1]
+    assert nachricht["anhang"] == {"system": "Jon 4.60", "log": "Zeile", "bild": True}
+    assert client.post("/codes/team/anhang", json={"token": admin, "geraet": GERAET, "id": nachricht["id"]}).json()["bild"] == bild
+    client.post("/codes/flags/setzen", json={"token": admin, "geraet": GERAET, "schluessel": "fehlerbericht", "an": False})
+    gesperrt = client.post("/codes/team/senden", json={"token": tester, "geraet": ANDERES, "art": "fehler", "text": "x", "anhang": {"log": "y"}})
+    assert gesperrt.status_code == 403 and "ausgeschaltet" in gesperrt.json()["detail"]
+    zu_gross = client.post("/codes/team/senden", json={"token": admin, "geraet": GERAET, "art": "fehler", "text": "x", "anhang": {"bild": "data:image/png;base64," + "A" * 1_300_000}})
+    assert zu_gross.status_code == 413
+
+
+def test_beta_schalter_fuer_alle_oder_auswahl(server, client):
+    admin = _admin(client)
+    anna_code = _code(client, admin, name="Anna")
+    anna = _einloesen(client, anna_code["code"], ANDERES)["token"]
+    ben = _einloesen(client, _code(client, admin, name="Ben")["code"], DRITTES)["token"]
+    assert client.post("/codes/erneuern", json={"token": anna, "geraet": ANDERES}).json()["flags"]["skills"] is True
+    client.post("/codes/flags/setzen", json={"token": admin, "geraet": GERAET, "schluessel": "skills", "fuer": "auswahl", "codes": [anna_code["codes"][0]["id"]]})
+    assert client.post("/codes/skills/liste", json={"token": anna, "geraet": ANDERES}).status_code == 200
+    assert client.post("/codes/skills/liste", json={"token": ben, "geraet": DRITTES}).status_code == 403
+    eigen = client.post("/codes/flags/setzen", json={"token": admin, "geraet": GERAET, "schluessel": "neues_menue", "name": "Neues Menü", "an": True}).json()["flags"]
+    assert eigen["neues_menue"]["eigen"] and eigen["neues_menue"]["name"] == "Neues Menü"
+    assert client.post("/codes/erneuern", json={"token": ben, "geraet": DRITTES}).json()["flags"] == {"neues_menue": True, "beta": True, "inspektor": True, "modell": True, "skills": False, "fehlerbericht": True}
+    assert client.post("/codes/flags/setzen", json={"token": admin, "geraet": GERAET, "schluessel": "beta", "loeschen": True}).status_code == 400
+    assert client.post("/codes/flags/setzen", json={"token": ben, "geraet": DRITTES, "schluessel": "beta", "an": False}).status_code == 403
+
+
+def test_statistik_aus_berichten(server, client):
+    admin = _admin(client)
+    anna = _einloesen(client, _code(client, admin, name="Anna")["code"], ANDERES)["token"]
+    bericht = {"version": "4.60.1", "system": "Windows 11", "nutzung": {"anfragen": 12, "tokens": 3400, "fehler": 1, "modelle": {"nvidia/nemotron": 12}, "werkzeuge": {"web_search": 4}, "anbieter": {"nvidia": 12}}}
+    client.post("/codes/erneuern", json={"token": anna, "geraet": ANDERES, "bericht": bericht})
+    client.post("/codes/erneuern", json={"token": admin, "geraet": GERAET, "bericht": {**bericht, "nutzung": {"anfragen": 3}}})
+    statistik = client.post("/codes/statistik", json={"token": admin, "geraet": GERAET}).json()
+    assert statistik["summe"]["anfragen"] == 15 and statistik["summe"]["werkzeuge"] == [["web_search", 4]]
+    anna_geraet = next(g for g in statistik["geraete"] if g["geraet"] == ANDERES)
+    assert anna_geraet["name"] == "Anna" and anna_geraet["version"] == "4.60.1" and anna_geraet["system"] == "Windows 11"
+    liste = client.post("/codes/liste", json={"token": admin, "geraet": GERAET}).json()["codes"]
+    assert liste[0]["geraete_liste"][0]["version"] == "4.60.1"
+    assert client.post("/codes/statistik", json={"token": anna, "geraet": ANDERES}).status_code == 403
+
+
+def test_skills_teilen_holen_und_entfernen(server, client, monkeypatch):
+    monkeypatch.setattr(server, "_melden_im_hintergrund", lambda text: None)
+    admin = _admin(client)
+    anna = _einloesen(client, _code(client, admin, name="Anna")["code"], ANDERES)["token"]
+    ben = _einloesen(client, _code(client, admin, name="Ben")["code"], DRITTES)["token"]
+    geteilt = client.post("/codes/skills/teilen", json={"token": anna, "geraet": ANDERES, "name": "rezepte", "titel": "Rezepte", "inhalt": "# Rezepte\nKoche gut."}).json()["skills"]
+    assert geteilt[0]["name"] == "rezepte" and "inhalt" not in geteilt[0] and geteilt[0]["autor"]["name"] == "Anna"
+    assert client.post("/codes/skills/teilen", json={"token": ben, "geraet": DRITTES, "name": "rezepte", "inhalt": "x"}).status_code == 409
+    geholt = client.post("/codes/skills/holen", json={"token": ben, "geraet": DRITTES, "id": geteilt[0]["id"]}).json()
+    assert geholt["inhalt"].startswith("# Rezepte") and geholt["downloads"] == 1
+    assert client.post("/codes/skills/teilen", json={"token": anna, "geraet": ANDERES, "name": "Böse Name", "inhalt": "x"}).status_code == 400
+    assert client.post("/codes/skills/entfernen", json={"token": ben, "geraet": DRITTES, "id": geteilt[0]["id"]}).status_code == 404
+    assert client.post("/codes/skills/entfernen", json={"token": anna, "geraet": ANDERES, "id": geteilt[0]["id"]}).json()["skills"] == []
+
+
+def test_felworks_modellzugang_mit_kontingent(server, client):
+    import httpx
+
+    gesehen = []
+
+    def nvidia(anfrage: httpx.Request) -> httpx.Response:
+        gesehen.append((str(anfrage.url), anfrage.headers.get("authorization")))
+        if anfrage.url.path.endswith("/models"):
+            return httpx.Response(200, json={"data": [{"id": "nvidia/nemotron-3-ultra-550b-a55b"}]})
+        if json.loads(anfrage.content).get("stream"):
+            return httpx.Response(200, content=b'data: {"choices":[{"delta":{"content":"Hi"}}]}\n\ndata: [DONE]\n\n', headers={"content-type": "text/event-stream"})
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "Hallo"}}]})
+
+    server.llm_transport = httpx.MockTransport(nvidia)
+    server.llm_schluessel, server.llm_basis = "nvapi-geheim", "https://nvidia.example/v1"
+    admin = _admin(client)
+    anna = _einloesen(client, _code(client, admin, name="Anna")["code"], ANDERES)["token"]
+    kopf = {"Authorization": f"Bearer {anna}"}
+    assert client.get("/codes/llm/v1/models").status_code == 401
+    assert client.get("/codes/llm/v1/models", headers=kopf).json()["data"][0]["id"] == "nvidia/nemotron-3-ultra-550b-a55b"
+    antwort = client.post("/codes/llm/v1/chat/completions", headers=kopf, json={"model": "nvidia/nemotron-3-ultra-550b-a55b", "messages": [{"role": "user", "content": "Hi"}]})
+    assert antwort.json()["choices"][0]["message"]["content"] == "Hallo"
+    assert gesehen[-1] == ("https://nvidia.example/v1/chat/completions", "Bearer nvapi-geheim")
+    strom = client.post("/codes/llm/v1/chat/completions", headers=kopf, json={"model": "x", "stream": True, "messages": [{"role": "user", "content": "Hi"}]})
+    assert "Hi" in strom.text and "[DONE]" in strom.text
+    client.post("/codes/llm/kontingent", json={"token": admin, "geraet": GERAET, "wert": 2})
+    voll = client.post("/codes/llm/v1/chat/completions", headers=kopf, json={"model": "x", "messages": [{"role": "user", "content": "Hi"}]})
+    assert voll.status_code == 429 and "Tageskontingent" in voll.json()["detail"]
+    for _ in range(3):
+        assert client.post("/codes/llm/v1/chat/completions", headers={"Authorization": f"Bearer {admin}"}, json={"model": "x", "messages": [{"role": "user", "content": "Hi"}]}).status_code == 200
+    assert client.post("/codes/statistik", json={"token": admin, "geraet": GERAET}).json()["felworks"] == {"kontingent": 2, "heute": 5, "gesamt": 5}
+    client.post("/codes/flags/setzen", json={"token": admin, "geraet": GERAET, "schluessel": "modell", "an": False})
+    assert client.get("/codes/llm/v1/models", headers=kopf).status_code == 403
+
+
+def test_pi_steuerzentrale_nur_fuer_admins(server, client, monkeypatch):
+    befehle = []
+
+    def befehl(argumente, zeit=30):
+        befehle.append(argumente)
+        if argumente[:2] == ["systemctl", "show"]:
+            return 0, "4242"
+        if "is-active" in argumente:
+            return 0, "active"
+        return 0, "ok"
+
+    server.befehl = befehl
+    getoetet = []
+    monkeypatch.setattr(codeserver.os, "kill", lambda pid, sig: getoetet.append(pid))
+    admin = _admin(client)
+    anna = _einloesen(client, _code(client, admin, name="Anna")["code"], ANDERES)["token"]
+    assert client.post("/codes/pi/status", json={"token": anna, "geraet": ANDERES}).status_code == 403
+    stand = client.post("/codes/pi/status", json={"token": admin, "geraet": GERAET}).json()
+    assert stand["dienste"] == {"jon": "active", "jon-codes": "active", "jon-demo": "active"} and stand["version"]
+    assert client.post("/codes/pi/neustart", json={"token": admin, "geraet": GERAET, "dienst": "jon-demo"}).json()["ok"]
+    assert ["systemctl", "--user", "restart", "jon-demo"] in befehle
+    assert client.post("/codes/pi/neustart", json={"token": admin, "geraet": GERAET, "dienst": "jon"}).json()["ok"] and getoetet == [4242]
+    assert client.post("/codes/pi/neustart", json={"token": admin, "geraet": GERAET, "dienst": "rm -rf"}).status_code == 422
+    assert client.post("/codes/pi/aktualisieren", json={"token": admin, "geraet": GERAET}).json()["ok"]
+    assert any(a[:1] == ["git"] and "pull" in a for a in befehle)
+    assert "log" in client.post("/codes/pi/log", json={"token": admin, "geraet": GERAET, "dienst": "jon-demo"}).json()
+
+
+def test_jon_team_zentrale_flags_beta_fehlerbericht_und_skills(jon, server, client, monkeypatch):
+    monkeypatch.setattr(server, "_melden_im_hintergrund", lambda text: None)
+
+    async def codeserver_rufen(name, daten):
+        antwort = client.post("/codes/" + name, json=daten)
+        if antwort.status_code >= 400:
+            raise (Abgelehnt if antwort.status_code in {401, 403} else ValueError)(antwort.json()["detail"])
+        return antwort.json()
+
+    jon.codeserver = codeserver_rufen
+    import app.core.logbook as logbuch
+    from app.services import skill_service
+
+    monkeypatch.setattr(logbuch, "export_text", lambda: "start\nNVIDIA_API_KEY=nvapi-abcdefghijklmnop\nAuthorization: Bearer xyz\nende")
+    monkeypatch.setattr(jon, "systembericht", lambda: "Jon 4.60.1 · Entwickler")
+    geschrieben = {}
+    monkeypatch.setattr(skill_service.SkillService, "__init__", lambda self: None)
+    monkeypatch.setattr(skill_service.SkillService, "write", lambda self, name, inhalt: geschrieben.update({name: inhalt}) or {"name": name, "title": "Notizen", "chars": len(inhalt)})
+
+    async def ablauf():
+        assert jon.felworks_schluessel() is None and jon.flags() == {} and not jon.status()["team"]
+        with pytest.raises(ValueError, match="Entwickler und Admins"):
+            await jon.team("team/liste")
+        await jon.admin(ADMIN)
+        assert jon.status()["team"] and jon.status()["haupt"] and jon.flag("modell")
+        neu = await jon.team("erstellen", {"name": "Lena", "art": "entwickler"})
+        with pytest.raises(ValueError, match="Unbekannte Aktion"):
+            await jon.team("pi/boese")
+        jon.abmelden()
+        await jon.eingeben(neu["code"])
+        await jon.erneuern()
+        status = jon.status()
+        assert status["stufe"] == "entwickler" and status["team"] and not status["haupt"] and status["flags"]["inspektor"]
+        assert jon.felworks_schluessel() == jon.token()
+        assert not jon.beta_aktiv()
+        jon.beta_setzen(True)
+        assert jon.beta_aktiv() and jon.status()["beta"]
+        gesendet = await jon.fehlerbericht("Absturz beim Speichern")
+        bericht = gesendet["nachrichten"][-1]
+        assert bericht["art"] == "fehler" and "nvapi-" not in bericht["anhang"]["log"] and "xyz" not in bericht["anhang"]["log"] and "[entfernt]" in bericht["anhang"]["log"]
+        await jon.team("skills/teilen", {"name": "notizen", "titel": "Notizen", "inhalt": "# Notizen"})
+        skills = (await jon.team("skills/liste"))["skills"]
+        installiert = await jon.skill_installieren(skills[0]["id"])
+        assert installiert["titel"] == "Notizen" and geschrieben == {"notizen": "# Notizen"}
+
+    asyncio.run(ablauf())
+
+
+def test_premium_code_schaltet_in_jon_premium_frei_aber_kein_team(jon, server, client):
+    admin = client.post("/codes/einloesen", json={"code": ADMIN, "geraet": GERAET}).json()["token"]
+    code = client.post("/codes/erstellen", json={"token": admin, "geraet": GERAET, "art": "premium", "tage": 7}).json()["code"]
+    token = client.post("/codes/einloesen", json={"code": code, "geraet": jon.geraet()}).json()["token"]
+    status = jon.speichern(token)
+    assert status["stufe"] == "premium" and status["gueltig_bis"] > 0 and not status["team"] and not status["abo"]
+    assert jon.premium() and not jon.flag("inspektor") and jon.felworks_schluessel() is None
+
+
+def test_inspektor_misst_anfragen_und_werkzeuge():
+    from app.providers.base import ChatMessage, ChatRequest, StreamChunk
+    from app.services.inspektor import Inspektor
+
+    inspektor = Inspektor()
+
+    async def strom(anfrage, ausfuehren=None):
+        yield StreamChunk(delta="denke", kind="reasoning")
+        yield StreamChunk(kind="tool", name="web_search", args={})
+        yield StreamChunk(kind="tool_result", name="web_search", ok=True, result="x")
+        yield StreamChunk(delta="Antwort", kind="content")
+        yield StreamChunk(kind="usage", prompt_tokens=120, completion_tokens=30)
+
+    gemessen = inspektor.umhuellen("nvidia", strom)
+
+    async def ablauf():
+        teile = [t async for t in gemessen(ChatRequest(messages=[ChatMessage(role="user", content="Wetter?")], model="m1", tools=[{}, {}]))]
+        assert len(teile) == 5
+
+    asyncio.run(ablauf())
+    eintrag = inspektor.liste()[0]
+    assert eintrag["anbieter"] == "nvidia" and eintrag["modell"] == "m1" and eintrag["frage"] == "Wetter?" and eintrag["antwort"] == "Antwort"
+    assert eintrag["werkzeuge"] == [{"name": "web_search", "ok": True}] and eintrag["prompt_tokens"] == 120 and eintrag["werkzeuge_angeboten"] == 2 and not eintrag["laeuft"]
+    nutzung = inspektor.nutzung()
+    assert nutzung["anfragen"] == 1 and nutzung["tokens"] == 150 and nutzung["werkzeuge"] == {"web_search": 1}
+
+
+def test_beta_kanal_nimmt_die_hoechste_version_mit_vorabversionen(monkeypatch):
+    from app.services import update_service
+
+    liste = [{"tag_name": "v4.60.1", "prerelease": False, "draft": False, "assets": []}, {"tag_name": "v4.61.1", "prerelease": True, "draft": False, "assets": [{"name": "Jon-Setup.exe", "browser_download_url": "https://x/setup.exe", "size": 5}]}, {"tag_name": "v4.62.1", "prerelease": True, "draft": True, "assets": []}]
+    monkeypatch.setattr(update_service, "_fetch", lambda url, timeout=10.0: json.dumps(liste if "per_page" in url else liste[0]).encode())
+    monkeypatch.setattr(update_service, "_beta", lambda: True)
+    assert update_service._release()["version"] == "4.61.1" and update_service._release()["beta"] is True
+    monkeypatch.setattr(update_service, "_beta", lambda: False)
+    assert update_service._release()["version"] == "4.60.1"

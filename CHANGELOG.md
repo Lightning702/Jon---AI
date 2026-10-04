@@ -2,6 +2,22 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.61.1] — 2026-10-04
+
+### 👥 Team-Zentrale für Admin und Entwickler
+
+- **Codes für alles:** Als Admin wählst du beim Erzeugen, was ein Code freischaltet: **Entwickler**, **Premium** (7 Tage, 30 Tage, 3 Monate, 1 Jahr oder für immer) oder **Admin** mit vollen Rechten. Codes lassen sich umbenennen, umstellen, sperren, und einzelne Geräte kannst du entfernen, damit der Platz frei wird.
+- **Team-Chat:** Entwickler schreiben dir direkt Ideen, Fehler und Nachrichten, wahlweise nur an dich oder ans ganze Team. Du antwortest einzeln oder schickst Rundschreiben an alle. Ideen bekommen Stimmen und einen Status von „Neu“ bis „Fertig“. Neue Nachrichten zeigt das Abzeichen oben links, und dein Pi meldet sie dir per Telegram.
+- **Fehler mit einem Klick:** Entwickler schicken dir Version, System, die letzten Protokollzeilen ohne Passwörter und Schlüssel und auf Wunsch ein Bildschirmfoto.
+- **Geräte & Nutzung:** Welche Geräte im Team sind, mit Jon-Version, System und letzter Aktivität, dazu die Modellanfragen, Tokens, beliebtesten Modelle und Werkzeuge.
+- **Beta-Schalter:** Funktionen für alle Entwickler oder nur für ausgewählte freischalten, eigene Schalter für neue Funktionen anlegen.
+- **Pi-Steuerung:** Jon, Codeserver und Website-Demo auf dem Pi sehen, neu starten, Protokolle lesen, RAM, Platte und Temperatur prüfen und den Pi direkt aus GitHub aktualisieren, ohne SSH.
+- **Modellzugang über FelWorks:** Entwickler nutzen Cloud-Modelle über deinen NVIDIA-Zugang auf dem Pi, ohne eigenen Schlüssel. Du legst das Tageskontingent pro Gerät fest. Im Chat heißt der Anbieter „FelWorks · über den Pi“.
+- **Skills teilen:** Eigene Skills mit dem Team teilen und Skills anderer mit einem Klick installieren.
+- **Jon-Inspektor:** Jede Modellanfrage mit Anbieter, Modell, Dauer, erstem Token, Tokens, Werkzeugen und Fehlern ansehen.
+- **Beta-Kanal:** Entwickler bekommen Vorabversionen von GitHub früher als alle anderen, wenn sie es einschalten.
+- **Standard bleibt, wie es war.**
+
 ## [4.60.1] — 2026-10-04
 
 ### 🎙️ Sprechen statt tippen

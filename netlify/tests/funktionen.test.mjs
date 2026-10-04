@@ -179,7 +179,13 @@ test("Admin- und Entwickler-Lizenzen vom Codeserver auf dem Pi gelten für die C
   await sicherung({aktion: "hochladen", token: adminToken, geraet: GERAET, daten: "admin"}, speicher);
   assert.ok(blobs.has("admin-0123456789abcdef"));
   assert.equal(lesen(entwickler).stufe, "entwickler");
-  await fehlschlag(Promise.resolve().then(() => lesen(vomCodeserver({stufe: "premium", geraete: [GERAET]}))), 400);
+  const premiumCode = vomCodeserver({stufe: "premium", geraete: [GERAET], code: "fedcbafedcba", exp: Math.floor(Date.now() / 1000) + 3600});
+  await sicherung({aktion: "hochladen", token: premiumCode, geraet: GERAET, daten: "premium"}, speicher);
+  assert.ok(blobs.has("code-fedcbafedcba"));
+  const zweiterAdmin = vomCodeserver({stufe: "admin", geraete: [GERAET], code: "abcabcabcabc"});
+  await sicherung({aktion: "hochladen", token: zweiterAdmin, geraet: GERAET, daten: "co-admin"}, speicher);
+  assert.ok(blobs.has("code-abcabcabcabc"));
+  await fehlschlag(Promise.resolve().then(() => lesen(vomCodeserver({stufe: "superadmin", geraete: [GERAET]}))), 400);
   await fehlschlag(Promise.resolve().then(() => lesen(vomCodeserver({stufe: "admin", geraete: [GERAET]}, privateKey))), 403);
   await fehlschlag(lizenz({aktion: "erneuern", token: entwickler, geraet: GERAET}), 400, "Codeserver");
 });

@@ -9,12 +9,26 @@ from app.providers.ollama_provider import OllamaProvider
 from app.providers.openai_compatible import OpenAICompatibleProvider
 
 
+def felworks_zugang(slot: str = "jon") -> str | None:
+    from app.services.premium import get_premium
+
+    return get_premium().felworks_schluessel()
+
+
 class ProviderRegistry:
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
         self._keys = KeyManager(self._settings)
         self._providers: dict[str, LLMProvider] = {}
         self._build()
+        self._messen()
+
+    def _messen(self) -> None:
+        from app.services.inspektor import get_inspektor
+
+        inspektor = get_inspektor()
+        for name, provider in self._providers.items():
+            provider.stream = inspektor.umhuellen(name, provider.stream)
 
     def _resolver(self, provider: str):
         return lambda slot="jon": self._keys.key_for(provider, slot)
@@ -117,6 +131,18 @@ class ProviderRegistry:
             base_url=s.xai_base_url,
             key_resolver=self._resolver("xai"),
             default_models=["grok-2-latest", "grok-2-vision-latest"],
+            timeout=t,
+        )
+        self._providers["felworks"] = OpenAICompatibleProvider(
+            name="felworks",
+            base_url=f"{s.jon_codes_url.rstrip('/')}/llm/v1",
+            key_resolver=felworks_zugang,
+            default_models=[
+                "nvidia/nemotron-3-ultra-550b-a55b",
+                "nvidia/nemotron-3-super-120b-a12b",
+                "nvidia/nemotron-3.5-lightning-30b-a3b",
+                "mistralai/mistral-nemotron",
+            ],
             timeout=t,
         )
         self._providers["anthropic"] = AnthropicProvider(

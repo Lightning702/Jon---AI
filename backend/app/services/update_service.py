@@ -45,9 +45,26 @@ def _fetch(url: str, timeout: float = 10.0) -> bytes:
         return response.read()
 
 
+def _beta() -> bool:
+    try:
+        from app.services.premium import get_premium
+
+        return get_premium().beta_aktiv()
+    except Exception:
+        return False
+
+
+def _neueste_mit_beta() -> dict:
+    liste = json.loads(_fetch(RELEASES_API.rsplit("/", 1)[0] + "?per_page=15").decode("utf-8", errors="replace"))
+    kandidaten = [r for r in liste if isinstance(r, dict) and not r.get("draft") and r.get("tag_name")]
+    if not kandidaten:
+        return {}
+    return max(kandidaten, key=lambda r: _parse(str(r.get("tag_name", "")).lstrip("vV")))
+
+
 def _release() -> dict:
     try:
-        raw = json.loads(_fetch(RELEASES_API).decode("utf-8", errors="replace"))
+        raw = _neueste_mit_beta() if _beta() else json.loads(_fetch(RELEASES_API).decode("utf-8", errors="replace"))
     except Exception:
         return {}
     tag = str(raw.get("tag_name") or "").lstrip("vV")
@@ -62,9 +79,10 @@ def _release() -> dict:
             checksum = str(entry.get("browser_download_url", ""))
             break
     if asset is None:
-        return {"version": tag}
+        return {"version": tag, "beta": bool(raw.get("prerelease"))}
     return {
         "version": tag,
+        "beta": bool(raw.get("prerelease")),
         "installer_url": asset.get("browser_download_url", ""),
         "installer_size": int(asset.get("size") or 0),
         "checksum_url": checksum,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.premium import Abgelehnt, PremiumNoetig, get_premium
+from app.services.premium import TEAM_AKTIONEN, Abgelehnt, PremiumNoetig, get_premium
 
 router = APIRouter(prefix="/api")
 
@@ -26,7 +26,22 @@ class Code(BaseModel):
 
 class NeuerCode(BaseModel):
     name: str = Field(default="", max_length=60)
-    geraete: int = Field(default=3, ge=1, le=20)
+    geraete: int = Field(default=3, ge=1, le=50)
+    art: str = Field(default="entwickler", pattern="^(entwickler|premium|admin)$")
+    tage: int = Field(default=0, ge=0, le=3650)
+
+
+class Fehlerbericht(BaseModel):
+    text: str = Field(default="", max_length=8000)
+    bild: bool = False
+
+
+class Beta(BaseModel):
+    an: bool
+
+
+class SkillHolen(BaseModel):
+    id: str = Field(pattern="^[a-f0-9]{12}$")
 
 
 class Sperren(BaseModel):
@@ -84,7 +99,51 @@ async def codes() -> dict:
 
 @router.post("/premium/codes")
 async def code_erstellen(daten: NeuerCode) -> dict:
-    return await ausfuehren(get_premium().code_erstellen(daten.name, daten.geraete))
+    return await ausfuehren(get_premium().code_erstellen(daten.name, daten.geraete, daten.art, daten.tage))
+
+
+@router.post("/premium/team/{aktion:path}")
+async def team(aktion: str, daten: dict) -> dict:
+    if aktion not in TEAM_AKTIONEN:
+        raise HTTPException(404, "Unbekannte Aktion.")
+    return await ausfuehren(get_premium().team(aktion, daten))
+
+
+@router.post("/premium/fehlerbericht")
+async def fehlerbericht(daten: Fehlerbericht) -> dict:
+    return await ausfuehren(get_premium().fehlerbericht(daten.text, daten.bild))
+
+
+@router.post("/premium/skill-installieren")
+async def skill_installieren(daten: SkillHolen) -> dict:
+    return await ausfuehren(get_premium().skill_installieren(daten.id))
+
+
+@router.post("/premium/beta")
+async def beta(daten: Beta) -> dict:
+    try:
+        return get_premium().beta_setzen(daten.an)
+    except ValueError as exc:
+        raise HTTPException(403, str(exc))
+
+
+@router.get("/inspektor")
+async def inspektor() -> dict:
+    from app.services.inspektor import get_inspektor
+
+    if not get_premium().flag("inspektor"):
+        raise HTTPException(403, "Der Jon-Inspektor ist für Entwickler und Admins.")
+    return {"eintraege": get_inspektor().liste(), "nutzung": get_inspektor().nutzung()}
+
+
+@router.post("/inspektor/leeren")
+async def inspektor_leeren() -> dict:
+    from app.services.inspektor import get_inspektor
+
+    if not get_premium().flag("inspektor"):
+        raise HTTPException(403, "Der Jon-Inspektor ist für Entwickler und Admins.")
+    get_inspektor().leeren()
+    return {"eintraege": []}
 
 
 @router.post("/premium/codes/sperren")

@@ -9,7 +9,9 @@ Jon gibt es in vier Stufen. Welche aktiv ist, steht in der Desktop-App oben link
 | Standard | Kostenlos. Chat mit eigenen Modellen, Werkzeuge, Gedächtnis, Kalender, Erinnerungen, Beobachten, MiniJon in der Grundform, Blockwelt. Harness 3 Aufträge und Fachteam 1 Lauf pro Tag. |
 | Premium | Abo über Stripe, 6,99 € im Monat oder 59,99 € im Jahr inkl. MwSt. Alles unten ist freigeschaltet, ohne Tageslimit. |
 | Admin | Für FelWorks. Alles unbegrenzt. Nur mit dem Admin-Code des FelWorks-Codeservers auf dem Pi erhältlich und an ein Gerät gebunden. Erzeugt und sperrt Entwickler-Codes. |
-| Entwickler | Alles unbegrenzt wie Admin, aber ohne Codes zu erzeugen. Nur mit einem Entwickler-Code vom Admin. Siehe `docs/CODES-PI.md`. |
+| Entwickler | Alles unbegrenzt wie Admin, dazu die Team-Zentrale, aber ohne Codes zu erzeugen. Nur mit einem Entwickler-Code vom Admin. Siehe `docs/CODES-PI.md`. |
+
+Premium gibt es außerdem als Premium-Code vom Admin, mit Laufzeit oder für immer.
 
 ## Premium-Funktionen
 
