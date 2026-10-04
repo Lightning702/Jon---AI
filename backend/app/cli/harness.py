@@ -18,7 +18,7 @@ from app.services.harness.service import TERMINAL
 
 
 class HarnessTerminal:
-    def __init__(self, root: Path, provider: str = "", model: str = "", max_steps: int = 40) -> None:
+    def __init__(self, root: Path, provider: str = "", model: str = "", max_steps: int = 80) -> None:
         self.root = root.resolve(strict=True)
         self.provider, self.model, self.max_steps = provider, model, max_steps
         self.stift = Stift()
@@ -138,7 +138,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("-C", "--cwd", default=str(Path.cwd()))
     parser.add_argument("--provider", default="")
     parser.add_argument("--model", default="")
-    parser.add_argument("--max-steps", type=int, choices=range(1, 101), default=40, metavar="1..100")
+    parser.add_argument("--max-steps", type=int, choices=range(1, 201), default=80, metavar="1..200")
     args = parser.parse_args(argv)
     from app.db.database import init_db
 

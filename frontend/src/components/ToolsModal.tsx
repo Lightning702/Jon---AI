@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AudioLines, BookOpen, ChevronRight, Code2, Eye, LifeBuoy, Search, Users, Wrench, X } from "lucide-react";
 import { SkillKurz, Werkzeug, WerkzeugGruppe, werkzeuge } from "../lib/api";
 import GeraetePanel from "./GeraetePanel";
 import HandyModal from "./HandyModal";
@@ -6,13 +7,15 @@ import HarnessPanel from "./HarnessPanel";
 import AgentTeam from "./AgentTeam";
 import BeobachtenPanel from "./BeobachtenPanel";
 import SupportPanel from "./SupportPanel";
+import MediaPanel from "./MediaPanel";
 import "./beobachten.css";
+import "./werkzeuge.css";
 import {harnessRequest} from "../lib/harness";
 
 const STUFENFARBE: Record<string, string> = {
-  standard: "bg-emerald-500/15 text-emerald-200",
-  persoenlich: "bg-sky-500/15 text-sky-200",
-  sensibel: "bg-amber-500/15 text-amber-200",
+  standard: "wz-marke-gruen",
+  persoenlich: "wz-marke-blau",
+  sensibel: "wz-marke-gelb",
 };
 
 const STUFENTEXT: Record<string, string> = {
@@ -21,10 +24,17 @@ const STUFENTEXT: Record<string, string> = {
   sensibel: "Sensibel",
 };
 
+const SPEZIAL = [
+  { id: "harness", name: "Jon Harness", text: "Coding-Agent", icon: Code2, suche: /harness|agent|minijon|mitarbeiten|coden|coding/ },
+  { id: "agents", name: "Jon Fachteam", text: "Fachagenten", icon: Users, suche: /team|agent|latein|lernen|fach|planung/ },
+  { id: "medien", name: "Stimmen & Transkripte", text: "Audio, YouTube, Vorlesen", icon: AudioLines, suche: /stimme|transkri|audio|youtube|vorlesen|mp3|podcast|untertitel/ },
+  { id: "beobachten", name: "Beobachten", text: "Jon meldet sich", icon: Eye, suche: /beobacht|erinner|bescheid|release|rauskommt/ },
+  { id: "support", name: "Support", text: "Fehler & Ideen", icon: LifeBuoy, suche: /support|hilfe|fehler|problem|vorschlag|kontakt|mail/ },
+] as const;
+const SPEZIAL_IDS: string[] = SPEZIAL.map(s => s.id);
+
 function Marke({ text, ton }: { text: string; ton: string }) {
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] ${ton}`}>{text}</span>
-  );
+  return <span className={"wz-marke " + ton}>{text}</span>;
 }
 
 export default function ToolsModal({
@@ -51,7 +61,7 @@ export default function ToolsModal({
         setGruppen(daten.gruppen);
         setSkills(daten.skills ?? []);
         const gewuenscht = start ?? "handy";
-        if (!["harness", "agents", "beobachten", "support"].includes(gewuenscht) && !daten.gruppen.some((g) => g.id === gewuenscht)) {
+        if (!SPEZIAL_IDS.includes(gewuenscht) && !daten.gruppen.some((g) => g.id === gewuenscht)) {
           setAktiv(daten.gruppen[0]?.id ?? "");
         }
       } catch (e) {
@@ -61,6 +71,12 @@ export default function ToolsModal({
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const taste = (e: KeyboardEvent) => {if (e.key === "Escape" && !kopplung) onClose();};
+    window.addEventListener("keydown", taste);
+    return () => window.removeEventListener("keydown", taste);
+  }, [onClose, kopplung]);
 
   const treffer = useMemo<Werkzeug[]>(() => {
     const text = suche.trim().toLowerCase();
@@ -87,151 +103,121 @@ export default function ToolsModal({
     "game-design": "dateien",
   };
   const gruppenSkill = skills.find((s) => SKILL_ZU_GRUPPE[s.name] === aktiv);
-  const liste = suche.trim() ? treffer : (gruppe?.werkzeuge ?? []);
+  const sucht = !!suche.trim();
+  const spezial = !sucht && SPEZIAL_IDS.includes(aktiv);
+  const liste = sucht ? treffer : spezial ? [] : (gruppe?.werkzeuge ?? []);
   const gesamt = gruppen.reduce((summe, g) => summe + g.anzahl, 0);
+  const vorschlaege = sucht ? SPEZIAL.filter(s => s.suche.test(suche.toLowerCase())) : [];
+  const waehlen = (id: string) => {
+    setSuche("");
+    if (id === "harness" && onHarness) onHarness();
+    else setAktiv(id);
+  };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70">
-      <div className="werkzeug-fenster rounded-2xl border border-white/15 w-[720px] max-w-[94vw] h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <div>
-            <div className="text-white/90 font-semibold">🧰 Werkzeuge</div>
-            <div className="text-[11px] text-white/40">
-              {gesamt} Werkzeuge, die Jon im Chat benutzen kann
-            </div>
+    <div className="wz-schleier" onMouseDown={(e) => {if (e.target === e.currentTarget) onClose();}}>
+      <div className="werkzeug-fenster wz-fenster" role="dialog" aria-modal="true" aria-label="Werkzeuge">
+        <header className="wz-kopf">
+          <span className="wz-emblem"><Wrench size={18} /></span>
+          <div className="wz-kopf-text">
+            <h2>Werkzeuge</h2>
+            <p>{gesamt ? `${gesamt} Werkzeuge, die Jon im Chat benutzen kann` : "Alles, was Jon für dich erledigen kann"}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white/90 transition-colors"
-          >
-            ✕
-          </button>
-        </div>
+          <label className="wz-suche">
+            <Search size={14} />
+            <input
+              aria-label="Werkzeuge durchsuchen"
+              type="search"
+              value={suche}
+              onChange={(e) => setSuche(e.target.value)}
+              placeholder="Suchen … z. B. Handy, Datei, Kalender"
+            />
+          </label>
+          <button onClick={onClose} className="wz-zu" aria-label="Werkzeuge schließen"><X size={17} /></button>
+        </header>
 
-        <div className="px-5 pt-3">
-          <input
-            aria-label="Werkzeuge durchsuchen"
-            type="search"
-            value={suche}
-            onChange={(e) => setSuche(e.target.value)}
-            placeholder="Suchen … z. B. Handy, Datei, Kalender"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
-          />
-        </div>
-
-        <div className="flex-1 min-h-0 flex gap-3 px-5 py-3">
-          {!suche.trim() && (
-            <div className="werkzeug-scroll w-[190px] shrink-0 overflow-y-auto pr-1 space-y-1">
-              <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "harness" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => onHarness ? onHarness() : setAktiv("harness")}>🤖 Jon Harness</button>
-              <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "agents" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("agents")}>✦ Jon Fachteam</button>
-              <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "beobachten" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("beobachten")}>👁️ Beobachten</button>
-              <button className={"w-full rounded-lg border px-2.5 py-2 text-left text-xs " + (aktiv === "support" ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/70")} onClick={() => setAktiv("support")}>✉️ Support</button>
-              {gruppen.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => setAktiv(g.id)}
-                  className={
-                    "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border text-left transition-colors " +
-                    (g.id === aktiv
-                      ? "border-gold/40 bg-gold/10 text-gold/90"
-                      : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.07]")
-                  }
-                >
-                  <span className="text-[12px] truncate">
-                    {g.symbol} {g.name}
-                  </span>
-                  <span className="text-[10px] text-white/35">{g.anzahl}</span>
+        <div className="wz-koerper">
+          {!sucht && (
+            <nav className="werkzeug-scroll wz-nav" aria-label="Bereiche">
+              <div className="wz-nav-titel">Jon</div>
+              {SPEZIAL.map((s) => (
+                <button key={s.id} className={"wz-nav-spezial " + (aktiv === s.id ? "an" : "")} onClick={() => waehlen(s.id)}>
+                  <span className="wz-nav-icon"><s.icon size={15} /></span>
+                  <span className="wz-nav-text"><b>{s.name}</b><small>{s.text}</small></span>
                 </button>
               ))}
-            </div>
+              <div className="wz-nav-titel">Werkzeug-Gruppen</div>
+              {gruppen.map((g) => (
+                <button key={g.id} onClick={() => setAktiv(g.id)} className={"wz-nav-gruppe " + (g.id === aktiv ? "an" : "")}>
+                  <span className="wz-nav-symbol">{g.symbol}</span>
+                  <span className="wz-nav-name">{g.name}</span>
+                  <span className="wz-nav-zahl">{g.anzahl}</span>
+                </button>
+              ))}
+              {laedt && <div className="wz-nav-laedt">Lädt …</div>}
+            </nav>
           )}
 
-          <div className="werkzeug-scroll flex-1 min-w-0 overflow-y-auto space-y-2 pr-1">
-            {laedt && (
-              <div className="text-[12px] text-white/40">Wird geladen …</div>
-            )}
-            {fehler && (
-              <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-[11px] text-red-200">
-                {fehler}
+          <div className={"werkzeug-scroll wz-inhalt " + (spezial ? "wz-inhalt-spezial" : "")}>
+            {fehler && <div className="wz-fehler">{fehler}</div>}
+
+            {vorschlaege.map(s => <button key={s.id} className="wz-vorschlag" onClick={() => waehlen(s.id)}><span className="wz-nav-icon"><s.icon size={15} /></span><span><b>{s.name} öffnen</b><small>{s.text}</small></span><ChevronRight size={15} /></button>)}
+
+            {!sucht && aktiv === "harness" && <HarnessPanel />}
+            {!sucht && aktiv === "agents" && <AgentTeam request={harnessRequest}/>}
+            {!sucht && aktiv === "medien" && <MediaPanel eingebettet />}
+            {!sucht && aktiv === "beobachten" && <BeobachtenPanel/>}
+            {!sucht && aktiv === "support" && <SupportPanel/>}
+
+            {!sucht && !spezial && gruppe && (
+              <div className="wz-gruppen-kopf">
+                <span className="wz-gruppen-symbol">{gruppe.symbol}</span>
+                <div><h3>{gruppe.name}</h3><p>{gruppe.anzahl} {gruppe.anzahl === 1 ? "Werkzeug" : "Werkzeuge"}</p></div>
               </div>
             )}
 
-            {suche.trim() && /harness|agent|minijon|mitarbeiten|coden|coding/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => { setSuche(""); if (onHarness) onHarness(); else setAktiv("harness"); }}>🤖 Jon Harness öffnen · Projekte bearbeiten und mit MiniJon arbeiten</button>}
-            {!suche.trim() && aktiv === "harness" && <HarnessPanel />}
-            {suche.trim() && /team|agent|latein|lernen|fach|planung/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => {setSuche(""); setAktiv("agents");}}>✦ Jon Fachteam öffnen · Spezialisieren und gegenprüfen</button>}
-            {!suche.trim() && aktiv === "agents" && <AgentTeam request={harnessRequest}/>}
-            {suche.trim() && /beobacht|erinner|bescheid|release|rauskommt/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => {setSuche(""); setAktiv("beobachten");}}>👁️ Beobachten öffnen · Jon meldet sich, sobald etwas eintritt</button>}
-            {suche.trim() && /support|hilfe|fehler|problem|vorschlag|kontakt|mail/.test(suche.toLowerCase()) && <button className="w-full rounded-xl border border-gold/30 bg-gold/10 p-3 text-left text-sm text-gold" onClick={() => {setSuche(""); setAktiv("support");}}>✉️ Support öffnen · Probleme, Fehler und Vorschläge an FelWorks</button>}
-            {!suche.trim() && aktiv === "beobachten" && <BeobachtenPanel/>}
-            {!suche.trim() && aktiv === "support" && <SupportPanel/>}
-            {!suche.trim() && gruppenSkill && (
-              <div className="rounded-xl border border-gold/25 bg-gold/[0.06] px-3 py-2.5">
-                <div className="text-[11px] text-gold/90">
-                  📚 Skill „{gruppenSkill.title || gruppenSkill.name}"
-                </div>
-                <div className="text-[10px] text-white/50 leading-relaxed mt-0.5">
-                  Diese Anleitung liest Jon selbst, bevor er hier etwas macht. Ändern
-                  kannst du sie unter Einstellungen → Skills oder in{" "}
-                  <span className="font-mono">skills/{gruppenSkill.name}.md</span>.
+            {!sucht && !spezial && gruppenSkill && (
+              <div className="wz-skill">
+                <BookOpen size={15} />
+                <div>
+                  <b>Skill „{gruppenSkill.title || gruppenSkill.name}“</b>
+                  <p>Diese Anleitung liest Jon selbst, bevor er hier etwas macht. Ändern kannst du sie unter Einstellungen → Skills oder in <code>skills/{gruppenSkill.name}.md</code>.</p>
                 </div>
               </div>
             )}
 
-            {!suche.trim() && aktiv === "handy" && (
+            {!sucht && aktiv === "handy" && (
               <GeraetePanel onPair={() => setKopplung(true)} />
             )}
 
-            {liste.map((w) => (
-              <div
-                key={w.name}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-[11px] text-gold/80 truncate">
-                    {w.name}
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {w.stufe && (
-                      <Marke
-                        text={STUFENTEXT[w.stufe] ?? w.stufe}
-                        ton={STUFENFARBE[w.stufe] ?? "bg-white/10 text-white/50"}
-                      />
-                    )}
-                    {w.frei === false && (
-                      <Marke text="gesperrt" ton="bg-white/10 text-white/45" />
-                    )}
-                    {w.frei === true && (
-                      <Marke text="frei" ton="bg-emerald-500/15 text-emerald-200" />
-                    )}
-                    {w.ohne_rueckfrage ? (
-                      <Marke text="ohne Rückfrage" ton="bg-white/10 text-white/45" />
-                    ) : (
-                      <Marke text="fragt nach" ton="bg-white/10 text-white/45" />
-                    )}
+            {liste.length > 0 && <div className="wz-liste">
+              {liste.map((w, i) => (
+                <div key={w.name} className="wz-werkzeug" style={{ ["--i" as string]: i }}>
+                  <div className="wz-werkzeug-kopf">
+                    <code>{w.name}</code>
+                    <div className="wz-marken">
+                      {w.stufe && <Marke text={STUFENTEXT[w.stufe] ?? w.stufe} ton={STUFENFARBE[w.stufe] ?? ""} />}
+                      {w.frei === false && <Marke text="gesperrt" ton="" />}
+                      {w.frei === true && <Marke text="frei" ton="wz-marke-gruen" />}
+                      <Marke text={w.ohne_rueckfrage ? "ohne Rückfrage" : "fragt nach"} ton="" />
+                    </div>
                   </div>
+                  {w.beschreibung && <p>{w.beschreibung}</p>}
                 </div>
-                {w.beschreibung && (
-                  <div className="text-[11px] text-white/60 leading-relaxed mt-1">
-                    {w.beschreibung}
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>}
 
-            {!laedt && liste.length === 0 && aktiv !== "harness" && (
-              <div className="text-[12px] text-white/40">
-                {suche.trim()
-                  ? "Nichts gefunden."
-                  : "In dieser Gruppe ist gerade nichts frei."}
+            {!laedt && !spezial && liste.length === 0 && !vorschlaege.length && (
+              <div className="wz-leer">
+                {sucht ? "Nichts gefunden." : "In dieser Gruppe ist gerade nichts frei."}
               </div>
             )}
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-white/10 text-[11px] text-white/40">
-          „fragt nach" heißt: Jon holt sich im Chat erst deine Bestätigung, bevor
-          er das Werkzeug ausführt. „gesperrt" heißt: erst oben freigeben.
-        </div>
+        {!spezial && <footer className="wz-fuss">
+          „fragt nach“ heißt: Jon holt sich im Chat erst deine Bestätigung, bevor er das Werkzeug ausführt. „gesperrt“ heißt: erst oben freigeben.
+        </footer>}
       </div>
       {kopplung && <HandyModal onClose={() => setKopplung(false)} />}
     </div>

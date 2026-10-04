@@ -103,13 +103,18 @@ def test_kauf_admin_und_eingabe_laufen_ueber_den_lizenzserver(dienst):
             return {"offen": True} if len(aufrufe) < 3 else {"token": token({"stufe": "premium", "geraete": [daten["geraet"]], "exp": time.time() + 3600, "abo": "sub_1"})}
         if name == "lizenz" and daten["aktion"] == "geraet":
             return {"token": token({"stufe": "premium", "geraete": ["1" * 20, daten["geraet"]], "exp": time.time() + 3600, "abo": "sub_1"})}
-        if name == "admin":
-            if daten["passwort"] != "richtig":
-                raise ValueError("Falsches Admin-Passwort.")
-            return {"token": token({"stufe": "admin", "geraete": [daten["geraet"]], "exp": time.time() + 3600})}
         return antworten[name]
 
+    async def codeserver(name, daten):
+        aufrufe.append((name, daten))
+        if name == "einloesen":
+            if daten["code"] != "richtig":
+                raise ValueError("Dieser Code ist ungültig.")
+            return {"token": token({"stufe": "admin", "geraete": [daten["geraet"]], "exp": time.time() + 3600})}
+        raise AssertionError(name)
+
     dienst.rufen = rufen
+    dienst.codeserver = codeserver
 
     async def ablauf():
         assert (await dienst.kaufen("jahr"))["url"].startswith("https://checkout.stripe.com")
@@ -120,7 +125,7 @@ def test_kauf_admin_und_eingabe_laufen_ueber_den_lizenzserver(dienst):
         dienst.abmelden()
         status = await dienst.eingeben(token({"stufe": "premium", "geraete": ["1" * 20], "exp": time.time() + 3600, "abo": "sub_1"}))
         assert status["stufe"] == "premium" and aufrufe[-1][1]["aktion"] == "geraet"
-        with pytest.raises(ValueError, match="Falsches"):
+        with pytest.raises(ValueError, match="ungültig"):
             await dienst.admin("falsch")
         assert (await dienst.admin("richtig"))["name"] == "Admin"
 

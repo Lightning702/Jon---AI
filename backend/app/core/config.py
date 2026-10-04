@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.58.2"
+    app_version: str = "4.59.1"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = ""
@@ -191,6 +191,7 @@ class Settings(BaseSettings):
     request_timeout: float = 90.0
     first_token_timeout: float = 10.0
     jon_premium_url: str = "https://getjon.info/.netlify/functions"
+    jon_codes_url: str = "https://felworks.tail661828.ts.net/codes"
     jon_support_url: str = "https://getjon.info/support/"
     models_timeout: float = 6.0
     max_tokens: int = 32768

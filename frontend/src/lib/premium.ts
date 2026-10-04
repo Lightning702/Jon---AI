@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BASE } from "./api";
 
-export type Stufe = "standard" | "premium" | "admin";
+export type Stufe = "standard" | "premium" | "admin" | "entwickler";
 
 export interface PremiumFeature {
   key: string;
@@ -22,8 +22,20 @@ export interface PremiumStatus {
   hinweis: string;
   token: string;
   offen: boolean;
+  codes: boolean;
   plaene: { key: string; name: string; preis: string; zeitraum: string; hinweis?: string }[];
   features: PremiumFeature[];
+}
+
+export interface EntwicklerCode {
+  id: string;
+  name: string;
+  erstellt: number;
+  zuletzt: number;
+  geraete: number;
+  max_geraete: number;
+  gesperrt: boolean;
+  ende: string;
 }
 
 export interface PremiumAnlass {
@@ -68,7 +80,7 @@ export function usePremium(): PremiumStatus | null {
   return wert;
 }
 
-export const istPremium = (wert: PremiumStatus | null) => wert?.stufe === "premium" || wert?.stufe === "admin";
+export const istPremium = (wert: PremiumStatus | null) => wert?.stufe === "premium" || wert?.stufe === "admin" || wert?.stufe === "entwickler";
 
 export function premiumOeffnen(feature = "", text = "") {
   window.dispatchEvent(new CustomEvent<PremiumAnlass>("jon-premium", { detail: { feature, text } }));
