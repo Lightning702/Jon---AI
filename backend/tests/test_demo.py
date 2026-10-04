@@ -89,3 +89,38 @@ def test_maps_und_transkript(client, monkeypatch):
     assert c.get("/demo/orte", params={"q": "Wien"}).json()["treffer"][0]["name"] == "Wien"
     assert c.post("/demo/route", json={"von": "Wien", "nach": "Graz", "modus": "fahrrad"}).json()["route"] == {"mode": "fahrrad", "distance_m": 1000, "duration_s": 600, "summary": ""}
     assert c.post("/demo/transkript", content=b"kein wav").status_code == 400
+
+
+def test_faellt_das_eingestellte_modell_aus_antwortet_jons_standardmodell(monkeypatch):
+    from app.core.config import get_settings
+    from app.providers import registry
+    from app.providers.base import StreamChunk
+
+    class Wechsel:
+        def __init__(self):
+            self.modelle = []
+
+        async def stream(self, anfrage, werkzeuge=None):
+            self.modelle.append(anfrage.model)
+            if anfrage.model == "kaputt":
+                raise RuntimeError("nvidia: Error code: 404")
+            if anfrage.model == "leer":
+                yield StreamChunk(delta="nur gedacht", kind="reasoning")
+                return
+            yield StreamChunk(delta="Hallo!", kind="content")
+
+    anbieter = Wechsel()
+    monkeypatch.setattr(registry.get_registry(), "get", lambda name: anbieter, raising=False)
+    monkeypatch.setattr(demo, "_ausgefallen", {})
+    standard = get_settings().jon_model
+    for kaputt in ("kaputt", "leer"):
+        monkeypatch.setattr(demo, "auswahl", lambda k=kaputt: (get_settings().default_provider, k))
+        c = TestClient(demo.erstellen(demo.Begrenzer(pro_ip=50, pro_tag=100)))
+        antwort = c.post("/demo/chat", json={"persona": "jon", "nachrichten": [{"role": "user", "content": "Hi"}]})
+        teile = [json.loads(z[6:]) for z in antwort.text.split("\n\n") if z.startswith("data: ")]
+        assert "".join(t.get("delta", "") for t in teile) == "Hallo!" and teile[-1] == {"fertig": True}
+        assert anbieter.modelle[-2:] == [kaputt, standard]
+        anbieter.modelle.clear()
+        c.post("/demo/chat", json={"persona": "jon", "nachrichten": [{"role": "user", "content": "Noch mal"}]})
+        assert anbieter.modelle == [standard]
+        anbieter.modelle.clear()
