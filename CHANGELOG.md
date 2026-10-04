@@ -18,6 +18,11 @@ Alle nennenswerten Änderungen an Jon.
 - **Beta-Kanal:** Entwickler bekommen Vorabversionen von GitHub früher als alle anderen, wenn sie es einschalten.
 - **Standard bleibt, wie es war.**
 
+### ✨ Feinschliff
+
+- **Mehr Luft in der Team-Zentrale:** Karten, Listen, Kacheln, Schalter und Nachrichten haben jetzt deutliche Abstände. Der Dialog ist für Admin und Entwickler breiter, und alle Reiter passen in eine Zeile.
+- **MiniJon ist heller:** Im dunklen Design bekommt er mehr Licht, und ein sehr dunkler Körper wirkt jetzt wie dunkles Anthrazit statt fast schwarz. Gold, Augen und Gesicht bleiben, wie sie waren.
+
 ## [4.60.1] — 2026-10-04
 
 ### 🎙️ Sprechen statt tippen

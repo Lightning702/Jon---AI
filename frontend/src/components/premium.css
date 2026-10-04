@@ -15,6 +15,10 @@
 .pm-toast span{flex:1;line-height:1.5}
 .pm-toast b{color:#f5d67b;font-weight:650;white-space:nowrap}
 .pm-schleier{position:fixed;inset:0;z-index:96;display:grid;place-items:center;padding:16px;background:radial-gradient(900px 500px at 50% 0,rgba(229,200,137,.08),transparent 70%),rgba(3,3,5,.82)}
+.pm-fenster.pm-team{width:min(960px,100%);height:min(90vh,940px)}
+.pm-team .pm-features{gap:12px;margin-top:22px}
+.pm-team .pm-feature{padding:14px}
+.pm-team .pm-block,.pm-team .pm-mehr{margin-top:16px}
 .pm-fenster{--pm-bg:#121116;--pm-linie:rgba(255,255,255,.07);position:relative;display:flex;flex-direction:column;width:min(780px,100%);height:min(86vh,860px);border-radius:26px;border:1px solid rgba(229,200,137,.2);background:radial-gradient(640px 260px at 12% -6%,rgba(229,200,137,.12),transparent 62%),linear-gradient(180deg,#15141a,#0e0e12);color:#ece9e1;box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden;contain:layout paint;will-change:transform,opacity}
 .pm-admin{border-color:rgba(245,214,123,.38);background:radial-gradient(640px 280px at 12% -6%,rgba(245,214,123,.18),transparent 62%),linear-gradient(180deg,#17140d,#0e0d0a)}
 .pm-entwickler{border-color:rgba(125,170,255,.32);background:radial-gradient(640px 280px at 12% -6%,rgba(91,141,239,.18),transparent 62%),linear-gradient(180deg,#10141d,#0c0d12)}

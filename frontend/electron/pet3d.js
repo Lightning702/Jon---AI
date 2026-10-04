@@ -50,7 +50,7 @@
     "  float fresnel = pow(facing, 3.4) * (1.0 - uFur) * 0.38;",
     "  vec3 color = base + vec3(1.0, 0.97, 0.92) * spec + uColor * fluff * 0.9 +",
     "               vec3(0.6, 0.68, 0.9) * fresnel;",
-    "  vec3 x = color * 1.04;",
+    "  vec3 x = color * 1.12;",
     "  vec3 mapped = (x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14);",
     "  gl_FragColor = vec4(pow(clamp(mapped, 0.0, 1.0), vec3(0.95)), 1.0);",
     "}",
@@ -321,6 +321,11 @@
     ];
   }
 
+  function heller(farbe) {
+    const hell = farbe[0] * 0.3 + farbe[1] * 0.59 + farbe[2] * 0.11;
+    return hell >= 0.25 ? farbe : mix(farbe, ANTHRAZIT, 0.42 * (1 - hell / 0.25));
+  }
+
   function mix(a, b, t) {
     return [
       a[0] + (b[0] - a[0]) * t,
@@ -332,6 +337,7 @@
   const BLACK = [0.05, 0.05, 0.07];
   const WHITE = [0.97, 0.97, 1];
   const ROSEWHITE = [1, 0.965, 0.98];
+  const ANTHRAZIT = [0.25, 0.255, 0.3];
   const PINK = [1, 0.7, 0.76];
   const CAT_BODY = [0.36, 0.36, 0.4];
   const CAT_HEAD = [0.44, 0.44, 0.49];
@@ -439,7 +445,7 @@
     function jonParts() {
       const parts = [];
       const gold = state.accent;
-      const shell = state.face;
+      const shell = heller(state.face);
       const dark = mix(shell, BLACK, 0.65);
       const glow = mix(gold, WHITE, 0.45);
       const lid = Math.max(state.sleep ? 0.06 : state.eyes, 0.06);
@@ -857,7 +863,7 @@
       gl.uniformMatrix4fv(loc.view, false, new Float32Array(view));
       gl.uniform3fv(loc.light, new Float32Array([-0.55, 0.75, 0.9]));
       gl.uniform3fv(loc.eye, new Float32Array(eye));
-      gl.uniform1f(loc.ambient, state.cozy ? 0.6 : state.light ? 0.52 : 0.32);
+      gl.uniform1f(loc.ambient, state.cozy ? 0.62 : state.light ? 0.56 : 0.46);
 
       const sway = Math.sin(state.time * 0.7) * 0.13;
       const nod = Math.sin(state.time * 0.9) * 0.06;

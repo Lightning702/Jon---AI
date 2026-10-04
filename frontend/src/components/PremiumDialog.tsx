@@ -119,7 +119,7 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
   });
 
   return createPortal(<motion.div className="pm-schleier" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={SANFT} onMouseDown={e => {if (e.target === e.currentTarget) onClose();}}>
-    <motion.div ref={fenster} role="dialog" aria-modal="true" aria-label="Jon Premium" className={"pm-fenster pm-" + stufe} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={SANFT}>
+    <motion.div ref={fenster} role="dialog" aria-modal="true" aria-label="Jon Premium" className={"pm-fenster pm-" + stufe + (status?.team ? " pm-team" : "")} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={SANFT}>
       <header className="pm-kopf">
         <div className="pm-emblem"><kopf.icon size={26} /><span className="pm-ring" /></div>
         <div className="pm-kopf-text">
