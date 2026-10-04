@@ -92,7 +92,7 @@ def admin_daten(passwort: str) -> dict:
 
 def befehl_ausfuehren(argumente: list[str], zeit: float = 30) -> tuple[int, str]:
     try:
-        ergebnis = subprocess.run(argumente, capture_output=True, text=True, timeout=zeit)
+        ergebnis = subprocess.run(argumente, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=zeit)
     except (OSError, subprocess.SubprocessError) as fehler:
         return 1, str(fehler)
     return ergebnis.returncode, (ergebnis.stdout + ergebnis.stderr).strip()
