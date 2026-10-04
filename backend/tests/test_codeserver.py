@@ -49,7 +49,7 @@ def test_admin_code_liefert_signierte_admin_lizenz_ohne_klartext_auf_der_platte(
     assert "exp" not in inhalt
     for datei in server.ordner.iterdir():
         assert ADMIN not in datei.read_text(encoding="utf-8")
-    assert client.get("/codes/status").json() == {"ok": True, "oeffentlich": server.oeffentlich(), "admin": True}
+    assert client.get("/codes/status").json() == {"ok": True, "oeffentlich": server.oeffentlich(), "admin": True, "kostenlos": True}
 
 
 def test_admin_erzeugt_entwickler_codes_die_nur_als_hash_gespeichert_werden(server, client):
@@ -501,3 +501,77 @@ def test_beta_kanal_nimmt_die_hoechste_version_mit_vorabversionen(monkeypatch):
     assert update_service._release()["version"] == "4.61.1" and update_service._release()["beta"] is True
     monkeypatch.setattr(update_service, "_beta", lambda: False)
     assert update_service._release()["version"] == "4.60.1"
+
+
+def test_premium_kostenlos_fuer_alle_und_admin_kann_es_beenden(server, client):
+    assert client.get("/codes/status").json()["kostenlos"] is True
+    assert client.post("/codes/kostenlos/verfuegbar").json() == {"verfuegbar": True}
+    antwort = client.post("/codes/kostenlos", json={"geraet": ANDERES}).json()
+    inhalt = lesen(antwort["token"], server.oeffentlich())
+    assert antwort["stufe"] == "premium" and inhalt["stufe"] == "premium" and inhalt["kostenlos"] and "exp" not in inhalt
+    assert inhalt["geraete"] == [ANDERES] and inhalt["code"] == "frei-" + ANDERES[:12]
+    neu = client.post("/codes/erneuern", json={"token": antwort["token"], "geraet": ANDERES}).json()
+    assert lesen(neu["token"], server.oeffentlich())["kostenlos"] and "flags" not in neu
+    assert client.post("/codes/kostenlos", json={"geraet": ANDERES}).status_code == 200
+    assert client.post("/codes/erneuern", json={"token": antwort["token"], "geraet": GERAET}).status_code == 403
+    admin = _admin(client)
+    assert client.post("/codes/kostenlos/stand", json={"token": antwort["token"], "geraet": ANDERES}).status_code == 403
+    assert client.post("/codes/kostenlos/setzen", json={"token": antwort["token"], "geraet": ANDERES, "aktiv": False}).status_code == 403
+    stand = client.post("/codes/kostenlos/stand", json={"token": admin, "geraet": GERAET}).json()
+    assert stand["aktiv"] and stand["geraete"] == 1 and stand["aktiv_7_tage"] == 1 and stand["neu_7_tage"] == 1
+    stand = client.post("/codes/kostenlos/setzen", json={"token": admin, "geraet": GERAET, "aktiv": False}).json()
+    assert not stand["aktiv"] and stand["ausgeschaltet"]
+    abgelehnt = client.post("/codes/erneuern", json={"token": antwort["token"], "geraet": ANDERES})
+    assert abgelehnt.status_code == 403 and "beendet" in abgelehnt.json()["detail"]
+    assert client.post("/codes/kostenlos", json={"geraet": DRITTES}).status_code == 403
+    assert client.get("/codes/status").json()["kostenlos"] is False
+    assert client.post("/codes/kostenlos/setzen", json={"token": admin, "geraet": GERAET, "aktiv": True}).json()["aktiv"]
+    assert client.post("/codes/erneuern", json={"token": antwort["token"], "geraet": ANDERES}).status_code == 200
+    assert client.post("/codes/erneuern", json={"token": admin, "geraet": GERAET}).status_code == 200
+
+
+def test_premium_kostenlos_wird_pro_adresse_gebremst(server, client):
+    for i in range(codeserver.KOSTENLOS_PRO_IP):
+        assert client.post("/codes/kostenlos", json={"geraet": f"{i:020x}"}).status_code == 200
+    assert client.post("/codes/kostenlos", json={"geraet": "f" * 20}).status_code == 429
+    assert client.post("/codes/kostenlos", json={"geraet": f"{0:020x}"}).status_code == 200
+    server.uhr.wert += 3601
+    assert client.post("/codes/kostenlos", json={"geraet": "f" * 20}).status_code == 200
+    assert server.kostenlos_stand()["geraete"] == codeserver.KOSTENLOS_PRO_IP + 1
+
+
+def test_jon_holt_premium_kostenlos_und_faellt_nach_dem_ende_auf_standard(jon, server, client):
+    async def codeserver_rufen(name, daten):
+        antwort = client.post("/codes/" + name, json=daten)
+        if antwort.status_code >= 400:
+            raise (Abgelehnt if antwort.status_code in {401, 403} else ValueError)(antwort.json()["detail"])
+        return antwort.json()
+
+    jon.codeserver = codeserver_rufen
+
+    async def ablauf():
+        assert await jon.kostenlos_verfuegbar()
+        status = await jon.kostenlos_holen()
+        assert status["stufe"] == "premium" and status["kostenlos"] and status["gueltig_bis"] == 0 and not status["team"]
+        assert all(f["frei"] for f in status["features"]) and jon.braucht_erneuerung()
+        assert not await jon.kostenlos_verfuegbar()
+        assert (await jon.erneuern())["kostenlos"]
+        admin = _admin(client)
+        client.post("/codes/kostenlos/setzen", json={"token": admin, "geraet": GERAET, "aktiv": False})
+        with pytest.raises(Abgelehnt, match="beendet"):
+            await jon.erneuern()
+        assert jon.stufe() == "standard" and not jon.token()
+        jon._kostenlos = (time.time(), True)
+        with pytest.raises(Abgelehnt):
+            await jon.kostenlos_holen()
+        assert not await jon.kostenlos_verfuegbar()
+
+    asyncio.run(ablauf())
+
+
+def test_jon_meldet_kein_kostenloses_premium_wenn_der_pi_fehlt(jon):
+    async def nicht_erreichbar(name, daten):
+        raise ConnectionError("Der FelWorks-Codeserver ist nicht erreichbar.")
+
+    jon.codeserver = nicht_erreichbar
+    assert asyncio.run(jon.kostenlos_verfuegbar()) is False

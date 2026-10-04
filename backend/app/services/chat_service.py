@@ -1110,13 +1110,6 @@ class ChatService:
             first_token_timeout=GEDULD_QUELLEN.get(payload.source, 0.0),
         )
 
-        if getattr(payload, "persona", None) == "funke":
-            from app.services.premium import PremiumNoetig, get_premium
-
-            if not get_premium().premium():
-                yield {"type": "error", "message": PremiumNoetig("funke").text, "premium": "funke"}
-                yield {"type": "done", "conversation_id": conversation_id}
-                return
         budget = get_budget_service()
         erlaubt, budget_hinweis = budget.pruefen()
         if not erlaubt:

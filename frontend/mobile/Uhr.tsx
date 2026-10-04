@@ -39,7 +39,7 @@ export function UhrPage({shell, back}: PageProps) {
     <div className="page-scroll">
       {tab === "wecker" ? <>
         {d.naechster && <p className="hint" style={{margin: "0 8px 14px"}}>{`Nächster Wecker: ${d.naechster} Uhr`}</p>}
-        {!wecker.length && <Empty icon={<AlarmClock/>} title="Noch kein Wecker" text="Tippe auf Plus oder sag: „Hey Jon, weck mich um halb sieben.“"/>}
+        {!wecker.length && <Empty icon={<AlarmClock/>} title="Noch kein Wecker" text="Tippe auf Plus oder sag Jon über „Stimme“: „Weck mich um halb sieben.“"/>}
         <AnimatePresence initial={false}>{wecker.map(w => <motion.div key={w.id} layout className={`wecker ${w.an ? "" : "aus"}`} initial={{opacity: 0, y: 12}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, x: -40}} transition={spring}>
           <button className="wecker-text" onClick={() => setNeu({...w, zeit: `${String(w.stunde).padStart(2, "0")}:${String(w.minute).padStart(2, "0")}`})}>
             <strong>{String(w.stunde).padStart(2, "0")}:{String(w.minute).padStart(2, "0")}</strong>
@@ -60,7 +60,7 @@ export function UhrPage({shell, back}: PageProps) {
             <button aria-label="Timer abbrechen" onClick={() => aktion("timer-abbrechen", {timer: t.id}, "Timer abgebrochen.")}><X/></button>
           </motion.div>;
         })}</AnimatePresence>
-        {!timer.length && <p className="hint" style={{textAlign: "center", marginTop: 20}}>Oder sag: „Hey Jon, Timer zehn Minuten.“</p>}
+        {!timer.length && <p className="hint" style={{textAlign: "center", marginTop: 20}}>Oder sag Jon über „Stimme“: „Timer zehn Minuten.“</p>}
       </>}
     </div>
     <Sheet open={!!neu} title={neu?.id ? "Wecker bearbeiten" : "Neuer Wecker"} onClose={() => setNeu(null)}>

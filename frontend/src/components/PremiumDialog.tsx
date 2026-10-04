@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import { Check, ChevronDown, Clapperboard, CloudDownload, CloudUpload, Code2, Copy, Crown, ExternalLink, Flame, Gamepad2, Gem, Globe, GraduationCap, HeartHandshake, KeyRound, Loader2, Lock, LogOut, Mic, Palette, ScanEye, ShieldCheck, Smartphone, Sparkles, Users, Workflow, Wrench, X } from "lucide-react";
+import { Check, ChevronDown, Clapperboard, CloudDownload, CloudUpload, Code2, Copy, Crown, ExternalLink, Gamepad2, Gem, Gift, Globe, GraduationCap, HeartHandshake, KeyRound, Loader2, Lock, LogOut, Mic, Palette, ScanEye, ShieldCheck, Smartphone, Sparkles, Users, Workflow, Wrench, X } from "lucide-react";
 import { istPremium, premiumAnfrage, PremiumAnlass, premiumLaden, PremiumStatus } from "../lib/premium";
 import TeamZentrale from "./TeamZentrale";
 import "./premium.css";
 
-const ICONS: Record<string, typeof Code2> = { harness: Code2, fachteam: Users, funke: Flame, fernsteuerung: Smartphone, recherche: GraduationCap, studio: Clapperboard, stimmen: Mic, bildschirm: ScanEye, browser: Globe, aussehen: Palette, familie: HeartHandshake, sync: CloudUpload, automatik: Workflow, spiele: Gamepad2 };
+const ICONS: Record<string, typeof Code2> = { harness: Code2, fachteam: Users, fernsteuerung: Smartphone, recherche: GraduationCap, studio: Clapperboard, stimmen: Mic, bildschirm: ScanEye, browser: Globe, aussehen: Palette, familie: HeartHandshake, sync: CloudUpload, automatik: Workflow, spiele: Gamepad2 };
 const KOPF: Record<string, { titel: string; text: string; icon: typeof Code2 }> = {
   standard: { titel: "Jon Standard", text: "Kostenlos: Chat mit deinen Modellen, Werkzeuge, Gedächtnis, Kalender und MiniJon. Mit Premium schaltest du alles frei.", icon: Sparkles },
   premium: { titel: "Jon Premium", text: "Alle Premium-Funktionen sind freigeschaltet. Danke, dass du Jon unterstützt!", icon: Gem },
@@ -29,12 +29,13 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
   const [eingabe, setEingabe] = useState("");
   const [syncPasswort, setSyncPasswort] = useState("");
   const [sync, setSync] = useState<{ zeit: number; verfuegbar?: boolean } | null>(null);
+  const [gratis, setGratis] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const fenster = useRef<HTMLDivElement>(null);
   const inhalt = useRef<HTMLDivElement>(null);
   const mehrBereich = useRef<HTMLElement>(null);
   const stufe = status?.stufe || "standard";
-  const kopf = KOPF[stufe];
+  const kopf = stufe === "premium" && status?.kostenlos ? { ...KOPF.premium, text: "Alle Premium-Funktionen sind kostenlos freigeschaltet. Viel Spaß mit Jon!" } : KOPF[stufe];
   const premium = istPremium(status);
   const anlassFeature = status?.features.find(f => f.key === anlass?.feature);
   const gewaehlt = status?.plaene.find(p => p.key === plan);
@@ -66,6 +67,13 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
   useEffect(() => {
     if (premium) void premiumAnfrage<{ zeit: number; verfuegbar: boolean }>("/premium/sync").then(setSync).catch(() => setSync(null));
   }, [premium]);
+
+  useEffect(() => {
+    if (premium || !status) {setGratis(false); return;}
+    let aktiv = true;
+    void premiumAnfrage<{ verfuegbar: boolean }>("/premium/kostenlos").then(d => {if (aktiv) setGratis(!!d.verfuegbar);}).catch(() => {});
+    return () => {aktiv = false;};
+  }, [premium, !!status]);
 
   useEffect(() => {
     if (mehr) requestAnimationFrame(() => mehrBereich.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
@@ -104,6 +112,11 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
     setWarten(true);
     abholen(0);
   });
+
+  const kostenlos = () => handeln("kostenlos", async () => {
+    await premiumAnfrage<PremiumStatus>("/premium/kostenlos", {});
+    setGratis(false);
+  }, "Willkommen bei Jon Premium! Alles ist kostenlos freigeschaltet.");
 
   const oeffnen = (pfad: string) => handeln(pfad, async () => {
     const { url } = await premiumAnfrage<{ url: string }>(pfad, {});
@@ -174,7 +187,11 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
       </div>
 
       <footer className="pm-leiste">
-        {!premium ? <>
+        {!premium && gratis ? <>
+          <div className="pm-gratis"><span className="pm-gratis-icon"><Gift size={18} /></span><span><b>Jon Premium ist gerade kostenlos</b><small>Für immer freischalten, ohne Abo und ohne Zahlungsdaten.</small></span></div>
+          <button className="pm-kaufen" disabled={!!busy} onClick={() => void kostenlos()}>{busy === "kostenlos" ? <Loader2 size={17} className="pm-dreh" /> : <Gift size={17} />}Kostenlos freischalten</button>
+          <p className="pm-leiste-text">Ein Klick genügt, alle Premium-Funktionen gelten sofort auf diesem Gerät. Beendet FelWorks das Angebot später, läuft Jon einfach wieder als Standard weiter.</p>
+        </> : !premium ? <>
           <div className="pm-tarife" role="radiogroup" aria-label="Tarif">
             {status?.plaene.map(p => <button key={p.key} role="radio" aria-checked={plan === p.key} className={plan === p.key ? "an" : ""} onClick={() => setPlan(p.key)} disabled={warten}>
               <span className="pm-tarif-text"><span>{p.name}</span><b>{p.preis}</b></span>
@@ -184,7 +201,7 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
           <button className="pm-kaufen" disabled={!!busy || warten} onClick={() => void kaufen()}>{warten || busy === "kaufen" ? <Loader2 size={17} className="pm-dreh" /> : <Gem size={17} />}{warten ? "Warte auf Zahlung …" : "Premium holen"}</button>
           <p className="pm-leiste-text">{warten ? <>Stripe ist im Browser geöffnet. Nach der Zahlung schaltet sich Jon von selbst frei. <button onClick={() => {clearTimeout(timer.current); setWarten(false);}}>Abbrechen</button></> : <>{gewaehlt ? `${gewaehlt.preis} ${gewaehlt.zeitraum}` : ""} inkl. MwSt. · jederzeit kündbar</>}</p>
         </> : <div className="pm-aktionen">
-          {stufe === "premium" && <button disabled={!!busy} onClick={() => void oeffnen("/premium/portal")}>{busy === "/premium/portal" ? <Loader2 size={14} className="pm-dreh" /> : <ExternalLink size={14} />}Abo, Rechnungen & Zahlungsart</button>}
+          {stufe === "premium" && status?.abo && <button disabled={!!busy} onClick={() => void oeffnen("/premium/portal")}>{busy === "/premium/portal" ? <Loader2 size={14} className="pm-dreh" /> : <ExternalLink size={14} />}Abo, Rechnungen & Zahlungsart</button>}
           {status?.token && status.abo && <button onClick={() => void navigator.clipboard?.writeText(status.token).then(() => setMeldung("Lizenzschlüssel kopiert. Auf einem weiteren Gerät unter „Lizenz eingeben“ einfügen (bis zu drei Geräte)."))}><Copy size={14} />Lizenzschlüssel kopieren</button>}
           <button className="pm-leise" disabled={!!busy} onClick={() => void handeln("ab", () => premiumAnfrage("/premium/abmelden", {}), "Abgemeldet. Jon läuft jetzt als Standard.")}><LogOut size={14} />Abmelden</button>
         </div>}

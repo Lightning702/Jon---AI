@@ -67,6 +67,16 @@ async def status() -> dict:
     return get_premium().status()
 
 
+@router.get("/premium/kostenlos")
+async def kostenlos_verfuegbar() -> dict:
+    return {"verfuegbar": await get_premium().kostenlos_verfuegbar()}
+
+
+@router.post("/premium/kostenlos")
+async def kostenlos_holen() -> dict:
+    return await ausfuehren(get_premium().kostenlos_holen())
+
+
 @router.post("/premium/kaufen")
 async def kaufen(daten: Kauf) -> dict:
     return await ausfuehren(get_premium().kaufen(daten.plan))

@@ -1,5 +1,6 @@
 .env
 data/
+!android/device-app/src/main/java/at/felworks/jon/data/
 /backend/MEMORY.md
 .claude/
 __pycache__/

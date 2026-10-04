@@ -123,7 +123,7 @@ class JonWebBruecke(private val activity: MainActivity, private val behaelter: A
         val s = behaelter.verbindung.lage.value
         val m = GeraeteModus(activity)
         return JSONObject().put("connected", s.draht != Draht.AUS).put("paired", behaelter.gekoppelt.value).put("name", s.pcName)
-            .put("kiosk", m.aktiv).put("owner", m.eigentuemer).put("wake", m.wakeWord).put("locked", m.gesperrt)
+            .put("kiosk", m.aktiv).put("owner", m.eigentuemer).put("locked", m.gesperrt)
             .put("server", behaelter.tresor.zugaenge().size).put("server_id", behaelter.aktiveId())
             .put("klemmt", m.reparaturNoetig())
             .put("apps_versteckt", GeraeteApps.versteckt(activity))
@@ -183,7 +183,7 @@ class JonWebBruecke(private val activity: MainActivity, private val behaelter: A
             .put("wlan", runCatching { b.wlan }.getOrDefault(false))
             .put("bluetooth", runCatching { b.bluetooth }.getOrDefault(false))
             .put("lautstaerke", b.lautstaerke).put("maximal", b.maximal).put("helligkeit", helligkeit.coerceIn(10, 255))
-            .put("wake", m.wakeWord).put("unterbrechen", m.unterbrechen)
+            .put("unterbrechen", m.unterbrechen)
             .put("eigentuemer", m.eigentuemer).put("kiosk", m.aktiv).put("gesperrt", m.gesperrt)
             .put("admin", adminStand())
             .put("rechte", JSONObject()
@@ -217,13 +217,6 @@ class JonWebBruecke(private val activity: MainActivity, private val behaelter: A
                 val stufe = ((wert as? Number)?.toInt() ?: 128).coerceIn(10, 255)
                 if (m.eigentuemer) b.helligkeitSetzen(stufe)
                 else withContext(Dispatchers.Main) { activity.window.attributes = activity.window.attributes.apply { screenBrightness = stufe / 255f } }
-            }
-            "wake" -> {
-                val an = wert == true
-                if (an) check(erlauben(Manifest.permission.RECORD_AUDIO)) { "Mikrofon erlauben, damit Jon auf „Hey Jon“ hört." }
-                m.wakeWord = an
-                if (an) at.felworks.jon.device.VoskModell.anstossen(activity)
-                withContext(Dispatchers.Main) { if (an) SprachDienst.starten(activity) else if (!SprachDienst.zustand.value.offen) SprachDienst.stoppen(activity) }
             }
             "unterbrechen" -> m.unterbrechen = wert == true
             else -> error("Unbekannte Einstellung.")
@@ -393,7 +386,7 @@ class JonWebBruecke(private val activity: MainActivity, private val behaelter: A
                     "beenden" -> withContext(Dispatchers.Main) {
                         val m = GeraeteModus(activity)
                         check(!m.aktiv && !m.gesperrt) { "Im Kiosk bleibt Jon offen. Verlasse zuerst den Kiosk." }
-                        if (!m.wakeWord) SprachDienst.stoppen(activity)
+                        SprachDienst.stoppen(activity)
                         activity.finishAndRemoveTask()
                         JSONObject()
                     }

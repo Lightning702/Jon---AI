@@ -173,7 +173,7 @@ object Solo {
             val inhalt = JSONArray().put(JSONObject().put("type", "text").put("text", text))
             bilder.take(8).forEach { inhalt.put(JSONObject().put("type", "image_url").put("image_url", JSONObject().put("url", "data:image/jpeg;base64," + Base64.encodeToString(it, Base64.NO_WRAP)))) }
             nachrichten.put(JSONObject().put("role", "user").put("content", inhalt))
-        } else nachrichten.put(JSONObject().put("role", "user").put("content", text))
+        } else nachrichten.put(JSONObject().put("role", "user").put("content", MedienAnalyse.kuerzen(text, 60_000)))
         val defs = Werkzeuge.liste(context, arbeit, kannBilder(context))
         val werkzeuge = Werkzeuge.openAi(defs)
         var runden = 0

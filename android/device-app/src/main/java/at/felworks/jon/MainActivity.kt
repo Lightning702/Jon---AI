@@ -171,7 +171,6 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
         runCatching { at.felworks.jon.device.JonHintergrund.starten(this) }
         val modus = GeraeteModus(this)
         runCatching { modus.anwenden(this) }
-        if (modus.wakeWord) runCatching { SprachDienst.starten(this) }
         if (sprechenWunsch) {
             sprechenWunsch = false
             if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) runCatching { SprachDienst.starten(this, true, false) }

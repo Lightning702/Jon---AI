@@ -50,6 +50,9 @@ MAX_NACHRICHTEN = 3000
 MAX_BILD = 1_200_000
 MAX_SKILL = 100_000
 KONTINGENT = 300
+KOSTENLOS_PRO_IP = 12
+KOSTENLOS_MAX = 200_000
+KOSTENLOS_NAME = "Jon Premium kostenlos"
 DIENSTE = ("jon", "jon-codes", "jon-demo")
 MODELLE = ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-3.5-lightning-30b-a3b", "mistralai/mistral-nemotron"]
 WURZEL = Path(__file__).resolve().parents[2]
@@ -106,6 +109,7 @@ class Codeserver:
         self.schluessel_lock = threading.Lock()
         self.fehler_ip: dict[str, deque] = {}
         self.fehler_alle: deque = deque()
+        self.kostenlos_ip: dict[str, deque] = {}
         self._schluessel: Ed25519PrivateKey | None = None
         self.befehl = befehl_ausfuehren
         self.melden = self._telegram
@@ -274,10 +278,72 @@ class Codeserver:
         self._fehlversuch(ip)
         return None
 
+    def _kostenlos(self) -> dict:
+        daten = self._lesen("kostenlos.json", {})
+        daten.setdefault("aktiv", True)
+        daten.setdefault("geraete", {})
+        return daten
+
+    @staticmethod
+    def kostenlos_kennung(geraet: str) -> str:
+        return "frei-" + geraet[:12]
+
+    def kostenlos_token(self, geraet: str) -> str:
+        return self.signieren({"stufe": "premium", "name": KOSTENLOS_NAME, "geraete": [geraet], "code": self.kostenlos_kennung(geraet), "kostenlos": True, "quelle": "codes"})
+
+    def kostenlos_aktiv(self) -> bool:
+        return bool(self._kostenlos()["aktiv"])
+
+    def kostenlos_holen(self, geraet: str, ip: str) -> dict:
+        jetzt = self.uhr()
+        with self.lock:
+            daten = self._kostenlos()
+            if not daten["aktiv"]:
+                raise HTTPException(403, "Jon Premium gibt es gerade nicht mehr kostenlos.")
+            eintrag = daten["geraete"].get(geraet)
+            if eintrag is None:
+                verlauf = self.kostenlos_ip.setdefault(ip, deque())
+                while verlauf and jetzt - verlauf[0] > 3600:
+                    verlauf.popleft()
+                if len(verlauf) >= KOSTENLOS_PRO_IP:
+                    raise HTTPException(429, "Von hier wurden gerade zu viele Geräte freigeschaltet. Bitte in einer Stunde noch einmal.")
+                if len(daten["geraete"]) >= KOSTENLOS_MAX:
+                    raise HTTPException(503, "Gerade können keine weiteren Geräte kostenlos freigeschaltet werden.")
+                verlauf.append(jetzt)
+                if len(self.kostenlos_ip) > 5000:
+                    self.kostenlos_ip = {k: v for k, v in self.kostenlos_ip.items() if v and jetzt - v[-1] < 3600}
+                eintrag = daten["geraete"][geraet] = {"seit": int(jetzt)}
+            eintrag["zuletzt"] = int(jetzt)
+            self._json("kostenlos.json", daten)
+        return {"token": self.kostenlos_token(geraet), "stufe": "premium"}
+
+    def kostenlos_stand(self) -> dict:
+        daten = self._kostenlos()
+        jetzt = self.uhr()
+        geraete = daten["geraete"].values()
+        return {"aktiv": bool(daten["aktiv"]), "geraete": len(daten["geraete"]), "aktiv_7_tage": sum(1 for g in geraete if jetzt - float(g.get("zuletzt") or 0) < 7 * TAG), "neu_7_tage": sum(1 for g in geraete if jetzt - float(g.get("seit") or 0) < 7 * TAG), "ausgeschaltet": int(daten.get("ausgeschaltet") or 0)}
+
+    def kostenlos_setzen(self, aktiv: bool) -> dict:
+        with self.lock:
+            daten = self._kostenlos()
+            if bool(daten["aktiv"]) != aktiv:
+                daten["aktiv"] = aktiv
+                if not aktiv:
+                    daten["ausgeschaltet"] = int(self.uhr())
+                self._json("kostenlos.json", daten)
+        return self.kostenlos_stand()
+
     def person(self, token: str, geraet: str) -> dict:
         inhalt = self.lesen(token)
         if geraet not in inhalt.get("geraete", []):
             raise HTTPException(403, "Diese Lizenz gehört zu einem anderen Gerät.")
+        if inhalt.get("kostenlos"):
+            daten = self._kostenlos()
+            if not daten["aktiv"]:
+                raise HTTPException(403, "Das kostenlose Jon Premium ist beendet. Jon läuft jetzt als Standard.")
+            if geraet not in daten["geraete"]:
+                raise HTTPException(403, "Dieses Gerät ist für das kostenlose Jon Premium nicht mehr freigeschaltet.")
+            return {"rolle": "premium", "haupt": False, "id": self.kostenlos_kennung(geraet), "name": KOSTENLOS_NAME, "geraet": geraet, "kostenlos": True}
         if inhalt["stufe"] == "admin" and inhalt.get("pk"):
             if inhalt["pk"] != self.admin().get("pk"):
                 raise HTTPException(403, "Der Admin-Code wurde geändert. Melde dich mit dem neuen Admin-Code an.")
@@ -300,6 +366,11 @@ class Codeserver:
         with self.lock:
             if person["haupt"]:
                 neu = self.admin_token(geraet)
+            elif person.get("kostenlos"):
+                daten = self._kostenlos()
+                daten["geraete"].setdefault(geraet, {"seit": int(self.uhr())})["zuletzt"] = int(self.uhr())
+                self._json("kostenlos.json", daten)
+                neu = self.kostenlos_token(geraet)
             else:
                 daten = self._codes()
                 eintrag = next(c for c in daten["codes"] if c["id"] == person["id"])
@@ -843,6 +914,14 @@ class Kontingent(Lizenz):
     wert: int = Field(ge=0, le=100000)
 
 
+class Geraet(BaseModel):
+    geraet: str = Field(pattern=GERAET)
+
+
+class Kostenlos(Lizenz):
+    aktiv: bool
+
+
 class Dienst(Lizenz):
     dienst: str = Field(pattern="^(jon|jon-codes|jon-demo)$")
 
@@ -869,7 +948,25 @@ def erstellen(server: Codeserver | None = None, pause: float = 1.2) -> FastAPI:
 
     @app.get("/codes/status")
     async def status() -> dict:
-        return {"ok": True, "oeffentlich": dienst.oeffentlich(), "admin": bool(dienst.admin().get("hash"))}
+        return {"ok": True, "oeffentlich": dienst.oeffentlich(), "admin": bool(dienst.admin().get("hash")), "kostenlos": dienst.kostenlos_aktiv()}
+
+    @app.post("/codes/kostenlos")
+    async def kostenlos(daten: Geraet, request: Request) -> dict:
+        return dienst.kostenlos_holen(daten.geraet, adresse(request))
+
+    @app.post("/codes/kostenlos/verfuegbar")
+    async def kostenlos_verfuegbar() -> dict:
+        return {"verfuegbar": dienst.kostenlos_aktiv()}
+
+    @app.post("/codes/kostenlos/stand")
+    async def kostenlos_stand(daten: Lizenz) -> dict:
+        dienst.admin_pruefen(daten.token, daten.geraet)
+        return dienst.kostenlos_stand()
+
+    @app.post("/codes/kostenlos/setzen")
+    async def kostenlos_setzen(daten: Kostenlos) -> dict:
+        dienst.admin_pruefen(daten.token, daten.geraet)
+        return dienst.kostenlos_setzen(daten.aktiv)
 
     @app.post("/codes/einloesen")
     async def einloesen(daten: Einloesen, request: Request) -> dict:

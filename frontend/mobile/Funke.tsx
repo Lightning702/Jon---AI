@@ -7,8 +7,7 @@ import {Markdown, PageHeader, errorText, useDictation} from "./ui";
 import {ResultCards} from "./Cards";
 import AgentTeam from "../src/components/AgentTeam";
 import {agentenAnfrage} from "./agenten";
-import {FunkeGesperrt, useMobilPremium} from "./Premium";
-import "./funke.js";
+import "./funke-figur.js";
 import "./funke.css";
 
 type FunkeFigur = {start(): void; stop(): void; destroy(): void; render(): void; setState(s: string): void; setLevel(v: number): void; setAgents(n: number): void; jubeln(): void};
@@ -57,7 +56,6 @@ function Schritte({schritte, live}: {schritte: Schritt[]; live?: boolean}) {
 }
 
 export function FunkePage({shell, back}: PageProps) {
-  const premium = useMobilPremium();
   const leinwand = useRef<HTMLCanvasElement>(null);
   const figur = useRef<FunkeFigur | null>(null);
   const eingabe = useRef<HTMLTextAreaElement>(null);
@@ -228,11 +226,6 @@ export function FunkePage({shell, back}: PageProps) {
     setZeilen([]); merken([]);
     try {localStorage.removeItem(GESPRAECH);} catch {}
   }
-
-  if (premium && premium.stufe === "standard") return <>
-    <PageHeader title="Funke" subtitle="Dein Begleiter, der anpackt" onBack={back}/>
-    <div className="page-scroll"><FunkeGesperrt status={premium}/></div>
-  </>;
 
   return <>
     <PageHeader title="Funke" subtitle="Dein Begleiter, der anpackt" onBack={back}/>

@@ -6,8 +6,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val jonVersion = "1.7.0"
-val jonCode = 11
+val jonVersion = "1.7.1"
+val jonCode = 12
 val signingFile = file(providers.environmentVariable("JON_SIGNING_PROPERTIES").orElse("${System.getProperty("user.home")}/.android/jon-device-signing.properties").get())
 val signingValues = Properties().apply { if (signingFile.isFile) signingFile.inputStream().use { load(it) } }
 

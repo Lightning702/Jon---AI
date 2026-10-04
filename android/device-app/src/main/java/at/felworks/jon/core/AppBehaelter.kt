@@ -70,7 +70,7 @@ class AppBehaelter(private val context: Context) {
                         val zustand = JSONObject().put("name", "${Build.MANUFACTURER} ${Build.MODEL}")
                             .put("akku", battery.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY))
                             .put("device_owner", modus.eigentuemer).put("kiosk", modus.gesperrt)
-                            .put("wake_word", modus.wakeWord).put("sprach_status", sprachstand.phase.name.lowercase())
+                            .put("sprach_status", sprachstand.phase.name.lowercase())
                             .put("amazon", GeraeteApps.installiert(context, "amazon"))
                             .put("tiktok", GeraeteApps.installiert(context, "tiktok"))
                             .put("whatsapp", GeraeteApps.installiert(context, "whatsapp"))

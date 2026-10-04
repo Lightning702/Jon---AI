@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bug, Check, ChevronDown, Cpu, Download, Eye, FlaskConical, Gauge, HardDrive, Image, KeyRound, Lightbulb, Loader2, Megaphone, MessageSquare, MessagesSquare, Plus, Power, RefreshCw, Reply, ScrollText, Send, Server, Settings2, Share2, Sparkles, ThumbsUp, ToggleLeft, Trash2, Users, Wrench, X } from "lucide-react";
+import { Activity, Bug, Check, ChevronDown, Cpu, Download, Eye, FlaskConical, Gauge, Gift, HardDrive, Image, KeyRound, Lightbulb, Loader2, Megaphone, MessageSquare, MessagesSquare, Plus, Power, RefreshCw, Reply, ScrollText, Send, Server, Settings2, Share2, Sparkles, ThumbsUp, ToggleLeft, Trash2, Users, Wrench, X } from "lucide-react";
 import { BASE, getSkill, getSkills, SkillSummary } from "../lib/api";
 import { premiumAnfrage, PremiumStatus, teamAnfrage, TeamNachricht, TeamStand } from "../lib/premium";
 import EntwicklerCodes from "./EntwicklerCodes";
@@ -236,6 +236,35 @@ function Geraete({ onFehler }: { onFehler: (text: string) => void }) {
         <span className="tz-geraet-zahlen"><b>{zahl(g.anfragen)}</b> Anfragen · <b>{zahl(g.felworks_heute)}</b> FelWorks</span>
       </div>)}
     </div>
+  </div>;
+}
+
+interface KostenlosStand { aktiv: boolean; geraete: number; aktiv_7_tage: number; neu_7_tage: number; ausgeschaltet: number }
+
+function Kostenlos({ onFehler }: { onFehler: (text: string) => void }) {
+  const [stand, setStand] = useState<KostenlosStand | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {void teamAnfrage<KostenlosStand>("kostenlos/stand").then(setStand).catch(e => onFehler(fehlerText(e)));}, []);
+  const setzen = async (aktiv: boolean) => {
+    if (!aktiv && !confirm("Kostenloses Jon Premium beenden? Alle, die es kostenlos haben, fallen bei der nächsten Prüfung auf Standard zurück, spätestens nach 6 Stunden.")) return;
+    setBusy(true);
+    onFehler("");
+    try {
+      setStand(await teamAnfrage<KostenlosStand>("kostenlos/setzen", { aktiv }));
+    } catch (e) {
+      onFehler(fehlerText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return <div className={"tz-karte tz-kostenlos " + (stand?.aktiv ? "an" : "")}>
+    <div className="tz-kostenlos-kopf">
+      <span className="tz-kostenlos-icon"><Gift size={16} /></span>
+      <span><b>Jon Premium kostenlos für alle</b><small>{!stand ? "Frage den Pi …" : stand.aktiv ? "Jeder sieht im Premium-Dialog den Knopf „Kostenlos freischalten“." : "Aus. Der Knopf ist weg, kostenlose Lizenzen gelten nicht mehr."}</small></span>
+      <label className="tz-schalter" title={stand?.aktiv ? "Kostenloses Premium beenden" : "Kostenloses Premium anbieten"}><input type="checkbox" checked={!!stand?.aktiv} disabled={!stand || busy} onChange={e => void setzen(e.target.checked)} aria-label="Jon Premium kostenlos für alle" /><span className="tz-schalter-bahn"><i /></span></label>
+    </div>
+    {stand && <div className="tz-kostenlos-zahlen"><span><b>{zahl(stand.geraete)}</b> Geräte freigeschaltet</span><span><b>{zahl(stand.aktiv_7_tage)}</b> aktiv in 7 Tagen</span><span><b>{zahl(stand.neu_7_tage)}</b> neu in 7 Tagen</span></div>}
+    <p className="tz-hinweis">Sobald du eine Bezahlmethode hast, schaltest du das hier aus. Dann enden alle kostenlosen Premium-Lizenzen bei der nächsten Prüfung, und Jon zeigt wieder „Premium holen“. Codes, Entwickler und Admins bleiben davon unberührt.</p>
   </div>;
 }
 
@@ -510,7 +539,7 @@ export default function TeamZentrale({ status, onFehler, onNeuLaden }: { status:
     </nav>
     <AnimatePresence mode="wait" initial={false}>
       <motion.div key={bereich} className="tz-inhalt" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16 }}>
-        {bereich === "codes" && <EntwicklerCodes onFehler={onFehler} />}
+        {bereich === "codes" && <><Kostenlos onFehler={onFehler} /><EntwicklerCodes onFehler={onFehler} /></>}
         {bereich === "team" && <TeamChat admin={admin} onFehler={onFehler} onGelesen={onNeuLaden} />}
         {bereich === "fehler" && <FehlerMelden onFehler={onFehler} />}
         {bereich === "geraete" && <Geraete onFehler={onFehler} />}

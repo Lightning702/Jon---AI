@@ -244,7 +244,7 @@ export function SettingsPage({shell, back, arg}: PageProps) {
       {data ? <><div className="stat"><span>Frei auf dem Pi</span><b>{(data.free / 1073741824).toFixed(1)} GB</b></div><div className="stat"><span>Gesamt</span><b>{(data.total / 1073741824).toFixed(0)} GB</b></div><div className="stat"><span>Jons Ordner</span><b>{data.root}</b></div><button className="btn soft" style={{marginTop: 16}} onClick={() => {setPanel(""); push("library");}}>Bibliothek öffnen</button></> : <Busy/>}
     </Sheet>
     <Sheet open={panel === "Datenschutz"} title="Datenschutzzentrum" onClose={() => setPanel("")}>
-      <p>„Hey Jon“ wird lokal auf diesem Gerät erkannt. Erst dein Auftrag danach geht verschlüsselt an deinen Pi.</p>
+      <p>Jon hört nur zu, wenn du auf das Mikrofon oder auf „Stimme“ tippst. Was du dann sagst, geht verschlüsselt an deinen Pi.</p>
       <p>Chats, Dateien und API-Schlüssel liegen auf deinem Pi, Schlüssel dort verschlüsselt. Der gewählte KI-Anbieter verarbeitet nur die Anfragen, die du stellst.</p>
       <p>Die Verbindung zum Pi ist Ende-zu-Ende verschlüsselt (AES-GCM) und läuft über dein Heimnetz oder Tailscale.</p>
     </Sheet>
@@ -372,14 +372,15 @@ export function VoiceSettingsPage({shell, back}: PageProps) {
     const zeit = setInterval(holen, 1500);
     return () => {aus = true; clearInterval(zeit);};
   }, []);
-  const modellText = !modell ? "Jon hört lokal auf sein Aktivierungswort" : modell.bereit ? "Jon hört lokal auf sein Aktivierungswort" : modell.laedt ? `Sprachmodell wird geladen … ${Math.round((modell.fortschritt || 0) * 100)} %` : modell.fehler ? modell.fehler : `Beim Einschalten lädt Jon einmal das Sprachmodell (${modell.groesse_mb || 45} MB)`;
+  const modellText = !modell || modell.bereit ? "Zeigt beim Sprechen live mit, was du sagst" : modell.laedt ? `Sprachmodell wird geladen … ${Math.round((modell.fortschritt || 0) * 100)} %` : modell.fehler ? modell.fehler : `Lädt beim ersten Sprechen einmal das Sprachmodell (${modell.groesse_mb || 45} MB)`;
+  const modellLaden = modell && !modell.bereit && !modell.laedt ? () => call("sprachmodell", {laden: true}).then(setModell).catch(e => shell.notify(errorText(e))) : undefined;
   if (!d) return <><PageHeader title="Sprachmodus" onBack={back}/><Busy/></>;
   return <>
     <PageHeader title="Sprachmodus" onBack={back}/>
     <div className="page-scroll">
       <div className="group">
         <Row icon={<Mic/>} label="Mikrofon" detail={d.rechte?.mikrofon ? "Erlaubt" : "Noch nicht erlaubt"} right={d.rechte?.mikrofon ? <span className="badge ok">Erlaubt</span> : undefined} onClick={() => call("permission", {name: "mikrofon"}).then(load).catch(e => shell.notify(errorText(e)))}/>
-        <Row icon={<Sparkles/>} label="„Hey Jon“" detail={modellText} right={<Switch on={!!d.wake} onChange={v => call("set", {name: "wake", value: v}).then(setD).catch(e => shell.notify(errorText(e)))}/>}/>
+        <Row icon={<Sparkles/>} label="Live-Text beim Sprechen" detail={modellText} right={modell?.bereit ? <span className="badge ok">Bereit</span> : modellLaden ? <span className="badge">Laden</span> : undefined} onClick={modellLaden}/>
         <Row icon={<Volume2/>} label="Durch Sprechen unterbrechen" detail="Wie im echten Gespräch: einfach reinreden" right={<Switch on={d.unterbrechen !== false} onChange={v => call("set", {name: "unterbrechen", value: v}).then(setD).catch(e => shell.notify(errorText(e)))}/>}/>
       </div>
       <div className="gap"/>
@@ -387,7 +388,7 @@ export function VoiceSettingsPage({shell, back}: PageProps) {
         <Row icon={<Volume2/>} label="Stimme testen" onClick={() => call("speak", {text: `Hallo ${shell.name}, ich bin Jon. So klinge ich auf deinem Gerät.`}).catch(e => shell.notify(errorText(e)))}/>
         <Row icon={<Mic/>} label="Gespräch starten" onClick={() => call("voice", {mode: "talk"}).catch(e => shell.notify(errorText(e)))}/>
       </div>
-      <p className="hint" style={{margin: "16px 8px"}}>Das Mikrofon in der Eingabezeile wandelt deine Sprache in Text um. Die blaue Taste „Stimme“ startet ein echtes Gespräch mit Jon. Spracherkennung und Stimme laufen über deinen Pi.</p>
+      <p className="hint" style={{margin: "16px 8px"}}>Das Mikrofon in der Eingabezeile wandelt deine Sprache in Text um. Die blaue Taste „Stimme“ startet ein Gespräch mit Jon: Du fragst, Jon antwortet, danach hört er nicht weiter zu. Jon hört nur, wenn du auf eine der beiden Tasten tippst.</p>
     </div>
   </>;
 }
@@ -404,7 +405,7 @@ export function SecurityPage({shell, back}: PageProps) {
     {ok: a.eingerichtet && a.bestaetigt, label: "Admin-PIN und Recovery-Code", hint: "Schützt den Ausgang aus dem Kiosk"},
     {ok: d.pi?.verbunden, label: "Mit dem Pi verbunden", hint: d.pi?.name || "Pi koppeln"},
     {ok: d.eigentuemer, label: "Gerätemodus (Device Owner)", hint: d.eigentuemer ? "Eingerichtet" : "Einmalig per USB am PC"},
-    {ok: d.rechte?.mikrofon, label: "Mikrofon", hint: "Für Sprache und „Hey Jon“"}
+    {ok: d.rechte?.mikrofon, label: "Mikrofon", hint: "Für Sprechen und Diktieren"}
   ];
   const ready = checks.every(c => c.ok);
   async function kiosk(aktion: string) {

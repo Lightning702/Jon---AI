@@ -33,7 +33,6 @@ def test_gesperrte_routen_antworten_mit_402_und_funktion(client):
         ("post", "/api/media/jobs", {"kind": "speech", "text": "Hallo"}, "stimmen"),
         ("post", "/api/games/starfall/start", None, "spiele"),
         ("post", "/api/inbox/analyze", {"items": []}, "automatik"),
-        ("post", "/api/mobile/befehl", {"text": "/status"}, "fernsteuerung"),
     ]:
         antwort = getattr(client, methode)(pfad, json=daten) if daten is not None else getattr(client, methode)(pfad)
         assert antwort.status_code == 402, (pfad, antwort.status_code, antwort.text)
@@ -92,14 +91,9 @@ def test_fachteam_und_harness_haben_tageskontingent(standard, tmp_path):
     asyncio.run(zweimal())
 
 
-def test_funke_am_handy_braucht_premium(standard):
-    from app.schemas import ChatIn
-    from app.services.chat_service import ChatService
+def test_handy_app_kennt_kein_premium(standard, client):
+    from app.services.premium import FEATURES
 
-    async def lauf():
-        return [e async for e in ChatService().stream(ChatIn(messages=[{"role": "user", "content": "Hallo"}], persona="funke", source="handy", persist=False))]
-
-    ereignisse = asyncio.run(lauf())
-    fehler = [e for e in ereignisse if e["type"] == "error"]
-    assert fehler and fehler[0]["premium"] == "funke"
-    assert ereignisse[-1]["type"] == "done" and not any(e["type"] == "content" for e in ereignisse)
+    assert "funke" not in FEATURES and "Handy" not in FEATURES["fernsteuerung"][1]
+    assert client.post("/api/mobile/befehl", json={"text": "/hilfe"}).status_code != 402
+    assert client.post("/api/mobile/ausfuehren", json={"path": "gibt-es-nicht.txt"}).status_code != 402
