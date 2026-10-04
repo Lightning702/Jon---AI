@@ -20,9 +20,6 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
-TAG = 86400
-ADMIN_TAGE = 90
-ENTWICKLER_TAGE = 14
 ZEICHEN = "23456789ABCDEFGHJKMNPQRSTVWXYZ"
 LAENGE = 20
 MAX_CODES = 500
@@ -155,7 +152,7 @@ class Codeserver:
         pk = self.admin().get("pk")
         if not pk:
             raise HTTPException(503, "Auf dem Codeserver ist noch kein Admin-Code eingerichtet.")
-        return self.signieren({"stufe": "admin", "name": "Admin", "geraete": [geraet], "exp": int(self.uhr()) + ADMIN_TAGE * TAG, "pk": pk, "quelle": "codes"})
+        return self.signieren({"stufe": "admin", "name": "Admin", "geraete": [geraet], "pk": pk, "quelle": "codes"})
 
     def _codes(self) -> dict:
         daten = self._lesen("codes.json", {})
@@ -169,7 +166,7 @@ class Codeserver:
         return hmac.new(bytes.fromhex(daten["pfeffer"]), code.encode(), hashlib.sha256).hexdigest()
 
     def entwickler_token(self, eintrag: dict, geraet: str) -> str:
-        return self.signieren({"stufe": "entwickler", "name": eintrag.get("name") or "Entwickler", "geraete": [geraet], "exp": int(self.uhr()) + ENTWICKLER_TAGE * TAG, "code": eintrag["id"], "quelle": "codes"})
+        return self.signieren({"stufe": "entwickler", "name": eintrag.get("name") or "Entwickler", "geraete": [geraet], "code": eintrag["id"], "quelle": "codes"})
 
     def _bremse(self, ip: str) -> None:
         jetzt = self.uhr()
@@ -235,7 +232,8 @@ class Codeserver:
 
     def admin_pruefen(self, token: str, geraet: str) -> None:
         inhalt = self.lesen(token)
-        if inhalt["stufe"] != "admin" or inhalt.get("pk") != self.admin().get("pk") or geraet not in inhalt.get("geraete", []) or float(inhalt.get("exp") or 0) < self.uhr():
+        abgelaufen = bool(inhalt.get("exp")) and float(inhalt["exp"]) < self.uhr()
+        if inhalt["stufe"] != "admin" or inhalt.get("pk") != self.admin().get("pk") or geraet not in inhalt.get("geraete", []) or abgelaufen:
             raise HTTPException(403, "Nur der Admin kann Entwickler-Codes verwalten.")
 
     def liste(self) -> list[dict]:

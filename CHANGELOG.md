@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.59.2] — 2026-10-04
+
+### 🔑 Codes gelten für immer
+
+- **Kein Ablaufdatum mehr:** Lizenzen aus Admin- und Entwickler-Codes laufen nie ab, auch wenn der Pi einmal nicht erreichbar ist.
+- **Sperren wirkt trotzdem:** Jon fragt alle 6 Stunden beim Codeserver nach. Ist ein Code gesperrt oder der Admin-Code geändert, fällt das Gerät auf Standard zurück. Ohne Verbindung bleibt alles, wie es ist.
+
 ## [4.59.1] — 2026-10-04
 
 ### 🔑 Admin- und Entwickler-Codes über deinen Pi

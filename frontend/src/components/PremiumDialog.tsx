@@ -11,7 +11,7 @@ const KOPF: Record<string, { titel: string; text: string; icon: typeof Code2 }> 
   standard: { titel: "Jon Standard", text: "Kostenlos: Chat mit deinen Modellen, Werkzeuge, Gedächtnis, Kalender und MiniJon. Mit Premium schaltest du alles frei.", icon: Sparkles },
   premium: { titel: "Jon Premium", text: "Alle Premium-Funktionen sind freigeschaltet. Danke, dass du Jon unterstützt!", icon: Gem },
   admin: { titel: "Admin", text: "Alles ist unbegrenzt freigeschaltet. Hier erzeugst du Entwickler-Codes für andere Personen und Geräte.", icon: Crown },
-  entwickler: { titel: "Entwickler", text: "Alles ist unbegrenzt freigeschaltet. Deine Entwickler-Lizenz ist signiert, an dieses Gerät gebunden und erneuert sich von selbst.", icon: Wrench },
+  entwickler: { titel: "Entwickler", text: "Alles ist unbegrenzt freigeschaltet. Deine Entwickler-Lizenz ist signiert, an dieses Gerät gebunden und gilt für immer.", icon: Wrench },
 };
 const SANFT = { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] };
 
