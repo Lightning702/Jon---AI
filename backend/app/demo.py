@@ -15,6 +15,8 @@ URSPRUENGE = [u.strip() for u in os.environ.get("JON_DEMO_ORIGINS", "https://get
 PRO_IP = int(os.environ.get("JON_DEMO_PRO_IP", "20"))
 PRO_TAG = int(os.environ.get("JON_DEMO_PRO_TAG", "600"))
 MAX_AUDIO = 4 * 1024 * 1024
+PAUSE_NACH_FEHLER = 600
+_ausgefallen: dict[tuple[str, str], float] = {}
 PERSONAS = {
     "jon": "Du bist Jon, der KI-Assistent von FelWorks aus Österreich, hier in der öffentlichen Website-Demo. Antworte freundlich, klar und auf Deutsch, wenn der Nutzer nichts anderes schreibt. "
     "In der Demo hast du keinen Zugriff auf einen Computer, keine Dateien, kein Gedächtnis und keine Werkzeuge. Behaupte nie, etwas auf einem Gerät getan zu haben. "
@@ -82,15 +84,42 @@ def auswahl() -> tuple[str, str]:
     return provider, lebendes_modell(model or get_settings().jon_model, provider)
 
 
+def kandidaten() -> list[tuple[str, str]]:
+    from app.core.config import get_settings, lebendes_modell
+
+    settings = get_settings()
+    liste = [auswahl()]
+    reserve = (settings.default_provider, lebendes_modell(settings.jon_model, settings.default_provider))
+    if reserve not in liste:
+        liste.append(reserve)
+    jetzt = time.time()
+    frei = [k for k in liste if jetzt - _ausgefallen.get(k, 0) > PAUSE_NACH_FEHLER]
+    return frei or liste
+
+
 async def antworten(persona: str, nachrichten: list[Nachricht]):
     from app.providers.base import ChatMessage, ChatRequest
     from app.providers.registry import get_registry
 
-    provider, model = auswahl()
-    anfrage = ChatRequest(messages=[ChatMessage(role="system", content=PERSONAS[persona])] + [ChatMessage(role=n.role, content=n.content) for n in nachrichten], model=model, temperature=0.6, top_p=1.0, max_tokens=900, tools=[], slot="jon", first_token_timeout=60)
-    async for teil in get_registry().get(provider).stream(anfrage, None):
-        if teil.kind == "content" and teil.delta:
-            yield teil.delta
+    verlauf = [ChatMessage(role="system", content=PERSONAS[persona])] + [ChatMessage(role=n.role, content=n.content) for n in nachrichten]
+    letzter: Exception | None = None
+    for provider, model in kandidaten():
+        anfrage = ChatRequest(messages=verlauf, model=model, temperature=0.6, top_p=1.0, max_tokens=900, tools=[], slot="jon", first_token_timeout=60)
+        geliefert = False
+        try:
+            async for teil in get_registry().get(provider).stream(anfrage, None):
+                if teil.kind == "content" and teil.delta:
+                    geliefert = True
+                    yield teil.delta
+        except Exception as exc:
+            if geliefert:
+                raise
+            letzter = exc
+        if geliefert:
+            _ausgefallen.pop((provider, model), None)
+            return
+        _ausgefallen[(provider, model)] = time.time()
+    raise letzter or RuntimeError("Das Modell hat keine Antwort geliefert.")
 
 
 def erstellen(begrenzer: Begrenzer | None = None) -> FastAPI:
