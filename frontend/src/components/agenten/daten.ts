@@ -67,7 +67,8 @@ export interface HarnessAuftrag {
   pending: null | {id: string; notice: string; args: {command: string; cwd: string; timeout: number}};
   changes: {path: string; diff: string}[];
   checks: {command: string; output: string; ok: boolean; exit_code: number; revision: number}[];
-  log?: {time: number; type: string; tool: string; message: string}[];
+  log?: {time: number; type: string; tool: string; message: string; pfad?: string; plus?: number; minus?: number; ok?: boolean; ausgabe?: string}[];
+  plan_schritt?: number;
   created_at?: number;
   updated_at?: number;
 }

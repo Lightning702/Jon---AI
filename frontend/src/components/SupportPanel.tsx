@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bug, Check, Copy, Gem, HelpCircle, Lightbulb, Loader2, Mail, Send, Sparkles, TriangleAlert } from "lucide-react";
+import { Bug, Check, Copy, Gem, HelpCircle, LifeBuoy, Lightbulb, Loader2, Mail, Monitor, Send, Sparkles, TriangleAlert } from "lucide-react";
 import { BASE } from "../lib/api";
 import "./beobachten.css";
 
@@ -12,6 +12,14 @@ const ARTEN = [
   { key: "frage", label: "Frage", icon: HelpCircle },
 ] as const;
 const EMAIL = "felix.heinisch12@gmail.com";
+const TIPPS: Record<string, string> = {
+  problem: "Beschreib kurz, was du tun wolltest und woran es hängt. Ein Satz zu deinem Gerät hilft oft schon.",
+  fehler: "Am meisten hilft: was du gemacht hast, was passiert ist und was du stattdessen erwartet hättest.",
+  vorschlag: "Sag ruhig, wofür du es brauchst. Dann lässt sich die beste Lösung finden.",
+  standard: "Wofür würdest du die Funktion im Alltag nutzen? Beispiele helfen beim Planen.",
+  premium: "Was soll die Funktion können, und wie oft würdest du sie nutzen?",
+  frage: "Frag einfach. Wenn du eine E-Mail angibst, kommt die Antwort direkt dorthin.",
+};
 
 export default function SupportPanel() {
   const [art, setArt] = useState<(typeof ARTEN)[number]["key"]>("problem");
@@ -53,28 +61,49 @@ export default function SupportPanel() {
     }
   };
 
-  return <div className="bo">
+  return <div className="bo bo-seite">
     <div className="bo-kopf">
-      <span className="bo-icon"><Mail size={18} /></span>
+      <span className="bo-icon"><LifeBuoy size={18} /></span>
       <div>
         <strong>Support</strong>
-        <p>Probleme, Fehler, Vorschläge oder Ideen für neue Standard- oder Premium-Funktionen gehen direkt an FelWorks: <b className="text-gold/90">{EMAIL}</b></p>
+        <p>Probleme, Fehler, Vorschläge oder Ideen für neue Standard- und Premium-Funktionen gehen direkt an FelWorks.</p>
       </div>
     </div>
-    {fertig ? <div key="fertig" className="bo-treffer bo-ein" style={{ marginLeft: 0 }}>
-        <Check size={16} /><div><p>Danke! Deine Nachricht ist angekommen. Wenn du eine E-Mail angegeben hast, bekommst du dorthin eine Antwort.</p><button className="text-[11.5px] text-emerald-200 underline" onClick={() => setFertig(false)}>Noch eine Nachricht schreiben</button></div>
-      </div> : <form key="form" className="bo-neu bo-ein" onSubmit={e => {e.preventDefault(); if (gueltig && !busy) void senden();}}>
-        <div className="sp-arten" role="radiogroup" aria-label="Worum geht es?">{ARTEN.map(a => <button type="button" role="radio" aria-checked={art === a.key} key={a.key} className={art === a.key ? "an" : ""} onClick={() => setArt(a.key)}><a.icon size={13} />{a.label}</button>)}</div>
-        <input aria-label="Betreff" placeholder="Betreff" value={betreff} maxLength={160} onChange={e => setBetreff(e.target.value)} />
-        <textarea className="sp-text" aria-label="Nachricht" placeholder={art === "fehler" ? "Was ist passiert? Was hast du davor gemacht? Was hättest du erwartet?" : art === "premium" || art === "standard" ? "Welche Funktion wünschst du dir und wofür würdest du sie nutzen?" : "Deine Nachricht …"} value={nachricht} maxLength={8000} onChange={e => setNachricht(e.target.value)} />
-        <input aria-label="Deine E-Mail für die Antwort" placeholder="Deine E-Mail für die Antwort (optional)" value={email} maxLength={200} onChange={e => setEmail(e.target.value.trim())} />
-        <label className="sp-infos"><input type="checkbox" checked={infos} onChange={e => setInfos(e.target.checked)} />Version und System mitsenden{system ? `: Jon ${system.version} · ${system.stufe} · ${system.system}` : ""}</label>
-        {fehler && <div className="bo-fehler bo-ein" role="alert"><TriangleAlert size={14} />{fehler}</div>}
-        <div className="bo-zeile sp-knoepfe">
-          <a className={"sp-mail " + (gueltig ? "" : "aus")} href={gueltig ? mailto() : undefined} aria-disabled={!gueltig}><Mail size={13} />Mit E-Mail-Programm</a>
-          <button type="button" className="sp-kopieren" onClick={() => void navigator.clipboard?.writeText(EMAIL).then(() => {setKopiert(true); setTimeout(() => setKopiert(false), 2000);})}>{kopiert ? <Check size={13} /> : <Copy size={13} />}{kopiert ? "Kopiert" : "Adresse kopieren"}</button>
-          <button type="submit" disabled={!gueltig || busy}>{busy ? <Loader2 size={14} className="bo-dreh" /> : <Send size={14} />}Senden</button>
+    <div className="bo-spalten">
+      {fertig ? <div key="fertig" className="sp-fertig bo-ein">
+          <span className="sp-fertig-icon"><Check size={22} /></span>
+          <strong>Danke, deine Nachricht ist angekommen.</strong>
+          <p>Wenn du eine E-Mail angegeben hast, bekommst du dorthin eine Antwort.</p>
+          <button onClick={() => setFertig(false)}>Noch eine Nachricht schreiben</button>
+        </div> : <form key="form" className="bo-neu bo-karte bo-ein" onSubmit={e => {e.preventDefault(); if (gueltig && !busy) void senden();}}>
+          <span className="bo-feld-titel">Worum geht es?</span>
+          <div className="sp-arten" role="radiogroup" aria-label="Worum geht es?">{ARTEN.map(a => <button type="button" role="radio" aria-checked={art === a.key} key={a.key} className={art === a.key ? "an" : ""} onClick={() => setArt(a.key)}><a.icon size={13} />{a.label}</button>)}</div>
+          <span className="bo-feld-titel">Deine Nachricht</span>
+          <input aria-label="Betreff" placeholder="Betreff" value={betreff} maxLength={160} onChange={e => setBetreff(e.target.value)} />
+          <textarea className="sp-text" aria-label="Nachricht" placeholder={art === "fehler" ? "Was ist passiert? Was hast du davor gemacht? Was hättest du erwartet?" : art === "premium" || art === "standard" ? "Welche Funktion wünschst du dir und wofür würdest du sie nutzen?" : "Deine Nachricht …"} value={nachricht} maxLength={8000} onChange={e => setNachricht(e.target.value)} />
+          <input aria-label="Deine E-Mail für die Antwort" placeholder="Deine E-Mail für die Antwort (optional)" value={email} maxLength={200} onChange={e => setEmail(e.target.value.trim())} />
+          <label className="sp-infos"><input type="checkbox" checked={infos} onChange={e => setInfos(e.target.checked)} />Version und System mitsenden</label>
+          {fehler && <div className="bo-fehler bo-ein" role="alert"><TriangleAlert size={14} />{fehler}</div>}
+          <div className="bo-zeile sp-knoepfe">
+            <a className={"sp-mail " + (gueltig ? "" : "aus")} href={gueltig ? mailto() : undefined} aria-disabled={!gueltig}><Mail size={13} />Mit E-Mail-Programm</a>
+            <button type="submit" disabled={!gueltig || busy}>{busy ? <Loader2 size={14} className="bo-dreh" /> : <Send size={14} />}Senden</button>
+          </div>
+        </form>}
+      <aside className="sp-info">
+        <div className="sp-info-karte">
+          <span className="sp-info-titel"><Mail size={14} />Direkt an FelWorks</span>
+          <code>{EMAIL}</code>
+          <button type="button" onClick={() => void navigator.clipboard?.writeText(EMAIL).then(() => {setKopiert(true); setTimeout(() => setKopiert(false), 2000);})}>{kopiert ? <Check size={12} /> : <Copy size={12} />}{kopiert ? "Kopiert" : "Adresse kopieren"}</button>
         </div>
-      </form>}
+        <div className="sp-info-karte">
+          <span className="sp-info-titel"><Monitor size={14} />Wird mitgeschickt</span>
+          <p>{infos ? (system ? `Jon ${system.version} · ${system.stufe} · ${system.system}` : "Version und System") : "Nur deine Nachricht und, falls angegeben, deine E-Mail."}</p>
+        </div>
+        <div className="sp-info-karte sp-tipp">
+          <span className="sp-info-titel"><Lightbulb size={14} />Tipp</span>
+          <p>{TIPPS[art]}</p>
+        </div>
+      </aside>
+    </div>
   </div>;
 }

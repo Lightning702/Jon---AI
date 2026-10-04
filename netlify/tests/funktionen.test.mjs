@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import {generateKeyPairSync} from "node:crypto";
+import {generateKeyPairSync, sign} from "node:crypto";
 import {createServer} from "node:http";
 import {after, before, beforeEach, test} from "node:test";
 
 const {privateKey} = generateKeyPairSync("ed25519");
+const codeSchluessel = generateKeyPairSync("ed25519");
+process.env.JON_CODE_OEFFENTLICH = codeSchluessel.publicKey.export({format: "der", type: "spki"}).subarray(-32).toString("base64");
 process.env.JON_LIZENZ_SCHLUESSEL = privateKey.export({format: "der", type: "pkcs8"}).toString("base64");
 process.env.STRIPE_SECRET_KEY = "sk_test_attrappe";
 process.env.JON_ADMIN_PASSWORT = "ein-sehr-langes-passwort";
@@ -160,4 +162,24 @@ test("Cloud-Sicherung nur mit gültiger Lizenz und freigeschaltetem Gerät", asy
   assert.ok(blobs.has("kunde-cus_1"));
   await fehlschlag(sicherung({aktion: "holen", token, geraet: ANDERES}, speicher), 403);
   await fehlschlag(sicherung({aktion: "hochladen", token, geraet: GERAET, daten: "x".repeat(4_000_001)}, speicher), 413);
+});
+
+function vomCodeserver(inhalt, schluessel = codeSchluessel.privateKey) {
+  const kopf = `JON1.${Buffer.from(JSON.stringify({...inhalt, quelle: "codes"})).toString("base64url")}`;
+  return `${kopf}.${sign(null, Buffer.from(kopf), schluessel).toString("base64url")}`;
+}
+
+test("Admin- und Entwickler-Lizenzen vom Codeserver auf dem Pi gelten für die Cloud-Sicherung", async () => {
+  const blobs = new Map();
+  const speicher = {set: async (k, v, o) => blobs.set(k, {v, m: o.metadata}), get: async k => blobs.get(k)?.v ?? null, getMetadata: async k => blobs.has(k) ? {metadata: blobs.get(k).m} : null};
+  const entwickler = vomCodeserver({stufe: "entwickler", name: "Anna", geraete: [GERAET], exp: Math.floor(Date.now() / 1000) + 3600, code: "abc123abc123"});
+  await sicherung({aktion: "hochladen", token: entwickler, geraet: GERAET, daten: "geheim"}, speicher);
+  assert.ok(blobs.has("entwickler-abc123abc123"));
+  const adminToken = vomCodeserver({stufe: "admin", name: "Admin", geraete: [GERAET], exp: Math.floor(Date.now() / 1000) + 3600, pk: "0123456789abcdef"});
+  await sicherung({aktion: "hochladen", token: adminToken, geraet: GERAET, daten: "admin"}, speicher);
+  assert.ok(blobs.has("admin-0123456789abcdef"));
+  assert.equal(lesen(entwickler).stufe, "entwickler");
+  await fehlschlag(Promise.resolve().then(() => lesen(vomCodeserver({stufe: "premium", geraete: [GERAET]}))), 400);
+  await fehlschlag(Promise.resolve().then(() => lesen(vomCodeserver({stufe: "admin", geraete: [GERAET]}, privateKey))), 403);
+  await fehlschlag(lizenz({aktion: "erneuern", token: entwickler, geraet: GERAET}), 400, "Codeserver");
 });

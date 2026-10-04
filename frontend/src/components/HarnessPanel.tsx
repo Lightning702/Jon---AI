@@ -4,13 +4,14 @@ import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, File
 import {addProject, getUserSettings, JonProject, pickFolderDialog} from "../lib/api";
 import {finished, HarnessSitzung, HarnessTask, harnessRequest, taskLabels} from "../lib/harness";
 import AgentenBuehne from "./agenten/AgentenBuehne";
-import {HarnessAnsicht} from "./agenten/HarnessKarte";
+import HarnessVerlauf from "./HarnessVerlauf";
 import {diffZahlen, rolle, TEIL_TEXT} from "./agenten/daten";
 import HarnessVorschau from "./HarnessVorschau";
 import "./harness-workspace.css";
 
 const VORSCHLAEGE = ["Baue mir eine Startseite mit index.html", "Finde und behebe einen Fehler", "Erkläre mir dieses Projekt", "Verbessere die Oberfläche und prüfe den Build"];
 const FOLGE = ["Mach es schöner und moderner", "Prüfe alles noch einmal und behebe Fehler", "Schreibe Tests dafür", "Erkläre mir, was du geändert hast"];
+const ANBIETER: Record<string, string> = {nvidia: "NVIDIA NIM", ollama: "Ollama", openrouter: "OpenRouter", lmstudio: "LM Studio", xai: "xAI", anthropic: "Anthropic", gemini: "Google Gemini", openai: "OpenAI"};
 type Rechts = "aenderungen" | "vorschau" | null;
 
 function Ergebnis({task, aktuell, onAenderungen, onVorschau, busy, onStopp, onEntscheiden}: {task: HarnessTask; aktuell: boolean; onAenderungen: () => void; onVorschau: () => void; busy: boolean; onStopp: () => void; onEntscheiden: (allow: boolean) => void}) {
@@ -31,15 +32,14 @@ function Ergebnis({task, aktuell, onAenderungen, onVorschau, busy, onStopp, onEn
     {!!dateien.length && <div className="harness-frueher-dateien">{dateien.map(d => <button key={d.path} onClick={onAenderungen}><FileCode2 size={12}/>{d.path}</button>)}</div>}
   </details>;
   return <>
-    <HarnessAnsicht auftrag={task} beschaeftigt={busy} onStopp={onStopp} onEntscheiden={onEntscheiden}/>
+    <HarnessVerlauf task={task} busy={busy} onStopp={onStopp} onEntscheiden={onEntscheiden}/>
     {!!task.specialists?.length && <div className="harness-specialists"><div className="harness-section-label" style={{margin: "22px 0 10px"}}>Fachagenten</div>{task.specialists.map((agent, index) => {
       const r = rolle(agent.profil || "coding");
       const Icon = r.icon;
       return <details key={index} className="harness-specialist" style={{["--farbe" as string]: r.farbe}}><summary><span className="harness-specialist-icon"><Icon size={14}/></span>{agent.role}<span>{TEIL_TEXT[agent.status] || agent.status}{agent.dauer ? ` · ${Math.round(agent.dauer)}s` : ""}</span></summary><p className="harness-muted">{agent.question}</p><p>{agent.result || agent.error || "Prüft die Teilaufgabe …"}</p></details>;
     })}</div>}
     {!!dateien.length && <div className="harness-changes-card"><div className="harness-changes-head"><FileCode2 size={21}/><div><strong>{dateien.length} {dateien.length === 1 ? "Datei bearbeitet" : "Dateien bearbeitet"}</strong><div><span className="harness-added">+{summe.added}</span><span className="harness-removed">−{summe.removed}</span></div></div><button onClick={onAenderungen}>Änderungen</button>{fertig && <button className="harness-vorschau-cta" onClick={onVorschau}><Monitor size={13}/>Vorschau</button>}</div>{dateien.slice(0, 3).map(item => <button className="harness-file-row" key={item.path} onClick={onAenderungen}><span>{item.path}</span><span><b className="harness-added">+{item.added}</b><b className="harness-removed">−{item.removed}</b></span></button>)}{dateien.length > 3 && <button className="harness-more-files" onClick={onAenderungen}>{dateien.length - 3} weitere Dateien anzeigen <ChevronDown size={14}/></button>}</div>}
-    {!!task.checks.length && <div className="harness-checks">{task.checks.map((check, index) => <details key={index}><summary>{check.ok ? <CheckCircle2 size={16} className="harness-added"/> : <X size={16} className="harness-removed"/>}<code>{check.command}</code><span>{check.ok ? "Bestanden" : "Fehlgeschlagen"}</span></summary><pre>{check.output || "Keine Ausgabe"}</pre></details>)}</div>}
-    {!!task.log?.length && <details className="harness-log"><summary>Aktivitätsverlauf <ChevronDown size={13}/></summary><ol>{task.log.map((entry, index) => <li key={index} className={entry.type === "hinweis" ? "hinweis" : ""}><time>{new Date(entry.time * 1000).toLocaleTimeString("de-AT", {hour: "2-digit", minute: "2-digit"})}</time><b>{entry.tool || (entry.type === "hinweis" ? "Hinweis" : entry.type)}</b><span>{entry.message}</span></li>)}</ol></details>}
+    {fertig && !!task.checks.length && <div className="harness-checks">{task.checks.map((check, index) => <details key={index}><summary>{check.ok ? <CheckCircle2 size={16} className="harness-added"/> : <X size={16} className="harness-removed"/>}<code>{check.command}</code><span>{check.ok ? "Bestanden" : "Fehlgeschlagen"}</span></summary><pre>{check.output || "Keine Ausgabe"}</pre></details>)}</div>}
   </>;
 }
 
@@ -49,6 +49,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
   const [goal, setGoal] = useState("");
   const [mini, setMini] = useState(false);
   const [modelLabel, setModelLabel] = useState("Jons Modell");
+  const [anbieter, setAnbieter] = useState("");
   const [sitzungen, setSitzungen] = useState<HarnessSitzung[]>([]);
   const [selected, setSelected] = useState("");
   const [tasks, setTasks] = useState<HarnessTask[]>([]);
@@ -75,7 +76,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
     void Promise.all([harnessRequest<JonProject[]>("/projects", undefined, undefined, controller.signal), harnessRequest<{root: string}>("/harness/project?source=app", undefined, undefined, controller.signal)])
       .then(([items, context]) => {if (!controller.signal.aborted) {setProjects(items); setRoot(r => r || context.root || items[0]?.root || "");}})
       .catch(e => {if (!controller.signal.aborted) setError(e.message);});
-    void getUserSettings().then(value => {if (!controller.signal.aborted) setModelLabel(value.model || "Jons Modell");}).catch(() => {});
+    void getUserSettings().then(value => {if (!controller.signal.aborted) {setModelLabel(value.model || "Jons Modell"); setAnbieter(value.provider || "");}}).catch(() => {});
     if (initialTask) void harnessRequest<HarnessTask>(`/harness/tasks/${initialTask}`, undefined, undefined, controller.signal)
       .then(t => {if (!controller.signal.aborted) {setSelected(t.thread || t.id); setRoot(t.root);}})
       .catch(() => {})
@@ -209,10 +210,10 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
       <div className="harness-project-list">{projects.map(project => <details key={project.id} open={root === project.root || undefined}><summary onClick={() => setRoot(project.root)}><Folder size={15}/><span>{project.name}</span><ChevronRight size={13}/></summary><div className="harness-task-list">{liste(visible.filter(item => item.root === project.root), true)}<button className="harness-project-new" onClick={() => newTask(project.root)}><Plus size={13}/>Neue Sitzung in diesem Projekt</button></div></details>)}{!projects.length && !loading && <button className="harness-empty-project" onClick={() => void pick()}><FolderPlus size={18}/>Erstes Projekt öffnen</button>}</div>
       <div className="harness-section-label">Letzte Sitzungen</div>
       <div className="harness-task-list harness-recents">{liste(visible.slice(0, 8))}{loading && <span className="harness-muted">Lädt Sitzungen …</span>}{!loading && !visible.length && <span className="harness-muted">{search ? "Keine passenden Sitzungen" : "Deine erste Sitzung wartet auf dich."}</span>}</div>
-      <div className="harness-sidebar-foot"><span className="harness-companion-dot"/><span>Arbeitet mit <b>{modelLabel}</b></span></div>
+      <div className="harness-sidebar-foot" title={modelLabel}><span className="harness-companion-dot"/><span>Arbeitet mit <b>{ANBIETER[anbieter || letzte?.provider || ""] || modelLabel}</b></span></div>
     </aside>
     <div className="harness-main">
-      <header className="harness-topbar"><button aria-label="Projektleiste umschalten" title="Projektleiste umschalten" onClick={() => setSidebar(v => !v)}><PanelLeft size={17}/></button>{imThread ? <MessagesSquare size={16}/> : <Folder size={16}/>}<strong>{imThread ? sitzung?.title || tasks[0]?.goal : "Neue Sitzung"}</strong>{imThread && tasks.length > 1 && <span className="harness-topbar-zahl">{tasks.length} Aufträge</span>}<div className="harness-topbar-actions">{letzte && imThread && <span className={"harness-status status-" + letzte.status}>{working && <Loader2 size={13} className="harness-spin"/>}{taskLabels[letzte.status] || letzte.status}</span>}<button className={"harness-topbar-knopf " + (rechts === "vorschau" ? "an" : "")} aria-label="Vorschau anzeigen" title="Vorschau deines Projekts" onClick={() => umschalten("vorschau")} disabled={!root}><Monitor size={15}/><span>Vorschau</span></button><button className={"harness-topbar-knopf " + (rechts === "aenderungen" ? "an" : "")} aria-label="Änderungen anzeigen" title="Änderungen dieser Sitzung" onClick={() => umschalten("aenderungen")} disabled={!imThread}><GitBranch size={15}/><span>Änderungen</span>{!!changes.length && <em>{changes.length}</em>}</button></div></header>
+      <header className="harness-topbar"><button aria-label="Projektleiste umschalten" title="Projektleiste umschalten" onClick={() => setSidebar(v => !v)}><PanelLeft size={17}/></button>{imThread ? <MessagesSquare size={16}/> : <Folder size={16}/>}<strong>{imThread ? sitzung?.title || tasks[0]?.goal : "Neue Sitzung"}</strong>{imThread && <span className="harness-topbar-meta">Jon Harness · {ANBIETER[letzte?.provider || anbieter] || letzte?.provider || anbieter || "Jons Modell"} · Coding-Agent</span>}{imThread && tasks.length > 1 && <span className="harness-topbar-zahl">{tasks.length} Aufträge</span>}<div className="harness-topbar-actions">{letzte && imThread && <span className={"harness-status status-" + letzte.status}>{working && <Loader2 size={13} className="harness-spin"/>}{taskLabels[letzte.status] || letzte.status}</span>}<button className={"harness-topbar-knopf " + (rechts === "vorschau" ? "an" : "")} aria-label="Vorschau anzeigen" title="Vorschau deines Projekts" onClick={() => umschalten("vorschau")} disabled={!root}><Monitor size={15}/><span>Vorschau</span></button><button className={"harness-topbar-knopf " + (rechts === "aenderungen" ? "an" : "")} aria-label="Änderungen anzeigen" title="Änderungen dieser Sitzung" onClick={() => umschalten("aenderungen")} disabled={!imThread}><GitBranch size={15}/><span>Änderungen</span>{!!changes.length && <em>{changes.length}</em>}</button></div></header>
       <AnimatePresence>{error && <motion.div initial={{height: 0, opacity: 0}} animate={{height: "auto", opacity: 1}} exit={{height: 0, opacity: 0}} role="alert" className="harness-error"><span>{error}</span><button aria-label="Fehler schließen" onClick={() => setError("")}><X size={16}/></button></motion.div>}</AnimatePresence>
       <main className="harness-feed" ref={feed}>
         <AnimatePresence mode="wait">

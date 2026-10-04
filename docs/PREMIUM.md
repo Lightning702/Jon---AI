@@ -1,14 +1,15 @@
 # Jon Premium
 
-Stand: 3. Oktober 2026, Jon 4.58.1.
+Stand: 4. Oktober 2026, Jon 4.59.1.
 
-Jon gibt es in drei Stufen. Welche aktiv ist, steht in der Desktop-App oben links neben „JON“ und am Handy im Chat-Kopf.
+Jon gibt es in vier Stufen. Welche aktiv ist, steht in der Desktop-App oben links neben „JON“ und am Handy im Chat-Kopf.
 
 | Stufe | Was sie bedeutet |
 |---|---|
 | Standard | Kostenlos. Chat mit eigenen Modellen, Werkzeuge, Gedächtnis, Kalender, Erinnerungen, Beobachten, MiniJon in der Grundform, Blockwelt. Harness 3 Aufträge und Fachteam 1 Lauf pro Tag. |
 | Premium | Abo über Stripe, 6,99 € im Monat oder 59,99 € im Jahr inkl. MwSt. Alles unten ist freigeschaltet, ohne Tageslimit. |
-| Admin | Für FelWorks. Alles unbegrenzt. Nur mit dem Admin-Passwort des Lizenzservers erhältlich und an ein Gerät gebunden. |
+| Admin | Für FelWorks. Alles unbegrenzt. Nur mit dem Admin-Code des FelWorks-Codeservers auf dem Pi erhältlich und an ein Gerät gebunden. Erzeugt und sperrt Entwickler-Codes. |
+| Entwickler | Alles unbegrenzt wie Admin, aber ohne Codes zu erzeugen. Nur mit einem Entwickler-Code vom Admin. Siehe `docs/CODES-PI.md`. |
 
 ## Premium-Funktionen
 
@@ -23,7 +24,8 @@ Der Kinderschutz selbst bleibt in jeder Stufe aktiv. Premium betrifft nur das Ve
 - Jon enthält nur den öffentlichen Schlüssel (`backend/app/services/premium.py`). Damit kann Jon prüfen, aber keine Lizenz erzeugen. Wer den Inhalt verändert, zum Beispiel `premium` in `admin`, macht die Signatur ungültig, und Jon bleibt Standard.
 - Jede Lizenz ist an Geräte gebunden. Die Geräte-ID ist ein Hash der Windows-MachineGuid beziehungsweise `/etc/machine-id`. Ein Abo gilt auf bis zu drei Geräten. Die Liste steht in den Metadaten des Stripe-Abos.
 - Premium-Lizenzen laufen sieben Tage nach dem Ende der bezahlten Periode ab. Jon erneuert sie im Hintergrund, solange das Abo aktiv ist. Ohne Internet läuft Premium bis zum Ablaufdatum weiter.
-- Admin-Lizenzen stellt die Funktion `premium-admin` nur gegen das richtige Passwort aus (`JON_ADMIN_PASSWORT`, mindestens 12 Zeichen, Vergleich in konstanter Zeit, 1,5 Sekunden Pause bei falschem Passwort). Sie gelten 90 Tage und erneuern sich automatisch. Ein neues Passwort beendet alle alten Admin-Lizenzen bei der nächsten Erneuerung.
+- Admin- und Entwickler-Lizenzen stellt seit 4.59.1 der Codeserver auf dem Pi aus. Er signiert mit einem eigenen Schlüssel, dessen öffentlicher Teil als `CODE_OEFFENTLICH` in Jon und Netlify steht. Details in `docs/CODES-PI.md`.
+- Die alte Funktion `premium-admin` stellt Admin-Lizenzen weiterhin nur gegen das richtige Passwort aus (`JON_ADMIN_PASSWORT`, mindestens 12 Zeichen, Vergleich in konstanter Zeit, 1,5 Sekunden Pause bei falschem Passwort). Sie gelten 90 Tage und erneuern sich automatisch. Ein neues Passwort beendet alle alten Admin-Lizenzen bei der nächsten Erneuerung.
 - Gesperrt wird im Backend an den zentralen Stellen: beim Ausführen von Chat-Werkzeugen, beim Start von Harness, Fachteam, Recherche, Studio und Medien, bei der Bildschirmanalyse, für Telegram, für Fernbefehle vom Handy und in den Routen. Die Desktop-App bekommt dann HTTP 402 und öffnet den Premium-Dialog, Telegram und Chat bekommen eine freundliche Meldung.
 
 Ehrlich gesagt: Jon läuft lokal, und der Quellcode liegt offen im Download. Die Signatur verhindert gefälschte Lizenzen, aber wer den Code selbst umschreibt, kann die Prüfung entfernen. Wirklich nicht umgehbar sind nur Funktionen, die auf einem Server laufen, etwa der Cloud-Sync.
@@ -32,13 +34,13 @@ Ehrlich gesagt: Jon läuft lokal, und der Quellcode liegt offen im Download. Die
 
 In Jon: oben links auf „Standard“ → Tarif wählen → „Premium holen“. Stripe Checkout öffnet sich im Browser. Jon fragt alle drei Sekunden beim Lizenzserver nach und schaltet sich nach der Zahlung selbst frei.
 
-Auf der Website: `getjon.info/premium/`. Nach der Zahlung zeigt die Dankesseite den Lizenzschlüssel. In Jon unter „Lizenz eingeben oder Admin“ einfügen.
+Auf der Website: `getjon.info/premium/`. Nach der Zahlung zeigt die Dankesseite den Lizenzschlüssel. In Jon unter „Lizenz oder Code eingeben“ einfügen.
 
 Stripe übernimmt Zahlung (Checkout im Abo-Modus), Rechnungen (jede Abo-Zahlung erzeugt eine Rechnung, Kundenportal mit Rechnungsverlauf) und Steuer (Stripe Tax mit `automatic_tax`, Preise inklusive MwSt., Steuer-ID-Abfrage für Firmen). Das Produkt „Jon Premium“ und beide Preise legt der Lizenzserver beim ersten Kauf selbst an (Lookup-Keys `jon_premium_monat` und `jon_premium_jahr`).
 
 ## Einrichten
 
-1. In Netlify (Site getjon) die Umgebungsvariablen `STRIPE_SECRET_KEY`, `JON_LIZENZ_SCHLUESSEL` und `JON_ADMIN_PASSWORT` setzen und neu veröffentlichen.
+1. In Netlify (Site getjon) die Umgebungsvariablen `STRIPE_SECRET_KEY` und `JON_LIZENZ_SCHLUESSEL` setzen und neu veröffentlichen. `JON_ADMIN_PASSWORT` braucht es nur noch für die alte Admin-Anmeldung über Netlify.
 2. Im Stripe-Dashboard Stripe Tax mit Firmenadresse aktivieren, das Kundenportal einmal speichern und Rechnungs-E-Mails einschalten.
 3. Testkauf mit der Karte 4242 4242 4242 4242.
 4. Für Live: einen Restricted Key mit Rechten für Products, Prices, Checkout Sessions, Subscriptions, Customer Portal und Customers anlegen und als `STRIPE_SECRET_KEY` eintragen.

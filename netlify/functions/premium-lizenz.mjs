@@ -22,6 +22,7 @@ export async function verarbeiten({aktion, session_id, token, geraet}) {
   }
   const id = geraetPruefen(geraet);
   const inhalt = lesen(token);
+  if (inhalt.quelle === "codes") throw new Fehler(400, "Diese Lizenz erneuert der FelWorks-Codeserver.");
   if (aktion === "erneuern" && inhalt.stufe === "admin") {
     if (inhalt.pk !== adminKennung() || !(inhalt.geraete || []).includes(id)) throw new Fehler(403, "Die Admin-Lizenz ist nicht mehr gültig. Melde dich erneut als Admin an.");
     return {token: adminToken(id)};

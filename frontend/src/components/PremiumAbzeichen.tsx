@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Crown, Gem, Sparkles } from "lucide-react";
+import { Crown, Gem, Sparkles, Wrench } from "lucide-react";
 import { premiumLaden, PremiumAnlass, usePremium } from "../lib/premium";
 import PremiumDialog from "./PremiumDialog";
 import "./premium.css";
 
-const ICON = { standard: Sparkles, premium: Gem, admin: Crown };
+const ICON = { standard: Sparkles, premium: Gem, admin: Crown, entwickler: Wrench };
+const TITEL = { standard: "Jon Standard · Premium ansehen", premium: "Jon Premium ist aktiv", admin: "Admin · alles unbegrenzt · hier erzeugst du Entwickler-Codes", entwickler: "Entwickler · alles unbegrenzt" };
 
 export default function PremiumAbzeichen() {
   const status = usePremium();
@@ -45,7 +46,7 @@ export default function PremiumAbzeichen() {
   }, []);
 
   return <>
-    <button type="button" className={"no-drag pm-abzeichen pm-abzeichen-" + stufe} title={stufe === "standard" ? "Jon Standard · Premium ansehen" : stufe === "admin" ? "Admin · alles unbegrenzt" : "Jon Premium ist aktiv"} onClick={() => {setAnlass(null); setOffen(true); void premiumLaden();}}>
+    <button type="button" className={"no-drag pm-abzeichen pm-abzeichen-" + stufe} title={TITEL[stufe]} onClick={() => {setAnlass(null); setOffen(true); void premiumLaden();}}>
       <Icon size={11} />
       <span>{status?.name || "Standard"}</span>
     </button>

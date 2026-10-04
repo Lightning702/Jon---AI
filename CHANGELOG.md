@@ -2,6 +2,33 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.59.1] — 2026-10-04
+
+### 🔑 Admin- und Entwickler-Codes über deinen Pi
+
+- **Neue Stufe „Entwickler“:** Alles unbegrenzt wie Admin, aber ohne neue Codes zu erzeugen. Oben links steht dann „Entwickler“ in Blau.
+- **Codes erzeugen als Admin:** Ein Klick auf „Admin“ zeigt ganz oben die Entwickler-Codes. Name und Geräteanzahl wählen, „Code erzeugen“, fertig. Jeder Code wird genau einmal angezeigt, lässt sich jederzeit sperren und wieder freigeben.
+- **Ein Feld für alles:** „Lizenz oder Code eingeben“ nimmt Lizenzschlüssel, Admin-Code und Entwickler-Codes.
+- **Codeserver auf dem Raspberry Pi:** Prüft Codes und stellt signierte Lizenzen für einzelne Geräte aus, über die feste Tailscale-Adresse auch unterwegs. Codes liegen dort nur als Hash, der Signierschlüssel hat den Pi nie verlassen, und nichts davon steht im Git oder in `jon.zip`. Bremse gegen Durchprobieren. Einrichtung per `scripts/codes-pi-einrichten.sh`, Details in `docs/CODES-PI.md`.
+
+### 🤖 Jon Harness: Live-Verlauf
+
+- **Jon meldet sich zwischendurch:** Bei jedem Schritt schreibt Jon einen kurzen Satz, was er gerade tut oder gefunden hat, ohne innere Gedankenkette.
+- **Kompakte Aktionen:** Datei gelesen, Datei geändert mit +/−, Test gestartet, Test erfolgreich oder fehlgeschlagen mit den letzten Ausgabezeilen, korrigierte Schritte und Freigaben, alles als eigener Verlauf.
+- **Arbeitsstatus oben:** Planen, Analysieren, Implementieren, Testen, Fertigstellen, dazu „Läuft seit …“, „Letzte Aktivität vor … Sek.“ und Stop. Der Arbeitsplan zeigt erledigte Schritte, den aktuellen Schritt in Gold und die offenen.
+- **„Jon arbeitet gerade“:** Unten steht live, woran Jon gerade ist. Lange Aufträge dürfen jetzt bis zu 200 Schritte haben (Standard 80).
+
+### 🧰 Werkzeuge neu gestaltet
+
+- **Werkzeuge-Fenster:** breiter, Suche im Kopf, Navigation mit Symbolen für Harness, Fachteam, Stimmen & Transkripte, Beobachten und Support, Werkzeuge als Karten.
+- **Stimmen & Transkripte:** komplett neu mit Ablagefläche für Audio und Video, Moduswahl, Stimmenauswahl als Karten, Auftragsliste mit Fortschritt, Ergebnis mit Player, Downloads, Zusammenfassung und Kopieren. Jetzt auch direkt in den Werkzeugen.
+- **Support und Beobachten:** zweispaltig mit Infokarten, Tipps, Beispielen zum Antippen und schönerer Bestätigung.
+
+### 🛠️ Behoben
+
+- Das Pi-Demo-Skript hat beim Freigeben den ganzen Tailscale Funnel überschrieben. Die Demo läuft jetzt als Benutzerdienst unter `/demo`, andere Freigaben bleiben erhalten.
+- Unter Beobachten und Support stand fälschlich „In dieser Gruppe ist gerade nichts frei“.
+
 ## [4.58.2] — 2026-10-03
 
 ### 🧈 Flüssiger

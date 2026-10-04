@@ -20,8 +20,10 @@ from app.core.config import DATA_DIR, get_settings
 from app.core.store import atomic_write_text
 
 OEFFENTLICH = "cJYQcvvuqg2j3a1Rnqyg+YdlBD6XIwhENSF4HKcpaQw="
+CODE_OEFFENTLICH = "dkdz3y9XOspsQOQdubK5s2rqZ0L4+hkwqWzq1EuWuyQ="
 VERSION = "JON1"
-STUFEN = {"standard": "Standard", "premium": "Premium", "admin": "Admin"}
+STUFEN = {"standard": "Standard", "premium": "Premium", "admin": "Admin", "entwickler": "Entwickler"}
+UNBEGRENZT = {"premium", "admin", "entwickler"}
 PLAENE = [{"key": "monat", "name": "Monatlich", "preis": "6,99 €", "zeitraum": "pro Monat"}, {"key": "jahr", "name": "Jährlich", "preis": "59,99 €", "zeitraum": "pro Jahr", "hinweis": "2 Monate geschenkt"}]
 FEATURES = {
     "harness": ("Jon Harness Pro", "Unbegrenzte Aufträge, Projektvorschau und Fachagenten im Harness"),
@@ -64,15 +66,18 @@ def lesen(token: str, oeffentlich: str = "") -> dict:
     teile = (token or "").strip().split(".")
     if len(teile) != 3 or teile[0] != VERSION:
         raise ValueError("Das ist kein gültiger Jon-Lizenzschlüssel.")
-    try:
-        signatur = b64url_lesen(teile[2])
-        Ed25519PublicKey.from_public_bytes(base64.b64decode(oeffentlich or OEFFENTLICH)).verify(signatur, f"{teile[0]}.{teile[1]}".encode())
-        daten = json.loads(b64url_lesen(teile[1]))
-    except (InvalidSignature, ValueError, TypeError):
-        raise ValueError("Die Signatur des Lizenzschlüssels ist ungültig. Er wurde nicht von FelWorks ausgestellt oder verändert.")
-    if not isinstance(daten, dict) or daten.get("stufe") not in {"premium", "admin"}:
-        raise ValueError("Der Lizenzschlüssel enthält keine gültige Stufe.")
-    return daten
+    for schluessel, stufen in ((oeffentlich or OEFFENTLICH, {"premium", "admin"}), (CODE_OEFFENTLICH, {"admin", "entwickler"})):
+        if not schluessel:
+            continue
+        try:
+            Ed25519PublicKey.from_public_bytes(base64.b64decode(schluessel)).verify(b64url_lesen(teile[2]), f"{teile[0]}.{teile[1]}".encode())
+            daten = json.loads(b64url_lesen(teile[1]))
+        except (InvalidSignature, ValueError, TypeError):
+            continue
+        if not isinstance(daten, dict) or daten.get("stufe") not in stufen:
+            raise ValueError("Der Lizenzschlüssel enthält keine gültige Stufe.")
+        return daten
+    raise ValueError("Die Signatur des Lizenzschlüssels ist ungültig. Er wurde nicht von FelWorks ausgestellt oder verändert.")
 
 
 def _maschine() -> str:
@@ -100,6 +105,10 @@ def _maschine() -> str:
         except (OSError, subprocess.SubprocessError):
             return ""
     return ""
+
+
+class Abgelehnt(ValueError):
+    pass
 
 
 class PremiumNoetig(ValueError):
@@ -179,7 +188,11 @@ class Premium:
         return daten["stufe"]
 
     def premium(self) -> bool:
-        return self.stufe() in {"premium", "admin"}
+        return self.stufe() in UNBEGRENZT
+
+    def vom_codeserver(self) -> bool:
+        daten = self.lizenz()
+        return bool(daten) and not daten.get("fehler") and daten.get("quelle") == "codes"
 
     def _nutzung(self) -> dict:
         heute = date.today().isoformat()
@@ -227,7 +240,7 @@ class Premium:
         elif daten and self.geraet() not in daten.get("geraete", []):
             hinweis = "Der gespeicherte Lizenzschlüssel gilt für ein anderes Gerät."
         elif daten and daten.get("exp") and float(daten["exp"]) < time.time():
-            hinweis = "Deine Premium-Lizenz ist abgelaufen. Jon erneuert sie automatisch, sobald dein Abo aktiv ist."
+            hinweis = "Deine Lizenz ist abgelaufen. Jon erneuert sie automatisch, sobald der FelWorks-Codeserver erreichbar ist." if daten.get("quelle") == "codes" else "Deine Premium-Lizenz ist abgelaufen. Jon erneuert sie automatisch, sobald dein Abo aktiv ist."
         return {
             "stufe": stufe,
             "name": STUFEN[stufe],
@@ -238,29 +251,40 @@ class Premium:
             "hinweis": hinweis,
             "token": self.token() if stufe != "standard" else "",
             "offen": bool(self.offen),
+            "codes": stufe == "admin" and self.vom_codeserver(),
             "plaene": PLAENE,
             "features": [{"key": key, "name": name, "beschreibung": text, "frei": stufe != "standard", "kontingent": KONTINGENT.get(key, 0), "verbraucht": int(nutzung.get(key, 0))} for key, (name, text) in FEATURES.items()],
         }
 
-    async def rufen(self, name: str, daten: dict) -> dict:
-        basis = get_settings().jon_premium_url.rstrip("/")
+    async def _senden(self, adresse: str, daten: dict, wer: str) -> dict:
         try:
             async with httpx.AsyncClient(timeout=40) as client:
-                adresse = f"{basis}/premium-{name}"
                 for _ in range(3):
                     antwort = await client.post(adresse, json=daten)
                     if antwort.status_code not in {301, 302, 307, 308} or not antwort.headers.get("location"):
                         break
                     adresse = str(antwort.url.join(antwort.headers["location"]))
         except httpx.HTTPError as exc:
-            raise ConnectionError(f"Der FelWorks-Lizenzserver ist nicht erreichbar ({type(exc).__name__}). Prüfe deine Internetverbindung.") from exc
+            raise ConnectionError(f"Der {wer} ist nicht erreichbar ({type(exc).__name__}). Prüfe deine Internetverbindung.") from exc
         try:
             inhalt = antwort.json()
         except ValueError:
             inhalt = {}
         if antwort.status_code >= 400 or not isinstance(inhalt, dict):
-            raise ValueError(str((inhalt or {}).get("fehler") or f"Der Lizenzserver antwortet mit Fehler {antwort.status_code}."))
+            inhalt = inhalt if isinstance(inhalt, dict) else {}
+            detail = inhalt.get("detail") if isinstance(inhalt.get("detail"), str) else ""
+            text = str(inhalt.get("fehler") or detail or f"Der {wer} antwortet mit Fehler {antwort.status_code}.")
+            raise (Abgelehnt if antwort.status_code in {401, 403} else ValueError)(text)
         return inhalt
+
+    async def rufen(self, name: str, daten: dict) -> dict:
+        return await self._senden(get_settings().jon_premium_url.rstrip("/") + f"/premium-{name}", daten, "FelWorks-Lizenzserver")
+
+    async def codeserver(self, name: str, daten: dict) -> dict:
+        basis = get_settings().jon_codes_url.rstrip("/")
+        if not basis:
+            raise ConnectionError("Es ist kein FelWorks-Codeserver eingestellt.")
+        return await self._senden(f"{basis}/{name}", daten, "FelWorks-Codeserver")
 
     async def kaufen(self, plan: str) -> dict:
         antwort = await self.rufen("checkout", {"plan": plan, "geraet": self.geraet()})
@@ -279,22 +303,48 @@ class Premium:
         return {"fertig": True, **self.speichern(antwort["token"])}
 
     async def eingeben(self, token: str) -> dict:
+        if not token.strip().startswith(VERSION + "."):
+            return await self.einloesen(token)
         daten = lesen(token)
         if self.geraet() in daten.get("geraete", []):
             return self.speichern(token)
         antwort = await self.rufen("lizenz", {"aktion": "geraet", "token": token.strip(), "geraet": self.geraet()})
         return self.speichern(antwort["token"])
 
-    async def admin(self, passwort: str) -> dict:
-        antwort = await self.rufen("admin", {"passwort": passwort, "geraet": self.geraet()})
+    async def einloesen(self, code: str) -> dict:
+        antwort = await self.codeserver("einloesen", {"code": code.strip(), "geraet": self.geraet()})
         return self.speichern(antwort["token"])
+
+    async def admin(self, passwort: str) -> dict:
+        return await self.einloesen(passwort)
 
     async def erneuern(self) -> dict:
         token = self.token()
         if not token:
             return self.status()
+        if self.vom_codeserver():
+            try:
+                antwort = await self.codeserver("erneuern", {"token": token, "geraet": self.geraet()})
+            except Abgelehnt:
+                self.abmelden()
+                raise
+            return self.speichern(antwort["token"])
         antwort = await self.rufen("lizenz", {"aktion": "erneuern", "token": token, "geraet": self.geraet()})
         return self.speichern(antwort["token"])
+
+    def _admin_lizenz(self) -> dict:
+        if self.stufe() != "admin" or not self.vom_codeserver():
+            raise ValueError("Entwickler-Codes verwaltet nur der Admin. Melde dich dafür einmal mit dem Admin-Code an.")
+        return {"token": self.token(), "geraet": self.geraet()}
+
+    async def codes(self) -> dict:
+        return await self.codeserver("liste", self._admin_lizenz())
+
+    async def code_erstellen(self, name: str, geraete: int) -> dict:
+        return await self.codeserver("erstellen", {**self._admin_lizenz(), "name": name.strip(), "geraete": geraete})
+
+    async def code_sperren(self, kennung: str, gesperrt: bool = True) -> dict:
+        return await self.codeserver("sperren", {**self._admin_lizenz(), "id": kennung, "gesperrt": gesperrt})
 
     async def portal(self) -> dict:
         if self.stufe() != "premium":

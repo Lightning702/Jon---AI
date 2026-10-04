@@ -7,6 +7,7 @@ export class Fehler extends Error {
   }
 }
 
+export const CODE_OEFFENTLICH = "dkdz3y9XOspsQOQdubK5s2rqZ0L4+hkwqWzq1EuWuyQ=";
 export const TAG = 86400;
 export const MAX_GERAETE = 3;
 export const jetzt = () => Math.floor(Date.now() / 1000);
@@ -59,19 +60,32 @@ export function signieren(inhalt) {
   return `${kopf}.${b64url(sign(null, Buffer.from(kopf), privat()))}`;
 }
 
+export function codeSchluessel() {
+  const wert = process.env.JON_CODE_OEFFENTLICH || CODE_OEFFENTLICH;
+  if (!wert) return null;
+  return createPublicKey({key: Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), Buffer.from(wert, "base64")]), format: "der", type: "spki"});
+}
+
 export function lesen(token) {
   const teile = typeof token === "string" ? token.trim().split(".") : [];
   if (teile.length !== 3 || teile[0] !== "JON1") throw new Fehler(400, "Das ist kein gültiger Jon-Lizenzschlüssel.");
   const kopf = `${teile[0]}.${teile[1]}`;
+  let inhalt;
+  try {
+    inhalt = JSON.parse(Buffer.from(teile[1], "base64url").toString("utf8"));
+  } catch {
+    throw new Fehler(400, "Das ist kein gültiger Jon-Lizenzschlüssel.");
+  }
+  const vomCodeserver = inhalt?.quelle === "codes";
   let gueltig = false;
   try {
-    gueltig = verify(null, Buffer.from(kopf), createPublicKey(privat()), Buffer.from(teile[2], "base64url"));
+    const schluessel = vomCodeserver ? codeSchluessel() : createPublicKey(privat());
+    gueltig = !!schluessel && verify(null, Buffer.from(kopf), schluessel, Buffer.from(teile[2], "base64url"));
   } catch (e) {
     if (e instanceof Fehler) throw e;
   }
   if (!gueltig) throw new Fehler(403, "Die Signatur des Lizenzschlüssels ist ungültig.");
-  const inhalt = JSON.parse(Buffer.from(teile[1], "base64url").toString("utf8"));
-  if (!["premium", "admin"].includes(inhalt.stufe)) throw new Fehler(400, "Der Lizenzschlüssel enthält keine gültige Stufe.");
+  if (!(vomCodeserver ? ["admin", "entwickler"] : ["premium", "admin"]).includes(inhalt.stufe)) throw new Fehler(400, "Der Lizenzschlüssel enthält keine gültige Stufe.");
   return inhalt;
 }
 

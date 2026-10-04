@@ -197,3 +197,41 @@ def test_wiederholter_fehler_haelt_frueh_an(tmp_path):
     assert "4-mal denselben Fehler" in ergebnis["summary"]
     assert len(kontexte) == 5
     assert kontexte[-1]["recent_actions"][-1]["tool"] == "read"
+
+
+def test_zwischenmeldungen_planschritt_und_aktionsdetails_landen_im_verlauf(tmp_path):
+    projekt = tmp_path / "projekt"
+    projekt.mkdir()
+    (projekt / "index.html").write_text("<h1>Alt</h1>\n", encoding="utf-8")
+    kontexte = []
+    antworten = [
+        {"note": "Ich plane zuerst die Arbeit.", "step": 1, "tool": "plan", "args": {"steps": ["Datei lesen", "Titel ändern"]}},
+        {"note": "Ich lese die Startseite.", "step": 1, "tool": "read", "args": {"path": "index.html"}},
+        {"note": "Ich passe den Titel an.", "step": 2, "tool": "edit", "args": {"path": "index.html", "old": "Alt", "new": "Neu"}},
+        {"note": "Ich passe den Titel an.", "step": 9, "tool": "finish", "args": {"summary": "Titel geändert", "incomplete": True}},
+    ]
+
+    async def ablauf():
+        service = HarnessService(tmp_path / "tasks", modell(antworten, kontexte))
+        return await fertig(service, service.start("Ändere den Titel", str(projekt)))
+
+    ergebnis = asyncio.run(ablauf())
+    notizen = [e["message"] for e in ergebnis["log"] if e["type"] == "notiz"]
+    assert notizen == ["Ich plane zuerst die Arbeit.", "Ich lese die Startseite.", "Ich passe den Titel an."]
+    gelesen = next(e for e in ergebnis["log"] if e["type"] == "action" and e["tool"] == "read")
+    geaendert = next(e for e in ergebnis["log"] if e["type"] == "action" and e["tool"] == "edit")
+    assert gelesen["pfad"] == "index.html"
+    assert (geaendert["pfad"], geaendert["plus"], geaendert["minus"]) == ("index.html", 1, 1)
+    assert ergebnis["plan_schritt"] == 2
+    reihenfolge = [e["type"] for e in ergebnis["log"]]
+    assert reihenfolge.index("notiz") < reihenfolge.index("action")
+
+
+def test_befehlsdetails_zeigen_ergebnis_und_letzte_ausgabezeilen():
+    from app.services.harness.service import aktion_details
+
+    ok = aktion_details("verify", {"command": "npm test"}, {"ok": True, "output": "a\n\nb\nc\nd\n18 tests passed\n"})
+    assert ok == {"message": "npm test", "ok": True, "ausgabe": "b\nc\nd\n18 tests passed"}
+    abgelehnt = aktion_details("command", {"command": "rm -rf x"}, {"error": "Freigabe abgelehnt"})
+    assert abgelehnt["ok"] is False and "abgelehnt" in abgelehnt["ausgabe"]
+    assert aktion_details("plan", {}, {"steps": ["a", "b"]}) == {"message": "2 Schritte"}

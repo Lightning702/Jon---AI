@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.premium import PremiumNoetig, get_premium
+from app.services.premium import Abgelehnt, PremiumNoetig, get_premium
 
 router = APIRouter(prefix="/api")
 
@@ -20,6 +20,20 @@ class Admin(BaseModel):
     passwort: str = Field(min_length=1, max_length=400)
 
 
+class Code(BaseModel):
+    code: str = Field(min_length=8, max_length=400)
+
+
+class NeuerCode(BaseModel):
+    name: str = Field(default="", max_length=60)
+    geraete: int = Field(default=3, ge=1, le=20)
+
+
+class Sperren(BaseModel):
+    id: str = Field(pattern="^[a-f0-9]{12}$")
+    gesperrt: bool = True
+
+
 async def ausfuehren(aufruf):
     try:
         return await aufruf
@@ -27,6 +41,8 @@ async def ausfuehren(aufruf):
         raise
     except ConnectionError as exc:
         raise HTTPException(503, str(exc))
+    except Abgelehnt as exc:
+        raise HTTPException(403, str(exc))
     except (ValueError, KeyError) as exc:
         raise HTTPException(400, str(exc) or "Die Lizenz konnte nicht verarbeitet werden.")
 
@@ -54,6 +70,26 @@ async def lizenz(daten: Lizenz) -> dict:
 @router.post("/premium/admin")
 async def admin(daten: Admin) -> dict:
     return await ausfuehren(get_premium().admin(daten.passwort))
+
+
+@router.post("/premium/code")
+async def code(daten: Code) -> dict:
+    return await ausfuehren(get_premium().einloesen(daten.code))
+
+
+@router.get("/premium/codes")
+async def codes() -> dict:
+    return await ausfuehren(get_premium().codes())
+
+
+@router.post("/premium/codes")
+async def code_erstellen(daten: NeuerCode) -> dict:
+    return await ausfuehren(get_premium().code_erstellen(daten.name, daten.geraete))
+
+
+@router.post("/premium/codes/sperren")
+async def code_sperren(daten: Sperren) -> dict:
+    return await ausfuehren(get_premium().code_sperren(daten.id, daten.gesperrt))
 
 
 @router.post("/premium/erneuern")

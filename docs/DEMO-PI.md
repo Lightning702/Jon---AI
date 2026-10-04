@@ -1,6 +1,6 @@
 # Jon auf der Website ausprobieren
 
-Stand: 3. Oktober 2026, Jon 4.58.1.
+Stand: 4. Oktober 2026, Jon 4.59.1.
 
 Unter `getjon.info/testen/` können Besucher Jon direkt im Browser ausprobieren:
 - mit Jon und MiniJon schreiben
@@ -11,7 +11,7 @@ Die Demo läuft auf deinem Pi und kann nichts auf einem Computer steuern.
 
 ## Sicherheit
 
-- Eigener Prozess `python -m app.demo` mit eigenem Dienst `jon-demo`. Er lauscht nur auf `127.0.0.1:8790`.
+- Eigener Prozess `python -m app.demo` mit eigenem Benutzerdienst `jon-demo` (`systemctl --user`). Er lauscht nur auf `127.0.0.1:8790`.
 - Der Prozess kennt nur die Demo-Routen: `/demo/status`, `/demo/chat`, `/demo/orte`, `/demo/route` und `/demo/transkript`. Normale Jon-Routen wie `/api/settings` oder `/api/chat` gibt es dort nicht.
 - Der Chat ruft das Modell ohne Werkzeuge auf. Er nutzt eigene Persona-Texte und nimmt weder Jons Gedächtnis noch deine Persona oder Dateien mit. Nichts wird gespeichert.
 - Erlaubt sind höchstens 12 Nachrichten mit je 1500 Zeichen und nur die Rollen „user“ und „assistant“.
@@ -30,9 +30,9 @@ git pull               (oder Pi-Update in der Jon-App)
 bash scripts/demo-pi-einrichten.sh
 ```
 
-Das Skript richtet den Dienst ein, installiert bei Bedarf Tailscale und gibt den Port 8790 über Tailscale Funnel frei. Das ergibt eine feste HTTPS-Adresse ohne Portfreigabe am Router. Zum Schluss nennt es die Adresse, zum Beispiel `https://felworks-pi.tail1234.ts.net`. Trag sie in Netlify als `JON_DEMO_URL` ein und veröffentliche neu. Funnel muss in der Tailscale-Verwaltung einmal erlaubt werden; das Skript zeigt dafür einen Link an.
+Das Skript richtet den Dienst ein, installiert bei Bedarf Tailscale und gibt die Demo über Tailscale Funnel unter dem Pfad `/demo` frei. Andere Pfade deines Funnels, etwa `/` für ein anderes Projekt oder `/codes` für den Codeserver, bleiben unverändert. Das ergibt eine feste HTTPS-Adresse ohne Portfreigabe am Router. Zum Schluss nennt es die Adresse, zum Beispiel `https://felworks-pi.tail1234.ts.net`. Trag sie in Netlify als `JON_DEMO_URL` ein und veröffentliche neu. Funnel muss in der Tailscale-Verwaltung einmal erlaubt werden; das Skript zeigt dafür einen Link an.
 
-Stoppen: `sudo tailscale funnel reset && sudo systemctl disable --now jon-demo`
+Stoppen: `tailscale funnel --set-path /demo off && systemctl --user disable --now jon-demo`
 
 ## Prüfung
 

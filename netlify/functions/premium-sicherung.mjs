@@ -8,7 +8,7 @@ export async function verarbeiten({aktion, token, geraet, daten}, speicher) {
   const inhalt = lesen(token);
   if (inhalt.exp && inhalt.exp < jetzt()) throw new Fehler(402, "Deine Lizenz ist abgelaufen. Jon erneuert sie automatisch, sobald dein Abo aktiv ist.");
   if (!(inhalt.geraete || []).includes(id)) throw new Fehler(403, "Dieses Gerät ist für die Lizenz nicht freigeschaltet.");
-  const schluessel = inhalt.stufe === "admin" ? `admin-${inhalt.pk}` : `kunde-${inhalt.kunde}`;
+  const schluessel = inhalt.stufe === "admin" ? `admin-${inhalt.pk}` : inhalt.stufe === "entwickler" ? `entwickler-${inhalt.code}` : `kunde-${inhalt.kunde}`;
   if (aktion === "hochladen") {
     if (typeof daten !== "string" || !daten.length) throw new Fehler(400, "Keine Sicherung übergeben.");
     if (daten.length > MAX_ZEICHEN) throw new Fehler(413, "Die Sicherung ist größer als 4 MB.");

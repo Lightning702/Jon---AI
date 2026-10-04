@@ -14,7 +14,7 @@ try:
             metadata, raw_name = entry.split(b"\t", 1)
             mode, key, stage = metadata.split()
             name = raw_name.decode("utf-8")
-            if stage != b"0" or mode not in {b"100644", b"100755"} or name in {"website/jon.zip"}:
+            if stage != b"0" or mode not in {b"100644", b"100755"} or name in {"website/jon.zip", "website/jon-erweiterung.zip", "MEMORY.md"}:
                 continue
             if name.startswith(("design/", "artifacts/")) or name.endswith((".env", ".jks", ".keystore")):
                 continue
@@ -28,7 +28,10 @@ try:
             process.stdout.read(1)
             if len(content) != size:
                 raise RuntimeError("Unvollständiger Git-Blob: " + name)
-            archive.writestr("Jon/" + name, content)
+            info = zipfile.ZipInfo("Jon/" + name, (2026, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = (0o100755 if mode == b"100755" else 0o100644) << 16
+            archive.writestr(info, content)
 finally:
     process.stdin.close()
     process.wait()

@@ -70,3 +70,39 @@ html.light .werkzeug-fenster{background:rgba(252,251,246,.98)}
 .werkzeug-scroll::-webkit-scrollbar-track{background:transparent;margin:4px 0}
 .werkzeug-scroll::-webkit-scrollbar-thumb{border:3px solid transparent;background-clip:padding-box;border-radius:999px;background-color:rgb(var(--gold-rgb) / .24)}
 .werkzeug-scroll:hover::-webkit-scrollbar-thumb{background-color:rgb(var(--gold-rgb) / .4)}
+.bo-seite{gap:14px;container-type:inline-size}
+.bo-spalten{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+@container (min-width:720px){.bo-spalten{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+.bo-links,.bo-rechts{display:flex;flex-direction:column;gap:10px;min-width:0}
+.bo-karte{padding:14px;border-radius:17px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
+.bo-feld-titel{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8f8a7c;margin-top:2px}
+.bo-karte input:not([type=checkbox]),.bo-karte select{height:40px;border-radius:12px;background:#0b0b0e}
+.bo-karte input:focus,.bo-karte select:focus,.bo-karte .sp-text:focus{box-shadow:0 0 0 3px rgba(229,200,137,.09)}
+.bo-karte .sp-text{background:#0b0b0e;border-radius:12px;min-height:150px}
+.bo-karte .bo-zeile button{height:40px;border-radius:12px}
+.bo-hinweis{display:flex;align-items:center;gap:7px}
+.bo-hinweis svg{flex:none;color:#e5c889}
+.bo-abschnitt{display:flex;align-items:center;gap:8px;padding:2px 4px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8f8a7c}
+.bo-abschnitt em{font-style:normal;letter-spacing:0;text-transform:none;font-size:10.5px;padding:1px 8px;border-radius:999px;color:#e5c889;background:rgba(229,200,137,.1)}
+.bo-leer-karte{display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px 16px;border-radius:17px;border:1px dashed rgba(229,200,137,.2);text-align:center}
+.bo-leer-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#e5c889;background:rgba(229,200,137,.08);margin-bottom:4px}
+.bo-leer-karte strong{font-size:13px;color:#e9e2cf}
+.bo-leer-karte p{margin:0;font-size:11.5px;color:#8f8a7c}
+.bo-beispiele{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:4px}
+.bo-beispiele button{height:28px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.1);font-size:11px;color:#cfc6ae;transition:border-color .2s,background-color .2s}
+.bo-beispiele button:hover{border-color:rgba(229,200,137,.45);background:rgba(229,200,137,.07)}
+.sp-info{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sp-info-karte{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:13px 14px;border-radius:15px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
+.sp-info-titel{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:650;color:#e9dfc4}
+.sp-info-titel svg{color:#e5c889}
+.sp-info-karte code{font-size:12px;color:#f3e2b5;overflow-wrap:anywhere}
+.sp-info-karte p{margin:0;font-size:11.5px;line-height:1.6;color:#a29d90}
+.sp-info-karte button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.1);font-size:11px;color:#cfc6ae;transition:border-color .2s}
+.sp-info-karte button:hover{border-color:rgba(229,200,137,.45)}
+.sp-tipp{border-color:rgba(229,200,137,.18);background:rgba(229,200,137,.04)}
+.sp-fertig{display:flex;flex-direction:column;align-items:center;gap:8px;padding:34px 20px;border-radius:17px;border:1px solid rgba(127,224,164,.3);background:linear-gradient(160deg,rgba(127,224,164,.09),rgba(255,255,255,.015));text-align:center}
+.sp-fertig-icon{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;color:#0d2416;background:linear-gradient(135deg,#c9f7da,#7fe0a4);box-shadow:0 10px 26px -10px rgba(127,224,164,.6)}
+.sp-fertig strong{font-size:14px;color:#d9f5e3}
+.sp-fertig p{margin:0;font-size:12px;color:#93b8a1}
+.sp-fertig button{margin-top:6px;height:32px;padding:0 13px;border-radius:10px;border:1px solid rgba(127,224,164,.4);font-size:12px;color:#c9f7da}
+.sp-fertig button:hover{background:rgba(127,224,164,.08)}
