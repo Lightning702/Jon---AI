@@ -183,3 +183,13 @@ test("Admin- und Entwickler-Lizenzen vom Codeserver auf dem Pi gelten für die C
   await fehlschlag(Promise.resolve().then(() => lesen(vomCodeserver({stufe: "admin", geraete: [GERAET]}, privateKey))), 403);
   await fehlschlag(lizenz({aktion: "erneuern", token: entwickler, geraet: GERAET}), 400, "Codeserver");
 });
+
+test("Die Testseite findet den Pi auch ohne JON_DEMO_URL", async () => {
+  const {adresse, STANDARD, default: demoAdresse} = await import("../functions/demo-adresse.mjs");
+  delete process.env.JON_DEMO_URL;
+  assert.equal(adresse(), STANDARD);
+  assert.deepEqual(await (await demoAdresse()).json(), {url: STANDARD});
+  process.env.JON_DEMO_URL = "https://anderer-pi.example.ts.net/";
+  assert.equal(adresse(), "https://anderer-pi.example.ts.net");
+  delete process.env.JON_DEMO_URL;
+});

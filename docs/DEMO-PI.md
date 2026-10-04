@@ -30,7 +30,7 @@ git pull               (oder Pi-Update in der Jon-App)
 bash scripts/demo-pi-einrichten.sh
 ```
 
-Das Skript richtet den Dienst ein, installiert bei Bedarf Tailscale und gibt die Demo über Tailscale Funnel unter dem Pfad `/demo` frei. Andere Pfade deines Funnels, etwa `/` für ein anderes Projekt oder `/codes` für den Codeserver, bleiben unverändert. Das ergibt eine feste HTTPS-Adresse ohne Portfreigabe am Router. Zum Schluss nennt es die Adresse, zum Beispiel `https://felworks-pi.tail1234.ts.net`. Trag sie in Netlify als `JON_DEMO_URL` ein und veröffentliche neu. Funnel muss in der Tailscale-Verwaltung einmal erlaubt werden; das Skript zeigt dafür einen Link an.
+Das Skript richtet den Dienst ein, installiert bei Bedarf Tailscale und gibt die Demo über Tailscale Funnel unter dem Pfad `/demo` frei. Andere Pfade deines Funnels, etwa `/` für ein anderes Projekt oder `/codes` für den Codeserver, bleiben unverändert. Das ergibt eine feste HTTPS-Adresse ohne Portfreigabe am Router. Zum Schluss nennt es die Adresse. Ohne weitere Einstellung nutzt die Website `https://felworks.tail661828.ts.net`. Nur für einen anderen Pi trägst du dessen Adresse in Netlify als `JON_DEMO_URL` ein und veröffentlichst neu. Funnel muss in der Tailscale-Verwaltung einmal erlaubt werden; das Skript zeigt dafür einen Link an.
 
 Stoppen: `tailscale funnel --set-path /demo off && systemctl --user disable --now jon-demo`
 
