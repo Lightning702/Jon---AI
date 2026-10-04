@@ -3,6 +3,7 @@ import { extractAttachment } from "../lib/api";
 import {uploadMedia} from "../lib/media";
 import { SlashCommand, matchCommands } from "../lib/commands";
 import { useT } from "../hooks/useT";
+import DiktatKnopf, { DiktatZustand } from "./DiktatKnopf";
 
 export interface PendingAttachment {
   id: string;
@@ -43,6 +44,8 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
   const [dragging, setDragging] = useState(false);
   const [closedFor, setClosedFor] = useState("");
   const [active, setActive] = useState(0);
+  const [diktat, setDiktat] = useState<DiktatZustand>("aus");
+  const [diktatFehler, setDiktatFehler] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -122,6 +125,24 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
       reader.readAsDataURL(file);
     }
   };
+
+  const diktiert = (gesagt: string) => {
+    setText(alt => (alt.trim() ? alt.replace(/\s*$/, " ") : "") + gesagt);
+    requestAnimationFrame(() => {
+      const feld = ref.current;
+      if (!feld) return;
+      feld.style.height = "auto";
+      feld.style.height = Math.min(feld.scrollHeight, 180) + "px";
+      feld.focus();
+      feld.setSelectionRange(feld.value.length, feld.value.length);
+    });
+  };
+
+  useEffect(() => {
+    if (!diktatFehler) return;
+    const zeit = setTimeout(() => setDiktatFehler(""), 7000);
+    return () => clearTimeout(zeit);
+  }, [diktatFehler]);
 
   const removeAttachment = (id: string) =>
     setAttachments((prev) => prev.filter((a) => a.id !== id));
@@ -257,6 +278,11 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
             dragging ? "border border-gold/60 bg-gold/10" : ""
           }`}
         >
+          {(diktat !== "aus" || diktatFehler) && (
+            <div className={"dk-hinweis " + (diktatFehler && diktat === "aus" ? "fehler" : "")} role="status">
+              {diktat === "hoert" ? <span>Ich höre zu. Mit <b>■</b> beenden, mit <b>Esc</b> verwerfen. Der Text landet im Eingabefeld, gesendet wird erst mit „Senden“.</span> : diktat === "wandelt" ? <span>Wandle deine Sprachnachricht in Text um …</span> : <span>{diktatFehler}</span>}
+            </div>
+          )}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-1.5 px-2 pt-1 pb-2">
               {attachments.map((a) => (
@@ -323,9 +349,10 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
               onKeyDown={onKey}
               onPaste={onPaste}
               rows={1}
-              placeholder={dragging ? t("drop_file") : t("chat_placeholder")}
+              placeholder={dragging ? t("drop_file") : diktat === "hoert" ? "Ich höre zu …" : diktat === "wandelt" ? "Wird in Text umgewandelt …" : t("chat_placeholder")}
               className="flex-1 min-w-0 bg-transparent resize-none outline-none px-2 md:px-3 py-2.5 md:py-2 text-[16px] md:text-[15px] text-white/90 placeholder-white/30 max-h-44"
             />
+            <DiktatKnopf disabled={disabled} onText={diktiert} onZustand={setDiktat} onFehler={setDiktatFehler} />
             {streaming ? (
               <button
                 onClick={onStop}

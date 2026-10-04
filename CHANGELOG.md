@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.60.1] — 2026-10-04
+
+### 🎙️ Sprechen statt tippen
+
+- **Sprachnachricht als Text:** Neben „Frag Jon …“ gibt es jetzt ein Mikrofon. Antippen, sprechen, auf ■ tippen. Jon wandelt das Gesprochene lokal in Text um und schreibt ihn ins Eingabefeld. Dort kannst du ihn noch ändern und dann wie gewohnt senden. Normales Tippen bleibt, wie es war.
+- **Während der Aufnahme:** Pegel, Zeit und ein roter Stopp-Knopf. Esc verwirft die Aufnahme, nach zwei Minuten stoppt sie von selbst. Schon getippter Text bleibt erhalten, das Gesprochene wird angehängt.
+- **Jon wird richtig verstanden:** Die Spracherkennung kennt jetzt Jon, MiniJon und FelWorks und schreibt nicht mehr „John“.
+
+### 🛠️ Behoben
+
+- Die Website-Demo nutzt automatisch Jons Standardmodell, wenn das am Pi eingestellte Modell ausfällt.
+- Auf der Website standen im Download-Bereich noch 4.57.0 und ein alter Link zur Handy-App.
+
 ## [4.59.2] — 2026-10-04
 
 ### 🔑 Codes gelten für immer

@@ -81,7 +81,7 @@ class VoiceService:
                     temp_path = handle.name
                 try:
                     segments, _info = model.transcribe(
-                        temp_path, language=language.split("-")[0], beam_size=2
+                        temp_path, language=language.split("-")[0], beam_size=2, initial_prompt=NAMEN
                     )
                     text = " ".join(s.text.strip() for s in segments).strip()
                     if text:
@@ -102,6 +102,7 @@ class VoiceService:
             return ""
 
 
+NAMEN = "Jon, MiniJon, FelWorks."
 JON_VOICE = "de-DE-ConradNeural"
 EMIL_VOICE = "de-DE-KillianNeural"
 
