@@ -15,7 +15,7 @@ Premium gibt es außerdem als Premium-Code vom Admin, mit Laufzeit oder für imm
 
 ## Premium-Funktionen
 
-Jon Harness Pro (unbegrenzt, Projektvorschau, Fachagenten), Fachteam ohne Limit, Funke am Handy, Fernsteuerung per Telegram und Handy-App, Deep Learning und Recherche, Studio (Video, Foto, Präsentationen), Stimmen und Transkripte, Bildschirmanalyse, Browser-Agent, MiniJon-Aussehen (zehn Auftritte, 3D, Katze, Hund), Familienpaket (Regeln und Durchsagen für Familiengeräte), Cloud-Sync und Backup, Alltags-Automatisierung (Inbox, Wochenbericht, Routinen, Auslöser) und alle Spiele.
+Jon Harness Pro (unbegrenzt, Projektvorschau, Fachagenten), Fachteam ohne Limit, Fernsteuerung per Telegram, Deep Learning und Recherche, Studio (Video, Foto, Präsentationen), Stimmen und Transkripte, Bildschirmanalyse, Browser-Agent, MiniJon-Aussehen (zehn Auftritte, 3D, Katze, Hund), Familienpaket (Regeln und Durchsagen für Familiengeräte), Cloud-Sync und Backup, Alltags-Automatisierung (Inbox, Wochenbericht, Routinen, Auslöser) und alle Spiele.
 
 Der Kinderschutz selbst bleibt in jeder Stufe aktiv. Premium betrifft nur das Verwalten mehrerer Familiengeräte.
 

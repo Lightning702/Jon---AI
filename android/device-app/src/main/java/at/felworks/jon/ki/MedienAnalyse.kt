@@ -19,16 +19,25 @@ import at.felworks.jon.device.Fotos
 import at.felworks.jon.device.VoskModell
 import at.felworks.jon.domain.model.Draht
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.sqrt
 
 object MedienAnalyse {
     private const val RATE = 16000
+    private const val ANHANG_ZEICHEN = 28_000
+    private const val STILLE = 90.0
     private val textEndungen = setOf("txt", "md", "csv", "json", "html", "htm", "css", "js", "py", "xml", "yml", "yaml", "log", "kt", "java", "ts", "tsx", "srt", "vtt", "ini")
     private val audioEndungen = setOf("mp3", "m4a", "aac", "wav", "ogg", "opus", "flac", "amr", "3gp", "weba", "mka")
 
@@ -112,7 +121,14 @@ object MedienAnalyse {
         }
     }
 
-    fun pcm(datei: File, maxSekunden: Int = 3600): ByteArray {
+    fun kuerzen(text: String, grenze: Int): String {
+        if (text.length <= grenze) return text
+        val marke = "\n\n[… Mitte gekürzt, ${text.length - grenze} Zeichen ausgelassen …]\n\n"
+        val rest = (grenze - marke.length).coerceAtLeast(400)
+        return text.take(rest * 2 / 3) + marke + text.takeLast(rest - rest * 2 / 3)
+    }
+
+    fun pcm(datei: File, ziel: File, maxSekunden: Int = 3600): Long {
         val extraktor = MediaExtractor()
         extraktor.setDataSource(datei.absolutePath)
         val spur = (0 until extraktor.trackCount).firstOrNull { extraktor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
@@ -120,7 +136,8 @@ object MedienAnalyse {
         extraktor.selectTrack(spur)
         val format = extraktor.getTrackFormat(spur)
         val dekoder = MediaCodec.createDecoderByType(format.getString(MediaFormat.KEY_MIME)!!)
-        val aus = ByteArrayOutputStream()
+        val aus = ziel.outputStream().buffered(1 shl 16)
+        var geschrieben = 0L
         val grenze = RATE.toLong() * 2 * maxSekunden
         try {
             dekoder.configure(format, null, null, 0)
@@ -130,7 +147,7 @@ object MedienAnalyse {
             var rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
             var kanaele = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
             var position = 0.0
-            while (aus.size() < grenze) {
+            while (geschrieben < grenze) {
                 if (!eingabeFertig) {
                     val index = dekoder.dequeueInputBuffer(10_000)
                     if (index >= 0) {
@@ -170,17 +187,38 @@ object MedienAnalyse {
                         }
                         position -= anzahl
                         aus.write(bytes.array(), 0, bytes.position())
+                        geschrieben += bytes.position()
                         dekoder.releaseOutputBuffer(ausIndex, false)
                         if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) break
                     }
                 }
             }
         } finally {
+            runCatching { aus.close() }
             runCatching { dekoder.stop() }
             runCatching { dekoder.release() }
             runCatching { extraktor.release() }
         }
-        return aus.toByteArray()
+        return geschrieben
+    }
+
+    private fun lesen(datei: File, start: Long, laenge: Int): ByteArray = RandomAccessFile(datei, "r").use { r ->
+        val n = minOf(laenge.toLong(), (r.length() - start).coerceAtLeast(0)).toInt()
+        ByteArray(n).also { r.seek(start); r.readFully(it) }
+    }
+
+    private fun still(pcm: ByteArray): Boolean {
+        val proben = ByteBuffer.wrap(pcm).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+        var summe = 0.0
+        var anzahl = 0
+        var i = 0
+        while (i < proben.limit()) {
+            val wert = proben.get(i).toDouble()
+            summe += wert * wert
+            anzahl++
+            i += 4
+        }
+        return anzahl == 0 || sqrt(summe / anzahl) < STILLE
     }
 
     fun wav(pcm: ByteArray, rate: Int = RATE): ByteArray = ByteBuffer.allocate(44 + pcm.size).order(ByteOrder.LITTLE_ENDIAN)
@@ -188,32 +226,42 @@ object MedienAnalyse {
         .putInt(16).putShort(1).putShort(1).putInt(rate).putInt(rate * 2).putShort(2).putShort(16)
         .put("data".toByteArray()).putInt(pcm.size).put(pcm).array()
 
-    suspend fun transkript(context: Context, behaelter: AppBehaelter, weg: Weg, pcm: ByteArray, melden: (String) -> Unit): String {
-        if (pcm.size < RATE) return ""
+    suspend fun transkript(context: Context, behaelter: AppBehaelter, weg: Weg, pcm: File, melden: (String) -> Unit): String {
+        val groesse = pcm.length()
+        if (groesse < RATE) return ""
         if (weg == Weg.SOLO) {
             val laenge = RATE * 2 * 600
-            val stuecke = (0 until pcm.size step laenge).map { pcm.copyOfRange(it, minOf(pcm.size, it + laenge)) }
+            val anzahl = ((groesse + laenge - 1) / laenge).toInt()
             val texte = mutableListOf<String>()
-            for ((i, stueck) in stuecke.withIndex()) {
-                melden("Wandle Sprache in Text um … ${i + 1}/${stuecke.size}")
+            for (i in 0 until anzahl) {
+                melden("Wandle Sprache in Text um … ${i + 1}/$anzahl")
+                val stueck = withContext(Dispatchers.IO) { lesen(pcm, i.toLong() * laenge, laenge) }
                 texte += Solo.transkribieren(context, wav(stueck)) ?: break
             }
-            if (texte.size == stuecke.size) return texte.joinToString(" ")
+            if (texte.size == anzahl) return texte.joinToString(" ")
         }
         if (weg == Weg.PI && behaelter.gekoppelt.value && behaelter.verbindung.lage.value.draht != Draht.AUS) {
             val laenge = RATE * 2 * 28
-            val texte = mutableListOf<String>()
-            var ok = true
-            var i = 0
-            while (i < pcm.size) {
-                melden("Jon hört zu … ${(i * 100L / pcm.size)} %")
-                val stueck = pcm.copyOfRange(i, minOf(pcm.size, i + laenge))
-                val text = runCatching { behaelter.verbindung.geraeteOperation(JSONObject().put("op", "audio-stt").put("audio", Krypto.b64(wav(stueck))), 90_000).optString("text").trim() }
-                if (text.isFailure) { ok = false; break }
-                text.getOrNull()?.takeIf { it.isNotBlank() }?.let { texte += it }
-                i += laenge
+            val anzahl = ((groesse + laenge - 1) / laenge).toInt()
+            val fertig = AtomicInteger(0)
+            val gleichzeitig = Semaphore(2)
+            melden("Jon hört zu … 0 %")
+            val texte = runCatching {
+                coroutineScope {
+                    (0 until anzahl).map { i ->
+                        async {
+                            gleichzeitig.withPermit {
+                                val stueck = withContext(Dispatchers.IO) { lesen(pcm, i.toLong() * laenge, laenge) }
+                                val text = if (still(stueck)) "" else behaelter.verbindung.geraeteOperation(JSONObject().put("op", "audio-stt").put("audio", Krypto.b64(wav(stueck))), 90_000).optString("text").trim()
+                                melden("Jon hört zu … ${fertig.incrementAndGet() * 100 / anzahl} %")
+                                text
+                            }
+                        }
+                    }.awaitAll()
+                }
             }
-            if (ok) return texte.joinToString(" ")
+            texte.getOrNull()?.let { liste -> return liste.filter { it.isNotBlank() }.joinToString(" ") }
+            texte.exceptionOrNull()?.let { if (it is kotlinx.coroutines.CancellationException) throw it }
         }
         if (!at.felworks.jon.device.VoskModell.vorhanden(context)) {
             at.felworks.jon.device.VoskModell.anstossen(context)
@@ -298,22 +346,27 @@ object MedienAnalyse {
                         }
                         if (beschreibungen.isNotEmpty()) teile += "Was im Video zu sehen ist:\n" + beschreibungen.joinToString("\n")
                     } else szenen.forEach { bilder.put(Fotos.base64(it)) }
-                    val ton = runCatching { withContext(Dispatchers.Default) { pcm(datei, 3600) } }.getOrNull()
-                    if (ton != null) {
-                        val text = transkript(context, behaelter, weg, ton, melden)
-                        if (text.isNotBlank()) {
-                            ergebnis.put("transkript", text)
-                            teile += "Gesprochener Text im Video:\n$text"
+                    val ton = File(datei.parentFile, datei.name + ".pcm")
+                    try {
+                        if (runCatching { withContext(Dispatchers.Default) { pcm(datei, ton, 3600) } }.isSuccess) {
+                            val text = transkript(context, behaelter, weg, ton, melden)
+                            if (text.isNotBlank()) {
+                                ergebnis.put("transkript", text)
+                                teile += "Gesprochener Text im Video:\n$text"
+                            }
                         }
-                    }
+                    } finally { ton.delete() }
                 }
                 "audio" -> {
                     melden("Höre mir die Aufnahme an …")
-                    val ton = withContext(Dispatchers.Default) { pcm(datei, 3600) }
-                    ergebnis.put("dauer", ton.size / (RATE * 2.0))
-                    val text = transkript(context, behaelter, weg, ton, melden)
-                    ergebnis.put("transkript", text)
-                    teile += if (text.isNotBlank()) "Transkript:\n$text" else "In der Aufnahme wurde keine Sprache erkannt."
+                    val ton = File(datei.parentFile, datei.name + ".pcm")
+                    try {
+                        val laenge = withContext(Dispatchers.Default) { pcm(datei, ton, 3600) }
+                        ergebnis.put("dauer", laenge / (RATE * 2.0))
+                        val text = transkript(context, behaelter, weg, ton, melden)
+                        ergebnis.put("transkript", text)
+                        teile += if (text.isNotBlank()) "Transkript:\n$text" else "In der Aufnahme wurde keine Sprache erkannt."
+                    } finally { ton.delete() }
                 }
                 "pdf" -> {
                     val (seiten, anzahl) = withContext(Dispatchers.Default) { pdfBilder(datei) }
@@ -333,7 +386,7 @@ object MedienAnalyse {
                 ergebnis.optString("pfad_handy").takeIf { it.isNotBlank() }?.let { append("\nPfad auf dem Handy: ").append(it) }
                 teile.forEach { append("\n").append(it) }
             }
-            return ergebnis.put("anhang", anhang.take(120_000)).put("bilder", bilder)
+            return ergebnis.put("anhang", kuerzen(anhang, ANHANG_ZEICHEN)).put("bilder", bilder)
         } finally {
             datei.delete()
         }

@@ -4,12 +4,11 @@ import {Archive, ArrowDown, Code2, Users, ArrowUp, BookOpen, CalendarPlus, Camer
 import {api, call, haptic, listen, native, toBase64} from "./bridge";
 import {Chats, LANG, Message, Step} from "./useChats";
 import {ResultCards, FilePill} from "./Cards";
-import {PremiumMarke} from "./Premium";
 import {BefehlsListe, ausfuehren, befehle} from "./Befehle";
 import {ErgebnisKarten, Plan, PlanKarte, planErkennen} from "./Work";
 import {Busy, Circle, DashedChat, Field, Markdown, MenuLines, Orb, Popover, Sheet, WaveIcon, errorText, spring, useDictation} from "./ui";
 
-export type Conn = {connected?: boolean; paired?: boolean; name?: string; kiosk?: boolean; owner?: boolean; wake?: boolean; battery?: number; charging?: boolean; locked?: boolean; server?: number; server_id?: string; apps_versteckt?: boolean; klemmt?: boolean};
+export type Conn = {connected?: boolean; paired?: boolean; name?: string; kiosk?: boolean; owner?: boolean; battery?: number; charging?: boolean; locked?: boolean; server?: number; server_id?: string; apps_versteckt?: boolean; klemmt?: boolean};
 export type Shell = {
   chats: Chats; conn: Conn; state: any; saveState: (patch: any) => Promise<any>; notify: (s: string) => void;
   push: (id: string, arg?: any) => void; openModel: () => void; providers: any[]; refreshProviders: () => void; voice: any; name: string; secret: () => void;
@@ -399,7 +398,6 @@ export function ChatScreen({shell, openDrawer, onEdge}: {shell: Shell; openDrawe
     <div className="edge" style={{position: "absolute", left: 0, top: "var(--top)", bottom: 0, width: 18, zIndex: 5, touchAction: "none"}} onPointerDown={onEdge}/>
     <header className="chat-header">
       <button className="home-menu" aria-label="Menü öffnen" onClick={openDrawer}><MenuLines/><span>Menü</span></button>
-      <PremiumMarke/>
       {empty ? <div className="segmented">
         {["chat", "coding"].map(mode => <button key={mode} onClick={() => {haptic("tick"); chats.update({mode});}}>{c.mode === mode && <motion.span layoutId="seg" className="thumb" style={{left: 0, right: 0}} transition={spring}/>}<span style={{position: "relative"}}>{mode === "chat" ? "Chat" : "Work"}</span></button>)}
       </div> : <div className="header-title"><button onClick={shell.openModel}>{work ? "Work" : "Jon"}<ChevronDown/></button><small>{c.temp ? "Temporärer Chat" : `${modelName}${providerId ? ` · ${providerLabel(shell.providers, providerId)}` : ""}`}</small></div>}

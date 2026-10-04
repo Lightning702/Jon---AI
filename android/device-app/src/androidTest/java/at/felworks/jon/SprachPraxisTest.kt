@@ -49,24 +49,25 @@ class SprachPraxisTest {
         } finally { admin.sperren(); leeren() }
     }
 
-    @Test fun lokalesModellUndMikrofonStartenAufDemGeraet() {
+    @Test fun mikrofonStartetNurAufKnopfdruck() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         instrumentation.uiAutomation.executeShellCommand("pm grant ${context.packageName} android.permission.RECORD_AUDIO").close()
-        val modus = GeraeteModus(context)
-        val vorher = modus.wakeWord
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             try {
-                scenario.onActivity { modus.wakeWord = true; SprachDienst.starten(it) }
+                Thread.sleep(1500)
+                assertFalse(SprachDienst.zustand.value.offen)
+                scenario.onActivity { SprachDienst.starten(it, true, true) }
                 val stand = runBlocking {
-                    withTimeout(90_000) {
-                        SprachDienst.zustand.first { (it.phase == SprachPhase.IDLE && it.text.contains("bereit")) || it.phase == SprachPhase.ERROR }
+                    withTimeout(30_000) {
+                        SprachDienst.zustand.first { (it.offen && it.phase == SprachPhase.LISTENING) || it.phase == SprachPhase.ERROR }
                     }
                 }
-                assertEquals(stand.text, SprachPhase.IDLE, stand.phase)
-                assertFalse(stand.offen)
+                assertEquals(stand.fehler, SprachPhase.LISTENING, stand.phase)
+                scenario.onActivity { SprachDienst.schliessen(it) }
+                val ende = runBlocking { withTimeout(10_000) { SprachDienst.zustand.first { !it.offen } } }
+                assertFalse(ende.offen)
             } finally {
-                modus.wakeWord = vorher
                 SprachDienst.stoppen(context)
             }
         }

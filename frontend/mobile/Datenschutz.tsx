@@ -10,12 +10,12 @@ const abschnitte: {icon: React.ReactNode; titel: string; text: string}[] = [
   {icon: <ShieldCheck/>, titel: "Das Wichtigste", text: "Kein Konto bei FelWorks, keine Werbung, kein Tracking, keine Analyse-Dienste. FelWorks betreibt keinen Server, über den deine Daten laufen."},
   {icon: <Smartphone/>, titel: "Auf diesem Handy", text: "Offline-Chats, Erinnerungen, Fitness, Wecker, Bildschirmzeit-Regeln, Jons Arbeitsordner und Offline-Modelle bleiben im geschützten App-Speicher. API-Schlüssel und Zugangsdaten sind mit dem Android-Schlüsselspeicher verschlüsselt."},
   {icon: <Server/>, titel: "Zu deinem Jon am PC oder Pi", text: "Chats, Dateien, Sicherungen und für die Eltern-Übersicht der Gerätestatus gehen nur an deinen eigenen Jon – Ende-zu-Ende verschlüsselt über WLAN oder Tailscale."},
-  {icon: <Cloud/>, titel: "KI-Anbieter und Dienste", text: "Nur wenn du sie nutzt: deine Nachrichten an den gewählten KI-Anbieter, Suchanfragen an DuckDuckGo und Wikipedia, Orte an Open-Meteo, Modell-Downloads über Hugging Face und das „Hey Jon“-Sprachmodell von alphacephei.com. Offline-Modelle senden nichts."},
+  {icon: <Cloud/>, titel: "KI-Anbieter und Dienste", text: "Nur wenn du sie nutzt: deine Nachrichten an den gewählten KI-Anbieter, Suchanfragen an DuckDuckGo und Wikipedia, Orte an Open-Meteo, Modell-Downloads über Hugging Face und das Sprachmodell für Live-Text von alphacephei.com. Offline-Modelle senden nichts."},
   {icon: <Users/>, titel: "Familie", text: "Kindersicherung, SOS und Anfragen nach mehr Zeit gehen nur an den Jon deiner Familie und, falls eingerichtet, an euren Telegram-Bot."}
 ];
 
 const rechte: {icon: React.ReactNode; name: string; grund: string}[] = [
-  {icon: <Mic/>, name: "Mikrofon", grund: "Sprechen und „Hey Jon“ – erkannt wird auf dem Handy"},
+  {icon: <Mic/>, name: "Mikrofon", grund: "Sprechen und Diktieren – nur wenn du auf den Knopf tippst"},
   {icon: <Camera/>, name: "Kamera", grund: "Fotos für Jon und QR-Codes zum Koppeln"},
   {icon: <Bell/>, name: "Benachrichtigungen", grund: "Wecker, Timer, Jon Chat und Durchsagen"},
   {icon: <Footprints/>, name: "Körperliche Aktivität", grund: "Schrittzähler"},

@@ -18,6 +18,19 @@ Alle nennenswerten Änderungen an Jon.
 - **Beta-Kanal:** Entwickler bekommen Vorabversionen von GitHub früher als alle anderen, wenn sie es einschalten.
 - **Standard bleibt, wie es war.**
 
+### 🎁 Jon Premium kostenlos
+
+- **Ein Klick, für immer:** Im Premium-Dialog gibt es jetzt den Knopf „Kostenlos freischalten“. Alle Premium-Funktionen gelten sofort, ohne Abo und ohne Zahlungsdaten.
+- **Der Admin entscheidet:** In der Team-Zentrale unter „Codes“ schaltest du „Jon Premium kostenlos für alle“ ein oder aus und siehst, wie viele Geräte es nutzen. Schaltest du es aus, verschwindet der Knopf, und alle kostenlosen Lizenzen fallen bei der nächsten Prüfung auf Standard zurück, spätestens nach 6 Stunden. Codes, Entwickler und Admins bleiben davon unberührt.
+
+### 📱 Jon Gerät 1.7.1
+
+- **Jon hört nur, wenn du tippst:** „Hey Jon“ ist entfernt, das Mikrofon läuft nicht mehr im Hintergrund. Jon hört nur zu, wenn du auf „Stimme“ oder auf das Mikrofon tippst.
+- **Eine Frage, eine Antwort:** Nach seiner Antwort hört Jon nicht weiter zu und redet nicht mehr von selbst los. Geräusche ohne erkannte Wörter zählen nicht mehr als Frage. Unterbrichst du Jon beim Sprechen, hört er dir gleich weiter zu.
+- **Über Transkripte reden ohne Absturz:** Lange Aufnahmen entpackt die App jetzt in eine Datei statt in den Arbeitsspeicher. Zwei Abschnitte gehen gleichzeitig an deinen Pi, Stille wird übersprungen (zwei Minuten Audio in etwa 15 Sekunden). Das Offline-Modell am Handy bekommt nur so viel Text, wie in sein Gedächtnis passt, und sehr lange Transkripte werden in der Mitte sinnvoll gekürzt.
+- **Kein Premium mehr am Handy:** Funke, Befehle und Dateien ausführen gehen am Handy ohne Premium. Premium verwaltest du nur noch in Jon am PC.
+- Die App lässt sich wieder vollständig aus dem Quellcode bauen. Ein Ordner mit Verbindungscode fehlte bisher in Git.
+
 ### ✨ Feinschliff
 
 - **Mehr Luft in der Team-Zentrale:** Karten, Listen, Kacheln, Schalter und Nachrichten haben jetzt deutliche Abstände. Der Dialog ist für Admin und Entwickler breiter, und alle Reiter passen in eine Zeile.

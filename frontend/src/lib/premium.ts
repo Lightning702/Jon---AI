@@ -19,6 +19,7 @@ export interface PremiumStatus {
   gueltig_bis: number;
   inhaber: string;
   abo: boolean;
+  kostenlos: boolean;
   hinweis: string;
   token: string;
   offen: boolean;

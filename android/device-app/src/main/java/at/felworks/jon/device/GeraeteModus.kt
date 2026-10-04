@@ -55,9 +55,6 @@ class GeraeteModus(private val context: Context) {
     val aktiv: Boolean get() = prefs.getBoolean("kiosk", false)
     val gesperrt: Boolean get() = context.getSystemService(ActivityManager::class.java).lockTaskModeState == ActivityManager.LOCK_TASK_MODE_LOCKED
     val abgeschottet: Boolean get() = (aktiv && eigentuemer) || gesperrt
-    var wakeWord: Boolean
-        get() = prefs.getBoolean("wake", false)
-        set(wert) { prefs.edit().putBoolean("wake", wert).apply() }
     var unterbrechen: Boolean
         get() = prefs.getBoolean("barge", true)
         set(wert) { prefs.edit().putBoolean("barge", wert).apply() }

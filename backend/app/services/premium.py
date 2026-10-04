@@ -27,7 +27,7 @@ VERSION = "JON1"
 STUFEN = {"standard": "Standard", "premium": "Premium", "admin": "Admin", "entwickler": "Entwickler"}
 UNBEGRENZT = {"premium", "admin", "entwickler"}
 TEAM = {"admin", "entwickler"}
-TEAM_AKTIONEN = {"liste", "erstellen", "bearbeiten", "geraet-entfernen", "sperren", "team/liste", "team/ungelesen", "team/senden", "team/gelesen", "team/anhang", "team/stimme", "team/status", "team/loeschen", "flags/liste", "flags/setzen", "statistik", "llm/kontingent", "pi/status", "pi/neustart", "pi/log", "pi/aktualisieren", "skills/liste", "skills/teilen", "skills/holen", "skills/entfernen"}
+TEAM_AKTIONEN = {"liste", "erstellen", "bearbeiten", "geraet-entfernen", "sperren", "team/liste", "team/ungelesen", "team/senden", "team/gelesen", "team/anhang", "team/stimme", "team/status", "team/loeschen", "flags/liste", "flags/setzen", "statistik", "llm/kontingent", "pi/status", "pi/neustart", "pi/log", "pi/aktualisieren", "skills/liste", "skills/teilen", "skills/holen", "skills/entfernen", "kostenlos/stand", "kostenlos/setzen"}
 GEHEIM_MUSTER = re.compile(r"(?:nvapi-|sk-|sk_live_|sk_test_|rk_live_|ghp_|gsk_|xai-|AIza)[A-Za-z0-9_\-]{8,}|Bearer\s+\S+|JON1\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+")
 GEHEIM_FELD = re.compile(r"(?i)\b(token|key|passwort|password|secret|api_key|apikey)(\s*[=:]\s*)\S+")
 
@@ -38,8 +38,7 @@ PLAENE = [{"key": "monat", "name": "Monatlich", "preis": "6,99 €", "zeitraum":
 FEATURES = {
     "harness": ("Jon Harness Pro", "Unbegrenzte Aufträge, Projektvorschau und Fachagenten im Harness"),
     "fachteam": ("Fachteam", "Bis zu vier Fachagenten mit Gegenprüfung, so oft du willst"),
-    "funke": ("Funke am Handy", "Dein Begleiter mit allen Werkzeugen über allen Apps"),
-    "fernsteuerung": ("Fernsteuerung", "PC per Telegram und Handy-App steuern, Freigaben unterwegs"),
+    "fernsteuerung": ("Fernsteuerung", "PC per Telegram steuern, Freigaben unterwegs"),
     "recherche": ("Deep Learning & Recherche", "Lange Recherche-Berichte und Lernpläne"),
     "studio": ("Studio", "Video, Foto und Präsentationen erstellen"),
     "stimmen": ("Stimmen & Transkripte", "Lange Audiodateien, Sprecher und Export"),
@@ -139,6 +138,7 @@ class Premium:
         self._geraet = ""
         self._cache: tuple[str, dict] | None = None
         self.offen: dict = {}
+        self._kostenlos: tuple[float, bool] = (0.0, False)
 
     def geraet(self) -> str:
         if self._geraet:
@@ -304,6 +304,7 @@ class Premium:
             "gueltig_bis": float(daten.get("exp") or 0) if stufe != "standard" else 0,
             "inhaber": str(daten.get("name", ""))[:80] if stufe != "standard" else "",
             "abo": bool(daten.get("abo")) and stufe == "premium",
+            "kostenlos": bool(daten.get("kostenlos")) and stufe == "premium",
             "hinweis": hinweis,
             "token": self.token() if stufe != "standard" else "",
             "offen": bool(self.offen),
@@ -386,6 +387,32 @@ class Premium:
     async def admin(self, passwort: str) -> dict:
         return await self.einloesen(passwort)
 
+    async def kostenlos_verfuegbar(self) -> bool:
+        if self.premium():
+            return False
+        jetzt = time.time()
+        zeit, wert = self._kostenlos
+        if jetzt - zeit < 120:
+            return wert
+        try:
+            wert = bool((await self.codeserver("kostenlos/verfuegbar", {})).get("verfuegbar"))
+        except (ConnectionError, ValueError):
+            wert = False
+        self._kostenlos = (jetzt, wert)
+        return wert
+
+    async def kostenlos_holen(self) -> dict:
+        if self.premium():
+            return self.status()
+        try:
+            antwort = await self.codeserver("kostenlos", {"geraet": self.geraet()})
+        except Abgelehnt:
+            self._kostenlos = (time.time(), False)
+            raise
+        self.zustand_datei.unlink(missing_ok=True)
+        self._kostenlos = (0.0, False)
+        return self.speichern(antwort["token"])
+
     async def erneuern(self) -> dict:
         token = self.token()
         if not token:
@@ -430,6 +457,8 @@ class Premium:
         if aktion not in TEAM_AKTIONEN:
             raise ValueError("Unbekannte Aktion.")
         antwort = await self.codeserver(aktion, {**(daten or {}), **self._team_lizenz()})
+        if aktion == "kostenlos/setzen":
+            self._kostenlos = (0.0, False)
         if isinstance(antwort, dict) and "ungelesen" in antwort:
             self._zustand_setzen(ungelesen=int(antwort.get("ungelesen") or 0))
         return antwort

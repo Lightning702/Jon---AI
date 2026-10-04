@@ -118,9 +118,19 @@ object LokaleKi {
         val m = Katalog.modell(context, name) ?: error("Dieses Offline-Modell kennt Jon nicht.")
         send(JSONObject().put("type", "meta").put("provider", "handy").put("model", m.name))
         val aktiv = laden(context, m)
+        val budget = ((m.maxTokens - 640).coerceAtLeast(400) * 3 - system.length).coerceAtLeast(1200)
+        val frage = MedienAnalyse.kuerzen(text, budget * 3 / 5)
+        var frei = budget - frage.length
+        val bisher = ArrayDeque<Message>()
+        for ((rolle, inhalt) in verlauf.takeLast(16).asReversed()) {
+            if (frei < 240) break
+            val stueck = MedienAnalyse.kuerzen(inhalt, minOf(frei, 2400))
+            frei -= stueck.length
+            bisher.addFirst(if (rolle == "user") Message.user(stueck) else Message.model(stueck))
+        }
         val konfiguration = ConversationConfig(
             systemInstruction = Contents.of(system),
-            initialMessages = verlauf.takeLast(16).map { (rolle, inhalt) -> if (rolle == "user") Message.user(inhalt.take(6000)) else Message.model(inhalt.take(6000)) },
+            initialMessages = bisher.toList(),
             tools = if (m.werkzeuge) werkzeugListe(context, arbeit, this) else emptyList(),
             samplerConfig = SamplerConfig(m.topK, m.topP, m.temperatur),
         )
@@ -132,7 +142,7 @@ object LokaleKi {
             val teile = mutableListOf<Content>()
             if (m.bild && geladenMitBild) bilder.take(8).forEach { teile += Content.ImageBytes(it) }
             else if (bilder.isNotEmpty()) send(JSONObject().put("type", "content").put("delta", "(Dieses Offline-Modell kann keine Bilder ansehen. Ich antworte nur auf deinen Text.)\n\n"))
-            teile += Content.Text(text)
+            teile += Content.Text(frage)
             neu.sendMessageAsync(Contents.of(teile)).collect { nachricht ->
                 nachricht.channels["thought"]?.takeIf { it.isNotEmpty() }?.let { send(JSONObject().put("type", "reasoning").put("delta", it)) }
                 var stueck = nachricht.toString()

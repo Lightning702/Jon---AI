@@ -36,7 +36,7 @@ def dienst(tmp_path, monkeypatch):
 def test_ohne_lizenz_ist_jon_standard(dienst):
     status = dienst.status()
     assert status["stufe"] == "standard" and status["name"] == "Standard"
-    assert len(status["features"]) == 14 and not any(f["frei"] for f in status["features"])
+    assert len(status["features"]) == 13 and not any(f["frei"] for f in status["features"])
     assert len(dienst.geraet()) == 20
 
 

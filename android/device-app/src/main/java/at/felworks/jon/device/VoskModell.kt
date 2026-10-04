@@ -32,7 +32,7 @@ object VoskModell {
     fun ordner(context: Context): File {
         if (!vorhanden(context)) {
             anstossen(context)
-            error("Das Sprachmodell für „Hey Jon“ wird gerade geladen ($GROESSE_MB MB).")
+            error("Das Sprachmodell für Live-Text wird gerade geladen ($GROESSE_MB MB).")
         }
         return ziel(context)
     }
@@ -114,21 +114,32 @@ object VoskModell {
         }
     }
 
-    fun transkribieren(context: Context, pcm: ByteArray, fortschritt: (Double) -> Unit = {}): String {
+    fun transkribieren(context: Context, pcm: java.io.File, fortschritt: (Double) -> Unit = {}): String {
         val modell = Model(ordner(context).absolutePath)
         try {
             val erkenner = Recognizer(modell, 16000f)
             try {
                 val saetze = mutableListOf<String>()
-                var i = 0
-                val block = 16000
-                while (i < pcm.size) {
-                    val n = minOf(block, pcm.size - i)
-                    if (erkenner.acceptWaveForm(pcm.copyOfRange(i, i + n), n)) {
-                        JSONObject(erkenner.result).optString("text").takeIf { it.isNotBlank() }?.let { saetze += it }
+                val gesamt = pcm.length().coerceAtLeast(1)
+                var gelesen = 0L
+                var runde = 0
+                val puffer = ByteArray(16000)
+                pcm.inputStream().buffered(1 shl 16).use { eingabe ->
+                    while (true) {
+                        var n = 0
+                        while (n < puffer.size) {
+                            val r = eingabe.read(puffer, n, puffer.size - n)
+                            if (r < 0) break
+                            n += r
+                        }
+                        if (n <= 0) break
+                        if (erkenner.acceptWaveForm(puffer, n)) {
+                            JSONObject(erkenner.result).optString("text").takeIf { it.isNotBlank() }?.let { saetze += it }
+                        }
+                        gelesen += n
+                        if (++runde % 20 == 0) fortschritt(gelesen.toDouble() / gesamt)
+                        if (n < puffer.size) break
                     }
-                    i += n
-                    if (i % (block * 20) == 0) fortschritt(i.toDouble() / pcm.size)
                 }
                 JSONObject(erkenner.finalResult).optString("text").takeIf { it.isNotBlank() }?.let { saetze += it }
                 return saetze.joinToString(". ") { satz -> satz.replaceFirstChar { it.uppercase() } }.let { if (it.isNotBlank()) "$it." else it }

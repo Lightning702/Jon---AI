@@ -12,7 +12,6 @@ import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaPlayer
 import android.media.MediaRecorder
-import android.media.ToneGenerator
 import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.AudioEffect
 import android.media.audiofx.NoiseSuppressor
@@ -22,7 +21,6 @@ import android.os.PowerManager
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import at.felworks.jon.JonApplication
-import at.felworks.jon.MainActivity
 import at.felworks.jon.connector.Verbinderrechte
 import at.felworks.jon.connector.Verbindermeldung
 import at.felworks.jon.data.remote.Krypto
@@ -138,7 +136,6 @@ class SprachDienst : Service() {
     private var fokus: AudioFocusRequest? = null
     private val behaelter get() = (application as JonApplication).behaelter
     @Volatile private var weg = Weg.PI
-    @Volatile private var ruheBis = 0L
     private val eigenerVerlauf = mutableListOf<Pair<String, String>>()
 
     private fun wegPruefen(): Weg {
@@ -172,7 +169,7 @@ class SprachDienst : Service() {
             "gespraech" -> { if (!mikrofon) return verweigert(); stumm = false; wunsch = Modus.GESPRAECH; abbrechen = true; stoppen() }
             else -> if (!mikrofon) return verweigert()
         }
-        val meldung = Verbindermeldung.dienstMeldung(this, if (GeraeteModus(this).wakeWord) "„Hey Jon“ wird lokal erkannt" else "Sprache aktiv")
+        val meldung = Verbindermeldung.dienstMeldung(this, "Sprache aktiv")
         try {
             val typ = if (mikrofon) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
             if (Build.VERSION.SDK_INT >= 30) startForeground(4713, meldung, typ) else startForeground(4713, meldung)
@@ -182,7 +179,7 @@ class SprachDienst : Service() {
             return START_NOT_STICKY
         }
         if (lauf?.isActive != true) lauf = scope.launch { hauptschleife() }
-        return if (GeraeteModus(this).wakeWord) START_STICKY else START_NOT_STICKY
+        return START_NOT_STICKY
     }
 
     private fun verweigert(): Int {
@@ -223,16 +220,6 @@ class SprachDienst : Service() {
                     continue
                 }
                 abbrechen = false
-                if (GeraeteModus(this).wakeWord && Verbinderrechte.erteilt(this, Manifest.permission.RECORD_AUDIO)) {
-                    if (!VoskModell.vorhanden(this)) {
-                        VoskModell.anstossen(this)
-                        melden { SprachZustand(SprachPhase.IDLE, text = "„Hey Jon“ wird vorbereitet …", seq = seq, stumm = stumm) }
-                        delay(3000)
-                        continue
-                    }
-                    if (aufWakeWordWarten()) wunsch = Modus.GESPRAECH
-                    continue
-                }
                 break
             }
         } catch (e: CancellationException) {
@@ -261,6 +248,14 @@ class SprachDienst : Service() {
     private fun modellLaden(): Model {
         modell?.let { return it }
         return Model(VoskModell.ordner(this).absolutePath).also { modell = it }
+    }
+
+    private fun erkennerOeffnen(): Recognizer? {
+        if (!VoskModell.vorhanden(this)) {
+            VoskModell.anstossen(this)
+            return null
+        }
+        return runCatching { Recognizer(modellLaden(), 16000f) }.getOrNull()
     }
 
     private fun mikrofon(gespraech: Boolean): Mikro {
@@ -398,7 +393,7 @@ class SprachDienst : Service() {
         var mikro: Mikro? = null
         var erkenner: Recognizer? = null
         try {
-            erkenner = runCatching { Recognizer(modellLaden(), 16000f) }.getOrNull()
+            erkenner = erkennerOeffnen()
             mikro = mikrofon(false)
             fokusAnfordern(true)
             val a = erfassen(mikro, erkenner, 2200, 12_000, 29_000)
@@ -432,10 +427,9 @@ class SprachDienst : Service() {
         var mikro: Mikro? = null
         var erkenner: Recognizer? = null
         try {
-            erkenner = runCatching { Recognizer(modellLaden(), 16000f) }.getOrNull()
+            erkenner = erkennerOeffnen()
             mikro = mikrofon(true)
             fokusAnfordern(false)
-            var ruhig = 0
             var vorlauf: List<ShortArray> = emptyList()
             while (!sollEnden()) {
                 melden { copy(phase = SprachPhase.LISTENING, teil = "", freigabe = null, fehler = "") }
@@ -443,17 +437,21 @@ class SprachDienst : Service() {
                 vorlauf = emptyList()
                 fertig = false
                 if (sollEnden()) break
-                if (a == null) { if (++ruhig >= 6) break; continue }
-                ruhig = 0
+                if (a == null || (erkenner != null && a.lokal.isBlank())) {
+                    melden { copy(phase = SprachPhase.ERROR, fehler = "Ich habe nichts gehört. Tippe nochmal auf „Stimme“, wenn du etwas sagen willst.") }
+                    delay(1800)
+                    break
+                }
                 melden { copy(phase = SprachPhase.THINKING, nutzer = a.lokal, teil = "", text = "") }
                 val text = transkribieren(a)
                 if (text.isBlank()) {
-                    melden { copy(phase = SprachPhase.ERROR, fehler = "Ich habe dich nicht verstanden.") }
-                    delay(1200)
-                    continue
+                    melden { copy(phase = SprachPhase.ERROR, fehler = "Ich habe dich nicht verstanden. Tippe nochmal auf „Stimme“.") }
+                    delay(1800)
+                    break
                 }
                 melden { copy(nutzer = text) }
                 vorlauf = antworten(text, mikro)
+                if (vorlauf.isEmpty()) break
             }
         } catch (e: CancellationException) {
             throw e
@@ -466,7 +464,6 @@ class SprachDienst : Service() {
             mikro?.schliessen()
             erkenner?.close()
             fokusFreigeben()
-            ruheBis = SystemClock.elapsedRealtime() + 4000
             if (wunsch == null) melden { SprachZustand(seq = seq, stumm = stumm) }
         }
     }
@@ -675,38 +672,6 @@ class SprachDienst : Service() {
         ContextCompat.getMainExecutor(this).execute { runCatching { if (p.isPlaying) p.stop() }; runCatching { p.reset() } }
     }
 
-    private suspend fun aufWakeWordWarten(): Boolean {
-        val erkenner = Recognizer(modellLaden(), 16000f, "[\"hey jon\",\"hey john\",\"hallo jon\",\"hallo john\",\"[unk]\"]").apply { setWords(true) }
-        val mikro = mikrofon(false)
-        melden { SprachZustand(SprachPhase.IDLE, text = "Sag „Hallo Jon“", seq = seq, stumm = stumm) }
-        try {
-            val frame = ShortArray(1600)
-            var spitze = 0.0
-            while (currentCoroutineContext().isActive && wunsch == null && vorleseText == null && GeraeteModus(this).wakeWord) {
-                wachHalten()
-                val n = mikro.rec.read(frame, 0, frame.size)
-                check(n > 0) { "Das Mikrofon wurde unterbrochen." }
-                if (!mikrofonFrei(mikro.rec)) { erkenner.reset(); spitze = 0.0; delay(300); continue }
-                spitze = max(spitze, lautstaerke(frame, n))
-                if (!erkenner.acceptWaveForm(frame, n)) continue
-                val ergebnis = runCatching { JSONObject(erkenner.result) }.getOrNull()
-                val lautGenug = spitze >= 650.0
-                spitze = 0.0
-                if (ergebnis == null || !weckwortErkannt(ergebnis) || !lautGenug) continue
-                if (SystemClock.elapsedRealtime() < ruheBis) continue
-                withContext(Dispatchers.Main) {
-                    runCatching { startActivity(Intent(this@SprachDienst, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)) }
-                }
-                ToneGenerator(AudioManager.STREAM_MUSIC, 40).let { ton -> ton.startTone(ToneGenerator.TONE_PROP_BEEP, 80); delay(100); ton.release() }
-                return true
-            }
-            return false
-        } finally {
-            mikro.schliessen()
-            erkenner.close()
-        }
-    }
-
     private fun fokusAnfordern(ducken: Boolean) {
         val audio = getSystemService(AudioManager::class.java)
         val anfrage = AudioFocusRequest.Builder(if (ducken) AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK else AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
@@ -728,20 +693,6 @@ class SprachDienst : Service() {
     }
 
     companion object {
-        private val weckwoerter = setOf("hey jon", "hey john", "hallo jon", "hallo john")
-
-        fun weckwortErkannt(ergebnis: JSONObject): Boolean {
-            if (ergebnis.optString("text").trim() !in weckwoerter) return false
-            val woerter = ergebnis.optJSONArray("result") ?: return false
-            if (woerter.length() != 2) return false
-            val erstes = woerter.getJSONObject(0)
-            val zweites = woerter.getJSONObject(1)
-            if (erstes.optDouble("conf", 0.0) < 0.92 || zweites.optDouble("conf", 0.0) < 0.92) return false
-            val dauer = zweites.optDouble("end") - erstes.optDouble("start")
-            val luecke = zweites.optDouble("start") - erstes.optDouble("end")
-            return dauer in 0.3..1.6 && luecke < 0.45
-        }
-
         private val _zustand = MutableStateFlow(SprachZustand())
         val zustand: StateFlow<SprachZustand> = _zustand
         private val seq: Int get() = _zustand.value.seq
@@ -756,7 +707,7 @@ class SprachDienst : Service() {
         }
 
         fun befehl(context: Context, aktion: String, extra: Intent.() -> Unit = {}) {
-            if (_zustand.value.let { !it.offen && it.phase == SprachPhase.IDLE } && aktion != "vorlesen" && !GeraeteModus(context).wakeWord) {
+            if (_zustand.value.let { !it.offen && it.phase == SprachPhase.IDLE } && aktion != "vorlesen") {
                 if (aktion == "abbrechen") _zustand.value = SprachZustand(seq = seq)
                 return
             }
