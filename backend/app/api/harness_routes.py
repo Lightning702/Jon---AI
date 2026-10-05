@@ -17,6 +17,23 @@ from app.services.premium import PremiumNoetig
 router = APIRouter(prefix="/api")
 
 
+class Freigabe(BaseModel):
+    alles: bool
+
+
+@router.get("/harness/freigabe")
+async def freigabe_stand() -> dict:
+    return {"alles": get_harness_service().alles_erlaubt()}
+
+
+@router.post("/harness/freigabe")
+async def freigabe_setzen(daten: Freigabe) -> dict:
+    from app.services.settings_service import get_settings_service
+
+    get_settings_service().update({"harness_alles_erlauben": daten.alles})
+    return {"alles": get_harness_service().alles_erlaubt()}
+
+
 @router.get("/mini-jon/memories")
 async def daily_memories() -> dict:
     from app.services.daily_memory import get_daily_memory

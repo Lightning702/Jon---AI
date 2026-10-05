@@ -91,6 +91,7 @@ DEFAULTS = {
     "wake_sensitivity": "mittel",
     "pet_wellness": True,
     "agenten_ordner": "",
+    "harness_alles_erlauben": False,
     "pet_3d": False,
     "autofile_enabled": False,
     "app_usage_enabled": False,

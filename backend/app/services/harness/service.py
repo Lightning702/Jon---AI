@@ -332,7 +332,21 @@ class HarnessService:
         self.emit(task, "approval_decided", allowed=allow)
         return {"accepted": True, "allowed": allow}
 
+    @staticmethod
+    def alles_erlaubt() -> bool:
+        from app.services.settings_service import get_settings_service
+
+        return bool(get_settings_service().get().get("harness_alles_erlauben"))
+
     async def approval(self, task: dict, action: str, args: dict) -> bool:
+        from app.services.risiko import _befehl_gefaehrlich
+
+        if self.alles_erlaubt():
+            gefahr = _befehl_gefaehrlich(str(args.get("command", "")))
+            if not gefahr:
+                self.emit(task, "hinweis", message="Automatisch erlaubt: " + str(args.get("command", ""))[:300])
+                return True
+            self.emit(task, "hinweis", message=f"Dieser Befehl kann Daten oder das System beschädigen ({gefahr}). Er braucht trotz „Alle Befehle erlauben“ deine Freigabe.")
         future = asyncio.get_running_loop().create_future()
         self.approvals[task["id"]] = future
         task["pending"] = {"id": uuid.uuid4().hex[:12], "tool": action, "args": args, "notice": "Shellbefehle laufen mit deinen Benutzerrechten und können auch außerhalb des Arbeitsordners wirken."}
