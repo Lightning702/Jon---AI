@@ -50,6 +50,22 @@ from app.core.fehler import leise
 _QUELLE: contextvars.ContextVar[str] = contextvars.ContextVar("jon_quelle", default="")
 
 _SUCHEN: contextvars.ContextVar[int] = contextvars.ContextVar("jon_suchen", default=0)
+_WUNSCH: contextvars.ContextVar[str | None] = contextvars.ContextVar("jon_wunsch", default=None)
+OEFFNEN = re.compile(
+    r"(?:\b(?:öffne|oeffne|öffnen|oeffnen|aufmachen|aufrufen|abspielen|navigier\w*|browser\w*|tabs?|klick\w*|ausfüll\w*|ausfuell\w*|bestell\w*|einloggen|open|play|navigate)\b"
+    r"|\b(?:mach|mache|macht|ruf|rufe|geh|gehe)\b[^!?\n]{0,60}\b(?:auf)\b"
+    r"|\bspiel\w*\b[^!?\n]{0,60}\bab\b"
+    r"|\bzeig\w*\s+mir\s+(?:die|das|den)?\s*(?:seite|website|webseite|homepage|video|link|tab)"
+    r"|\bin\s+(?:edge|chrome|brave|firefox|opera|vivaldi)\b"
+    r"|\b(?:diese|dieser|diesen|offene|offenen|aktuelle|aktuellen)\s+seite\b|\bgerade\s+offen"
+    r"|\bgo\s+to\b|\bshow\s+me\s+the\s+(?:page|site|website))",
+    re.IGNORECASE,
+)
+NICHT_OEFFNEN = (
+    "Nicht geöffnet: Der Nutzer hat nicht gesagt, dass du etwas im Browser öffnen sollst. "
+    "Schau mit web_search oder http_get nach, ohne ein Fenster aufzumachen, und antworte direkt. "
+    "Öffne Seiten nur, wenn er ausdrücklich 'öffne', 'im Browser', 'geh auf' oder 'spiel ... ab' sagt."
+)
 MAX_SUCHEN = 3
 ZAHLENFRAGE = (
     "preis",
@@ -71,8 +87,18 @@ ZAHLENFRAGE = (
 )
 
 
-def runde_beginnen() -> None:
+def runde_beginnen(wunsch: str | None = None) -> None:
     _SUCHEN.set(0)
+    _WUNSCH.set(None if wunsch is None else str(wunsch)[:2000])
+
+
+def oeffnen_erlaubt() -> bool:
+    wunsch = _WUNSCH.get()
+    return wunsch is None or bool(OEFFNEN.search(wunsch))
+
+
+def oeffnet_fenster(name: str) -> bool:
+    return name == "open_url" or (name.startswith("browser_") and name not in {"browser_status", "browser_wahl"})
 
 
 _NAME_MUELL = re.compile(r"<\|.*$|[^A-Za-z0-9_.\-].*$")
@@ -2015,9 +2041,11 @@ class ToolBox:
             ),
             _tool(
                 "open_url",
-                "Oeffnet eine Adresse in JONS PRIVATEM Browser - das ist der "
-                "Standard fuer alles Web, auch fuer Seiten, die der Nutzer sehen soll. "
-                "Das Fenster geht von selbst auf, wenn es noch zu war. "
+                "Oeffnet eine Adresse sichtbar in JONS PRIVATEM Browser. NUR wenn der "
+                "Nutzer ausdruecklich will, dass etwas aufgeht ('oeffne', 'zeig mir die "
+                "Seite', 'im Browser', 'geh auf', 'spiel ... ab'). Zum Nachschauen, "
+                "Pruefen oder Recherchieren nimmst du web_search oder http_get und "
+                "oeffnest KEIN Fenster. Das Fenster geht von selbst auf, wenn es noch zu war. "
                 "'Oeffne mir YouTube' ist immer open_url, nie start_program oder eine "
                 "Shell. Danach kannst du die Seite mit browser_read wirklich lesen. "
                 "Nur wenn der Nutzer ausdruecklich einen anderen Browser nennt ('mach "
@@ -2986,7 +3014,9 @@ class ToolBox:
                 "NIEMALS, dass es ein Produkt, eine Version oder ein Ereignis nicht "
                 "gibt, nur weil du es nicht kennst; liefert die Suche nichts, sag, "
                 "dass die Suche nichts hergab, und such mit anderen Woertern weiter. "
-                "Nenne in der Antwort die Quelle und den Stand aus dem Ergebnis.",
+                "Nenne in der Antwort die Quelle und den Stand aus dem Ergebnis. "
+                "web_search oeffnet kein Fenster; setze das browser-Feld nur, wenn der "
+                "Nutzer ausdruecklich will, dass die Suche im Browser aufgeht.",
                 {
                     "query": {
                         "type": "string",
@@ -3946,6 +3976,9 @@ class ToolBox:
         except Exception as _fehler:
             leise(_fehler, "services/tools")
             hinweis = ""
+        if oeffnet_fenster(name) and not oeffnen_erlaubt():
+            log_action(src, name, args, "ohne Auftrag zum Oeffnen", ok=False)
+            return json.dumps({"error": NICHT_OEFFNEN, "nicht_geoeffnet": True}, ensure_ascii=False)
         from app.services.premium import get_premium, werkzeug_feature
 
         feature = werkzeug_feature(name, args)
@@ -4084,7 +4117,7 @@ class ToolBox:
                     ergebnis = {"treffer": [], "fehler": str(exc)[:200]}
                 ergebnis["kindersicher"] = True
                 return json.dumps(ergebnis, ensure_ascii=False)
-            gewaehlt = aufloesen(str(args.get("browser", "")))
+            gewaehlt = aufloesen(str(args.get("browser", ""))) if oeffnen_erlaubt() else ""
             if gewaehlt and gewaehlt != JON:
                 from urllib.parse import quote_plus
 
@@ -4128,7 +4161,7 @@ class ToolBox:
                 ergebnis = await search_web(frage, anzahl, bool(tief))
             except Exception as exc:
                 ergebnis = {"treffer": [], "mager": True, "fehler": str(exc)[:200]}
-            if ergebnis.get("mager") and not args.get("nur_direkt"):
+            if ergebnis.get("mager") and not args.get("nur_direkt") and _WUNSCH.get() is not None and oeffnen_erlaubt():
                 daten = await ueber_jons_browser()
                 if daten is not None:
                     daten["hinweis"] = (

@@ -2,6 +2,24 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.62.1] — 2026-10-05
+
+### 🌐 Jon öffnet nur noch, wenn du es sagst
+
+- **Nachschauen ohne Fenster:** Fragst du Jon etwas, sucht er im Hintergrund und antwortet direkt. Der Browser geht nur noch auf, wenn du es ausdrücklich willst, zum Beispiel mit „öffne“, „im Browser“, „geh auf“ oder „spiel … ab“.
+- Früher lief die Websuche bei Jons privatem Browser sichtbar im Fenster und wich bei mageren Treffern von selbst dorthin aus. Beides passiert jetzt nur noch auf deinen Wunsch.
+
+### 🧑‍🤝‍🧑 Jon Fachteam wird fertig
+
+- **Die Agenten bekommen dein Material:** Text, Dateien und die letzten Nachrichten aus dem Chat gehen mit an das Fachteam. „Schreib mir alle Vokabeln raus“ funktioniert jetzt, weil die Agenten die Vokabeln wirklich sehen.
+- **Lange Listen bleiben vollständig:** Mehr Platz und Zeit pro Agent, kein Zusammenkürzen von Listen, Abschriften oder Übersetzungen. Jon bekommt das Ergebnis zuverlässig zurück, auch wenn es sehr lang ist.
+- **Eigener Agenten-Ordner:** Jedes Ergebnis landet als Datei im Ordner „Jon Agenten“ auf deinem Desktop. In der Fachteam-Ansicht öffnest oder änderst du den Ordner, auf jeder Fachteam-Karte gibt es „Öffnen“ und „Ordner“.
+
+### 🧠 Jon Harness erinnert sich
+
+- Jeder Auftrag speichert, was Jon schon gelesen, geplant und geändert hat. Folgeaufträge in derselben Sitzung kennen das.
+- **Rate-Limit? Einfach „fahre fort“:** Bricht ein Auftrag ab, weil das Modell ausgelastet ist, steht er auf „unterbrochen“. Mit „fahre fort“ oder dem neuen Knopf macht Jon beim nächsten offenen Schritt weiter, ohne Erledigtes zu wiederholen.
+
 ## [4.61.1] — 2026-10-04
 
 ### 👥 Team-Zentrale für Admin und Entwickler

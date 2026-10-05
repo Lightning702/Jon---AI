@@ -13,9 +13,28 @@ from app.core.store import atomic_write_text
 from app.services.agent_profiles import BOUNDARIES, PROFILES
 
 MAX_AGENTEN = 4
-GESAMT_TIMEOUT_S = 480
+GESAMT_TIMEOUT_S = 1800
 TERMINAL = {"done", "needs_review", "failed", "cancelled", "interrupted"}
 PRIVAT_HALTEN_S = 900
+MATERIAL_ZEICHEN = 60_000
+TEIL_TOKENS = 8000
+TEIL_TIMEOUT_S = 420
+ORDNER_NAME = "Jon Agenten"
+VOLLSTAENDIG = "Verlangt der Auftrag eine vollständige Liste, Sammlung, Abschrift, Übersetzung oder Tabelle (zum Beispiel alle Vokabeln), liefere wirklich alle Einträge aus dem Material, ohne Kürzung, ohne „usw.“ und ohne Auswahl. Arbeite ausschließlich mit dem mitgegebenen Material, wenn es vorhanden ist."
+
+
+def kuerzen(text: str, grenze: int) -> str:
+    if len(text) <= grenze:
+        return text
+    marke = f"\n\n[… {len(text) - grenze} Zeichen in der Mitte ausgelassen …]\n\n"
+    rest = max(grenze - len(marke), 400)
+    return text[: rest * 2 // 3] + marke + text[-(rest - rest * 2 // 3):]
+
+
+def dateiname(text: str) -> str:
+    sauber = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', " ", text)
+    sauber = re.sub(r"\s+", " ", sauber).strip(" .")
+    return sauber[:60].strip(" .") or "Auftrag"
 
 
 @dataclass
@@ -29,11 +48,12 @@ class Teilergebnis:
     rolle: str = "general"
 
     def als_dict(self) -> dict:
-        return {"titel": self.titel, "auftrag": self.auftrag, "werkzeug": self.werkzeug, "ergebnis": self.ergebnis[:12000], "fehler": self.fehler[:1000], "dauer": round(self.dauer, 1), "rolle": self.rolle, "status": "failed" if self.fehler else "done"}
+        return {"titel": self.titel, "auftrag": self.auftrag, "werkzeug": self.werkzeug, "ergebnis": self.ergebnis[:80000], "fehler": self.fehler[:1000], "dauer": round(self.dauer, 1), "rolle": self.rolle, "status": "failed" if self.fehler else "done"}
 
 
 class AgentenService:
     def __init__(self, directory: Path | None = None, complete=None) -> None:
+        self.ablage = None if directory is None else directory / "ergebnisse"
         self.directory = directory or DATA_DIR / "fachteam"
         self.directory.mkdir(parents=True, exist_ok=True)
         self.complete = complete
@@ -58,6 +78,78 @@ class AgentenService:
         run["updated_at"] = time.time()
         if run.get("persist", True):
             atomic_write_text(self.directory / (run["id"] + ".json"), json.dumps(run, ensure_ascii=False))
+
+    @staticmethod
+    def standard_ordner() -> Path:
+        from app.services.verknuepfung_service import schreibtisch
+
+        return schreibtisch() / ORDNER_NAME
+
+    def ordner(self) -> Path:
+        from app.services.settings_service import get_settings_service
+
+        eigener = str(get_settings_service().get().get("agenten_ordner") or "").strip()
+        if eigener:
+            return Path(eigener).expanduser()
+        return self.ablage or self.standard_ordner()
+
+    def ordner_stand(self) -> dict:
+        ziel = self.ordner()
+        standard = self.ablage or self.standard_ordner()
+        return {"pfad": str(ziel), "standard": str(standard), "eigener": ziel != standard, "vorhanden": ziel.is_dir()}
+
+    def ordner_setzen(self, pfad: str) -> dict:
+        from app.services.dateiraum_service import get_dateiraum_service
+        from app.services.settings_service import get_settings_service
+
+        text = str(pfad or "").strip()
+        if text:
+            ziel = Path(text).expanduser()
+            if not ziel.is_absolute():
+                raise ValueError("Bitte einen vollständigen Ordnerpfad angeben.")
+            sperre = get_dateiraum_service().gesperrt(ziel.resolve())
+            if sperre:
+                raise ValueError(sperre)
+            try:
+                ziel.mkdir(parents=True, exist_ok=True)
+                probe = ziel / ".jon-schreibtest"
+                probe.write_text("ok", encoding="utf-8")
+                probe.unlink()
+            except OSError as exc:
+                raise ValueError(f"In diesen Ordner kann Jon nicht schreiben: {exc}") from exc
+            text = str(ziel.resolve())
+        get_settings_service().update({"agenten_ordner": text})
+        return self.ordner_stand()
+
+    def _ablegen(self, run: dict) -> None:
+        if not run.get("persist", True):
+            return
+        teile = [p for p in run.get("teile", []) if p.get("ergebnis")]
+        if not run.get("antwort") and not teile:
+            return
+        try:
+            ziel = self.ordner()
+            ziel.mkdir(parents=True, exist_ok=True)
+            zeit = time.strftime("%Y-%m-%d %H-%M", time.localtime(run["created_at"]))
+            datei = ziel / f"{zeit} {dateiname(run['aufgabe'])}.md"
+            if run.get("datei") and Path(run["datei"]).parent == ziel:
+                datei = Path(run["datei"])
+            zeilen = [f"# {run['aufgabe'][:300]}", "", f"Jon Fachteam · {time.strftime('%d.%m.%Y %H:%M', time.localtime(run['created_at']))} · Status: {run['status']}", ""]
+            if run.get("antwort"):
+                zeilen += ["## Ergebnis", "", run["antwort"], ""]
+            if len(teile) > 1 or not run.get("antwort"):
+                zeilen += ["## Teilergebnisse", ""]
+                for teil in teile:
+                    zeilen += [f"### {teil.get('titel', '')} ({teil.get('rolle_name') or teil.get('rolle', '')})", "", teil["ergebnis"], ""]
+            pruefung = run.get("pruefung") or {}
+            if pruefung.get("probleme"):
+                zeilen += ["## Gegenprüfung", ""] + [f"- {p}" for p in pruefung["probleme"]] + [""]
+            if run.get("fehler"):
+                zeilen += ["## Hinweis", "", run["fehler"], ""]
+            atomic_write_text(datei, "\n".join(zeilen))
+            run["datei"] = str(datei)
+        except Exception as exc:
+            run["hinweis"] = ((run.get("hinweis") or "") + f" Ergebnis konnte nicht im Agenten-Ordner gespeichert werden: {exc}").strip()
 
     def get(self, run_id: str) -> dict:
         return json.loads(json.dumps(self.runs[run_id]))
@@ -119,7 +211,7 @@ class AgentenService:
     async def _aufteilen(self, run: dict, selection: dict) -> list[dict]:
         allowed = run["roles"] or list(PROFILES)
         try:
-            raw = await self._model(BOUNDARIES + '\nTeile den Auftrag in unabhängige Teilfragen. Antworte nur als JSON: {"teile":[{"titel":"...","auftrag":"...","rolle":"Profil-ID","werkzeug":"keins oder web_search"}]}. Verwende höchstens die gewünschte Anzahl. Für eine einfache Aufgabe genügt ein Fachagent. Jede Teilfrage muss zur ursprünglichen Aufgabe beitragen.', {"aufgabe": run["aufgabe"], "max_agenten": run["max_agenten"], "profile": {key: PROFILES[key]["name"] for key in allowed}, "internet_erlaubt": run["research"]}, selection, 1200, 30)
+            raw = await self._model(BOUNDARIES + '\nTeile den Auftrag in unabhängige Teilfragen. Antworte nur als JSON: {"teile":[{"titel":"...","auftrag":"...","rolle":"Profil-ID","werkzeug":"keins oder web_search"}]}. Verwende höchstens die gewünschte Anzahl. Für eine einfache Aufgabe genügt ein Fachagent. Soll ein mitgegebenes Material vollständig bearbeitet werden (alle Einträge herausschreiben, abschreiben, übersetzen, auflisten), nimm genau einen Fachagenten für das ganze Material. Jede Teilfrage muss zur ursprünglichen Aufgabe beitragen.', {"aufgabe": run["aufgabe"], "material_auszug": kuerzen(run.get("material", ""), 4000), "max_agenten": run["max_agenten"], "profile": {key: PROFILES[key]["name"] for key in allowed}, "internet_erlaubt": run["research"]}, selection, 1200, 60)
             parts = self._json(raw).get("teile")
             if not isinstance(parts, list):
                 raise ValueError("Der Plan enthält keine Teilaufgaben.")
@@ -135,7 +227,7 @@ class AgentenService:
             run["hinweis"] = "Aufteilung nicht verfügbar; ein Fachagent bearbeitet die gesamte Aufgabe."
         return [{"titel": PROFILES[allowed[0]]["name"], "auftrag": run["aufgabe"], "rolle": allowed[0], "rolle_name": PROFILES[allowed[0]]["name"], "werkzeug": "keins", "status": "queued"}]
 
-    async def _teil_ausfuehren(self, teil: dict, selection: dict | None = None, original: str = "", research: bool = False) -> Teilergebnis:
+    async def _teil_ausfuehren(self, teil: dict, selection: dict | None = None, original: str = "", research: bool = False, material: str = "") -> Teilergebnis:
         from app.services.tool_result import succeeded
         from app.services.tools import ToolBox
 
@@ -150,7 +242,7 @@ class AgentenService:
                 sources = await asyncio.wait_for(ToolBox(source="agenten").execute(tool, {"query": task[:1500]}), 40)
                 if not succeeded(sources):
                     raise ValueError("Die Recherche ist fehlgeschlagen: " + str(sources)[:500])
-            answer = await self._model(BOUNDARIES + "\nFachprofil: " + PROFILES[role]["focus"], {"urspruenglicher_auftrag": original[:12000], "teilauftrag": task, "recherchematerial": str(sources)[:16000]}, selection or self._selection("jon"))
+            answer = await self._model(BOUNDARIES + "\nFachprofil: " + PROFILES[role]["focus"] + "\n" + VOLLSTAENDIG, {"urspruenglicher_auftrag": original[:12000], "teilauftrag": task, "material": kuerzen(material, MATERIAL_ZEICHEN), "recherchematerial": str(sources)[:16000]}, selection or self._selection("jon"), TEIL_TOKENS, TEIL_TIMEOUT_S)
             return Teilergebnis(title, task, tool, answer, dauer=time.time()-start, rolle=role)
         except Exception as exc:
             return Teilergebnis(title, task, tool, fehler=str(exc) or type(exc).__name__, dauer=time.time()-start, rolle=role)
@@ -163,7 +255,7 @@ class AgentenService:
             result.append({"id": run["id"], "aufgabe": run["aufgabe"][:300], "source": run["source"], "status": run["status"], "created_at": run["created_at"], "updated_at": run.get("updated_at", 0), "teile": [{"titel": p.get("titel", ""), "rolle": p.get("rolle", "general"), "rolle_name": p.get("rolle_name", ""), "status": p.get("status", "queued")} for p in run.get("teile", [])]})
         return result[:6]
 
-    def start(self, aufgabe: str, max_agenten: int = 3, source: str = "app", slot: str = "jon", research: bool = False, roles: list[str] | None = None, persist: bool = True, kinder: int | None = None, run_id: str | None = None) -> dict:
+    def start(self, aufgabe: str, max_agenten: int = 3, source: str = "app", slot: str = "jon", research: bool = False, roles: list[str] | None = None, persist: bool = True, kinder: int | None = None, run_id: str | None = None, material: str = "") -> dict:
         from app.services.premium import get_premium
 
         get_premium().verbrauchen("fachteam")
@@ -181,7 +273,7 @@ class AgentenService:
                 break
             self.delete(old["id"])
         key = run_id if isinstance(run_id, str) and re.fullmatch(r"[a-f0-9]{32}", run_id) and run_id not in self.runs else uuid.uuid4().hex
-        run = {"id": key, "aufgabe": text, "source": source, "slot": "emil" if slot == "emil" else "jon", "research": bool(research), "roles": list(dict.fromkeys(roles or [])), "max_agenten": max(1, min(int(max_agenten), MAX_AGENTEN)), "status": "planning", "teile": [], "antwort": "", "pruefung": None, "fehler": "", "hinweis": "", "ok": False, "vollstaendig": False, "persist": persist, "created_at": time.time(), "updated_at": time.time()}
+        run = {"id": key, "aufgabe": text, "material": kuerzen(str(material or ""), MATERIAL_ZEICHEN), "source": source, "slot": "emil" if slot == "emil" else "jon", "research": bool(research), "roles": list(dict.fromkeys(roles or [])), "max_agenten": max(1, min(int(max_agenten), MAX_AGENTEN)), "status": "planning", "teile": [], "antwort": "", "pruefung": None, "fehler": "", "hinweis": "", "ok": False, "vollstaendig": False, "persist": persist, "created_at": time.time(), "updated_at": time.time()}
         from app.core.kinderschutz import KINDER_ALTER
 
         run["kinder"] = kinder or KINDER_ALTER.get()
@@ -207,7 +299,7 @@ class AgentenService:
                 async def work(part):
                     part.update(status="working", begonnen=time.time())
                     self._save(run)
-                    result = await self._teil_ausfuehren(part, selection, run["aufgabe"], run["research"])
+                    result = await self._teil_ausfuehren(part, selection, run["aufgabe"], run["research"], run.get("material", ""))
                     part.update(result.als_dict())
                     self._save(run)
 
@@ -218,7 +310,7 @@ class AgentenService:
                 run.update(ok=True, status="verifying")
                 self._save(run)
                 try:
-                    review = await self._model(BOUNDARIES + '\nPrüfe die Ergebnisse unabhängig am Originalauftrag. Kontrolliere Herleitungen, Widersprüche, fehlende Teilfragen und unbelegte Behauptungen. Antworte ausschließlich als JSON: {"ok":true oder false,"probleme":["konkreter Fehler oder offene Frage"],"korrektur":"begründete Korrektur oder leer"}. Eine fehlende oder fehlerhafte Teilantwort bedeutet ok=false.', {"aufgabe": run["aufgabe"], "teile": run["teile"]}, selection, 1800, 45)
+                    review = await self._model(BOUNDARIES + '\nPrüfe die Ergebnisse unabhängig am Originalauftrag. Kontrolliere Herleitungen, Widersprüche, fehlende Teilfragen und unbelegte Behauptungen. Antworte ausschließlich als JSON: {"ok":true oder false,"probleme":["konkreter Fehler oder offene Frage"],"korrektur":"begründete Korrektur oder leer"}. Eine fehlende oder fehlerhafte Teilantwort bedeutet ok=false. Lange Ergebnisse siehst du gekürzt; werte Kürzungen nicht als Fehler.', {"aufgabe": run["aufgabe"], "material_auszug": kuerzen(run.get("material", ""), 6000), "teile": [{**p, "ergebnis": kuerzen(str(p.get("ergebnis", "")), 6000)} for p in run["teile"]]}, selection, 1800, 180)
                     review = self._json(review)
                     if type(review.get("ok")) is not bool or not isinstance(review.get("probleme"), list) or not isinstance(review.get("korrektur"), str):
                         raise ValueError("Die Gegenprüfung lieferte kein gültiges Ergebnis.")
@@ -227,12 +319,17 @@ class AgentenService:
                     run["pruefung"] = {"ok": False, "probleme": ["Gegenprüfung nicht verfügbar: " + (str(exc) or type(exc).__name__)[:500]], "korrektur": ""}
                 run["status"] = "summarizing"
                 self._save(run)
-                try:
-                    run["antwort"] = await self._model(BOUNDARIES + "\nFasse die Teilergebnisse zu einer konkreten, verständlichen Antwort auf die Originalfrage zusammen. Beachte die Gegenprüfung, benenne ungelöste Widersprüche und fehlende Ergebnisse ausdrücklich. Keine erfundenen Quellen. Für MiniJon kurz und natürlich formulieren.", {"aufgabe": run["aufgabe"], "teile": run["teile"], "pruefung": run["pruefung"], "mini": run["slot"] == "emil"}, selection, 2600, 45)
+                gesamt = sum(len(p["ergebnis"]) for p in successful)
+                if len(successful) == 1 or gesamt > 14000:
+                    run["antwort"] = successful[0]["ergebnis"] if len(successful) == 1 else "\n\n".join("## " + p["titel"] + "\n\n" + p["ergebnis"] for p in successful)
                     run["vollstaendig"] = len(successful) == len(run["teile"]) and run["pruefung"]["ok"]
-                except Exception as exc:
-                    run["fehler"] = "Zusammenfassung nicht verfügbar: " + (str(exc) or type(exc).__name__)[:500]
-                    run["antwort"] = "\n\n".join(p["titel"] + ":\n" + p["ergebnis"] for p in successful)
+                else:
+                    try:
+                        run["antwort"] = await self._model(BOUNDARIES + "\nFasse die Teilergebnisse zu einer konkreten, verständlichen Antwort auf die Originalfrage zusammen. " + VOLLSTAENDIG + " Beachte die Gegenprüfung, benenne ungelöste Widersprüche und fehlende Ergebnisse ausdrücklich. Keine erfundenen Quellen. Für MiniJon kurz und natürlich formulieren.", {"aufgabe": run["aufgabe"], "teile": run["teile"], "pruefung": run["pruefung"], "mini": run["slot"] == "emil"}, selection, TEIL_TOKENS, TEIL_TIMEOUT_S)
+                        run["vollstaendig"] = len(successful) == len(run["teile"]) and run["pruefung"]["ok"]
+                    except Exception as exc:
+                        run["fehler"] = "Zusammenfassung nicht verfügbar: " + (str(exc) or type(exc).__name__)[:500]
+                        run["antwort"] = "\n\n".join("## " + p["titel"] + "\n\n" + p["ergebnis"] for p in successful)
                 run["status"] = "done" if run["vollstaendig"] else "needs_review"
         except asyncio.CancelledError:
             run.update(status="cancelled", vollstaendig=False, fehler="Gestoppt. Vorliegende Teilergebnisse bleiben erhalten.")
@@ -245,6 +342,8 @@ class AgentenService:
                 if part["status"] not in TERMINAL:
                     part.update(status="cancelled" if run["status"] == "cancelled" else "interrupted")
             run["dauer"] = round(time.time()-run["created_at"], 1)
+            if run["status"] != "cancelled" or any(p.get("ergebnis") for p in run["teile"]):
+                self._ablegen(run)
             self._save(run)
 
     async def cancel(self, run_id: str) -> dict:

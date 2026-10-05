@@ -229,3 +229,104 @@ def test_chat_shows_live_card_with_the_run_id_the_team_uses(monkeypatch, ankuend
     assert karten[0]["kind"] == "agenten"
     assert genutzt == [karten[0]["data"]["id"]]
     assert not any(e.get("approval_id") for e in events if e.get("type") == "tool")
+
+
+def vokabel_modell(calls, teile=1):
+    liste = "\n".join(f"{i}. vocabulum{i} – Wort {i}" for i in range(1, 801))
+
+    async def model(system, user, **kwargs):
+        data = json.loads(user)
+        calls.append((system, data, kwargs))
+        if "profile" in data:
+            return json.dumps({"teile": [{"titel": f"Vokabeln {n}", "auftrag": "Schreib alle Vokabeln aus dem Material heraus", "rolle": "latin", "werkzeug": "keins"} for n in range(teile)]})
+        if "teilauftrag" in data:
+            return liste if "vocabulum" in data["material"] else "Kein Material bekommen."
+        if "mini" in data:
+            return "kurz zusammengefasst"
+        return json.dumps({"ok": True, "probleme": [], "korrektur": ""})
+
+    return model, liste
+
+
+def test_agenten_bekommen_das_material_und_liefern_lange_listen_vollstaendig(tmp_path):
+    calls = []
+    model, liste = vokabel_modell(calls)
+    service = AgentenService(tmp_path, model)
+    material = "Nutzer:\nHier mein Text: " + " ".join(f"vocabulum{i}" for i in range(1, 801))
+    result = asyncio.run(service.bearbeiten("Schreib mir alle Vokabeln raus", 3, material=material))
+    assert result["status"] == "done" and result["vollstaendig"]
+    assert result["antwort"] == liste and len(result["antwort"]) > 14000
+    teil = next((s, d, k) for s, d, k in calls if "teilauftrag" in d)
+    assert "vocabulum800" in teil[1]["material"] and teil[2]["max_tokens"] >= 8000 and "vollständige Liste" in teil[0]
+    assert not any("mini" in d for _, d, _ in calls)
+    datei = tmp_path / "ergebnisse" / os.path.basename(result["datei"])
+    assert datei.is_file() and "800. vocabulum800" in datei.read_text(encoding="utf-8")
+    assert datei.name.endswith("Schreib mir alle Vokabeln raus.md")
+
+
+def test_lange_teilergebnisse_werden_nicht_weggefasst_und_private_laeufe_nicht_gespeichert(tmp_path):
+    calls = []
+    model, liste = vokabel_modell(calls, teile=2)
+    service = AgentenService(tmp_path, model)
+    result = asyncio.run(service.bearbeiten("Alle Vokabeln", 2, material="vocabulum1", persist=False))
+    assert liste in result["antwort"] and result["antwort"].count("## Vokabeln") == 2
+    assert not any("mini" in d for _, d, _ in calls)
+    assert not result.get("datei") and not (tmp_path / "ergebnisse").exists()
+
+
+def test_agenten_ordner_laesst_sich_einstellen_und_zuruecksetzen(tmp_path):
+    from app.services.settings_service import get_settings_service
+
+    calls = []
+    model, _ = vokabel_modell(calls)
+    service = AgentenService(tmp_path, model)
+    try:
+        assert service.ordner_stand()["pfad"] == str(tmp_path / "ergebnisse") and not service.ordner_stand()["eigener"]
+        eigen = tmp_path / "Meine Agenten"
+        stand = service.ordner_setzen(str(eigen))
+        assert stand["eigener"] and stand["vorhanden"] and stand["pfad"] == str(eigen.resolve())
+        result = asyncio.run(service.bearbeiten("Vokabeln", 1, material="vocabulum1"))
+        assert result["datei"].startswith(str(eigen.resolve())) and os.path.isfile(result["datei"])
+        with pytest.raises(ValueError, match="vollständigen"):
+            service.ordner_setzen("relativ/ordner")
+        assert not service.ordner_setzen("")["eigener"]
+    finally:
+        get_settings_service().update({"agenten_ordner": ""})
+
+
+def test_team_werkzeug_gibt_jon_die_antwort_kompakt_und_mit_material_zurueck(monkeypatch):
+    from app.services import agenten_service
+    from app.services.werkzeuge_kern import _team
+
+    erhalten = {}
+
+    class Dienst:
+        async def bearbeiten(self, aufgabe, agenten, **kwargs):
+            erhalten.update(kwargs, aufgabe=aufgabe)
+            return {"status": "done", "vollstaendig": True, "antwort": "x" * 20000, "datei": "C:/Agenten/a.md", "teile": [{"titel": "A", "status": "done", "ergebnis": "y" * 30000}], "pruefung": {"ok": True, "probleme": []}, "fehler": "", "hinweis": ""}
+
+    monkeypatch.setattr(agenten_service, "get_agenten_service", lambda: Dienst())
+
+    class Box:
+        _source = "app"
+        _slot = "jon"
+        _persist = True
+        _material = "Nutzer:\nvocabulum"
+
+    daten = json.loads(asyncio.run(_team(Box(), {"aufgabe": "Alle Vokabeln"})))
+    inhalt = daten.get("data", daten)
+    assert erhalten["material"] == "Nutzer:\nvocabulum" and erhalten["aufgabe"] == "Alle Vokabeln"
+    assert inhalt["antwort_zeichen"] == 20000 and len(inhalt["antwort"]) <= 6000
+    assert inhalt["gespeichert_in"] == "C:/Agenten/a.md" and "Fachteam-Karte" in inhalt["anweisung"]
+    assert "y" * 100 not in json.dumps(inhalt)
+
+
+def test_material_aus_dem_chatverlauf():
+    from app.schemas import MessageIn
+    from app.services.chat_service import material_aus_verlauf
+
+    nachrichten = [MessageIn(role="user", content="Alt"), MessageIn(role="assistant", content="Antwort"), MessageIn(role="user", content="Schreib alle Vokabeln raus\n\nDatei: liste.txt\n" + "a" * 70000)]
+    text = material_aus_verlauf(nachrichten)
+    assert text.startswith("Nutzer:\nSchreib alle Vokabeln raus") and len(text) <= 60020
+    kurz = material_aus_verlauf(nachrichten[:2])
+    assert kurz == "Nutzer:\nAlt\n\nJon:\nAntwort"

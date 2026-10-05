@@ -328,16 +328,22 @@ async def _team(box: Any, args: dict, name: str = "") -> str:
     from app.services.agenten_service import get_agenten_service
     from app.services.tools import _QUELLE
 
-    return antwort(
-        await get_agenten_service().bearbeiten(
-            str(args.get("aufgabe", "")), int(args.get("agenten", 3) or 3),
-            source=_QUELLE.get() or box._source,
-            slot=getattr(box, "_slot", "jon"),
-            persist=getattr(box, "_persist", True),
-            research=args.get("internet") is True,
-            run_id=str(args.get("_lauf") or "") or None,
-        )
+    from app.services.agenten_service import kuerzen
+
+    lauf = await get_agenten_service().bearbeiten(
+        str(args.get("aufgabe", "")), int(args.get("agenten", 3) or 3),
+        source=_QUELLE.get() or box._source,
+        slot=getattr(box, "_slot", "jon"),
+        persist=getattr(box, "_persist", True),
+        research=args.get("internet") is True,
+        run_id=str(args.get("_lauf") or "") or None,
+        material=str(getattr(box, "_material", "") or ""),
     )
+    text = str(lauf.get("antwort") or "")
+    ergebnis = {"status": lauf["status"], "vollstaendig": lauf.get("vollstaendig", False), "antwort": kuerzen(text, 6000), "antwort_zeichen": len(text), "gespeichert_in": lauf.get("datei", ""), "teile": [{"titel": p.get("titel", ""), "status": p.get("status", "")} for p in lauf.get("teile", [])], "pruefung": {"ok": (lauf.get("pruefung") or {}).get("ok"), "probleme": ((lauf.get("pruefung") or {}).get("probleme") or [])[:5]}, "fehler": lauf.get("fehler", ""), "hinweis": lauf.get("hinweis", "")}
+    if len(text) > 6000:
+        ergebnis["anweisung"] = f"Das vollständige Ergebnis ({len(text)} Zeichen) steht in der Fachteam-Karte im Chat und in der Datei {lauf.get('datei') or 'im Agenten-Ordner'}. Gib es nicht gekürzt erneut aus, sondern sag dem Nutzer, wo er es findet, und fasse höchstens kurz zusammen."
+    return antwort(ergebnis)
 
 
 @werkzeug_async("youtube_transkript")

@@ -45,3 +45,9 @@
 .agent-punkt.needs_review{background:var(--ab-warn)}
 .agent-punkt.failed,.agent-punkt.cancelled,.agent-punkt.interrupted{background:var(--ab-fehler)}
 .agent-punkt.planning,.agent-punkt.working,.agent-punkt.verifying,.agent-punkt.summarizing{animation:ab-blinken 1.1s ease-in-out infinite}
+.agent-team-ordner{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;border:1px solid var(--ab-linie);background:var(--ab-flaeche)}
+.agent-team-ordner-icon{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:var(--ab-akzent,#e5c889);background:color-mix(in srgb,var(--ab-akzent,#e5c889) 12%,transparent)}
+.agent-team-ordner-icon svg{width:16px;height:16px}
+.agent-team-ordner-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.agent-team-ordner-text strong{font-size:12.5px}
+.agent-team-ordner-text small{font-size:11px;opacity:.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

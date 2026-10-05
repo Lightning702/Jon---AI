@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, FileCode2, Folder, FolderPlus, GitBranch, Loader2, MessagesSquare, Monitor, PanelLeft, Plus, Search, Settings2, ShieldCheck, Sparkles, Square, X} from "lucide-react";
+import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, FileCode2, Folder, FolderPlus, GitBranch, Loader2, MessagesSquare, Monitor, PanelLeft, Plus, RotateCcw, Search, Settings2, ShieldCheck, Sparkles, Square, X} from "lucide-react";
 import {addProject, getUserSettings, JonProject, pickFolderDialog} from "../lib/api";
 import {finished, HarnessSitzung, HarnessTask, harnessRequest, taskLabels} from "../lib/harness";
 import AgentenBuehne from "./agenten/AgentenBuehne";
@@ -10,6 +10,7 @@ import HarnessVorschau from "./HarnessVorschau";
 import "./harness-workspace.css";
 
 const VORSCHLAEGE = ["Baue mir eine Startseite mit index.html", "Finde und behebe einen Fehler", "Erkläre mir dieses Projekt", "Verbessere die Oberfläche und prüfe den Build"];
+const UNTERBROCHEN = new Set(["interrupted", "failed", "needs_review", "cancelled"]);
 const FOLGE = ["Mach es schöner und moderner", "Prüfe alles noch einmal und behebe Fehler", "Schreibe Tests dafür", "Erkläre mir, was du geändert hast"];
 const ANBIETER: Record<string, string> = {nvidia: "NVIDIA NIM", ollama: "Ollama", openrouter: "OpenRouter", lmstudio: "LM Studio", xai: "xAI", anthropic: "Anthropic", gemini: "Google Gemini", openai: "OpenAI"};
 type Rechts = "aenderungen" | "vorschau" | null;
@@ -139,13 +140,13 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
     const project = await addProject(path);
     setProjects(items => items.some(p => p.id === project.id) ? items : [...items, project]); setSetupOpen(false); newTask(project.root);
   });
-  const start = () => action(async () => {
-    if (!goal.trim() || !root.trim()) return;
+  const start = (text = goal) => action(async () => {
+    if (!text.trim() || !root.trim()) return;
     const project = await addProject(root.trim());
     const thread = selected && !drafting && tasks[0]?.root === project.root ? selected : "";
     await harnessRequest("/harness/project", {root: project.root, source: "app"});
     if (mini) await harnessRequest("/harness/project", {root: project.root, source: "minijon"});
-    const created = await harnessRequest<HarnessTask>("/harness/tasks", {root: project.root, goal: goal.trim(), source: "app", companion: mini, thread});
+    const created = await harnessRequest<HarnessTask>("/harness/tasks", {root: project.root, goal: text.trim(), source: "app", companion: mini, thread});
     setProjects(items => items.some(p => p.id === project.id) ? items : [...items, project]);
     vorher.current[created.id] = created.status;
     const id = created.thread || created.id;
@@ -232,7 +233,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
               <Ergebnis task={task} aktuell={aktuell} busy={busy} onAenderungen={() => setRechts("aenderungen")} onVorschau={() => setRechts("vorschau")} onStopp={() => void stop(task)} onEntscheiden={allow => void decide(task, allow)}/>
             </Fragment>;
           })}
-          {!working && letzte && <motion.div className="harness-folge" initial={{opacity: 0, y: 6}} animate={{opacity: 1, y: 0}} transition={{delay: 0.15}}>{FOLGE.map(value => <button key={value} onClick={() => {setGoal(value); composer.current?.focus();}}>{value}</button>)}</motion.div>}
+          {!working && letzte && <motion.div className="harness-folge" initial={{opacity: 0, y: 6}} animate={{opacity: 1, y: 0}} transition={{delay: 0.15}}>{UNTERBROCHEN.has(letzte.status) && <button className="harness-fortsetzen" disabled={busy || !root.trim()} onClick={() => void start("fahre fort")} title="Jon macht genau dort weiter, wo er aufgehört hat"><RotateCcw size={13}/>Fahre fort</button>}{FOLGE.map(value => <button key={value} onClick={() => {setGoal(value); composer.current?.focus();}}>{value}</button>)}</motion.div>}
         </motion.div>}
         </AnimatePresence>
       </main>

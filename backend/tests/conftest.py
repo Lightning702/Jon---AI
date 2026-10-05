@@ -55,3 +55,10 @@ def _premium_stufe(request, monkeypatch):
     from app.services.premium import Premium
 
     monkeypatch.setattr(Premium, "stufe", lambda self: "admin")
+
+
+@pytest.fixture(autouse=True)
+def _agenten_ordner_im_testverzeichnis(monkeypatch):
+    from app.services.agenten_service import AgentenService
+
+    monkeypatch.setattr(AgentenService, "standard_ordner", staticmethod(lambda: _TEST_DATA_DIR / "Jon Agenten"))

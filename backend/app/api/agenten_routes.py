@@ -28,6 +28,19 @@ def find(run_id: str) -> dict:
         raise HTTPException(404, "Fachauftrag nicht gefunden.")
 
 
+@router.get("/ordner")
+async def ordner() -> dict:
+    return get_agenten_service().ordner_stand()
+
+
+@router.post("/ordner")
+async def ordner_setzen(payload: dict) -> dict:
+    try:
+        return get_agenten_service().ordner_setzen(str(payload.get("pfad", "")))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
 @router.get("/profiles")
 async def profiles() -> list[dict]:
     return [{"id": key, **value} for key, value in PROFILES.items()]
