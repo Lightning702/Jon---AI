@@ -1083,7 +1083,7 @@ class ChatService:
 
         from app.services.tools import runde_beginnen
 
-        runde_beginnen()
+        runde_beginnen(next((m.content for m in reversed(payload.messages) if m.role == "user"), ""))
         browser_sitzung(conversation_id or payload.conversation_id or "standard")
         use_tools = provider_name in TOOL_PROVIDERS
         tool_source = payload.source or ("mini-jon" if slot == "emil" else "app")

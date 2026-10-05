@@ -2,7 +2,12 @@
 
 Alle nennenswerten Änderungen an Jon.
 
-## [Unveröffentlicht]
+## [4.62.1] — 2026-10-05
+
+### 🌐 Jon öffnet nur noch, wenn du es sagst
+
+- **Nachschauen ohne Fenster:** Fragst du Jon etwas, sucht er im Hintergrund und antwortet direkt. Der Browser geht nur noch auf, wenn du es ausdrücklich willst, zum Beispiel mit „öffne“, „im Browser“, „geh auf“ oder „spiel … ab“.
+- Früher lief die Websuche bei Jons privatem Browser sichtbar im Fenster und wich bei mageren Treffern von selbst dorthin aus. Beides passiert jetzt nur noch auf deinen Wunsch.
 
 ### 🧑‍🤝‍🧑 Jon Fachteam wird fertig
 

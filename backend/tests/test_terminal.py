@@ -470,24 +470,32 @@ def test_langsame_wege_ueberleben_den_neustart(monkeypatch, tmp_path):
     assert chat_service.is_slow("nvidia", "flinkes-modell") is False
 
 
-def test_duenne_direktsuche_faellt_auf_jons_browser_zurueck(monkeypatch):
+def test_duenne_direktsuche_nutzt_den_browser_nur_wenn_er_gewuenscht_ist(monkeypatch):
     import asyncio
 
-    from app.services.tools import ToolBox
+    from app.services.tools import ToolBox, runde_beginnen
 
     async def _direkt(frage, anzahl=6, read=False):
         return {"treffer": [{"title": "Wikipedia"}], "mager": True}
 
+    browser = []
+
     def _browser(frage, anzahl):
+        browser.append(frage)
         return {"treffer": [{"titel": "Echter Treffer", "url": "https://x.de"}]}
 
     monkeypatch.setattr("app.services.websearch_service.search_web", _direkt)
     monkeypatch.setattr("app.services.websuche_browser.suchen", _browser)
-    daten = json.loads(
-        asyncio.run(ToolBox().execute("web_search", {"query": "neuestes iphone"}))
-    )
-    assert daten["treffer"][0]["titel"] == "Echter Treffer"
-    assert "Direktsuche gab zu wenig her" in daten["hinweis"]
+    try:
+        runde_beginnen("Was ist das neueste iPhone?")
+        daten = json.loads(asyncio.run(ToolBox().execute("web_search", {"query": "neuestes iphone"})))
+        assert daten["treffer"][0]["title"] == "Wikipedia" and browser == []
+        runde_beginnen("Such im Browser nach dem neuesten iPhone")
+        daten = json.loads(asyncio.run(ToolBox().execute("web_search", {"query": "neuestes iphone"})))
+        assert daten["treffer"][0]["titel"] == "Echter Treffer"
+        assert "Direktsuche gab zu wenig her" in daten["hinweis"]
+    finally:
+        runde_beginnen()
 
 
 def test_gute_direktsuche_bleibt_ohne_browser(monkeypatch):
