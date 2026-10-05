@@ -117,7 +117,9 @@
 .harness-composer-bar>button:first-child{width:30px}
 .harness-composer-bar .harness-project-badge{width:auto;max-width:170px;font-size:11.5px;color:#e2d6b8;gap:6px;padding:0 10px;border:1px solid var(--h-line-2)}
 .harness-project-badge span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.harness-access{display:flex;align-items:center;gap:5px;font-size:10.5px;color:#a8977a;white-space:nowrap}
+.harness-access{display:flex;align-items:center;gap:5px;font-size:10.5px;color:#a8977a;white-space:nowrap;padding:4px 9px;border-radius:999px;border:1px solid transparent;transition:color .2s,border-color .2s,background-color .2s}
+.harness-access:hover:not(:disabled){color:#f0dfb4;border-color:rgba(229,200,137,.3)}
+.harness-access.frei{color:#ffb4a8;border-color:rgba(242,139,130,.35);background:rgba(242,139,130,.08)}
 .harness-composer-spacer{flex:1}
 .harness-companion{padding:0 10px;font-size:11px;color:#9b988f!important;border:1px solid var(--h-line-2)!important;border-radius:999px!important}
 .harness-companion.an{color:#f0dfb4!important;border-color:rgba(229,200,137,.5)!important;background:rgba(229,200,137,.12)!important}

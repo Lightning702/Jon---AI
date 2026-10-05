@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, FileCode2, Folder, FolderPlus, GitBranch, Loader2, MessagesSquare, Monitor, PanelLeft, Plus, RotateCcw, Search, Settings2, ShieldCheck, Sparkles, Square, X} from "lucide-react";
+import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, FileCode2, Folder, FolderPlus, GitBranch, Loader2, MessagesSquare, Monitor, PanelLeft, Plus, RotateCcw, Search, Settings2, ShieldCheck, ShieldOff, Sparkles, Square, X} from "lucide-react";
 import {addProject, getUserSettings, JonProject, pickFolderDialog} from "../lib/api";
 import {finished, HarnessSitzung, HarnessTask, harnessRequest, taskLabels} from "../lib/harness";
 import AgentenBuehne from "./agenten/AgentenBuehne";
@@ -130,6 +130,18 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
 
   const sitzung = sitzungen.find(s => s.id === selected);
   const letzte = tasks.at(-1);
+  const [allesErlaubt, setAllesErlaubt] = useState<boolean | null>(null);
+  useEffect(() => {
+    let aktiv = true;
+    harnessRequest<{alles: boolean}>("/harness/freigabe").then(d => {if (aktiv) setAllesErlaubt(d.alles);}).catch(() => {if (aktiv) setAllesErlaubt(false);});
+    return () => {aktiv = false;};
+  }, []);
+  const freigabeUmschalten = async () => {
+    const neu = !allesErlaubt;
+    if (neu && !window.confirm("Alle Befehle erlauben? Jon führt dann Shellbefehle ohne Nachfrage mit deinen Benutzerrechten aus, auch außerhalb des Projektordners. Nur offensichtlich zerstörerische Befehle wie Formatieren oder rekursives Löschen fragen weiterhin nach.")) return;
+    try {setAllesErlaubt((await harnessRequest<{alles: boolean}>("/harness/freigabe", {alles: neu})).alles);}
+    catch (e) {setError(e instanceof Error ? e.message : "Die Einstellung konnte nicht gespeichert werden.");}
+  };
   const working = tasks.some(t => !finished.has(t.status));
   const action = async (fn: () => Promise<void>) => {setBusy(true); setError(""); try {await fn();} catch (e) {setError(e instanceof Error ? e.message : "Aktion fehlgeschlagen");} finally {setBusy(false);}};
   const choose = (item: HarnessSitzung) => {if (item.id === selected) return; aufgabenStand.current = ""; amEnde.current = true; setDrafting(false); setSelected(item.id); setTasks([]); setRoot(item.root); setRechts(r => r === "aenderungen" ? null : r);};
@@ -245,7 +257,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
           <div className="harness-composer-bar">
             <button type="button" aria-label="Projekt wählen" title="Projekt wählen" onClick={() => setSetupOpen(v => !v)}><Plus size={19}/></button>
             <button type="button" className="harness-project-badge" title={root || "Projektordner wählen"} onClick={() => setSetupOpen(v => !v)}><Folder size={14}/><span>{projectName}</span><ChevronDown size={12}/></button>
-            <span className="harness-access"><ShieldCheck size={13}/>Befehle mit Freigabe</span>
+            <button type="button" className={"harness-access " + (allesErlaubt ? "frei" : "")} aria-pressed={!!allesErlaubt} disabled={allesErlaubt === null} onClick={() => void freigabeUmschalten()} title={allesErlaubt ? "Jon führt Befehle ohne Nachfrage aus. Klicken, um wieder jeden Befehl freizugeben." : "Jon fragt vor jedem Befehl. Klicken, um alle Befehle zu erlauben."}>{allesErlaubt ? <ShieldOff size={13}/> : <ShieldCheck size={13}/>}{allesErlaubt ? "Alle Befehle erlaubt" : "Befehle mit Freigabe"}</button>
             <div className="harness-composer-spacer"/>
             <button type="button" className={"harness-companion " + (mini ? "an" : "")} aria-pressed={mini} title="MiniJon zeigt den Fortschritt auf deinem Bildschirm" onClick={() => setMini(v => !v)}><Sparkles size={13}/><span>MiniJon begleitet</span></button>
             <span className="harness-model" title="Der Harness nutzt immer Jons Modell aus den Einstellungen">Jon · {modelLabel}</span>

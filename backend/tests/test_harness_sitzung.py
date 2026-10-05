@@ -287,3 +287,61 @@ def test_fortsetzen_erkennt_nur_echte_weiter_befehle():
         assert WEITER.fullmatch(text), text
     for text in ["Fahre fort und baue Tests", "weiterleiten der Mail", "Erstelle eine Website", ""]:
         assert not WEITER.fullmatch(text), text
+
+
+def test_alle_befehle_erlauben_laeuft_ohne_freigabe_ausser_bei_zerstoerenden(tmp_path):
+    from app.services.settings_service import get_settings_service
+
+    projekt = tmp_path / "projekt"
+    projekt.mkdir()
+    harmlos = "Write-Output frei" if os.name == "nt" else "printf frei"
+    folge = iter([
+        {"tool": "command", "args": {"command": harmlos}},
+        {"tool": "command", "args": {"command": "rm -rf ./ordner"}},
+        {"tool": "finish", "args": {"summary": "fertig"}},
+    ])
+
+    async def complete(system, user, **kwargs):
+        return json.dumps(next(folge))
+
+    async def ablauf():
+        service = HarnessService(tmp_path / "tasks", complete)
+        task = service.start("Baue alles", str(projekt))
+        for _ in range(400):
+            await asyncio.sleep(0.02)
+            pending = service.tasks[task["id"]].get("pending")
+            if pending:
+                assert "rm -rf" in pending["args"]["command"]
+                service.approve(task["id"], pending["id"], False)
+                break
+        await asyncio.wait_for(service.running[task["id"]], 20)
+        return service.get(task["id"])
+
+    get_settings_service().update({"harness_alles_erlauben": True})
+    try:
+        ergebnis = asyncio.run(ablauf())
+    finally:
+        get_settings_service().update({"harness_alles_erlauben": False})
+    meldungen = [e["message"] for e in ergebnis["log"] if e["type"] == "hinweis"]
+    assert any(m.startswith("Automatisch erlaubt") and "frei" in m for m in meldungen)
+    assert any("braucht trotz" in m for m in meldungen)
+    assert sum(1 for e in ergebnis["log"] if e["type"] == "approval_required") == 1
+
+
+def test_freigabe_einstellung_ueber_die_schnittstelle(tmp_path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.api.harness_routes import router
+    from app.services.settings_service import get_settings_service
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+    try:
+        assert client.get("/api/harness/freigabe").json() == {"alles": False}
+        assert client.post("/api/harness/freigabe", json={"alles": True}).json() == {"alles": True}
+        assert get_settings_service().get()["harness_alles_erlauben"] is True
+        assert client.post("/api/harness/freigabe", json={"alles": False}).json() == {"alles": False}
+    finally:
+        get_settings_service().update({"harness_alles_erlauben": False})

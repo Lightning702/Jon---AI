@@ -9,6 +9,11 @@ Alle nennenswerten Änderungen an Jon.
 - **Nachschauen ohne Fenster:** Fragst du Jon etwas, sucht er im Hintergrund und antwortet direkt. Der Browser geht nur noch auf, wenn du es ausdrücklich willst, zum Beispiel mit „öffne“, „im Browser“, „geh auf“ oder „spiel … ab“.
 - Früher lief die Websuche bei Jons privatem Browser sichtbar im Fenster und wich bei mageren Treffern von selbst dorthin aus. Beides passiert jetzt nur noch auf deinen Wunsch.
 
+### ⚡ Jon Harness: Alle Befehle erlauben
+
+- Unten in der Eingabeleiste schaltest du „Befehle mit Freigabe“ auf **„Alle Befehle erlaubt“**. Dann führt Jon Shellbefehle aus, ohne dass du jeden einzeln bestätigen musst, und schreibt sie zur Nachvollziehbarkeit in den Verlauf.
+- Offensichtlich zerstörerische Befehle wie Formatieren, rekursives Löschen oder diskpart fragen weiterhin nach. Ein Klick schaltet die Einstellung wieder aus.
+
 ### 🧑‍🤝‍🧑 Jon Fachteam wird fertig
 
 - **Die Agenten bekommen dein Material:** Text, Dateien und die letzten Nachrichten aus dem Chat gehen mit an das Fachteam. „Schreib mir alle Vokabeln raus“ funktioniert jetzt, weil die Agenten die Vokabeln wirklich sehen.
