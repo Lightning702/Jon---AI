@@ -524,6 +524,24 @@ def mit_ollama_ersatz(
     return [*attempts[:stelle], ersatz, *attempts[stelle:]]
 
 
+def material_aus_verlauf(nachrichten: list, grenze: int = 60_000) -> str:
+    teile: list[str] = []
+    rest = grenze
+    for nachricht in reversed(nachrichten[-12:]):
+        inhalt = str(getattr(nachricht, "content", "") or "").strip()
+        if not inhalt or getattr(nachricht, "role", "") not in {"user", "assistant"}:
+            continue
+        kopf = "Nutzer" if nachricht.role == "user" else "Jon"
+        stueck = inhalt[: max(rest, 0)] if teile else inhalt[:grenze]
+        if not stueck:
+            break
+        teile.append(f"{kopf}:\n{stueck}")
+        rest -= len(stueck)
+        if rest <= 400:
+            break
+    return "\n\n".join(reversed(teile))
+
+
 class ChatService:
     def __init__(self) -> None:
         self._settings = get_settings()
@@ -1082,6 +1100,7 @@ class ChatService:
                 slot=slot,
                 persist=payload.persist,
             )
+        toolbox._material = material_aus_verlauf(payload.messages)
         tool_context = " ".join(
             m.content for m in payload.messages if m.role == "user"
         )[-1500:]

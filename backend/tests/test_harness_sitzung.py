@@ -235,3 +235,55 @@ def test_befehlsdetails_zeigen_ergebnis_und_letzte_ausgabezeilen():
     abgelehnt = aktion_details("command", {"command": "rm -rf x"}, {"error": "Freigabe abgelehnt"})
     assert abgelehnt["ok"] is False and "abgelehnt" in abgelehnt["ausgabe"]
     assert aktion_details("plan", {}, {"steps": ["a", "b"]}) == {"message": "2 Schritte"}
+
+
+def test_rate_limit_unterbricht_und_fahre_fort_macht_mit_gedaechtnis_weiter(tmp_path):
+    projekt = tmp_path / "projekt"
+    projekt.mkdir()
+    kontexte = []
+    folge = iter([
+        {"tool": "plan", "args": {"steps": ["Seite anlegen", "Stil ergänzen"]}, "step": 1},
+        {"tool": "create", "args": {"path": "index.html", "content": "<h1>Hallo</h1>"}, "step": 1},
+        RuntimeError("Fehler 429: rate limit exceeded"),
+        {"tool": "create", "args": {"path": "stil.css", "content": "h1{color:red}"}, "step": 2},
+        {"tool": "finish", "args": {"summary": "Seite und Stil fertig", "incomplete": True}},
+    ])
+
+    async def complete(system, user, **kwargs):
+        kontexte.append(json.loads(user))
+        naechstes = next(folge)
+        if isinstance(naechstes, Exception):
+            raise naechstes
+        return json.dumps(naechstes)
+
+    async def ablauf():
+        service = HarnessService(tmp_path / "tasks", complete)
+        erster = await fertig(service, service.start("Baue eine Startseite mit Stil", str(projekt)))
+        assert erster["status"] == "interrupted" and "fahre fort" in erster["summary"]
+        assert [e["tool"] for e in erster["verlauf"]] == ["plan", "create"]
+        neu = HarnessService(tmp_path / "tasks", complete)
+        assert neu.get(erster["id"])["verlauf"][1]["args"]["path"] == "index.html"
+        zweiter = await fertig(neu, neu.start("fahre fort", str(projekt), thread=erster["thread"]))
+        assert zweiter["status"] == "needs_review" and zweiter["fortsetzung"]["original_goal"] == "Baue eine Startseite mit Stil"
+        assert zweiter["steps"] == ["Seite anlegen", "Stil ergänzen"]
+        dritter = neu.start("Erstelle noch eine Kontaktseite", str(projekt), thread=erster["thread"])
+        assert "fortsetzung" not in dritter
+        await neu.cancel(dritter["id"])
+
+    asyncio.run(ablauf())
+    weiter = kontexte[3]
+    assert weiter["continue"]["original_goal"] == "Baue eine Startseite mit Stil"
+    assert [e["tool"] for e in weiter["recent_actions"]][:2] == ["plan", "create"]
+    vorher = weiter["earlier_tasks"][0]
+    assert vorher["status"] == "interrupted" and vorher["plan"] == ["Seite anlegen", "Stil ergänzen"]
+    assert [e["tool"] for e in vorher["done_actions"]] == ["plan", "create"]
+    assert (projekt / "index.html").is_file() and (projekt / "stil.css").is_file()
+
+
+def test_fortsetzen_erkennt_nur_echte_weiter_befehle():
+    from app.services.harness.service import WEITER
+
+    for text in ["fahre fort", "Fahr fort!", "mach bitte weiter", "weiter", "fahre fort danke", "ok mach weiter", "continue"]:
+        assert WEITER.fullmatch(text), text
+    for text in ["Fahre fort und baue Tests", "weiterleiten der Mail", "Erstelle eine Website", ""]:
+        assert not WEITER.fullmatch(text), text

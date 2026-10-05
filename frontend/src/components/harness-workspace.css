@@ -195,6 +195,8 @@
 .harness-folge{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .harness-folge button{padding:7px 12px;font-size:11.5px;color:#c9c5bb;border:1px solid var(--h-line-2);border-radius:999px!important;background:rgba(255,255,255,.02)}
 .harness-folge button:hover:not(:disabled){border-color:rgba(229,200,137,.4);color:#f0dfb4}
+.harness-folge .harness-fortsetzen{display:inline-flex;align-items:center;gap:6px;font-weight:650;color:#1b160a;border-color:transparent;background:linear-gradient(135deg,#fff1c9,#e5c889 45%,#b8901f)}
+.harness-folge .harness-fortsetzen:hover:not(:disabled){color:#1b160a;filter:brightness(1.06)}
 .harness-sitzung-hinweis{display:flex;align-items:center;gap:7px;margin:-2px 0 8px;font-size:10.5px;color:#a8977a}
 .harness-sitzung-hinweis span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .harness-sitzung-hinweis button{flex:none;padding:3px 9px;font-size:10.5px;color:#cfc6ae;border:1px solid var(--h-line-2);border-radius:999px!important}

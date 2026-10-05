@@ -28,6 +28,7 @@ export interface Lauf {
   source?: string;
   status: string;
   antwort?: string;
+  datei?: string;
   fehler?: string;
   hinweis?: string;
   teile?: Teil[];

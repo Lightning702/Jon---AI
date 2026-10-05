@@ -90,6 +90,7 @@ DEFAULTS = {
     "pet_companion": "none",
     "wake_sensitivity": "mittel",
     "pet_wellness": True,
+    "agenten_ordner": "",
     "pet_3d": False,
     "autofile_enabled": False,
     "app_usage_enabled": False,

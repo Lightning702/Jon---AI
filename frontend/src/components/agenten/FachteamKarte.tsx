@@ -1,5 +1,5 @@
 import {AnimatePresence, motion} from "framer-motion";
-import {AlertTriangle, ChevronDown, Loader2, ShieldAlert, ShieldCheck, Square, Trash2, Users} from "lucide-react";
+import {AlertTriangle, ChevronDown, FileText, FolderOpen, Loader2, ShieldAlert, ShieldCheck, Square, Trash2, Users} from "lucide-react";
 import {useMemo, useState} from "react";
 import AgentenBuehne from "./AgentenBuehne";
 import AgentenStufen from "./AgentenStufen";
@@ -27,7 +27,21 @@ function TeilZeile({teil, jetzt}: {teil: Teil; jetzt: number}) {
   </motion.div>;
 }
 
-export function FachteamAnsicht({lauf, kompakt = false, ergebnisOffen = true, onStopp, onLoeschen, beschaeftigt}: {lauf: Lauf; kompakt?: boolean; ergebnisOffen?: boolean; onStopp?: () => void; onLoeschen?: () => void; beschaeftigt?: boolean}) {
+function Gespeichert({datei, request}: {datei: string; request?: Anfrage}) {
+  const [fehler, setFehler] = useState("");
+  const oeffnen = async (ordner: boolean) => {
+    setFehler("");
+    try {await request?.("/dateien/oeffnen", {pfad: datei, ordner});}
+    catch (e) {setFehler(fehlerText(e));}
+  };
+  return <div className="ab-gespeichert">
+    <FileText/>
+    <span><strong>Im Agenten-Ordner gespeichert</strong><small title={datei}>{datei}</small>{fehler && <small className="ab-gespeichert-fehler">{fehler}</small>}</span>
+    {request && <><button type="button" className="ab-knopf" onClick={() => void oeffnen(false)}>Öffnen</button><button type="button" className="ab-knopf" onClick={() => void oeffnen(true)}><FolderOpen/>Ordner</button></>}
+  </div>;
+}
+
+export function FachteamAnsicht({lauf, kompakt = false, ergebnisOffen = true, onStopp, onLoeschen, beschaeftigt, request}: {lauf: Lauf; kompakt?: boolean; ergebnisOffen?: boolean; onStopp?: () => void; onLoeschen?: () => void; beschaeftigt?: boolean; request?: Anfrage}) {
   const aktiv = !ENDE.has(lauf.status);
   const jetzt = useJetzt(aktiv);
   const [ergebnisZeigen, setErgebnisZeigen] = useState(ergebnisOffen);
@@ -55,6 +69,7 @@ export function FachteamAnsicht({lauf, kompakt = false, ergebnisOffen = true, on
       {!ergebnisZeigen && <div className="ab-reihe"><button type="button" className="ab-knopf" onClick={() => setErgebnisZeigen(true)}>Ergebnis des Teams anzeigen<ChevronDown/></button></div>}
       <AnimatePresence>{ergebnisZeigen && <motion.div className="ab-ergebnis" initial={{opacity: 0, y: 8}} animate={{opacity: 1, y: 0}} exit={{opacity: 0}}><h4>Ergebnis des Teams</h4>{lauf.antwort}</motion.div>}</AnimatePresence>
     </>}
+    {lauf.datei && !aktiv && <Gespeichert datei={lauf.datei} request={request}/>}
   </div>;
 }
 
@@ -80,7 +95,7 @@ export default function FachteamKarte({id, aufgabe = "", request, kompakt = fals
     </div>;
   }
   return <>
-    <FachteamAnsicht lauf={daten} kompakt={kompakt} ergebnisOffen={false} onStopp={() => void stoppen()} beschaeftigt={beschaeftigt}/>
+    <FachteamAnsicht lauf={daten} kompakt={kompakt} ergebnisOffen={false} onStopp={() => void stoppen()} beschaeftigt={beschaeftigt} request={request}/>
     {aktionsFehler && <p className="ab-leer" role="alert">{aktionsFehler}</p>}
   </>;
 }

@@ -1,14 +1,16 @@
 import {useEffect, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {ArrowUp, Globe, History, Loader2, Users} from "lucide-react";
+import {ArrowUp, FolderOpen, Globe, History, Loader2, RotateCcw, Users} from "lucide-react";
 import AgentenBuehne from "./agenten/AgentenBuehne";
 import {FachteamAnsicht} from "./agenten/FachteamKarte";
 import {Anfrage, ENDE, fehlerText, LAUF_TEXT, Lauf, rolle} from "./agenten/daten";
 import {useLive} from "./agenten/live";
+import {pickFolderDialog} from "../lib/api";
 import "./agent-team.css";
 
 type Profile = {id: string; name: string; activity: string; focus: string};
 type Kurz = {id: string; aufgabe: string; source: string; status: string; created_at: number};
+type Ordner = {pfad: string; standard: string; eigener: boolean; vorhanden: boolean};
 
 const BEISPIELE = ["Übersetze „Marcus dicit puellam legere“ und erkläre den AcI", "Plane meine Lernwoche für drei Prüfungen", "Vergleiche zwei Ideen für mein Projekt und prüfe sie gegen"];
 
@@ -23,10 +25,12 @@ export default function AgentTeam({request, initialSource = "app", onWorking}: {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [verlauf, setVerlauf] = useState(false);
+  const [ordner, setOrdner] = useState<Ordner | null>(null);
 
   useEffect(() => {
     let active = true;
     request("/agents/profiles").then(value => {if (active) setProfiles(value);}).catch(e => {if (active) setError(fehlerText(e, "Fachteam nicht erreichbar."));});
+    request("/agents/ordner").then(value => {if (active) setOrdner(value);}).catch(() => {});
     request("/agents/runs?brief=true").then((items: Kurz[]) => {if (active) {setRuns(items); setSelected(s => s || items[0]?.id || "");}}).catch(() => {});
     return () => {active = false;};
   }, [request]);
@@ -45,6 +49,17 @@ export default function AgentTeam({request, initialSource = "app", onWorking}: {
     setRun(created); setSelected(created.id); setRuns(items => [{id: created.id, aufgabe: created.aufgabe, source: initialSource, status: created.status, created_at: created.created_at || Date.now() / 1000}, ...items]); setGoal("");
   });
   const vorschau = roles.slice(0, limit);
+  const ordnerWaehlen = () => action(async () => {
+    const bruecke = (window as unknown as {jon?: {pickFolder?: () => Promise<string | null>}}).jon;
+    const gewaehlt = bruecke?.pickFolder ? await bruecke.pickFolder() : await pickFolderDialog();
+    if (gewaehlt) setOrdner(await request("/agents/ordner", {pfad: gewaehlt}));
+  });
+  const ordnerZurueck = () => action(async () => setOrdner(await request("/agents/ordner", {pfad: ""})));
+  const ordnerOeffnen = () => action(async () => {
+    if (!ordner) return;
+    if (!ordner.vorhanden) setOrdner(await request("/agents/ordner", {pfad: ordner.eigener ? ordner.pfad : ""}));
+    await request("/dateien/oeffnen", {pfad: ordner.pfad, ordner: true});
+  });
 
   return <section className="agent-team ab" aria-label="Jon Fachteam">
     <div className="agent-team-hero">
@@ -66,10 +81,17 @@ export default function AgentTeam({request, initialSource = "app", onWorking}: {
         <span className="agent-team-platz"/>
         <button type="submit" className="agent-team-senden" disabled={busy || !goal.trim() || !profiles.length} aria-label="Fachteam starten" title="Fachteam starten">{busy ? <Loader2 className="ab-dreht"/> : <ArrowUp/>}</button>
       </div>
-      <p className="agent-note">{roles.length ? "Gewählte Fachrichtungen werden bevorzugt." : "Ohne Auswahl stellt Jon das Team selbst zusammen."} Analysen und Vorschläge, keine Dateiänderungen. Du kannst das Team auch im Chat beauftragen.</p>
+      <p className="agent-note">{roles.length ? "Gewählte Fachrichtungen werden bevorzugt." : "Ohne Auswahl stellt Jon das Team selbst zusammen."} Jedes Ergebnis landet als Datei im Agenten-Ordner. Du kannst das Team auch im Chat beauftragen.</p>
     </form>
+    {ordner && <div className="agent-team-ordner">
+      <span className="agent-team-ordner-icon"><FolderOpen/></span>
+      <span className="agent-team-ordner-text"><strong>Agenten-Ordner</strong><small title={ordner.pfad}>{ordner.pfad}</small></span>
+      <button type="button" className="ab-knopf" disabled={busy} onClick={() => void ordnerOeffnen()}>Öffnen</button>
+      <button type="button" className="ab-knopf" disabled={busy} onClick={() => void ordnerWaehlen()}>Ändern</button>
+      {ordner.eigener && <button type="button" className="ab-knopf rund" disabled={busy} onClick={() => void ordnerZurueck()} title="Zurück zum Desktop-Ordner" aria-label="Zurück zum Desktop-Ordner"><RotateCcw/></button>}
+    </div>}
     <AnimatePresence mode="wait">{run && <motion.div key={run.id} initial={{opacity: 0, y: 10}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -10}}>
-      <FachteamAnsicht lauf={run} beschaeftigt={busy}
+      <FachteamAnsicht lauf={run} beschaeftigt={busy} request={request}
         onStopp={() => void action(async () => setRun(await request("/agents/runs/" + run.id + "/cancel", {})))}
         onLoeschen={() => void action(async () => {await request("/agents/runs/" + run.id, undefined, "DELETE"); const rest = runs.filter(item => item.id !== run.id); setRuns(rest); setRun(null); setSelected(rest[0]?.id || "");})}/>
     </motion.div>}</AnimatePresence>

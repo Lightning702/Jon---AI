@@ -205,3 +205,9 @@ html.light .ab-dock-panel{background:rgba(250,248,242,.96)}
 
 @container (max-width:400px){.ab-kopf{flex-wrap:wrap;row-gap:6px}.ab-kopf .ab-status{order:6;margin-left:40px}.ab-kopf-text{flex:1 1 140px}}
 @media (prefers-reduced-motion:reduce){.ab *,.ab *::before,.ab *::after,.ab-karte.aktiv::before{animation:none !important;transition:none !important}}
+.ab-gespeichert{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--ab-ok) 28%,transparent);background:color-mix(in srgb,var(--ab-ok) 6%,transparent);font-size:12px}
+.ab-gespeichert>svg{width:16px;height:16px;flex:none;color:var(--ab-ok)}
+.ab-gespeichert>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ab-gespeichert small{opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ab-gespeichert .ab-gespeichert-fehler{color:var(--ab-fehler);opacity:1;white-space:normal}
+.ab-gespeichert .ab-knopf svg{width:13px;height:13px}
