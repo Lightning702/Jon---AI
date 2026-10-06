@@ -120,7 +120,7 @@ DEFAULTS = {
     "web_browser": "jon",
     "browser_plan_modus": "auto",
     "browser_dry_run": False,
-    "browser_max_schritte": 25,
+    "browser_schritte": 0,
     "browser_suchmaschine": "brave",
     "initiative_enabled": False,
     "initiative_stunde": 7,

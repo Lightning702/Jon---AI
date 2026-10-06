@@ -31,7 +31,7 @@ def test_dateiname_wird_bereinigt():
 def test_formatwahl():
     assert format_for("mp3", "best") == "bestaudio/best"
     assert "height<=720" in format_for("mp4", "720")
-    assert format_for("mp4", "best").startswith("bestvideo")
+    assert format_for("mp4", "best").startswith("bv*[vcodec^=avc1]")
 
 
 def test_fehler_werden_uebersetzt():

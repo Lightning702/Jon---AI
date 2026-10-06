@@ -4,6 +4,8 @@ import html as html_lib
 import json
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -336,13 +338,66 @@ def first_entry(info: dict | None) -> dict:
 def format_for(kind: str, quality: str) -> str:
     if kind == "mp3":
         return "bestaudio/best"
-    if quality == "best":
-        return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+    hoehe = "" if quality == "best" else f"[height<={quality}]"
     return (
-        f"bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]/"
-        f"bestvideo[height<={quality}]+bestaudio/"
-        f"best[height<={quality}]/best"
+        f"bv*[vcodec^=avc1]{hoehe}+ba[acodec^=mp4a]/"
+        f"bv*[vcodec^=avc1]{hoehe}+ba/"
+        f"b[vcodec^=avc1]{hoehe}/"
+        f"bv*[ext=mp4]{hoehe}+ba[ext=m4a]/"
+        f"bv*{hoehe}+ba/b{hoehe}/bv*+ba/b"
     )
+
+
+KOMPATIBEL_VIDEO = {"h264"}
+KOMPATIBEL_AUDIO = {"aac", "mp3"}
+
+
+def spuren(pfad: Path) -> dict:
+    probe = shutil.which("ffprobe")
+    if not probe:
+        return {}
+    try:
+        ausgabe = subprocess.run([probe, "-v", "error", "-show_entries", "stream=codec_type,codec_name", "-of", "json", str(pfad)], capture_output=True, text=True, timeout=60, **_ohne_fenster())
+        daten = json.loads(ausgabe.stdout or "{}")
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return {}
+    ergebnis: dict = {}
+    for spur in daten.get("streams") or []:
+        ergebnis.setdefault(str(spur.get("codec_type", "")), str(spur.get("codec_name", "")).lower())
+    return ergebnis
+
+
+def kompatibel_machen(pfad: Path, melden=None) -> Path:
+    codecs = spuren(pfad)
+    video, audio = codecs.get("video", ""), codecs.get("audio", "")
+    if not video or (video in KOMPATIBEL_VIDEO and (not audio or audio in KOMPATIBEL_AUDIO)):
+        return pfad
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return pfad
+    if melden:
+        melden(f"Wandle {video.upper()} in überall abspielbares MP4 (H.264) um …")
+    ziel = pfad.with_name(pfad.stem + "-h264.mp4")
+    befehl = [ffmpeg, "-y", "-v", "error", "-i", str(pfad)]
+    befehl += ["-c:v", "copy"] if video in KOMPATIBEL_VIDEO else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
+    if audio:
+        befehl += ["-c:a", "copy"] if audio in KOMPATIBEL_AUDIO else ["-c:a", "aac", "-b:a", "192k"]
+    befehl += ["-movflags", "+faststart", str(ziel)]
+    try:
+        ergebnis = subprocess.run(befehl, capture_output=True, text=True, timeout=7200, **_ohne_fenster())
+    except (OSError, subprocess.SubprocessError):
+        return pfad
+    if ergebnis.returncode != 0 or not ziel.is_file() or ziel.stat().st_size == 0:
+        ziel.unlink(missing_ok=True)
+        return pfad
+    pfad.unlink(missing_ok=True)
+    return ziel
+
+
+def _ohne_fenster() -> dict:
+    if sys.platform.startswith("win"):
+        return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+    return {}
 
 
 def _meta(page: str, prop: str) -> str:
@@ -854,6 +909,14 @@ class DownloaderService:
             if not files:
                 raise RuntimeError("Die fertige Datei wurde nicht gefunden.")
             target = max(files, key=lambda p: p.stat().st_size)
+            if kind == "mp4":
+                job["status"] = "processing"
+
+                def melden(text: str) -> None:
+                    job["label"] = text
+
+                target = kompatibel_machen(target, melden)
+                job["label"] = ""
             name = sanitize_filename(title or str(info.get("title") or "download"))
             job["file"] = str(target)
             job["name"] = f"{name}{target.suffix.lower()}"

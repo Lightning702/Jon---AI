@@ -134,7 +134,7 @@ class SettingsIn(BaseModel):
     web_browser: str | None = None
     browser_plan_modus: str | None = None
     browser_dry_run: bool | None = None
-    browser_max_schritte: int | None = None
+    browser_schritte: int | None = Field(default=None, ge=0, le=100000)
     browser_suchmaschine: str | None = None
     initiative_enabled: bool | None = None
     initiative_stunde: int | None = None

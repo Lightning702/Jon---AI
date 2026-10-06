@@ -183,7 +183,7 @@ object Solo {
             val inhalt = StringBuilder()
             val aufrufe = sortedMapOf<Int, Aufruf>()
             val koerper = JSONObject().put("model", modell).put("messages", nachrichten).put("stream", true)
-            if (!ohneWerkzeuge && werkzeuge.length() > 0 && runden <= 10) koerper.put("tools", werkzeuge).put("tool_choice", "auto")
+            if (!ohneWerkzeuge && werkzeuge.length() > 0) koerper.put("tools", werkzeuge).put("tool_choice", "auto")
             val call = klient.newCall(Request.Builder().url("$basis/chat/completions").headers(kopf(context, a)).header("Accept", "text/event-stream").post(koerper.toString().toRequestBody(json)).build())
             laufend = call
             val fehler = withContext(Dispatchers.IO) {
@@ -249,10 +249,6 @@ object Solo {
                 send(Werkzeuge.fertig(aufruf.name, ergebnisWerkzeug))
                 val fuerModell = JSONObject(ergebnisWerkzeug.toString()).apply { remove("karte") }.toString()
                 nachrichten.put(JSONObject().put("role", "tool").put("tool_call_id", aufruf.id).put("name", aufruf.name).put("content", fuerModell.take(14_000)))
-            }
-            if (runden > 12) {
-                send(JSONObject().put("type", "content").put("delta", "\n\nIch habe sehr viele Schritte gebraucht und höre hier auf."))
-                break
             }
         }
     }.flowOn(Dispatchers.IO)

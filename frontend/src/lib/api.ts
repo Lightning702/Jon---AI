@@ -301,7 +301,7 @@ export interface UserSettings {
   browser_persistent?: boolean;
   browser_plan_modus?: string;
   browser_dry_run?: boolean;
-  browser_max_schritte?: number;
+  browser_schritte?: number;
   browser_suchmaschine?: string;
   browser_speicher?: string;
   web_browser?: string;
@@ -390,7 +390,7 @@ const STANDARD_SETTINGS: UserSettings = {
     browser_persistent: true,
     browser_plan_modus: "auto",
     browser_dry_run: false,
-    browser_max_schritte: 25,
+    browser_schritte: 0,
     browser_suchmaschine: "brave",
     browser_speicher: "festplatte",
     web_browser: "jon",

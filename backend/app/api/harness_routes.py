@@ -56,7 +56,7 @@ class StartTask(BaseModel):
     source: str = Field(default="app", pattern="^(app|minijon|terminal)$")
     provider: str = ""
     model: str = ""
-    max_steps: int = Field(default=80, ge=1, le=200)
+    max_steps: int = Field(default=0, ge=0)
     companion: bool = False
     thread: str = Field(default="", max_length=40, pattern="^[a-f0-9]*$")
 

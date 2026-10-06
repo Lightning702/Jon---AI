@@ -186,7 +186,7 @@ export default function SettingsMenu({
   const [browserSichtbar, setBrowserSichtbar] = useState(true);
   const [browserDryRun, setBrowserDryRun] = useState(false);
   const [browserPlan, setBrowserPlan] = useState("auto");
-  const [browserSchritte, setBrowserSchritte] = useState(25);
+  const [browserSchritte, setBrowserSchritte] = useState(0);
   const [initiative, setInitiative] = useState(false);
   const [wahrnehmung, setWahrnehmung] = useState(false);
   const [konsolidierung, setKonsolidierung] = useState(true);
@@ -297,7 +297,7 @@ export default function SettingsMenu({
       setBrowserSichtbar(s.browser_sichtbar !== false);
       setBrowserDryRun(s.browser_dry_run === true);
       setBrowserPlan(s.browser_plan_modus || "auto");
-      setBrowserSchritte(s.browser_max_schritte || 25);
+      setBrowserSchritte(s.browser_schritte || 0);
       setInitiative(s.initiative_enabled === true);
       setWahrnehmung(s.wahrnehmung_enabled === true);
       setKonsolidierung(s.konsolidierung_auto !== false);
@@ -489,9 +489,9 @@ export default function SettingsMenu({
   };
 
   const pickBrowserSchritte = (value: number) => {
-    const sicher = Math.max(3, Math.min(60, value || 25));
+    const sicher = Math.max(0, Math.min(100000, Math.round(value || 0)));
     setBrowserSchritte(sicher);
-    void saveUserSettings({ browser_max_schritte: sicher });
+    void saveUserSettings({ browser_schritte: sicher });
   };
 
   const toggleTimeline = () => {
@@ -851,12 +851,12 @@ export default function SettingsMenu({
                 onPick={pickBrowserPlan}
               />
               <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5">
-                <span className="text-[11px] text-white/85">Schritte je Auftrag</span>
+                <span className="text-[11px] text-white/85">Schritte je Auftrag <span className="text-white/40">· 0 = unbegrenzt</span></span>
                 <input
                   type="number"
-                  min={3}
-                  max={60}
+                  min={0}
                   value={browserSchritte}
+                  title={browserSchritte ? `Höchstens ${browserSchritte} Schritte` : "Unbegrenzt"}
                   onChange={(e) => pickBrowserSchritte(Number(e.target.value))}
                   className="w-16 bg-black/30 border border-white/10 rounded-md px-2 py-0.5 text-[11px] text-white/85 text-right"
                 />

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import itertools
 import json
 import os
 import re
@@ -252,7 +253,7 @@ class HarnessService:
             kompakt.append(kopie)
         task["verlauf"] = kompakt
 
-    def start(self, goal: str, root: str, source: str = "app", provider: str = "", model: str = "", max_steps: int = 80, companion: bool = False, thread: str = "") -> dict:
+    def start(self, goal: str, root: str, source: str = "app", provider: str = "", model: str = "", max_steps: int = 0, companion: bool = False, thread: str = "") -> dict:
         if not goal.strip() or len(goal) > 12000:
             raise ValueError("Auftrag fehlt oder ist zu lang.")
         workspace = Workspace(root)
@@ -285,7 +286,7 @@ class HarnessService:
         self.tasks[task_id] = task
         try:
             self.emit(task, "started", goal=goal)
-            runner = asyncio.create_task(self.run(task, workspace, max(1, min(200, max_steps))))
+            runner = asyncio.create_task(self.run(task, workspace, max(0, int(max_steps or 0))))
         except BaseException:
             lease.close()
             raise
@@ -490,7 +491,7 @@ class HarnessService:
                     history.extend(letzte["verlauf"][-12:])
             formatfehler = 0
             letzter_fehler, wiederholt = "", 0
-            for index in range(max_steps):
+            for index in (itertools.count() if max_steps <= 0 else range(max_steps)):
                 task.update(status="planning" if not task["steps"] else "working", step=index + 1)
                 self.emit(task, "progress", step=index + 1)
                 for _ in range(2):

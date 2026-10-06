@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [Unveröffentlicht]
+
+### ♾️ Kein Schrittlimit mehr
+
+- Jon arbeitet so lange, bis die Aufgabe erledigt ist: im Chat ohne Grenze bei den Werkzeugrunden (vorher 30), im Jon Harness und bei MiniJon ohne Schrittlimit (vorher 80, höchstens 200), in `jon code` im Terminal und beim Browser-Agenten (vorher 25). Auch Jon Gerät 1.7.2 im eigenen Modus mit API-Schlüssel hört nicht mehr nach 12 Runden auf.
+- Wer doch eine Grenze will, stellt beim Browser-Agenten in den Einstellungen eine Zahl ein (0 = unbegrenzt) oder gibt `jon code --max-steps 50` an. Stoppen kannst du jederzeit.
+
+### 🎬 Downloader: MP4 läuft überall
+
+- MP4-Downloads kommen jetzt bevorzugt als H.264 mit AAC-Ton. Früher holte Jon bei manchen Videos, zum Beispiel YouTube Shorts, AV1 oder VP9 in die MP4-Datei, die viele PCs und Handys nicht abspielen können.
+- Gibt eine Seite kein H.264 her, wandelt Jon die Datei danach automatisch in ein überall abspielbares MP4 um.
+
 ## [4.62.1] — 2026-10-05
 
 ### 🌐 Jon öffnet nur noch, wenn du es sagst

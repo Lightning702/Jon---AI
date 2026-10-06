@@ -345,3 +345,32 @@ def test_freigabe_einstellung_ueber_die_schnittstelle(tmp_path):
         assert client.post("/api/harness/freigabe", json={"alles": False}).json() == {"alles": False}
     finally:
         get_settings_service().update({"harness_alles_erlauben": False})
+
+
+def test_harness_hat_standardmaessig_kein_schrittlimit(tmp_path):
+    from itertools import islice
+
+    from app.providers.openai_compatible import runden
+
+    projekt = tmp_path / "projekt"
+    projekt.mkdir()
+    (projekt / "a.txt").write_text("a", encoding="utf-8")
+    zaehler = {"n": 0}
+
+    async def complete(system, user, **kwargs):
+        zaehler["n"] += 1
+        if zaehler["n"] > 230:
+            return json.dumps({"tool": "finish", "args": {"summary": "nach 230 Schritten fertig"}})
+        return json.dumps({"tool": "list", "args": {"path": "."}})
+
+    async def starten(service, **werte):
+        task = service.start("Schau dir alles sehr gründlich an", str(projekt), **werte)
+        await asyncio.wait_for(service.running[task["id"]], 60)
+        return service.get(task["id"])
+
+    ergebnis = asyncio.run(starten(HarnessService(tmp_path / "tasks", complete)))
+    assert ergebnis["status"] == "done" and ergebnis["step"] == 231 and "230 Schritten" in ergebnis["summary"]
+    assert len(list(islice(runden(True), 5000))) == 5000 and list(runden(False)) == [0]
+    zaehler["n"] = 0
+    kurz = asyncio.run(starten(HarnessService(tmp_path / "tasks2", complete), max_steps=3))
+    assert kurz["status"] == "needs_review" and "Schrittlimit (3)" in kurz["summary"]

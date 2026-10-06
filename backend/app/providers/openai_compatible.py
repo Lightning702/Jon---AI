@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.services.tool_result import succeeded
 
 import asyncio
+import itertools
 import json
 import re
 import time
@@ -26,7 +27,8 @@ from app.providers.base import (
     ToolExecutor,
 )
 
-MAX_TOOL_ROUNDS = 30
+def runden(use_tools: bool):
+    return itertools.count() if use_tools else range(1)
 TRANSIENT_RETRIES = 2
 DEFAULT_MAX_TOKENS = 32768
 MIN_MAX_TOKENS = 4096
@@ -238,7 +240,6 @@ class OpenAICompatibleProvider(LLMProvider):
         use_tools = bool(
             tools and tool_executor and request.model not in self._no_tool_models
         )
-        rounds = MAX_TOOL_ROUNDS if use_tools else 1
         guard = (
             0.0
             if self.name in PATIENT_PROVIDERS
@@ -254,7 +255,7 @@ class OpenAICompatibleProvider(LLMProvider):
             else None
         )
 
-        for round_index in range(rounds):
+        for round_index in runden(use_tools):
             watchdog = guard if round_index == 0 else guard * 1.5
             caller = (
                 client.with_options(

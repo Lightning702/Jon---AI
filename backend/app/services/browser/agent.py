@@ -13,7 +13,7 @@ from app.services.browser.protokoll import notieren, verlauf
 from app.services.browser.sicherheit import get_guard
 from app.services.browser.zustand import get_zustand
 
-MAX_SCHRITTE = 25
+MAX_SCHRITTE = 0
 MAX_SCHRITTE_TROCKEN = 6
 TASK_TIMEOUT_S = 420.0
 MAX_FEHLER = 5
@@ -109,7 +109,7 @@ def _executor(lauf: Lauf):
             return _fehlertext(
                 "Der Lauf ist beendet. Fasse jetzt fuer den Nutzer zusammen."
             )
-        if lauf.schritte >= lauf.grenze:
+        if lauf.grenze and lauf.schritte >= lauf.grenze:
             lauf.abbruch = "schrittlimit"
             return _fehlertext(
                 f"Schrittlimit von {lauf.grenze} erreicht. Keine weiteren "
@@ -219,14 +219,9 @@ async def auftrag_ausfuehren(
 
     trocken = bool(dry_run or einstellungen.get("browser_dry_run"))
     modus = str(einstellungen.get("browser_plan_modus", "auto"))
-    grenze = int(
-        max_schritte
-        or einstellungen.get("browser_max_schritte")
-        or MAX_SCHRITTE
-    )
-    grenze = max(3, min(grenze, 60))
+    grenze = max(0, int(max_schritte or einstellungen.get("browser_schritte") or MAX_SCHRITTE))
     if trocken:
-        grenze = min(grenze, MAX_SCHRITTE_TROCKEN)
+        grenze = min(grenze or MAX_SCHRITTE_TROCKEN, MAX_SCHRITTE_TROCKEN)
 
     from app.services.auftrag_service import get_auftrag_service
 
