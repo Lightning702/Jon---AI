@@ -948,6 +948,9 @@
         state.frame = 0;
       },
       render,
+      verloren() {
+        return gl.isContextLost();
+      },
       destroy() {
         api.stop();
         for (const mesh of Object.values(meshes)) {

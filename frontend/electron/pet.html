@@ -670,8 +670,8 @@
       const closeBtn = document.getElementById("close");
       const micBtn = document.getElementById("mic");
       const stopBtn = document.getElementById("stopBtn");
-      const jonCanvas = document.getElementById("jonCanvas");
-      const petCanvas = document.getElementById("petCanvas");
+      let jonCanvas = document.getElementById("jonCanvas");
+      let petCanvas = document.getElementById("petCanvas");
       let jonView = null;
       let jonActivity = "general";
       let manualActivity = "";
@@ -679,8 +679,63 @@
       let pendingToolApproval = null;
       let petView = null;
 
+      let grafikAus = false;
+      let grafikPlan = 0;
+      const grafikVerluste = [];
+
+      function grafikBeobachten() {
+        for (const leinwand of [jonCanvas, petCanvas]) {
+          leinwand.addEventListener("webglcontextlost", (e) => {
+            e.preventDefault();
+            if (e.target === jonCanvas || e.target === petCanvas) grafikNeuPlanen();
+          });
+        }
+      }
+
+      function grafikNeuPlanen() {
+        if (grafikPlan) return;
+        grafikPlan = setTimeout(grafikNeuAufbauen, 700);
+      }
+
+      function grafikNeuAufbauen() {
+        grafikPlan = 0;
+        const jetzt = Date.now();
+        grafikVerluste.push(jetzt);
+        while (grafikVerluste.length && jetzt - grafikVerluste[0] > 60000) grafikVerluste.shift();
+        for (const ansicht of [jonView, petView]) {
+          if (!ansicht) continue;
+          try {
+            ansicht.destroy();
+          } catch (e) {}
+        }
+        jonView = null;
+        petView = null;
+        for (const alt of [jonCanvas, petCanvas]) {
+          const neu = alt.cloneNode(true);
+          alt.replaceWith(neu);
+          if (alt === jonCanvas) jonCanvas = neu;
+          else petCanvas = neu;
+        }
+        grafikBeobachten();
+        if (grafikVerluste.length >= 3) grafikAus = true;
+        document.body.classList.remove("model3d");
+        lastCfgJson = "";
+        applyConfig({});
+      }
+
+      grafikBeobachten();
+      setInterval(() => {
+        if (grafikAus || grafikPlan || document.hidden) return;
+        if ((jonView && jonView.verloren && jonView.verloren()) || (petView && petView.verloren && petView.verloren())) grafikNeuPlanen();
+      }, 4000);
+
       function ensureViews(on) {
         if (!window.Jon3D) return false;
+        if (grafikAus) {
+          if (jonView) jonView.stop();
+          if (petView) petView.stop();
+          return false;
+        }
         if (!on) {
           if (jonView) jonView.stop();
           if (petView) petView.stop();
