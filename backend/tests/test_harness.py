@@ -109,7 +109,7 @@ def test_workspace_does_not_follow_hardlinks(tmp_path):
 def test_new_file_never_overwrites_existing(tmp_path):
     workspace = Workspace(str(tmp_path))
     workspace.create("src/a.py", "original")
-    with pytest.raises(FileExistsError):
+    with pytest.raises(ValueError, match="nimm write"):
         workspace.create("src/a.py", "replacement")
     assert (tmp_path / "src/a.py").read_text() == "original"
 

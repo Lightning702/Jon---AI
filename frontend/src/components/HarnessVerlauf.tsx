@@ -9,7 +9,7 @@ import "./harness-verlauf.css";
 type Eintrag = NonNullable<HarnessTask["log"]>[number];
 
 const PHASEN = ["Planen", "Analysieren", "Implementieren", "Testen", "Fertigstellen"];
-const PHASE_VON: Record<string, number> = {plan: 0, list: 1, read: 1, search: 1, delegate: 1, edit: 2, create: 2, command: 2, verify: 3, finish: 4};
+const PHASE_VON: Record<string, number> = {plan: 0, list: 1, read: 1, search: 1, delegate: 1, edit: 2, create: 2, write: 2, command: 2, verify: 3, finish: 4};
 
 const TEST = /(^|[\s/\\])(test|tests|pytest|jest|vitest|unittest|tsc|lint|eslint|check|build)([\s.:_-]|$)|test_\w+|\w+\.test\./i;
 const istTest = (e: Eintrag) => e.tool === "verify" || (e.tool === "command" && TEST.test(e.message || ""));
@@ -62,6 +62,7 @@ function aktion(e: Eintrag): {titel: string; icon: typeof Code2; art: string; te
     case "search": return {titel: "Im Projekt gesucht", icon: Search, art: "lesen", code: e.message};
     case "edit": return {titel: "Datei geändert", icon: PenLine, art: "aendern", code: e.pfad || e.message};
     case "create": return {titel: "Datei erstellt", icon: FilePlus2, art: "aendern", code: e.pfad || e.message};
+    case "write": return {titel: "Datei neu geschrieben", icon: PenLine, art: "aendern", code: e.pfad || e.message};
     case "delegate": return {titel: "Fachagent befragt", icon: Users, art: "lesen", text: e.message};
     case "verify":
     case "command": return {titel: test ? (e.ok ? "Test erfolgreich" : "Test fehlgeschlagen") : (e.ok ? "Befehl erfolgreich" : "Befehl fehlgeschlagen"), icon: e.ok ? CheckCircle2 : XCircle, art: e.ok ? "ok" : "fehler", code: e.message};

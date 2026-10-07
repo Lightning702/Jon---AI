@@ -361,7 +361,7 @@ def test_harness_hat_standardmaessig_kein_schrittlimit(tmp_path):
         zaehler["n"] += 1
         if zaehler["n"] > 230:
             return json.dumps({"tool": "finish", "args": {"summary": "nach 230 Schritten fertig"}})
-        return json.dumps({"tool": "list", "args": {"path": "."}})
+        return json.dumps({"tool": "search", "args": {"text": f"suche{zaehler['n']}"}})
 
     async def starten(service, **werte):
         task = service.start("Schau dir alles sehr gründlich an", str(projekt), **werte)
@@ -374,3 +374,55 @@ def test_harness_hat_standardmaessig_kein_schrittlimit(tmp_path):
     zaehler["n"] = 0
     kurz = asyncio.run(starten(HarnessService(tmp_path / "tasks2", complete), max_steps=3))
     assert kurz["status"] == "needs_review" and "Schrittlimit (3)" in kurz["summary"]
+
+
+def test_endloses_lesen_derselben_datei_stoppt_frueh(tmp_path):
+    projekt = tmp_path / "projekt"
+    projekt.mkdir()
+    (projekt / "index.html").write_text("<h1>Alt</h1>", encoding="utf-8")
+    zaehler = {"n": 0}
+
+    async def complete(system, user, **kwargs):
+        zaehler["n"] += 1
+        return json.dumps({"note": "Ich lese die index.html", "tool": "read", "args": {"path": "index.html"}})
+
+    async def ablauf():
+        service = HarnessService(tmp_path / "tasks", complete)
+        task = service.start("Gestalte die Website neu", str(projekt))
+        await asyncio.wait_for(service.running[task["id"]], 30)
+        return service.get(task["id"])
+
+    ergebnis = asyncio.run(ablauf())
+    assert ergebnis["status"] == "needs_review" and "denselben Fehler" in ergebnis["summary"]
+    assert zaehler["n"] <= 8
+    fehler = [e["message"] for e in ergebnis["log"] if e["type"] == "action_error"]
+    assert fehler and "write" in fehler[0]
+
+
+def test_write_schreibt_eine_gelesene_datei_komplett_neu(tmp_path):
+    projekt = tmp_path / "projekt"
+    projekt.mkdir()
+    (projekt / "index.html").write_text("<h1>Alt</h1>", encoding="utf-8")
+    folge = iter([
+        {"tool": "write", "args": {"path": "index.html", "content": "<h1>Neu</h1>"}},
+        {"tool": "create", "args": {"path": "index.html", "content": "<h1>Doppelt</h1>"}},
+        {"tool": "read", "args": {"path": "index.html"}},
+        {"tool": "write", "args": {"path": "index.html", "content": "<h1>Jon in Schwarz und Gold</h1>"}},
+        {"tool": "finish", "args": {"summary": "neu gestaltet", "incomplete": True}},
+    ])
+
+    async def complete(system, user, **kwargs):
+        return json.dumps(next(folge))
+
+    async def ablauf():
+        service = HarnessService(tmp_path / "tasks", complete)
+        task = service.start("Gestalte die Website neu", str(projekt))
+        await asyncio.wait_for(service.running[task["id"]], 30)
+        return service.get(task["id"])
+
+    ergebnis = asyncio.run(ablauf())
+    fehler = [e["message"] for e in ergebnis["log"] if e["type"] == "action_error"]
+    assert "zuerst erneut lesen" in fehler[0] and "nimm write" in fehler[1]
+    assert (projekt / "index.html").read_text(encoding="utf-8") == "<h1>Jon in Schwarz und Gold</h1>"
+    assert [c["path"] for c in ergebnis["changes"]] == ["index.html"] and ergebnis["changes"][0]["rewritten"]
+    assert ergebnis["steps"] == ["Gestalte die Website neu"]

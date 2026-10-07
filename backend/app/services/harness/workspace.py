@@ -98,10 +98,28 @@ class Workspace:
         if len(content.encode("utf-8")) > MAX_BYTES:
             raise ValueError("Datei überschreitet 300 KB.")
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("x", encoding="utf-8", newline="") as handle:
-            handle.write(content)
+        try:
+            with path.open("x", encoding="utf-8", newline="") as handle:
+                handle.write(content)
+        except FileExistsError:
+            raise ValueError(f"{value} gibt es schon. Für eine komplette Neufassung nimm write, für Teiländerungen edit.") from None
         self.seen[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
         return {"path": value, "created": True, "diff": "".join(difflib.unified_diff([], content.splitlines(True), fromfile="/dev/null", tofile=value))[:20000]}
+
+    def write(self, value: str, content: str) -> dict:
+        path = self.path(value)
+        if not path.exists():
+            return self.create(value, content)
+        if len(content.encode("utf-8")) > MAX_BYTES:
+            raise ValueError("Datei überschreitet 300 KB.")
+        raw = path.read_bytes()
+        if self.seen.get(str(path)) != hashlib.sha256(raw).hexdigest():
+            raise ValueError("Datei zuerst erneut lesen: nicht gelesen oder inzwischen verändert.")
+        text = raw.decode("utf-8-sig")
+        neu = ("\ufeff" + content) if raw.startswith(b"\xef\xbb\xbf") else content
+        self.system.write_file(str(path), neu)
+        self.seen[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        return {"path": value, "rewritten": True, "diff": "".join(difflib.unified_diff(text.splitlines(True), content.splitlines(True), fromfile=value, tofile=value))[:20000]}
 
     def search(self, text: str) -> dict:
         if not text:
