@@ -1,10 +1,17 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import {
   ProviderStatus,
+  Stunde,
   UserSettings,
   getProviders,
   saveUserSettings,
+  stundenplanLaden,
+  stundenplanLoeschen,
+  stundenplanSpeichern,
 } from "../lib/api";
+
+const WOCHE = ["montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"];
 import GeraetePanel from "./GeraetePanel";
 import HandyModal from "./HandyModal";
 
@@ -32,6 +39,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
     telegram_morning: settings.telegram_morning ?? false,
     telegram_aktionsvideo: settings.telegram_aktionsvideo ?? true,
     telegram_morning_time: settings.telegram_morning_time ?? "07:30",
+    telegram_morgen_stundenplan: settings.telegram_morgen_stundenplan ?? false,
     ha_url: settings.ha_url ?? "",
     ha_token: settings.ha_token ?? "",
     spotify_client_id: settings.spotify_client_id ?? "",
@@ -42,6 +50,47 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
   const [saved, setSaved] = useState(false);
   const [kopplung, setKopplung] = useState(false);
   const [providers, setProviders] = useState<ProviderStatus[]>([]);
+  const [plan, setPlan] = useState<Record<string, Stunde[]>>({});
+  const [planText, setPlanText] = useState("");
+  const [planMeldung, setPlanMeldung] = useState("");
+  const [planLaeuft, setPlanLaeuft] = useState(false);
+  const [zusaetze, setZusaetze] = useState<string[]>(settings.telegram_morgen_zusaetze ?? []);
+
+  useEffect(() => {
+    void stundenplanLaden()
+      .then((d) => setPlan(d.tage))
+      .catch(() => setPlan({}));
+  }, []);
+
+  const planSpeichern = async () => {
+    if (!planText.trim()) return;
+    setPlanLaeuft(true);
+    setPlanMeldung("");
+    try {
+      const d = await stundenplanSpeichern(planText);
+      setPlan(d.tage);
+      setPlanText("");
+      setPlanMeldung("Stundenplan gespeichert.");
+    } catch (fehler) {
+      setPlanMeldung(String((fehler as Error).message || fehler));
+    } finally {
+      setPlanLaeuft(false);
+    }
+  };
+
+  const planEntfernen = async () => {
+    await stundenplanLoeschen();
+    setPlan({});
+    setPlanMeldung("Stundenplan gelöscht.");
+  };
+
+  const zusatzEntfernen = (eintrag: string) => {
+    const rest = zusaetze.filter((z) => z !== eintrag);
+    setZusaetze(rest);
+    void saveUserSettings({ telegram_morgen_zusaetze: rest });
+  };
+
+  const planTage = WOCHE.filter((tag) => (plan[tag] ?? []).length > 0);
 
   useEffect(() => {
     void getProviders()
@@ -78,7 +127,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[92vw] max-h-[86vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div>
-            <div className="text-white/90 font-semibold">🔌 Verbindungen</div>
+            <div className="text-white/90 font-semibold"><Symbol zeichen="🔌" /> Verbindungen</div>
             <div className="text-[11px] text-white/40">
               Alles kostenlos. Daten bleiben lokal auf deinem PC.
             </div>
@@ -94,14 +143,14 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
           <section className="space-y-2">
             <div className="text-[11px] uppercase tracking-wide text-gold/70">
-              📱 Geräte
+              <Symbol zeichen="📱" /> Geräte
             </div>
             <GeraetePanel onPair={() => setKopplung(true)} />
           </section>
 
           <section className="space-y-2">
             <div className="text-[11px] uppercase tracking-wide text-gold/70">
-              📧 E-Mail (IMAP/SMTP)
+              <Symbol zeichen="📧" /> E-Mail (IMAP/SMTP)
             </div>
             <p className="text-[11px] text-white/40 leading-relaxed">
               Gmail: Server <code>imap.gmail.com</code>, und statt deines
@@ -147,7 +196,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
 
           <section className="space-y-2">
             <div className="text-[11px] uppercase tracking-wide text-gold/70">
-              📅 Kalender (ICS)
+              <Symbol zeichen="📅" /> Kalender (ICS)
             </div>
             <p className="text-[11px] text-white/40 leading-relaxed">
               Google Kalender → Einstellungen → Kalender → „Geheime Adresse im
@@ -164,7 +213,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
 
           <section className="space-y-2">
             <div className="text-[11px] uppercase tracking-wide text-gold/70">
-              📲 Telegram (Fernbedienung)
+              <Symbol zeichen="📲" /> Telegram (Fernbedienung)
             </div>
             <p className="text-[11px] text-white/40 leading-relaxed">
               In Telegram <code>@BotFather</code> anschreiben → <code>/newbot</code>{" "}
@@ -245,7 +294,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
             </div>
             <div className="flex items-center justify-between pt-2">
               <div className="text-[12px] text-white/70">
-                🎬 Video nach Aktionen
+                <Symbol zeichen="🎬" /> Video nach Aktionen
               </div>
               <button
                 onClick={() =>
@@ -271,7 +320,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
             </p>
             <div className="flex items-center justify-between pt-2">
               <div className="text-[12px] text-white/70">
-                🌅 Guten-Morgen-Sprachnachricht
+                <Symbol zeichen="🌅" /> Guten-Morgen-Sprachnachricht
               </div>
               <button
                 onClick={() => set("telegram_morning", !form.telegram_morning)}
@@ -300,8 +349,76 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
                 onChange={(e) => set("telegram_morning_time", e.target.value)}
               />
             )}
+            {form.telegram_morning && (
+              <label className="flex items-center gap-2 text-[12px] text-white/80 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.telegram_morgen_stundenplan}
+                  onChange={(e) => set("telegram_morgen_stundenplan", e.target.checked)}
+                />
+                Stundenplan des Tages mitschicken
+              </label>
+            )}
+            {zusaetze.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-[11px] text-white/50">Außerdem jeden Morgen:</div>
+                {zusaetze.map((z) => (
+                  <div key={z} className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-white/5 text-[11.5px] text-white/80">
+                    <span className="truncate">{z}</span>
+                    <button onClick={() => zusatzEntfernen(z)} className="text-white/40 hover:text-white text-[13px]" aria-label="Entfernen">
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="text-[11px] uppercase tracking-wide text-gold/70 pt-3">
-              👥 Gruppen & Mini Jon
+              <Symbol zeichen="📅" /> Stundenplan
+            </div>
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              Schreib Jon einfach im Chat oder auf Telegram: „Schick mir jeden Morgen meinen
+              Stundenplan mit" - oder trag ihn hier ein, z. B. „Montag: 8:00 Mathe, 8:50 Deutsch".
+              Ein Foto oder PDF vom Stundenplan kannst du Jon auch im Chat schicken.
+            </p>
+            {planTage.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {planTage.map((tag) => (
+                  <div key={tag} className="rounded-lg bg-white/5 px-2 py-1.5">
+                    <div className="text-[11px] text-gold/80 capitalize">{tag}</div>
+                    {(plan[tag] ?? []).map((s, i) => (
+                      <div key={i} className="text-[11px] text-white/70 truncate">
+                        {s.von ? `${s.von} ` : ""}
+                        {s.fach}
+                        {s.raum ? ` (${s.raum})` : ""}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+            <textarea
+              className={`${field} min-h-[70px]`}
+              placeholder={planTage.length ? "Neuen Stundenplan eintragen (ersetzt den alten)" : "Stundenplan eintragen"}
+              value={planText}
+              onChange={(e) => setPlanText(e.target.value)}
+            />
+            <div className="flex items-center gap-2">
+              <button
+                disabled={planLaeuft || !planText.trim()}
+                onClick={() => void planSpeichern()}
+                className="px-3 py-1.5 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 text-[12px] text-gold/90 disabled:opacity-50"
+              >
+                {planLaeuft ? "Jon liest den Plan …" : "Stundenplan speichern"}
+              </button>
+              {planTage.length > 0 && (
+                <button onClick={() => void planEntfernen()} className="px-3 py-1.5 rounded-lg text-[12px] text-white/50 hover:text-white">
+                  Löschen
+                </button>
+              )}
+              {planMeldung && <span className="text-[11px] text-white/60">{planMeldung}</span>}
+            </div>
+            <div className="text-[11px] uppercase tracking-wide text-gold/70 pt-3">
+              <Symbol zeichen="👥" /> Gruppen & Mini Jon
             </div>
             <p className="text-[11px] text-white/40 leading-relaxed">
               Füge Jon (und Mini Jon) einfach zu einer Telegram-Gruppe hinzu:
@@ -330,7 +447,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
 
           <section className="space-y-2">
             <div className="text-[11px] uppercase tracking-wide text-gold/70">
-              🌍 Freunde-Chat übers Internet
+              <Symbol zeichen="🌍" /> Freunde-Chat übers Internet
             </div>
             <p className="text-[11px] text-white/40 leading-relaxed">
               Ohne Relay erreichst du nur Freunde im selben WLAN. Mit Relay
@@ -366,7 +483,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
 
           <section className="space-y-2">
             <div className="text-[11px] uppercase tracking-wide text-gold/70">
-              🎧 Spotify
+              <Symbol zeichen="🎧" /> Spotify
             </div>
             <p className="text-[11px] text-white/40 leading-relaxed">
               Auf{" "}
@@ -393,7 +510,7 @@ export default function ConnectionsModal({ settings, onClose }: Props) {
 
           <section className="space-y-2">
             <div className="text-[11px] uppercase tracking-wide text-gold/70">
-              🏠 Smart Home (Home Assistant)
+              <Symbol zeichen="🏠" /> Smart Home (Home Assistant)
             </div>
             <p className="text-[11px] text-white/40 leading-relaxed">
               In Home Assistant: Profil (unten links) → Sicherheit →

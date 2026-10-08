@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Panorama from "./Panorama";
@@ -326,7 +327,7 @@ export default function StreetView({
           }}
         >
           <div className="jm-specular" />
-          <span style={{ fontSize: 17 }}>🧭</span>
+          <span style={{ fontSize: 17 }}><Symbol zeichen="🧭" /></span>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
@@ -353,7 +354,7 @@ export default function StreetView({
             data-active="true"
             onClick={() => onWalkMode(current?.lat ?? lat, current?.lon ?? lon)}
           >
-            ✈️ Von oben erkunden
+            <Symbol zeichen="✈️" /> Von oben erkunden
           </button>
           <button className="jm-chip" onClick={onClose}>
             ✕ Zurück zur Karte
@@ -440,7 +441,7 @@ export default function StreetView({
             }}
           >
             <div className="jm-specular" />
-            <span style={{ fontSize: 18 }}>🧍</span>
+            <span style={{ fontSize: 18 }}><Symbol zeichen="🧍" /></span>
             <span
               style={{ fontSize: 12, color: "var(--jm-text-soft)", maxWidth: 330 }}
             >
@@ -453,7 +454,7 @@ export default function StreetView({
               data-active="true"
               onClick={() => onWalkMode(current?.lat ?? lat, current?.lon ?? lon)}
             >
-              ✈️ Abheben
+              <Symbol zeichen="✈️" /> Abheben
             </button>
           </div>
         </div>

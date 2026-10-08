@@ -54,7 +54,7 @@ export default function VerbundModal({ onClose }: { onClose: () => void }) {
     );
     try {
       const neu = await verbundKoppeln(sauber);
-      setHinweis(`${neu.name} ist jetzt im Verbund. 🤝`);
+      setHinweis(`${neu.name} ist jetzt im Verbund. `);
       setCode("");
       await laden();
     } catch (e) {

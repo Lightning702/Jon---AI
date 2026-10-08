@@ -87,7 +87,7 @@ class Lauf:
         self.plan: BrowserPlan | None = None
 
     def zeit_um(self) -> bool:
-        return (time.monotonic() - self.start) > TASK_TIMEOUT_S
+        return self.grenze < 100_000 and (time.monotonic() - self.start) > TASK_TIMEOUT_S
 
     def plan_fortschritt(self) -> None:
         if self.plan is None or not self.plan.schritte:
@@ -225,6 +225,11 @@ async def auftrag_ausfuehren(
         or MAX_SCHRITTE
     )
     grenze = max(3, min(grenze, 60))
+    if not max_schritte:
+        from app.services.premium import unbegrenzt
+
+        if unbegrenzt():
+            grenze = 100_000
     if trocken:
         grenze = min(grenze, MAX_SCHRITTE_TROCKEN)
 
@@ -264,13 +269,13 @@ async def auftrag_ausfuehren(
     lauf.auftrag_id = auftrag_id
     auftraege.melden(
         auftrag_id,
-        schritte=len(plan.schritte) if plan else grenze,
+        schritte=len(plan.schritte) if plan else (0 if grenze >= 100_000 else grenze),
     )
     get_zustand().setzen(status="laeuft")
 
     try:
         bericht = await asyncio.wait_for(
-            _denken(system, text, lauf), timeout=TASK_TIMEOUT_S + 60
+            _denken(system, text, lauf), timeout=None if grenze >= 100_000 else TASK_TIMEOUT_S + 60
         )
     except asyncio.TimeoutError:
         lauf.abbruch = lauf.abbruch or "zeitlimit"

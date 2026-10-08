@@ -77,19 +77,13 @@ class Zugang:
         return min(4096, max(1024, self.fenster() // 4))
 
 
-async def route_bauen(zugang: Zugang) -> list[tuple[str, str]]:
-    from app.providers.registry import get_registry
-    from app.services.chat_service import attempt_plan_for, route_providers
+HIN_UND_HER = 6
 
-    registry = get_registry()
-    try:
-        namen = await route_providers(registry, zugang.provider, zugang.model)
-        plan = await attempt_plan_for(registry, zugang.provider, namen, zugang.model)
-    except Exception:
-        plan = []
-    if (zugang.provider, zugang.model) not in plan:
-        plan.insert(0, (zugang.provider, zugang.model))
-    return plan[:4]
+
+async def route_bauen(zugang: Zugang) -> list[tuple[str, str]]:
+    from app.services.modell_router import get_model_router
+
+    return await get_model_router().plan(zugang.provider, zugang.model, grenze=5)
 
 
 async def _einmal(name: str, model: str, system: str, user: str, zugang: Zugang) -> tuple[str, str]:
@@ -122,28 +116,36 @@ async def anfragen(zugang: Zugang, system: str, user: str) -> Antwort:
         zugang.route = await route_bauen(zugang)
     hinweise: list[str] = []
     letzter: BaseException | None = None
-    for name, model in list(zugang.route):
-        for versuch in range(len(WARTEN) + 1):
-            try:
-                inhalt, denken = await asyncio.wait_for(_einmal(name, model, system, user, zugang), ERSTES_TOKEN_S + 300)
-                text = denken_entfernen(inhalt) or denken_entfernen(denken) or denken.strip()
-                if not text:
-                    raise ValueError("leere Antwort vom Modell")
-                if (name, model) != (zugang.provider, zugang.model):
-                    hinweise.append(f"Ausweichmodell {model} ({name}) verwendet, weil {zugang.model} nicht antwortete.")
-                return Antwort(text, name, model, hinweise)
-            except asyncio.CancelledError:
-                raise
-            except Exception as fehler:
-                letzter = fehler
-                if name == "ollama" and not zugang.klein and speicherfehler(fehler):
-                    zugang.klein = True
-                    hinweise.append("Ollama hat zu wenig Speicher für ein großes Kontextfenster; der Harness arbeitet mit der eingestellten Kontextlänge weiter.")
-                    raise KontextZuGross(str(fehler)) from fehler
-                if not voruebergehend(fehler) or versuch == len(WARTEN):
-                    break
-                hinweise.append(f"{name} antwortet gerade nicht ({str(fehler)[:120]}). Neuer Versuch in {WARTEN[versuch]:.0f} s.")
-                await asyncio.sleep(WARTEN[versuch])
+    from app.services.premium import unbegrenzt
+
+    for runde in range(HIN_UND_HER if unbegrenzt() else 1):
+        if runde and (letzter is None or not voruebergehend(letzter)):
+            break
+        if runde:
+            hinweise.append(f"Kein Modell hat geantwortet. Ich wechsle weiter zwischen den Modellen (Runde {runde + 1}).")
+            await asyncio.sleep(min(30.0, (WARTEN[-1] if WARTEN else 0.0) * runde))
+        for name, model in list(zugang.route):
+            for versuch in range(len(WARTEN) + 1):
+                try:
+                    inhalt, denken = await asyncio.wait_for(_einmal(name, model, system, user, zugang), ERSTES_TOKEN_S + 300)
+                    text = denken_entfernen(inhalt) or denken_entfernen(denken) or denken.strip()
+                    if not text:
+                        raise ValueError("leere Antwort vom Modell")
+                    if (name, model) != (zugang.provider, zugang.model):
+                        hinweise.append(f"Ausweichmodell {model} ({name}) verwendet, weil {zugang.model} nicht antwortete.")
+                    return Antwort(text, name, model, hinweise)
+                except asyncio.CancelledError:
+                    raise
+                except Exception as fehler:
+                    letzter = fehler
+                    if name == "ollama" and not zugang.klein and speicherfehler(fehler):
+                        zugang.klein = True
+                        hinweise.append("Ollama hat zu wenig Speicher für ein großes Kontextfenster; der Harness arbeitet mit der eingestellten Kontextlänge weiter.")
+                        raise KontextZuGross(str(fehler)) from fehler
+                    if not voruebergehend(fehler) or versuch == len(WARTEN):
+                        break
+                    hinweise.append(f"{name} antwortet gerade nicht ({str(fehler)[:120]}). Neuer Versuch in {WARTEN[versuch]:.0f} s.")
+                    await asyncio.sleep(WARTEN[versuch])
     raise ModellNichtErreichbar(f"Kein Modell hat geantwortet. Letzter Fehler: {str(letzter)[:400]}")
 
 

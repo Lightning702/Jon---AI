@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { motion } from "framer-motion";
 import { FriendsResult, MapsConfig, MapsTheme, formatAge } from "../lib/maps";
 
@@ -147,7 +148,7 @@ export default function LayerSheet({
             style={{ flex: 1, justifyContent: "center", border: "none" }}
             onClick={() => onTheme(item)}
           >
-            {item === "dark" ? "🌙 Dunkel" : "☀️ Hell"}
+            {item === "dark" ? "Dunkel" : "Hell"}
           </button>
         ))}
       </div>
@@ -183,7 +184,7 @@ export default function LayerSheet({
             onClick={onPinHome}
             title="Kartenmitte als deinen Standort speichern"
           >
-            📍 Kartenmitte
+            <Symbol zeichen="📍" /> Kartenmitte
           </button>
         </div>
       </div>
@@ -213,7 +214,7 @@ export default function LayerSheet({
           style={{ marginTop: 10 }}
         >
           <span style={{ fontSize: 15, width: 22, textAlign: "center" }}>
-            📡
+            <Symbol zeichen="📡" />
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: "block", fontSize: 13, fontWeight: 550 }}>
@@ -320,7 +321,7 @@ export default function LayerSheet({
                       <span
                         style={{ fontSize: 15, width: 22, textAlign: "center" }}
                       >
-                        {contact.avatar || "🙂"}
+                        <Symbol zeichen={contact.avatar || "🙂"} />
                       </span>
                       <span style={{ flex: 1, fontSize: 12.5 }}>
                         {contact.name}
@@ -346,7 +347,7 @@ export default function LayerSheet({
               style={{ width: "100%", justifyContent: "center", marginTop: 8 }}
               onClick={onShareNow}
             >
-              📡 Jetzt senden
+              <Symbol zeichen="📡" /> Jetzt senden
             </button>
           </>
         )}
@@ -365,7 +366,7 @@ export default function LayerSheet({
                 }}
               >
                 <span style={{ width: 20, textAlign: "center" }}>
-                  {friend.avatar || "🙂"}
+                  <Symbol zeichen={friend.avatar || "🙂"} />
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>{friend.name}</span>
                 <span
@@ -403,7 +404,7 @@ export default function LayerSheet({
               title={usable ? entry.hint : `${entry.hint} — nicht verfügbar`}
             >
               <span style={{ fontSize: 15, width: 22, textAlign: "center" }}>
-                {entry.icon}
+                <Symbol zeichen={entry.icon} />
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 13, fontWeight: 550 }}>
@@ -461,7 +462,7 @@ export default function LayerSheet({
         disabled={available.gelaende === false}
         style={{ opacity: available.gelaende === false ? 0.4 : 1 }}
       >
-        <span style={{ fontSize: 15, width: 22, textAlign: "center" }}>🏔️</span>
+        <span style={{ fontSize: 15, width: 22, textAlign: "center" }}><Symbol zeichen="🏔️" /></span>
         <span style={{ flex: 1 }}>
           <span style={{ display: "block", fontSize: 13, fontWeight: 550 }}>
             Echtes 3D-Gelände

@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { HandyBericht, handyBericht } from "../lib/api";
@@ -47,7 +48,7 @@ export default function Wochenbericht({ geraet, bis, rahmen = true }: { geraet: 
       className={aussen}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <div className="font-semibold text-white">📊 {bericht.name}</div>
+        <div className="font-semibold text-white"><Symbol zeichen="📊" /> {bericht.name}</div>
         <div className="text-[11px] text-white/45">
           {datum(bericht.von)} – {datum(bericht.bis)}
         </div>
@@ -109,13 +110,13 @@ export default function Wochenbericht({ geraet, bis, rahmen = true }: { geraet: 
       )}
 
       <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-white/60">
-        {bericht.schritte > 0 && <span>👣 {bericht.schritte.toLocaleString("de-AT")} Schritte</span>}
+        {bericht.schritte > 0 && <span><Symbol zeichen="👣" /> {bericht.schritte.toLocaleString("de-AT")} Schritte</span>}
         {bericht.anfragen > 0 && (
           <span>
-            ⏳ {bericht.anfragen} Extra-Zeit-Anfrage{bericht.anfragen === 1 ? "" : "n"} · {bericht.erlaubt} erlaubt
+            <Symbol zeichen="⏳" /> {bericht.anfragen} Extra-Zeit-Anfrage{bericht.anfragen === 1 ? "" : "n"} · {bericht.erlaubt} erlaubt
           </span>
         )}
-        {bericht.sos > 0 && <span className="text-red-300">🆘 {bericht.sos}× SOS</span>}
+        {bericht.sos > 0 && <span className="text-red-300"><Symbol zeichen="🆘" /> {bericht.sos}× SOS</span>}
         {!bericht.gesamt && !bericht.schritte && <span>Für diese Woche gibt es noch keine Daten.</span>}
       </div>
     </motion.div>

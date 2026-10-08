@@ -6,11 +6,15 @@ from app.services.project_service import get_project_service
 
 
 async def execute(args: dict, source: str, root: str | None) -> dict:
-    if source.startswith("telegram"):
-        return {"error": "Nutze /projekte, /projekt und /harness im privaten, verbundenen Telegram-Chat."}
-    source = "minijon" if source in {"mini-jon", "emil", "minijon"} else source
     action = args.get("action")
+    allgemein = str(args.get("modus", "")).strip().lower() in {"allgemein", "general", "agent"}
+    if source.startswith("telegram") and not (action == "start" and allgemein) and action not in {"status", "list", "stop"}:
+        return {"error": "Nutze /projekte, /projekt und /harness im privaten, verbundenen Telegram-Chat oder starte einen allgemeinen Auftrag mit modus allgemein."}
+    source = "minijon" if source in {"mini-jon", "emil", "minijon"} else source
     service = get_harness_service()
+    if action == "start" and allgemein:
+        task = service.start(str(args.get("goal", "")), "", source="telegram" if source.startswith("telegram") else source, modus="allgemein")
+        return {"task_id": task["id"], "thread": task["thread"], "status": task["status"], "modus": "allgemein", "text": describe(task), "next": "Der Auftrag läuft im Hintergrund weiter, auch über viele Schritte. Fortschritt im Harness-Fenster oder mit status."}
     projects = get_project_service()
     if action == "projects":
         return {"projects": projects.list(), "current_root": root or selection(source)}

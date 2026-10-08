@@ -160,7 +160,7 @@ export default function CalendarPanel({ onClose }: { onClose: () => void }) {
     if (result.konflikte?.length) {
       const k = result.konflikte as { titel: string; zeit: string }[];
       setHint(
-        `⚠️ Überschneidet sich mit: ${k.map((x) => `${x.titel} (${x.zeit})`).join(", ")}`
+        `Überschneidet sich mit: ${k.map((x) => `${x.titel} (${x.zeit})`).join(", ")}`
       );
     } else {
       setHint("");

@@ -206,7 +206,7 @@ function Geraete({ onFehler }: { onFehler: (text: string) => void }) {
       onFehler(fehlerText(e));
     }
   };
-  if (!daten) return <div className="tz-leer"><Loader2 size={14} className="tz-dreh" />Lade Statistik vom Pi …</div>;
+  if (!daten) return <div className="tz-leer"><Loader2 size={14} className="tz-dreh" />Lade Statistik von FelWorks …</div>;
   const balken = (liste: [string, number][]) => {
     const max = Math.max(1, ...liste.map(([, n]) => n));
     return liste.length ? liste.map(([name, n]) => <div key={name} className="tz-balken"><span>{name}</span><i style={{ width: `${(n / max) * 100}%` }} /><b>{zahl(n)}</b></div>) : <p className="tz-hinweis">Noch keine Daten.</p>;
@@ -220,7 +220,7 @@ function Geraete({ onFehler }: { onFehler: (text: string) => void }) {
     </div>
     <div className="tz-karte">
       <div className="tz-karte-kopf"><Server size={14} /><b>Modellzugang über FelWorks</b></div>
-      <p className="tz-hinweis">Entwickler können Cloud-Modelle über deinen NVIDIA-Schlüssel auf dem Pi nutzen. Hier legst du fest, wie viele Anfragen jedes Gerät pro Tag stellen darf. Admins haben kein Limit. Insgesamt bisher: {zahl(daten.felworks.gesamt)} Anfragen.</p>
+      <p className="tz-hinweis">Entwickler können Cloud-Modelle über den FelWorks-Zugang (NVIDIA NIM, kostenlos) nutzen. Hier legst du fest, wie viele Anfragen jedes Gerät pro Tag stellen darf. Admins haben kein Limit. Insgesamt bisher: {zahl(daten.felworks.gesamt)} Anfragen.</p>
       <div className="tz-zeile"><input type="number" min={0} max={100000} value={kontingent} onChange={e => setKontingent(e.target.value)} aria-label="Anfragen pro Gerät und Tag" /><span>Anfragen pro Gerät und Tag</span><button type="button" className="tz-klein" onClick={() => void speichern()}><Check size={12} />Speichern</button></div>
     </div>
     <div className="tz-zwei">
@@ -229,7 +229,7 @@ function Geraete({ onFehler }: { onFehler: (text: string) => void }) {
     </div>
     <div className="tz-karte">
       <div className="tz-karte-kopf"><Users size={14} /><b>Geräte im Team</b><button type="button" className="tz-klein" onClick={() => void laden()}><RefreshCw size={12} />Neu laden</button></div>
-      {!daten.geraete.length && <p className="tz-hinweis">Geräte melden sich hier, sobald Jon dort einmal beim Pi nachgefragt hat (alle 6 Stunden und beim Start).</p>}
+      {!daten.geraete.length && <p className="tz-hinweis">Geräte melden sich hier, sobald Jon dort einmal bei FelWorks nachgefragt hat (alle 6 Stunden und beim Start).</p>}
       {daten.geraete.map(g => <div key={g.geraet} className="tz-geraet">
         <span className={"tz-punkt " + (Date.now() / 1000 - g.zuletzt < 7 * 3600 ? "an" : "")} />
         <span><b>{g.name}<em className={"tz-marke tz-art-" + g.rolle}>{g.rolle === "admin" ? "Admin" : "Entwickler"}</em></b><small>Gerät {g.kurz} · Jon {g.version || "?"} · {g.system || "?"} · zuletzt {zeit(g.zuletzt)}</small></span>
@@ -260,7 +260,7 @@ function Kostenlos({ onFehler }: { onFehler: (text: string) => void }) {
   return <div className={"tz-karte tz-kostenlos " + (stand?.aktiv ? "an" : "")}>
     <div className="tz-kostenlos-kopf">
       <span className="tz-kostenlos-icon"><Gift size={16} /></span>
-      <span><b>Jon Premium kostenlos für alle</b><small>{!stand ? "Frage den Pi …" : stand.aktiv ? "Jeder sieht im Premium-Dialog den Knopf „Kostenlos freischalten“." : "Aus. Der Knopf ist weg, kostenlose Lizenzen gelten nicht mehr."}</small></span>
+      <span><b>Jon Premium kostenlos für alle</b><small>{!stand ? "Frage FelWorks …" : stand.aktiv ? "Jeder sieht im Premium-Dialog den Knopf „Kostenlos freischalten“." : "Aus. Der Knopf ist weg, kostenlose Lizenzen gelten nicht mehr."}</small></span>
       <label className="tz-schalter" title={stand?.aktiv ? "Kostenloses Premium beenden" : "Kostenloses Premium anbieten"}><input type="checkbox" checked={!!stand?.aktiv} disabled={!stand || busy} onChange={e => void setzen(e.target.checked)} aria-label="Jon Premium kostenlos für alle" /><span className="tz-schalter-bahn"><i /></span></label>
     </div>
     {stand && <div className="tz-kostenlos-zahlen"><span><b>{zahl(stand.geraete)}</b> Geräte freigeschaltet</span><span><b>{zahl(stand.aktiv_7_tage)}</b> aktiv in 7 Tagen</span><span><b>{zahl(stand.neu_7_tage)}</b> neu in 7 Tagen</span></div>}
@@ -311,7 +311,7 @@ function Schalter({ onFehler }: { onFehler: (text: string) => void }) {
 
 interface PiStand { dienste: Record<string, string>; version: string; git: string; funnel: string; laufzeit: string; platte: { frei_gb?: number; gesamt_gb?: number }; ram: { frei_mb?: number; gesamt_mb?: number }; temperatur: number | null }
 
-const DIENST_NAME: Record<string, string> = { jon: "Jon auf dem Pi", "jon-codes": "Codeserver", "jon-demo": "Website-Demo" };
+const DIENST_NAME: Record<string, string> = { jon: "Jon-Dienst", "jon-codes": "Codeserver", "jon-demo": "Website-Demo" };
 
 function Pi({ onFehler }: { onFehler: (text: string) => void }) {
   const [stand, setStand] = useState<PiStand | null>(null);
@@ -338,7 +338,7 @@ function Pi({ onFehler }: { onFehler: (text: string) => void }) {
       setBusy("");
     }
   };
-  if (!stand) return <div className="tz-leer"><Loader2 size={14} className="tz-dreh" />Frage den Pi …</div>;
+  if (!stand) return <div className="tz-leer"><Loader2 size={14} className="tz-dreh" />Frage den Server …</div>;
   return <div className="tz-pi">
     <div className="tz-kacheln">
       <div className="tz-kachel"><Sparkles size={15} /><b>{stand.version || "?"}</b><span>Jon-Version</span></div>
@@ -357,9 +357,9 @@ function Pi({ onFehler }: { onFehler: (text: string) => void }) {
       </div>)}
     </div>
     <div className="tz-karte">
-      <div className="tz-karte-kopf"><Download size={14} /><b>Pi aktualisieren</b></div>
+      <div className="tz-karte-kopf"><Download size={14} /><b>Server aktualisieren</b></div>
       <p className="tz-hinweis">Holt den neuesten Stand von GitHub (<code>{stand.git || "?"}</code>) und aktualisiert die Bibliotheken. Danach Jon, Demo und Codeserver neu starten.</p>
-      <button type="button" className="tz-klein" disabled={!!busy} onClick={() => {if (confirm("Jon auf dem Pi jetzt aus GitHub aktualisieren?")) void handeln("update", async () => {const r = await teamAnfrage<{ text: string; hinweis: string }>("pi/aktualisieren"); setMeldung(r.hinweis); setLog({ dienst: "Aktualisierung", text: r.text }); void laden();});}}>{busy === "update" ? <Loader2 size={12} className="tz-dreh" /> : <Download size={12} />}Jetzt aktualisieren</button>
+      <button type="button" className="tz-klein" disabled={!!busy} onClick={() => {if (confirm("Den FelWorks-Server jetzt aus GitHub aktualisieren?")) void handeln("update", async () => {const r = await teamAnfrage<{ text: string; hinweis: string }>("pi/aktualisieren"); setMeldung(r.hinweis); setLog({ dienst: "Aktualisierung", text: r.text }); void laden();});}}>{busy === "update" ? <Loader2 size={12} className="tz-dreh" /> : <Download size={12} />}Jetzt aktualisieren</button>
     </div>
     <details className="tz-karte tz-funnel"><summary><Share2 size={14} /><b>Tailscale Funnel</b><ChevronDown size={13} /></summary><pre>{stand.funnel || "Keine Angaben"}</pre></details>
     <AnimatePresence>{log && <motion.div className="tz-log" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><div className="tz-karte-kopf"><ScrollText size={14} /><b>{DIENST_NAME[log.dienst] || log.dienst}</b><button type="button" className="tz-klein" onClick={() => setLog(null)}><X size={12} /></button></div><pre>{log.text}</pre></motion.div>}</AnimatePresence>
@@ -497,7 +497,7 @@ function Einstellungen({ status, onFehler }: { status: PremiumStatus; onFehler: 
     </div>
     <div className="tz-karte">
       <div className="tz-karte-kopf"><Server size={14} /><b>Modellzugang über FelWorks</b></div>
-      <p className="tz-hinweis">{status.flags.modell ? "Wähle oben im Chat beim Anbieter „FelWorks · über den Pi“. Dann laufen die Anfragen über den FelWorks-Zugang, ohne eigenen API-Schlüssel." : "Der Admin hat den Modellzugang für dich noch nicht freigegeben."}</p>
+      <p className="tz-hinweis">{status.flags.modell ? "Wähle oben im Chat beim Anbieter „FelWorks“. Dann laufen die Anfragen über den FelWorks-Zugang, ohne eigenen API-Schlüssel." : "Der Admin hat den Modellzugang für dich noch nicht freigegeben."}</p>
     </div>
     <div className="tz-karte">
       <div className="tz-karte-kopf"><ToggleLeft size={14} /><b>Deine Vorteile</b></div>
@@ -516,7 +516,7 @@ export default function TeamZentrale({ status, onFehler, onNeuLaden }: { status:
       { key: "fehler", name: "Fehler melden", icon: Bug, zeigen: !admin && !!status.flags.fehlerbericht },
       { key: "geraete", name: "Geräte & Nutzung", icon: Activity, zeigen: admin },
       { key: "schalter", name: "Beta-Schalter", icon: ToggleLeft, zeigen: admin },
-      { key: "pi", name: "Pi", icon: Server, zeigen: admin },
+      { key: "pi", name: "Server", icon: Server, zeigen: admin },
       { key: "skills", name: "Skills", icon: Share2, zeigen: !!status.flags.skills },
       { key: "inspektor", name: "Inspektor", icon: Eye, zeigen: !!status.flags.inspektor },
       { key: "einstellungen", name: "Einstellungen", icon: Settings2, zeigen: true },
@@ -529,7 +529,7 @@ export default function TeamZentrale({ status, onFehler, onNeuLaden }: { status:
   return <section className="tz pm-ein" aria-label="Team-Zentrale">
     <div className="tz-kopf">
       <span className={"tz-emblem " + (admin ? "admin" : "entwickler")}>{admin ? <Users size={17} /> : <Wrench size={17} />}</span>
-      <div><h3>Team-Zentrale</h3><p>{admin ? "Codes, Team, Beta-Schalter, Statistik und dein Pi an einem Ort." : "Schreib dem Admin, melde Fehler, teile Skills und schau Jon unter die Haube."}</p></div>
+      <div><h3>Team-Zentrale</h3><p>{admin ? "Codes, Team, Beta-Schalter, Statistik und Server an einem Ort." : "Schreib dem Admin, melde Fehler, teile Skills und schau Jon unter die Haube."}</p></div>
     </div>
     <nav className="tz-reiter" role="tablist" aria-label="Bereiche der Team-Zentrale">
       {bereiche.map(b => <button key={b.key} role="tab" aria-selected={bereich === b.key} className={bereich === b.key ? "an" : ""} onClick={() => setBereich(b.key)}>

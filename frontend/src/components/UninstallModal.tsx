@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import { BASE } from "../lib/api";
 
@@ -90,7 +91,7 @@ export default function UninstallModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="glass rounded-2xl border border-red-500/40 w-[520px] max-w-[92vw] p-6 max-h-[88vh] overflow-y-auto">
         <div className="text-center mb-4">
-          <div className="text-4xl mb-2">🗑️</div>
+          <div className="text-4xl mb-2"><Symbol zeichen="🗑️" /></div>
           <h2 className="text-xl font-semibold text-red-300">Jon deinstallieren</h2>
           <p className="text-[12px] text-white/50 mt-1">
             Das löscht alles, was Jon über dich weiß. Es gibt kein Zurück.
@@ -107,7 +108,7 @@ export default function UninstallModal({ onClose }: { onClose: () => void }) {
           <div className="space-y-2">
             {schritte.map((s, i) => (
               <div key={i} className="flex items-center gap-2 text-[12px]">
-                <span>{s.ok ? "✅" : "❌"}</span>
+                <span><Symbol zeichen={s.ok ? "✅" : "❌"} /></span>
                 <span className="text-white/80 flex-1">{s.schritt}</span>
                 <span className="text-white/40">{s.hinweis}</span>
               </div>

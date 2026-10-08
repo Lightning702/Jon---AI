@@ -19,7 +19,7 @@ def test_support_nachricht_geht_an_netlify_forms_mit_systeminfo(monkeypatch):
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: echt(transport=httpx.MockTransport(antworten), **kwargs))
     support_routes._gesendet.clear()
     client = TestClient(create_app())
-    assert client.get("/api/support").json()["email"] == "felix.heinisch12@gmail.com"
+    assert client.get("/api/support").json()["seite"] == "https://getjon.info/support/"
     antwort = client.post("/api/support", json={"art": "premium", "betreff": "Mehr Spiele", "nachricht": "Bitte noch ein Rennspiel als Premium-Funktion.", "email": "test@example.com"})
     assert antwort.status_code == 200 and antwort.json()["ok"]
     url, felder = gesendet[0]

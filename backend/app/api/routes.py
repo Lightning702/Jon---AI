@@ -4,6 +4,7 @@ import asyncio
 import json
 import sys
 import time
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
@@ -174,9 +175,24 @@ async def providers() -> list[ProviderStatus]:
                 locked=True,
             )
         )
+    lokalserver = registry.all().get("lokalserver")
+    if lokalserver is not None and lokalserver.available() and not any(f.provider == "lokalserver" for f in found):
+        found.append(
+            ProviderStatus(
+                provider="lokalserver",
+                configured=True,
+                env_var="",
+                models=await _models_for(lokalserver, timeout),
+                label="Lokaler Server",
+            )
+        )
+    from app.services.offline import aktiv as offline_aktiv, lokal as ist_lokal
+
+    if offline_aktiv():
+        found = [f for f in found if ist_lokal(f.provider, (f.models or [""])[0] if f.models else "")]
     from app.services.premium import get_premium
 
-    if get_premium().felworks_schluessel():
+    if get_premium().felworks_schluessel() and not offline_aktiv():
         felworks = registry.all().get("felworks")
         found.append(
             ProviderStatus(
@@ -184,7 +200,7 @@ async def providers() -> list[ProviderStatus]:
                 configured=True,
                 env_var="",
                 models=await _models_for(felworks, timeout) or list(getattr(felworks, "_default_models", [])),
-                label="FelWorks · über den Pi",
+                label="FelWorks",
             )
         )
     return found
@@ -498,6 +514,61 @@ async def update_user_settings(payload: SettingsIn) -> dict:
     if payload.model and result.get("provider") == "ollama":
         get_ollama_service().update({"model": payload.model})
     return result
+
+
+@router.get("/aufgabenmodelle")
+async def aufgabenmodelle_lesen() -> dict:
+    from app.services.aufgaben_modelle import AUFGABEN, aktiv, zuordnung
+    from app.services.offline import aktiv as offline_aktiv
+
+    return {"aktiv": aktiv(), "aufgaben": list(AUFGABEN), "zuordnung": zuordnung(), "offline": offline_aktiv()}
+
+
+@router.put("/aufgabenmodelle")
+async def aufgabenmodelle_speichern(payload: dict) -> dict:
+    from app.services.aufgaben_modelle import speichern
+
+    if "aktiv" in payload:
+        get_settings_service().update({"modell_je_aufgabe": bool(payload["aktiv"])})
+    neu = speichern(payload.get("zuordnung") or {}) if "zuordnung" in payload else None
+    return await aufgabenmodelle_lesen() | ({"gespeichert": neu} if neu is not None else {})
+
+
+@router.post("/aufgabenmodelle/erkennen")
+async def aufgabenmodelle_erkennen() -> dict:
+    from app.services.aufgaben_modelle import erkennen
+
+    return await erkennen()
+
+
+@router.get("/stundenplan")
+async def stundenplan_lesen() -> dict:
+    from app.services.stundenplan_service import get_stundenplan_service
+
+    daten = get_stundenplan_service().laden()
+    return {"tage": daten.get("tage", {}), "aktualisiert": daten.get("aktualisiert")}
+
+
+@router.put("/stundenplan")
+async def stundenplan_speichern(payload: dict) -> dict:
+    from app.services.stundenplan_service import get_stundenplan_service
+
+    dienst = get_stundenplan_service()
+    try:
+        if str(payload.get("text", "")).strip():
+            daten = await dienst.aus_text(str(payload["text"]))
+        else:
+            daten = dienst.setzen(payload.get("tage") or {}, "Einstellungen")
+    except ValueError as fehler:
+        raise HTTPException(status_code=400, detail=str(fehler)) from fehler
+    return {"tage": daten["tage"], "aktualisiert": daten.get("aktualisiert")}
+
+
+@router.delete("/stundenplan")
+async def stundenplan_loeschen() -> dict:
+    from app.services.stundenplan_service import get_stundenplan_service
+
+    return {"geloescht": get_stundenplan_service().loeschen()}
 
 
 @router.get("/reminders")
@@ -1356,6 +1427,25 @@ async def extract_attachment(payload: AttachmentIn) -> dict:
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
+
+
+@router.post("/attachments/upload")
+async def upload_attachment(request: Request, name: str = "datei", mime: str = "", provider: str = "") -> dict:
+    try:
+        return await get_attachment_service().hochladen(name, mime, request.stream(), provider or None)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/attachments/beschreiben")
+async def describe_attachment(payload: dict) -> dict:
+    from app.services.dateiraum_service import get_dateiraum_service
+
+    ziel = Path(str(payload.get("pfad", ""))).expanduser()
+    erlaubt, grund = get_dateiraum_service().frei(ziel)
+    if not erlaubt or not ziel.is_file():
+        raise HTTPException(status_code=403, detail=grund or "Datei fehlt.")
+    return await get_attachment_service().beschreiben(ziel, str(payload.get("mime", "")), payload.get("provider") or None)
 
 
 @router.get("/tools")

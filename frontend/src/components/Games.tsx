@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Spiel,
@@ -126,13 +127,13 @@ export default function Games({ onClose, fokus }: { onClose: () => void; fokus?:
               onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-4xl opacity-70">{spiel.icon}</div>
+            <div className="w-full h-full flex items-center justify-center text-4xl opacity-70"><Symbol zeichen={spiel.icon} /></div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
           <div className="absolute left-3 right-3 bottom-2 flex items-end justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[14px] font-semibold text-white/95 truncate">
-                {spiel.icon} {spiel.titel}{!premium && !FREIE_SPIELE.has(spiel.id) && <span className="ml-2 align-middle text-[10px] font-semibold text-gold/80 border border-gold/30 rounded-full px-1.5 py-px">Premium</span>}
+                <Symbol zeichen={spiel.icon} /> {spiel.titel}{!premium && !FREIE_SPIELE.has(spiel.id) && <span className="ml-2 align-middle text-[10px] font-semibold text-gold/80 border border-gold/30 rounded-full px-1.5 py-px">Premium</span>}
               </div>
               {spiel.genre && <div className="text-[10.5px] text-white/50 truncate">{spiel.genre}</div>}
             </div>
@@ -231,7 +232,7 @@ export default function Games({ onClose, fokus }: { onClose: () => void; fokus?:
       >
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🕹️</span>
+            <span className="text-xl"><Symbol zeichen="🕹️" /></span>
             <span className="text-[14px] text-white/90">Spiele</span>
             <span className="text-[11px] text-white/35">starten erst auf Klick — Jon bleibt offen</span>
           </div>

@@ -43,11 +43,14 @@ export default function PremiumAbzeichen() {
       setTimeout(() => setToast(t => t === wert ? null : t), 7000);
     };
     const takt = setInterval(() => void premiumLaden(), 15 * 60000);
+    const oeffnen = () => {setAnlass(null); setOffen(true); void premiumLaden();};
+    window.addEventListener("jon-premium-oeffnen", oeffnen);
     window.addEventListener("pointerdown", merken, true);
     window.addEventListener("keydown", merken, true);
     window.addEventListener("jon-premium", melden);
     return () => {
       clearInterval(takt);
+      window.removeEventListener("jon-premium-oeffnen", oeffnen);
       window.removeEventListener("pointerdown", merken, true);
       window.removeEventListener("keydown", merken, true);
       window.removeEventListener("jon-premium", melden);

@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import "../maps/glass.css";
@@ -124,7 +125,7 @@ export default function DeepLearningCard({ id, initial, onOpen }: Props) {
               className="jm-brand-mark"
               style={{ width: 22, height: 22, fontSize: 11 }}
             >
-              🧠
+              <Symbol zeichen="🧠" />
             </span>
             <span
               className="jm-title"
@@ -188,11 +189,11 @@ export default function DeepLearningCard({ id, initial, onOpen }: Props) {
             }}
           >
             <span>
-              ⏳ Noch <b className="jm-mono">{formatClock(remaining)}</b>
+              <Symbol zeichen="⏳" /> Noch <b className="jm-mono">{formatClock(remaining)}</b>
             </span>
-            <span>🌐 {usedSources} Quellen</span>
-            <span>💾 {task.dateien.length} Dateien</span>
-            {task.skill && <span>🧠 Skill {task.skill}</span>}
+            <span><Symbol zeichen="🌐" /> {usedSources} Quellen</span>
+            <span><Symbol zeichen="💾" /> {task.dateien.length} Dateien</span>
+            {task.skill && <span><Symbol zeichen="🧠" /> Skill {task.skill}</span>}
           </div>
 
           <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.55 }}>
@@ -224,7 +225,7 @@ export default function DeepLearningCard({ id, initial, onOpen }: Props) {
                 style={{ color: KIND_TONE[entry.kind] ?? "var(--jm-text)" }}
               >
                 <span style={{ width: 18, textAlign: "center", flex: "0 0 auto" }}>
-                  {entry.icon}
+                  <Symbol zeichen={entry.icon} />
                 </span>
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontWeight: 550 }}>{entry.title}</span>
@@ -266,7 +267,7 @@ export default function DeepLearningCard({ id, initial, onOpen }: Props) {
               disabled={busy}
               onClick={() => void control("pause")}
             >
-              ⏸️ Pause
+              <Symbol zeichen="⏸️" /> Pause
             </button>
           )}
           {task.status === "pausiert" && (
@@ -276,7 +277,7 @@ export default function DeepLearningCard({ id, initial, onOpen }: Props) {
               disabled={busy}
               onClick={() => void control("resume")}
             >
-              ▶️ Fortsetzen
+              <Symbol zeichen="▶️" /> Fortsetzen
             </button>
           )}
           {running && (
@@ -285,7 +286,7 @@ export default function DeepLearningCard({ id, initial, onOpen }: Props) {
               disabled={busy}
               onClick={() => void control("stop")}
             >
-              ⏹️ Abbrechen
+              <Symbol zeichen="⏹️" /> Abbrechen
             </button>
           )}
           {!running && task.status !== "fertig" && (
@@ -295,13 +296,13 @@ export default function DeepLearningCard({ id, initial, onOpen }: Props) {
               disabled={busy}
               onClick={() => void control("resume_task")}
             >
-              🔁 Weiterforschen
+              <Symbol zeichen="🔁" /> Weiterforschen
             </button>
           )}
           <div style={{ flex: 1 }} />
           {onOpen && (
             <button className="jm-chip" onClick={() => onOpen(task.id)}>
-              📚 Wissen öffnen
+              <Symbol zeichen="📚" /> Wissen öffnen
             </button>
           )}
         </div>

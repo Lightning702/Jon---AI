@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -211,7 +212,7 @@ export default function RoutePanel({
               onClick={() => onMode(item)}
               title={MODE_LABELS[item]}
             >
-              {MODE_ICONS[item]}
+              <Symbol zeichen={MODE_ICONS[item]} />
             </button>
           ))}
         </div>
@@ -241,7 +242,7 @@ export default function RoutePanel({
                   style={{ marginBottom: 4 }}
                 >
                   <span style={{ fontSize: 15, width: 22, textAlign: "center" }}>
-                    {index === 0 ? "⚡" : "↩"}
+                    <Symbol zeichen={index === 0 ? "⚡" : "↩"} />
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span
@@ -350,7 +351,7 @@ export default function RoutePanel({
                     onClick={onDrive}
                     title="Die Route in Jons Flugansicht abfliegen"
                   >
-                    ✈️ Route abfliegen
+                    <Symbol zeichen="✈️" /> Route abfliegen
                   </button>
                 </div>
                 <AnimatePresence initial={false}>

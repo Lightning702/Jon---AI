@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   clearPhoneHistory,
@@ -25,13 +26,13 @@ import { inZwischenablage } from "../lib/umgebung";
 
 const STATUS_LABEL: Record<string, string> = {
   scheduled: "geplant",
-  calling: "📞 wird angerufen",
-  ringing: "📞 klingelt",
-  active: "🟢 verbunden",
+  calling: "wird angerufen",
+  ringing: "klingelt",
+  active: "verbunden",
   completed: "✓ erledigt",
-  missed: "⚪ nicht abgenommen",
-  rejected: "🔴 abgelehnt",
-  failed: "🔴 fehlgeschlagen",
+  missed: "nicht abgenommen",
+  rejected: "abgelehnt",
+  failed: "fehlgeschlagen",
   cancelled: "abgesagt",
 };
 
@@ -54,7 +55,7 @@ function whenText(iso: string): string {
 }
 
 function Dot({ ok }: { ok: boolean }) {
-  return <span className={ok ? "text-emerald-400" : "text-red-400"}>{ok ? "🟢" : "🔴"}</span>;
+  return <span className={ok ? "text-emerald-400" : "text-red-400"}><Symbol zeichen={ok ? "🟢" : "🔴"} /></span>;
 }
 
 export default function PhoneCalls({ onClose }: { onClose: () => void }) {
@@ -176,7 +177,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[640px] max-w-[94vw] max-h-[88vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div>
-            <div className="text-white/90 font-semibold">📞 Telefonanrufe</div>
+            <div className="text-white/90 font-semibold"><Symbol zeichen="📞" /> Telefonanrufe</div>
             <div className="text-[11px] text-white/40">
               Jon ruft dich auf dem Handy an — über dein eigenes Netz, ohne Anbieter.
             </div>
@@ -558,7 +559,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                   <b className="text-white/90">5. Verbindung prüfen</b>
                   <div className="text-white/50">
                     {device?.registered
-                      ? `🟢 Angemeldet: ${device.user_agent || "Gerät"} über ${device.source} (${(device.transport ?? "").toUpperCase()})`
+                      ? `Angemeldet: ${device.user_agent || "Gerät"} über ${device.source} (${(device.transport ?? "").toUpperCase()})`
                       : "Linphone zeigt oben „Verbunden“ in Grün — dann erscheint dein Gerät hier."}
                   </div>
                   {status?.attempts?.length ? (
@@ -620,7 +621,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
 
               <div className="border-t border-white/10 pt-3 space-y-2">
                 <div className="text-[12px] text-white/70">
-                  <b className="text-white/90">📱 Von unterwegs, mit mobilen Daten</b>
+                  <b className="text-white/90"><Symbol zeichen="📱" /> Von unterwegs, mit mobilen Daten</b>
                   <div className="text-white/50">
                     Installiere <a className="text-[#f7e4a8]" href="https://tailscale.com/download/windows" target="_blank" rel="noreferrer">Tailscale</a>{" "}
                     auf dem PC und auf dem Handy, beide mit demselben Konto. Dann trägst
@@ -631,7 +632,7 @@ export default function PhoneCalls({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
                 <div className="text-[12px] text-white/70">
-                  <b className="text-white/90">☎️ Jon anrufen</b>
+                  <b className="text-white/90"><Symbol zeichen="☎️" /> Jon anrufen</b>
                   <div className="text-white/50">
                     Ruf in Linphone einfach{" "}
                     <span className="font-mono text-white/80">

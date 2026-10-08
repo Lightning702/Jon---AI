@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { extractAttachment } from "../lib/api";
+import { JonDatei, describeAttachment, uploadAttachment } from "../lib/api";
+import { AlertTriangle, AudioLines, FileSpreadsheet, FileText, Image as BildIcon, Loader2, Paperclip, Presentation } from "lucide-react";
 import {uploadMedia} from "../lib/media";
 import { SlashCommand, matchCommands } from "../lib/commands";
 import { useT } from "../hooks/useT";
 import DiktatKnopf, { DiktatZustand } from "./DiktatKnopf";
+import Symbol from "./Symbol";
 
 export interface PendingAttachment {
   id: string;
@@ -14,6 +16,7 @@ export interface PendingAttachment {
   error?: string;
   pfad?: string;
   mediaId?: string;
+  datei?: JonDatei;
 }
 
 interface Props {
@@ -29,12 +32,14 @@ const nextAttId = () => `a${Date.now()}_${attId++}`;
 const COMMAND_INPUT = /^\/[a-zA-Z0-9äöüßÄÖÜ_-]*$/;
 
 const kindIcon = (kind: string, status: string) => {
-  if (status === "loading") return "⏳";
-  if (status === "error") return "⚠️";
-    if (kind === "image") return "🖼️";
-    if (kind === "audio") return "🎙️";
-  if (kind === "pdf") return "📄";
-  return "📎";
+  if (status === "loading") return <Loader2 size={13} className="animate-spin" />;
+  if (status === "error") return <AlertTriangle size={13} />;
+  if (kind === "image") return <BildIcon size={13} />;
+  if (kind === "audio") return <AudioLines size={13} />;
+  if (kind === "praesentation") return <Presentation size={13} />;
+  if (kind === "tabelle") return <FileSpreadsheet size={13} />;
+  if (kind === "pdf" || kind === "dokument") return <FileText size={13} />;
+  return <Paperclip size={13} />;
 };
 
 export default function Composer({ disabled, onSend, onStop, streaming }: Props) {
@@ -74,55 +79,21 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
         void uploadMedia(file).then(value => setAttachments(prev => prev.map(item => item.id === id ? {...item, status: "ready", mediaId: value.id, content: "Audiodatei hochgeladen. Verwende /transkript für den vollständigen Text."} : item))).catch(e => setAttachments(prev => prev.map(item => item.id === id ? {...item, status: "error", error: e.message} : item)));
         continue;
       }
-      const kind = mime.startsWith("image/")
-        ? "image"
-        : mime === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
-          ? "pdf"
-          : "text";
-      setAttachments((prev) => [
-        ...prev,
-        { id, name: file.name, kind, status: "loading" },
-      ]);
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const result = String(reader.result ?? "");
-        const base64 = result.slice(result.indexOf(",") + 1);
-        try {
-          const extracted = await extractAttachment(file.name, mime, base64);
-          setAttachments((prev) =>
-            prev.map((a) =>
-              a.id === id
-                ? {
-                    ...a,
-                    status: "ready",
-                    kind: extracted.kind,
-                    content: extracted.content,
-                    pfad: extracted.pfad,
-                  }
-                : a
-            )
-          );
-        } catch (e) {
-          setAttachments((prev) =>
-            prev.map((a) =>
-              a.id === id
-                ? {
-                    ...a,
-                    status: "error",
-                    error: e instanceof Error ? e.message : String(e),
-                  }
-                : a
-            )
-          );
-        }
-      };
-      reader.onerror = () =>
-        setAttachments((prev) =>
-          prev.map((a) =>
-            a.id === id ? { ...a, status: "error", error: "Lesefehler" } : a
-          )
-        );
-      reader.readAsDataURL(file);
+      const kind = mime.startsWith("image/") ? "image" : /\.pdf$/i.test(file.name) ? "pdf" : /\.(pptx|odp)$/i.test(file.name) ? "praesentation" : /\.(docx|odt|rtf)$/i.test(file.name) ? "dokument" : /\.(xlsx|xlsm|ods|csv)$/i.test(file.name) ? "tabelle" : "text";
+      setAttachments((prev) => [...prev, { id, name: file.name, kind, status: "loading" }]);
+      const setzen = (werte: Partial<PendingAttachment>) => setAttachments((prev) => prev.map((a) => (a.id === id ? { ...a, ...werte } : a)));
+      void uploadAttachment(file, mime)
+        .then((ergebnis) => {
+          setzen({ status: "ready", kind: ergebnis.kind || kind, content: ergebnis.content, pfad: ergebnis.pfad, datei: ergebnis.datei });
+          if ((ergebnis.kind || kind) === "image" && ergebnis.pfad) {
+            void describeAttachment(ergebnis.pfad, mime)
+              .then((beschreibung) => {
+                if (beschreibung.content) setzen({ content: beschreibung.content });
+              })
+              .catch(() => {});
+          }
+        })
+        .catch((e) => setzen({ status: "error", error: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -252,7 +223,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
                   }`}
                 >
                   <span className="text-[13px] w-5 text-center shrink-0">
-                    {command.icon}
+                    <Symbol zeichen={command.icon} size={14} />
                   </span>
                   <span className="text-[12.5px] font-medium text-gold/90 shrink-0">
                     {command.cmd}
@@ -295,7 +266,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
                       : "border-gold/30 bg-gold/10 text-gold/90"
                   }`}
                 >
-                  <span>{kindIcon(a.kind, a.status)}</span>
+                  <span className="inline-flex">{kindIcon(a.kind, a.status)}</span>
                   <span className="max-w-[180px] truncate">{a.name}</span>
                   <button
                     onClick={() => removeAttachment(a.id)}
@@ -312,7 +283,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
               ref={fileRef}
               type="file"
               multiple
-              accept=".pdf,.txt,.md,.csv,.json,.log,.py,.js,.ts,.tsx,.html,.css,image/*,audio/*,video/*,.mp3,.m4a,.flac,.opus"
+              accept=".pptx,.docx,.xlsx,.xlsm,.odt,.ods,.odp,.rtf,.pdf,.txt,.md,.csv,.json,.log,.py,.js,.ts,.tsx,.jsx,.html,.css,.xml,.yaml,.yml,.zip,image/*,audio/*,video/*,.mp3,.m4a,.flac,.opus"
               className="hidden"
               onChange={(e) => {
                 if (e.target.files) addFiles(e.target.files);
@@ -322,7 +293,7 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
             <button
               onClick={() => fileRef.current?.click()}
               disabled={disabled}
-              title="Datei anhängen (PDF, Bild, Text) — oder einfach reinziehen"
+              title="Datei anhängen (PowerPoint, Word, Excel, PDF, Bild, Text) — oder einfach reinziehen"
               className="flex items-center justify-center w-11 h-11 md:w-9 md:h-9 mb-0.5 shrink-0 rounded-xl border border-white/10 bg-white/5 text-white/40 hover:text-gold hover:border-gold/40 transition-colors disabled:opacity-40"
             >
               <svg

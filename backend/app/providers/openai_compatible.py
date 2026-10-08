@@ -27,6 +27,13 @@ from app.providers.base import (
 )
 
 MAX_TOOL_ROUNDS = 30
+UNBEGRENZT_RUNDEN = 1_000_000
+
+
+def tool_runden() -> int:
+    from app.services.premium import unbegrenzt
+
+    return UNBEGRENZT_RUNDEN if unbegrenzt() else MAX_TOOL_ROUNDS
 TRANSIENT_RETRIES = 2
 DEFAULT_MAX_TOKENS = 32768
 MIN_MAX_TOKENS = 4096
@@ -238,7 +245,7 @@ class OpenAICompatibleProvider(LLMProvider):
         use_tools = bool(
             tools and tool_executor and request.model not in self._no_tool_models
         )
-        rounds = MAX_TOOL_ROUNDS if use_tools else 1
+        rounds = tool_runden() if use_tools else 1
         guard = (
             0.0
             if self.name in PATIENT_PROVIDERS

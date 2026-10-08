@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useState } from "react";
 import { CleanupPreview, cleanupApply, cleanupPreview } from "../lib/api";
 
@@ -50,7 +51,7 @@ export default function Cleanup({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[94vw] max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🧹</span>
+            <span className="text-xl"><Symbol zeichen="🧹" /></span>
             <span className="text-[14px] text-white/90">Ordner aufräumen</span>
             <span className="text-[11px] text-white/35">mit Vorschau — nichts ohne dein OK</span>
           </div>
@@ -104,7 +105,7 @@ export default function Cleanup({ onClose }: { onClose: () => void }) {
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {preview.summary.map((s) => (
                   <span key={s.ordner} className="text-[11.5px] px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70">
-                    📁 {s.ordner} <span className="text-gold/80">{s.dateien}</span>
+                    <Symbol zeichen="📁" /> {s.ordner} <span className="text-gold/80">{s.dateien}</span>
                   </span>
                 ))}
               </div>

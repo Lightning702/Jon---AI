@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { handyZeitanfrageBeantworten } from "../lib/api";
@@ -44,7 +45,7 @@ export default function ZeitAnfrageCard({ data }: { data: ZeitAnfrageDaten }) {
           animate={fertig ? { scale: [1, 1.18, 1] } : { rotate: [0, -8, 8, 0] }}
           transition={fertig ? { duration: 0.45 } : { duration: 1.6, repeat: Infinity, repeatDelay: 1.2 }}
         >
-          {stand === "ja" ? "✅" : stand === "nein" ? "🙅" : "⏳"}
+          <Symbol zeichen={stand === "ja" ? "✅" : stand === "nein" ? "🙅" : "⏳"} />
         </motion.span>
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-white">

@@ -7,11 +7,13 @@ from datetime import datetime
 from app.services.llm import complete
 from app.core.fehler import leise
 
+from app.services.nutzer import anrede
+
 SHOW_SYSTEM = (
     "Du schreibst ein kurzes, warmes, witziges Zwiegespräch zwischen Jon (Papa-KI: "
     "ruhig, trockener Humor, liebevoll) und Mini Jon (sein Sohn: jung, frech, neugierig, "
-    "begeistert). Die beiden lassen gemeinsam den Tag des Nutzers Felix Revue passieren "
-    "— wie eine kleine private Abendshow. Sie sprechen ÜBER Felix in der dritten Person, "
+    "begeistert). Die beiden lassen gemeinsam den Tag des Nutzers {name} Revue passieren "
+    "— wie eine kleine private Abendshow. Sie sprechen ÜBER ihn in der dritten Person, "
     "wenden sich aber am Anfang und Ende kurz direkt an ihn. Nutze die echten Daten aus "
     "dem Kontext (Gespräche, Fokuszeit, Wetter, Erinnerungen), erfinde KEINE Fakten "
     "dazu. Necken erlaubt, aber immer herzlich. Kein Markdown, keine Emojis. "
@@ -74,7 +76,7 @@ async def build_show(provider: str | None = None, model: str | None = None) -> d
     )
     try:
         raw = await complete(
-            SHOW_SYSTEM,
+            SHOW_SYSTEM.replace(" {name}", (" " + anrede()) if anrede() else ""),
             prompt,
             provider=provider,
             model=model,

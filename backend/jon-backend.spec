@@ -69,6 +69,8 @@ for pkg in (
     "google.generativeai",
     "paho",
     "pptx",
+    "pypdfium2",
+    "pypdfium2_raw",
     "docx",
     "openpyxl",
     "reportlab",

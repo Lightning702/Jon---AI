@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import {
   P2PDiscovered,
@@ -362,7 +363,7 @@ export default function FriendsChat({
               title="Deine KI mit Freunden teilen — sie schreiben dann über deinen PC, ohne eigenen Schlüssel"
               className="mt-2 w-full flex items-center gap-2 px-2 py-1.5 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 transition text-left"
             >
-              <span className="text-[13px] leading-none">🤝</span>
+              <span className="text-[13px] leading-none"><Symbol zeichen="🤝" /></span>
               <span className="min-w-0">
                 <span className="block text-[11.5px] text-gold/90 truncate">
                   KI mit Freunden teilen
@@ -378,7 +379,7 @@ export default function FriendsChat({
             <input
               value={query}
               onChange={(e) => void runSearch(e.target.value)}
-              placeholder="🔍 In allen Chats suchen …"
+              placeholder="In allen Chats suchen …"
               className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[12px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50"
             />
           </div>
@@ -393,7 +394,7 @@ export default function FriendsChat({
                   key={g.id}
                   className="rounded-xl border border-gold/30 bg-gold/10 px-2.5 py-2"
                 >
-                  <div className="text-[12px] text-white/90">👥 {g.name}</div>
+                  <div className="text-[12px] text-white/90"><Symbol zeichen="👥" /> {g.name}</div>
                   <div className="text-[10px] text-white/40">
                     von {g.from_name} · {g.members.join(", ")}
                   </div>
@@ -456,7 +457,7 @@ export default function FriendsChat({
                     : "hover:bg-white/5 border border-transparent"
                 }`}
               >
-                <span className="text-xl">👥</span>
+                <span className="text-xl"><Symbol zeichen="👥" /></span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13px] text-white/85 truncate">
                     {g.name}
@@ -501,7 +502,7 @@ export default function FriendsChat({
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13px] text-white/85 truncate">
-                    {p.name} {p.encrypted && <span title="Ende-zu-Ende verschlüsselt">🔒</span>}
+                    {p.name} {p.encrypted && <span title="Ende-zu-Ende verschlüsselt"><Symbol zeichen="🔒" /></span>}
                   </span>
                   <button
                     onClick={(e) => {
@@ -653,7 +654,7 @@ export default function FriendsChat({
                 disabled={peers.length === 0}
                 className="w-full text-[11px] py-1.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 disabled:opacity-40 transition"
               >
-                👥 Gruppe erstellen
+                <Symbol zeichen="👥" /> Gruppe erstellen
               </button>
             </div>
           )}
@@ -664,7 +665,7 @@ export default function FriendsChat({
             <div className="text-[14px] text-white/90">
               {group ? (
                 <span className="flex items-center gap-2">
-                  <span className="text-xl">👥</span>
+                  <span className="text-xl"><Symbol zeichen="👥" /></span>
                   {group.name}
                   {typingInGroup.length > 0 ? (
                     <span className="text-[11px] text-gold/90 flex items-center gap-1.5">
@@ -698,7 +699,7 @@ export default function FriendsChat({
                       title="Ende-zu-Ende verschlüsselt"
                       className="text-[11px] text-emerald-400/70"
                     >
-                      🔒
+                      <Symbol zeichen="🔒" />
                     </span>
                   )}
                   <button
@@ -710,7 +711,7 @@ export default function FriendsChat({
                   </button>
                 </span>
               ) : (
-                <span className="text-white/40">💬 Freunde-Chat</span>
+                <span className="text-white/40"><Symbol zeichen="💬" /> Freunde-Chat</span>
               )}
             </div>
             <div className="flex items-center gap-1.5">
@@ -744,7 +745,7 @@ export default function FriendsChat({
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
             {!activeId && (
               <div className="h-full flex flex-col items-center justify-center text-center text-white/35 text-[13px] leading-relaxed px-10">
-                <div className="text-4xl mb-3">💬</div>
+                <div className="text-4xl mb-3"><Symbol zeichen="💬" /></div>
                 Wähle links einen Freund oder eine Gruppe.
                 <br />
                 Nachrichten, Bilder, Videos und Sprachnachrichten gehen{" "}
@@ -772,7 +773,7 @@ export default function FriendsChat({
                     className={`flex ${mine ? "justify-end" : "justify-start"}`}
                   >
                     <div className="px-3 py-2 rounded-2xl border border-white/10 bg-white/5 text-white/35 text-[12px] italic">
-                      🚫 Diese Nachricht wurde gelöscht
+                      <Symbol zeichen="🚫" /> Diese Nachricht wurde gelöscht
                     </div>
                   </div>
                 );
@@ -824,20 +825,20 @@ export default function FriendsChat({
                           }}
                           className="w-full text-left text-[12px] px-2 py-1 rounded-lg text-white/70 hover:bg-white/10"
                         >
-                          ↩ Antworten
+                          <Symbol zeichen="↩" /> Antworten
                         </button>
                         <button
                           onClick={() => void removeMessage(m.id, false)}
                           className="w-full text-left text-[12px] px-2 py-1 rounded-lg text-white/70 hover:bg-white/10"
                         >
-                          🗑 Bei mir löschen
+                          <Symbol zeichen="🗑" /> Bei mir löschen
                         </button>
                         {mine && (
                           <button
                             onClick={() => void removeMessage(m.id, true)}
                             className="w-full text-left text-[12px] px-2 py-1 rounded-lg text-red-300/80 hover:bg-red-400/10"
                           >
-                            🗑 Für alle löschen
+                            <Symbol zeichen="🗑" /> Für alle löschen
                           </button>
                         )}
                       </div>
@@ -882,7 +883,7 @@ export default function FriendsChat({
                               mine ? "text-black/70" : "text-gold/80 hover:text-gold"
                             }`}
                           >
-                            📝 Text anzeigen (nicht anhören)
+                            <Symbol zeichen="📝" /> Text anzeigen (nicht anhören)
                           </button>
                         )}
                         {shown && (
@@ -904,7 +905,7 @@ export default function FriendsChat({
                           mine ? "text-black/80" : "text-gold/80"
                         }`}
                       >
-                        📎 {m.media_name}
+                        <Symbol zeichen="📎" /> {m.media_name}
                       </a>
                     )}
                     {m.text && (
@@ -950,7 +951,7 @@ export default function FriendsChat({
                           }
                           className={m.read ? "text-sky-700 font-bold" : ""}
                         >
-                          {m.read ? "✓✓" : m.delivered ? "✓✓" : "🕑"}
+                          <Symbol zeichen={m.read ? "✓✓" : m.delivered ? "✓✓" : "🕑"} />
                         </span>
                       )}
                     </div>
@@ -991,7 +992,7 @@ export default function FriendsChat({
               {replyTo && (
                 <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-white/5 border-l-2 border-gold/50">
                   <span className="flex-1 text-[11px] text-white/60 truncate">
-                    ↩ {replyTo.direction === "out" ? "Du" : replyTo.sender_name}:{" "}
+                    <Symbol zeichen="↩" /> {replyTo.direction === "out" ? "Du" : replyTo.sender_name}:{" "}
                     {replyTo.text || `[${replyTo.media_kind}]`}
                   </span>
                   <button
@@ -1033,7 +1034,7 @@ export default function FriendsChat({
                   title="Bild, Video oder Datei senden"
                   className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-white/40 hover:text-gold hover:border-gold/40 disabled:opacity-40 transition"
                 >
-                  📎
+                  <Symbol zeichen="📎" />
                 </button>
                 <button
                   onClick={() => void toggleRecording()}
@@ -1045,7 +1046,7 @@ export default function FriendsChat({
                       : "border-white/10 bg-white/5 text-white/40 hover:text-gold hover:border-gold/40"
                   } disabled:opacity-40`}
                 >
-                  {recording ? "⏹" : "🎙"}
+                  <Symbol zeichen={recording ? "⏹" : "🎙"} />
                 </button>
                 <textarea
                   value={text}
@@ -1075,7 +1076,7 @@ export default function FriendsChat({
                   rows={1}
                   placeholder={
                     recording
-                      ? "Nimmt auf … zum Senden auf ⏹ drücken"
+                      ? "Nimmt auf … zum Senden auf drücken"
                       : `Nachricht an ${activeName} …`
                   }
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[13.5px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50 resize-none max-h-32"

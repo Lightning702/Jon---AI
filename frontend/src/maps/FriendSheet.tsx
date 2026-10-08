@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { motion } from "framer-motion";
 import { FriendLocation, formatAge, formatDistance } from "../lib/maps";
 
@@ -43,7 +44,7 @@ export default function FriendSheet({
               flex: "0 0 auto",
             }}
           >
-            {friend.avatar || "🙂"}
+            <Symbol zeichen={friend.avatar || "🙂"} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 620 }}>{friend.name}</div>
@@ -89,7 +90,7 @@ export default function FriendSheet({
         {distance != null && (
           <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
             <span className="jm-chip" style={{ cursor: "default" }}>
-              📏 {formatDistance(distance)} entfernt
+              <Symbol zeichen="📏" /> {formatDistance(distance)} entfernt
             </span>
           </div>
         )}
@@ -102,14 +103,14 @@ export default function FriendSheet({
             style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
             onClick={onRouteTo}
           >
-            🧭 Route hin
+            <Symbol zeichen="🧭" /> Route hin
           </button>
           <button
             className="jm-chip jm-press"
             style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
             onClick={onStreet}
           >
-            👁️ Umsehen
+            <Symbol zeichen="👁️" /> Umsehen
           </button>
         </div>
 
@@ -123,7 +124,7 @@ export default function FriendSheet({
           }}
           onClick={() => onChat(friend.id)}
         >
-          💬 Nachricht schreiben
+          <Symbol zeichen="💬" /> Nachricht schreiben
         </button>
 
         <div

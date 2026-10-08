@@ -11,7 +11,7 @@ const ARTEN = [
   { key: "premium", label: "Neue Premium-Funktion", icon: Gem },
   { key: "frage", label: "Frage", icon: HelpCircle },
 ] as const;
-const EMAIL = "felix.heinisch12@gmail.com";
+const SEITE = "https://getjon.info/support/";
 const TIPPS: Record<string, string> = {
   problem: "Beschreib kurz, was du tun wolltest und woran es hängt. Ein Satz zu deinem Gerät hilft oft schon.",
   fehler: "Am meisten hilft: was du gemacht hast, was passiert ist und was du stattdessen erwartet hättest.",
@@ -32,17 +32,11 @@ export default function SupportPanel() {
   const [fehler, setFehler] = useState("");
   const [fertig, setFertig] = useState(false);
   const [kopiert, setKopiert] = useState(false);
-  const label = ARTEN.find(a => a.key === art)?.label || "Support";
   const gueltig = betreff.trim().length >= 3 && nachricht.trim().length >= 10 && (!email || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email));
 
   useEffect(() => {
     void fetch(BASE + "/support").then(r => r.ok ? r.json() : null).then(setSystem).catch(() => setSystem(null));
   }, []);
-
-  const mailto = () => {
-    const text = `${nachricht.trim()}\n\n${infos && system ? `Jon ${system.version} · ${system.stufe} · ${system.system}` : ""}`;
-    return `mailto:${EMAIL}?subject=${encodeURIComponent(`[Jon · ${label}] ${betreff.trim()}`)}&body=${encodeURIComponent(text)}`;
-  };
 
   const senden = async () => {
     setBusy(true);
@@ -85,15 +79,15 @@ export default function SupportPanel() {
           <label className="sp-infos"><input type="checkbox" checked={infos} onChange={e => setInfos(e.target.checked)} />Version und System mitsenden</label>
           {fehler && <div className="bo-fehler bo-ein" role="alert"><TriangleAlert size={14} />{fehler}</div>}
           <div className="bo-zeile sp-knoepfe">
-            <a className={"sp-mail " + (gueltig ? "" : "aus")} href={gueltig ? mailto() : undefined} aria-disabled={!gueltig}><Mail size={13} />Mit E-Mail-Programm</a>
+            <a className={"sp-mail " + (gueltig ? "" : "aus")} href={SEITE} target="_blank" rel="noreferrer"><Mail size={13} />Support-Seite</a>
             <button type="submit" disabled={!gueltig || busy}>{busy ? <Loader2 size={14} className="bo-dreh" /> : <Send size={14} />}Senden</button>
           </div>
         </form>}
       <aside className="sp-info">
         <div className="sp-info-karte">
           <span className="sp-info-titel"><Mail size={14} />Direkt an FelWorks</span>
-          <code>{EMAIL}</code>
-          <button type="button" onClick={() => void navigator.clipboard?.writeText(EMAIL).then(() => {setKopiert(true); setTimeout(() => setKopiert(false), 2000);})}>{kopiert ? <Check size={12} /> : <Copy size={12} />}{kopiert ? "Kopiert" : "Adresse kopieren"}</button>
+          <code>getjon.info/support</code>
+          <button type="button" onClick={() => void navigator.clipboard?.writeText(SEITE).then(() => {setKopiert(true); setTimeout(() => setKopiert(false), 2000);})}>{kopiert ? <Check size={12} /> : <Copy size={12} />}{kopiert ? "Kopiert" : "Link kopieren"}</button>
         </div>
         <div className="sp-info-karte">
           <span className="sp-info-titel"><Monitor size={14} />Wird mitgeschickt</span>

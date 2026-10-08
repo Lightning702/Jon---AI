@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { ReactNode, Suspense, lazy, useEffect, useState } from "react";
 import {
   HandyBildschirmzeit,
@@ -170,7 +171,7 @@ export default function GeraetFamilie({
         >
           <div className="min-w-0">
             <div className="text-[12px] text-red-100 font-semibold">
-              🆘 SOS um {uhrzeit(m.zeit)}
+              <Symbol zeichen="🆘" /> SOS um {uhrzeit(m.zeit)}
             </div>
             <div className="text-[10px] text-red-200/80">
               {typeof m.daten.akku === "number" && m.daten.akku >= 0
@@ -185,7 +186,7 @@ export default function GeraetFamilie({
                 rel="noreferrer"
                 className="mt-1 inline-block text-[10.5px] font-medium text-red-100 underline underline-offset-2 hover:text-white"
               >
-                📍 Standort ansehen
+                <Symbol zeichen="📍" /> Standort ansehen
                 {typeof m.daten.genau === "number" && m.daten.genau > 0 ? ` (± ${Math.round(m.daten.genau)} m)` : ""}
               </a>
             )}
@@ -215,7 +216,7 @@ export default function GeraetFamilie({
             className="rounded-lg border border-gold/35 bg-gold/[0.07] px-3 py-2 space-y-1.5"
           >
             <div className="text-[12px] text-white/90 font-semibold">
-              ⏳ {minuten} Min. mehr {app}?
+              <Symbol zeichen="⏳" /> {minuten} Min. mehr {app}?
               <span className="text-white/40 font-normal"> · {uhrzeit(m.zeit)}</span>
             </div>
             {m.daten.text ? (
@@ -275,7 +276,7 @@ export default function GeraetFamilie({
                 {" "}
                 · {minutenText(genutztGesamt)}
                 {typeof schritteHeute === "number"
-                  ? ` · 👣 ${schritteHeute.toLocaleString("de-AT")} Schritte`
+                  ? ` · ${schritteHeute.toLocaleString("de-AT")} Schritte`
                   : ""}
               </span>
             </div>
@@ -348,7 +349,7 @@ export default function GeraetFamilie({
               Schlafenszeit{zeit.nacht?.an ? ` ${zeit.nacht.von}–${zeit.nacht.bis}` : " aus"} …
             </Knopf>
             <Knopf onClick={() => setOffen(offen === "woche" ? "" : "woche")}>
-              {offen === "woche" ? "Woche schließen" : "📊 Woche"}
+              {offen === "woche" ? "Woche schließen" : "Woche"}
             </Knopf>
             {zeit.pause_aktiv ? (
               <Knopf
@@ -500,7 +501,7 @@ export default function GeraetFamilie({
                           : "border-white/10 text-white/45")
                       }
                     >
-                      {an ? "🔒 " : ""}
+                      <Symbol zeichen={an ? "🔒 " : ""} />
                       {app.name}
                     </button>
                   );
@@ -557,7 +558,7 @@ export default function GeraetFamilie({
 
       {kann("durchsage") && (
         <div className="rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2 space-y-1.5">
-          <div className="text-[11px] text-white/80">📣 Durchsage</div>
+          <div className="text-[11px] text-white/80"><Symbol zeichen="📣" /> Durchsage</div>
           <div className="flex items-center gap-2">
             <input
               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/90 placeholder-white/25 outline-none focus:border-gold/40"
@@ -619,7 +620,7 @@ export default function GeraetFamilie({
       {kann("klingeln") && (
         <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-1.5">
           <div className="text-[11px] text-white/80">
-            🔔 Handy klingeln lassen
+            <Symbol zeichen="🔔" /> Handy klingeln lassen
             <span className="text-white/35"> · auch wenn es leise ist</span>
           </div>
           <Knopf

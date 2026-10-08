@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import OllamaSharePanel from "./OllamaSharePanel";
 
 export default function OllamaShareModal({
@@ -12,7 +13,7 @@ export default function OllamaShareModal({
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[92vw] max-h-[86vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div>
-            <div className="text-white/90 font-semibold">🤝 KI mit Freunden teilen</div>
+            <div className="text-white/90 font-semibold"><Symbol zeichen="🤝" /> KI mit Freunden teilen</div>
             <div className="text-[11px] text-white/40">
               Deine KI für Freunde freigeben — oder die eines Freundes mitbenutzen.
             </div>

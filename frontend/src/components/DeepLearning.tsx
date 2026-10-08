@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import DeepLearningCard from "./DeepLearningCard";
@@ -151,7 +152,7 @@ export default function DeepLearning({ onClose, openTaskId }: Props) {
         >
           <div style={{ padding: "18px 18px 14px" }}>
             <div className="jm-brand" style={{ marginBottom: 14 }}>
-              <span className="jm-brand-mark">🧠</span>
+              <span className="jm-brand-mark"><Symbol zeichen="🧠" /></span>
               Deep Learning
             </div>
 
@@ -210,7 +211,7 @@ export default function DeepLearning({ onClose, openTaskId }: Props) {
               disabled={busy || !topic.trim()}
               onClick={() => void launch()}
             >
-              {busy ? "Startet …" : "🚀 Recherche starten"}
+              {busy ? "Startet …" : "Recherche starten"}
             </button>
 
             {error && (
@@ -257,7 +258,7 @@ export default function DeepLearning({ onClose, openTaskId }: Props) {
                 style={{ marginBottom: 3, alignItems: "flex-start" }}
               >
                 <span style={{ width: 18, textAlign: "center", fontSize: 14 }}>
-                  {entry.status === "fertig"
+                  <Symbol zeichen={entry.status === "fertig"
                     ? "✅"
                     : entry.status === "fehler"
                       ? "⚠️"
@@ -265,7 +266,7 @@ export default function DeepLearning({ onClose, openTaskId }: Props) {
                         ? "🔄"
                         : entry.status === "pausiert"
                           ? "⏸️"
-                          : "⏹️"}
+                          : "⏹️"} />
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span
@@ -401,7 +402,7 @@ export default function DeepLearning({ onClose, openTaskId }: Props) {
                             }}
                           >
                             <div style={{ fontSize: 12.5, fontWeight: 560 }}>
-                              📄 {file.name}
+                              <Symbol zeichen="📄" /> {file.name}
                             </div>
                             <div
                               style={{
@@ -431,7 +432,7 @@ export default function DeepLearning({ onClose, openTaskId }: Props) {
                   }}
                 >
                   <div style={{ maxWidth: 420 }}>
-                    <div style={{ fontSize: 40, marginBottom: 12 }}>🧠</div>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}><Symbol zeichen="🧠" /></div>
                     <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
                       Jon lernt selbstständig
                     </div>

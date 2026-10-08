@@ -21,6 +21,8 @@ UMKEHRBAR = {
     "write_file",
     "edit_file",
     "append_file",
+    "edit_pptx",
+    "edit_docx",
     "move_path",
     "copy_path",
     "make_dir",
@@ -87,7 +89,7 @@ class RueckgaengigService:
                 ziel = str(args.get("pfad") or args.get("ordner") or "")
                 eintrag["ziel"] = ziel
                 eintrag["existierte"] = bool(ziel) and Path(ziel).expanduser().exists()
-            elif werkzeug in ("write_file", "edit_file", "append_file"):
+            elif werkzeug in ("write_file", "edit_file", "append_file", "edit_pptx", "edit_docx"):
                 pfad = Path(str(args.get("path", ""))).expanduser()
                 eintrag["ziel"] = str(pfad)
                 eintrag["vorher"] = self._kopie(pfad)
@@ -134,7 +136,7 @@ class RueckgaengigService:
     def _umkehren(self, eintrag: dict) -> str:
         werkzeug = eintrag.get("werkzeug", "")
         ziel = Path(str(eintrag.get("ziel", ""))).expanduser()
-        if werkzeug in ("write_file", "edit_file", "append_file"):
+        if werkzeug in ("write_file", "edit_file", "append_file", "edit_pptx", "edit_docx"):
             sicherung = eintrag.get("vorher", "")
             if sicherung and Path(sicherung).exists():
                 shutil.copy2(sicherung, ziel)

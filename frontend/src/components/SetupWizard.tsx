@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useState } from "react";
 import { connectAccount, getProviders, saveUserSettings } from "../lib/api";
 
@@ -82,7 +83,7 @@ export default function SetupWizard({ onDone }: { onDone: () => void }) {
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80">
       <div className="glass rounded-2xl border border-gold/25 w-[520px] max-w-[93vw] p-6">
         <div className="text-center mb-5">
-          <div className="text-4xl mb-2">🙂</div>
+          <div className="text-4xl mb-2"><Symbol zeichen="🙂" /></div>
           <h2 className="text-xl font-semibold gold-text">Jon einrichten</h2>
           <p className="text-[12px] text-white/45 mt-1">
             Jon braucht ein Sprachmodell. Wähle einen Anbieter — der erste ist
@@ -138,7 +139,7 @@ export default function SetupWizard({ onDone }: { onDone: () => void }) {
               rel="noreferrer"
               className="block text-[11px] text-gold/70 hover:text-gold mt-1.5 text-center"
             >
-              Schlüssel hier holen ↗
+              Schlüssel hier holen <Symbol zeichen="↗" />
             </a>
           </>
         )}

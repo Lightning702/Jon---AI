@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import "../maps/glass.css";
@@ -105,7 +106,7 @@ export default function BrowserCard({ data }: Props) {
               className="jm-brand-mark"
               style={{ width: 22, height: 22, fontSize: 11 }}
             >
-              🌐
+              <Symbol zeichen="🌐" />
             </span>
             <span
               className="jm-title"
@@ -142,16 +143,16 @@ export default function BrowserCard({ data }: Props) {
             }}
           >
             {typeof data.schritte === "number" && (
-              <span>🖱️ {t("br_actions", { n: data.schritte })}</span>
+              <span><Symbol zeichen="🖱️" /> {t("br_actions", { n: data.schritte })}</span>
             )}
             {plan && (
               <span style={{ color: RISIKO_FARBE[plan.risiko] }}>
-                ⚠️ {t("br_risk", { level: plan.risiko })}
+                <Symbol zeichen="⚠️" /> {t("br_risk", { level: plan.risiko })}
               </span>
             )}
-            {data.abbruch && <span>⏹️ {data.abbruch}</span>}
+            {data.abbruch && <span><Symbol zeichen="⏹️" /> {data.abbruch}</span>}
             {zustand?.letzte_aktion && zustand.status === "laeuft" && (
-              <span>⚙️ {zustand.letzte_aktion}</span>
+              <span><Symbol zeichen="⚙️" /> {zustand.letzte_aktion}</span>
             )}
             <button
               onClick={() => setNachladen((wert) => wert + 1)}
@@ -201,7 +202,7 @@ export default function BrowserCard({ data }: Props) {
                     }}
                   >
                     <span style={{ flex: "0 0 auto", width: 16 }}>
-                      {fertig ? "✅" : laeuft ? "▶️" : "○"}
+                      <Symbol zeichen={fertig ? "✅" : laeuft ? "▶️" : "○"} />
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       {schritt.beschreibung}
@@ -270,14 +271,14 @@ export default function BrowserCard({ data }: Props) {
                   disabled={busy}
                   onClick={() => void entscheiden(true)}
                 >
-                  ✅ {t("br_confirm")}
+                  <Symbol zeichen="✅" /> {t("br_confirm")}
                 </button>
                 <button
                   className="jm-chip"
                   disabled={busy}
                   onClick={() => void entscheiden(false)}
                 >
-                  ✖️ {t("br_cancel")}
+                  <Symbol zeichen="✖️" /> {t("br_cancel")}
                 </button>
               </div>
             </div>
@@ -329,7 +330,7 @@ export default function BrowserCard({ data }: Props) {
                   void stopBrowser().then(() => getBrowserStatus().then(setStatus));
                 }}
               >
-                ⏹️ {t("br_close_browser")}
+                <Symbol zeichen="⏹️" /> {t("br_close_browser")}
               </button>
             </div>
           </>

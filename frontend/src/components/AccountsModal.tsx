@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import {
   createContext,
   useContext,
@@ -266,7 +267,7 @@ function CommandsTab() {
               key={a.title}
               className="flex gap-2.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10"
             >
-              <span className="text-[16px] leading-none mt-0.5">{a.icon}</span>
+              <span className="text-[16px] leading-none mt-0.5"><Symbol zeichen={a.icon} /></span>
               <div className="min-w-0">
                 <div className="text-[12.5px] text-white/85">{a.title}</div>
                 <div className="text-[11.5px] text-white/45 italic truncate">
@@ -343,7 +344,7 @@ function AutomationTab() {
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-[13px] font-semibold text-gold mb-2">🌙 Dream Mode</h3>
+        <h3 className="text-[13px] font-semibold text-gold mb-2"><Symbol zeichen="🌙" /> Dream Mode</h3>
         <div className="space-y-2">
           <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
             <div className="min-w-0 pr-3">
@@ -385,7 +386,7 @@ function AutomationTab() {
       </div>
 
       <div>
-        <h3 className="text-[13px] font-semibold text-gold mb-2">👁️ Live Screen</h3>
+        <h3 className="text-[13px] font-semibold text-gold mb-2"><Symbol zeichen="👁️" /> Live Screen</h3>
         <div className="space-y-2">
           <div className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
             <div className="text-[13px] text-white/90 mb-1">Modell zum Mitschauen</div>
@@ -416,7 +417,7 @@ function AutomationTab() {
             />
           </div>
           <p className="text-[11.5px] text-white/40 px-1">
-            Ein-/Ausschalten über den Augen-Knopf 👁️ oben. Jon schaut alle ~30 Sekunden
+            Ein-/Ausschalten über den Augen-Knopf <Symbol zeichen="👁️" /> oben. Jon schaut alle ~30 Sekunden
             mit und meldet sich nur bei etwas Hilfreichem. Braucht ein bildfähiges Modell.
           </p>
         </div>
@@ -498,7 +499,7 @@ function AccountsTab() {
                 rel="noreferrer"
                 className="text-[11px] text-gold/70 hover:text-gold"
               >
-                {isLocal ? "Installieren ↗" : "Schlüssel holen ↗"}
+                {isLocal ? "Installieren " : "Schlüssel holen "}
               </a>
             </div>
 

@@ -86,6 +86,9 @@ class ProviderRegistry:
             timeout=t,
         )
         self._providers["ollama"] = OllamaProvider(timeout=t)
+        from app.providers.lokal_server import LokalerServer
+
+        self._providers["lokalserver"] = LokalerServer(timeout=max(t, 600.0))
         self._providers["lmstudio"] = OpenAICompatibleProvider(
             name="lmstudio",
             base_url=s.lmstudio_base_url,

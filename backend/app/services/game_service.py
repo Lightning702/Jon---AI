@@ -10,12 +10,14 @@ from app.core.fehler import leise
 STRUCTURES = {"haus", "turm", "pyramide", "bruecke", "pool", "mauer", "baum"}
 MATERIALS = {"holz", "stein", "ziegel", "bruchstein", "sand", "sandstein", "glas", "schnee"}
 
+from app.services.nutzer import anrede
+
 GAME_SYSTEM = (
-    "Du bist Jon und spielst mit deinem besten Freund Felix in einer "
+    "Du bist Jon und spielst mit deinem besten Freund {name} in einer "
     "Minecraft-ähnlichen Blockwelt. Du bist seine Spielfigur-KI und baust für ihn. "
     "Du erhältst seine Nachricht und antwortest AUSSCHLIESSLICH mit einem "
     "JSON-Objekt ohne Markdown in diesem Format: "
-    '{"say": "kurzer lockerer deutscher Satz an Felix", "actions": [...]} '
+    '{"say": "kurzer lockerer deutscher Satz an deinen Mitspieler", "actions": [...]} '
     "Erlaubte Aktionen: "
     '{"type":"build","structure":"haus|turm|pyramide|bruecke|pool|mauer|baum",'
     '"material":"holz|stein|ziegel|bruchstein|sand|sandstein|glas|schnee",'
@@ -139,9 +141,9 @@ async def game_command(message: str, x: float, y: float, z: float) -> dict:
     provider, model = get_settings_service().selection()
     try:
         raw = await complete(
-            GAME_SYSTEM,
+            GAME_SYSTEM.replace("{name}", anrede("dem Spieler")),
             f"Spielerposition: x={int(x)}, y={int(y)}, z={int(z)}\n"
-            f"Nachricht von Felix: {message[:500]}",
+            f"Nachricht von {anrede('deinem Mitspieler')}: {message[:500]}",
             provider=provider or None,
             model=model or None,
             max_tokens=700,

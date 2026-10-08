@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import MessageBubble, { ChatEntry } from "./MessageBubble";
 import ProjectPanel from "./ProjectPanel";
@@ -172,7 +173,7 @@ function FileTree({
               {e.is_dir ? (open[e.path] ? "▾" : "▸") : ""}
             </span>
             <span className="truncate">
-              {e.is_dir ? "📁" : "📄"} {e.name}
+              <Symbol zeichen={e.is_dir ? "📁" : "📄"} /> {e.name}
             </span>
           </div>
           {e.is_dir && open[e.path] && (
@@ -700,7 +701,7 @@ export default function CodeAgent({
     history.push({ role: "user", content: planPrompt });
     const plan = await runGoalChat(history);
     if (goalStopRef.current) {
-      finishGoal("🛑 Ziel gestoppt.");
+      finishGoal("Ziel gestoppt.");
       return;
     }
     if (plan.error && !plan.text) {
@@ -770,7 +771,7 @@ export default function CodeAgent({
       );
     }
     if (goalStopRef.current) {
-      finishGoal("🛑 Ziel auf deinen Wunsch gestoppt.");
+      finishGoal("Ziel auf deinen Wunsch gestoppt.");
       return;
     }
     history.push({
@@ -809,7 +810,7 @@ export default function CodeAgent({
         }
         sys(
           [
-            `📁 ${data.name} — ${data.dateien} Dateien in ${data.ordner} Ordnern`,
+            `${data.name} — ${data.dateien} Dateien in ${data.ordner} Ordnern`,
             data.projekttyp.length ? `Typ: ${data.projekttyp.join(", ")}` : "",
             data.sprachen.length
               ? `Sprachen: ${data.sprachen
@@ -1067,7 +1068,7 @@ export default function CodeAgent({
           disabled={picking}
           className="text-[12px] px-3 py-1 rounded-lg bg-gold/80 text-black font-medium hover:bg-gold disabled:opacity-50 whitespace-nowrap"
         >
-          {picking ? "Öffne …" : "📂 Ordner öffnen"}
+          {picking ? "Öffne …" : "Ordner öffnen"}
         </button>
         <div className="relative flex-none">
           <button
@@ -1152,7 +1153,7 @@ export default function CodeAgent({
             className="text-[12px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 whitespace-nowrap"
             title="Ordner extern in VS Code öffnen"
           >
-            VS Code ↗
+            VS Code <Symbol zeichen="↗" />
           </button>
         )}
         <button
@@ -1177,7 +1178,7 @@ export default function CodeAgent({
         {dragOver && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 border-2 border-dashed border-gold/50 pointer-events-none">
             <div className="text-center">
-              <div className="text-3xl mb-2">📂</div>
+              <div className="text-3xl mb-2"><Symbol zeichen="📂" /></div>
               <div className="text-[14px] text-gold">Ordner oder Datei hier ablegen</div>
             </div>
           </div>
@@ -1304,7 +1305,7 @@ export default function CodeAgent({
                   className="text-[11px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/60 hover:bg-white/10"
                   title="Diese HTML-Datei rendern"
                 >
-                  ▶ Datei
+                  <Symbol zeichen="▶" /> Datei
                 </button>
               )}
               {view === "editor" && fileKind === "text" && filePath && (
@@ -1376,7 +1377,7 @@ export default function CodeAgent({
                   className="text-[11px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 whitespace-nowrap"
                   title="Im Browser öffnen"
                 >
-                  ↗
+                  <Symbol zeichen="↗" />
                 </button>
               </div>
               {previewMode === "file" && filePath && isHtmlPath(filePath) ? (
@@ -1400,7 +1401,7 @@ export default function CodeAgent({
                     Gib oben eine Adresse ein (z. B. <b className="text-white/60">http://localhost:3000</b>)
                     und klick „Laden", um deine laufende App zu sehen.
                     <br />
-                    HTML-Dateien kannst du mit „▶ Datei" direkt rendern.
+                    HTML-Dateien kannst du mit „<Symbol zeichen="▶" /> Datei" direkt rendern.
                   </div>
                 </div>
               )}
@@ -1431,7 +1432,7 @@ export default function CodeAgent({
                 className="ml-auto flex-none max-w-[45%] truncate text-[11px] px-1.5 py-0.5 rounded bg-gold/10 text-gold/80"
                 title={`Jon kennt diese Datei: ${filePath}`}
               >
-                📄 {filePath.split(/[\\/]/).pop()}
+                <Symbol zeichen="📄" /> {filePath.split(/[\\/]/).pop()}
               </span>
             )}
           </div>
@@ -1492,7 +1493,7 @@ export default function CodeAgent({
           {goal && (goalRunning || goalSteps.length > 0 || goalQuestion) && (
             <div className="border-b border-white/10 bg-black/30 px-3 py-2 max-h-48 overflow-y-auto flex-none">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[12px] text-gold truncate">🎯 {goal}</span>
+                <span className="text-[12px] text-gold truncate"><Symbol zeichen="🎯" /> {goal}</span>
                 {goalRunning && (
                   <button
                     onClick={stopGoal}
@@ -1510,13 +1511,13 @@ export default function CodeAgent({
                       className="flex items-start gap-1.5 text-[11.5px] leading-snug"
                     >
                       <span className="flex-none">
-                        {s.status === "fertig"
+                        <Symbol zeichen={s.status === "fertig"
                           ? "✅"
                           : s.status === "läuft"
                             ? "▶️"
                             : s.status === "fehler"
                               ? "❌"
-                              : "⚪"}
+                              : "⚪"} />
                       </span>
                       <span
                         className={
@@ -1537,7 +1538,7 @@ export default function CodeAgent({
               )}
               {goalQuestion && (
                 <div className="mt-1.5 text-[11.5px] text-amber-300/90">
-                  ❓ {goalQuestion} — antworte einfach unten im Chat.
+                  <Symbol zeichen="❓" /> {goalQuestion} — antworte einfach unten im Chat.
                 </div>
               )}
             </div>
@@ -1560,7 +1561,7 @@ export default function CodeAgent({
                           : "text-white/20"
                     }`}
                   >
-                    {active ? "▶ " : done ? "✓ " : ""}
+                    <Symbol zeichen={active ? "▶ " : done ? "✓ " : ""} />
                     {step}
                   </span>
                 );

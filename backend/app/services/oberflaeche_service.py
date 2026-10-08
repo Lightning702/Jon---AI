@@ -32,6 +32,19 @@ ZIELE: dict[str, dict[str, str]] = {
     "skills": {"name": "Skills", "wozu": "Jons Anleitungen"},
     "einstellungen": {"name": "Einstellungen", "wozu": "alle Schalter"},
     "diagnose": {"name": "Diagnose", "wozu": "Geraete-Schluessel und Systemstand"},
+    "harness": {"name": "Jon Harness", "wozu": "Coding-Agent mit Projektvorschau", "premium": "1"},
+    "medien": {"name": "Stimmen und Transkripte", "wozu": "Audio, YouTube, Vorlesen", "premium": "1"},
+    "fachteam": {"name": "Jon Fachteam", "wozu": "Fachagenten mit Gegenpruefung", "premium": "1"},
+    "beobachten": {"name": "Beobachten", "wozu": "Jon meldet sich bei Neuigkeiten", "premium": "1"},
+    "support": {"name": "Support", "wozu": "Fehler und Ideen melden", "premium": "1"},
+    "player": {"name": "Player", "wozu": "Musik und Videos abspielen", "premium": "1"},
+    "premium": {"name": "Jon Premium", "wozu": "Lizenz und Stufe", "premium": "1"},
+    "profil": {"name": "Profil", "wozu": "Name und Bild", "premium": "1"},
+    "minijon": {"name": "MiniJon", "wozu": "Aussehen und Verhalten von MiniJon", "premium": "1"},
+    "verlauf": {"name": "Gespraechsverlauf", "wozu": "Seitenleiste mit allen Chats", "premium": "1"},
+    "neuer_chat": {"name": "Neuer Chat", "wozu": "ein frisches Gespraech beginnen", "premium": "1"},
+    "datei": {"name": "Dateiansicht", "wozu": "eine Datei in Jon anzeigen, anklicken und kommentieren", "premium": "1"},
+    "alles_schliessen": {"name": "Alles schliessen", "wozu": "alle offenen Fenster in Jon schliessen", "premium": "1"},
 }
 
 WOERTER = {
@@ -83,6 +96,32 @@ WOERTER = {
     "usage": "nutzung",
     "settings": "einstellungen",
     "zahnrad": "einstellungen",
+    "coding": "harness",
+    "codingagent": "harness",
+    "jonharness": "harness",
+    "transkript": "medien",
+    "transkripte": "medien",
+    "stimmen": "medien",
+    "vorlesen": "medien",
+    "agenten": "fachteam",
+    "team": "fachteam",
+    "agents": "fachteam",
+    "musik": "player",
+    "lizenz": "premium",
+    "profile": "profil",
+    "mini": "minijon",
+    "pet": "minijon",
+    "sidebar": "verlauf",
+    "seitenleiste": "verlauf",
+    "chats": "verlauf",
+    "neuerchat": "neuer_chat",
+    "newchat": "neuer_chat",
+    "dateiansicht": "datei",
+    "praesentation": "datei",
+    "powerpoint": "datei",
+    "dokument": "datei",
+    "schliessen": "alles_schliessen",
+    "allesschliessen": "alles_schliessen",
 }
 
 
@@ -90,7 +129,7 @@ def aufloesen(wunsch: str) -> str:
     roh = str(wunsch or "").strip().lower().lstrip("/")
     if not roh:
         return ""
-    schlicht = "".join(z for z in roh if z.isalnum())
+    schlicht = "".join(z for z in roh.replace("ß", "ss").replace("ä", "ae").replace("ö", "oe").replace("ü", "ue") if z.isalnum() or z == "_")
     if schlicht in ZIELE:
         return schlicht
     if schlicht in WOERTER:
@@ -104,30 +143,57 @@ def aufloesen(wunsch: str) -> str:
     return ""
 
 
-def oeffnen(wunsch: str) -> dict:
-    ziel = aufloesen(wunsch)
+def _premium() -> bool:
+    from app.services.premium import unbegrenzt
+
+    return unbegrenzt()
+
+
+def oeffnen(wunsch: str, aktion: str = "oeffnen", datei: str = "") -> dict:
+    ziel = aufloesen(wunsch) or ("datei" if datei else "")
+    schliessen = aktion.strip().lower() in ("schliessen", "schließen", "zu", "close")
     if not ziel:
         return {
-            "error": f"Das Werkzeug '{wunsch}' kenne ich nicht.",
+            "error": f"Den Bereich '{wunsch}' kenne ich nicht.",
             "moeglich": sorted(ZIELE),
         }
     eintrag = ZIELE[ziel]
-    return {
+    if (eintrag.get("premium") or schliessen) and not _premium():
+        from app.services.premium import PremiumNoetig
+
+        return {"error": PremiumNoetig("steuerung").text, "premium_noetig": "steuerung"}
+    steuerung: dict = {"ziel": ziel, "aktion": "schliessen" if schliessen else "oeffnen"}
+    if ziel == "datei":
+        from pathlib import Path
+
+        from app.services.dateiindex_service import karte
+        from app.services.dateiraum_service import get_dateiraum_service
+
+        pfad = Path(str(datei or "")).expanduser()
+        erlaubt, grund = get_dateiraum_service().frei(pfad)
+        if not datei or not pfad.is_file() or not erlaubt:
+            return {"error": grund or "Gib mit datei den vollstaendigen Pfad einer vorhandenen Datei an."}
+        steuerung["datei"] = karte(pfad)
+    ergebnis = {
         "ok": True,
-        "oeffne": ziel,
-        "befehl": f"/{ziel}",
+        "steuerung": steuerung,
         "name": eintrag["name"],
         "hinweis": (
-            f"{eintrag['name']} ist jetzt offen. Sag dem Nutzer in einem Satz, was er "
-            "dort sieht - beschreibe nicht den Weg dorthin."
+            f"{eintrag['name']} ist jetzt {'geschlossen' if schliessen else 'offen'}. Sag dem Nutzer in einem Satz, "
+            "was passiert ist - beschreibe nicht den Weg dorthin."
         ),
     }
+    if not eintrag.get("premium") and not schliessen:
+        ergebnis["oeffne"] = ziel
+        ergebnis["befehl"] = f"/{ziel}"
+    return ergebnis
 
 
 def liste() -> dict:
     return {
         "werkzeuge": [
-            {"ziel": name, "name": eintrag["name"], "wozu": eintrag["wozu"]}
+            {"ziel": name, "name": eintrag["name"], "wozu": eintrag["wozu"], **({"premium": True} if eintrag.get("premium") else {})}
             for name, eintrag in sorted(ZIELE.items())
-        ]
+        ],
+        "premium_aktiv": _premium(),
     }

@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { P2PRequest } from "../lib/api";
 
 interface Props {
@@ -27,7 +28,7 @@ export default function FriendRequestPopup({
           möchte mit dir schreiben
         </div>
         <div className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-gold/90 bg-gold/10 border border-gold/25 rounded-full px-3 py-1">
-          📍 {request.location || "Herkunft unbekannt"}
+          <Symbol zeichen="📍" /> {request.location || "Herkunft unbekannt"}
         </div>
         {error && (
           <div className="mt-3 text-[12px] text-red-300 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-1.5">
@@ -56,7 +57,7 @@ export default function FriendRequestPopup({
               title="Blockieren — keine weiteren Anfragen von dieser Person"
               className="px-4 py-2 rounded-xl border border-red-400/30 text-red-300/80 text-[13px] hover:bg-red-400/10 disabled:opacity-50 transition"
             >
-              🚫 Blockieren
+              <Symbol zeichen="🚫" /> Blockieren
             </button>
           </div>
         </div>

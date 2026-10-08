@@ -60,6 +60,13 @@ export interface StreamEvent {
   approval_id?: string;
   card?: { kind: string; data: Record<string, unknown> };
   oeffne?: string;
+  steuerung?: Steuerung;
+}
+
+export interface Steuerung {
+  ziel: string;
+  aktion: "oeffnen" | "schliessen";
+  datei?: JonDatei;
 }
 
 export type ToolMode = "ask" | "allow" | "alles";
@@ -278,6 +285,12 @@ export interface UserSettings {
   routine_enabled: boolean;
   telegram_morning: boolean;
   telegram_morning_time: string;
+  telegram_morgen_stundenplan?: boolean;
+  telegram_morgen_zusaetze?: string[];
+  offline_modus?: boolean;
+  modell_je_aufgabe?: boolean;
+  lokaler_server_url?: string;
+  lokaler_server_key?: string;
   pet_roam: boolean;
   pet_companion: string;
   wake_sensitivity: string;
@@ -2037,6 +2050,133 @@ export interface ExtractedAttachment {
   pages?: number;
   pfad?: string;
 }
+
+export interface HochgeladeneDatei extends ExtractedAttachment {
+  groesse?: number;
+  datei?: JonDatei;
+}
+
+export async function uploadAttachment(file: File, mime: string): Promise<HochgeladeneDatei> {
+  const adresse = `${BASE}/attachments/upload?name=${encodeURIComponent(file.name)}&mime=${encodeURIComponent(mime)}`;
+  const res = await fetch(adresse, {method: "POST", body: file, headers: {"Content-Type": "application/octet-stream"}});
+  if (!res.ok) {
+    const daten = await res.json().catch(() => ({}));
+    throw new Error(daten.detail ? String(daten.detail) : `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function describeAttachment(pfad: string, mime: string): Promise<ExtractedAttachment> {
+  const res = await fetch(`${BASE}/attachments/beschreiben`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pfad, mime})});
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export interface AnsichtForm {
+  index: number;
+  x: number;
+  y: number;
+  b: number;
+  h: number;
+  drehung?: number;
+  name?: string;
+  art: "bild" | "tabelle" | "diagramm" | "form";
+  zeilen?: string[][];
+  titel?: string;
+  reihen?: {name: string; werte: number[]; kategorien: string[]}[];
+  fuellung?: string | null;
+  rund?: boolean;
+  ecken?: boolean;
+  absaetze?: {text: string; groesse?: number | null; fett?: boolean | null; farbe?: string | null; ausrichtung?: string; ebene?: number}[];
+}
+
+export interface AnsichtFolie {
+  nummer: number;
+  hintergrund: string | null;
+  formen: AnsichtForm[];
+  notizen: string;
+}
+
+export interface AnsichtBlock {
+  nr: number;
+  art: string;
+  text?: string;
+  zeilen?: string[][];
+  bilder?: string[];
+  ausrichtung?: string;
+}
+
+export interface RenderStand {
+  status: "fertig" | "laeuft" | "fehler" | "nicht_moeglich" | "offen";
+  seiten?: number;
+  version?: string;
+  fehler?: string;
+}
+
+export interface DateiInhalt {
+  name: string;
+  endung: string;
+  groesse: number;
+  pfad: string;
+  geaendert: number;
+  art: "markdown" | "html" | "tabelle" | "code" | "folien" | "pdf" | "bild" | "fehler" | "unbekannt";
+  text?: string;
+  gekuerzt?: boolean;
+  sprache?: string;
+  blaetter?: {name: string; zeilen: string[][]; gekuerzt: boolean}[];
+  bloecke?: AnsichtBlock[];
+  folien?: AnsichtFolie[];
+  verhaeltnis?: number;
+  hoehe_pt?: number;
+  gesamt?: number;
+  seiten?: number;
+  texte?: string[];
+  fehler?: string;
+  render?: RenderStand;
+}
+
+export interface DateiStelle {
+  art?: string;
+  folie?: number;
+  seite?: number;
+  form?: number;
+  block?: number;
+  blatt?: string;
+  zelle?: string;
+  zeile?: number;
+  x?: number;
+  y?: number;
+  auszug?: string;
+  bezeichnung?: string;
+}
+
+export interface DateiKommentar {
+  id: string;
+  text: string;
+  stelle: DateiStelle;
+  autor: string;
+  zeit: number;
+  erledigt: boolean;
+  antwort?: string;
+}
+
+async function dateiJson<T>(pfad: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${pfad}`, init);
+  const daten = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(daten?.detail ? String(daten.detail) : `HTTP ${res.status}`);
+  return daten as T;
+}
+
+export const dateiAnsicht = (pfad: string) => dateiJson<DateiInhalt>(`/dateien/ansicht?pfad=${encodeURIComponent(pfad)}`);
+export const dateiAnsichtStand = (pfad: string) => dateiJson<{geaendert: number; groesse: number; render: RenderStand}>(`/dateien/ansicht/stand?pfad=${encodeURIComponent(pfad)}`);
+export const dateiKarte = (pfad: string) => dateiJson<JonDatei>(`/dateien/karte?pfad=${encodeURIComponent(pfad)}`);
+export const ansichtSeiteUrl = (pfad: string, nr: number, version = "") => withToken(`${BASE}/dateien/ansicht/seite?pfad=${encodeURIComponent(pfad)}&nr=${nr}&v=${encodeURIComponent(version)}`);
+export const ansichtBildUrl = (pfad: string, folie: number, form: number, version = "") => withToken(`${BASE}/dateien/ansicht/bild?pfad=${encodeURIComponent(pfad)}&folie=${folie}&form=${form}&v=${encodeURIComponent(version)}`);
+export const ansichtDocBildUrl = (pfad: string, rid: string, version = "") => withToken(`${BASE}/dateien/ansicht/bild?pfad=${encodeURIComponent(pfad)}&rid=${encodeURIComponent(rid)}&v=${encodeURIComponent(version)}`);
+export const kommentareLaden = (pfad: string) => dateiJson<{kommentare: DateiKommentar[]}>(`/dateien/kommentare?pfad=${encodeURIComponent(pfad)}`).then(d => d.kommentare);
+export const kommentarAnlegen = (pfad: string, text: string, stelle: DateiStelle) => dateiJson<DateiKommentar>("/dateien/kommentare", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pfad, text, stelle})});
+export const kommentarAendern = (id: string, werte: {erledigt?: boolean; text?: string}) => dateiJson<DateiKommentar>(`/dateien/kommentare/${encodeURIComponent(id)}`, {method: "PATCH", headers: {"Content-Type": "application/json"}, body: JSON.stringify(werte)});
+export const kommentarLoeschen = (id: string) => dateiJson<{geloescht: boolean}>(`/dateien/kommentare/${encodeURIComponent(id)}`, {method: "DELETE"});
 
 export async function extractAttachment(
   name: string,
@@ -4226,3 +4366,41 @@ export async function getTelegramStand(): Promise<TelegramStand> {
   if (!res.ok) throw new Error("Telegram-Status nicht verfügbar");
   return res.json();
 }
+
+export type Aufgabe = "text" | "code" | "bild" | "sehen";
+
+export interface AufgabenZuordnung {
+  provider: string;
+  model: string;
+}
+
+export interface AufgabenStand {
+  aktiv: boolean;
+  aufgaben: Aufgabe[];
+  zuordnung: Partial<Record<Aufgabe, AufgabenZuordnung>>;
+  offline: boolean;
+}
+
+export interface Stunde {
+  fach: string;
+  von?: string;
+  bis?: string;
+  raum?: string;
+  lehrer?: string;
+  stunde?: number;
+}
+
+export const aufgabenModelle = () => dateiJson<AufgabenStand>("/aufgabenmodelle");
+
+export const aufgabenModelleSpeichern = (werte: { aktiv?: boolean; zuordnung?: Partial<Record<Aufgabe, AufgabenZuordnung>> }) =>
+  dateiJson<AufgabenStand>("/aufgabenmodelle", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(werte) });
+
+export const aufgabenModelleErkennen = () =>
+  dateiJson<{ modelle: Record<string, string[]>; vorschlag: Partial<Record<Aufgabe, AufgabenZuordnung>> }>("/aufgabenmodelle/erkennen", { method: "POST" });
+
+export const stundenplanLaden = () => dateiJson<{ tage: Record<string, Stunde[]>; aktualisiert?: number }>("/stundenplan");
+
+export const stundenplanSpeichern = (text: string) =>
+  dateiJson<{ tage: Record<string, Stunde[]> }>("/stundenplan", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+
+export const stundenplanLoeschen = () => dateiJson<{ geloescht: boolean }>("/stundenplan", { method: "DELETE" });

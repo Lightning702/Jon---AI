@@ -72,6 +72,12 @@ export interface HarnessAuftrag {
   plan_schritt?: number;
   created_at?: number;
   updated_at?: number;
+  modus?: "code" | "allgemein";
+  kompaktierungen?: number;
+  modellaufrufe?: number;
+  kontext?: {zeichen: number; budget: number; schaetzung_tokens: number};
+  aktives_modell?: string;
+  fortschritt?: {nummer: number; text: string; zustand: "erledigt" | "aktiv" | "offen"}[];
 }
 
 export type KernPhase = "ruhe" | "bereit" | "denken" | "verteilen" | "pruefen" | "sammeln" | "warten" | "fertig" | "offen" | "fehler";
@@ -123,6 +129,10 @@ export const HARNESS_TEXT: Record<string, string> = {
   planning: "Plant den Auftrag",
   working: "Arbeitet im Projekt",
   verifying: "Prüft die Änderungen",
+  compacting: "Verdichtet den bisherigen Verlauf und arbeitet dann weiter",
+  waiting_for_tool: "Ein Jon-Werkzeug läuft",
+  evaluating: "Wertet das Ergebnis aus",
+  paused: "Pausiert",
   waiting_approval: "Wartet auf deine Freigabe",
   cancelling: "Stoppt",
   done: "Fertig und geprüft",

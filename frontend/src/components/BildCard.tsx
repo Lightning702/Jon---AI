@@ -44,7 +44,7 @@ export default function BildCard({ data, onOpen }: Props) {
             disabled={busy}
             className="px-2.5 py-1 rounded-lg border border-gold/30 bg-gold/10 text-[11.5px] text-gold/90 hover:bg-gold/20 transition disabled:opacity-40"
           >
-            {busy ? "…" : "⬇ Herunterladen"}
+            {busy ? "…" : "Herunterladen"}
           </button>
           <a
             href={url}

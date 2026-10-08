@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type maplibregl from "maplibre-gl";
@@ -453,7 +454,7 @@ export default function WorldExplorer({
             data-active="true"
             style={{ cursor: "default" }}
           >
-            ✈️ Flugzeug
+            <Symbol zeichen="✈️" /> Flugzeug
           </span>
           <button
             className="jm-chip"
@@ -461,7 +462,7 @@ export default function WorldExplorer({
             onClick={() => setCockpit((value) => !value)}
             title="Zwischen Cockpit und Verfolgerkamera wechseln (C)"
           >
-            {cockpit ? "🎥 Cockpit" : "🎥 Verfolger"}
+            {cockpit ? "Cockpit" : "Verfolger"}
           </button>
           {route && route.length > 1 && (
             <button
@@ -471,7 +472,7 @@ export default function WorldExplorer({
               onClick={() => setFollowRoute((value) => !value)}
               title="Der berechneten Route folgen"
             >
-              🛣️ Route abfliegen
+              <Symbol zeichen="🛣️" /> Route abfliegen
             </button>
           )}
           <div

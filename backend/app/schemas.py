@@ -105,6 +105,13 @@ class SettingsIn(BaseModel):
     telegram_aktionsvideo: bool | None = None
     telegram_video_bildschirm: str | None = None
     telegram_morning_time: str | None = None
+    telegram_morgen_stundenplan: bool | None = None
+    telegram_morgen_zusaetze: list[str] | None = None
+    offline_modus: bool | None = None
+    modell_je_aufgabe: bool | None = None
+    aufgabenmodelle: dict | None = None
+    lokaler_server_url: str | None = None
+    lokaler_server_key: str | None = None
     pet_roam: bool | None = None
     pet_companion: str | None = None
     wake_sensitivity: str | None = None

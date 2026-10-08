@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { privatBrowserUrl } from "../lib/api";
 
 interface Props {
@@ -11,7 +12,7 @@ export default function PrivateBrowser({ onClose, onPopOut }: Props) {
       <div className="glass rounded-2xl border border-white/15 w-[94vw] h-[88vh] max-w-[1180px] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <span className="text-[15px]">🕶️</span>
+            <span className="text-[15px]"><Symbol zeichen="🕶️" /></span>
             <div>
               <div className="text-white/90 font-semibold text-[13px]">
                 Privater Browser
@@ -28,7 +29,7 @@ export default function PrivateBrowser({ onClose, onPopOut }: Props) {
                 title="In eigenem Fenster öffnen"
                 className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white/90 transition-colors text-[11px]"
               >
-                ↗ Eigenes Fenster
+                <Symbol zeichen="↗" /> Eigenes Fenster
               </button>
             )}
             <button

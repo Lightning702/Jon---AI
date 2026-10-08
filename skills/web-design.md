@@ -57,6 +57,47 @@ Für ein helles Theme zusätzlich `@media (prefers-color-scheme: light)` übersc
 - Farbverläufe sparsam für Akzente: `linear-gradient(135deg, var(--accent), var(--accent-2))`.
 - Respektiere `@media (prefers-reduced-motion: reduce)` und schalte Animationen ab.
 
+## Bewegung, Animation und 3D — Pflicht, nicht Kür
+
+Eine Seite ohne Bewegung wirkt wie ein Entwurf. Jede Website, App-Oberfläche oder jedes
+Spiel, das Jon baut, bekommt echte, flüssige Animationen:
+
+- **Einstieg:** Hero-Elemente blenden gestaffelt ein (`@keyframes` mit `opacity` und
+  `transform: translateY()`; `animation-delay` pro Element 80–120 ms versetzt).
+- **Scroll-Reveal:** Sektionen erscheinen beim Scrollen. `IntersectionObserver` setzt eine
+  Klasse `.sichtbar`, CSS übernimmt den Übergang. Wo verfügbar zusätzlich
+  `animation-timeline: view()`.
+- **Mikrointeraktionen:** Buttons mit Hover-Glanz, leichtem Anheben und Klick-Federung
+  (`transform: scale(.97)`), Links mit wachsender Unterstreichung.
+- **3D mit CSS:** `perspective: 1000px` auf dem Container, Karten kippen mit
+  `rotateX/rotateY` der Maus nach (Tilt-Effekt per `pointermove`), `transform-style:
+  preserve-3d` für echte Tiefe, Flip-Karten mit `backface-visibility: hidden`.
+- **Echtes 3D mit Three.js** (per CDN `https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js`
+  als ES-Modul): rotierende Objekte, Partikelfelder, Glas-Material
+  (`MeshPhysicalMaterial` mit `transmission`), Licht mit Schatten, Kamera folgt der Maus,
+  `renderer.setPixelRatio(Math.min(devicePixelRatio, 2))`, Größe bei `resize` anpassen.
+- **Weitere Effekte:** Parallax-Ebenen, animierte Farbverläufe (`background-size: 400%`
+  + `@keyframes`), Glassmorphism (`backdrop-filter: blur()`), Glow per `box-shadow`,
+  Canvas-Partikel, SVG-Linien, die sich zeichnen (`stroke-dasharray`/`dashoffset`),
+  Zähler, die hochlaufen.
+- **Nur performante Eigenschaften animieren:** `transform`, `opacity`, `filter`. Nie
+  `top`, `left`, `width` in Schleifen. `requestAnimationFrame` statt `setInterval`.
+- **Barrierefrei:** Alles unter `@media (prefers-reduced-motion: reduce)` ruhigstellen.
+
+Beispiel Tilt-Karte:
+
+```js
+document.querySelectorAll(".karte").forEach(k => {
+  k.addEventListener("pointermove", e => {
+    const r = k.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5;
+    const y = (e.clientY - r.top) / r.height - .5;
+    k.style.transform = `perspective(900px) rotateY(${x * 14}deg) rotateX(${-y * 14}deg) translateZ(0)`;
+  });
+  k.addEventListener("pointerleave", () => k.style.transform = "");
+});
+```
+
 ## Vorgehen für Jon
 
 1. Kläre in einem Satz Ziel und Stil (falls unklar, nimm dunkel + eine Akzentfarbe).
@@ -74,3 +115,5 @@ Für ein helles Theme zusätzlich `@media (prefers-color-scheme: light)` übersc
 - [ ] Kontrast und Fokus sichtbar
 - [ ] Kein horizontales Scrollen
 - [ ] Tokens statt Magic-Numbers
+- [ ] Echte Animationen: Einstieg, Scroll-Reveal, Hover, mindestens ein 3D- oder Tiefeneffekt
+- [ ] Kein Platzhaltertext, keine Kommentare im Code

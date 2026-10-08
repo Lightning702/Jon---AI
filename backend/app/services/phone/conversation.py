@@ -307,9 +307,12 @@ class PhoneConversation:
 
         provider, model = get_settings_service().selection()
         history = "\n".join(f"{who}: {said}" for who, said in self._history[-8:])
+        from app.services.nutzer import anrede
+
+        wer = anrede("Der Nutzer")
         prompt = (
-            f"{history}\nFelix sagt am Telefon: {text}" if history else
-            f"Felix sagt am Telefon: {text}"
+            f"{history}\n{wer} sagt am Telefon: {text}" if history else
+            f"{wer} sagt am Telefon: {text}"
         )
         try:
             answer = await llm.complete(
@@ -324,7 +327,7 @@ class PhoneConversation:
             log.warning("LLM am Telefon nicht erreichbar: %s", exc)
             return "Ich komme gerade nicht an mein Sprachmodell. Ich melde mich nochmal."
         answer = _phone_style(answer)
-        self._history.append(("Felix", text))
+        self._history.append((wer, text))
         self._history.append(("Jon", answer))
         return answer
 

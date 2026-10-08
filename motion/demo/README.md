@@ -25,7 +25,7 @@ Sprechertext erscheint zusätzlich als Untertitel unten.
 |---|---|---|---|
 | 0:00–0:02 | Schwarz blendet auf einen nächtlichen Windows-Desktop auf. Taskleiste unten, Uhr 06:42, 01.09.2026. | — | Stille |
 | 0:02–0:03 | Unten rechts erscheint Mini Jon, ein goldener Kreis mit zwei Augen. Er blinzelt, wackelt kurz. | — | Mini-Jon-Blip (zwei Töne) |
-| 0:03–0:06 | Sprechblase über ihm, Wort für Wort, Mund lippensynchron. | MINI JON: „Guten Morgen, Felix. Drei ungelesene Mails, ab 16 Uhr Regen — soll ich dir die Jacke auf die Merkliste setzen?" | Stille |
+| 0:03–0:06 | Sprechblase über ihm, Wort für Wort, Mund lippensynchron. | MINI JON: „Guten Morgen, Alex. Drei ungelesene Mails, ab 16 Uhr Regen — soll ich dir die Jacke auf die Merkliste setzen?" | Stille |
 | 0:06–0:07 | Blende zu Schwarz. | — | — |
 | 0:07–0:13 | Schwarz. Der Schriftzug entsteht aus dem Nichts, Buchstabenabstand zieht sich zusammen, dünne Goldlinie darunter. | **Jon** / „Ein Assistent, der deinen PC wirklich bedient." | Musik setzt bei 0:08 ein, tiefer Sub + Pad |
 | 0:13–0:15 | Jon-Fenster rechts, Explorer „Downloads" links. Die Nachricht wird sichtbar getippt (45 Z/s). | NUTZER: „Jon, räum meinen Downloads-Ordner auf und sortier alles nach Typ." | Sprecher: „Die meisten Assistenten reden." |
@@ -45,7 +45,7 @@ Sprechertext erscheint zusätzlich als Untertitel unten.
 | 0:51–0:53 | Umschnitt: links der PC mit „Zahnrad › Diagnose & Handy koppeln", QR-Code, Adresse und Geräte-Schlüssel unkenntlich. Rechts eine Hand mit Handy, darauf die echte Handy-Oberfläche. Eine goldene Strichlinie mit Schloss verbindet beides. | — | Sprecher: „Am PC. Am Handy. Ohne Cloud, ohne Abo." |
 | 0:53–0:56 | Auf dem Handy wird getippt, Antwort strömt. | NUTZER (Handy): „Ist mein PC noch an? Fahr ihn in 10 Minuten runter." · JON: „PC läuft seit 6 Stunden. Herunterfahren um 23:41 geplant — ich sag dir kurz vorher Bescheid." | — |
 | 0:56–1:00 | Auf dem PC erscheint der grüne Hinweis. | „Herunterfahren geplant · 23:41" · „Dein Handy. Dein PC. Kein fremder Server." | goldener Abschlusston |
-| 1:00–1:02 | Zwei Fenster nebeneinander: Felix links, Anna rechts, beide mit Schloss „Ende-zu-Ende". Nachricht wird getippt. | NUTZER: „Sag Anna, dass ich später komme, so gegen acht." | — |
+| 1:00–1:02 | Zwei Fenster nebeneinander: Alex links, Anna rechts, beide mit Schloss „Ende-zu-Ende". Nachricht wird getippt. | NUTZER: „Sag Anna, dass ich später komme, so gegen acht." | — |
 | 1:02–1:03 | Jon antwortet knapp, ein goldener Strahl mit Schloss läuft von links nach rechts. | JON: „Erledigt." | — |
 | 1:03–1:07 | Bei Anna erscheint die Nachricht. | ANNA-FENSTER: „Ich werd später — so gegen acht. 🙂" · „Ende-zu-Ende verschlüsselt. PC zu PC." | goldener Abschlusston |
 | 1:07–1:09 | **Ruhe**: beide Fenster stehen, kein Text, kein Sprecher. | — | nur Musik |

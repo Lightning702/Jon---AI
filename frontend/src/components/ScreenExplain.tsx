@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import { explainScreen } from "../lib/api";
 import { speak, stopSpeaking } from "../lib/tts";
@@ -32,7 +33,7 @@ export default function ScreenExplain({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[94vw] max-h-[85vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🔍</span>
+            <span className="text-xl"><Symbol zeichen="🔍" /></span>
             <span className="text-[14px] text-white/90">Jon erklärt den Bildschirm</span>
           </div>
           <button onClick={() => { stopSpeaking(); onClose(); }} className="w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white/90 transition">✕</button>
@@ -45,7 +46,7 @@ export default function ScreenExplain({ onClose }: { onClose: () => void }) {
         {!loading && (
           <div className="px-5 py-3 border-t border-white/10 flex gap-2 shrink-0">
             <button onClick={() => void run()} className="flex-1 py-2.5 rounded-xl border border-white/10 bg-white/5 text-white/70 text-[13px] font-semibold hover:bg-white/10 transition">Nochmal anschauen</button>
-            {text && <button onClick={() => void speak(text)} className="px-4 py-2.5 rounded-xl border border-gold/30 bg-gold/10 text-gold/90 text-[13px] font-semibold hover:bg-gold/20 transition">🔊 Vorlesen</button>}
+            {text && <button onClick={() => void speak(text)} className="px-4 py-2.5 rounded-xl border border-gold/30 bg-gold/10 text-gold/90 text-[13px] font-semibold hover:bg-gold/20 transition"><Symbol zeichen="🔊" /> Vorlesen</button>}
           </div>
         )}
       </div>

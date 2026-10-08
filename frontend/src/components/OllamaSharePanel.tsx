@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import {
   OllamaInvite,
@@ -295,7 +296,7 @@ export default function OllamaSharePanel({
               mode === "geben" ? "text-gold" : "text-white/85"
             }`}
           >
-            📤 Ich gebe meine KI frei
+            <Symbol zeichen="📤" /> Ich gebe meine KI frei
           </div>
           <div className="text-[10.5px] text-white/45 mt-0.5">
             Freunde dürfen über meinen PC schreiben
@@ -314,7 +315,7 @@ export default function OllamaSharePanel({
               mode === "nutzen" ? "text-gold" : "text-white/85"
             }`}
           >
-            📥 Ich nutze die KI von jemandem
+            <Symbol zeichen="📥" /> Ich nutze die KI von jemandem
           </div>
           <div className="text-[10.5px] text-white/45 mt-0.5">
             Ich habe einen Code bekommen

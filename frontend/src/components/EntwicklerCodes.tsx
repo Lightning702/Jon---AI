@@ -99,7 +99,7 @@ export default function EntwicklerCodes({ onFehler }: { onFehler: (text: string)
         <code>{neu.code}</code>
         <button type="button" onClick={kopieren}>{kopiert ? <Check size={14} /> : <Copy size={14} />}{kopiert ? "Kopiert" : "Kopieren"}</button>
       </div>
-      <small>In Jon oben links auf die Stufe klicken, „Lizenz oder Code eingeben“ und einfügen. Gespeichert wird nur ein Fingerabdruck auf deinem Pi.</small>
+      <small>In Jon oben links auf die Stufe klicken, „Lizenz oder Code eingeben“ und einfügen. Gespeichert wird nur ein Fingerabdruck bei FelWorks.</small>
       <button type="button" className="tz-neuer-code-zu" onClick={() => setNeu(null)}>Fertig</button>
     </motion.div>}</AnimatePresence>
 
@@ -108,7 +108,7 @@ export default function EntwicklerCodes({ onFehler }: { onFehler: (text: string)
     </div>
 
     <div className="tz-liste">
-      {codes === null && <div className="tz-leer"><Loader2 size={14} className="tz-dreh" />Lade Codes vom Pi …</div>}
+      {codes === null && <div className="tz-leer"><Loader2 size={14} className="tz-dreh" />Lade Codes von FelWorks …</div>}
       {codes && !sichtbar.length && <div className="tz-leer"><KeyRound size={14} />Noch keine Codes in dieser Auswahl.</div>}
       {sichtbar.map((c, i) => {
         const Icon = ARTEN.find(a => a.key === c.art)?.icon || Wrench;
@@ -144,6 +144,6 @@ export default function EntwicklerCodes({ onFehler }: { onFehler: (text: string)
         </div>;
       })}
     </div>
-    <p className="tz-fuss"><ShieldCheck size={12} />Codes prüft dein FelWorks-Codeserver auf dem Raspberry Pi. Er speichert nur Fingerabdrücke und stellt signierte Lizenzen für einzelne Geräte aus.</p>
+    <p className="tz-fuss"><ShieldCheck size={12} />Codes prüft der FelWorks-Codeserver. Er speichert nur Fingerabdrücke und stellt signierte Lizenzen für einzelne Geräte aus.</p>
   </div>;
 }

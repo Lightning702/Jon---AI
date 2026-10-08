@@ -341,7 +341,7 @@ window.SZENEN = (function () {
           ") rotate(" + wack.toFixed(2) + "deg)",
       });
       const s = stroeme(
-        "Guten Morgen, Felix. Drei ungelesene Mails, ab 16 Uhr Regen — soll ich dir die Jacke auf die Merkliste setzen?",
+        "Guten Morgen, Alex. Drei ungelesene Mails, ab 16 Uhr Regen — soll ich dir die Jacke auf die Merkliste setzen?",
         t, 3.05, 7.6,
       );
       window.B.miniStand(this.mini, {
@@ -429,7 +429,7 @@ window.SZENEN = (function () {
       height: "36px", display: "flex", alignItems: "center", padding: "0 14px", gap: "8px",
       fontSize: "12.5px", color: "rgba(255,255,255,.45)", borderBottom: "1px solid rgba(255,255,255,0.05)",
     });
-    pfad.innerHTML = "Dieser PC  ›  Benutzer  ›  Felix  ›  <span style='color:rgba(255,255,255,.75)'>Downloads</span>";
+    pfad.innerHTML = "Dieser PC  ›  Benutzer  ›  Alex  ›  <span style='color:rgba(255,255,255,.75)'>Downloads</span>";
     f.appendChild(pfad);
     const spalten = el("div");
     stil(spalten, {
@@ -538,7 +538,7 @@ window.SZENEN = (function () {
         '<span class="gold" style="font-size:16px;font-weight:600">Jon möchte etwas ausführen</span></div>' +
         '<div style="font-size:15px;color:rgba(255,255,255,.86);line-height:1.6">' +
         '<span style="display:inline-block;font-size:13px;padding:3px 10px;border-radius:9px;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.28);color:rgba(245,214,123,.92);margin-right:10px">📁 Dateien verschieben</span>' +
-        "214 Dateien aus <b>C:\\Users\\Felix\\Downloads</b> in vier neue Ordner sortieren.</div>" +
+        "214 Dateien aus <b>C:\\Users\\Alex\\Downloads</b> in vier neue Ordner sortieren.</div>" +
         '<div style="margin-top:12px;font-size:12.5px;color:rgba(245,214,123,.6)">Details anzeigen</div>' +
         '<div style="display:flex;justify-content:flex-end;gap:12px;margin-top:26px">' +
         '<div class="ab" style="padding:11px 22px;border-radius:12px;border:1px solid rgba(255,255,255,.16);color:rgba(255,255,255,.7);font-size:14px">Ablehnen</div>' +
@@ -1146,7 +1146,7 @@ window.SZENEN = (function () {
       w.appendChild(window.B.taskleiste("20:12", "01.09.2026"));
       this.links = w.appendChild(window.B.jonFenster({ x: 78, y: 152, b: 828, h: 728, zusatz: "Freunde" }));
       this.rechts = w.appendChild(window.B.jonFenster({ x: 1014, y: 152, b: 828, h: 728, zusatz: "Freunde" }));
-      [["Felix", this.links], ["Anna", this.rechts]].forEach(([name, f]) => {
+      [["Alex", this.links], ["Anna", this.rechts]].forEach(([name, f]) => {
         const kopf = el("div");
         stil(kopf, {
           padding: "13px 20px", borderBottom: "1px solid rgba(255,255,255,.06)",

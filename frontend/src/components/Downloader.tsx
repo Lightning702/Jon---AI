@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import {
   DownloadCookieState,
@@ -228,7 +229,7 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[620px] max-w-[95vw] max-h-[92vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">⬇️</span>
+            <span className="text-xl"><Symbol zeichen="⬇️" /></span>
             <span className="text-[14px] text-white/90">Downloader</span>
             <span className="text-[11px] text-white/35">
               YouTube · TikTok · Instagram · X · Spotify · Amazon Music
@@ -307,7 +308,7 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
               </div>
               {info.music && !info.playlist && (
                 <div className="mt-2 px-3 py-2 rounded-xl border border-gold/25 bg-gold/10 text-[11.5px] text-gold/80 leading-relaxed">
-                  🎵 {info.extractor}-Link erkannt. {info.extractor} ist kopiergeschützt —
+                  <Symbol zeichen="🎵" /> {info.extractor}-Link erkannt. {info.extractor} ist kopiergeschützt —
                   ich lade die passende Aufnahme von YouTube: „{info.matched}"
                 </div>
               )}
@@ -315,7 +316,7 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
               {info.playlist && (
                 <>
                   <div className="mt-2 px-3 py-2 rounded-xl border border-gold/25 bg-gold/10 text-[11.5px] text-gold/80 leading-relaxed">
-                    🎵 Playlist mit {info.count} {info.count === 1 ? "Song" : "Songs"} erkannt.
+                    <Symbol zeichen="🎵" /> Playlist mit {info.count} {info.count === 1 ? "Song" : "Songs"} erkannt.
                     Amazon Music ist kopiergeschützt — ich suche zu jedem Song die passende
                     Aufnahme auf YouTube, mache MP3s daraus und packe alles in eine ZIP-Datei.
                     {info.cut && " Ich nehme die ersten 300 Songs."}
@@ -493,7 +494,7 @@ export default function Downloader({ onClose }: { onClose: () => void }) {
               className="w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-white/5 transition"
             >
               <span className="flex items-center gap-2 text-[12.5px] text-white/70">
-                <span>🔐</span>
+                <span><Symbol zeichen="🔐" /></span>
                 YouTube-Login (gekaufte Filme, Mitglieder-Videos, Altersfreigabe)
               </span>
               <span

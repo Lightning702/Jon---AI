@@ -13,9 +13,9 @@ export const en: Translations = {
   update_available: "Version {version} is here",
   update_old: "You are using an older version of Jon.",
   update_start: "Auto-Update",
-  update_progress: "⚙️ Starting update...\n",
+  update_progress: "Starting update...\n",
 
-  cal_title: "📅 Jon's Calendar",
+  cal_title: "Jon's Calendar",
   cal_month: "Month",
   cal_week: "Week",
   cal_no_entries: "No entries. Double click a day or '+ Entry' — or just tell Jon: 'Add dentist appointment Friday 3pm.'",
@@ -34,15 +34,15 @@ export const en: Translations = {
   cal_source_reminder: "Reminder",
   cal_source_ics: "Google/Outlook",
 
-  trash_title: "🗑️ Loading Trash …",
+  trash_title: "Loading Trash …",
   trash_empty: "Trash is empty. Deleted, overwritten, and moved files land here and are kept for 30 days.",
-  trash_info: "**🗑️ Trash** (emptied after 30 days):\n\n{items}\n\nRestore: `/restore <Number>` — or `/undo` for the last action.",
+  trash_info: "**Trash** (emptied after 30 days):\n\n{items}\n\nRestore: `/restore <Number>` — or `/undo` for the last action.",
 
   pair_request: "'{name}' wants to pair with Jon",
   pair_code_hint: "Enter this code on the device:",
   pair_deny: "Deny",
 
-  log_load: "📜 Loading Action Log …",
+  log_load: "Loading Action Log …",
   log_empty: "No actions logged yet.",
 
   settings_language: "Language",

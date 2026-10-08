@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import { SearchGroup, universalSearch } from "../lib/api";
 
@@ -56,7 +57,7 @@ export default function Search({
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 pt-[12vh]" onClick={onClose}>
       <div className="glass rounded-2xl border border-white/15 w-[620px] max-w-[95vw] max-h-[72vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 px-4 h-14 border-b border-white/10 shrink-0">
-          <span className="text-[16px]">🔎</span>
+          <span className="text-[16px]"><Symbol zeichen="🔎" /></span>
           <input
             ref={inputRef}
             value={query}
@@ -75,7 +76,7 @@ export default function Search({
           )}
           {groups.map((g) => (
             <div key={g.kind} className="mb-3">
-              <div className="text-[10.5px] uppercase tracking-wider text-white/40 px-1 mb-1">{ICON[g.kind] ?? "•"} {g.label}</div>
+              <div className="text-[10.5px] uppercase tracking-wider text-white/40 px-1 mb-1"><Symbol zeichen={ICON[g.kind] ?? "•"} /> {g.label}</div>
               <div className="space-y-1">
                 {g.items.map((it, i) => {
                   const openable = Boolean(it.path) && Boolean(onOpenPath);

@@ -504,6 +504,7 @@ def test_registry_hat_weiterhin_genau_einen_ollama_eintrag():
         "qwen",
         "ollama",
         "lmstudio",
+        "lokalserver",
         "openrouter",
         "groq",
         "together",

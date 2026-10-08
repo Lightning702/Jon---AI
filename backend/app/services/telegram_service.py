@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import subprocess
 import tempfile
 import time
@@ -495,12 +496,14 @@ class TelegramService:
         klein = text.strip().lower()
         return klein.startswith(DIREKT_ANFAENGE) or "scroll" in klein
 
-    async def video_schicken(self, chat_id: str, sekunden: float) -> None:
+    async def video_schicken(self, chat_id: str, sekunden: float, welcher: str = "") -> None:
         from app.services.bildschirm_video import VideoFehler, clip
 
-        await self.send(chat_id, f"🎥 Ich nehme {int(sekunden)} Sekunden auf ...")
+        wahl = welcher or self._videowahl()
+        wo = {"alle": "allen Bildschirmen", "maus": "dem Bildschirm mit der Maus"}.get(wahl, f"Bildschirm {wahl}")
+        await self.send(chat_id, f"Ich nehme {int(sekunden)} Sekunden von {wo} auf ...")
         try:
-            pfad = await clip(self._videowahl(), sekunden)
+            pfad = await clip(wahl, sekunden)
         except VideoFehler as fehler:
             await self.send(chat_id, f"Das geht hier nicht: {fehler} 🙈")
             return
@@ -574,10 +577,61 @@ class TelegramService:
             einstellungen.update({"telegram_aktionsvideo": False})
             await self.send(chat_id, "🎬 Aktionsvideos sind aus.")
             return
-        sekunden = VIDEO_KURZ
-        if wunsch.isdigit():
-            sekunden = max(3, min(VIDEO_MAX, int(wunsch)))
-        await self.video_schicken(chat_id, sekunden)
+        sekunden, welcher, fehler = self._videowunsch(teile)
+        if fehler:
+            await self.send(chat_id, fehler)
+            return
+        if welcher:
+            self._videowahl_merken(welcher)
+        await self.video_schicken(chat_id, sekunden, welcher)
+
+    @staticmethod
+    def _bildschirmzahl() -> int:
+        from app.services.live_service import monitore
+
+        return len([m for m in monitore() if m["id"] != "alle"])
+
+    def _videowunsch(self, teile: list[str]) -> tuple[float, str, str]:
+        sekunden: float = VIDEO_KURZ
+        welcher = ""
+        anzahl = self._bildschirmzahl()
+        woerter = [t.strip().lower().rstrip(",.") for t in teile if t.strip()]
+        index = 0
+        while index < len(woerter):
+            wort = woerter[index]
+            if wort in BILDSCHIRM_WAHL:
+                welcher = wort
+            elif wort in ("bildschirm", "monitor", "screen", "b", "m") and index + 1 < len(woerter) and woerter[index + 1].isdigit():
+                index += 1
+                welcher = woerter[index]
+            elif re.fullmatch(r"\d+(s|sek|sekunden)", wort):
+                sekunden = max(3, min(VIDEO_MAX, int(re.match(r"\d+", wort).group(0))))
+            elif wort.isdigit() and index + 1 < len(woerter) and woerter[index + 1] in ("s", "sek", "sekunden"):
+                sekunden = max(3, min(VIDEO_MAX, int(wort)))
+                index += 1
+            elif wort.isdigit():
+                if int(wort) <= max(anzahl, 1) and int(wort) <= 4:
+                    welcher = wort
+                else:
+                    sekunden = max(3, min(VIDEO_MAX, int(wort)))
+            index += 1
+        if welcher.isdigit() and not 1 <= int(welcher) <= max(anzahl, 1):
+            return sekunden, "", f"Bildschirm {welcher} gibt es hier nicht. Ich sehe {anzahl} Bildschirm{'e' if anzahl != 1 else ''} - /bildschirme zeigt sie."
+        return sekunden, welcher, ""
+
+    async def bildschirme_zeigen(self, chat_id: str) -> None:
+        from app.services.live_service import monitore
+
+        liste = [m for m in monitore() if m["id"] != "alle"]
+        zeilen = [f"{self._rechnername()} hat {len(liste)} Bildschirm{'e' if len(liste) != 1 else ''}:"]
+        for m in liste:
+            groesse = f" ({m['breite']}x{m['hoehe']})" if m.get("breite") else ""
+            zeilen.append(f"{m['id']}. {m['name']}{groesse}")
+        wahl = self._videowahl()
+        zeilen.append("")
+        zeilen.append(f"Für /video gerade gewählt: {'Bildschirm mit der Maus' if wahl == 'maus' else 'alle' if wahl == 'alle' else 'Bildschirm ' + wahl}.")
+        zeilen.append("/video 2 = Bildschirm 2 · /video alle · /video maus · /video 2 30s = 30 Sekunden von Bildschirm 2")
+        await self.send(chat_id, "\n".join(zeilen))
 
     async def live_bild_senden(
         self, chat_id: str | int, daten: bytes, beschriftung: str = ""
@@ -1455,8 +1509,38 @@ class TelegramService:
             morgen = []
         return {"heute": heute, "morgen_erinnerungen": morgen}
 
+    def _morgen_zusaetze(self) -> dict:
+        daten = get_settings_service().get()
+        zusaetze = [str(z).strip() for z in daten.get("telegram_morgen_zusaetze") or [] if str(z).strip()]
+        ergebnis: dict = {}
+        if zusaetze:
+            ergebnis["zusaetze"] = zusaetze
+        if daten.get("telegram_morgen_stundenplan", False):
+            from app.services.stundenplan_service import get_stundenplan_service
+
+            text = get_stundenplan_service().text()
+            ergebnis["stundenplan_heute"] = text or "Heute steht laut Stundenplan nichts an."
+        return ergebnis
+
+    def _stundenplan_liste(self) -> str:
+        if not get_settings_service().get().get("telegram_morgen_stundenplan", False):
+            return ""
+        from app.services.stundenplan_service import get_stundenplan_service
+
+        name, eintraege = get_stundenplan_service().fuer()
+        if not eintraege:
+            return ""
+        zeilen = [f"Dein Stundenplan für {name.capitalize()}:"]
+        for nummer, e in enumerate(eintraege, start=1):
+            zeit = f"{e['von']}–{e['bis']}" if e.get("von") and e.get("bis") else e.get("von", "")
+            zusatz = ", ".join(x for x in (e.get("raum", ""), e.get("lehrer", "")) if x)
+            zeilen.append(f"{e.get('stunde') or nummer}. {zeit + '  ' if zeit else ''}{e['fach']}{f' ({zusatz})' if zusatz else ''}")
+        return "\n".join(zeilen)
+
     def _morning_fallback(self, cal: dict) -> str:
-        parts = ["Guten Morgen, Felix! Ich wünsche dir einen richtig guten Start in den Tag."]
+        from app.services.nutzer import gruss
+
+        parts = [gruss("Guten Morgen{name}! Ich wünsche dir einen richtig guten Start in den Tag.").replace("Morgen ", "Morgen, ", 1)]
         if cal["heute"]:
             eintraege = ", ".join(
                 (f"{e['zeit']} Uhr {e['titel']}" if e["zeit"] else e["titel"])
@@ -1466,6 +1550,12 @@ class TelegramService:
         if cal["morgen_erinnerungen"]:
             morgen = ", ".join(e["titel"] for e in cal["morgen_erinnerungen"][:6])
             parts.append(f"Und denk schon mal an morgen: {morgen}.")
+        if get_settings_service().get().get("telegram_morgen_stundenplan", False):
+            from app.services.stundenplan_service import get_stundenplan_service
+
+            _, stunden = get_stundenplan_service().fuer()
+            if stunden:
+                parts.append(f"Heute hast du {len(stunden)} Stunden, los geht es mit {stunden[0]['fach']}.")
         return " ".join(parts)
 
     async def morning_tick(self) -> None:
@@ -1485,27 +1575,35 @@ class TelegramService:
         try:
             from app.services.show_service import _today_data
             from app.services.llm import complete
+            from app.services.nutzer import bezeichnung
 
-            payload = {"tagesdaten": _today_data(), "kalender": cal}
+            payload = {"tagesdaten": _today_data(), "kalender": cal, **self._morgen_zusaetze()}
             context = json.dumps(payload, ensure_ascii=False)
             text = await complete(
-                "Du bist Jon und sprichst dem Nutzer Felix eine persönliche "
+                f"Du bist Jon und sprichst {bezeichnung()} eine persönliche "
                 "Guten-Morgen-Sprachnachricht auf sein Handy. Kurz (4-7 Sätze), warm, "
                 "natürlich gesprochen: begrüße ihn, nenne das Wetter. Zähle dann die "
                 "heutigen Termine, Tasks und Erinnerungen aus kalender.heute mit Uhrzeit "
                 "auf, falls vorhanden. Gibt es Einträge in kalender.morgen_erinnerungen, "
                 "erinnere ihn zusätzlich freundlich schon heute daran, dass diese "
-                "Erinnerung morgen ansteht. Wünsche einen guten Start. Nutze nur echte "
-                "Daten, erfinde nichts. Kein Markdown, keine Aufzählung mit Strichen.",
+                "Erinnerung morgen ansteht. Gibt es stundenplan_heute, sag kurz, wie viele "
+                "Stunden heute anstehen und womit der Tag beginnt und endet - die genaue Liste "
+                "kommt als Text dazu. Erfülle außerdem jeden Wunsch aus zusaetze. Wünsche "
+                "einen guten Start. Nutze nur echte Daten, erfinde nichts. Kein Markdown, "
+                "keine Aufzählung mit Strichen. Antworte nur mit der Nachricht selbst.",
                 f"Heutige Daten:\n{context}",
-                max_tokens=500,
+                max_tokens=2500,
                 temperature=0.8,
             )
+            from app.services.harness.modell import denken_entfernen
+
+            text = denken_entfernen(text)
         except Exception:
             text = self._morning_fallback(cal)
         text = text.strip() or self._morning_fallback(cal)
         spoke = await self.send_voice(chat_id, text)
-        await self.send(chat_id, "🌅 " + text)
+        liste = self._stundenplan_liste()
+        await self.send(chat_id, text + (f"\n\n{liste}" if liste else ""))
 
     async def poll_once(self) -> None:
         token = self._token()
@@ -1651,6 +1749,8 @@ class TelegramService:
                     "Befehle: /live = Live-Video von meinem Bildschirm (alle 10 "
                     "Sekunden ein neues Stueck, /live 2 = zweiter Bildschirm, "
                     "/live alle = alle) · /video = sofort ein kurzes Video · "
+                    "/video 2 = Video von Bildschirm 2, /video alle, /video 2 30s · "
+                    "/bildschirme = Bildschirme anzeigen · "
                     "/video an|aus = Video nach jeder Aktion mit Maus und "
                     "Tastatur · /livebild = Standbild, das sich laufend "
                     "aktualisiert · "
@@ -1717,6 +1817,9 @@ class TelegramService:
                 await self.live_video_starten(
                     str(chat_id), klein or self._videowahl()
                 )
+                continue
+            if text.split()[0].lower() in ("/bildschirme", "/monitore"):
+                await self.bildschirme_zeigen(str(chat_id))
                 continue
             if text.split()[0].lower() == "/video":
                 await self._video_befehl(str(chat_id), text)
