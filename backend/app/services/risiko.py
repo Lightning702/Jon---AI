@@ -54,6 +54,8 @@ LESE_TOOLS = {
     "calendar_search",
     "read_pdf",
     "read_pptx",
+    "read_docx",
+    "bild_suche",
     "maps",
     "look_at_image",
     "list_dir",
@@ -223,6 +225,21 @@ def _befehl_gefaehrlich(befehl: str) -> str:
 def bewerten(name: str, args: dict | None = None) -> Stufe:
     werte = dict(args or {})
     werkzeug = str(name or "")
+
+    if werkzeug == "datei_kommentare" and str(werte.get("aktion", "lesen")).strip().lower() in ("", "lesen", "liste"):
+        return Stufe(NIEDRIG, LESEN, "Nur lesend.")
+
+    if werkzeug == "was_laeuft":
+        return Stufe(NIEDRIG, LESEN, "Nur lesend.")
+
+    if werkzeug == "wechseln":
+        return Stufe(NIEDRIG, AENDERN, "Wechselt nur das sichtbare Fenster.")
+
+    if werkzeug in ("stundenplan", "morgen_nachricht"):
+        aktion = str(werte.get("aktion", "")).strip().lower()
+        if werkzeug == "stundenplan" and aktion in ("", "zeigen", "heute", "morgen", "tag_zeigen"):
+            return Stufe(NIEDRIG, LESEN, "Nur lesend.")
+        return Stufe(NIEDRIG, AENDERN, "Aendert nur Jons eigene Einstellungen.")
 
     if werkzeug.startswith("browser_"):
         from app.services.browser.sicherheit import get_guard

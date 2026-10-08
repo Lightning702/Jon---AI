@@ -54,6 +54,7 @@ KOSTENLOS_PRO_IP = 12
 KOSTENLOS_MAX = 200_000
 KOSTENLOS_NAME = "Jon Premium kostenlos"
 DIENSTE = ("jon", "jon-codes", "jon-demo")
+NIM_BASIS = "https://integrate.api.nvidia.com/v1"
 MODELLE = ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-3.5-lightning-30b-a3b", "mistralai/mistral-nemotron"]
 WURZEL = Path(__file__).resolve().parents[2]
 
@@ -742,8 +743,8 @@ class Codeserver:
         settings = get_settings()
         schluessel = KeyManager(settings).key_for("nvidia", "jon") or ""
         if not schluessel:
-            raise HTTPException(503, "Auf dem Pi ist kein NVIDIA-Schlüssel eingerichtet.")
-        return schluessel, settings.nvidia_base_url.rstrip("/")
+            raise HTTPException(503, "Der FelWorks-Zugang ist gerade nicht eingerichtet.")
+        return schluessel, NIM_BASIS
 
     async def llm_modelle(self) -> list[str]:
         if self._modelle[1] and self.uhr() - self._modelle[0] < 600:
@@ -1111,6 +1112,8 @@ def erstellen(server: Codeserver | None = None, pause: float = 1.2) -> FastAPI:
             raise HTTPException(400, "Ungültige Anfrage.")
         if not isinstance(koerper, dict) or not isinstance(koerper.get("messages"), list):
             raise HTTPException(400, "Ungültige Anfrage.")
+        if koerper.get("model") not in await dienst.llm_modelle():
+            koerper["model"] = (await dienst.llm_modelle())[0]
         dienst.llm_verbrauchen(person)
         schluessel, basis = dienst.llm_zugang()
         kopf = {"Authorization": f"Bearer {schluessel}", "Content-Type": "application/json"}

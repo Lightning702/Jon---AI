@@ -52,11 +52,12 @@ async def delete_daily_memory(key: str) -> dict:
 
 class StartTask(BaseModel):
     goal: str = Field(min_length=1, max_length=12000)
-    root: str = Field(min_length=1)
+    root: str = ""
+    modus: str = Field(default="code", pattern="^(code|allgemein)$")
     source: str = Field(default="app", pattern="^(app|minijon|terminal)$")
     provider: str = ""
     model: str = ""
-    max_steps: int = Field(default=80, ge=1, le=200)
+    max_steps: int = Field(default=0, ge=0)
     companion: bool = False
     thread: str = Field(default="", max_length=40, pattern="^[a-f0-9]*$")
 

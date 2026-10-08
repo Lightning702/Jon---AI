@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import {
   HandyGeraet,
@@ -274,7 +275,7 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] text-white/90 truncate">
-                    📱 {geraet.name}
+                    <Symbol zeichen="📱" /> {geraet.name}
                   </span>
                   <span
                     className={
@@ -320,7 +321,7 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
                 <div className="text-[10px] text-white/35">Akku</div>
                 <div className="text-white/80">
                   {typeof zustand.akku === "number"
-                    ? `${zustand.akku} %${zustand.laedt ? " ⚡" : ""}`
+                    ? `${zustand.akku} %${zustand.laedt ? " · lädt" : ""}`
                     : "–"}
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import {
   ClipboardEntry,
@@ -32,35 +33,35 @@ function detectActions(
     const url = urlMatch[0].startsWith("http")
       ? urlMatch[0]
       : "https://" + urlMatch[0];
-    actions.push({ label: "🌐 Öffnen", run: () => window.open(url, "_blank") });
+    actions.push({ label: "Öffnen", run: () => window.open(url, "_blank") });
   }
   if (email) {
     actions.push({
-      label: "✉️ Mail schreiben",
+      label: "Mail schreiben",
       run: () => window.open("mailto:" + t, "_blank"),
     });
   }
   if (phone) {
     const digits = t.replace(/[^\d+]/g, "");
     actions.push({
-      label: "📞 Anrufen",
+      label: "Anrufen",
       run: () => window.open("tel:" + digits, "_blank"),
     });
     actions.push({
-      label: "💬 WhatsApp",
+      label: "WhatsApp",
       run: () =>
         window.open("https://wa.me/" + digits.replace(/\D/g, ""), "_blank"),
     });
   }
   if (iban && onAsk) {
     actions.push({
-      label: "🧠 Merken",
+      label: "Merken",
       run: () => onAsk("Merk dir diese IBAN dauerhaft: " + t),
     });
   }
   if (address && !urlMatch) {
     actions.push({
-      label: "🗺️ In Maps öffnen",
+      label: "In Maps öffnen",
       run: () =>
         window.open(
           "https://www.google.com/maps/search/?api=1&query=" +
@@ -71,12 +72,12 @@ function detectActions(
   }
   if (looksCode && onAsk) {
     actions.push({
-      label: "💡 Erklären",
+      label: "Erklären",
       run: () => onAsk("Erkläre mir diesen Code kurz und verständlich:\n\n" + t),
     });
   }
   if (!looksCode && !iban && onAsk && t.length > 0 && t.length < 2000) {
-    actions.push({ label: "🤖 An Jon", run: () => onAsk(t) });
+    actions.push({ label: "An Jon", run: () => onAsk(t) });
   }
   return actions;
 }
@@ -123,7 +124,7 @@ export default function ClipboardPanel({
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[92vw] max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div>
-            <div className="text-white/90 font-semibold">📋 Clipboard-Historie</div>
+            <div className="text-white/90 font-semibold"><Symbol zeichen="📋" /> Clipboard-Historie</div>
             <div className="text-[11px] text-white/40">
               Die letzten 50 kopierten Einträge — nur lokal gespeichert.
             </div>
@@ -172,7 +173,7 @@ export default function ClipboardPanel({
                     key={a.label}
                     onClick={() => {
                       a.run();
-                      if (a.label === "💡 Erklären" || a.label === "🤖 An Jon" || a.label === "🧠 Merken")
+                      if (a.label === "Erklären" || a.label === "An Jon" || a.label === "Merken")
                         onClose();
                     }}
                     className="text-[11px] px-2 py-1 rounded-lg border border-gold/30 bg-gold/10 text-gold/90 hover:bg-gold/20 transition-colors"

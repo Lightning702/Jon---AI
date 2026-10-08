@@ -12,6 +12,7 @@ import time
 import uuid
 from datetime import datetime, timedelta
 
+from app.services.nutzer import anrede, gruss
 from app.core.config import DATA_DIR
 from app.core.store import atomic_write_text
 from app.core.fehler import leise
@@ -848,7 +849,7 @@ class PhoneService:
             await call.hangup("Es laeuft bereits ein Anruf")
             return
         data = self.settings()
-        greeting = data.get("phone_greeting", "") or "Hey Felix! Was gibt es?"
+        greeting = data.get("phone_greeting", "") or gruss("Hey{name}! Was gibt es?")
         record = {
             "id": uuid.uuid4().hex[:12],
             "status": "active",
@@ -935,13 +936,13 @@ def _state_text(state: str) -> str:
 
 def _default_opening(reason: str, test: bool) -> str:
     if test:
-        return (
-            "Hey Felix! Das ist ein Testanruf von Jon. "
+        return gruss(
+            "Hey{name}! Das ist ein Testanruf von Jon. "
             "Deine Telefonfunktion funktioniert."
         )
     if reason:
-        return f"Hey Felix! Jon hier. Ich wollte dich an {reason} erinnern."
-    return "Hey Felix! Jon hier. Ich wollte kurz mit dir sprechen."
+        return gruss(f"Hey{{name}}! Jon hier. Ich wollte dich an {reason} erinnern.")
+    return gruss("Hey{name}! Jon hier. Ich wollte kurz mit dir sprechen.")
 
 
 async def _persona(reason: str, test: bool) -> str:
@@ -954,12 +955,12 @@ async def _persona(reason: str, test: bool) -> str:
         base = ""
     lines = [
         base.strip(),
-        "Du telefonierst gerade mit Felix. Das ist ein echtes Telefongespraech.",
+        f"Du telefonierst gerade mit {anrede('dem Nutzer')}. Das ist ein echtes Telefongespraech.",
         "Antworte kurz und gesprochen, hoechstens zwei bis drei Saetze.",
         "Keine Aufzaehlungen, keine Sternchen, kein Markdown, keine Codebloecke.",
         "Keine Emojis und keine Erklaerungen zur Bedienung.",
         "Sprich wie am Telefon: natuerlich, direkt, freundlich.",
-        "Wenn Felix sich verabschiedet, verabschiede dich ebenfalls kurz.",
+        "Wenn sich dein Gegenueber verabschiedet, verabschiede dich ebenfalls kurz.",
     ]
     if reason:
         lines.append(f"Der Grund fuer den Anruf ist: {reason}.")

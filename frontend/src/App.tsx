@@ -1,3 +1,4 @@
+import Symbol from "./components/Symbol";
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
@@ -43,6 +44,7 @@ import CalendarPanel from "./components/CalendarPanel";
 import type { JonMapsIntent } from "./maps/JonMaps";
 const JonMaps = lazy(() => import("./maps/JonMaps"));
 const DeepLearning = lazy(() => import("./components/DeepLearning"));
+const DateiAnsicht = lazy(() => import("./components/DateiAnsicht"));
 import { VoiceListener } from "./lib/voice";
 import { MIKROFON_FEHLT, mikrofonMoeglich } from "./lib/umgebung";
 import { applyTheme, istTheme } from "./lib/theme";
@@ -51,6 +53,8 @@ import MediaPanel from "./components/MediaPanel";
 import AgentenDock from "./components/agenten/AgentenDock";
 import StartHero from "./components/StartHero";
 import { harnessRequest } from "./lib/harness";
+import { dateiKarte } from "./lib/api";
+import type { JonDatei, Steuerung } from "./lib/api";
 import {
   ConversationSummary,
   P2PIdentity,
@@ -501,10 +505,10 @@ export default function App() {
         const preview =
           n.text.trim() ||
           (n.media_kind === "image"
-            ? "📷 Foto"
+            ? "Foto"
             : n.media_kind === "video"
-              ? "🎬 Video"
-              : "📎 Datei");
+              ? "Video"
+              : "Datei");
         if ("Notification" in window && Notification.permission === "granted") {
           const note = new Notification(`${n.avatar} ${n.sender_name}`, {
             body: preview.slice(0, 140),
@@ -600,7 +604,7 @@ export default function App() {
         : quelle === "handy"
           ? " vom Handy"
           : "";
-      const satz = `⏱️ ${namen}${woher} gestartet.`;
+      const satz = `${namen}${woher} gestartet.`;
       setEntries((prev) => [
         ...prev,
         {
@@ -667,7 +671,7 @@ export default function App() {
             {
               id: nextId(),
               role: "assistant",
-              content: `🆘 **SOS von ${wer}** um ${um} Uhr.${akku}${notiz}${ort} Bitte gleich melden. Unter Einstellungen → Geräte kannst du es als erledigt markieren.`,
+              content: `**SOS von ${wer}** um ${um} Uhr.${akku}${notiz}${ort} Bitte gleich melden. Unter Einstellungen → Geräte kannst du es als erledigt markieren.`,
               cards: punkt
                 ? karteAnhaengen(
                     [],
@@ -687,7 +691,7 @@ export default function App() {
             },
           ]);
           if ("Notification" in window && Notification.permission === "granted") {
-            const note = new Notification(`🆘 SOS von ${wer}`, {
+            const note = new Notification(`SOS von ${wer}`, {
               body: `Ausgelöst um ${um} Uhr.${akku}${notiz}`,
               requireInteraction: true,
               tag: `sos-${meldung.id}`,
@@ -703,7 +707,7 @@ export default function App() {
             {
               id: nextId(),
               role: "assistant",
-              content: `📊 Der Wochenbericht für ${wer} ist da.`,
+              content: `Der Wochenbericht für ${wer} ist da.`,
               cards: karteAnhaengen(
                 [],
                 {
@@ -715,7 +719,7 @@ export default function App() {
             },
           ]);
           if ("Notification" in window && Notification.permission === "granted") {
-            new Notification(`📊 Wochenbericht: ${wer}`, {
+            new Notification(`Wochenbericht: ${wer}`, {
               body: "Bildschirmzeit, Apps und Schritte der letzten sieben Tage.",
             });
           }
@@ -728,7 +732,7 @@ export default function App() {
             {
               id: nextId(),
               role: "assistant",
-              content: `⏳ **${wer}** fragt um ${um} Uhr nach ${minuten} Minuten mehr ${app}.`,
+              content: `**${wer}** fragt um ${um} Uhr nach ${minuten} Minuten mehr ${app}.`,
               cards: karteAnhaengen(
                 [],
                 {
@@ -747,7 +751,7 @@ export default function App() {
             },
           ]);
           if ("Notification" in window && Notification.permission === "granted") {
-            const note = new Notification(`⏳ ${wer} möchte mehr Zeit`, {
+            const note = new Notification(`${wer} möchte mehr Zeit`, {
               body: `${minuten} Minuten mehr ${app}${meldung.daten.text ? ` – „${String(meldung.daten.text)}“` : ""}`,
               tag: `zeit-${meldung.id}`,
             });
@@ -785,7 +789,7 @@ export default function App() {
       for (const r of due) {
         setEntries((prev) => [
           ...prev,
-          { id: nextId(), role: "assistant", content: `🔔 Erinnerung: ${r.text}` },
+          { id: nextId(), role: "assistant", content: `Erinnerung: ${r.text}` },
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("Jon — Erinnerung", { body: r.text });
@@ -795,7 +799,7 @@ export default function App() {
         const fund = b.treffer;
         setEntries((prev) => [
           ...prev,
-          { id: nextId(), role: "assistant", content: `🔔 Es ist so weit: **${b.frage}**\n\n${fund?.beweis ?? ""}${fund?.quelle ? `\n\nQuelle: ${fund.quelle}` : ""}` },
+          { id: nextId(), role: "assistant", content: `Es ist so weit: **${b.frage}**\n\n${fund?.beweis ?? ""}${fund?.quelle ? `\n\nQuelle: ${fund.quelle}` : ""}` },
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("Jon — Beobachtung eingetreten", { body: b.frage });
@@ -808,7 +812,7 @@ export default function App() {
           {
             id: nextId(),
             role: "assistant",
-            content: `📅 Termin jetzt: **${e.title}** (${e.time} Uhr)`,
+            content: `Termin jetzt: **${e.title}** (${e.time} Uhr)`,
           },
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
@@ -822,7 +826,7 @@ export default function App() {
           {
             id: nextId(),
             role: "assistant",
-            content: `🌙 Dream Mode — „${t.task}"\n\n${t.result ?? ""}`,
+            content: `Dream Mode — „${t.task}"\n\n${t.result ?? ""}`,
           },
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
@@ -836,7 +840,7 @@ export default function App() {
           {
             id: nextId(),
             role: "assistant",
-            content: `🤖 Automation erledigt — „${t.task}"\n\n${t.last_result ?? ""}`,
+            content: `Automation erledigt — „${t.task}"\n\n${t.last_result ?? ""}`,
           },
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
@@ -850,7 +854,7 @@ export default function App() {
           {
             id: nextId(),
             role: "assistant",
-            content: `👀 Datei-Wächter (${w.path})\n\n${w.last_result ?? ""}`,
+            content: `Datei-Wächter (${w.path})\n\n${w.last_result ?? ""}`,
           },
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
@@ -867,13 +871,13 @@ export default function App() {
             id: nextId(),
             role: "assistant",
             content:
-              `🎁 Eine Zeitkapsel ist angekommen!\n\nDu hast sie am ${written} ` +
+              `Eine Zeitkapsel ist angekommen!\n\nDu hast sie am ${written} ` +
               `versiegelt, und ich habe sie seitdem gehütet. Hier ist sie:\n\n` +
               `„${c.text ?? ""}"${mood}`,
           },
         ]);
         if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("Jon — Zeitkapsel geöffnet 🎁", {
+          new Notification("Jon — Zeitkapsel geöffnet", {
             body: `Deine Nachricht vom ${written} ist da.`,
           });
         }
@@ -896,7 +900,7 @@ export default function App() {
         lastScreenRef.current = obs;
         setEntries((prev) => [
           ...prev,
-          { id: nextId(), role: "assistant", content: `👁️ ${obs}` },
+          { id: nextId(), role: "assistant", content: `${obs}` },
         ]);
       }
     };
@@ -1053,6 +1057,98 @@ export default function App() {
     setEntries([]);
   };
 
+  const [ansichtDatei, setAnsichtDatei] = useState<JonDatei | null>(null);
+  const sendRef = useRef<(text: string) => void>(() => {});
+
+  useEffect(() => {
+    const senden = (e: Event) => {
+      const text = String((e as CustomEvent<string>).detail || "").trim();
+      if (text) sendRef.current(text);
+    };
+    const ansehen = (e: Event) => {
+      const wert = (e as CustomEvent<JonDatei | string>).detail;
+      if (!wert) return;
+      if (typeof wert === "string") void dateiKarte(wert).then(setAnsichtDatei).catch(() => {});
+      else setAnsichtDatei(wert);
+    };
+    window.addEventListener("jon-senden", senden);
+    window.addEventListener("jon-datei-ansehen", ansehen);
+    return () => {
+      window.removeEventListener("jon-senden", senden);
+      window.removeEventListener("jon-datei-ansehen", ansehen);
+    };
+  }, []);
+
+  const allesSchliessen = () => {
+    setHarnessOpen(false);
+    setMediaOpen(false);
+    setCodeOpen(false);
+    setInboxOpen(false);
+    setHumanizerOpen(false);
+    setDownloaderOpen(false);
+    setPlayerOpen(false);
+    setShowOpen(false);
+    setJournalOpen(false);
+    setCleanupOpen(false);
+    setRecipeOpen(false);
+    setStudioOpen(false);
+    setFlashcardsOpen(false);
+    setDenkenOpen(false);
+    setExplainOpen(false);
+    setPrivateBrowserOpen(false);
+    setNotesOpen(false);
+    setGamesOpen(null);
+    setWerkzeugeOpen(null);
+    setVaultOpen(false);
+    setSearchOpen(false);
+    setToolsMenuOpen(false);
+    setPetConfigOpen(false);
+    setPhoneOpen(false);
+    setClipboardOpen(false);
+    setProfileOpen(false);
+    setFriendsOpen(false);
+    setCalendarOpen(false);
+    setMapsOpen(false);
+    setDeepOpen(false);
+    setAccountsTab(null);
+    setNavOpen(false);
+    setAnsichtDatei(null);
+  };
+
+  const steuern = (befehl: Steuerung) => {
+    if (befehl.aktion === "schliessen") {
+      const schliessen: Record<string, () => void> = {
+        harness: () => setHarnessOpen(false),
+        medien: () => setMediaOpen(false),
+        fachteam: () => setWerkzeugeOpen(null),
+        beobachten: () => setWerkzeugeOpen(null),
+        support: () => setWerkzeugeOpen(null),
+        werkzeuge: () => setWerkzeugeOpen(null),
+        handy: () => setWerkzeugeOpen(null),
+        player: () => setPlayerOpen(false),
+        profil: () => setProfileOpen(false),
+        minijon: () => setPetConfigOpen(false),
+        verlauf: () => setNavOpen(false),
+        datei: () => setAnsichtDatei(null),
+        maps: () => setMapsOpen(false),
+        studio: () => setStudioOpen(false),
+        deep: () => setDeepOpen(false),
+        code: () => setCodeOpen(false),
+        kalender: () => setCalendarOpen(false),
+        notizen: () => setNotesOpen(false),
+        tresor: () => setVaultOpen(false),
+        einstellungen: () => setToolsMenuOpen(false),
+      };
+      (schliessen[befehl.ziel] ?? allesSchliessen)();
+      return;
+    }
+    if (befehl.ziel === "datei" && befehl.datei) {
+      setAnsichtDatei(befehl.datei);
+      return;
+    }
+    oberflaecheOeffnen(befehl.ziel);
+  };
+
   const removeConversation = async (id: string) => {
     await deleteConversation(id);
     if (id === activeId) startNew();
@@ -1111,7 +1207,8 @@ export default function App() {
       {
         onTool: (evt) => {
           handleApprovalEvent(evt);
-          if (evt.oeffne) oberflaecheOeffnen(evt.oeffne);
+          if (evt.steuerung) steuern(evt.steuerung);
+          else if (evt.oeffne) oberflaecheOeffnen(evt.oeffne);
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistantEntry.id) return e;
@@ -1205,6 +1302,19 @@ export default function App() {
       skills: () => setAccountsTab("skills"),
       einstellungen: () => setToolsMenuOpen(true),
       diagnose: () => setAccountsTab("accounts"),
+      harness: () => setHarnessOpen(true),
+      medien: () => setMediaOpen(true),
+      fachteam: () => setWerkzeugeOpen("agents"),
+      beobachten: () => setWerkzeugeOpen("beobachten"),
+      support: () => setWerkzeugeOpen("support"),
+      player: () => setPlayerOpen(true),
+      premium: () => window.dispatchEvent(new CustomEvent("jon-premium-oeffnen")),
+      profil: () => setProfileOpen(true),
+      minijon: () => setPetConfigOpen(true),
+      verlauf: () => setNavOpen(true),
+      neuer_chat: () => startNew(),
+      datei: () => {},
+      alles_schliessen: () => allesSchliessen(),
     };
     aktionen[ziel]?.();
   };
@@ -1424,12 +1534,12 @@ export default function App() {
       return;
     }
     if (command === "/tasks" || command === "/automationen") {
-      void runSlashJob(text, "🤖 Lade Automationen …", async () => {
+      void runSlashJob(text, "Lade Automationen …", async () => {
         const tasks = await getTasks();
         if (!tasks.length)
           return "Keine Automationen geplant. Sag mir einfach: „Räum jeden Tag um 18 Uhr meinen Downloads-Ordner auf“ — ich erledige das dann wirklich.";
         return (
-          "**🤖 Deine Automationen:**\n\n" +
+          "**Deine Automationen:**\n\n" +
           tasks
             .map(
               (t) =>
@@ -1457,15 +1567,15 @@ export default function App() {
     if (command === "/meeting" || command === "/mitschrift") {
       const st = await meetingStatus();
       if (st.running) {
-        void runSlashJob(text, "📝 Beende Mitschrift und fasse zusammen …", async () => {
+        void runSlashJob(text, "Beende Mitschrift und fasse zusammen …", async () => {
           const r = await meetingStop();
           if (r.error) return `Das ging nicht: ${r.error}`;
           const todos =
             r.todos && r.todos.length
-              ? "\n\n**✅ In den Kalender eingetragen:**\n" +
+              ? "\n\n**In den Kalender eingetragen:**\n" +
                 r.todos.map((t: string) => `- ${t}`).join("\n")
               : "";
-          return `**📝 Meeting-Zusammenfassung**\n\n${r.zusammenfassung || "—"}${todos}`;
+          return `**Meeting-Zusammenfassung**\n\n${r.zusammenfassung || "—"}${todos}`;
         });
       } else {
         const r = await meetingStart();
@@ -1482,7 +1592,7 @@ export default function App() {
             {
               id: nextId(),
               role: "assistant",
-              content: `🔴 Mitschrift läuft (Mikro: ${r.mikrofon}). Ich höre System-Ton und dein Mikrofon mit. Schreib nochmal \`/meeting\`, um zu stoppen und eine Zusammenfassung mit To-dos zu bekommen.`,
+              content: `Mitschrift läuft (Mikro: ${r.mikrofon}). Ich höre System-Ton und dein Mikrofon mit. Schreib nochmal \`/meeting\`, um zu stoppen und eine Zusammenfassung mit To-dos zu bekommen.`,
             },
           ]);
         }
@@ -1490,7 +1600,7 @@ export default function App() {
       return;
     }
     if (command === "/fokus" || command === "/focus" || command === "/stats") {
-      void runSlashJob(text, "📊 Werte deine App-Zeiten aus …", async () => {
+      void runSlashJob(text, "Werte deine App-Zeiten aus …", async () => {
         const r = await getAppUsage(7);
         if (!r.apps.length)
           return "Noch keine App-Zeiten erfasst. Aktiviere „App-Nutzung erfassen“ im Zahnrad-Menü — dann sehe ich, wo deine Zeit hingeht (alles bleibt lokal).";
@@ -1504,17 +1614,17 @@ export default function App() {
           })
           .join("\n");
         return (
-          `**📊 Deine App-Zeiten (letzte 7 Tage)**\n\nGesamt: ${fmt(r.gesamt_minuten)}\n\n${bars}\n\n` +
+          `**Deine App-Zeiten (letzte 7 Tage)**\n\nGesamt: ${fmt(r.gesamt_minuten)}\n\n${bars}\n\n` +
           "_Nur lokal erfasst. Abschaltbar im Zahnrad-Menü._"
         );
       });
       return;
     }
     if (command === "/kalender" || command === "/calendar") {
-      void runSlashJob(text, "📅 Lade Kalender …", async () => {
+      void runSlashJob(text, "Lade Kalender …", async () => {
         const events = await getCalendar("", 7);
         if (!events.length)
-          return "Die nächsten 7 Tage sind frei. 📅 öffnet den Kalender — oder sag mir einfach: „Trag Freitag 15 Uhr Zahnarzt ein.“";
+          return "Die nächsten 7 Tage sind frei. öffnet den Kalender — oder sag mir einfach: „Trag Freitag 15 Uhr Zahnarzt ein.“";
         const byDay = new Map<string, typeof events>();
         for (const e of events) {
           const list = byDay.get(e.datum) ?? [];
@@ -1522,13 +1632,13 @@ export default function App() {
           byDay.set(e.datum, list);
         }
         const icons: Record<string, string> = {
-          jon: "🟡",
-          automation: "🤖",
-          erinnerung: "🔔",
-          ics: "🔵",
+          jon: "Jon",
+          automation: "Automation",
+          erinnerung: "Erinnerung",
+          ics: "Kalender",
         };
         return (
-          "**📅 Deine nächsten 7 Tage:**\n\n" +
+          "**Deine nächsten 7 Tage:**\n\n" +
           [...byDay.entries()]
             .map(
               ([day, list]) =>
@@ -1536,7 +1646,7 @@ export default function App() {
                 list
                   .map(
                     (e) =>
-                      `- ${icons[e.quelle] ?? "▪️"} ${e.zeit ? `${e.zeit} · ` : ""}${e.erledigt ? `~~${e.titel}~~` : e.titel}`
+                      `- ${e.zeit ? `${e.zeit} · ` : ""}${e.erledigt ? `~~${e.titel}~~` : e.titel}${icons[e.quelle] ? ` _(${icons[e.quelle]})_` : ""}`
                   )
                   .join("\n")
             )
@@ -1546,22 +1656,22 @@ export default function App() {
       return;
     }
     if (command === "/undo") {
-      void runSlashJob(text, "↩️ Stelle wieder her …", async () => {
+      void runSlashJob(text, "Stelle wieder her …", async () => {
         const r = await undoTrash();
         return r.error
           ? `Das ging nicht: ${r.error}`
-          : `↩️ Wiederhergestellt: \`${r.restored}\``;
+          : `Wiederhergestellt: \`${r.restored}\``;
       });
       return;
     }
     if (command === "/papierkorb" || command === "/trash") {
-      void runSlashJob(text, "🗑️ Lade Papierkorb …", async () => {
+      void runSlashJob(text, "Lade Papierkorb …", async () => {
         const items = await getTrash();
         trashListRef.current = items.map((e) => e.id);
         if (!items.length)
           return "Der Papierkorb ist leer. Gelöschte, überschriebene und verschobene Dateien landen hier und bleiben 30 Tage erhalten.";
         return (
-          "**🗑️ Papierkorb** (wird nach 30 Tagen geleert):\n\n" +
+          "**Papierkorb** (wird nach 30 Tagen geleert):\n\n" +
           items
             .slice(0, 20)
             .map(
@@ -1595,7 +1705,7 @@ export default function App() {
         const res = await fetch(`${BASE}/update`, { method: "POST" });
         if (res.status === 405 || res.status === 404) {
           appendTo(
-            "\n⚠️ Dein Backend läuft noch mit einer älteren Version und kennt " +
+            "\nDein Backend läuft noch mit einer älteren Version und kennt " +
               "das Update noch nicht.\nStarte Jon einmal neu (start-jon.bat) — " +
               "danach funktioniert /update.\nAuf dem Raspberry Pi: `sudo " +
               "systemctl restart jon`."
@@ -1630,25 +1740,25 @@ export default function App() {
           const api = window.jon;
           if (!api?.installUpdate) {
             appendTo(
-              `\nℹ️ Starte das Installationsprogramm selbst: ${installer[1].trim()}\n`
+              `\nStarte das Installationsprogramm selbst: ${installer[1].trim()}\n`
             );
             return;
           }
           const result = await api.installUpdate(installer[1].trim());
           if (!result?.ok) {
-            appendTo(`\n⚠️ ${result?.error ?? "Installation nicht gestartet."}\n`);
+            appendTo(`\n${result?.error ?? "Installation nicht gestartet."}\n`);
           }
         }
       } catch (err) {
         appendTo(
-          `\n❌ Fehler: ${err instanceof Error ? err.message : String(err)}`
+          `\nFehler: ${err instanceof Error ? err.message : String(err)}`
         );
       }
       return;
     }
     const arg = text.trim().slice(text.trim().indexOf(" ") + 1).trim();
     if (command.startsWith("/restore") || command.startsWith("/wiederherstellen")) {
-      void runSlashJob(text, "↩️ Stelle wieder her …", async () => {
+      void runSlashJob(text, "Stelle wieder her …", async () => {
         const nr = parseInt(arg, 10);
         const id = trashListRef.current[nr - 1];
         if (!id)
@@ -1656,12 +1766,12 @@ export default function App() {
         const r = await restoreTrash(id);
         return r.error
           ? `Das ging nicht: ${r.error}`
-          : `↩️ Wiederhergestellt: \`${r.restored}\``;
+          : `Wiederhergestellt: \`${r.restored}\``;
       });
       return;
     }
     if (command.startsWith("/log")) {
-      void runSlashJob(text, "📜 Lade Aktionsprotokoll …", async () => {
+      void runSlashJob(text, "Lade Aktionsprotokoll …", async () => {
         const known = ["app", "mini-jon", "telegram", "automation", "watcher"];
         let source = "";
         let day = "";
@@ -1679,18 +1789,18 @@ export default function App() {
             ? "Keine Aktionen im Protokoll für diesen Filter."
             : "Das Aktionsprotokoll ist noch leer.";
         const icons: Record<string, string> = {
-          app: "💻",
-          "mini-jon": "🙂",
-          telegram: "✈️",
-          automation: "🤖",
-          watcher: "👀",
+          app: "App",
+          "mini-jon": "Mini Jon",
+          telegram: "Telegram",
+          automation: "Automation",
+          watcher: "Wächter",
         };
         return (
-          "**📜 Aktionsprotokoll** (neueste zuerst):\n\n" +
+          "**Aktionsprotokoll** (neueste zuerst):\n\n" +
           actions
             .map(
               (a) =>
-                `- ${a.ok ? "✅" : "❌"} ${icons[a.source] ?? "▪️"} \`${a.tool}\` · ${a.created_at.replace("T", " ").slice(0, 16)}${a.args ? `\n  ${a.args.slice(0, 110)}` : ""}`
+                `- ${a.ok ? "✓" : "✕"} ${icons[a.source] ?? a.source} · \`${a.tool}\` · ${a.created_at.replace("T", " ").slice(0, 16)}${a.args ? `\n  ${a.args.slice(0, 110)}` : ""}`
             )
             .join("\n") +
           "\n\nFilter: `/log telegram`, `/log automation heute`, `/log gestern`"
@@ -1699,28 +1809,28 @@ export default function App() {
       return;
     }
     if (command.startsWith("/webcam") || command.startsWith("/kamera")) {
-      void runSlashJob(text, "📷 Jon schaut durch die Webcam …", async () => {
+      void runSlashJob(text, "Jon schaut durch die Webcam …", async () => {
         const question =
           command === "/webcam" || command === "/kamera" ? "" : arg;
         const r = await observeWebcam(question);
         if (r.error) return `Das hat nicht geklappt: ${r.error}`;
-        return `📷 ${r.beschreibung ?? ""}`;
+        return `${r.beschreibung ?? ""}`;
       });
       return;
     }
     if (command.startsWith("/team")) {
-      void runSlashJob(text, "🧑‍🤝‍🧑 KI-Team berät …", async () => {
+      void runSlashJob(text, "KI-Team berät …", async () => {
         if (!arg || command === "/team") return "Nutzung: /team <Frage oder Thema>";
         const r = await runTeam(arg, providerRef.current, modelRef.current);
         const voices = r.voices
           .map((v) => `${v.emoji} **${v.role} (${v.name}):** ${v.text}`)
           .join("\n\n");
-        return `${voices}\n\n---\n\n**🧭 Jons Empfehlung:**\n\n${r.recommendation}`;
+        return `${voices}\n\n---\n\n**Jons Empfehlung:**\n\n${r.recommendation}`;
       });
       return;
     }
     if (command.startsWith("/simulate") || command.startsWith("/simuliere")) {
-      void runSlashJob(text, "🔮 Jon simuliert …", async () => {
+      void runSlashJob(text, "Jon simuliert …", async () => {
         if (!arg || command === "/simulate" || command === "/simuliere")
           return "Nutzung: /simulate <Was wäre wenn …>";
         const r = await runSimulation(arg, providerRef.current, modelRef.current);
@@ -1729,12 +1839,12 @@ export default function App() {
       return;
     }
     if (command === "/snapshots" || command === "/zeitreise") {
-      void runSlashJob(text, "⏳ Lade Snapshots …", async () => {
+      void runSlashJob(text, "Lade Snapshots …", async () => {
         const snaps = await listSnapshots();
         if (!snaps.length)
           return "Noch keine Snapshots. Erstelle einen mit `/snapshot <Name>` oder bitte Jon darum.";
         return (
-          "**⏳ Deine Zeitreise-Snapshots:**\n\n" +
+          "**Deine Zeitreise-Snapshots:**\n\n" +
           snaps
             .map(
               (s) =>
@@ -1750,31 +1860,31 @@ export default function App() {
       return;
     }
     if (command.startsWith("/snapshot")) {
-      void runSlashJob(text, "⏳ Speichere Snapshot …", async () => {
+      void runSlashJob(text, "Speichere Snapshot …", async () => {
         const label = arg || `Snapshot ${new Date().toLocaleString("de-DE")}`;
         const s = await createSnapshot(label);
-        return `⏳ Snapshot **${s.label}** gespeichert. Mit \`/snapshots\` siehst du alle.`;
+        return `Snapshot **${s.label}** gespeichert. Mit \`/snapshots\` siehst du alle.`;
       });
       return;
     }
     if (command === "/dreams" || command === "/traeume") {
-      void runSlashJob(text, "🌙 Jon arbeitet an deinen Dream-Aufgaben …", async () => {
+      void runSlashJob(text, "Jon arbeitet an deinen Dream-Aufgaben …", async () => {
         const r = await runDreams();
         if (!r.started) return "Es gibt gerade keine offenen Dream-Aufgaben.";
         const reports = await getDreamReports();
         if (!reports.length) return "Fertig, aber es gab nichts zu berichten.";
         return (
-          "**🌙 Ergebnisse aus dem Dream Mode:**\n\n" +
+          "**Ergebnisse aus dem Dream Mode:**\n\n" +
           reports.map((t) => `**${t.task}**\n\n${t.result}`).join("\n\n---\n\n")
         );
       });
       return;
     }
     if (command.startsWith("/dream") || command.startsWith("/traum")) {
-      void runSlashJob(text, "🌙 Lege Dream-Aufgabe an …", async () => {
+      void runSlashJob(text, "Lege Dream-Aufgabe an …", async () => {
         if (!arg) return "Nutzung: /dream <Aufgabe, die Jon im Hintergrund erledigen soll>";
         await addDream(arg);
-        return `🌙 Notiert. Ich arbeite daran, wenn du weg bist – oder starte es sofort mit \`/dreams\`.`;
+        return `Notiert. Ich arbeite daran, wenn du weg bist – oder starte es sofort mit \`/dreams\`.`;
       });
       return;
     }
@@ -1792,7 +1902,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
       id: nextId(),
       role: "user",
       content: text,
-      attachments: attachments.map((a) => ({ name: a.name, kind: a.kind })),
+      attachments: attachments.map((a) => ({ name: a.name, kind: a.kind, pfad: a.pfad })),
       attachmentText,
     };
     const assistantEntry: ChatEntry = {
@@ -1857,7 +1967,8 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
           ),
         onTool: (evt) => {
           handleApprovalEvent(evt);
-          if (evt.oeffne) oberflaecheOeffnen(evt.oeffne);
+          if (evt.steuerung) steuern(evt.steuerung);
+          else if (evt.oeffne) oberflaecheOeffnen(evt.oeffne);
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistantEntry.id) return e;
@@ -1960,7 +2071,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                     title="Mini Jon auf dem Bildschirm ein/aus (Strg+Alt+K)"
                     className="flex items-center gap-1.5 pl-2.5 pr-2 h-7 hover:bg-gold/20 transition-colors"
                   >
-                    <span className="text-[13px] leading-none">🙂</span>
+                    <span className="text-[13px] leading-none"><Symbol zeichen="🙂" /></span>
                     <span className="text-[11px] font-medium">{t("header_mini_jon")}</span>
                   </button>
                   <button
@@ -1968,7 +2079,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                     title="Mini Jon anpassen"
                     className="flex items-center justify-center w-7 h-7 border-l border-gold/30 hover:bg-gold/20 transition-colors"
                   >
-                    <span className="text-[12px] leading-none">🎨</span>
+                    <span className="text-[12px] leading-none"><Symbol zeichen="🎨" /></span>
                   </button>
                 </div>
               )}
@@ -1982,7 +2093,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                       : "border-white/10 bg-white/5 text-white/40 hover:text-white/70"
                   }`}
                 >
-                  <span className="text-[12px] leading-none">🧰</span>
+                  <span className="text-[12px] leading-none"><Symbol zeichen="🧰" /></span>
                   <span className="hidden md:inline text-[11px] font-medium">
                     {t("header_tools")}
                   </span>
@@ -2075,7 +2186,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                               onClick={() => { it.act(); setToolsMenuOpen(false); }}
                               className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-white/75 hover:bg-white/10 hover:text-white transition-colors text-left"
                             >
-                              <span className="text-[13px] w-5 text-center">{it.icon}</span>
+                              <span className="text-[13px] w-5 text-center"><Symbol zeichen={it.icon} /></span>
                               <span className="text-[12px] flex-1">{it.label}</span>
                               {it.badge ? (
                                 <span className="min-w-[15px] h-[15px] px-1 rounded-full bg-gold text-black text-[9px] font-bold flex items-center justify-center">
@@ -2338,6 +2449,11 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
         />
       )}
       {petConfigOpen && <PetConfig onClose={() => setPetConfigOpen(false)} />}
+      {ansichtDatei && (
+        <Suspense fallback={null}>
+          <DateiAnsicht key={ansichtDatei.path} datei={ansichtDatei} onClose={() => setAnsichtDatei(null)} />
+        </Suspense>
+      )}
       {phoneOpen && <PhoneCalls onClose={() => setPhoneOpen(false)} />}
       {shareOpen && (
         <OllamaShareModal
@@ -2379,7 +2495,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
       )}
       {update && (
         <div className="fixed bottom-4 right-4 z-40 glass rounded-2xl border border-gold/30 px-4 py-3 flex items-center gap-3 max-w-[340px]">
-          <span className="text-xl">🚀</span>
+          <span className="text-xl"><Symbol zeichen="🚀" /></span>
           <div className="flex-1 min-w-0">
             <div className="text-[13px] text-white/90">
               Version {update.latest} ist da

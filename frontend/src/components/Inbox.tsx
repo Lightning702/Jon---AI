@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useCallback, useEffect, useState } from "react";
 import {
   InboxAction,
@@ -139,7 +140,7 @@ export default function Inbox({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2 px-4 h-14 border-b border-white/10 shrink-0">
-          <span className="text-[16px]">📥</span>
+          <span className="text-[16px]"><Symbol zeichen="📥" /></span>
           <div className="flex-1 min-w-0">
             <div className="text-[14px] font-semibold text-white/90">
               Intelligente Inbox
@@ -219,7 +220,7 @@ export default function Inbox({
                   className="w-full text-left px-3 py-2.5 flex items-start gap-2.5"
                 >
                   <span className="text-[15px] leading-5">
-                    {ICON[item.kategorie] ?? "•"}
+                    <Symbol zeichen={ICON[item.kategorie] ?? "•"} />
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="flex items-center gap-2">
@@ -253,19 +254,19 @@ export default function Inbox({
                         {found.zusammenfassung && <div>{found.zusammenfassung}</div>}
                         {(found.datum || found.zeit) && (
                           <div className="text-white/45">
-                            🗓️ {found.datum} {found.zeit}
+                            <Symbol zeichen="🗓️" /> {found.datum} {found.zeit}
                           </div>
                         )}
                         {found.deadline && (
-                          <div className="text-white/45">⏳ Deadline {found.deadline}</div>
+                          <div className="text-white/45"><Symbol zeichen="⏳" /> Deadline {found.deadline}</div>
                         )}
                         {found.personen.length > 0 && (
                           <div className="text-white/45">
-                            👥 {found.personen.join(", ")}
+                            <Symbol zeichen="👥" /> {found.personen.join(", ")}
                           </div>
                         )}
                         {found.projekt && (
-                          <div className="text-white/45">📁 {found.projekt}</div>
+                          <div className="text-white/45"><Symbol zeichen="📁" /> {found.projekt}</div>
                         )}
                       </div>
                     )}

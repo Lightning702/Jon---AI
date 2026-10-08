@@ -49,10 +49,19 @@ FEATURES = {
     "sync": ("Cloud-Sync & Backup", "Gedächtnis und Einstellungen verschlüsselt sichern und auf jedes Gerät holen"),
     "automatik": ("Alltags-Automatisierung", "Inbox, Wochenbericht und wiederkehrende Abläufe"),
     "spiele": ("Alle Spiele", "Alle Spiele und Welten statt nur dem ersten"),
+    "steuerung": ("App-Steuerung", "Jon öffnet, schließt und bedient jeden Bereich seiner App auf Zuruf"),
+    "unbegrenzt": ("Ohne Grenzen", "Unbegrenzt viele Suchen, Werkzeugschritte, Browser- und Harness-Schritte"),
 }
 KONTINGENT = {"harness": 3, "fachteam": 1}
 WERKZEUGE = {"team": "fachteam", "deep_learning": "recherche", "create_image": "studio", "create_pptx": "studio", "youtube_transkript": "stimmen", "understand_screen": "bildschirm", "recall_screen": "bildschirm", "ausloeser": "automatik"}
 FREIE_SPIELE = {"blockwelt"}
+
+
+def unbegrenzt() -> bool:
+    try:
+        return get_premium().premium()
+    except Exception:
+        return False
 
 
 def werkzeug_feature(name: str, args: dict | None = None) -> str:

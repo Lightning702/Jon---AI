@@ -10,7 +10,7 @@ const ICONS: Record<string, typeof Code2> = { harness: Code2, fachteam: Users, f
 const KOPF: Record<string, { titel: string; text: string; icon: typeof Code2 }> = {
   standard: { titel: "Jon Standard", text: "Kostenlos: Chat mit deinen Modellen, Werkzeuge, Gedächtnis, Kalender und MiniJon. Mit Premium schaltest du alles frei.", icon: Sparkles },
   premium: { titel: "Jon Premium", text: "Alle Premium-Funktionen sind freigeschaltet. Danke, dass du Jon unterstützt!", icon: Gem },
-  admin: { titel: "Admin", text: "Alles ist unbegrenzt freigeschaltet. In der Team-Zentrale steuerst du Codes, Team, Beta-Schalter, Nutzung und deinen Pi.", icon: Crown },
+  admin: { titel: "Admin", text: "Alles ist unbegrenzt freigeschaltet. In der Team-Zentrale steuerst du Codes, Team, Beta-Schalter, Nutzung und Server.", icon: Crown },
   entwickler: { titel: "Entwickler", text: "Alles ist unbegrenzt freigeschaltet und gilt für immer. In der Team-Zentrale schreibst du dem Admin, meldest Fehler, teilst Skills und siehst Jon unter die Haube.", icon: Wrench },
 };
 const SANFT = { duration: 0.2, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] };
@@ -150,7 +150,7 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
         {fehler && <div className="pm-fehler pm-ein" role="alert">{fehler}</div>}
         {meldung && <div className="pm-ok pm-ein" role="status"><Check size={15} />{meldung}</div>}
 
-        {status?.team ? <TeamZentrale status={status} onFehler={setFehler} onNeuLaden={() => void premiumLaden()} /> : stufe === "admin" && <div className="pm-hinweis pm-ein">Codes erzeugst du mit einer Admin-Lizenz von deinem Pi. Melde dich dafür einmal unten unter „Lizenz oder Code eingeben“ mit dem Admin-Code an.</div>}
+        {status?.team ? <TeamZentrale status={status} onFehler={setFehler} onNeuLaden={() => void premiumLaden()} /> : stufe === "admin" && <div className="pm-hinweis pm-ein">Codes erzeugst du mit einer Admin-Lizenz von FelWorks. Melde dich dafür einmal unten unter „Lizenz oder Code eingeben“ mit dem Admin-Code an.</div>}
 
         <section className="pm-features" aria-label="Funktionen">
           {status?.features.map((f, i) => {
@@ -203,7 +203,7 @@ export default function PremiumDialog({ status, anlass, onClose }: { status: Pre
         </> : <div className="pm-aktionen">
           {stufe === "premium" && status?.abo && <button disabled={!!busy} onClick={() => void oeffnen("/premium/portal")}>{busy === "/premium/portal" ? <Loader2 size={14} className="pm-dreh" /> : <ExternalLink size={14} />}Abo, Rechnungen & Zahlungsart</button>}
           {status?.token && status.abo && <button onClick={() => void navigator.clipboard?.writeText(status.token).then(() => setMeldung("Lizenzschlüssel kopiert. Auf einem weiteren Gerät unter „Lizenz eingeben“ einfügen (bis zu drei Geräte)."))}><Copy size={14} />Lizenzschlüssel kopieren</button>}
-          <button className="pm-leise" disabled={!!busy} onClick={() => void handeln("ab", () => premiumAnfrage("/premium/abmelden", {}), "Abgemeldet. Jon läuft jetzt als Standard.")}><LogOut size={14} />Abmelden</button>
+          <button className="pm-leise" disabled={!!busy} onClick={() => {if (confirm(stufe === "admin" || stufe === "entwickler" ? "Wirklich abmelden? Jon läuft danach als Standard. Mit deinem Code kannst du dich jederzeit wieder anmelden." : "Wirklich abmelden? Jon läuft danach als Standard.")) void handeln("ab", () => premiumAnfrage("/premium/abmelden", {}), "Abgemeldet. Jon läuft jetzt als Standard.");}}><LogOut size={14} />{stufe === "admin" ? "Als Admin abmelden" : stufe === "entwickler" ? "Als Entwickler abmelden" : "Abmelden"}</button>
         </div>}
       </footer>
     </motion.div>

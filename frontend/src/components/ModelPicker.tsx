@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import type { ProviderStatus } from "../lib/api";
 
 interface Props {
@@ -52,7 +53,7 @@ export default function ModelPicker({
           title={`${active?.label || "Freigegebener Server"} — der Besitzer gibt das Modell vor`}
           className="glass rounded-lg px-2 md:px-3 py-1.5 text-sm text-white/60 min-w-0 max-w-[38vw] md:max-w-[240px] truncate flex items-center gap-1.5"
         >
-          <span className="text-gold/70">🔒</span>
+          <span className="text-gold/70"><Symbol zeichen="🔒" /></span>
           <span className="truncate">{model || models[0] || "—"}</span>
         </div>
       ) : (

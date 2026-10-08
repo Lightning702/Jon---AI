@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useMemo, useState } from "react";
 import { AudioLines, BookOpen, ChevronRight, Code2, Eye, LifeBuoy, Search, Users, Wrench, X } from "lucide-react";
 import { SkillKurz, Werkzeug, WerkzeugGruppe, werkzeuge } from "../lib/api";
@@ -149,7 +150,7 @@ export default function ToolsModal({
               <div className="wz-nav-titel">Werkzeug-Gruppen</div>
               {gruppen.map((g) => (
                 <button key={g.id} onClick={() => setAktiv(g.id)} className={"wz-nav-gruppe " + (g.id === aktiv ? "an" : "")}>
-                  <span className="wz-nav-symbol">{g.symbol}</span>
+                  <span className="wz-nav-symbol"><Symbol zeichen={g.symbol} /></span>
                   <span className="wz-nav-name">{g.name}</span>
                   <span className="wz-nav-zahl">{g.anzahl}</span>
                 </button>
@@ -171,7 +172,7 @@ export default function ToolsModal({
 
             {!sucht && !spezial && gruppe && (
               <div className="wz-gruppen-kopf">
-                <span className="wz-gruppen-symbol">{gruppe.symbol}</span>
+                <span className="wz-gruppen-symbol"><Symbol zeichen={gruppe.symbol} /></span>
                 <div><h3>{gruppe.name}</h3><p>{gruppe.anzahl} {gruppe.anzahl === 1 ? "Werkzeug" : "Werkzeuge"}</p></div>
               </div>
             )}

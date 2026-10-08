@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import {
   RoutineSuggestion,
@@ -46,7 +47,7 @@ export default function RoutineBanner() {
 
   return (
     <div className="mx-auto max-w-2xl mb-3 px-4 py-3 rounded-xl border border-gold/25 bg-gold/10 flex items-center gap-3">
-      <span className="text-lg shrink-0">🔁</span>
+      <span className="text-lg shrink-0"><Symbol zeichen="🔁" /></span>
       <div className="flex-1 text-[12.5px] text-white/85 leading-snug">
         {suggestion.text}
       </div>

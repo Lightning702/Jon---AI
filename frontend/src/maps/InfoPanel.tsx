@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -104,7 +105,7 @@ export default function InfoPanel({
       <div className="jm-info-body jm-scroll">
         <div className="jm-info-section">
           <div className="jm-info-label">
-            <span>📰</span> Top News
+            <span><Symbol zeichen="📰" /></span> Top News
           </div>
           {busy && news.length === 0 && (
             <div className="jm-news-list">
@@ -150,7 +151,7 @@ export default function InfoPanel({
 
         <div className="jm-info-section">
           <div className="jm-info-label">
-            <span>{weatherIcon(weather?.code ?? null, weather?.tag ?? true)}</span>{" "}
+            <span><Symbol zeichen={weatherIcon(weather?.code ?? null, weather?.tag ?? true)} /></span>{" "}
             Wetter
           </div>
           {weather ? (
@@ -172,26 +173,26 @@ export default function InfoPanel({
                   </div>
                 </div>
                 <div className="jm-weather-icon">
-                  {weatherIcon(weather.code, weather.tag)}
+                  <Symbol zeichen={weatherIcon(weather.code, weather.tag)} />
                 </div>
               </div>
               <div className="jm-weather-row">
                 <span>
-                  🌡️ Gefühlt{" "}
+                  <Symbol zeichen="🌡️" /> Gefühlt{" "}
                   {weather.gefuehlt == null
                     ? "–"
                     : `${Math.round(weather.gefuehlt)}°`}
                 </span>
                 <span className="jm-weather-sep" />
                 <span>
-                  💧 Regen{" "}
+                  <Symbol zeichen="💧" /> Regen{" "}
                   {weather.regen_prozent == null
                     ? "–"
                     : `${Math.round(weather.regen_prozent)} %`}
                 </span>
                 <span className="jm-weather-sep" />
                 <span>
-                  🌬️ Wind{" "}
+                  <Symbol zeichen="🌬️" /> Wind{" "}
                   {weather.wind_kmh == null
                     ? "–"
                     : `${Math.round(weather.wind_kmh)} km/h`}

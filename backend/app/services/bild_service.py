@@ -74,6 +74,9 @@ async def ansehen(pfad: str, frage: str = "") -> dict:
         or modell
         or settings.jon_model
     )
+    from app.services.aufgaben_modelle import sehen_wahl
+
+    anbieter_name, sicht = sehen_wahl(anbieter_name, sicht)
     anbieter = get_registry().all().get(anbieter_name)
     if not isinstance(anbieter, OpenAICompatibleProvider):
         return {

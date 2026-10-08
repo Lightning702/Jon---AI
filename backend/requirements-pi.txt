@@ -11,6 +11,7 @@ httpx>=0.28
 SpeechRecognition>=3.17
 audioop-lts>=0.2; python_version >= "3.13"
 pypdf>=5.0
+pypdfium2>=4.30
 edge-tts>=6.1
 cryptography>=43.0
 argon2-cffi>=25.1

@@ -203,6 +203,8 @@ SAFE_TOOLS = {
     "calendar_list",
     "calendar_search",
     "read_pptx",
+    "read_docx",
+    "datei_kommentare",
     "maps",
     "deep_learning",
     "create_image",
@@ -239,6 +241,8 @@ GUEST_TOOLS = {
 
 CORE_TOOLS = {
     "understand_screen",
+    "was_laeuft",
+    "wechseln",
     "harness_task",
     "team",
     "beobachten",
@@ -330,6 +334,10 @@ CODING_TOOLS = {
     "read_pdf",
     "create_pptx",
     "read_pptx",
+    "edit_pptx",
+    "read_docx",
+    "edit_docx",
+    "datei_kommentare",
     "list_skills",
     "read_skill",
     "wait",
@@ -346,6 +354,11 @@ WORK_ZUSATZ = {
     "open_url",
     "create_pptx",
     "read_pptx",
+    "edit_pptx",
+    "read_docx",
+    "edit_docx",
+    "datei_kommentare",
+    "bild_suche",
     "read_pdf",
     "http_get",
     "download_file",
@@ -927,8 +940,32 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
         ),
     ),
     "pdf": ({"read_pdf"}, ("pdf", "dokument", "seite", "lesen")),
+    "stundenplan": (
+        {"stundenplan", "morgen_nachricht"},
+        (
+            "stundenplan",
+            "schule",
+            "unterricht",
+            "schulstunde",
+            "fächer",
+            "faecher",
+            "morgennachricht",
+            "morgen-nachricht",
+            "guten morgen",
+            "jeden tag",
+            "jeden morgen",
+            "in der früh",
+            "in der frueh",
+            "morgens",
+            "telegram",
+        ),
+    ),
+    "lied": (
+        {"was_laeuft", "understand_screen"},
+        ("lied", "song", "musik", "was läuft", "was laeuft", "was spielt", "interpret", "welcher titel"),
+    ),
     "pptx": (
-        {"create_pptx", "read_pptx"},
+        {"create_pptx", "read_pptx", "edit_pptx", "read_docx", "edit_docx", "datei_kommentare", "bild_suche"},
         (
             "powerpoint",
             "power point",
@@ -1306,6 +1343,28 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         )
     if name == "read_pptx":
         return f"Liest die PowerPoint {_shorten(args.get('path', ''))}."
+    if name == "edit_pptx":
+        anzahl = len(args.get("aktionen") or []) if isinstance(args.get("aktionen"), list) else 0
+        return f"Bearbeitet die PowerPoint {_shorten(args.get('path', ''))}" + (f" ({anzahl} Schritte)." if anzahl else ".")
+    if name == "read_docx":
+        return f"Liest das Word-Dokument {_shorten(args.get('path', ''))}."
+    if name == "edit_docx":
+        anzahl = len(args.get("aktionen") or []) if isinstance(args.get("aktionen"), list) else 0
+        return f"Bearbeitet das Word-Dokument {_shorten(args.get('path', ''))}" + (f" ({anzahl} Schritte)." if anzahl else ".")
+    if name == "bild_suche":
+        return f"Sucht ein Foto: {_shorten(args.get('query', '') or args.get('url', ''))}"
+    if name == "was_laeuft":
+        return "Schaut nach, welches Lied gerade läuft."
+    if name == "wechseln":
+        ziel = _shorten(args.get("ziel", "") or args.get("title", ""))
+        return f"Wechselt zu {ziel}." if ziel else "Zeigt die offenen Fenster."
+    if name == "stundenplan":
+        aktion = str(args.get("aktion", "") or "zeigen").lower()
+        return {"setzen": "Speichert deinen Stundenplan.", "loeschen": "Löscht deinen Stundenplan.", "tag": "Ändert einen Tag im Stundenplan."}.get(aktion, "Schaut in deinen Stundenplan.")
+    if name == "morgen_nachricht":
+        return "Passt deine Morgen-Nachricht auf Telegram an."
+    if name == "datei_kommentare":
+        return f"Schaut sich deine Kommentare an ({_shorten(args.get('aktion', 'lesen'))})."
     if name == "journal":
         return f"Schreibt in Jons Gedächtnis: {_shorten(args.get('entry', ''))}"
     if name == "read_journal":
@@ -1778,6 +1837,10 @@ _MEDIEN_TOOLS = {
     "read_pdf",
     "create_pptx",
     "read_pptx",
+    "edit_pptx",
+    "read_docx",
+    "edit_docx",
+    "datei_kommentare",
 }
 
 _SKILL_TOOLS = {"list_skills", "read_skill", "read_skill_file"}
@@ -2019,8 +2082,8 @@ class ToolBox:
             _tool("understand_screen", "Liest den tatsächlich sichtbaren Inhalt des aktuellen Arbeitsfensters per Vision-Modell, etwa Codefehler, Text oder eine Latein-Hausübung. Nur auf einen konkreten Benutzerauftrag oder nach aktivierter Bildschirmbeobachtung verwenden. Liefert Beobachtung und sichtbaren Text, führt keine Bildschirmaktionen aus. Beachte Privatsphäre und Anbieterfreigabe. Bei fehlender Freigabe erkläre die Einstellung statt eine Beobachtung zu erfinden.", {"question": _STR}, []),
             _tool(
                 "harness_task",
-                "Steuert Jon Harness für mehrschrittige Coding-Aufträge. actions: projects zeigt gespeicherte Projekte, start startet einen ausdrücklich beauftragten Auftrag im geöffneten/gewählten Projekt, status zeigt Fortschritt und ausstehende Freigaben, list zeigt Aufträge, stop bricht ab. Nutze für autonome Arbeit über mehrere Dateien. Berichte gestartete Aufgaben als laufend, nicht fertig. Shellfreigaben muss der Nutzer selbst mit den angezeigten /erlauben- oder /ablehnen-Befehlen geben. Wenn project fehlt, verwende den geöffneten Ordner; niemals einen Ordner erfinden.",
-                {"action": {"type": "string", "enum": ["projects", "start", "status", "list", "stop"]}, "goal": _STR, "project": _STR, "id": _STR, "new_session": {"type": "boolean", "description": "Nur true, wenn der Nutzer ausdrücklich eine neue, unabhängige Harness-Sitzung will. Sonst arbeitet der Harness in der letzten Sitzung des Projekts weiter und kennt deren Ergebnisse."}},
+                "Jons globaler Agent-Harness für lange, mehrschrittige Aufgaben jeder Art – er plant, ruft viele Male Modelle und Werkzeuge auf, verdichtet seinen Kontext selbst und arbeitet weiter, bis die Aufgabe fertig ist. modus allgemein (ohne Projekt): Recherche mit Bericht, mehrere Dokumente oder Präsentationen, Datenauswertung, große Aufräum- oder Organisationsaufgaben – alles, was mehr als ein paar Werkzeugaufrufe braucht. modus code: Programmieren im geöffneten/gewählten Projekt. actions: projects zeigt gespeicherte Projekte, start startet einen ausdrücklich beauftragten Auftrag, status zeigt Fortschritt und ausstehende Freigaben, list zeigt Aufträge, stop bricht ab. Berichte gestartete Aufgaben als laufend, nicht fertig. Freigaben gibt der Nutzer selbst. Wenn project fehlt, verwende den geöffneten Ordner; niemals einen Ordner erfinden.",
+                {"action": {"type": "string", "enum": ["projects", "start", "status", "list", "stop"]}, "modus": {"type": "string", "enum": ["code", "allgemein"]}, "goal": _STR, "project": _STR, "id": _STR, "new_session": {"type": "boolean", "description": "Nur true, wenn der Nutzer ausdrücklich eine neue, unabhängige Harness-Sitzung will. Sonst arbeitet der Harness in der letzten Sitzung des Projekts weiter und kennt deren Ergebnisse."}},
                 ["action"],
             ),
             _tool(
@@ -2582,9 +2645,14 @@ class ToolBox:
                 "suche, notizen, tagebuch, tresor, kalender, inbox, maps, studio, deep, "
                 "code, humanize, download, privat, zwischenablage, aufraeumen, kochen, "
                 "lernen, erklaer, telefon, handy, spiele, abendshow, freunde, konten, "
-                "skills, einstellungen, diagnose. Ohne werkzeug bekommst du die ganze "
-                "Liste.",
-                {"werkzeug": _STR, "aktion": _STR},
+                "skills, einstellungen, diagnose. Mit Premium steuerst du deine ganze "
+                "App: harness ('oeffne Jon Harness'), medien, fachteam, beobachten, "
+                "support, player, premium, profil, minijon, verlauf, neuer_chat, "
+                "alles_schliessen und datei (zeigt eine Datei mit datei=<Pfad> in "
+                "Jons Dateiansicht, wo der Nutzer Folien anklicken und kommentieren "
+                "kann). aktion='schliessen' schliesst einen Bereich wieder. Ohne "
+                "werkzeug bekommst du die ganze Liste.",
+                {"werkzeug": _STR, "aktion": _STR, "datei": _STR},
                 [],
             ),
             _tool(
@@ -3078,11 +3146,22 @@ class ToolBox:
                 "diagramm ({art: balken|linie|kreis|donut|flaeche|gestapelt, kategorien: "
                 "[...], reihen: [{name, werte}]}), image (Pfad zu einem Bild), "
                 "bild_prompt (englische Bildbeschreibung - Jon malt das Bild selbst), "
+                "bild_suche (englischer Suchbegriff - echtes, frei nutzbares Foto aus dem Netz), "
+                "quelle (kurzer Quellenhinweis unten auf der Folie, z. B. 'BASE 2024; kernenergie.ch'), "
                 "notes (Sprechernotizen, 2-4 Saetze), uebergang (fade, push, wipe, "
                 "morph, cover, split, zoom, reveal, glitter, keiner), tempo (langsam, "
                 "mittel, schnell).\n"
                 "theme: midnight, forest, coral, terracotta, ocean, charcoal, teal, "
-                "berry, sage, cherry, gold.",
+                "berry, sage, cherry, gold.\n"
+                "QUALITAET BEIM ERSTEN MAL: Hoechstens 5 Stichpunkte je Folie, je ein Satz mit "
+                "hoechstens ~15 Woertern - lieber eine Folie mehr. Jede Inhaltsfolie bekommt ein "
+                "passendes Bild (bild_suche, image oder bild_prompt), ausser Tabellen- und "
+                "Diagrammfolien. Bilder aus einer Vorlage uebernimmst du mit image = bild_pfad aus "
+                "read_pptx. Ablaeufe (z. B. Kernspaltung) als layout timeline mit items "
+                "[{titel, text}], Gegenueberstellungen als two_columns mit items, Begriffe als "
+                "table. Fachliche Aussagen bekommen quelle. Keine leeren Folien. Das Ergebnis "
+                "enthaelt qualitaet mit Pruefhinweisen - ist es nicht leer, behebe die Punkte "
+                "sofort mit edit_pptx, bevor du dem Nutzer antwortest.",
                 {
                     "title": _STR,
                     "slides": {
@@ -3109,10 +3188,124 @@ class ToolBox:
             ),
             _tool(
                 "read_pptx",
-                "Liest Text und Sprechernotizen aus einer vorhandenen PowerPoint-Datei, "
-                "um sie zusammenzufassen oder als Vorlage zu verstehen.",
+                "Liest eine vorhandene PowerPoint komplett: jede Folie mit ihren "
+                "Elementen (element-Nummer, Name, Lage in Prozent, Text, Tabelle, "
+                "Bild mit bild_pfad zum Wiederverwenden, Diagramm), Sprechernotizen und die offenen Kommentare, die der "
+                "Nutzer in Jons Dateiansicht hinterlassen hat. Lies IMMER zuerst, "
+                "bevor du mit edit_pptx etwas aenderst.",
                 {"path": _STR, "max_slides": _INT},
                 ["path"],
+            ),
+            _tool(
+                "edit_pptx",
+                "Bearbeitet eine VORHANDENE PowerPoint direkt (auch hochgeladene). "
+                "Nutze das statt create_pptx, wenn der Nutzer an einer bestehenden "
+                "Praesentation arbeiten will oder Kommentare umsetzen moechte. Folien "
+                "zaehlen ab 1, element ist die Nummer aus read_pptx; alle Nummern "
+                "beziehen sich auf den Stand VOR diesem Aufruf. aktionen ist eine Liste, "
+                "jede mit 'aktion':\n"
+                "text {folie, element, text, zeile?, spalte?} - Text ersetzen (\\n = neuer Absatz, "
+                "Formatierung bleibt); ersetzen {suchen, ersetzen, folie?}; "
+                "schrift {folie, element, groesse?, fett?, kursiv?, farbe?}; "
+                "notizen {folie, text}; "
+                "bild {folie, image (Pfad oder URL) | bild_suche (echtes Foto aus dem Netz, "
+                "z.B. 'Eiffel Tower') | bild_prompt (englisch, Jon malt es), position "
+                "(rechts, links, mitte, oben, unten, klein, vollbild, hintergrund oder "
+                "{x,y,b,h} in Prozent), element? (ersetzt dieses Bild/Element an gleicher "
+                "Stelle), einpassen? ('ganz' = nicht zuschneiden)}; "
+                "textfeld {folie, text, position, groesse?, fett?, farbe?}; "
+                "element_loeschen {folie, element}; element_verschieben {folie, element, x, y, b, h}; "
+                "diagramm {folie, element, kategorien, reihen:[{name, werte}]}; "
+                "hintergrund {folie, farbe}; uebergang {folie, art}; "
+                "folie_neu {nach?, layout und Felder wie bei create_pptx inkl. bild_suche/bild_prompt}; "
+                "folie_loeschen {folie}; folie_verschieben {folie, nach}; folie_duplizieren {folie}.",
+                {
+                    "path": _STR,
+                    "aktionen": {"type": "array", "items": {"type": "object"}},
+                    "theme": _STR,
+                },
+                ["path", "aktionen"],
+            ),
+            _tool(
+                "bild_suche",
+                "Sucht ein echtes, frei nutzbares Foto im Netz (Wikimedia Commons, Openverse) oder laedt "
+                "ein Bild von einer URL und speichert es lokal. Liefert pfad, den du als image in "
+                "create_pptx, edit_pptx oder edit_docx verwendest. query auf Englisch und konkret, "
+                "z. B. 'St. Stephen Cathedral Vienna'.",
+                {"query": _STR, "url": _STR},
+                [],
+            ),
+            _tool(
+                "was_laeuft",
+                "Beantwortet 'Wie heisst das Lied?' oder 'Was laeuft gerade?'. Fragt zuerst "
+                "die Medienwiedergabe des PCs ab (Spotify, Browser, YouTube, Medienplayer: "
+                "Titel, Interpret, Album, App) und schaut sonst wirklich auf den Bildschirm. "
+                "frage ist optional, z. B. 'Welcher Film laeuft?'.",
+                {"frage": _STR},
+                [],
+            ),
+            _tool(
+                "wechseln",
+                "Wechselt zu einem offenen Fenster ODER einem Browser-Tab, z. B. 'wechsle zu "
+                "Claude', 'geh zu YouTube', 'zeig Spotify'. ziel ist ein Teil des Titels oder "
+                "der Programmname. Sucht zuerst Fenster, dann Tabs in Chrome, Edge, Firefox und "
+                "Brave. aktion liste zeigt alle offenen Fenster.",
+                {"ziel": _STR, "aktion": _STR, "tabs": _BOOL},
+                [],
+            ),
+            _tool(
+                "stundenplan",
+                "Der Stundenplan des Nutzers. aktion: zeigen (ganze Woche), heute, morgen, "
+                "setzen (tage {montag: [{stunde, von, bis, fach, raum?, lehrer?}]} ODER text "
+                "wie der Nutzer ihn schreibt ODER datei = Pfad zu Foto/PDF/Word/Excel), tag "
+                "(tag, eintraege - einen Tag ersetzen), loeschen. tag bei zeigen: Wochentag.",
+                {"aktion": _STR, "tage": {"type": "object"}, "text": _STR, "datei": _STR, "tag": _STR, "eintraege": {"type": "array", "items": {"type": "object"}}},
+                [],
+            ),
+            _tool(
+                "morgen_nachricht",
+                "Stellt die taegliche Morgen-Nachricht auf Telegram ein. stundenplan true = "
+                "jeden Morgen den Stundenplan des Tages mitschicken. hinzufuegen = weiterer "
+                "Wunsch fuer jede Morgen-Nachricht (z. B. 'das Wetter fuer Wien'), entfernen = "
+                "Wunsch wieder streichen, zeit = HH:MM, an = Morgen-Nachricht an/aus. Ohne "
+                "Felder zeigt es die aktuelle Einstellung. Schaltet die Morgen-Nachricht "
+                "automatisch ein, wenn du etwas hinzufuegst.",
+                {"stundenplan": _BOOL, "hinzufuegen": _STR, "entfernen": _STR, "zeit": _STR, "an": _BOOL},
+                [],
+            ),
+            _tool(
+                "read_docx",
+                "Liest ein vorhandenes Word-Dokument (.docx) als nummerierte Bloecke "
+                "(nr, art wie h1/absatz/liste/tabelle, text) plus offene Kommentare des "
+                "Nutzers. Lies IMMER zuerst, bevor du mit edit_docx etwas aenderst.",
+                {"path": _STR},
+                ["path"],
+            ),
+            _tool(
+                "edit_docx",
+                "Bearbeitet ein VORHANDENES Word-Dokument direkt. nr ist die Blocknummer "
+                "aus read_docx (Stand vor diesem Aufruf). aktionen ist eine Liste, jede "
+                "mit 'aktion':\n"
+                "text {nr, text, stil?}; ersetzen {suchen, ersetzen}; "
+                "einfuegen {nach (nr, -1 = ganz oben, leer = ans Ende), text (\\n = mehrere "
+                "Absaetze), stil (absatz, titel, h1, h2, h3, liste, nummer, zitat)}; "
+                "loeschen {nr}; format {nr, stil?, fett?, kursiv?, groesse?, ausrichtung?}; "
+                "bild {nach, image | bild_suche | bild_prompt, breite_cm?, unterschrift?}; "
+                "tabelle {nach, zeilen}; zelle {nr, zeile, spalte, text}; duplizieren {nr}.",
+                {
+                    "path": _STR,
+                    "aktionen": {"type": "array", "items": {"type": "object"}},
+                },
+                ["path", "aktionen"],
+            ),
+            _tool(
+                "datei_kommentare",
+                "Kommentare, die der Nutzer in Jons Dateiansicht an Folien, Absaetze, "
+                "Zellen oder Seiten geheftet hat. aktion: lesen (Standard, braucht path), "
+                "erledigt (ids, antwort? - nach dem Umsetzen IMMER abhaken), antworten "
+                "(ids, antwort), anlegen (path, text, stelle?).",
+                {"path": _STR, "aktion": _STR, "ids": {"type": "array", "items": {"type": "string"}}, "antwort": _STR, "text": _STR, "stelle": {"type": "object"}},
+                [],
             ),
             _tool(
                 "journal",
@@ -3976,6 +4169,11 @@ class ToolBox:
         except Exception as _fehler:
             leise(_fehler, "services/tools")
             hinweis = ""
+        from app.services.offline import MELDUNG as OFFLINE_MELDUNG, gesperrt as offline_gesperrt
+
+        if offline_gesperrt(name):
+            log_action(src, name, args, "offline", ok=False)
+            return json.dumps({"error": OFFLINE_MELDUNG, "offline": True}, ensure_ascii=False)
         if oeffnet_fenster(name) and not oeffnen_erlaubt():
             log_action(src, name, args, "ohne Auftrag zum Oeffnen", ok=False)
             return json.dumps({"error": NICHT_OEFFNEN, "nicht_geoeffnet": True}, ensure_ascii=False)
@@ -4096,13 +4294,19 @@ class ToolBox:
                 )
             bisher = _SUCHEN.get() + 1
             _SUCHEN.set(bisher)
-            if bisher > MAX_SUCHEN:
+            from app.services.premium import unbegrenzt
+
+            if bisher > MAX_SUCHEN and not unbegrenzt():
                 return json.dumps(
                     {
-                        "error": (
-                            f"Genug gesucht ({MAX_SUCHEN} Suchen fuer diese Frage). "
-                            "Antworte jetzt mit dem, was die bisherigen Treffer "
-                            "hergeben, und sag ehrlich, was offen bleibt."
+                        "ok": True,
+                        "treffer": [],
+                        "limit_erreicht": True,
+                        "hinweis": (
+                            f"Mit Jon Standard sind {MAX_SUCHEN} Suchen pro Frage frei. "
+                            "Suche NICHT weiter. Antworte jetzt mit dem, was die "
+                            "bisherigen Treffer hergeben, und sag ehrlich, was offen "
+                            "bleibt. Mit Jon Premium sucht Jon unbegrenzt."
                         ),
                         "suchen": bisher - 1,
                     },
@@ -4237,7 +4441,14 @@ class ToolBox:
             slides = args.get("slides")
             if isinstance(slides, str):
                 slides = json.loads(slides)
-            folien = [f for f in (slides or []) if isinstance(f, (dict, str))]
+            from app.services.pptx_normalisieren import folien as folien_normalisieren
+
+            folien = folien_normalisieren([f for f in (slides or []) if isinstance(f, (dict, str))], str(args.get("title", "")))
+            if args.get("bilder", True) is not False:
+                try:
+                    await pptx.bilder_vorschlagen(folien, str(args.get("title", "")) or str((folien[0] if folien else {}).get("title", "")))
+                except Exception as _fehler:
+                    leise(_fehler, "services/tools")
             gemalt = await pptx.bilder_ergaenzen(
                 [f for f in folien if isinstance(f, dict)],
                 args.get("bilder", True) is not False,
@@ -4912,12 +5123,12 @@ class ToolBox:
             except Exception as exc:
                 return json.dumps({"error": str(exc)}, ensure_ascii=False)
         if name == "read_pptx":
-            from app.services.pptx_service import get_pptx_service
+            from app.services.pptx_bearbeiten import lesen as pptx_lesen
 
             try:
                 return json.dumps(
-                    get_pptx_service().read(
-                        str(args.get("path", "")), int(args.get("max_slides", 60))
+                    pptx_lesen(
+                        str(args.get("path", "")), int(args.get("max_slides", 200) or 200)
                     ),
                     ensure_ascii=False,
                 )

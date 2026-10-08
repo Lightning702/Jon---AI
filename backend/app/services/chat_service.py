@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
@@ -33,6 +34,7 @@ from app.services.coding import (
 )
 from app.services.memory_service import MemoryService
 from app.services.persona_service import get_persona_service
+from app.services.premium import unbegrenzt
 from app.services.history import trim_history
 from app.services.settings_service import get_settings_service
 from app.services.skill_service import SkillService
@@ -176,6 +178,8 @@ FALLBACK_MODELS = {
 ZWEITER_ERSATZ = {
     "nvidia": NVIDIA_EMIL_MODELL,
 }
+
+WECHSEL_RUNDEN = 8
 
 GEDULD_QUELLEN = {
     "telegram": 45.0,
@@ -450,6 +454,9 @@ async def attempt_plan_for(
         fallback = await openrouter_free_model(registry, fallback)
     if fallback and fallback != model and (primary, model) in attempts:
         attempts.insert(attempts.index((primary, model)) + 1, (primary, fallback))
+    zweiter = ZWEITER_ERSATZ.get(primary, "")
+    if zweiter and unbegrenzt() and (primary, zweiter) not in attempts and zweiter != model:
+        attempts.append((primary, zweiter))
     healthy = [a for a in attempts if not is_slow(a[0], a[1])]
     stalled = [a for a in attempts if is_slow(a[0], a[1])]
     return healthy + stalled
@@ -704,6 +711,32 @@ class ChatService:
     async def _stream_route(
         self, attempts: list[tuple[str, str]], request: ChatRequest, executor, state: dict
     ):
+        runden = WECHSEL_RUNDEN if unbegrenzt() and attempts else 1
+        for runde in range(runden):
+            state["echt"] = False
+            try:
+                async for chunk in self._stream_einmal(attempts, request, executor, state):
+                    yield chunk
+                return
+            except Exception as fehler:
+                from app.services.harness.modell import voruebergehend
+
+                if state.get("echt") or runde == runden - 1 or not voruebergehend(fehler):
+                    raise
+            pause = min(30.0, 3.0 * (runde + 1))
+            yield StreamChunk(
+                kind="content",
+                delta=(
+                    f"🔁 Gerade antwortet keines der Modelle. Ich wechsle weiter zwischen "
+                    f"{', '.join(dict.fromkeys(m for _, m in attempts))} hin und her "
+                    f"(Runde {runde + 2} von {runden}) …\n\n"
+                ),
+            )
+            await asyncio.sleep(pause)
+
+    async def _stream_einmal(
+        self, attempts: list[tuple[str, str]], request: ChatRequest, executor, state: dict
+    ):
         for index, (name, model) in enumerate(attempts):
             provider = self._registry.get(name)
             request.model = model
@@ -719,11 +752,13 @@ class ChatService:
                     if not started:
                         started = True
                         state["provider"] = name
+                        state["echt"] = True
                         mark_fast(name, model)
                     yield chunk
                 return
             except Exception:
                 if started or executed:
+                    state["echt"] = True
                     raise
                 mark_slow(name, model)
                 if index + 1 < len(attempts):
@@ -762,6 +797,7 @@ class ChatService:
                 )
                 async for chunk in provider.stream(request, tracked_executor if executor else None):
                     state["provider"] = name
+                    state["echt"] = True
                     yield chunk
                 return
 
@@ -809,7 +845,14 @@ class ChatService:
                 or grundmodell(provider, "jon")
                 or self._settings.jon_model
             )
-        return self._share_route(provider, lebendes_modell(model, provider))
+        provider, model = self._share_route(provider, lebendes_modell(model, provider))
+        if slot != "emil":
+            from app.services.aufgaben_modelle import fuer_chat
+
+            provider, model = fuer_chat("code" if payload.mode == "coding" else "text", provider, model)
+        from app.services.offline import lokal_erzwingen
+
+        return lokal_erzwingen(provider, model)
 
     def _ensure_conversation(self, payload: ChatIn, provider: str, model: str) -> str:
         with session_scope() as session:
@@ -973,12 +1016,10 @@ class ChatService:
             else defaults.get("max_tokens")
         )
         seed = payload.seed if payload.seed is not None else defaults.get("seed")
-        names = await self.route(chosen, model)
-        attempts = await self.attempt_plan(chosen, names, model)
-        if not attempts:
-            attempts = [(chosen, model)]
-        attempts = mit_ollama_ersatz(
-            attempts, await ollama_ersatz(self._registry, chosen)
+        from app.services.modell_router import ModelRouter
+
+        attempts = await ModelRouter(self._registry).plan(
+            chosen, model, anbieter=self.route, planen=self.attempt_plan
         )
         provider_name = attempts[0][0]
         state = {"provider": provider_name}
@@ -1272,6 +1313,8 @@ class ChatService:
                                 daten = json.loads(chunk.result or "{}")
                                 if daten.get("oeffne"):
                                     event["oeffne"] = daten["oeffne"]
+                                if daten.get("steuerung"):
+                                    event["steuerung"] = daten["steuerung"]
                             except Exception as fehler:
                                 leise(fehler, "services/chat_service")
                         yield event
@@ -1288,13 +1331,25 @@ class ChatService:
                                 content_parts.append(joined)
                                 yield {"type": "content", "delta": joined}
             except Exception as exc:
-                yield {"type": "error", "message": str(exc)}
-                return
+                if not tools_used:
+                    yield {"type": "error", "message": str(exc)}
+                    return
+                erledigt = ", ".join(dict.fromkeys(tools_used))
+                nachtrag = (
+                    ("\n\n" if content_parts else "")
+                    + f"Erledigt: {erledigt}. Danach war das Modell kurz nicht erreichbar "
+                    f"({str(exc)[:120]}), deshalb fehlt meine ausführliche Zusammenfassung. "
+                    "Die Änderungen sind gespeichert."
+                )
+                content_parts.append(nachtrag)
+                yield {"type": "content", "delta": nachtrag}
+                content = "".join(content_parts)
+                break
 
             if held:
                 candidate = "".join(held)
                 parsed = parse_text_tool_call(candidate)
-                if parsed and rounds < TEXT_TOOL_RUNDEN:
+                if parsed and (rounds < TEXT_TOOL_RUNDEN or unbegrenzt()):
                     name, args = parsed
                     rounds += 1
                     event = {
@@ -1347,6 +1402,15 @@ class ChatService:
                     }
                     if name == "harness_task" and ok:
                         harness_karte(result, done_event)
+                    if name == "oberflaeche" and ok:
+                        try:
+                            daten = json.loads(result or "{}")
+                            if daten.get("oeffne"):
+                                done_event["oeffne"] = daten["oeffne"]
+                            if daten.get("steuerung"):
+                                done_event["steuerung"] = daten["steuerung"]
+                        except Exception as fehler:
+                            leise(fehler, "services/chat_service")
                     card = card_payload(name, result)
                     if card is not None:
                         done_event["card"] = card
@@ -1385,7 +1449,7 @@ class ChatService:
             content = "".join(content_parts)
             break
         if not content.strip() and tools_used:
-            content = "Erledigt ✅ (" + ", ".join(dict.fromkeys(tools_used)) + ")"
+            content = "Erledigt (" + ", ".join(dict.fromkeys(tools_used)) + ")"
             yield {"type": "content", "delta": content}
         try:
             einstellungen = get_settings_service().get()

@@ -2,6 +2,47 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.63.1] — 2026-10-08
+
+### Jon sieht, was auf deinem Bildschirm läuft
+
+- **„Wie heißt das Lied?“** Jon fragt die Medienwiedergabe von Windows ab (Spotify, YouTube im Browser, Medienplayer) und nennt Titel, Interpret und App. Meldet keine App etwas, schaut er wirklich auf den Bildschirm und liest es dort ab.
+- **„Wechsle zu Claude“:** Jon wechselt zu einem offenen Fenster oder sucht den passenden Tab in Chrome, Edge, Firefox oder Brave.
+- **Bildschirm für /video wählen:** Auf Telegram nimmt `/video 2` den zweiten Bildschirm auf, `/video alle` alle, `/video 2 30s` dreißig Sekunden von Bildschirm 2. `/bildschirme` zeigt, welche es gibt. Die Wahl bleibt gespeichert.
+
+### Modelle je Aufgabe und Offline-Modus
+
+- **Jon wählt das Modell je Aufgabe:** Für Antworten, Code, Bilder und Sehen trägst du jeweils ein Modell ein, zum Beispiel GPT-OSS 120B für Antworten und Z-Image für Bilder. „Modelle erkennen“ findet die Modelle auf deinen lokalen Servern und ordnet sie selbst zu. In den Einstellungen unter „Modelle je Aufgabe“, jederzeit abschaltbar.
+- **Lokaler Server:** Jedes Gerät mit OpenAI-kompatibler Schnittstelle, zum Beispiel das Tiiny AI Pocket Lab, llama.cpp, vLLM oder LocalAI, ist jetzt ein eigener Anbieter für Antworten und für Bilder.
+- **Offline-Modus:** Ein Schalter, und Jon arbeitet nur noch mit lokalen Modellen. Websuche, Browser, Cloud-Anbieter und alles andere, was ins Netz geht, bleiben aus, bis du ihn wieder ausschaltest.
+
+### Stundenplan in der Morgen-Nachricht
+
+- Sag Jon im Chat oder auf Telegram „Schick mir jeden Morgen meinen Stundenplan mit“. Er speichert den Plan aus Text, Foto, PDF oder Word und schickt dir jeden Morgen die Stunden des Tages mit Zeit, Raum und Lehrkraft.
+- Weitere Wünsche für die Morgen-Nachricht, zum Beispiel das Wetter für eine bestimmte Stadt, nimmt er genauso auf. Uhrzeit, Stundenplan und Wünsche siehst und änderst du auch unter Verbindungen → Telegram.
+
+### Dateien direkt in Jon
+
+- **Hochladen geht wieder, auch PowerPoint:** Präsentationen, Word, Excel, PDFs und OpenDocument werden gelesen, große Dateien laufen gestreamt und deutlich schneller durch. Bilder beschreibt Jon erst, wenn er sie braucht.
+- **Jede Datei ansehen:** Was Jon erstellt oder du hochlädst, öffnest du direkt in Jon, Folie für Folie oder Seite für Seite. Elemente lassen sich anklicken und mit Kommentaren versehen, Jon liest sie und hakt sie nach dem Umsetzen ab.
+- **Präsentationen mit echten Bildern:** Jon sucht frei nutzbare Fotos (Wikimedia Commons, Openverse), prüft, ob sie zum Thema passen, und baut sie ein. Vorhandene PowerPoints und Word-Dokumente bearbeitet er gezielt, statt sie neu zu erzeugen.
+- **Beim ersten Mal richtig:** Folien bekommen Quellen, Seitenzahlen, saubere Tabellen und Aufzählungen, egal wie das Modell sie liefert.
+
+### Jon Harness und Steuerung
+
+- **Ohne Schrittgrenze (Premium):** Jon Harness arbeitet so lange, wie die Aufgabe braucht, auch Stunden. Mit Standard bleibt es bei 80 Schritten.
+- **Allgemeine Aufträge:** Jon Harness arbeitet nicht nur in Projekten, sondern an jeder Aufgabe, plant, fasst lange Verläufe zusammen und erkennt, wenn er sich im Kreis dreht.
+- **Jon steuert seine App (Premium):** „Öffne Jon Harness“, „zeig mir die Datei“ - Jon öffnet Bereiche, Dateien und Ansichten selbst.
+- **Modellwechsel (Premium):** Antwortet ein Modell nicht oder ist überlastet, springt Jon zum nächsten und wieder zurück.
+- **Websuche zuverlässiger:** Neue Suchquelle und keine Fehlerflut mehr, wenn das Suchlimit erreicht ist.
+- **Bessere Ergebnisse:** Webseiten und Apps bekommen echte Animationen und 3D-Effekte, Präsentationen ein durchgängiges Design.
+
+### Aufgeräumt
+
+- Symbole statt Emojis in der ganzen Oberfläche.
+- Keine persönlichen Daten mehr in der App: Anbieter heißt nur noch „FelWorks“, der FelWorks-Zugang nutzt ausschließlich kostenlose NVIDIA-NIM-Modelle.
+- Abmelden von Admin-, Entwickler- und Premium-Codes direkt im Premium-Fenster.
+
 ## [4.62.1] — 2026-10-05
 
 ### 🌐 Jon öffnet nur noch, wenn du es sagst

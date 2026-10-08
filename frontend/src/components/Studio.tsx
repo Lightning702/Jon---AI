@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   StudioConfig,
@@ -195,7 +196,7 @@ export default function Studio({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[900px] max-w-[96vw] h-[700px] max-h-[94vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xl">🎨</span>
+            <span className="text-xl"><Symbol zeichen="🎨" /></span>
             <span className="text-[14px] text-white/90">Video / Foto</span>
             <span className="hidden md:inline text-[11px] text-white/35 truncate">
               {provider && !setup
@@ -377,7 +378,7 @@ export default function Studio({ onClose }: { onClose: () => void }) {
                         : "border-white/10 bg-white/5 text-white/55 hover:text-white/85"
                     }`}
                   >
-                    {option === "bild" ? "🖼️ Bild" : "🎬 Video"}
+                    {option === "bild" ? "Bild" : "Video"}
                   </button>
                 ))}
               </div>
@@ -407,7 +408,7 @@ export default function Studio({ onClose }: { onClose: () => void }) {
                       />
                     ) : (
                       <span className="w-10 h-10 rounded-lg grid place-items-center bg-black/30 text-[15px] shrink-0">
-                        🖼️
+                        <Symbol zeichen="🖼️" />
                       </span>
                     )}
                     <div className="flex-1 min-w-0">
@@ -554,7 +555,7 @@ export default function Studio({ onClose }: { onClose: () => void }) {
                         onClick={() => void speichern(preview)}
                         className="px-2.5 py-1 rounded-lg border border-gold/30 bg-gold/10 text-[11.5px] text-gold/90 hover:bg-gold/20 transition"
                       >
-                        ⬇ Herunterladen
+                        <Symbol zeichen="⬇" /> Herunterladen
                       </button>
                       <a
                         href={studioFileUrl(preview)}
@@ -589,7 +590,7 @@ export default function Studio({ onClose }: { onClose: () => void }) {
                 ) : (
                   <div className="h-full grid place-items-center text-center px-6">
                     <div>
-                      <div className="text-3xl mb-2">🎨</div>
+                      <div className="text-3xl mb-2"><Symbol zeichen="🎨" /></div>
                       <div className="text-[13px] text-white/60">
                         {busy
                           ? "Jon malt …"
@@ -623,7 +624,7 @@ export default function Studio({ onClose }: { onClose: () => void }) {
                       >
                         {work.art === "video" ? (
                           <div className="w-full h-full grid place-items-center bg-black/50 text-[18px]">
-                            🎬
+                            <Symbol zeichen="🎬" />
                           </div>
                         ) : (
                           <img

@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import {
   VaultEntry,
@@ -109,12 +110,12 @@ export default function Vault({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[94vw] max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🔒</span>
+            <span className="text-xl"><Symbol zeichen="🔒" /></span>
             <span className="text-[14px] text-white/90">Passwort-Tresor</span>
             <span className="text-[11px] text-white/35">verschlüsselt, nur auf deinem PC</span>
           </div>
           <div className="flex items-center gap-2">
-            {mode === "open" && <button onClick={() => void lock()} className="text-[11.5px] text-white/50 hover:text-gold">🔒 Sperren</button>}
+            {mode === "open" && <button onClick={() => void lock()} className="text-[11.5px] text-white/50 hover:text-gold"><Symbol zeichen="🔒" /> Sperren</button>}
             <button onClick={onClose} className="w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white/90 transition">✕</button>
           </div>
         </div>
@@ -124,7 +125,7 @@ export default function Vault({ onClose }: { onClose: () => void }) {
 
           {(mode === "create" || mode === "unlock") && (
             <div className="flex flex-col items-center py-6">
-              <div className="text-4xl mb-3">{mode === "create" ? "🆕" : "🔑"}</div>
+              <div className="text-4xl mb-3"><Symbol zeichen={mode === "create" ? "🆕" : "🔑"} /></div>
               <div className="text-[13.5px] text-white/80 mb-4 text-center max-w-xs">
                 {mode === "create"
                   ? "Lege ein Master-Passwort fest. Nur damit kommst du an den Tresor — Jon speichert es nirgends."
@@ -158,7 +159,7 @@ export default function Vault({ onClose }: { onClose: () => void }) {
                   <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Benutzername / E-Mail (optional)" className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[12.5px] text-white/90 placeholder-white/25 outline-none focus:border-gold/40" />
                   <div className="flex gap-2">
                     <input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Passwort / Geheimnis" className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[12.5px] text-white/90 placeholder-white/25 outline-none focus:border-gold/40" />
-                    <button onClick={() => void gen()} title="Passwort generieren" className="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-white/60 text-[12px] hover:bg-white/10">🎲</button>
+                    <button onClick={() => void gen()} title="Passwort generieren" className="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-white/60 text-[12px] hover:bg-white/10"><Symbol zeichen="🎲" /></button>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => void save()} disabled={!title.trim() || !secret} className="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold text-[12px] disabled:opacity-40">Speichern</button>
@@ -176,7 +177,7 @@ export default function Vault({ onClose }: { onClose: () => void }) {
                         {e.username && <div className="text-[11.5px] text-white/45 truncate">{e.username}</div>}
                       </div>
                       <button onClick={() => void reveal(e.id)} className="px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 text-[11.5px] hover:bg-white/10">{revealed[e.id] ? "Verbergen" : "Zeigen"}</button>
-                      {revealed[e.id] && <button onClick={() => void inZwischenablage(revealed[e.id])} title="Kopieren" className="px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 text-[11.5px] hover:bg-white/10">📋</button>}
+                      {revealed[e.id] && <button onClick={() => void inZwischenablage(revealed[e.id])} title="Kopieren" className="px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 text-[11.5px] hover:bg-white/10"><Symbol zeichen="📋" /></button>}
                       <button onClick={() => void remove(e.id)} className="text-white/30 hover:text-red-300 text-[12px]">✕</button>
                     </div>
                     {revealed[e.id] && <div className="mt-1.5 font-mono text-[12.5px] text-gold/90 break-all bg-black/25 rounded-lg px-2 py-1.5">{revealed[e.id]}</div>}

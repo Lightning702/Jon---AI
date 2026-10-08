@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { motion } from "framer-motion";
 import {
   MapsPlace,
@@ -58,7 +59,7 @@ export default function PlaceSheet({
               flex: "0 0 auto",
             }}
           >
-            {String(place.extra?.icon ?? "") || "📍"}
+            <Symbol zeichen={String(place.extra?.icon ?? "") || "📍"} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 620, lineHeight: 1.25 }}>
@@ -96,22 +97,22 @@ export default function PlaceSheet({
           >
             {place.distance_m != null && (
               <span className="jm-chip" style={{ cursor: "default" }}>
-                📏 {formatDistance(place.distance_m)}
+                <Symbol zeichen="📏" /> {formatDistance(place.distance_m)}
               </span>
             )}
             {hours && (
               <span className="jm-chip" style={{ cursor: "default" }}>
-                🕒 {hours.slice(0, 34)}
+                <Symbol zeichen="🕒" /> {hours.slice(0, 34)}
               </span>
             )}
             {cuisine && (
               <span className="jm-chip" style={{ cursor: "default" }}>
-                🍴 {cuisine.replace(/;/g, ", ").slice(0, 26)}
+                <Symbol zeichen="🍴" /> {cuisine.replace(/;/g, ", ").slice(0, 26)}
               </span>
             )}
             {phone && (
               <span className="jm-chip" style={{ cursor: "default" }}>
-                ☎ {phone.slice(0, 22)}
+                <Symbol zeichen="☎" /> {phone.slice(0, 22)}
               </span>
             )}
           </div>
@@ -125,7 +126,7 @@ export default function PlaceSheet({
             style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
             onClick={onRouteTo}
           >
-            🧭 Route hierher
+            <Symbol zeichen="🧭" /> Route hierher
           </button>
           <button
             className="jm-chip"
@@ -133,7 +134,7 @@ export default function PlaceSheet({
             onClick={onRouteFrom}
             title="Von hier aus starten"
           >
-            ↗ Von hier
+            <Symbol zeichen="↗" /> Von hier
           </button>
         </div>
 
@@ -143,14 +144,14 @@ export default function PlaceSheet({
             style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
             onClick={onStreet}
           >
-            👁️ Street Exploration
+            <Symbol zeichen="👁️" /> Street Exploration
           </button>
           <button
             className="jm-chip"
             style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
             onClick={onExplore}
           >
-            ✈️ Hinfliegen
+            <Symbol zeichen="✈️" /> Hinfliegen
           </button>
         </div>
 
@@ -161,7 +162,7 @@ export default function PlaceSheet({
             onClick={onInfo}
             title="Top News und Wetter zu diesem Ort"
           >
-            📰 News & Wetter
+            <Symbol zeichen="📰" /> News & Wetter
           </button>
         </div>
 
@@ -171,7 +172,7 @@ export default function PlaceSheet({
             style={{ flex: 1, justifyContent: "center", padding: "9px 12px" }}
             onClick={() => onAskJon(placeAskText(place))}
           >
-            ✨ Jon fragen
+            <Symbol zeichen="✨" /> Jon fragen
           </button>
           {website && (
             <button
@@ -179,7 +180,7 @@ export default function PlaceSheet({
               style={{ justifyContent: "center", padding: "9px 12px" }}
               onClick={() => window.open(website, "_blank", "noopener")}
             >
-              🔗 Webseite
+              <Symbol zeichen="🔗" /> Webseite
             </button>
           )}
         </div>

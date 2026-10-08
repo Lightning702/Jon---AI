@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import {
   OllamaConfig,
@@ -313,7 +314,7 @@ export default function OllamaModal({ onClose }: Props) {
       <div className="glass rounded-2xl border border-white/15 w-[620px] max-w-[94vw] max-h-[88vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div>
-            <div className="text-white/90 font-semibold">🦙 Ollama</div>
+            <div className="text-white/90 font-semibold"><Symbol zeichen="🦙" /> Ollama</div>
             <div className="text-[11px] text-white/40">
               Modelle laufen auf deinem eigenen Rechner oder auf einem Server im
               Netzwerk. Kostenlos, ohne Schlüssel, ohne Cloud.

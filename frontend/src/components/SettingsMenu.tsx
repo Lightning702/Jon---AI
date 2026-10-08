@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
@@ -35,6 +36,7 @@ import HandyModal from "./HandyModal";
 import VerbundModal from "./VerbundModal";
 import UninstallModal from "./UninstallModal";
 import OllamaModal from "./OllamaModal";
+import AufgabenModelleModal from "./AufgabenModelleModal";
 
 interface Choice {
   value: string;
@@ -166,6 +168,8 @@ export default function SettingsMenu({
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [personality, setPersonality] = useState(true);
   const [failover, setFailover] = useState(true);
+  const [offline, setOffline] = useState(false);
+  const [aufgabenOpen, setAufgabenOpen] = useState(false);
   const [startup, setStartup] = useState(false);
   const [city, setCity] = useState("");
   const [clipboard, setClipboard] = useState(true);
@@ -283,6 +287,7 @@ export default function SettingsMenu({
     void getUserSettings().then((s) => {
       setPersonality(s.personality !== false);
       setFailover(s.auto_failover !== false);
+      setOffline(s.offline_modus === true);
       setCity(s.briefing_city ?? "");
       setClipboard(s.clipboard_history !== false);
       setWebcam(s.webcam_enabled === true);
@@ -343,6 +348,12 @@ export default function SettingsMenu({
     const next = !failover;
     setFailover(next);
     void saveUserSettings({ auto_failover: next });
+  };
+
+  const toggleOffline = () => {
+    const next = !offline;
+    setOffline(next);
+    void saveUserSettings({ offline_modus: next });
   };
 
   const toggleStartup = async () => {
@@ -674,6 +685,23 @@ export default function SettingsMenu({
                 onClick={toggleFailover}
               />
               <Toggle
+                label="Offline-Modus"
+                hint="Nur lokale Modelle, kein Internet - keine Websuche, kein Browser, keine Cloud."
+                on={offline}
+                onClick={toggleOffline}
+              />
+              <button
+                onClick={() => {
+                  setAufgabenOpen(true);
+                  setOpen(false);
+                }}
+                title="Jon nimmt für Antworten, Code, Bilder und Sehen jeweils das passende Modell, z. B. vom lokalen Server."
+                className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <span className="text-[11px] text-white/85">Modelle je Aufgabe …</span>
+                <span className="text-white/40 text-[12px]">›</span>
+              </button>
+              <Toggle
                 label="Mit Windows starten"
                 hint="Backend und App starten beim Hochfahren automatisch."
                 on={startup}
@@ -681,7 +709,7 @@ export default function SettingsMenu({
               />
               <Toggle
                 label="Clipboard-Historie"
-                hint="Jon merkt sich lokal, was du kopierst (📋-Knopf)."
+                hint="Jon merkt sich lokal, was du kopierst (-Knopf)."
                 on={clipboard}
                 onClick={toggleClipboard}
               />
@@ -1241,7 +1269,7 @@ export default function SettingsMenu({
               title="Benutzername und Passwort ändern, mit denen du Jon in der App und im Web öffnest."
               className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-white/15 bg-white/[0.04] hover:bg-white/10 transition-colors"
             >
-              <span className="text-[11px] text-white/80">🔐 Anmeldung ändern …</span>
+              <span className="text-[11px] text-white/80"><Symbol zeichen="🔐" /> Anmeldung ändern …</span>
               <span className="text-white/50 text-[12px]">›</span>
             </button>
             <button
@@ -1282,7 +1310,7 @@ export default function SettingsMenu({
               className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
             >
               <span className="text-[11px] text-gold/90">
-                🔌 Verbindungen …
+                <Symbol zeichen="🔌" /> Verbindungen …
               </span>
               <span className="text-gold/70 text-[12px]">›</span>
             </button>
@@ -1295,7 +1323,7 @@ export default function SettingsMenu({
               className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-2 rounded-lg border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 transition-colors"
             >
               <span className="text-[11px] text-red-300/90">
-                🗑️ Jon deinstallieren …
+                <Symbol zeichen="🗑️" /> Jon deinstallieren …
               </span>
               <span className="text-red-300/60 text-[12px]">›</span>
             </button>
@@ -1320,6 +1348,14 @@ export default function SettingsMenu({
       )}
       {handyOpen && <HandyModal onClose={() => setHandyOpen(false)} />}
       {verbundOpen && <VerbundModal onClose={() => setVerbundOpen(false)} />}
+      {aufgabenOpen && (
+        <AufgabenModelleModal
+          onClose={() => {
+            setAufgabenOpen(false);
+            void getUserSettings().then((s) => setOffline(s.offline_modus === true));
+          }}
+        />
+      )}
       {ollamaOpen && (
         <OllamaModal
           onClose={() => {

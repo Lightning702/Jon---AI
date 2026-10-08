@@ -263,7 +263,9 @@ class PersonaService:
                 return {"saved": True}
             except Exception as exc:
                 return {"error": str(exc)}
-        return self.append_journal(f"Ueber Felix gemerkt: {note}")
+        from app.services.nutzer import anrede
+
+        return self.append_journal(f"Ueber {anrede('den Nutzer')} gemerkt: {note}")
 
     def persona_block(self, include_memory: bool = True, variant: str = "papa") -> str:
         from app.services.personality import CONSCIENCE, FUNKE, JON, MINIJON

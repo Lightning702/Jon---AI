@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   mediathekBildUrl,
@@ -157,7 +158,7 @@ export default function Player({ onClose }: { onClose: () => void }) {
                     />
                   ) : (
                     <span className="text-[15px] opacity-50">
-                      {eintrag.art === "musik" ? "♪" : "▶"}
+                      <Symbol zeichen={eintrag.art === "musik" ? "♪" : "▶"} />
                     </span>
                   )}
                 </div>

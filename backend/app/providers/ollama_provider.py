@@ -14,7 +14,7 @@ from app.providers.base import ChatRequest, ProviderError, StreamChunk, ToolExec
 from app.services.ollama_share_service import REMOTE_PREFIX
 from app.providers.openai_compatible import (
     LEAD_GATE,
-    MAX_TOOL_ROUNDS,
+    tool_runden,
     MODELS_CACHE_TTL,
     MODELS_FAIL_TTL,
     TEMPLATE_TOKEN,
@@ -269,7 +269,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         if use_tools:
             payload["tools"] = tools
         timeout = httpx.Timeout(float(config["timeout"]), connect=CONNECT_TIMEOUT)
-        rounds = MAX_TOOL_ROUNDS if use_tools else 1
+        rounds = tool_runden() if use_tools else 1
 
         async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
             for _ in range(rounds):

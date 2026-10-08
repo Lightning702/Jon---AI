@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import {
   JournalEntry,
@@ -97,7 +98,7 @@ export default function Journal({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[640px] max-w-[95vw] h-[680px] max-h-[92vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">📔</span>
+            <span className="text-xl"><Symbol zeichen="📔" /></span>
             <span className="text-[14px] text-white/90">Sprach-Tagebuch</span>
             <span className="text-[11px] text-white/35">sprich frei, Jon ordnet es</span>
           </div>
@@ -121,7 +122,7 @@ export default function Journal({ onClose }: { onClose: () => void }) {
                   : "border border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
               }`}
             >
-              {recording ? "⏹ Stopp" : "🎙️ Sprechen"}
+              {recording ? "Stopp" : "Sprechen"}
             </button>
             <button
               onClick={() => void save()}
@@ -164,7 +165,7 @@ export default function Journal({ onClose }: { onClose: () => void }) {
           {entries.map((e) => (
             <div key={e.id} className="rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5">
               <div className="flex items-center gap-2">
-                <span>{MOOD[e.mood as keyof typeof MOOD] ?? "📝"}</span>
+                <span><Symbol zeichen={MOOD[e.mood as keyof typeof MOOD] ?? "📝"} /></span>
                 <span className="text-[13px] font-semibold text-white/90 flex-1">{e.title}</span>
                 <span className="text-[11px] text-white/35">{e.date} · {e.time}</span>
                 <button onClick={() => void remove(e.id)} className="text-white/30 hover:text-red-300 text-[13px]">✕</button>

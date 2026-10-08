@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -138,7 +139,7 @@ export default function DenkenPanel({ onClose }: { onClose: () => void }) {
         aria-label="Jons Denken"
       >
         <div className="flex items-center gap-2 px-5 py-3 border-b border-white/10">
-          <span className="text-sm font-semibold gold-text flex-1">🧠 Jons Denken</span>
+          <span className="text-sm font-semibold gold-text flex-1"><Symbol zeichen="🧠" /> Jons Denken</span>
           {zustand?.netz && !zustand.netz.online && (
             <span className="text-[10px] text-red-300">offline</span>
           )}
@@ -161,7 +162,7 @@ export default function DenkenPanel({ onClose }: { onClose: () => void }) {
                   : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
               }`}
             >
-              {eintrag.icon} {eintrag.label}
+              <Symbol zeichen={eintrag.icon} /> {eintrag.label}
             </button>
           ))}
         </div>
@@ -393,7 +394,7 @@ export default function DenkenPanel({ onClose }: { onClose: () => void }) {
                 >
                   <div className="flex items-center gap-2">
                     <span className="flex-1 font-medium">
-                      {eintrag.gelungen ? "✅" : "❌"} {eintrag.werkzeug}
+                      <Symbol zeichen={eintrag.gelungen ? "✅" : "❌"} /> {eintrag.werkzeug}
                     </span>
                     <span className="text-[10px] text-gold/70">
                       erwartet {Math.round(eintrag.zutrauen * 100)}%
@@ -622,7 +623,7 @@ export default function DenkenPanel({ onClose }: { onClose: () => void }) {
                   </div>
                   {plan.schritte.map((schritt) => (
                     <div key={schritt.id} className="text-[11px] text-white/60 mt-1">
-                      {ZUSTAND_ZEICHEN[schritt.zustand] ?? "⚪"} {schritt.titel}
+                      <Symbol zeichen={ZUSTAND_ZEICHEN[schritt.zustand] ?? "⚪"} /> {schritt.titel}
                       <span className="text-white/35"> · {schritt.werkzeug}</span>
                     </div>
                   ))}

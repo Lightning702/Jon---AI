@@ -70,17 +70,35 @@ async def explain_observation(result: dict, question: str) -> str:
     return text[:7000]
 
 
+def _lokal(host: str) -> bool:
+    if host in {"127.0.0.1", "localhost", "::1"}:
+        return True
+    try:
+        import ipaddress
+
+        return ipaddress.ip_address(host).is_private
+    except ValueError:
+        return host.endswith((".local", ".lan", ".home"))
+
+
 def destination() -> dict:
     settings = get_settings_service()
     provider_name, model = settings.pet_selection()
     saved_provider, saved_model = settings.selection()
     provider_name = provider_name or saved_provider or get_settings().default_provider
     model = settings.get().get("vision_model") or VISION_DEFAULTS.get(provider_name) or model or saved_model or get_settings().emil_model
+    from app.services.aufgaben_modelle import sehen_wahl
+
+    provider_name, model = sehen_wahl(provider_name, model)
     provider = get_registry().all().get(provider_name)
     endpoint = str(getattr(provider, "_base_url", ""))
     if provider_name == "ollama" and provider:
         endpoint = provider._service.openai_base_url()
-    local = urlparse(endpoint).hostname in {"127.0.0.1", "localhost", "::1"}
+    if provider_name == "lokalserver":
+        from app.providers.lokal_server import einstellung
+
+        endpoint = einstellung()[0]
+    local = _lokal(urlparse(endpoint).hostname or "")
     identity = provider_name + "@" + endpoint
     available = bool(provider and callable(getattr(provider, "describe_image", None)) and (provider._key("emil") if callable(getattr(provider, "_key", None)) else provider.available()))
     return {"provider": provider_name, "model": model, "local": local, "identity": identity, "available": available}

@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import {
   Deck,
@@ -74,7 +75,7 @@ export default function Flashcards({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[94vw] h-[600px] max-h-[92vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🎴</span>
+            <span className="text-xl"><Symbol zeichen="🎴" /></span>
             <span className="text-[14px] text-white/90">Lern-Karteikarten</span>
             {active && <button onClick={() => { setActive(null); setCard(null); load(); }} className="text-[11px] text-gold/70 hover:text-gold">← Decks</button>}
           </div>
@@ -118,7 +119,7 @@ export default function Flashcards({ onClose }: { onClose: () => void }) {
           <div className="flex-1 flex flex-col p-5 min-h-0">
             {card?.done ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <div className="text-4xl mb-3">🎉</div>
+                <div className="text-4xl mb-3"><Symbol zeichen="🎉" /></div>
                 <div className="text-[15px] text-white/85">Alles wiederholt! Für jetzt bist du durch.</div>
                 <button onClick={() => { setActive(null); setCard(null); load(); }} className="mt-5 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white/70 text-[12.5px] hover:bg-white/10">Zurück zu den Decks</button>
               </div>
@@ -151,7 +152,7 @@ export default function Flashcards({ onClose }: { onClose: () => void }) {
                         <div className="text-[13px] text-white/85 mt-1">Lösung: {result.loesung}</div>
                         {result.feedback && <div className="text-[12px] text-white/55 mt-1">{result.feedback}</div>}
                       </div>
-                      <button onClick={() => void cont()} className="mt-4 px-5 py-2 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold text-[12.5px] shadow-gold hover:brightness-110 transition">Nächste Karte ▶</button>
+                      <button onClick={() => void cont()} className="mt-4 px-5 py-2 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold text-[12.5px] shadow-gold hover:brightness-110 transition">Nächste Karte <Symbol zeichen="▶" /></button>
                     </div>
                   )}
                 </div>

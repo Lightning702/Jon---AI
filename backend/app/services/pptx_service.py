@@ -149,14 +149,17 @@ def _bullets(
     frame.margin_right = 0
     for index, item in enumerate(items):
         paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
-        paragraph.space_after = Pt(14)
+        text = str(item)
+        unter = text.startswith(("– ", "- ", "  "))
+        if unter:
+            text = text.lstrip(" –-").strip()
+        paragraph.space_after = Pt(6 if unter else 12)
         marker = paragraph.add_run()
-        marker.text = "▪  "
-        marker.font.size = Pt(size)
+        marker.text = "        –  " if unter else "▪  "
+        marker.font.size = Pt(size - 1 if unter else size)
         marker.font.color.rgb = _rgb(accent)
         marker.font.name = FONT_BODY
         run = paragraph.add_run()
-        text = str(item)
         if ":" in text and len(text.split(":", 1)[0]) <= 28:
             head, tail = text.split(":", 1)
             run.text = head + ":"
@@ -215,16 +218,71 @@ def _circle(slide, left: float, top: float, size: float, fill: str, label: str, 
 
 
 def _picture(slide, image: str, left: float, top: float, width: float, height: float) -> bool:
+    return einpassen(slide, image, left, top, width, height) is not None
+
+
+def einpassen(slide, image: str, left: float, top: float, width: float, height: float, ganz: bool = False):
+    from PIL import Image
     from pptx.util import Inches
 
-    path = Path(str(image)).expanduser()
-    if not path.is_file():
-        return False
+    path = Path(str(image or "")).expanduser()
+    if not str(image or "").strip() or not path.is_file():
+        return None
     try:
-        slide.shapes.add_picture(str(path), Inches(left), Inches(top), Inches(width), Inches(height))
+        with Image.open(path) as bild:
+            bw, bh = bild.size
+        quelle, ziel = bw / max(1, bh), width / max(0.01, height)
+        if ganz:
+            if quelle > ziel:
+                neu = width / quelle
+                top, height = top + (height - neu) / 2, neu
+            else:
+                neu = height * quelle
+                left, width = left + (width - neu) / 2, neu
+        form = slide.shapes.add_picture(str(path), Inches(left), Inches(top), Inches(width), Inches(height))
+        if not ganz and abs(quelle - ziel) > 0.01:
+            if quelle > ziel:
+                rest = (1 - ziel / quelle) / 2
+                form.crop_left = rest
+                form.crop_right = rest
+            else:
+                rest = (1 - quelle / ziel) / 2
+                form.crop_top = rest
+                form.crop_bottom = rest
+        return form
     except Exception:
-        return False
-    return True
+        return None
+
+
+def schleier(slide, color: str, deckkraft: int = 62):
+    from pptx.oxml.ns import qn
+    from pptx.util import Inches
+
+    form = slide.shapes.add_shape(1, Inches(0), Inches(0), Inches(SLIDE_W), Inches(SLIDE_H))
+    form.fill.solid()
+    form.fill.fore_color.rgb = _rgb(color)
+    form.line.fill.background()
+    form.shadow.inherit = False
+    farbe = form.fill._xPr.find(qn("a:solidFill"))[0]
+    alpha = farbe.makeelement(qn("a:alpha"), {"val": str(max(0, min(100, deckkraft)) * 1000)})
+    farbe.append(alpha)
+    return form
+
+
+def _fusszeile(slide, data: dict, layout: str, nummer: int, colors: dict[str, str]) -> None:
+    if layout in ("title", "closing"):
+        return
+    if layout not in ("chart", "diagramm"):
+        quelle = data.get("quelle") or data.get("quellen") or data.get("source") or data.get("sources") or data.get("footer")
+        if isinstance(quelle, list):
+            quelle = "; ".join(str(q) for q in quelle if str(q).strip())
+        quelle = str(quelle or "").strip()
+        if quelle:
+            if not quelle.lower().startswith(("quelle", "quellen", "source")):
+                quelle = "Quelle: " + quelle
+            _text(slide, quelle[:220], MARGIN, SLIDE_H - 0.5, SLIDE_W - 2 * MARGIN - 1.0, 0.34, 10, colors["muted"], italic=True)
+    if data.get("seitenzahl", True) is not False:
+        _text(slide, str(nummer + 1), SLIDE_W - MARGIN - 0.6, SLIDE_H - 0.5, 0.6, 0.34, 11, colors["muted"], align="right")
 
 
 def _notes(slide, text: str) -> None:
@@ -298,9 +356,17 @@ def _corner(slide, colors: dict[str, str], color: str | None = None) -> None:
     shape.shadow.inherit = False
 
 
-def _title_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
+def _hintergrundbild(slide, data: dict, colors: dict[str, str]) -> bool:
     _fill(slide, colors["dark"])
+    if _picture(slide, str(data.get("image", "")), 0, 0, SLIDE_W, SLIDE_H):
+        schleier(slide, colors["dark"], 58)
+        return True
     _corner(slide, colors)
+    return False
+
+
+def _title_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
+    _hintergrundbild(slide, data, colors)
     title = str(data.get("title", ""))
     subtitle = str(data.get("subtitle", data.get("text", "")))
     _text(slide, title, MARGIN, 2.35, SLIDE_W - 2 * MARGIN - 2.6, 2.0, _fit(title, 54, 38, 26), colors["light"], bold=True, font=FONT_TITLE)
@@ -318,10 +384,10 @@ def _bullets_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     text = str(data.get("text", ""))
     image = str(data.get("image", ""))
     width = SLIDE_W - 2 * MARGIN
-    if image:
+    if image and einpassen(slide, image, MARGIN + 6.9 + 0.6, CONTENT_TOP - 0.2, SLIDE_W - MARGIN - (MARGIN + 6.9 + 0.6), CONTENT_BOTTOM - CONTENT_TOP, ganz=True) is not None:
         width = 6.9
-        _picture(slide, image, MARGIN + width + 0.6, CONTENT_TOP, SLIDE_W - MARGIN - (MARGIN + width + 0.6), 4.2)
-    _corner(slide, colors)
+    else:
+        _corner(slide, colors)
     kopf = 0.0
     if text:
         kopf = _text_hoehe(text, width, 17) + 0.34
@@ -382,6 +448,23 @@ def _stat_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
             _text(slide, label, left, top + 1.65, width - 0.4, 1.0, 17, colors["light"], align="center")
 
 
+def _spalten_bedarf(column, width: float, size: int) -> float:
+    if not isinstance(column, dict):
+        return 1.0
+    head = _kopf(column)
+    text = _inhalt(column)
+    body = [str(b) for b in column.get("bullets") or []]
+    bedarf = 0.9
+    if head:
+        groesse = 22 if len(head) < 40 else 18 if len(head) < 80 else 15
+        bedarf += _text_hoehe(head, width - 0.9, groesse, 1.15) + 0.35
+    if text:
+        bedarf += _text_hoehe(text, width - 0.9, size, 1.24) + 0.2
+    if body:
+        bedarf += _bullet_height(body, size, width - 0.9)
+    return bedarf
+
+
 def _two_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     _fill(slide, colors["light"])
     _heading(slide, str(data.get("title", "")), colors)
@@ -389,12 +472,13 @@ def _two_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     columns = list(data.get("items") or data.get("columns") or [])[:2]
     while len(columns) < 2:
         columns.append({})
-    needed = 1.4
-    for column in columns:
-        if isinstance(column, dict):
-            body = column.get("bullets") or []
-            needed = max(needed, 1.3 + _bullet_height(list(body), 16) + (0.9 if column.get("text") else 0))
-    height = min(CONTENT_BOTTOM - CONTENT_TOP, max(needed, 2.6))
+    platz = CONTENT_BOTTOM - CONTENT_TOP + 0.2
+    size = 12
+    for kandidat in range(17, 11, -1):
+        if max(_spalten_bedarf(c, width, kandidat) for c in columns) <= platz:
+            size = kandidat
+            break
+    height = min(platz, max(2.6, max(_spalten_bedarf(c, width, size) for c in columns)))
     top = _centered(height)
     for index, column in enumerate(columns):
         left = MARGIN + index * (width + 0.6)
@@ -405,13 +489,16 @@ def _two_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
         _card(slide, left, top, width, height, colors["soft"] if highlight else "FFFFFF", colors["soft"])
         inner = top + 0.45
         if head:
-            _text(slide, head, left + 0.45, inner, width - 0.9, 0.6, 22, colors["primary"], bold=True, font=FONT_TITLE)
-            inner += 0.85
+            groesse = 22 if len(head) < 40 else 18 if len(head) < 80 else 15
+            kopf_hoehe = _text_hoehe(head, width - 0.9, groesse, 1.15) + 0.15
+            _text(slide, head, left + 0.45, inner, width - 0.9, kopf_hoehe, groesse, colors["primary"], bold=True, font=FONT_TITLE)
+            inner += kopf_hoehe + 0.2
         if text:
-            _text(slide, text, left + 0.45, inner, width - 0.9, 0.9, 16, colors["muted"])
-            inner += 0.95
+            text_hoehe = _text_hoehe(text, width - 0.9, size, 1.24) + 0.1
+            _text(slide, text, left + 0.45, inner, width - 0.9, text_hoehe, size, colors["muted"])
+            inner += text_hoehe + 0.1
         if body:
-            _bullets(slide, [str(b) for b in body], left + 0.45, inner, width - 0.9, top + height - inner - 0.3, 16, colors["dark"], colors["primary"])
+            _bullets(slide, [str(b) for b in body], left + 0.45, inner, width - 0.9, max(0.5, top + height - inner - 0.2), size, colors["dark"], colors["primary"])
 
 
 def _image_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
@@ -473,8 +560,7 @@ def _timeline_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
 
 
 def _closing_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
-    _fill(slide, colors["dark"])
-    _corner(slide, colors)
+    _hintergrundbild(slide, data, colors)
     title = str(data.get("title", "Danke!"))
     _text(slide, title, MARGIN, 2.7, SLIDE_W - 2 * MARGIN - 2.8, 1.6, _fit(title, 48, 34, 24), colors["light"], bold=True, font=FONT_TITLE)
     subtitle = str(data.get("subtitle", data.get("text", "")))
@@ -665,6 +751,9 @@ class PptxService:
             }
         if not slides:
             return {"error": "Keine Folien uebergeben."}
+        from app.services.pptx_normalisieren import folien as folien_normalisieren
+
+        slides = folien_normalisieren(slides, title)
         colors = _theme(theme)
         prs = Presentation()
         prs.slide_width = Inches(SLIDE_W)
@@ -681,13 +770,16 @@ class PptxService:
             builder = LAYOUTS.get(layout, _bullets_slide)
             slide = _blank(prs)
             builder(prs, slide, data, colors)
+            _fusszeile(slide, data, layout, nummer, colors)
             _notes(slide, str(data.get("notes", "")))
             if effekte:
                 animiert += self._effekte(slide, nummer, layout, data, colors)
             made.append(layout if layout in LAYOUTS else "bullets")
         target = _target_path(path, title)
         prs.save(str(target))
+        qualitaet = pruefen(prs, slides)
         return {
+            "qualitaet": qualitaet,
             "ok": True,
             "path": str(target),
             "slides": len(made),
@@ -728,24 +820,69 @@ class PptxService:
             )
         return animieren(slide, auftraege[:9])
 
-    async def bilder_ergaenzen(self, slides: list[dict], erlaubt: bool = True) -> int:
-        if not erlaubt:
-            return 0
-        from app.services.pptx_inhalte import bild_besorgen
+    async def bilder_vorschlagen(self, slides: list[dict], thema: str) -> int:
+        import json as _json
 
+        from app.services.llm import complete
+
+        felder = ("image", "image_url", "bild_url", "bild_suche", "image_search", "bild_prompt", "image_prompt")
+        mit_bild = sum(1 for s in slides if isinstance(s, dict) and any(s.get(f) for f in felder))
+        inhalt = [(i, s) for i, s in enumerate(slides) if isinstance(s, dict) and str(s.get("layout")) in ("bullets", "image", "title") and not any(s.get(f) for f in felder)]
+        if len(slides) < 4 or mit_bild * 4 >= len(slides) or not inhalt:
+            return 0
+        liste = [{"nr": i, "titel": str(s.get("title", ""))[:120], "inhalt": " | ".join(str(b) for b in (s.get("bullets") or [])[:3])[:300]} for i, s in inhalt[:24]]
+        aufgabe = (
+            "Waehle fuer eine Praesentation die Folien aus, auf denen ein echtes Bild oder Schema den Inhalt wirklich erklaert "
+            "(Ablaeufe, Aufbau, Geraete, Orte, Messung, Schutzausruestung, Diagramme). Keine rein dekorativen Bilder, nichts, was "
+            "den Sachverhalt falsch darstellen koennte. Hoechstens 8 Folien. Gib fuer jede einen kurzen, konkreten ENGLISCHEN "
+            "Suchbegriff fuer Wikimedia Commons an (2-5 Woerter, z. B. 'nuclear fission diagram', 'Geiger counter', "
+            "'pressurized water reactor diagram'). Antworte NUR mit JSON: {\"<nr>\": \"suchbegriff\", ...}"
+        )
+        import asyncio as _asyncio
+        import os as _os
+
+        if _os.environ.get("PYTEST_CURRENT_TEST"):
+            return 0
+        try:
+            antwort = await _asyncio.wait_for(complete(aufgabe, _json.dumps({"thema": thema, "folien": liste}, ensure_ascii=False), max_tokens=4000, temperature=0.2), 150)
+            vorschlaege = _letztes_json(antwort)
+        except Exception:
+            return 0
+        gesetzt = 0
+        for nummer, begriff in list(vorschlaege.items())[:8]:
+            try:
+                index = int(nummer)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= index < len(slides) and isinstance(slides[index], dict) and str(begriff).strip():
+                slides[index]["bild_suche"] = str(begriff).strip()[:120]
+                gesetzt += 1
+        return gesetzt
+
+    async def bilder_ergaenzen(self, slides: list[dict], erlaubt: bool = True) -> int:
+        from app.services.bildquelle import besorgen
+
+        if not erlaubt:
+            for data in slides:
+                if isinstance(data, dict):
+                    data.pop("bild_prompt", None)
+                    data.pop("image_prompt", None)
+
+        felder = ("image", "bild", "image_url", "bild_url", "bild_suche", "image_search", "bild_prompt", "image_prompt")
         erzeugt = 0
+        benutzt: set[str] = set()
         for data in slides:
-            if not isinstance(data, dict):
+            if not isinstance(data, dict) or not any(str(data.get(f) or "").strip() for f in felder):
                 continue
-            if str(data.get("image", "")).strip():
-                continue
-            wunsch = str(data.get("bild_prompt") or data.get("image_prompt") or "").strip()
-            if not wunsch:
-                continue
+            vorher = str(data.get("image") or "").strip()
             breit = str(data.get("layout", "")).lower() not in ("image", "bild")
-            pfad = await bild_besorgen(wunsch, breit)
+            pfad = await besorgen(data, breit)
+            if pfad and pfad in benutzt and pfad != vorher:
+                pfad = ""
             if pfad:
-                data["image"] = pfad
+                benutzt.add(pfad)
+            data["image"] = pfad
+            if pfad and pfad != vorher:
                 erzeugt += 1
         return erzeugt
 
@@ -773,6 +910,60 @@ class PptxService:
                 notes = slide.notes_slide.notes_text_frame.text.strip()
             slides.append({"nummer": index, "text": texts, "notizen": notes})
         return {"path": str(source), "folien": len(slides), "inhalt": slides}
+
+
+def _letztes_json(text: str) -> dict:
+    import json as _json
+
+    dekoder = _json.JSONDecoder()
+    gefunden: dict = {}
+    position = 0
+    while True:
+        start = text.find("{", position)
+        if start < 0:
+            return gefunden
+        try:
+            wert, ende = dekoder.raw_decode(text, start)
+        except ValueError:
+            position = start + 1
+            continue
+        if isinstance(wert, dict) and wert and all(isinstance(v, str) for v in wert.values()):
+            gefunden = wert
+        position = ende
+
+
+def pruefen(prs, slides: list) -> list[str]:
+    hinweise = []
+    bilder = 0
+    for nummer, folie in enumerate(prs.slides, start=1):
+        formen = list(folie.shapes)
+        texte = [f.text_frame.text.strip() for f in formen if getattr(f, "has_text_frame", False) and f.has_text_frame and f.text_frame.text.strip()]
+        hat_bild = any(f.shape_type == 13 for f in formen)
+        hat_mehr = any(getattr(f, "has_chart", False) and f.has_chart or getattr(f, "has_table", False) and f.has_table for f in formen)
+        bilder += 1 if hat_bild else 0
+        zeichen = sum(len(t) for t in texte[1:]) if texte else 0
+        if nummer > 1 and len(texte) <= 1 and not hat_bild and not hat_mehr:
+            hinweise.append(f"Folie {nummer} hat keinen Inhalt ausser der Überschrift.")
+        if zeichen > 900:
+            hinweise.append(f"Folie {nummer} hat sehr viel Text ({zeichen} Zeichen) – kürzen oder auf zwei Folien teilen.")
+        for form in formen:
+            if not (getattr(form, "has_text_frame", False) and form.has_text_frame):
+                continue
+            if form.top is not None and form.top > prs.slide_height * 0.88:
+                continue
+            for absatz in form.text_frame.paragraphs:
+                for lauf in absatz.runs:
+                    if lauf.font.size is not None and lauf.font.size.pt < 12 and len(lauf.text) > 40:
+                        hinweise.append(f"Folie {nummer} hat Fließtext unter 12 pt – schwer lesbar.")
+                        break
+                else:
+                    continue
+                break
+    if len(prs.slides) >= 4 and bilder == 0:
+        hinweise.append("Die Präsentation enthält kein einziges Bild – Titelfolie und Inhaltsfolien mit bild_suche, image oder bild_prompt ergänzen.")
+    elif len(prs.slides) >= 8 and bilder * 5 < len(prs.slides):
+        hinweise.append(f"Nur {bilder} Bild(er) bei {len(prs.slides)} Folien – erklärende Bilder oder Schemata ergänzen.")
+    return list(dict.fromkeys(hinweise))[:20]
 
 
 def _theme_name(theme: str) -> str:

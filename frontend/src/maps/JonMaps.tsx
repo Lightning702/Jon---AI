@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type maplibregl from "maplibre-gl";
@@ -795,7 +796,7 @@ export default function JonMaps({
                   >
                     <div className="jm-specular" />
                     <div className="jm-brand">
-                      <span className="jm-brand-mark">🗺️</span>
+                      <span className="jm-brand-mark"><Symbol zeichen="🗺️" /></span>
                       Jon Maps
                     </div>
                   </div>
@@ -809,7 +810,7 @@ export default function JonMaps({
                         : "Dunklen Modus einschalten"
                     }
                   >
-                    {theme === "dark" ? "☀️" : "🌙"}
+                    <Symbol zeichen={theme === "dark" ? "☀️" : "🌙"} />
                   </button>
                   {!embedded && onClose && (
                     <button
@@ -1048,7 +1049,7 @@ export default function JonMaps({
                   alignSelf: "flex-start",
                 }}
               >
-                {config?.attribution ?? "© OpenStreetMap-Mitwirkende"}
+                {config?.attribution ?? "OpenStreetMap-Mitwirkende"}
               </div>
               </div>
             </div>

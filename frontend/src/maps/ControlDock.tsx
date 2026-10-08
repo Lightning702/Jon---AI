@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { motion } from "framer-motion";
 
 interface Props {
@@ -96,7 +97,7 @@ export default function ControlDock({
           onClick={onToggleGlobe}
           title={isGlobe ? "Zurück zur Karte" : "Globus-Ansicht"}
         >
-          {isGlobe ? "🗺️" : "🌍"}
+          <Symbol zeichen={isGlobe ? "🗺️" : "🌍"} />
         </button>
         <button
           className="jm-dock-btn"
@@ -108,7 +109,7 @@ export default function ControlDock({
               : "Erde: Satellit, echtes Gelände und 3D-Gebäude zusammen"
           }
         >
-          🌎
+          <Symbol zeichen="🌎" />
         </button>
         <div className="jm-dock-sep" />
         <button
@@ -128,14 +129,14 @@ export default function ControlDock({
           onClick={onStreet}
           title="Street Exploration an dieser Stelle"
         >
-          👁️
+          <Symbol zeichen="👁️" />
         </button>
         <button
           className="jm-dock-btn"
           onClick={onExplore}
           title="Abheben und die Welt im Flugzeug erkunden"
         >
-          ✈️
+          <Symbol zeichen="✈️" />
         </button>
         <div className="jm-dock-sep" />
         <button className="jm-dock-btn" onClick={onLocate} title="Mein Standort">

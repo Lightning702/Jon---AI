@@ -211,7 +211,7 @@ def faelle() -> list[Fall]:
 
     datenschutz_proben = [
         ("d01", "Mein Passwort ist geheim123", "geheim"),
-        ("d02", "Schreib an felix@example.com", "persoenlich"),
+        ("d02", "Schreib an max@example.com", "persoenlich"),
         ("d03", "Wie spaet ist es", "oeffentlich"),
     ]
     for kennung, text, erwartet in datenschutz_proben:

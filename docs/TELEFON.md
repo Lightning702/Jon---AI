@@ -113,7 +113,7 @@ Android schläfert Hintergrund-Apps ein; dann klingelt es nicht. Zwei Einstellun
 
 In Jon auf **Testanruf**. Dein Handy muss klingeln, und nach dem Abheben sagt Jon:
 
-> „Hey Felix! Das ist ein Testanruf von Jon. Deine Telefonfunktion funktioniert."
+> „Hey! Das ist ein Testanruf von Jon. Deine Telefonfunktion funktioniert."
 
 ## Anrufe planen
 
@@ -187,7 +187,7 @@ Damit ist Jon ein Telefonassistent, den du unterwegs einfach anrufen kannst — 
 dabei denselben Zugriff wie im Chat.
 
 Der Begrüßungssatz lässt sich mit der Einstellung `phone_greeting` ändern; leer bedeutet
-„Hey Felix! Was gibt es?". Wer das nicht will, schaltet eingehende Anrufe mit
+„Hey! Was gibt es?" (mit deinem Profilnamen). Wer das nicht will, schaltet eingehende Anrufe mit
 `phone_accept_incoming` ab — dann antwortet Jon mit „besetzt".
 
 Eingehende Anrufe verlangen dieselbe Anmeldung wie ausgehende. Ohne gültiges SIP-Passwort

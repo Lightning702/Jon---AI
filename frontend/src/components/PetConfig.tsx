@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import "../../electron/pet3d.js";
 import { motion } from "framer-motion";
@@ -67,8 +68,8 @@ function schaufarbe(accent: string): string {
 
 const COMPANIONS: { value: Companion; label: string; hint: string }[] = [
   { value: "none", label: "Keins", hint: "Mini Jon ist allein unterwegs." },
-  { value: "cat", label: "🐱 Katze", hint: "Minka zieht bei Mini Jon ein." },
-  { value: "dog", label: "🐶 Hund", hint: "Rocky zieht bei Mini Jon ein." },
+  { value: "cat", label: "Katze", hint: "Minka zieht bei Mini Jon ein." },
+  { value: "dog", label: "Hund", hint: "Rocky zieht bei Mini Jon ein." },
 ];
 
 function Eyes({ style, color }: { style: Eyes; color: string }) {
@@ -245,8 +246,8 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
             <div className="flex gap-1 -mt-2">
               {([
                 { value: "jon", label: "Mini Jon" },
-                { value: "cat", label: "🐱 Katze" },
-                { value: "dog", label: "🐶 Hund" },
+                { value: "cat", label: "Katze" },
+                { value: "dog", label: "Hund" },
               ] as const).map((o) => (
                 <button
                   key={o.value}
@@ -367,7 +368,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
                         : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
                     }`}
                   >
-                    {o.label}{!premium && o.value !== "none" && " 🔒"}
+                    {o.label}{!premium && o.value !== "none" && <Symbol zeichen="🔒" size={12} className="ml-1" />}
                   </button>
                 ))}
               </div>

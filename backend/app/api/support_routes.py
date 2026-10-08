@@ -11,7 +11,7 @@ from app.core.config import get_settings
 
 router = APIRouter(prefix="/api")
 ARTEN = {"problem": "Problem", "fehler": "Fehler melden", "vorschlag": "Vorschlag", "standard": "Neue Standard-Funktion", "premium": "Neue Premium-Funktion", "frage": "Frage"}
-SUPPORT_EMAIL = "felix.heinisch12@gmail.com"
+SUPPORT_SEITE = "https://getjon.info/support/"
 _gesendet: list[float] = []
 
 
@@ -32,7 +32,7 @@ def systeminfo() -> dict:
 
 @router.get("/support")
 async def support_info() -> dict:
-    return {"email": SUPPORT_EMAIL, "arten": ARTEN, **systeminfo()}
+    return {"seite": SUPPORT_SEITE, "arten": ARTEN, **systeminfo()}
 
 
 @router.post("/support")
@@ -48,8 +48,8 @@ async def support_senden(daten: Nachricht) -> dict:
         async with httpx.AsyncClient(timeout=25, follow_redirects=False) as client:
             antwort = await client.post(get_settings().jon_support_url, data=felder, headers={"Accept": "text/html"})
     except httpx.HTTPError:
-        raise HTTPException(503, f"Die Nachricht konnte gerade nicht gesendet werden. Schreib direkt an {SUPPORT_EMAIL}.")
+        raise HTTPException(503, f"Die Nachricht konnte gerade nicht gesendet werden. Versuch es gleich noch einmal oder nutze {SUPPORT_SEITE}.")
     if antwort.status_code >= 400:
-        raise HTTPException(502, f"Der Support-Server hat die Nachricht abgelehnt (Fehler {antwort.status_code}). Schreib direkt an {SUPPORT_EMAIL}.")
+        raise HTTPException(502, f"Der Support-Server hat die Nachricht abgelehnt (Fehler {antwort.status_code}). Versuch es später noch einmal oder nutze {SUPPORT_SEITE}.")
     _gesendet.append(jetzt)
-    return {"ok": True, "email": SUPPORT_EMAIL}
+    return {"ok": True, "seite": SUPPORT_SEITE}

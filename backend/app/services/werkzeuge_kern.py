@@ -771,9 +771,11 @@ def _oberflaeche(box: Any, args: dict, name: str = "") -> str:
     from app.services.oberflaeche_service import liste, oeffnen
 
     ziel = str(args.get("werkzeug", "") or args.get("ziel", "")).strip()
-    if not ziel or str(args.get("aktion", "")).strip().lower() in ("liste", "zeigen"):
+    aktion = str(args.get("aktion", "")).strip().lower()
+    datei = str(args.get("datei", "") or args.get("pfad", "")).strip()
+    if (not ziel and not datei) or aktion in ("liste", "zeigen"):
         return antwort(liste())
-    return antwort(oeffnen(ziel))
+    return antwort(oeffnen(ziel, aktion or "oeffnen", datei))
 
 
 @werkzeug("ausloeser")
@@ -845,3 +847,257 @@ def _bericht(box: Any, args: dict, name: str = "") -> str:
             ),
         }
     )
+
+
+def _datei_frei(pfad: str) -> str:
+    from pathlib import Path
+
+    from app.services.dateiraum_service import get_dateiraum_service
+
+    erlaubt, grund = get_dateiraum_service().frei(Path(str(pfad or "")).expanduser())
+    return "" if erlaubt else grund
+
+
+def _mit_karte(box: Any, ergebnis: dict, beschreibung: str) -> dict:
+    if ergebnis.get("ok") and ergebnis.get("path"):
+        try:
+            from pathlib import Path
+
+            from app.services.dateiindex_service import get_dateiindex_service
+
+            ergebnis["datei"] = get_dateiindex_service().karte_und_merken(ergebnis["path"], Path(ergebnis["path"]).stem, beschreibung, quelle=getattr(box, "_source", "app"))
+        except Exception as fehler:
+            from app.core.fehler import leise
+
+            leise(fehler, "services/werkzeuge_kern")
+    return ergebnis
+
+
+def _aktionen(args: dict) -> list:
+    import json
+
+    roh = args.get("aktionen") or args.get("actions") or []
+    if isinstance(roh, str):
+        try:
+            roh = json.loads(roh)
+        except ValueError:
+            return []
+    if isinstance(roh, dict):
+        roh = [roh]
+    return [a for a in roh if isinstance(a, dict)]
+
+
+@werkzeug_async("bild_suche")
+async def _bild_suche(box: Any, args: dict, name: str = "") -> str:
+    from app.services.bildquelle import herunterladen, suchen
+
+    adresse = str(args.get("url", "") or "").strip()
+    begriff = str(args.get("query", "") or args.get("suche", "") or args.get("bild_suche", "")).strip()
+    if adresse:
+        try:
+            pfad = await herunterladen(adresse)
+        except Exception as fehler:
+            return antwort({"error": f"Bild konnte nicht geladen werden: {fehler}"})
+    elif begriff:
+        pfad = await suchen(begriff)
+    else:
+        return antwort({"error": "query (englischer Suchbegriff) oder url fehlt."})
+    if not pfad:
+        return antwort({"error": f"Kein passendes freies Foto zu '{begriff}' gefunden. Versuche einen anderen englischen Begriff oder bild_prompt."})
+    return antwort({"ok": True, "pfad": pfad, "hinweis": "Diesen Pfad kannst du als image in create_pptx, edit_pptx oder edit_docx verwenden."})
+
+
+@werkzeug_async("edit_pptx")
+async def _edit_pptx(box: Any, args: dict, name: str = "") -> str:
+    from app.services.pptx_bearbeiten import bearbeiten
+
+    pfad = str(args.get("path", "") or args.get("pfad", ""))
+    gesperrt = _datei_frei(pfad)
+    if gesperrt:
+        return antwort({"error": gesperrt})
+    ergebnis = await bearbeiten(pfad, _aktionen(args), str(args.get("theme", "")))
+    return antwort(_mit_karte(box, ergebnis, "Von Jon bearbeitete Praesentation"))
+
+
+@werkzeug_async("edit_docx")
+async def _edit_docx(box: Any, args: dict, name: str = "") -> str:
+    from app.services.docx_bearbeiten import bearbeiten
+
+    pfad = str(args.get("path", "") or args.get("pfad", ""))
+    gesperrt = _datei_frei(pfad)
+    if gesperrt:
+        return antwort({"error": gesperrt})
+    ergebnis = await bearbeiten(pfad, _aktionen(args))
+    return antwort(_mit_karte(box, ergebnis, "Von Jon bearbeitetes Word-Dokument"))
+
+
+@werkzeug("read_docx")
+def _read_docx(box: Any, args: dict, name: str = "") -> str:
+    from app.services.docx_bearbeiten import lesen
+
+    pfad = str(args.get("path", "") or args.get("pfad", ""))
+    gesperrt = _datei_frei(pfad)
+    if gesperrt:
+        return antwort({"error": gesperrt})
+    return antwort(lesen(pfad))
+
+
+@werkzeug("datei_kommentare")
+def _datei_kommentare(box: Any, args: dict, name: str = "") -> str:
+    from app.services.kommentar_service import beschreibung, get_kommentar_service
+
+    dienst = get_kommentar_service()
+    aktion = str(args.get("aktion", "lesen")).strip().lower()
+    kennungen = args.get("ids") or ([args["id"]] if args.get("id") else [])
+    if isinstance(kennungen, str):
+        kennungen = [k.strip() for k in kennungen.split(",") if k.strip()]
+    if aktion in ("erledigt", "fertig", "abhaken"):
+        erledigt = [k for k in kennungen if dienst.aendern(str(k), True, antwort=str(args.get("antwort", "")) or None)]
+        return antwort({"ok": bool(erledigt), "erledigt": erledigt, **({} if erledigt else {"error": "Keine passenden Kommentar-IDs."})})
+    if aktion in ("antworten", "antwort"):
+        geaendert = [k for k in kennungen if dienst.aendern(str(k), antwort=str(args.get("antwort", "")))]
+        return antwort({"ok": bool(geaendert), "beantwortet": geaendert})
+    pfad = str(args.get("path", "") or args.get("pfad", ""))
+    gesperrt = _datei_frei(pfad)
+    if gesperrt:
+        return antwort({"error": gesperrt})
+    if aktion in ("anlegen", "neu", "notieren"):
+        eintrag = dienst.anlegen(pfad, str(args.get("text", "")), args.get("stelle") if isinstance(args.get("stelle"), dict) else {}, "jon")
+        return antwort({"ok": True, "kommentar": eintrag})
+    offen = str(args.get("alle", "")).lower() not in ("true", "1", "ja")
+    return antwort({
+        "path": pfad,
+        "kommentare": [
+            {"id": k["id"], "wo": beschreibung(k.get("stelle") or {}), "stelle": k.get("stelle"), "text": k["text"], "erledigt": k.get("erledigt", False)}
+            for k in dienst.liste(pfad, offen=offen)
+        ],
+    })
+
+
+@werkzeug_async("was_laeuft")
+async def _was_laeuft(box: Any, args: dict, name: str = "") -> str:
+    import asyncio
+
+    from app.services.medien_jetzt import jetzt
+
+    stand = await asyncio.to_thread(jetzt)
+    if stand.get("lied") or stand.get("lied_aus_fenster"):
+        return antwort({"ok": True, **stand})
+    frage = str(args.get("frage", "") or "Welches Lied, Video oder welche Musik ist gerade zu sehen? Nenne Titel und Interpret, wenn sie sichtbar sind.")
+    try:
+        from app.services.mini_jon_agent import get_mini_jon_agent
+        from app.services.mini_jon_screen import analyze
+
+        gesehen = await analyze(get_mini_jon_agent(), frage)
+        return antwort({"ok": True, "quelle": "bildschirm", **stand, "bildschirm": gesehen})
+    except Exception as fehler:
+        return antwort({
+            "ok": False,
+            **stand,
+            "hinweis": (
+                "Gerade meldet keine App ein laufendes Lied. Den Bildschirm konnte ich auch nicht ansehen: "
+                f"{fehler}. Du kannst screenshot und danach look_at_image nutzen, wenn der Nutzer es möchte."
+            ),
+        })
+
+
+@werkzeug_async("wechseln")
+async def _wechseln(box: Any, args: dict, name: str = "") -> str:
+    import asyncio
+
+    from app.services.fenster_wechsel import fenster, wechseln
+
+    ziel = str(args.get("ziel", "") or args.get("title", "") or args.get("name", "")).strip()
+    if str(args.get("aktion", "")).strip().lower() in ("liste", "zeigen", "fenster"):
+        liste = await asyncio.to_thread(fenster)
+        return antwort({"fenster": [{"titel": f["titel"][:100], "programm": f["programm"]} for f in liste[:40]]})
+    tabs = str(args.get("tabs", "true")).strip().lower() not in ("false", "0", "nein")
+    return antwort(await asyncio.to_thread(wechseln, ziel, tabs))
+
+
+@werkzeug_async("stundenplan")
+async def _stundenplan(box: Any, args: dict, name: str = "") -> str:
+    from app.services.stundenplan_service import TAGE, get_stundenplan_service
+
+    dienst = get_stundenplan_service()
+    aktion = str(args.get("aktion", "") or "zeigen").strip().lower()
+    try:
+        if aktion in ("setzen", "speichern", "eintragen", "neu"):
+            if isinstance(args.get("tage"), dict) and args["tage"]:
+                daten = dienst.setzen(args["tage"], "Jon")
+            elif str(args.get("datei", "")).strip():
+                daten = await dienst.aus_datei(str(args["datei"]))
+            elif str(args.get("text", "")).strip():
+                daten = await dienst.aus_text(str(args["text"]))
+            else:
+                return antwort({"error": "Gib den Stundenplan als tage, text oder datei mit."})
+            return antwort({"ok": True, "gespeichert": {t: len(e) for t, e in daten["tage"].items() if e}})
+        if aktion in ("tag", "tag_aendern", "aendern"):
+            dienst.tag_aendern(str(args.get("tag", "")), list(args.get("eintraege") or []))
+            name_tag, eintraege = dienst.fuer(str(args.get("tag", "")))
+            return antwort({"ok": True, "tag": name_tag, "eintraege": eintraege})
+        if aktion in ("loeschen", "löschen", "entfernen"):
+            return antwort({"ok": dienst.loeschen()})
+        if aktion in ("heute", "morgen", "tag_zeigen") or str(args.get("tag", "")).strip():
+            from datetime import date, timedelta
+
+            wunsch = str(args.get("tag", "")).strip()
+            stichtag = wunsch or (date.today() + timedelta(days=1) if aktion == "morgen" else date.today())
+            name_tag, eintraege = dienst.fuer(stichtag)
+            return antwort({"tag": name_tag, "eintraege": eintraege, "text": dienst.text(stichtag) or f"Am {name_tag.capitalize()} steht nichts im Stundenplan."})
+        daten = dienst.laden()
+        return antwort({"tage": {t: daten["tage"].get(t, []) for t in TAGE if daten["tage"].get(t)}, "leer": not any(daten["tage"].values())})
+    except ValueError as fehler:
+        return antwort({"error": str(fehler)})
+
+
+@werkzeug("morgen_nachricht")
+def _morgen_nachricht(box: Any, args: dict, name: str = "") -> str:
+    from app.services.settings_service import get_settings_service
+
+    dienst = get_settings_service()
+    daten = dienst.get()
+    zusaetze = [str(z) for z in daten.get("telegram_morgen_zusaetze") or []]
+    aenderung: dict = {}
+    if "stundenplan" in args:
+        aenderung["telegram_morgen_stundenplan"] = str(args["stundenplan"]).strip().lower() in ("true", "1", "ja", "an")
+    neu = str(args.get("hinzufuegen", "") or "").strip()
+    if neu and neu not in zusaetze:
+        zusaetze.append(neu[:300])
+        aenderung["telegram_morgen_zusaetze"] = zusaetze[-12:]
+    weg = str(args.get("entfernen", "") or "").strip().lower()
+    if weg:
+        rest = [z for z in zusaetze if weg not in z.lower()]
+        if len(rest) != len(zusaetze):
+            aenderung["telegram_morgen_zusaetze"] = rest
+            zusaetze = rest
+    zeit = str(args.get("zeit", "") or "").strip().replace(".", ":")
+    if zeit:
+        teile = zeit.split(":")
+        if len(teile) == 2 and teile[0].isdigit() and teile[1].isdigit() and int(teile[0]) < 24 and int(teile[1]) < 60:
+            aenderung["telegram_morning_time"] = f"{int(teile[0]):02d}:{int(teile[1]):02d}"
+        else:
+            return antwort({"error": f"Unklare Uhrzeit: {zeit}. Nutze HH:MM."})
+    if "an" in args:
+        aenderung["telegram_morning"] = str(args["an"]).strip().lower() in ("true", "1", "ja", "an")
+    elif aenderung and not daten.get("telegram_morning", False):
+        aenderung["telegram_morning"] = True
+    if aenderung:
+        dienst.update(aenderung)
+        daten = dienst.get()
+    hinweis = ""
+    if daten.get("telegram_morgen_stundenplan"):
+        from app.services.stundenplan_service import get_stundenplan_service
+
+        if not any(get_stundenplan_service().laden()["tage"].values()):
+            hinweis = "Es ist noch kein Stundenplan gespeichert - frag den Nutzer danach und speichere ihn mit stundenplan (aktion setzen)."
+    if not str(daten.get("telegram_token", "") or "").strip() and not str(daten.get("telegram_bot_token", "") or "").strip():
+        hinweis = (hinweis + " " if hinweis else "") + "Telegram ist evtl. noch nicht eingerichtet (Einstellungen -> Verbindungen -> Telegram)."
+    return antwort({
+        "ok": True,
+        "an": bool(daten.get("telegram_morning")),
+        "uhrzeit": daten.get("telegram_morning_time", "07:30"),
+        "stundenplan": bool(daten.get("telegram_morgen_stundenplan")),
+        "zusaetze": daten.get("telegram_morgen_zusaetze") or [],
+        **({"hinweis": hinweis} if hinweis else {}),
+    })

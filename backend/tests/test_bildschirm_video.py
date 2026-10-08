@@ -238,10 +238,11 @@ def test_video_befehl_schaltet_und_nimmt_auf(monkeypatch):
     dienst = _telegram_mit_fakes(monkeypatch, gesendet, videos)
     aufnahmen: list = []
 
-    async def fake_schicken(self, chat_id, sekunden):
+    async def fake_schicken(self, chat_id, sekunden, welcher=""):
         aufnahmen.append(sekunden)
 
     monkeypatch.setattr(ts.TelegramService, "video_schicken", fake_schicken)
+    monkeypatch.setattr(ts.TelegramService, "_bildschirmzahl", staticmethod(lambda: 1))
     asyncio.run(dienst._video_befehl("1", "/video aus"))
     assert get_settings_service().get()["telegram_aktionsvideo"] is False
     asyncio.run(dienst._video_befehl("1", "/video an"))

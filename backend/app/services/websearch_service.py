@@ -23,7 +23,11 @@ USER_AGENT = (
 
 AD_MARKERS = ("/y.js", "ad_domain=", "ad_provider=", "duckduckgo.com/y.js")
 
-JUNK_DOMAINS = ("duckduckgo.com", "lite.duckduckgo.com", "html.duckduckgo.com")
+JUNK_DOMAINS = ("duckduckgo.com", "lite.duckduckgo.com", "html.duckduckgo.com", "r.search.yahoo.com")
+
+YAHOO_BLOCK = re.compile(r'<div class="dd [^"]*algo[ "]')
+YAHOO_LINK = re.compile(r'href="(https?://r\.search\.yahoo\.com/[^"]+|https?://(?!r\.search)[^"]+)"[^>]*>.*?<h3[^>]*>(.*?)</h3>', re.S)
+YAHOO_SNIPPET = re.compile(r'<div class="compText[^"]*"[^>]*>\s*<p[^>]*>(.*?)</p>', re.S)
 
 LITE_LINK = re.compile(
     r"""<a[^>]+href=["']([^"']+)["'][^>]*class=["']result-link["'][^>]*>(.*?)</a>""",
@@ -53,8 +57,11 @@ def _tidy(text: str) -> str:
 
 
 def _real_url(href: str) -> str:
+    href = html.unescape(href)
     if href.startswith("//"):
         href = "https:" + href
+    if "r.search.yahoo.com" in href and "/RU=" in href:
+        href = urllib.parse.unquote(href.split("/RU=", 1)[1].split("/RK=", 1)[0])
     if "uddg=" in href:
         query = urllib.parse.urlparse(href).query
         found = urllib.parse.parse_qs(query).get("uddg")
@@ -90,6 +97,7 @@ class WebSearch:
             return {"frage": "", "treffer": [], "fehler": "Kein Suchbegriff."}
         limit = max(1, min(int(limit), 12))
         engines = (
+            self._yahoo,
             self._duckduckgo_lite,
             self._duckduckgo_html,
             self._wikipedia,
@@ -184,6 +192,28 @@ class WebSearch:
             "snippet": _tidy(snippet)[:400],
             "engine": engine,
         }
+
+    async def _yahoo(
+        self, client: httpx.AsyncClient, query: str, limit: int
+    ) -> list[dict]:
+        response = await client.get(
+            "https://search.yahoo.com/search",
+            params={"p": query, "vm": "r" if KINDER_ALTER.get() else "p"},
+        )
+        response.raise_for_status()
+        teile = YAHOO_BLOCK.split(response.text)[1:]
+        treffer: list[dict] = []
+        for block in teile:
+            link = YAHOO_LINK.search(block[:6000])
+            if not link:
+                continue
+            text = YAHOO_SNIPPET.search(block[:8000])
+            eintrag = self._pack(link.group(2), link.group(1), text.group(1) if text else "", "yahoo")
+            if eintrag:
+                treffer.append(eintrag)
+            if len(treffer) >= limit:
+                break
+        return treffer
 
     async def _duckduckgo_lite(
         self, client: httpx.AsyncClient, query: str, limit: int

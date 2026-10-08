@@ -7,9 +7,13 @@ aktuelle Version.
 
 ## Grundregel
 
-Nutze **immer das Werkzeug `create_pptx`**. Schreibe niemals XML von Hand, entpacke keine
-ZIP-Archive und starte kein Python-Skript dafür. Eine vorhandene Datei liest du mit
-`read_pptx`.
+Nutze **immer das Werkzeug `create_pptx`** für neue Präsentationen. Schreibe niemals XML
+von Hand, entpacke keine ZIP-Archive und starte kein Python-Skript dafür.
+
+**Eine vorhandene oder hochgeladene PowerPoint baust du nie neu.** Lies sie mit
+`read_pptx` (du bekommst jede Folie mit Element-Nummern, Lage, Text und die offenen
+Kommentare des Nutzers) und ändere sie gezielt mit `edit_pptx`. Danach hakst du die
+umgesetzten Kommentare mit `datei_kommentare` (aktion `erledigt`, ids) ab.
 
 `create_pptx` erwartet:
 
@@ -86,11 +90,22 @@ Erste Zeile sind die Spaltentitel, höchstens 8 Zeilen und 6 Spalten.
 
 ### Bilder
 
-- `image` nimmt einen echten Pfad auf dem PC.
-- **`bild_prompt` lässt Jon das Bild selbst malen** — beschreibe das Motiv auf Englisch,
-  bildhaft und ohne Text im Bild (`"wind turbines on a green hill at sunrise"`). Das
-  passt gut auf `image`-Folien und als Auflockerung.
-- Nimm Bilder sparsam: zwei bis vier pro Präsentation, nicht auf jeder Folie.
+Bilder machen eine Präsentation lebendig. Jede Folie kann eines bekommen — auf
+`image`-Folien groß daneben, auf `bullets` rechts neben den Punkten, auf `title` und
+`closing` als vollflächiger Hintergrund mit dunklem Schleier.
+
+- **`bild_suche`** holt ein **echtes Foto aus dem Netz** (Wikimedia Commons, frei
+  nutzbar). Suchbegriff auf Englisch und konkret: `"Eiffel Tower"`,
+  `"solar panels on roof"`, `"Ada Lovelace portrait"`. Erste Wahl für reale Orte,
+  Personen, Dinge und Ereignisse.
+- **`bild_prompt`** lässt Jon das Bild selbst malen — Motiv auf Englisch, bildhaft, ohne
+  Text im Bild (`"wind turbines on a green hill at sunrise, cinematic light"`). Gut für
+  Stimmungen, Konzepte und Illustrationen.
+- **`image`** nimmt einen Pfad auf dem PC **oder eine Bild-URL** (`https://…`), etwa ein
+  Bild, das der Nutzer hochgeladen hat.
+- Bilder werden automatisch passend zugeschnitten, nie verzerrt.
+- Eine gute Präsentation hat vier bis acht Bilder: Titelfolie, Abschlussfolie und die
+  Folien, bei denen man etwas sehen muss.
 
 ## Aufbau einer guten Präsentation
 
@@ -141,9 +156,36 @@ Elemente, Stichpunkte einzeln. Eingreifen brauchst du nur, wenn der Nutzer es wi
    suchen als einmal raten.
 3. Plane die Folien: Layout + Kernaussage + welche Zahl darauf gehört.
 4. Rufe `create_pptx` einmal mit allen Folien auf.
-5. Öffne die Datei mit `datei_oeffnen` auf dem zurückgegebenen Pfad.
+5. Die Datei erscheint als Karte. Mit „Öffnen" sieht der Nutzer sie in Jons eigener
+   Dateiansicht, kann Folien und Elemente anklicken und Kommentare hinterlassen.
 6. Antworte knapp: wo sie liegt, wie viele Folien, was drin ist. Biete an, einzelne
    Folien zu ändern.
+
+## Eine Vorlage neu gestalten
+
+Wenn der Nutzer eine vorhandene Präsentation „neu erstellen“ oder „überarbeiten“ lassen will:
+
+1. `read_pptx` auf die Vorlage. Notiere jeden Text, jede Überschrift, jeden Namen, jeden Link
+   und jedes Bild (`bild_pfad`). **Nichts davon darf verloren gehen.**
+2. Bilder der Vorlage übernimmst du direkt mit `image` = `bild_pfad` (z. B. das Titelbild
+   wieder auf die Titelfolie). Zusätzliche Bilder mit `bild_suche`.
+3. Recherchiere die fachlichen Inhalte mit `web_search` und `http_get`; jede Aussage, die du
+   ergänzt, bekommt ein `quelle`-Feld auf ihrer Folie.
+4. Plane die Folien so, dass **jede Folie höchstens 5 kurze Stichpunkte** hat. Ein Thema mit
+   mehr Inhalt bekommt zwei Folien. Abläufe als `timeline`, Vergleiche als `two_columns`,
+   Fachbegriffe als `table` (Glossar), Zahlen als `chart`.
+5. Ein einziger `create_pptx`-Aufruf mit allen Folien. Prüfe das Feld `qualitaet` im
+   Ergebnis; ist es nicht leer, behebe jeden Punkt sofort mit `edit_pptx`.
+6. Zum Schluss eine Abgleichsfolie oder -liste: Originalinhalt → neue Folie.
+
+## Arbeiten an einer vorhandenen Präsentation
+
+1. `read_pptx` mit dem Pfad (bei Uploads steht er im Anhang).
+2. Alle Wünsche und offenen Kommentare in **einem** `edit_pptx`-Aufruf mit mehreren
+   `aktionen` umsetzen. Nummern beziehen sich auf den Stand vor dem Aufruf.
+3. Typische Schritte: `text` (Titel umformulieren), `bild` mit `bild_suche`,
+   `folie_neu` mit `nach`, `notizen`, `diagramm`, `folie_verschieben`.
+4. Kommentare mit `datei_kommentare` abhaken und kurz sagen, was geändert wurde.
 
 ## Checkliste vor der Übergabe
 
@@ -154,4 +196,5 @@ Elemente, Stichpunkte einzeln. Eingreifen brauchst du nur, wenn der Nutzer es wi
 - [ ] Sprechernotizen mit 2–4 Sätzen auf jeder Folie
 - [ ] Layouts wechseln sich ab
 - [ ] Abschlussfolie mit echter Aussage
-- [ ] Datei geöffnet und Pfad genannt
+- [ ] Mehrere echte Bilder (`bild_suche` oder `bild_prompt`)
+- [ ] Pfad genannt

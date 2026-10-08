@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { Suspense, lazy, useState } from "react";
 import { motion } from "framer-motion";
 import { JonDatei, dateiInhaltUrl, dateiOeffnen } from "../lib/api";
@@ -60,7 +61,7 @@ export default function DateiCard({ dateien }: { dateien: JonDatei[] }) {
             className="rounded-xl border border-gold/25 bg-black/30 px-3 py-2.5 max-w-md"
           >
             <div className="flex items-start gap-3">
-              <span className={`text-[22px] leading-none ${farbe}`}>{symbol}</span>
+              <span className={`text-[22px] leading-none ${farbe}`}><Symbol zeichen={symbol} /></span>
               <div className="min-w-0 flex-1">
                 <div className="font-medium truncate" title={datei.name}>
                   {datei.name}

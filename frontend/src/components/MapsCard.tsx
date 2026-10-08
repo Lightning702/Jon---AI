@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useCallback, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import MapCanvas, { MapMarker } from "../maps/MapCanvas";
@@ -251,7 +252,7 @@ export default function MapsCard({ data, onOpen }: Props) {
           }}
         >
           <span className="jm-brand-mark" style={{ width: 22, height: 22, fontSize: 11 }}>
-            🗺️
+            <Symbol zeichen="🗺️" />
           </span>
           <span style={{ fontSize: 12.5, fontWeight: 600, flex: 1, minWidth: 0 }}>
             Jon Maps
@@ -272,7 +273,7 @@ export default function MapsCard({ data, onOpen }: Props) {
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             title="Hell / Dunkel"
           >
-            {theme === "dark" ? "☀️" : "🌙"}
+            <Symbol zeichen={theme === "dark" ? "☀️" : "🌙"} />
           </button>
           <button
             className="jm-chip"
@@ -307,7 +308,7 @@ export default function MapsCard({ data, onOpen }: Props) {
                   data-active={index === routeIndex}
                   onClick={() => setRouteIndex(index)}
                 >
-                  <span>{MODE_ICONS[route.mode] ?? "🧭"}</span>
+                  <span><Symbol zeichen={MODE_ICONS[route.mode] ?? "🧭"} /></span>
                   {formatDuration(route.duration_s)}
                   <span style={{ opacity: 0.65 }}>
                     {formatDistance(route.distance_m)}
@@ -316,12 +317,12 @@ export default function MapsCard({ data, onOpen }: Props) {
               ))}
               {typeof active.extra?.umstiege === "number" && (
                 <span className="jm-chip" style={{ cursor: "default" }}>
-                  🔁 {active.extra.umstiege} Umstiege
+                  <Symbol zeichen="🔁" /> {active.extra.umstiege} Umstiege
                 </span>
               )}
               {stations.length > 2 && (
                 <span className="jm-chip" style={{ cursor: "default" }}>
-                  📍 {stations.length} Stationen
+                  <Symbol zeichen="📍" /> {stations.length} Stationen
                 </span>
               )}
             </div>
@@ -395,7 +396,7 @@ export default function MapsCard({ data, onOpen }: Props) {
                   }`}
                   onClick={() => void waehleZiel(place)}
                 >
-                  <span>{String(place.extra?.icon ?? "") || "📍"}</span>
+                  <span><Symbol zeichen={String(place.extra?.icon ?? "") || "📍"} /></span>
                   {place.name}
                   {place.distance_m != null && (
                     <span style={{ opacity: 0.65 }}>
@@ -433,7 +434,7 @@ export default function MapsCard({ data, onOpen }: Props) {
                   }}
                 >
                   <span style={{ width: 18, textAlign: "center" }}>
-                    {String(place.extra?.icon ?? "") || "📍"}
+                    <Symbol zeichen={String(place.extra?.icon ?? "") || "📍"} />
                   </span>
                   <span
                     style={{
@@ -468,11 +469,11 @@ export default function MapsCard({ data, onOpen }: Props) {
             <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
               <span className="jm-chip" style={{ cursor: "default" }}>
                 {data.street?.modus === "fotos"
-                  ? `👁️ ${data.street.bilder.length} Straßenfotos`
-                  : "✈️ 3D-Erkundung"}
+                  ? `${data.street.bilder.length} Straßenfotos`
+                  : "3D-Erkundung"}
               </span>
               <button className="jm-chip" onClick={() => onOpen(data)}>
-                ✈️ Abheben
+                <Symbol zeichen="✈️" /> Abheben
               </button>
             </div>
           )}

@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useState } from "react";
 import { Note, addNote, deleteNote, getNotes, updateNote } from "../lib/api";
 
@@ -46,7 +47,7 @@ export default function Notes({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[600px] max-w-[95vw] h-[620px] max-h-[92vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">📌</span>
+            <span className="text-xl"><Symbol zeichen="📌" /></span>
             <span className="text-[14px] text-white/90">Haftnotizen</span>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full border border-white/10 bg-white/5 text-white/50 hover:text-white/90 transition">✕</button>
@@ -81,11 +82,11 @@ export default function Notes({ onClose }: { onClose: () => void }) {
             {notes.map((n) => (
               <div key={n.id} className={`rounded-xl border px-3 py-2.5 min-w-0 overflow-hidden ${COLORS[n.color] ?? COLORS.gold} ${n.done ? "opacity-45" : ""}`}>
                 <div className="flex items-start gap-1.5">
-                  <button onClick={() => void patch(n.id, { done: !n.done })} className="mt-0.5 text-[13px] shrink-0">{n.done ? "☑" : "☐"}</button>
+                  <button onClick={() => void patch(n.id, { done: !n.done })} className="mt-0.5 text-[13px] shrink-0"><Symbol zeichen={n.done ? "☑" : "☐"} /></button>
                   <div className={`flex-1 min-w-0 text-[13px] text-white/90 leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] hyphens-auto ${n.done ? "line-through" : ""}`}>{n.text}</div>
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 justify-end">
-                  <button onClick={() => void patch(n.id, { pinned: !n.pinned })} title="Anheften" className={`text-[12px] ${n.pinned ? "text-gold" : "text-white/30 hover:text-white/60"}`}>📌</button>
+                  <button onClick={() => void patch(n.id, { pinned: !n.pinned })} title="Anheften" className={`text-[12px] ${n.pinned ? "text-gold" : "text-white/30 hover:text-white/60"}`}><Symbol zeichen="📌" /></button>
                   <button onClick={() => void remove(n.id)} className="text-white/30 hover:text-red-300 text-[12px]">✕</button>
                 </div>
               </div>

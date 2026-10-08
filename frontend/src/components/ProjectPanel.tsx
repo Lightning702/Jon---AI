@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useState } from "react";
 import {
   JonProject,
@@ -124,7 +125,7 @@ export default function ProjectPanel({
               )}
               {analysis.git.repo ? (
                 <div className="text-[10.5px] text-white/50">
-                  🌿 {analysis.git.branch} · {analysis.git.geaendert} geändert
+                  <Symbol zeichen="🌿" /> {analysis.git.branch} · {analysis.git.geaendert} geändert
                   {analysis.git.letzter_commit
                     ? ` · ${analysis.git.letzter_commit}`
                     : ""}

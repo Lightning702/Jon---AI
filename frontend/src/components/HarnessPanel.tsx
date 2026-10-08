@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, FileCode2, Folder, FolderPlus, GitBranch, Loader2, MessagesSquare, Monitor, PanelLeft, Plus, RotateCcw, Search, Settings2, ShieldCheck, ShieldOff, Sparkles, Square, X} from "lucide-react";
+import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, Compass, FileCode2, Folder, FolderPlus, GitBranch, Loader2, MessagesSquare, Monitor, PanelLeft, Plus, RotateCcw, Search, Settings2, ShieldCheck, ShieldOff, Sparkles, Square, X} from "lucide-react";
 import {addProject, getUserSettings, JonProject, pickFolderDialog} from "../lib/api";
 import {finished, HarnessSitzung, HarnessTask, harnessRequest, taskLabels} from "../lib/harness";
 import AgentenBuehne from "./agenten/AgentenBuehne";
@@ -49,6 +49,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
   const [root, setRoot] = useState("");
   const [goal, setGoal] = useState("");
   const [mini, setMini] = useState(false);
+  const [allgemein, setAllgemein] = useState(false);
   const [modelLabel, setModelLabel] = useState("Jons Modell");
   const [anbieter, setAnbieter] = useState("");
   const [sitzungen, setSitzungen] = useState<HarnessSitzung[]>([]);
@@ -144,8 +145,8 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
   };
   const working = tasks.some(t => !finished.has(t.status));
   const action = async (fn: () => Promise<void>) => {setBusy(true); setError(""); try {await fn();} catch (e) {setError(e instanceof Error ? e.message : "Aktion fehlgeschlagen");} finally {setBusy(false);}};
-  const choose = (item: HarnessSitzung) => {if (item.id === selected) return; aufgabenStand.current = ""; amEnde.current = true; setDrafting(false); setSelected(item.id); setTasks([]); setRoot(item.root); setRechts(r => r === "aenderungen" ? null : r);};
-  const newTask = (projekt?: string) => {aufgabenStand.current = ""; setDrafting(true); setSelected(""); setTasks([]); setGoal(""); setRechts(r => r === "aenderungen" ? null : r); if (projekt) setRoot(projekt); setTimeout(() => composer.current?.focus(), 30);};
+  const choose = (item: HarnessSitzung) => {if (item.id === selected) return; aufgabenStand.current = ""; amEnde.current = true; setDrafting(false); setSelected(item.id); setTasks([]); setAllgemein(item.modus === "allgemein"); if (item.modus !== "allgemein") setRoot(item.root); setRechts(r => r === "aenderungen" ? null : r);};
+  const newTask = (projekt?: string) => {aufgabenStand.current = ""; setDrafting(true); setSelected(""); setTasks([]); setGoal(""); setRechts(r => r === "aenderungen" ? null : r); if (projekt) {setRoot(projekt); setAllgemein(false);} setTimeout(() => composer.current?.focus(), 30);};
   const pick = () => action(async () => {
     const path = await pickFolderDialog();
     if (!path) return;
@@ -153,6 +154,18 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
     setProjects(items => items.some(p => p.id === project.id) ? items : [...items, project]); setSetupOpen(false); newTask(project.root);
   });
   const start = (text = goal) => action(async () => {
+    if (allgemein) {
+      if (!text.trim()) return;
+      const fortsetzen = selected && !drafting && sitzungen.find(s => s.id === selected)?.modus === "allgemein" ? selected : "";
+      const created = await harnessRequest<HarnessTask>("/harness/tasks", {root: "", modus: "allgemein", goal: text.trim(), source: "app", companion: mini, thread: fortsetzen});
+      vorher.current[created.id] = created.status;
+      const id = created.thread || created.id;
+      if (id === selected) setTasks(items => [...items, created]);
+      else {setTasks([created]); setSelected(id);}
+      setDrafting(false); setGoal("");
+      if (mini) await window.jon?.showPet?.().catch(() => setError("Auftrag läuft. MiniJons Fenster konnte nicht geöffnet werden."));
+      return;
+    }
     if (!text.trim() || !root.trim()) return;
     const project = await addProject(root.trim());
     const thread = selected && !drafting && tasks[0]?.root === project.root ? selected : "";
@@ -189,7 +202,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
     return [...result.values()];
   }, [tasks]);
   const imThread = !!selected && !drafting && !!tasks.length;
-  const sendbar = !busy && !working && !!goal.trim() && !!root.trim();
+  const sendbar = !busy && !working && !!goal.trim() && (allgemein || !!root.trim());
   useEffect(() => {
     const el = feed.current;
     if (!el) return;
@@ -221,6 +234,8 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
       <AnimatePresence>{searchOpen && <motion.input initial={{opacity: 0, height: 0}} animate={{opacity: 1, height: "auto"}} exit={{opacity: 0, height: 0}} autoFocus className="harness-search" aria-label="Sitzungen durchsuchen" placeholder="Sitzungen suchen …" value={search} onChange={e => setSearch(e.target.value)}/>}</AnimatePresence>
       <div className="harness-section-label"><span>Projekte</span><button title="Projekt hinzufügen" aria-label="Projekt hinzufügen" disabled={busy} onClick={() => void pick()}><FolderPlus size={16}/></button></div>
       <div className="harness-project-list">{projects.map(project => <details key={project.id} open={root === project.root || undefined}><summary onClick={() => setRoot(project.root)}><Folder size={15}/><span>{project.name}</span><ChevronRight size={13}/></summary><div className="harness-task-list">{liste(visible.filter(item => item.root === project.root), true)}<button className="harness-project-new" onClick={() => newTask(project.root)}><Plus size={13}/>Neue Sitzung in diesem Projekt</button></div></details>)}{!projects.length && !loading && <button className="harness-empty-project" onClick={() => void pick()}><FolderPlus size={18}/>Erstes Projekt öffnen</button>}</div>
+      {visible.some(item => item.modus === "allgemein") && <><div className="harness-section-label"><span>Allgemeine Aufträge</span></div>
+      <div className="harness-task-list">{liste(visible.filter(item => item.modus === "allgemein").slice(0, 10), true)}</div></>}
       <div className="harness-section-label">Letzte Sitzungen</div>
       <div className="harness-task-list harness-recents">{liste(visible.slice(0, 8))}{loading && <span className="harness-muted">Lädt Sitzungen …</span>}{!loading && !visible.length && <span className="harness-muted">{search ? "Keine passenden Sitzungen" : "Deine erste Sitzung wartet auf dich."}</span>}</div>
       <div className="harness-sidebar-foot" title={modelLabel}><span className="harness-companion-dot"/><span>Arbeitet mit <b>{ANBIETER[anbieter || letzte?.provider || ""] || modelLabel}</b></span></div>
@@ -256,7 +271,8 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
           <textarea ref={composer} aria-label="Dein Auftrag" placeholder={imThread ? "Was soll Jon als Nächstes tun?" : "Beschreibe, was Jon für dich bauen soll …"} rows={2} value={goal} maxLength={12000} onChange={e => setGoal(e.target.value)} onKeyDown={e => {if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {e.preventDefault(); if (sendbar) void start();}}}/>
           <div className="harness-composer-bar">
             <button type="button" aria-label="Projekt wählen" title="Projekt wählen" onClick={() => setSetupOpen(v => !v)}><Plus size={19}/></button>
-            <button type="button" className="harness-project-badge" title={root || "Projektordner wählen"} onClick={() => setSetupOpen(v => !v)}><Folder size={14}/><span>{projectName}</span><ChevronDown size={12}/></button>
+            {!allgemein && <button type="button" className="harness-project-badge" title={root || "Projektordner wählen"} onClick={() => setSetupOpen(v => !v)}><Folder size={14}/><span>{projectName}</span><ChevronDown size={12}/></button>}
+            <button type="button" className={"harness-project-badge " + (allgemein ? "an" : "")} aria-pressed={allgemein} title="Allgemeiner Auftrag ohne Projekt: Recherche, Dokumente, Präsentationen, Organisation – Jon nutzt dafür alle seine Werkzeuge" onClick={() => {setAllgemein(v => !v); if (imThread) setDrafting(true);}}><Compass size={14}/><span>{allgemein ? "Allgemeiner Auftrag" : "Ohne Projekt"}</span></button>
             <button type="button" className={"harness-access " + (allesErlaubt ? "frei" : "")} aria-pressed={!!allesErlaubt} disabled={allesErlaubt === null} onClick={() => void freigabeUmschalten()} title={allesErlaubt ? "Jon führt Befehle ohne Nachfrage aus. Klicken, um wieder jeden Befehl freizugeben." : "Jon fragt vor jedem Befehl. Klicken, um alle Befehle zu erlauben."}>{allesErlaubt ? <ShieldOff size={13}/> : <ShieldCheck size={13}/>}{allesErlaubt ? "Alle Befehle erlaubt" : "Befehle mit Freigabe"}</button>
             <div className="harness-composer-spacer"/>
             <button type="button" className={"harness-companion " + (mini ? "an" : "")} aria-pressed={mini} title="MiniJon zeigt den Fortschritt auf deinem Bildschirm" onClick={() => setMini(v => !v)}><Sparkles size={13}/><span>MiniJon begleitet</span></button>

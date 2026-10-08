@@ -481,6 +481,16 @@
   transition: transform 0.32s var(--jm-spring), box-shadow 0.3s var(--jm-ease);
 }
 
+.jm-marker svg {
+  color: rgb(var(--jm-gold));
+}
+
+.jm-marker-text {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+}
+
 .jm-marker:hover {
   transform: scale(1.18) translateY(-2px);
   box-shadow:

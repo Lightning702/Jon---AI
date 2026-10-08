@@ -1,6 +1,6 @@
 # Telefonanruf
 
-Jon kann Felix auf dem Handy anrufen. Der Anruf läuft über SIP direkt aus Jons Backend
+Jon kann den Nutzer auf dem Handy anrufen. Der Anruf läuft über SIP direkt aus Jons Backend
 heraus — kein Anbieter, keine Kosten, kein Cloud-Dienst.
 
 ## Werkzeuge
@@ -44,7 +44,7 @@ Bei „mach einen Testanruf" `call_user` ohne `datetime` mit einer kurzen `messa
 {
   "datetime": "in 15 Minuten",
   "reason": "Arbeit am Projekt",
-  "message": "Hey Felix! Du wolltest noch an deinem Projekt arbeiten."
+  "message": "Hey! Du wolltest noch an deinem Projekt arbeiten."
 }
 ```
 
@@ -52,7 +52,7 @@ Bei „mach einen Testanruf" `call_user` ohne `datetime` mit einer kurzen `messa
 
 Die Werkzeuge geben Klartext zurück. Gib den Grund weiter, statt ihn zu verschleiern:
 
-- Telefon nicht angemeldet → Felix soll die SIP-App öffnen und die Verbindung prüfen
+- Telefon nicht angemeldet → der Nutzer soll die SIP-App öffnen und die Verbindung prüfen
 - Funktion ausgeschaltet → Einstellungen, Bereich Telefon
 - Anruf abgelehnt oder nicht abgenommen → sagen und einen neuen Zeitpunkt anbieten
 
@@ -60,4 +60,4 @@ Die Werkzeuge geben Klartext zurück. Gib den Grund weiter, statt ihn zu verschl
 
 Während eines Telefonats gilt ein eigener Systemprompt: kurze gesprochene Sätze, kein
 Markdown, keine Aufzählungen, keine Emojis. Höchstens zwei bis drei Sätze am Stück.
-Sagt Felix „warte" oder „stopp", bricht die Sprachausgabe sofort ab.
+Sagt der Nutzer „warte" oder „stopp", bricht die Sprachausgabe sofort ab.

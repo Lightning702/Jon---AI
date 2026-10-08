@@ -17,6 +17,7 @@ GEHEIME_FELDER = (
     "ha_token",
     "spotify_client_secret",
     "phone_sip_password",
+    "lokaler_server_key",
 )
 
 
@@ -86,6 +87,13 @@ DEFAULTS = {
     "routine_enabled": True,
     "telegram_morning": False,
     "telegram_morning_time": "07:30",
+    "telegram_morgen_stundenplan": False,
+    "telegram_morgen_zusaetze": [],
+    "offline_modus": False,
+    "modell_je_aufgabe": True,
+    "aufgabenmodelle": {},
+    "lokaler_server_url": "",
+    "lokaler_server_key": "",
     "pet_roam": False,
     "pet_companion": "none",
     "wake_sensitivity": "mittel",

@@ -518,6 +518,7 @@ def test_gute_direktsuche_bleibt_ohne_browser(monkeypatch):
     assert len(daten["treffer"]) == 2
 
 
+@pytest.mark.standard
 def test_hoechstens_drei_suchen_pro_frage(monkeypatch):
     import asyncio
 
@@ -540,7 +541,7 @@ def test_hoechstens_drei_suchen_pro_frage(monkeypatch):
 
     antworten = asyncio.run(lauf())
     assert all("error" not in a for a in antworten[:MAX_SUCHEN])
-    assert all("Genug gesucht" in a["error"] for a in antworten[MAX_SUCHEN:])
+    assert all(a.get("limit_erreicht") and "error" not in a for a in antworten[MAX_SUCHEN:])
 
     async def neue_runde():
         runde_beginnen()
@@ -735,3 +736,21 @@ def test_terminal_nimmt_kein_cloud_oder_bildmodell_von_ollama(monkeypatch):
     )
     assert sitzung._erstes_passendes("ollama", modelle) == "gemma3:270m"
     assert sitzung._erstes_passendes("nvidia", ["a", "b"]) == "a"
+
+
+def test_premium_sucht_unbegrenzt(monkeypatch):
+    import asyncio
+
+    from app.services.tools import MAX_SUCHEN, ToolBox, runde_beginnen
+
+    async def _direkt(frage, anzahl=6, read=False):
+        return {"treffer": [{"title": "A"}, {"title": "B"}], "mager": False}
+
+    monkeypatch.setattr("app.services.websearch_service.search_web", _direkt)
+
+    async def lauf():
+        runde_beginnen()
+        box = ToolBox()
+        return [json.loads(await box.execute("web_search", {"query": f"frei {i}"})) for i in range(MAX_SUCHEN + 4)]
+
+    assert all(a.get("treffer") and not a.get("limit_erreicht") for a in asyncio.run(lauf()))

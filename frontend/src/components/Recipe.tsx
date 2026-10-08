@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import { Recipe as RecipeData, RecipeIdea, recipeMake, recipeSuggest } from "../lib/api";
 import { speak, stopSpeaking } from "../lib/tts";
@@ -73,7 +74,7 @@ export default function Recipe({ onClose }: { onClose: () => void }) {
       <div className="glass rounded-2xl border border-white/15 w-[600px] max-w-[95vw] h-[640px] max-h-[92vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🍳</span>
+            <span className="text-xl"><Symbol zeichen="🍳" /></span>
             <span className="text-[14px] text-white/90">Kochassistent</span>
             <span className="text-[11px] text-white/35">Jon liest dir vor — Hände frei</span>
           </div>
@@ -138,9 +139,9 @@ export default function Recipe({ onClose }: { onClose: () => void }) {
                 <div className="text-[11px] uppercase tracking-wider text-gold/60 mb-3">Schritt {step + 1} von {recipe.schritte.length}</div>
                 <div className="text-[18px] text-white/90 leading-relaxed max-w-md">{recipe.schritte[step]}</div>
                 <div className="flex gap-2 mt-5">
-                  <button onClick={() => startTimer(60)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10">⏱ 1 min</button>
-                  <button onClick={() => startTimer(300)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10">⏱ 5 min</button>
-                  <button onClick={() => startTimer(600)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10">⏱ 10 min</button>
+                  <button onClick={() => startTimer(60)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10"><Symbol zeichen="⏱" /> 1 min</button>
+                  <button onClick={() => startTimer(300)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10"><Symbol zeichen="⏱" /> 5 min</button>
+                  <button onClick={() => startTimer(600)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10"><Symbol zeichen="⏱" /> 10 min</button>
                 </div>
                 {timer !== null && <div className="mt-3 text-[22px] font-semibold text-gold">{fmt(timer)}</div>}
               </div>
@@ -151,7 +152,7 @@ export default function Recipe({ onClose }: { onClose: () => void }) {
                 disabled={step <= 0 && step >= 0}
                 className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-white/70 text-[13px] font-semibold hover:bg-white/10 disabled:opacity-30 transition"
               >
-                {step < 0 ? "Los geht’s ▶" : "◀ Zurück"}
+                {step < 0 ? "Los geht’s " : "Zurück"}
               </button>
               {step >= 0 && (
                 <button
@@ -159,7 +160,7 @@ export default function Recipe({ onClose }: { onClose: () => void }) {
                   disabled={step >= recipe.schritte.length - 1}
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold text-[13px] shadow-gold disabled:opacity-40 hover:brightness-110 transition"
                 >
-                  {step >= recipe.schritte.length - 1 ? "Fertig 🎉" : "Weiter ▶ (vorlesen)"}
+                  {step >= recipe.schritte.length - 1 ? "Fertig " : "Weiter (vorlesen)"}
                 </button>
               )}
               <button onClick={() => { stopSpeaking(); setRecipe(null); }} className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-white/50 text-[12.5px] hover:bg-white/10 transition">Neu</button>

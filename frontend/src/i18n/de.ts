@@ -11,9 +11,9 @@ export const de = {
   update_available: "Version {version} ist da",
   update_old: "Du nutzt eine ältere Version von Jon.",
   update_start: "Auto-Update",
-  update_progress: "⚙️ Starte Update...\n",
+  update_progress: "Starte Update...\n",
 
-  cal_title: "📅 Jons Kalender",
+  cal_title: "Jons Kalender",
   cal_month: "Monat",
   cal_week: "Woche",
   cal_no_entries: "Keine Einträge. Doppelklick auf einen Tag oder „+ Eintrag“ — oder sag Jon einfach: „Trag Freitag 15 Uhr Zahnarzt ein.“",
@@ -32,15 +32,15 @@ export const de = {
   cal_source_reminder: "Erinnerung",
   cal_source_ics: "Google/Outlook",
 
-  trash_title: "🗑️ Lade Papierkorb …",
+  trash_title: "Lade Papierkorb …",
   trash_empty: "Der Papierkorb ist leer. Gelöschte, überschriebene und verschobene Dateien landen hier und bleiben 30 Tage erhalten.",
-  trash_info: "**🗑️ Papierkorb** (wird nach 30 Tagen geleert):\n\n{items}\n\nWiederherstellen: `/restore <Nummer>` — oder `/undo` für die letzte Aktion.",
+  trash_info: "**Papierkorb** (wird nach 30 Tagen geleert):\n\n{items}\n\nWiederherstellen: `/restore <Nummer>` — oder `/undo` für die letzte Aktion.",
 
   pair_request: "„{name}“ möchte sich mit Jon koppeln",
   pair_code_hint: "Gib diesen Code auf dem Gerät ein:",
   pair_deny: "Ablehnen",
 
-  log_load: "📜 Lade Aktionsprotokoll …",
+  log_load: "Lade Aktionsprotokoll …",
   log_empty: "Noch keine Aktionen protokolliert.",
 
   settings_language: "Sprache",

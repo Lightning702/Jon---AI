@@ -1,6 +1,6 @@
 import {useMemo} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {AlertTriangle, Check, CheckCircle2, ChevronDown, Clock, Code2, FileCode2, FilePlus2, FileSearch, FolderOpen, Info, ListChecks, Loader2, PenLine, Search, ShieldAlert, SquareTerminal, FlaskConical, Users, XCircle} from "lucide-react";
+import {AlertTriangle, Check, CheckCircle2, ChevronDown, Clock, Code2, Cpu, FileCode2, FilePlus2, FileSearch, FolderOpen, Info, Layers, ListChecks, Loader2, PenLine, Search, ShieldAlert, SquareTerminal, FlaskConical, Users, Wrench, XCircle} from "lucide-react";
 import {HarnessTask} from "../lib/harness";
 import {ENDE, HARNESS_TEXT} from "./agenten/daten";
 import {useJetzt} from "./agenten/live";
@@ -54,6 +54,9 @@ function aktion(e: Eintrag): {titel: string; icon: typeof Code2; art: string; te
   if (e.type === "action_error") return {titel: "Schritt korrigiert", icon: AlertTriangle, art: "warn", text: e.message};
   if (e.type === "approval_required") return {titel: "Freigabe angefragt", icon: ShieldAlert, art: "warn", code: e.message};
   if (e.type === "hinweis") return {titel: "Hinweis", icon: Info, art: "info", text: e.message};
+  if (e.type === "compacting") return {titel: "Kontext wird verdichtet", icon: Layers, art: "info", text: e.message};
+  if (e.type === "compacted") return {titel: "Kontext verdichtet", icon: Layers, art: "ok", text: e.message};
+  if (e.type === "running_tool") return {titel: "Jon-Werkzeug gestartet", icon: Wrench, art: "befehl", code: e.tool || e.message};
   if (e.type !== "action") return null;
   switch (e.tool) {
     case "plan": return {titel: "Arbeitsplan erstellt", icon: ListChecks, art: "plan", text: e.message};
@@ -63,6 +66,8 @@ function aktion(e: Eintrag): {titel: string; icon: typeof Code2; art: string; te
     case "edit": return {titel: "Datei geändert", icon: PenLine, art: "aendern", code: e.pfad || e.message};
     case "create": return {titel: "Datei erstellt", icon: FilePlus2, art: "aendern", code: e.pfad || e.message};
     case "delegate": return {titel: "Fachagent befragt", icon: Users, art: "lesen", text: e.message};
+    case "jon": return {titel: e.ok === false ? "Jon-Werkzeug fehlgeschlagen" : "Jon-Werkzeug ausgeführt", icon: e.ok === false ? XCircle : Wrench, art: e.ok === false ? "fehler" : "ok", code: [e.message, e.pfad].filter(Boolean).join(" · ")};
+    case "jon_tools": return {titel: "Werkzeugliste angesehen", icon: Wrench, art: "lesen", text: e.message};
     case "verify":
     case "command": return {titel: test ? (e.ok ? "Test erfolgreich" : "Test fehlgeschlagen") : (e.ok ? "Befehl erfolgreich" : "Befehl fehlgeschlagen"), icon: e.ok ? CheckCircle2 : XCircle, art: e.ok ? "ok" : "fehler", code: e.message};
     default: return {titel: e.tool || "Aktion", icon: Code2, art: "lesen", text: e.message};
@@ -98,6 +103,7 @@ export default function HarnessVerlauf({task, busy, onStopp, onEntscheiden}: {ta
       <div className="hv-zeiten">
         <span><Clock size={12}/>{aktiv ? "Läuft seit " : "Dauer "}<b>{dauer(laufzeit)}</b></span>
         {aktiv && <span>Letzte Aktivität · {vor(jetzt - letzteZeit)}</span>}
+        {!!task.modellaufrufe && <span><Cpu size={12}/><b>{task.modellaufrufe}</b> Modellaufrufe{task.kontext?.schaetzung_tokens ? ` · Kontext ≈ ${Math.round(task.kontext.schaetzung_tokens / 100) / 10}k Token` : ""}{task.kompaktierungen ? ` · ${task.kompaktierungen}× verdichtet` : ""}</span>}
         {aktiv && <button className="hv-stopp" disabled={busy || task.status === "cancelling"} onClick={onStopp}>Stop</button>}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import {
   HumanizeScore,
@@ -102,7 +103,7 @@ export default function Humanizer({ provider, model, onClose }: Props) {
       <div className="glass rounded-2xl border border-white/15 w-[960px] max-w-[95vw] h-[680px] max-h-[92vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <span className="text-xl">✍️</span>
+            <span className="text-xl"><Symbol zeichen="✍️" /></span>
             <span className="text-[14px] text-white/90">Humanisierer</span>
             <span className="text-[11px] text-white/35">
               schreibt Texte natürlicher — Inhalt bleibt gleich

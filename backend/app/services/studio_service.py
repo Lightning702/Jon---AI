@@ -161,6 +161,22 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "bearbeiten": True,
         "basis": "http://127.0.0.1:7860",
     },
+    "lokalserver": {
+        "label": "Lokaler Server (OpenAI-kompatibel)",
+        "auth": "lokal",
+        "docs": "",
+        "hinweis": (
+            "Ein Gerät oder Programm in deinem Netz mit OpenAI-kompatiblem Bild-Endpunkt, "
+            "zum Beispiel das Tiiny AI Pocket Lab mit Z-Image. Die Adresse ist dieselbe wie "
+            "beim lokalen Server für Antworten in den Einstellungen."
+        ),
+        "bild_modelle": [],
+        "video_modelle": [],
+        "standard_bild": "",
+        "standard_video": "",
+        "bearbeiten": False,
+        "basis": "",
+    },
 }
 
 SIZES = ["1024x1024", "1024x1536", "1536x1024", "1280x720", "768x768", "512x512"]
@@ -282,6 +298,10 @@ class StudioService:
         stored = ""
         if isinstance(bases, dict):
             stored = str(bases.get(provider) or "").strip()
+        if not stored and provider == "lokalserver":
+            from app.providers.lokal_server import einstellung
+
+            stored = einstellung()[0]
         return (stored or str(PROVIDERS[provider]["basis"])).rstrip("/")
 
     def model(self, provider: str, kind: str) -> str:
@@ -315,6 +335,13 @@ class StudioService:
         return True
 
     def pick(self, kind: str = "bild") -> str:
+        from app.services.offline import LOKALE_STUDIO, aktiv as offline
+
+        if offline():
+            for name in ("lokalserver", "lokal"):
+                if name in LOKALE_STUDIO and self.ready(name):
+                    return name
+            return "lokal"
         aktiv = self.active()
         if aktiv and self.ready(aktiv):
             if kind != "video" or PROVIDERS[aktiv]["video_modelle"]:
@@ -525,6 +552,16 @@ class StudioService:
         if not prompt:
             raise StudioError("Beschreibe zuerst, was Jon erstellen soll.")
         kind = "video" if kind == "video" else "bild"
+        if not provider and not model and kind == "bild":
+            from app.services.aufgaben_modelle import fuer
+
+            gewaehlt = fuer("bild")
+            if gewaehlt and gewaehlt[0] in PROVIDERS:
+                provider, model = gewaehlt
+        from app.services.offline import LOKALE_STUDIO, aktiv as offline
+
+        if offline() and provider and provider not in LOKALE_STUDIO:
+            raise StudioError("Der Offline-Modus ist an - Bilder entstehen nur auf lokalen Bilder-Servern.")
         name = (provider or self.pick(kind)).strip().lower()
         meta = PROVIDERS.get(name)
         if meta is None:
@@ -1081,6 +1118,50 @@ class StudioService:
                 raise StudioError("Dein lokaler Bilder-Server hat nichts geliefert.")
             raw = str(images[0]).split(",")[-1]
             return base64.b64decode(raw), "image/png", ""
+
+
+    async def lokale_bildmodelle(self) -> list[str]:
+        basis = self.base("lokalserver")
+        if not basis:
+            return []
+        from app.providers.lokal_server import einstellung
+
+        async with self._client(8.0) as client:
+            antwort = await client.get(f"{basis}/models", headers={"Authorization": f"Bearer {einstellung()[1]}"})
+        if antwort.status_code >= 400:
+            return []
+        from app.services.aufgaben_modelle import BILD
+
+        return [str(m.get("id")) for m in antwort.json().get("data", []) if isinstance(m, dict) and BILD.search(str(m.get("id", "")))]
+
+    async def _lokalserver(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        from app.providers.lokal_server import einstellung
+
+        basis = self.base("lokalserver")
+        if not basis:
+            raise StudioError("Trag zuerst die Adresse deines lokalen Servers in den Einstellungen ein.")
+        if not model:
+            gefunden = await self.lokale_bildmodelle()
+            if not gefunden:
+                raise StudioError("Auf deinem lokalen Server habe ich kein Bildmodell gefunden. Trag es unter Modelle je Aufgabe ein.")
+            model = gefunden[0]
+        nutzlast = {"model": model, "prompt": prompt if not negative else f"{prompt}. Avoid: {negative}", "size": f"{width}x{height}", "n": 1, "response_format": "b64_json"}
+        async with self._client(900.0) as client:
+            try:
+                antwort = await client.post(f"{basis}/images/generations", json=nutzlast, headers={"Authorization": f"Bearer {einstellung()[1]}"})
+            except httpx.HTTPError as exc:
+                raise StudioError(f"Dein lokaler Server unter {basis} antwortet nicht: {exc}") from exc
+            if antwort.status_code >= 400:
+                self._fail(antwort, "Dein lokaler Server")
+            daten = (antwort.json().get("data") or [{}])[0]
+            if daten.get("b64_json"):
+                return base64.b64decode(daten["b64_json"]), "image/png", ""
+            if daten.get("url"):
+                bild = await client.get(daten["url"])
+                return bild.content, bild.headers.get("content-type", "image/png"), daten["url"]
+        raise StudioError("Dein lokaler Server hat kein Bild geliefert.")
 
 
 _service: StudioService | None = None

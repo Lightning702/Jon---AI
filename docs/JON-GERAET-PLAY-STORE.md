@@ -1,6 +1,6 @@
 # Jon Gerät veröffentlichen
 
-Die Android-App „Jon Gerät“ liegt im Android-Projekt `C:\Users\felix\AndroidStudioProjects\Jon`,
+Die Android-App „Jon Gerät“ liegt im Android-Projekt `%USERPROFILE%\AndroidStudioProjects\Jon`,
 Modul `device-app`, Paket `at.felworks.jon.device`. Es gibt zwei Varianten:
 
 | Variante | Wofür | Besonderheit |

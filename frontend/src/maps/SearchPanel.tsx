@@ -1,3 +1,4 @@
+import Symbol from "../components/Symbol";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MapsConfig, MapsPlace, formatDistance } from "../lib/maps";
@@ -83,7 +84,7 @@ export default function SearchPanel({
             padding: "14px 16px",
           }}
         >
-          <span style={{ fontSize: 16, opacity: 0.8 }}>🔍</span>
+          <span style={{ fontSize: 16, opacity: 0.8 }}><Symbol zeichen="🔍" /></span>
           <input
             ref={inputRef}
             className="jm-field"
@@ -114,7 +115,7 @@ export default function SearchPanel({
             onClick={onOpenRoute}
             title="Route planen"
           >
-            🧭
+            <Symbol zeichen="🧭" />
           </button>
         </form>
 
@@ -161,7 +162,7 @@ export default function SearchPanel({
                     }}
                   >
                     <span style={{ fontSize: 15, width: 22, textAlign: "center" }}>
-                      {String(place.extra?.icon ?? "") || "📍"}
+                      <Symbol zeichen={String(place.extra?.icon ?? "") || "📍"} />
                     </span>
                     <span style={{ minWidth: 0, flex: 1 }}>
                       <span
@@ -225,7 +226,7 @@ export default function SearchPanel({
             style={{ borderRadius: 999, flex: "0 0 auto" }}
             onClick={() => onCategory(item.id)}
           >
-            <span>{item.icon}</span>
+            <span><Symbol zeichen={item.icon} /></span>
             {item.label}
           </button>
         ))}

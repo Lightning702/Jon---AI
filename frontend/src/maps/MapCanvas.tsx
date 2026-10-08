@@ -1,3 +1,7 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Flag, MapPin } from "lucide-react";
+import { symbolFuer } from "../components/Symbol";
 import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -86,10 +90,17 @@ function markerElement(marker: MapMarker): HTMLElement {
   element.dataset.tone = marker.tone ?? "poi";
   element.dataset.active = marker.active ? "true" : "false";
   element.dataset.stale = marker.stale ? "true" : "false";
-  element.textContent =
-    marker.icon ??
-    (marker.tone === "start" ? "🅰️" : marker.tone === "ziel" ? "🏁" : "📍");
+  element.innerHTML = markerInhalt(marker.icon, marker.tone);
+  element.dataset.inhalt = marker.icon ?? marker.tone ?? "";
   return element;
+}
+
+function markerInhalt(icon: string | undefined, ton: string | undefined): string {
+  if (icon && !/\p{Extended_Pictographic}/u.test(icon)) return `<span class="jm-marker-text">${icon.replace(/[<>&"]/g, "")}</span>`;
+  if (ton === "start") return '<span class="jm-marker-text">A</span>';
+  if (ton === "freund" && icon) return `<span class="jm-marker-text">${icon.replace(/[<>&"]/g, "")}</span>`;
+  const Icon = symbolFuer(icon) ?? (ton === "ziel" ? Flag : MapPin);
+  return renderToStaticMarkup(createElement(Icon, { size: 16, strokeWidth: 2.2 }));
 }
 
 export default function MapCanvas({
@@ -443,8 +454,11 @@ export default function MapCanvas({
           element.dataset.active = marker.active ? "true" : "false";
           element.dataset.tone = marker.tone ?? "poi";
           element.dataset.stale = marker.stale ? "true" : "false";
-          const next = marker.icon ?? element.textContent ?? "📍";
-          if (element.textContent !== next) element.textContent = next;
+          const next = marker.icon ?? marker.tone ?? "";
+          if (element.dataset.inhalt !== next) {
+            element.dataset.inhalt = next;
+            element.innerHTML = markerInhalt(marker.icon, marker.tone);
+          }
         }
         return;
       }

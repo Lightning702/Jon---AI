@@ -1,3 +1,4 @@
+import { FileSpreadsheet, FileText, Image as ImageIcon, Paperclip, Presentation } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, lazy, useState } from "react";
 import { toolDetail, toolLabel } from "../lib/toolInfo";
@@ -29,6 +30,7 @@ export interface ToolStep {
 export interface AttachmentChip {
   name: string;
   kind: string;
+  pfad?: string;
 }
 
 export type ChatCard =
@@ -104,10 +106,17 @@ export default function MessageBubble({
           {entry.attachments && entry.attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
               {entry.attachments.map((a, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border border-black/20 bg-black/10 text-black/80">
-                  <span>{a.kind === "image" ? "🖼️" : a.kind === "pdf" ? "📄" : "📎"}</span>
+                <button
+                  key={i}
+                  type="button"
+                  disabled={!a.pfad}
+                  onClick={() => a.pfad && window.dispatchEvent(new CustomEvent("jon-datei-ansehen", { detail: a.pfad }))}
+                  title={a.pfad ? "In Jon ansehen" : a.name}
+                  className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border border-black/20 bg-black/10 text-black/80 enabled:hover:bg-black/20 transition-colors"
+                >
+                  {a.kind === "image" ? <ImageIcon size={12} /> : a.kind === "praesentation" ? <Presentation size={12} /> : a.kind === "tabelle" ? <FileSpreadsheet size={12} /> : a.kind === "pdf" || a.kind === "dokument" ? <FileText size={12} /> : <Paperclip size={12} />}
                   <span className="max-w-[180px] truncate">{a.name}</span>
-                </span>
+                </button>
               ))}
             </div>
           )}

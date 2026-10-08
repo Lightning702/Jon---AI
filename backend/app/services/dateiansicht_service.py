@@ -21,7 +21,7 @@ CODE = {
 TEXT_MAX = 400_000
 ZEILEN_MAX = 300
 SPALTEN_MAX = 40
-FOLIEN_MAX = 80
+FOLIEN_MAX = 400
 EMU_PRO_PUNKT = 12700
 
 
@@ -151,6 +151,61 @@ def _docx(pfad: Path) -> str:
     return "\n\n".join(zeilen)
 
 
+def docx_elemente(dokument) -> list:
+    return [k for k in dokument.element.body.iterchildren() if k.tag.rsplit("}", 1)[-1] in ("p", "tbl")]
+
+
+def _stilart(absatz) -> str:
+    stil = (absatz.style.name if absatz.style is not None else "").lower()
+    if stil.startswith("title") or stil.startswith("titel"):
+        return "titel"
+    if "heading" in stil or "überschrift" in stil or "uberschrift" in stil:
+        ziffer = next((int(z) for z in stil if z.isdigit()), 1)
+        return f"h{min(6, max(1, ziffer))}"
+    if "list number" in stil or "nummer" in stil:
+        return "nummer"
+    if "list" in stil or "aufzählung" in stil or "liste" in stil:
+        return "liste"
+    if "quote" in stil or "zitat" in stil:
+        return "zitat"
+    return "absatz"
+
+
+def docx_bloecke(pfad: Path) -> list[dict]:
+    from docx import Document
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
+    dokument = Document(str(pfad))
+    bloecke: list[dict] = []
+    laenge = 0
+    for nummer, kind in enumerate(docx_elemente(dokument)):
+        if kind.tag.endswith("}tbl"):
+            tabelle = Table(kind, dokument)
+            zeilen = [[zelle.text for zelle in reihe.cells] for reihe in tabelle.rows][:ZEILEN_MAX]
+            bloecke.append({"nr": nummer, "art": "tabelle", "zeilen": zeilen})
+            continue
+        absatz = Paragraph(kind, dokument)
+        bilder = [b for b in kind.xpath(".//a:blip/@r:embed")]
+        eintrag = {"nr": nummer, "art": _stilart(absatz), "text": _laufe(absatz).strip()}
+        if absatz.alignment is not None:
+            eintrag["ausrichtung"] = "center" if "CENTER" in str(absatz.alignment) else "right" if "RIGHT" in str(absatz.alignment) else "left"
+        if bilder:
+            eintrag["bilder"] = bilder[:6]
+        bloecke.append(eintrag)
+        laenge += len(eintrag["text"])
+        if laenge > TEXT_MAX or len(bloecke) > 4000:
+            break
+    return bloecke
+
+
+def docxbild(pfad: Path, kennung: str) -> tuple[bytes, str]:
+    from docx import Document
+
+    teil = Document(str(pfad)).part.related_parts[kennung]
+    return teil.blob, getattr(teil, "content_type", "image/png")
+
+
 def _odt(pfad: Path) -> str:
     from odf import teletype, text
     from odf.opendocument import load
@@ -241,6 +296,7 @@ def _pptx(pfad: Path) -> dict:
                 "b": round(form.width / breite * 100, 3),
                 "h": round(form.height / hoehe * 100, 3),
                 "drehung": round(float(getattr(form, "rotation", 0) or 0), 2),
+                "name": str(getattr(form, "name", ""))[:80],
             }
             try:
                 if form.shape_type == MSO_SHAPE_TYPE.PICTURE:
@@ -334,7 +390,8 @@ def pdfseite(pfad: Path, seite: int) -> bytes:
 
 def ansehen(pfad: Path) -> dict:
     endung = pfad.suffix.lower().lstrip(".")
-    basis = {"name": pfad.name, "endung": endung, "groesse": pfad.stat().st_size, "pfad": str(pfad)}
+    info = pfad.stat()
+    basis = {"name": pfad.name, "endung": endung, "groesse": info.st_size, "pfad": str(pfad), "geaendert": info.st_mtime}
     try:
         if endung in MARKDOWN:
             text, gekuerzt = _lesen(pfad)
@@ -348,7 +405,7 @@ def ansehen(pfad: Path) -> dict:
             text, gekuerzt = _lesen(pfad)
             return {**basis, "art": "code", "sprache": endung or "text", "text": text, "gekuerzt": gekuerzt}
         if endung == "docx":
-            return {**basis, "art": "markdown", "text": _docx(pfad)}
+            return {**basis, "art": "markdown", "text": _docx(pfad), "bloecke": docx_bloecke(pfad)}
         if endung == "odt":
             return {**basis, "art": "markdown", "text": _odt(pfad)}
         if endung in ("xlsx", "xlsm"):

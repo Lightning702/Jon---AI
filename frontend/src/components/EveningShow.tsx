@@ -1,3 +1,4 @@
+import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import { ShowLine, buildShow } from "../lib/api";
 import { speakAs, stopSpeaking } from "../lib/tts";
@@ -63,7 +64,7 @@ export default function EveningShow({ provider, model, onClose }: Props) {
       <div className="glass rounded-2xl border border-white/15 w-[560px] max-w-[94vw] max-h-[88vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🎙️</span>
+            <span className="text-xl"><Symbol zeichen="🎙️" /></span>
             <span className="text-[14px] text-white/90">Abend-Show</span>
             <span className="text-[11px] text-white/35">Jon &amp; Mini Jon über deinen Tag</span>
           </div>
@@ -120,14 +121,14 @@ export default function EveningShow({ provider, model, onClose }: Props) {
                 onClick={() => void play()}
                 className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold text-[13px] shadow-gold hover:brightness-110 transition"
               >
-                ▶ Vorspielen (echte Stimmen)
+                <Symbol zeichen="▶" /> Vorspielen (echte Stimmen)
               </button>
             ) : (
               <button
                 onClick={stop}
                 className="flex-1 py-2.5 rounded-xl border border-white/15 bg-white/5 text-white/70 font-semibold text-[13px] hover:bg-white/10 transition"
               >
-                ⏹ Stopp
+                <Symbol zeichen="⏹" /> Stopp
               </button>
             )}
           </div>

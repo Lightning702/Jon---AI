@@ -14,6 +14,7 @@ export interface HarnessSitzung {
   tasks: number;
   running: boolean;
   last_task: string;
+  modus?: "code" | "allgemein";
 }
 
 export interface VorschauZustand {
@@ -27,7 +28,7 @@ export interface VorschauZustand {
 }
 
 export const finished = new Set(["done", "needs_review", "failed", "cancelled", "interrupted"]);
-export const taskLabels: Record<string, string> = { planning: "Plant", working: "Arbeitet", verifying: "Prüft", waiting_approval: "Freigabe nötig", cancelling: "Stoppt", cancelled: "Gestoppt", interrupted: "Unterbrochen", done: "Abgeschlossen", needs_review: "Prüfung offen", failed: "Fehlgeschlagen" };
+export const taskLabels: Record<string, string> = { planning: "Plant", working: "Arbeitet", verifying: "Prüft", compacting: "Verdichtet Kontext", waiting_for_tool: "Werkzeug läuft", evaluating: "Wertet aus", paused: "Pausiert", queued: "Wartet", waiting_approval: "Freigabe nötig", cancelling: "Stoppt", cancelled: "Gestoppt", interrupted: "Unterbrochen", done: "Abgeschlossen", needs_review: "Prüfung offen", failed: "Fehlgeschlagen" };
 
 export async function harnessRequest<T>(path: string, body?: unknown, method?: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(BASE + path, { method: method || (body === undefined ? "GET" : "POST"), headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000) });
