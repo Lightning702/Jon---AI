@@ -79,3 +79,40 @@ def zusammenfassung(task: dict) -> dict:
         "decisions": [d["text"] for d in task.get("decisions", [])[-8:]],
         "errors": [f'{e["werkzeug"]}: {e["meldung"]}' for e in task.get("errors", [])[-6:]],
     }
+
+
+def gelesen(task: dict, pfad: str, start: int, ende: int, gesamt: int) -> int:
+    eintraege = task.setdefault("gelesen", {})
+    eintrag = eintraege.setdefault(pfad, {"bereiche": [], "zeilen": gesamt, "mal": 0})
+    bereiche = sorted(eintrag["bereiche"] + [[start, max(start, ende)]])
+    zusammen: list[list[int]] = []
+    for von, bis in bereiche:
+        if zusammen and von <= zusammen[-1][1] + 1:
+            zusammen[-1][1] = max(zusammen[-1][1], bis)
+        else:
+            zusammen.append([von, bis])
+    eintrag.update(bereiche=zusammen, zeilen=gesamt, mal=eintrag["mal"] + 1)
+    eintraege[pfad] = eintraege.pop(pfad)
+    while len(eintraege) > MAX_LISTE:
+        eintraege.pop(next(iter(eintraege)))
+    return eintrag["mal"]
+
+
+def schon_gelesen(task: dict, pfad: str, start: int, ende: int) -> bool:
+    eintrag = task.get("gelesen", {}).get(pfad)
+    return bool(eintrag) and any(von <= start and min(ende, eintrag["zeilen"] or ende) <= bis for von, bis in eintrag["bereiche"])
+
+
+def vergessen(task: dict, pfad: str = "") -> None:
+    if pfad:
+        task.get("gelesen", {}).pop(pfad, None)
+    else:
+        task["gelesen"] = {}
+
+
+def gelesen_text(task: dict) -> list[str]:
+    zeilen = []
+    for pfad, eintrag in list(task.get("gelesen", {}).items())[-15:]:
+        bereiche = ", ".join(f"{von}-{bis}" for von, bis in eintrag["bereiche"])
+        zeilen.append(f'{pfad}: Zeilen {bereiche} von {eintrag["zeilen"]} ({eintrag["mal"]}-mal gelesen)')
+    return zeilen

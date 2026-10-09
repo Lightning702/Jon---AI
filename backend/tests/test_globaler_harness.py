@@ -132,7 +132,7 @@ def test_lauf_ohne_schrittgrenze_laesst_sich_stoppen(tmp_path, jon_ordner):
     async def modell(system, user, **kwargs):
         zaehler["n"] += 1
         await asyncio.sleep(0.005)
-        return json.dumps({"tool": "jon_tools", "args": {}})
+        return json.dumps({"tool": "create", "args": {"path": f"teil{zaehler['n']}.txt", "content": "x"}})
 
     async def lauf():
         service = HarnessService(tmp_path / "harness", modell)
@@ -187,8 +187,11 @@ def test_harness_route_laeuft_ueber_den_router(monkeypatch):
 
 @pytest.mark.standard
 def test_standard_behaelt_schrittgrenze(tmp_path, jon_ordner):
+    zaehler = {"n": 0}
+
     async def modell(system, user, **kwargs):
-        return json.dumps({"tool": "jon_tools", "args": {}})
+        zaehler["n"] += 1
+        return json.dumps({"tool": "create", "args": {"path": f"teil{zaehler['n']}.txt", "content": "x"}})
 
     async def lauf():
         service = HarnessService(tmp_path / "harness", modell)
