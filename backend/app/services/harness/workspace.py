@@ -93,13 +93,24 @@ class Workspace:
         self.seen[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
         return {"path": value, "diff": "".join(difflib.unified_diff(text.splitlines(True), updated.splitlines(True), fromfile=value, tofile=value))[:20000]}
 
-    def create(self, value: str, content: str) -> dict:
+    def create(self, value: str, content: str, overwrite: bool = False) -> dict:
         path = self.path(value)
         if len(content.encode("utf-8")) > MAX_BYTES:
             raise ValueError("Datei überschreitet 300 KB.")
+        if overwrite and path.is_file():
+            raw = path.read_bytes()
+            if self.seen.get(str(path)) != hashlib.sha256(raw).hexdigest():
+                raise ValueError("Datei zuerst lesen: nicht gelesen oder inzwischen verändert. Danach create mit overwrite=true.")
+            alt = raw.decode("utf-8-sig", errors="replace")
+            self.system.write_file(str(path), content)
+            self.seen[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+            return {"path": value, "overwritten": True, "diff": "".join(difflib.unified_diff(alt.splitlines(True), content.splitlines(True), fromfile=value, tofile=value))[:20000]}
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("x", encoding="utf-8", newline="") as handle:
-            handle.write(content)
+        try:
+            with path.open("x", encoding="utf-8", newline="") as handle:
+                handle.write(content)
+        except FileExistsError:
+            raise FileExistsError("Datei existiert bereits. Zum vollständigen Neuschreiben erst lesen, dann create mit overwrite=true; für kleine Änderungen edit.") from None
         self.seen[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
         return {"path": value, "created": True, "diff": "".join(difflib.unified_diff([], content.splitlines(True), fromfile="/dev/null", tofile=value))[:20000]}
 

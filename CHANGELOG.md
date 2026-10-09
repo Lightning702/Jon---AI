@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.63.2] — 2026-10-09
+
+### Jon Harness bleibt nicht mehr hängen
+
+- **Keine Leseschleifen mehr:** Ein Auftrag konnte stundenlang dieselbe Datei immer wieder lesen, ohne etwas zu ändern. Jon merkt sich jetzt, welche Dateien und Zeilen er schon gelesen hat, und sieht das auch nach dem Verdichten des Kontexts.
+- **Fortschrittswächter:** Liest und sucht Jon zu lange, ohne etwas umzusetzen, wird er zuerst ermahnt, dann wird Lesen gesperrt, und zuletzt hält der Auftrag mit einer klaren Meldung an, statt endlos weiterzulaufen.
+- **Ganze Dateien im Blick:** Große Dateien (zum Beispiel eine 18-KB-HTML-Seite) bleiben vollständig im Kontext, statt in Stücke geschnitten zu werden.
+- **Dateien komplett neu gestalten:** Soll eine bestehende Datei neu gestaltet werden, liest Jon sie einmal und schreibt sie dann vollständig neu. Die alte Fassung landet im Papierkorb.
+- **Verlässliche Verdichtung:** Liefert das Modell beim Verdichten keine echte Zusammenfassung, nimmt Jon einen gesicherten Arbeitsstand mit Plan, gelesenen und geänderten Dateien. Verdichtet wird außerdem seltener.
+
 ## [4.63.1] — 2026-10-08
 
 ### Jon sieht, was auf deinem Bildschirm läuft
