@@ -253,10 +253,13 @@ def test_personality_is_distinct_and_truthful():
     from app.services.persona_service import PersonaService
 
     service = PersonaService()
-    for variant in ("papa", "junior"):
+    for variant in ("papa", "junior", "funke"):
         text = service.persona_block(False, variant)
         assert "VERANTWORTUNGSKOMPASS" in text
-        assert "Behaupte weder Bewusstsein" in text
+        assert "DEIN INNENLEBEN" in text
+        assert "Behaupte weder Bewusstsein" not in text
+        assert "keine erlebten Gefühle" not in text
+        assert "eigenständig" not in text
         assert "MUSST du von Lena" not in text
     assert "Mini Jon" in service.persona_block(False, "junior")
     assert "trockenem Humor" in service.persona_block(False, "papa")

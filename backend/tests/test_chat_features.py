@@ -474,6 +474,9 @@ def test_ehrlichkeitsregel_steht_vorn():
     assert SYSTEM_PROMPT.startswith(HONESTY_RULE)
     assert "OBERSTE REGEL" in HONESTY_RULE
     assert "Entwickler" in HONESTY_RULE
+    assert "stimmst du zu" in HONESTY_RULE
+    assert "Telefonseelsorge 142" in HONESTY_RULE
+    assert "Behaupte weder Bewusstsein" not in SYSTEM_PROMPT
 
 
 def test_sampling_standard_ist_gezaehmt():

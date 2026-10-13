@@ -6,7 +6,12 @@ import { ohneTabellen } from "../lib/text";
 import type { MapsCardData } from "../lib/maps";
 import type { BrowserTaskDaten, JonDatei, JonUhr, JonWecker, StudioWork } from "../lib/api";
 import type { ZeitAnfrageDaten } from "./ZeitAnfrageCard";
+import type { KopplungDaten } from "./KopplungKarte";
+import type { KarteikartenDaten } from "./KarteikartenKarte";
+import type { WebBildDaten } from "./WebBildKarte";
 import { harnessRequest } from "../lib/harness";
+import type { WerkzeugSchritt } from "../lib/werkstatt";
+import { desktopRender } from "./werkstatt/desktopRender";
 
 const MapsCard = lazy(() => import("./MapsCard"));
 const DeepLearningCard = lazy(() => import("./DeepLearningCard"));
@@ -18,14 +23,12 @@ const ZeitAnfrageCard = lazy(() => import("./ZeitAnfrageCard"));
 const Wochenbericht = lazy(() => import("./Wochenbericht"));
 const FachteamKarte = lazy(() => import("./agenten/FachteamKarte"));
 const HarnessKarte = lazy(() => import("./agenten/HarnessKarte"));
+const KopplungKarte = lazy(() => import("./KopplungKarte"));
+const KarteikartenKarte = lazy(() => import("./KarteikartenKarte"));
+const WebBildKarte = lazy(() => import("./WebBildKarte"));
+const LiveWerkstatt = lazy(() => import("./werkstatt/LiveWerkstatt"));
 
-export interface ToolStep {
-  name: string;
-  done: boolean;
-  ok?: boolean;
-  args?: Record<string, unknown>;
-  summary?: string;
-}
+export type ToolStep = WerkzeugSchritt;
 
 export interface AttachmentChip {
   name: string;
@@ -43,7 +46,10 @@ export type ChatCard =
   | { id: string; kind: "zeitanfrage"; data: ZeitAnfrageDaten }
   | { id: string; kind: "wochenbericht"; data: { geraet: string; bis?: string } }
   | { id: string; kind: "agenten"; data: { id: string; aufgabe?: string } }
-  | { id: string; kind: "harness"; data: { id: string } };
+  | { id: string; kind: "harness"; data: { id: string } }
+  | { id: string; kind: "kopplung"; data: KopplungDaten }
+  | { id: string; kind: "karteikarten"; data: KarteikartenDaten }
+  | { id: string; kind: "webbild"; data: WebBildDaten };
 
 export interface ChatEntry {
   id: string;
@@ -91,7 +97,8 @@ export default function MessageBubble({
   const expanded = openTool !== null ? entry.tools?.[openTool] : undefined;
   const detail = expanded ? toolDetail(expanded.name, expanded.args) : "";
   const laufend = entry.tools?.some((t) => !t.done) ?? false;
-  const hatKarten = !isUser && !!entry.cards?.length;
+  const werkstatt = (entry.tools ?? []).filter((t) => t.werkstatt);
+  const hatKarten = !isUser && (!!entry.cards?.length || werkstatt.length > 0);
   const zeigtBlase = isUser || !!entry.content || (entry.streaming && !hatKarten) || !!entry.attachments?.length;
 
   if (isUser) {
@@ -102,7 +109,7 @@ export default function MessageBubble({
         transition={{ type: "spring", stiffness: 380, damping: 30 }}
         className="flex justify-end"
       >
-        <div className="max-w-[92%] md:max-w-[76%] px-4 py-3 rounded-2xl rounded-br-md leading-relaxed whitespace-pre-wrap bg-gradient-to-br from-gold-light/90 to-gold-dark/90 text-black shadow-[0_10px_30px_rgba(154,123,31,0.18)]">
+        <div className="max-w-[92%] md:max-w-[76%] min-w-0 px-4 py-3 rounded-2xl rounded-br-md leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] bg-gradient-to-br from-gold-light/90 to-gold-dark/90 text-black shadow-[0_10px_30px_rgba(154,123,31,0.18)]">
           {entry.attachments && entry.attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
               {entry.attachments.map((a, i) => (
@@ -133,7 +140,7 @@ export default function MessageBubble({
       transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
       className="flex justify-start"
     >
-      <div className={`${hatKarten ? "max-w-[96%] w-full md:max-w-[86%] md:w-[560px]" : "max-w-[92%] md:max-w-[76%]"} flex flex-col items-start gap-2`}>
+      <div className={`${hatKarten ? "max-w-[96%] w-full md:max-w-[86%] md:w-[560px]" : "max-w-[92%] md:max-w-[76%]"} min-w-0 flex flex-col items-start gap-2`}>
         {entry.tools && entry.tools.length > 0 && (
           <div className="w-full">
             <div className="flex flex-wrap gap-1.5">
@@ -195,6 +202,24 @@ export default function MessageBubble({
                 </motion.div>
               )}
             </AnimatePresence>
+            {werkstatt.length > 0 && (
+              <div className="mt-2 flex flex-col gap-2">
+                <Suspense fallback={null}>
+                  {werkstatt.map((t, i) => (
+                    <LiveWerkstatt
+                      key={t.id ?? i}
+                      kennung={t.id}
+                      daten={t.werkstatt!}
+                      ergebnis={t.ergebnis}
+                      laeuft={!t.done}
+                      animieren={!!t.live}
+                      render={desktopRender}
+                      startOffen={!t.done || i === werkstatt.length - 1}
+                    />
+                  ))}
+                </Suspense>
+              </div>
+            )}
           </div>
         )}
         {entry.reasoning && (
@@ -211,7 +236,7 @@ export default function MessageBubble({
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mt-2 text-[12px] text-white/50 whitespace-pre-wrap border-l-2 border-gold/30 pl-3 overflow-hidden"
+                  className="mt-2 text-[12px] text-white/50 whitespace-pre-wrap [overflow-wrap:anywhere] border-l-2 border-gold/30 pl-3 overflow-hidden"
                 >
                   {entry.reasoning}
                 </motion.pre>
@@ -256,7 +281,13 @@ export default function MessageBubble({
                 ) : card.kind === "agenten" ? (
                   <FachteamKarte key={card.id} id={card.data.id} aufgabe={card.data.aufgabe} request={harnessRequest} />
                 ) : card.kind === "harness" ? (
-                  <HarnessKarte key={card.id} id={card.data.id} request={harnessRequest} onOeffnen={onOpenHarness} />
+                  <HarnessKarte key={card.id} id={card.data.id} request={harnessRequest} onOeffnen={onOpenHarness} render={desktopRender} />
+                ) : card.kind === "kopplung" ? (
+                  <KopplungKarte key={card.id} data={card.data} />
+                ) : card.kind === "karteikarten" ? (
+                  <KarteikartenKarte key={card.id} data={card.data} />
+                ) : card.kind === "webbild" ? (
+                  <WebBildKarte key={card.id} data={card.data} />
                 ) : (
                   <DeepLearningCard
                     key={card.id}
@@ -269,7 +300,7 @@ export default function MessageBubble({
           </Suspense>
         )}
         {zeigtBlase && (
-          <div className="px-4 py-3 rounded-2xl rounded-bl-md leading-relaxed whitespace-pre-wrap glass text-white/90">
+          <div className="max-w-full min-w-0 px-4 py-3 rounded-2xl rounded-bl-md leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] glass text-white/90">
             {entry.streaming && !entry.content ? (
               <JonDenkt text={laufend ? "Jon arbeitet …" : "Jon denkt nach …"} />
             ) : (

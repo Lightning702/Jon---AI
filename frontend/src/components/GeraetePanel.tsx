@@ -1,4 +1,3 @@
-import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import {
   HandyGeraet,
@@ -10,8 +9,11 @@ import {
   handyGeraete,
   handyRechtSetzen,
   saveUserSettings,
+  geraetBesitzerSetzen,
 } from "../lib/api";
 import GeraetFamilie from "./GeraetFamilie";
+import OekosystemKopf from "./OekosystemKopf";
+import { Smartphone, Tablet, Watch } from "lucide-react";
 
 const STUFEN: { id: string; titel: string; hinweis: string }[] = [
   {
@@ -159,6 +161,17 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
     }
   };
 
+  const besitzerAendern = async (geraet: HandyGeraet) => {
+    const name = window.prompt("Wem gehört das Gerät? Mit diesem Namen findet Jon es bei „Wo ist …?“.", geraet.besitzer ?? "");
+    if (name === null) return;
+    try {
+      await geraetBesitzerSetzen(geraet.id, name.trim());
+      void laden();
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : "Nicht gespeichert");
+    }
+  };
+
   const auffrischen = async (geraet: HandyGeraet) => {
     setLaeuft(geraet.id);
     setInfo("");
@@ -219,6 +232,8 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
         </button>
       </div>
 
+      <OekosystemKopf />
+
       {fehler && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-[11px] text-red-200">
           {fehler}
@@ -274,8 +289,9 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] text-white/90 truncate">
-                    <Symbol zeichen="📱" /> {geraet.name}
+                  <span className="flex items-center gap-1.5 text-[13px] text-white/90 truncate">
+                    {geraet.typ === "uhr" ? <Watch size={14} /> : geraet.typ === "tablet" ? <Tablet size={14} /> : <Smartphone size={14} />}
+                    {geraet.name}
                   </span>
                   <span
                     className={
@@ -298,6 +314,14 @@ export default function GeraetePanel({ onPair }: { onPair: () => void }) {
                   {zustand.modell || geraet.plattform}
                   {zustand.android ? ` · ${zustand.android}` : ""}
                 </div>
+                <button
+                  onClick={() => void besitzerAendern(geraet)}
+                  className="mt-1 text-left text-[10.5px] text-gold/75 hover:text-gold"
+                >
+                  {geraet.besitzer ? `Gehört ${geraet.besitzer}` : "Besitzer eintragen"}
+                  {geraet.ueber ? " · über das Handy verbunden" : ""}
+                  {geraet.standort ? ` · Standort ${zeitpunkt(geraet.standort.zeit ?? 0)}` : ""}
+                </button>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button

@@ -17,6 +17,7 @@ interface Props {
   onLocate: () => void;
   onExplore: () => void;
   onStreet: () => void;
+  maxHoehe?: number;
 }
 
 export default function ControlDock({
@@ -35,6 +36,7 @@ export default function ControlDock({
   onLocate,
   onExplore,
   onStreet,
+  maxHoehe,
 }: Props) {
   return (
     <motion.div
@@ -43,7 +45,7 @@ export default function ControlDock({
         display: "flex",
         flexDirection: "column",
         gap: 12,
-        maxHeight: "calc(100vh - 150px)",
+        maxHeight: maxHoehe ? Math.max(120, maxHoehe) : "calc(100vh - 150px)",
         overflowY: "auto",
         paddingRight: 2,
       }}

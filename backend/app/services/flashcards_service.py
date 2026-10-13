@@ -97,6 +97,26 @@ class FlashcardsService:
             self._save()
         return {"id": deck_id, "titel": deck["titel"], "anzahl": len(cards)}
 
+    def aus_karten(self, titel: str, karten: list) -> dict:
+        sauber = []
+        for karte in karten[:40]:
+            if isinstance(karte, dict) and str(karte.get("frage") or "").strip() and str(karte.get("antwort") or "").strip():
+                sauber.append({
+                    "id": uuid.uuid4().hex,
+                    "frage": str(karte["frage"]).strip()[:400],
+                    "antwort": str(karte["antwort"]).strip()[:600],
+                    "stufe": 0,
+                    "faellig": 0.0,
+                })
+        if not sauber:
+            return {"error": "Die Karten brauchen jeweils eine Frage und eine Antwort."}
+        deck_id = uuid.uuid4().hex
+        deck = {"id": deck_id, "titel": str(titel).strip()[:60] or "Karteikarten", "created": time.time(), "karten": sauber}
+        with self._lock:
+            self._decks[deck_id] = deck
+            self._save()
+        return {"id": deck_id, "titel": deck["titel"], "anzahl": len(sauber)}
+
     def decks(self) -> list[dict]:
         with self._lock:
             now = time.time()

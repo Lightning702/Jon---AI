@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {motion} from "framer-motion";
-import {AppWindow, Baby, Bell, BookOpen, EyeOff, Fingerprint, Languages, Bug, Check, ChevronDown, Cloud, Cpu, Database, Delete, Gauge, Globe, HardDrive, Hourglass, Info, KeyRound, Laptop, LayoutGrid, Link2, LogOut, Mic, Moon, Palette, Pencil, Plug, Power, Puzzle, QrCode, RefreshCw, Search, Settings, Shield, ShieldAlert, ShieldCheck, Siren, Smartphone, Sparkles, Sun, User, Volume2, Wifi, Bluetooth, Lock, Zap} from "lucide-react";
+import {AppWindow, Baby, Bell, BookOpen, EyeOff, Fingerprint, Languages, Bug, Check, ChevronDown, Cloud, Cpu, Database, Delete, Gauge, Globe, HardDrive, Hourglass, Info, KeyRound, Laptop, LayoutGrid, Link2, LogOut, Mic, Moon, Palette, Pencil, Plug, Power, Puzzle, QrCode, RefreshCw, Search, Settings, Shield, ShieldAlert, ShieldCheck, Siren, Smartphone, Sparkles, Sun, User, Volume2, Wifi, Bluetooth, Lock, Zap, Watch} from "lucide-react";
 import {api, call, haptic, listen} from "./bridge";
 import {Shell, compose, providerLabel, shortModel} from "./Chat";
 import {PageProps} from "./Pages";
@@ -205,6 +205,7 @@ export function SettingsPage({shell, back, arg}: PageProps) {
       <div className="gap"/>
       <div className="group compact">
         {pi && <Row icon={<Link2/>} label="Verbindungen" detail="Wechseln, hinzufügen oder trennen" onClick={() => push("server")}/>}
+        {pi && <Row icon={<Watch/>} label="Uhr & Standort" detail="Smartwatch verbinden, Standort teilen" onClick={() => push("uhr-standort")}/>}
         {!conn.kiosk && !conn.locked && <Row icon={<Power/>} label="Jon schließen" chevron={false} onClick={() => call("beenden").catch(e => notify(errorText(e)))}/>}
       </div>
       <p className="hint" style={{textAlign: "center", margin: "22px 0 8px"}}>Jon Gerät · FelWorks</p>

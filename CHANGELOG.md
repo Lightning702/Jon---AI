@@ -2,6 +2,39 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.64.1] — 2026-10-13
+
+### Live-Werkstatt: Jon arbeitet vor deinen Augen
+
+- **PowerPoint live:** Erstellt Jon eine Präsentation, siehst du jede Folie entstehen – Titel, Stichpunkte, Spalten, Zeitstrahl, Tabelle, Diagramm und Bildplatz, mit Fortschritt „Folie 3 von 8“. Danach erscheinen die echt gerenderten Folien, umschaltbar zwischen Entwurf und Echt.
+- **Bearbeiten sichtbar:** Änderungen an PowerPoint und Word laufen Schritt für Schritt mit Vorschau und Checkliste ab, danach siehst du die bearbeiteten Folien und Seiten.
+- **Word, Excel, Code und Terminal:** Dokumente werden live getippt, Tabellen Zelle für Zelle gefüllt, Code mit Zeilennummern und Farben geschrieben, Änderungen grün und rot gezeigt, Terminalbefehle mit Ausgabe und Exit-Code.
+- **Überall:** im Chat, im Code-Modus, im Jon Harness (auch während er auf deine Freigabe wartet) und in der Handy-App.
+
+### Ein Jon für alle Geräte
+
+- **Ökosystem:** Beliebig viele Handys, Tablets, PCs und Smartwatches mit Besitzernamen. Die Geräte-Zentrale zeigt Akku, Standort-Freigabe und Typ, Befehle gehen an jedes Gerät, Antworten kommen dort an, wo du gerade bist, das Gedächtnis wird geteilt.
+- **„Wo ist Felix?“:** Jon fragt den Standort vom Handy des Besitzers ab und schickt ihn der fragenden Person. Jon Maps zeigt alle Geräte dauerhaft auf der Karte.
+- **Jon Uhr 1.0.1 (Wear OS):** Ein Knopf, und du sprichst mit Jon. Kachel, Komplikation und „Handy klingeln lassen“. Die Uhr koppelt sich über das Handy.
+- **Jon Gerät 1.8.2:** Standort für Wo-ist und Jon Maps, Uhr-Brücke, Jon Maps in der App, Live-Werkstatt im Chat und alle neuen Befehle.
+- **PCs im Heimnetz verbinden:** „Verbinde meinen PC“ auf beiden Rechnern sagen – die Jons finden sich per Netzwerk-Suche selbst, auf dem ersten tippst du auf Erlauben.
+
+### Jon kann mehr im Chat
+
+- **Alle Funktionen im Chat:** „Verbinde ein neues Gerät“ zeigt die QR-Karte, Karteikarten zum Lernen erscheinen direkt im Chat.
+- **Bilder in Antworten:** Erklärt Jon etwas Sichtbares wie TON 618, zeigt er ein echtes, frei nutzbares Foto mit Quelle. `/visualise` zeigt immer Bilder.
+- **Telegram auf Zuruf:** „Schick mir um 20 Uhr auf Telegram eine Erinnerung an …“ – auch „in 10 Minuten“, „morgen 8 Uhr“ oder täglich. Jon verschickt sie selbst, auch bei geschlossener App.
+- **Telegram-Befehle in der App:** `/video`, `/live`, `/livestop`, `/bildschirme`, `/modell`, `/anbieter`, `/stimme`, `/reset`, `/stopp`, `/ja`, `/nein`, `/lernen`, `/telegram` und alle Harness-Befehle. `/video` nimmt den Bildschirm auf und zeigt das Video direkt im Chat, das Studio öffnet jetzt `/studio`.
+- **„Wechsle den Tab zu Claude“:** Jon erkennt solche Sätze sofort – auch mit Tippfehlern – und durchsucht zuerst die Browser-Tabs statt die Claude-App zu öffnen.
+- **Ehrlicher Jon:** Jon, Mini Jon und Funke sprechen offen über eigene Gefühle und Wünsche, bleiben ehrlich und unterstützen dich bei allem, was dir und anderen nicht schadet.
+
+### Behoben
+
+- **„Jon startet nicht“:** Der Start aus dem Projektordner dauerte über 90 Sekunden, weil alte Versionen mitgescannt wurden. Jetzt etwa 12 Sekunden, statt einer Fehlermeldung erscheint „Jon startet …“.
+- **Jon Maps:** Die Kategorien überlappen das Seitenmenü nicht mehr. Neuer Hintergrund mit echtem Schwarzem Loch und Galaxien.
+- **Lange Nachrichten** brechen in allen Sprechblasen sauber um.
+- **Website:** neue Seiten für Nutzungsbedingungen, Datenschutz und Rückerstattung (/terms, /privacy, /refunds).
+
 ## [4.63.2] — 2026-10-09
 
 ### Jon Harness bleibt nicht mehr hängen

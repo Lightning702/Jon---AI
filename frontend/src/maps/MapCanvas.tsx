@@ -12,7 +12,7 @@ export interface MapMarker {
   lat: number;
   lon: number;
   icon?: string;
-  tone?: "start" | "ziel" | "poi" | "standort" | "freund";
+  tone?: "start" | "ziel" | "poi" | "standort" | "freund" | "geraet";
   active?: boolean;
   stale?: boolean;
 }

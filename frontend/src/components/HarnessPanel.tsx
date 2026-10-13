@@ -103,7 +103,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
             try {
               const data = await harnessRequest<{root: string; tasks: HarnessTask[]}>(`/harness/threads/${selected}`, undefined, undefined, controller.signal);
               if (controller.signal.aborted) return;
-              const stand = JSON.stringify(data.tasks.map(t => [t.id, t.status, t.updated_at, t.step, t.log?.length, t.changes.length, t.checks.length, t.pending?.id, t.specialists?.map(a => a.status).join(), t.summary.length]));
+              const stand = JSON.stringify(data.tasks.map(t => [t.id, t.status, t.updated_at, t.step, t.log?.length, t.changes.length, t.checks.length, t.pending?.id, t.specialists?.map(a => a.status).join(), t.summary.length, t.werkstatt?.nr, t.werkstatt?.fertig]));
               if (stand !== aufgabenStand.current) {aufgabenStand.current = stand; setTasks(data.tasks);}
               fast = data.tasks.some(t => !finished.has(t.status));
               let geaendert = false;

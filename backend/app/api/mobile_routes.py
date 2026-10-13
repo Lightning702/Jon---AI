@@ -297,7 +297,49 @@ BEFEHLE = [
     ("/lernweiter", "", "Recherche fortsetzen"),
     ("/stopp", "", "Laufende Antwort abbrechen"),
     ("/reset", "", "Neuer Chat"),
+    ("/bildschirme", "", "Bildschirme des PCs anzeigen"),
+    ("/telegram", "<Text>", "Nachricht an dein Telegram schicken"),
+    ("/ja", "", "Zeitanfrage erlauben"),
+    ("/nein", "", "Zeitanfrage ablehnen"),
+    ("/projekte", "", "Harness-Projekte anzeigen"),
+    ("/projekt", "<Name>", "Harness-Arbeitsordner wählen"),
+    ("/harness", "<Auftrag>", "Harness-Auftrag starten"),
+    ("/hneu", "<Auftrag>", "Neue Harness-Sitzung"),
+    ("/aufgaben", "", "Harness-Aufträge anzeigen"),
+    ("/hstatus", "<ID>", "Stand eines Auftrags"),
+    ("/diff", "<ID>", "Änderungen eines Auftrags"),
+    ("/hstop", "<ID>", "Auftrag stoppen"),
+    ("/erlauben", "", "Shellbefehl freigeben"),
+    ("/ablehnen", "", "Shellbefehl ablehnen"),
 ]
+
+
+def _video_wunsch(teile: list[str]) -> tuple[int, str]:
+    sekunden = 15
+    welcher = "maus"
+    for wort in [t.strip().lower().rstrip(",.") for t in teile]:
+        zahl = wort.rstrip("sek").rstrip("s") if wort.endswith(("s", "sek")) else wort
+        if wort in ("alle", "maus"):
+            welcher = wort
+        elif wort.endswith(("s", "sek")) and zahl.isdigit():
+            sekunden = max(3, min(60, int(zahl)))
+        elif wort.isdigit() and int(wort) <= 4:
+            welcher = wort
+        elif wort.isdigit():
+            sekunden = max(3, min(60, int(wort)))
+    return sekunden, welcher
+
+
+def _bildschirme_text() -> str:
+    from app.services.live_service import monitore
+
+    liste = [m for m in monitore() if m["id"] != "alle"]
+    zeilen = [f"**{len(liste)} Bildschirm{'e' if len(liste) != 1 else ''}**", ""]
+    for m in liste:
+        groesse = f" ({m['breite']}x{m['hoehe']})" if m.get("breite") else ""
+        zeilen.append(f"- **{m['id']}** · {m['name']}{groesse}")
+    zeilen += ["", "/video 2 = Bildschirm 2 · /video alle · /video 2 30s = 30 Sekunden von Bildschirm 2"]
+    return "\n".join(zeilen)
 
 
 async def _bildschirmvideo(sekunden: int, welcher: str) -> dict:
@@ -341,18 +383,76 @@ async def command(payload: dict) -> dict:
         raise HTTPException(400, "Befehle beginnen mit /.")
     befehl = text.split()[0].split("@")[0].lower()
     teile = text.split()[1:]
+    quelle = str(payload.get("quelle") or "handy").strip()[:40] or "handy"
     if befehl in ("/hilfe", "/help", "/start", "/befehle"):
         zeilen = ["**Befehle**", ""] + [_befehl_zeile(name, args, info) for name, args, info in BEFEHLE]
         return {"text": "\n".join(zeilen), "befehle": [{"name": n, "args": a, "text": i} for n, a, i in BEFEHLE]}
     if befehl in ("/geraete", "/geräte"):
         return {"text": await asyncio.to_thread(_geraete_text)}
     if befehl == "/video":
-        sekunden = 15
-        if teile and teile[0].isdigit():
-            sekunden = max(3, min(60, int(teile[0])))
-        welcher = next((t.lower() for t in teile[1:] if t.lower() in ("alle", "maus") or t.isdigit()), "maus")
+        sekunden, welcher = _video_wunsch(teile)
         video = await _bildschirmvideo(sekunden, welcher)
-        return {"text": f"🎬 {sekunden} Sekunden vom Bildschirm.", "video": video}
+        wo = {"maus": "vom Bildschirm mit der Maus", "alle": "von allen Bildschirmen"}.get(welcher, f"von Bildschirm {welcher}")
+        return {"text": f"🎬 {sekunden} Sekunden {wo}.", "video": video}
+    if befehl in ("/live", "/livebild"):
+        from app.services.live_service import LiveFehler, get_live_service
+
+        wunsch = " ".join(teile).strip()
+        klein = wunsch.lower()
+        if wunsch and klein not in ("alle", "maus") and not klein.isdigit():
+            from app.services.verbund_service import VerbundFehler, get_verbund_service
+
+            verbund = get_verbund_service()
+            try:
+                eintrag = verbund.finden(wunsch)
+                daten = await verbund.bildschirm(eintrag["id"], "alle")
+            except VerbundFehler as fehler:
+                return {"text": str(fehler)}
+            import time
+
+            ziel = get_dateiraum_service().ordner("Images") / f"Bildschirm-{time.strftime('%Y%m%d-%H%M%S')}.jpg"
+            await asyncio.to_thread(ziel.write_bytes, daten)
+            return {"text": f"Der Bildschirm von {eintrag.get('name', wunsch)}:", "bild": f"/api/verbund/{eintrag['id']}/bild?welcher=alle", "bild_pfad": str(ziel)}
+        try:
+            await asyncio.to_thread(get_live_service().starten, klein or "alle", 2.0)
+        except LiveFehler as fehler:
+            return {"text": str(fehler)}
+        return {"text": "Die Live-Übertragung läuft. Auf dem Handy oder in Telegram siehst du sie mit /live, /livestop beendet sie."}
+    if befehl == "/livestop":
+        from app.services.live_service import get_live_service
+
+        get_live_service().stoppen()
+        return {"text": "Die Übertragung ist beendet."}
+    if befehl in ("/bildschirme", "/monitore"):
+        return {"text": await asyncio.to_thread(_bildschirme_text)}
+    if befehl in ("/ja", "/nein"):
+        from app.services.telegram_service import get_telegram_service
+
+        return {"text": await get_telegram_service()._zeitanfrage_antwort(text, befehl == "/ja")}
+    if befehl == "/telegram":
+        from app.services.telegram_plan import senden
+
+        rest = text.split(maxsplit=1)[1].strip() if len(teile) else ""
+        if not rest:
+            return {"text": "Was soll ich dir schicken? Beispiel: /telegram Denk an den Einkauf"}
+        ergebnis = await senden(rest)
+        return {"text": "Auf Telegram geschickt." if ergebnis.get("ok") else ergebnis.get("error", "Das hat nicht geklappt.")}
+    if befehl in ("/stopp", "/stop"):
+        from app.services.harness import get_harness_service
+        from app.services.harness.service import TERMINAL
+
+        harness = get_harness_service()
+        gestoppt = 0
+        for aufgabe in harness.list(quelle):
+            if aufgabe["status"] not in TERMINAL:
+                await harness.cancel(aufgabe["id"])
+                gestoppt += 1
+        return {"text": f"{gestoppt} Harness-Auftrag gestoppt." if gestoppt == 1 else f"{gestoppt} Harness-Aufträge gestoppt." if gestoppt else "Gerade läuft nichts, alles ruhig."}
+    from app.services.harness.messages import handle as harness_befehl
+
+    harness_antwort = await harness_befehl(text, quelle)
+    if harness_antwort is not None:
+        return {"text": harness_antwort["text"], "harness": harness_antwort.get("task_id")}
     if is_learn_command(text):
         ergebnis = await research_command(text)
         if ergebnis is None:

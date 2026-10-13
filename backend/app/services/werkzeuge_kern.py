@@ -61,11 +61,26 @@ def _rueckgaengig(box: Any, args: dict, name: str = "") -> str:
     return antwort(dienst.rueckgaengig(str(args.get("id", ""))))
 
 
-@werkzeug("geraete")
-def _geraete(box: Any, args: dict, name: str = "") -> str:
-    from app.services.verbund_service import get_verbund_service
+@werkzeug_async("geraete")
+async def _geraete(box: Any, args: dict, name: str = "") -> str:
+    from app.services.oekosystem_service import get_oekosystem
 
-    return antwort({"geraete": get_verbund_service().geraete()})
+    stand = await get_oekosystem().uebersicht()
+    for geraet in stand["geraete"]:
+        geraet.pop("rechte", None)
+        geraet["standort_freigegeben"] = geraet.pop("standort", None) is not None
+    return antwort(stand)
+
+
+@werkzeug_async("wo_ist")
+async def _wo_ist(box: Any, args: dict, name: str = "") -> str:
+    from app.api.oekosystem_routes import _fragender
+    from app.services.oekosystem_service import OekoFehler, get_oekosystem
+
+    try:
+        return antwort(await get_oekosystem().wo_ist(str(args.get("person", "")), _fragender()))
+    except OekoFehler as fehler:
+        return antwort({"ok": False, "error": str(fehler)})
 
 
 @werkzeug_async("geraet_fragen")
@@ -1012,7 +1027,8 @@ async def _wechseln(box: Any, args: dict, name: str = "") -> str:
         liste = await asyncio.to_thread(fenster)
         return antwort({"fenster": [{"titel": f["titel"][:100], "programm": f["programm"]} for f in liste[:40]]})
     tabs = str(args.get("tabs", "true")).strip().lower() not in ("false", "0", "nein")
-    return antwort(await asyncio.to_thread(wechseln, ziel, tabs))
+    tab = str(args.get("tab", "")).strip().lower() in ("true", "1", "ja")
+    return antwort(await asyncio.to_thread(wechseln, ziel, tabs, tab))
 
 
 @werkzeug_async("stundenplan")

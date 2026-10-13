@@ -1,6 +1,7 @@
 import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import MessageBubble, { ChatEntry } from "./MessageBubble";
+import { schrittAnwenden } from "../lib/werkstatt";
 import ProjectPanel from "./ProjectPanel";
 import {
   FileEntry,
@@ -623,18 +624,7 @@ export default function CodeAgent({
             setEntries((prev) =>
               prev.map((e) => {
                 if (e.id !== assistant.id) return e;
-                const tools = [...(e.tools ?? [])];
-                if (evt.status === "running") {
-                  tools.push({
-                    name: evt.name ?? "tool",
-                    done: false,
-                    args: evt.args,
-                    summary: evt.summary,
-                  });
-                } else {
-                  const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
-                  if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
-                }
+                const tools = schrittAnwenden(e.tools, evt);
                 return { ...e, tools };
               })
             );
@@ -993,13 +983,7 @@ export default function CodeAgent({
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistant.id) return e;
-              const tools = [...(e.tools ?? [])];
-              if (evt.status === "running") {
-                tools.push({ name: evt.name ?? "tool", done: false, args: evt.args, summary: evt.summary });
-              } else {
-                const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
-                if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
-              }
+              const tools = schrittAnwenden(e.tools, evt);
               return { ...e, tools };
             })
           );

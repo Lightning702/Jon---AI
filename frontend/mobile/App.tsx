@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from "react";
 import {animate, AnimatePresence, motion, PresenceContext, useDragControls, useMotionValue, useTransform} from "framer-motion";
-import {AlarmClock, BookOpen, BatteryCharging, Camera, Clock, Dumbbell, Folder, Headphones, Hourglass, Image as ImageIcon, Laptop, LayoutGrid, MessageCircle, MessagesSquare, Music2, Pin, Puzzle, Search, SquarePen, X} from "lucide-react";
+import {AlarmClock, Map as MapIcon, BookOpen, BatteryCharging, Camera, Clock, Dumbbell, Folder, Headphones, Hourglass, Image as ImageIcon, Laptop, LayoutGrid, MessageCircle, MessagesSquare, Music2, Pin, Puzzle, Search, SquarePen, X} from "lucide-react";
 import {api, call, haptic, listen, native} from "./bridge";
 import {ChatScreen, Conn, Shell, useVoiceEvents} from "./Chat";
 import {AppsPage, ArchivePage, ImagesPage, LibraryPage, PageProps, PluginsPage, ProjectsPage, RemotePage, SearchPage, TasksPage} from "./Pages";
@@ -11,6 +11,7 @@ import {Anzeigen, SosKnopf, ZeitPage} from "./Familie";
 import {spracheAnwenden} from "./sprache";
 import {ServerPage} from "./Verbindungen";
 import {UhrPage} from "./Uhr";
+import {KartePage, UhrStandortPage} from "./Oekosystem";
 import {KameraPage} from "./Kamera";
 import {FitnessPage} from "./Fitness";
 import {OfflinePage, SoloPage} from "./Offline";
@@ -34,12 +35,14 @@ const routes: Record<string, (p: PageProps) => React.ReactElement> = {
   search: SearchPage, archive: ArchivePage, apps: AppsPage, settings: SettingsPage, providers: ProvidersPage, device: DevicePage,
   "voice-settings": VoiceSettingsPage, security: SecurityPage, pair: PairPage, viewer: ViewerPage,
   zeit: ZeitPage, uhr: UhrPage, kamera: KameraPage, fitness: FitnessPage, offline: OfflinePage, solo: SoloPage, jonchat: JonChatPage,
-  datenschutz: DatenschutzPage, updates: UpdatesPage, sicherung: SicherungPage, server: ServerPage
+  datenschutz: DatenschutzPage, updates: UpdatesPage, sicherung: SicherungPage, server: ServerPage,
+  karte: KartePage, "uhr-standort": UhrStandortPage
 };
 
 const nav: {id: string; label: string; icon: React.ReactNode; pi?: boolean}[] = [
   {id: "minijon", label: "Funke", icon: <Flame/>},
   {id: "jonchat", label: "Jon Chat", icon: <MessagesSquare/>, pi: true},
+  {id: "karte", label: "Jon Maps", icon: <MapIcon/>, pi: true},
   {id: "kamera", label: "Kamera", icon: <Camera/>},
   {id: "uhr", label: "Wecker & Timer", icon: <AlarmClock/>},
   {id: "fitness", label: "Fitness", icon: <Dumbbell/>},

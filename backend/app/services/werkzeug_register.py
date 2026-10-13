@@ -63,3 +63,4 @@ def namen() -> set[str]:
 
 def laden() -> None:
     from app.services import werkzeuge_kern  # noqa: F401
+    from app.services import werkzeuge_chatkarten  # noqa: F401

@@ -628,6 +628,8 @@ a.chip:hover{color:var(--text);border-color:rgba(255,255,255,.35)}
 .doc-card ul{margin-top:12px;padding-left:20px;color:var(--muted)}
 .doc-card li{margin-top:8px}
 .doc-card li::marker{color:var(--gold-2)}
+.doc-card ol{margin-top:12px;padding-left:22px;color:var(--muted)}
+.legal-form{margin-top:18px;padding:6px 22px 20px;border:1px dashed var(--line-2);border-radius:14px;background:rgba(5,7,14,.4)}
 .toc--long{max-height:calc(100vh - var(--nav-h) - 56px);overflow-y:auto;scrollbar-width:thin}
 .doc-end{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
 .provider{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px;margin:6px 0 0;border-top:1px solid var(--line)}

@@ -4,6 +4,8 @@ import {AlertTriangle, Check, CheckCircle2, ChevronDown, Clock, Code2, Cpu, File
 import {HarnessTask} from "../lib/harness";
 import {ENDE, HARNESS_TEXT} from "./agenten/daten";
 import {useJetzt} from "./agenten/live";
+import LiveWerkstatt from "./werkstatt/LiveWerkstatt";
+import {desktopRender} from "./werkstatt/desktopRender";
 import "./harness-verlauf.css";
 
 type Eintrag = NonNullable<HarnessTask["log"]>[number];
@@ -152,6 +154,8 @@ export default function HarnessVerlauf({task, busy, onStopp, onEntscheiden}: {ta
       {task.pending.notice && <small>{task.pending.notice}</small>}
       <div><button className="hv-erlauben" disabled={busy} onClick={() => onEntscheiden(true)}><Check size={14}/>Erlauben</button><button disabled={busy} onClick={() => onEntscheiden(false)}>Ablehnen</button></div>
     </motion.div>}</AnimatePresence>
+
+    {task.werkstatt && <div className="hv-werkstatt"><LiveWerkstatt key={task.id + ":" + task.werkstatt.nr} kennung={task.id + ":" + task.werkstatt.nr} daten={task.werkstatt} ergebnis={task.werkstatt.ergebnis} laeuft={aktiv && !task.werkstatt.fertig} animieren={aktiv && jetzt - task.werkstatt.zeit < 45} render={desktopRender} startOffen={aktiv}/></div>}
 
     {aktiv && <div className="hv-live" aria-live="polite">
       <span className="hv-live-icon"><LiveIcon size={14}/></span>

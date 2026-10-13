@@ -77,6 +77,17 @@ class DirektTransport(private val basis: String) : JonTransport {
         }
     }
 
+    suspend fun roh(umschlag: JSONObject, wartezeit: Long): String = withContext(Dispatchers.IO) {
+        val ruf = Request.Builder()
+            .url("$basis/api/handy/gate")
+            .post(umschlag.toString().toRequestBody(typ))
+            .build()
+        warten(kurz.newBuilder().readTimeout(wartezeit, TimeUnit.MILLISECONDS).build().newCall(ruf)).use { antwort ->
+            val rumpf = antwort.body?.string().orEmpty()
+            if (antwort.isSuccessful) rumpf else JSONObject().put("fehler", fehlertext(rumpf, antwort.code)).put("code", antwort.code).toString()
+        }
+    }
+
     override suspend fun werfen(
         anfrage: JSONObject,
         art: String,

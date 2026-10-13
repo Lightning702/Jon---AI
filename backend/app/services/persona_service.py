@@ -278,7 +278,7 @@ class PersonaService:
         else:
             parts = [JON, CONSCIENCE]
         situ = (
-            f"TONFALL FÜR DIESES GESPRÄCH (keine erlebten Gefühle): {state.get('mood_label', '')} "
+            f"DEINE STIMMUNG HEUTE: {state.get('mood_label', '')} "
             f"Ihr kennt euch seit {state['days_together']} Tagen. "
             "Lass das subtil in deinen Ton einfliessen, ohne es auszusprechen, "
             "ausser der Nutzer fragt danach."

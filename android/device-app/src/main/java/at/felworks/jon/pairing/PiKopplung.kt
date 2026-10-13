@@ -21,7 +21,7 @@ object PiKopplung {
         return uri.toString()
     }
 
-    suspend fun verbinden(qr: QrNutzlast, status: (String) -> Unit): Zugang = withTimeout(180_000) {
+    suspend fun verbinden(qr: QrNutzlast, besitzer: String = "", typ: String = "handy", status: (String) -> Unit): Zugang = withTimeout(180_000) {
         require(qr.nurDirekt) { "Im Desktop-Assistenten „Jon-Gerät einrichten“ einen VPN-Code erzeugen." }
         val key = Kopplungscode.schluessel(qr.code)
         val id = Kopplungscode.thema(qr.code)
@@ -39,7 +39,7 @@ object PiKopplung {
         val weg = verbindung ?: error("Pi oder Code nicht erreichbar. Tailscale und den aktuellen Kopplungscode prüfen.")
         try {
             suspend fun ruf(op: String): JSONObject {
-                val r = weg.senden(JSONObject().put("op", op).put("rid", Krypto.kennung(12)).put("name", "${Build.MANUFACTURER} ${Build.MODEL}").put("plattform", "Android ${Build.VERSION.RELEASE} · Jon Gerät"), "pair", id, key, 10_000)
+                val r = weg.senden(JSONObject().put("op", op).put("rid", Krypto.kennung(12)).put("name", "${Build.MANUFACTURER} ${Build.MODEL}").put("plattform", "Android ${Build.VERSION.RELEASE} · Jon Gerät").put("typ", typ).put("besitzer", besitzer), "pair", id, key, 10_000)
                 check(r.optBoolean("ok")) { r.optString("fehler", "Kopplung abgelehnt.") }
                 return r
             }

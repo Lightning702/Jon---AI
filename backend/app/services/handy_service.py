@@ -55,6 +55,8 @@ RECHTE_VORGABE = {
 }
 
 MELDUNG_ARTEN = ("sos", "gelesen", "zeitanfrage")
+GERAETE_TYPEN = ("handy", "uhr", "tablet", "pc")
+STANDORT_VERLAUF = 60
 _APP_KENNUNG = re.compile(r"[A-Za-z][A-Za-z0-9_.]{1,120}")
 _HINTERGRUND: set = set()
 MELDUNGEN_MAX = 30
@@ -163,6 +165,47 @@ def thema_fuer(code: str) -> str:
 
 def schluessel_fuer_code(code: str) -> bytes:
     return _ableiten(code.encode("utf-8"), b"pairing")
+
+
+def geraete_typ(roh: object, plattform: str = "") -> str:
+    wert = str(roh or "").strip().lower()
+    if wert in GERAETE_TYPEN:
+        return wert
+    text = plattform.lower()
+    if "wear" in text or "watch" in text or "uhr" in text:
+        return "uhr"
+    if "tablet" in text or "ipad" in text:
+        return "tablet"
+    if any(teil in text for teil in ("windows-pc", "raspberry", "linux", "darwin", "macos", "jon-pc")):
+        return "pc"
+    return "handy"
+
+
+def standort_saeubern(roh: object) -> dict | None:
+    if not isinstance(roh, dict):
+        return None
+    breite, laenge = roh.get("lat"), roh.get("lon")
+    if isinstance(breite, bool) or isinstance(laenge, bool):
+        return None
+    if not isinstance(breite, (int, float)) or not isinstance(laenge, (int, float)):
+        return None
+    if not (-90 <= breite <= 90 and -180 <= laenge <= 180):
+        return None
+    sauber = {"lat": round(float(breite), 6), "lon": round(float(laenge), 6)}
+    genau = roh.get("genau")
+    if isinstance(genau, (int, float)) and not isinstance(genau, bool) and 0 < genau < 100000:
+        sauber["genau"] = round(float(genau), 1)
+    zeit = roh.get("zeit")
+    if isinstance(zeit, (int, float)) and not isinstance(zeit, bool) and zeit > 0:
+        sekunden = float(zeit) / 1000 if zeit > 10_000_000_000 else float(zeit)
+        sauber["zeit"] = min(sekunden, time.time())
+    else:
+        sauber["zeit"] = time.time()
+    for schluessel in ("tempo", "richtung", "hoehe"):
+        wert = roh.get(schluessel)
+        if isinstance(wert, (int, float)) and not isinstance(wert, bool):
+            sauber[schluessel] = round(float(wert), 1)
+    return sauber
 
 
 def _sauberer_name(roh: str) -> str:
@@ -287,7 +330,7 @@ class HandyService:
             port = 1883
         return {"host": broker, "port": port}
 
-    def kopplung_starten(self, direct_only: bool = False) -> dict:
+    def kopplung_starten(self, direct_only: bool = False, auto: dict | None = None) -> dict:
         code = code_erzeugen()
         kennung = self.kennung()
         makler = self._makler()
@@ -304,6 +347,7 @@ class HandyService:
             "geraet": None,
             "ergebnis": None,
             "fehlversuche": 0,
+            "auto": dict(auto) if auto else None,
         }
         with self._lock:
             self._sitzung = sitzung
@@ -355,6 +399,7 @@ class HandyService:
                 "rest": max(0, int(sitzung["ablauf"] - time.time())),
                 "code": sitzung["code"],
                 "code_gruppiert": code_gruppiert(sitzung["code"]),
+                "auto": bool(sitzung.get("auto")),
             }
 
     def kopplung_beantworten(self, angenommen: bool) -> dict:
@@ -376,10 +421,16 @@ class HandyService:
             geraete_id = secrets.token_hex(8)
             schluessel = secrets.token_bytes(32)
             token = secrets.token_urlsafe(32)
+            auto = dict(sitzung.get("auto") or {})
+            plattform = geraet.get("plattform") or "Android"
+            typ = geraete_typ(auto.get("typ") or geraet.get("typ"), plattform)
             eintrag = {
                 "id": geraete_id,
                 "name": geraet.get("name") or "Android",
-                "plattform": geraet.get("plattform") or "Android",
+                "plattform": plattform,
+                "typ": typ,
+                "besitzer": str(auto.get("besitzer") or geraet.get("besitzer") or "").strip()[:40],
+                "ueber": str(auto.get("ueber") or ""),
                 "schluessel": _b64(schluessel),
                 "token": token,
                 "erstellt": time.time(),
@@ -426,6 +477,11 @@ class HandyService:
             "id": kennung,
             "name": eintrag.get("name", ""),
             "plattform": eintrag.get("plattform", ""),
+            "typ": geraete_typ(eintrag.get("typ"), str(eintrag.get("plattform", ""))),
+            "besitzer": str(eintrag.get("besitzer") or ""),
+            "ueber": str(eintrag.get("ueber") or ""),
+            "standort": self._standort_sicht(eintrag),
+            "standort_teilen": bool(eintrag.get("standort_teilen")),
             "direct_only": bool(eintrag.get("direct_only")),
             "erstellt": eintrag.get("erstellt", 0),
             "gesehen": eintrag.get("gesehen", 0),
@@ -439,6 +495,66 @@ class HandyService:
             "meldungen": list(reversed(list(eintrag.get("meldungen") or [])[-10:])),
             "durchsagen": list(reversed(list(eintrag.get("durchsagen") or [])[-5:])),
         }
+
+    def _standort_sicht(self, eintrag: dict) -> dict | None:
+        ort = eintrag.get("standort")
+        if not isinstance(ort, dict) or "lat" not in ort:
+            return None
+        gespeichert = eintrag.get("rechte")
+        erlaubt = bool(gespeichert.get("standort", RECHTE_VORGABE["standort"])) if isinstance(gespeichert, dict) else RECHTE_VORGABE["standort"]
+        if not erlaubt:
+            return None
+        return dict(ort)
+
+    def standort_merken(self, geraete_id: str, roh: object) -> dict | None:
+        ort = standort_saeubern(roh)
+        if ort is None:
+            return None
+        if not self.recht_erlaubt(geraete_id, "standort"):
+            return None
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") != geraete_id:
+                    continue
+                alt = eintrag.get("standort") if isinstance(eintrag.get("standort"), dict) else {}
+                if alt and float(alt.get("zeit") or 0) > float(ort["zeit"]):
+                    return dict(alt)
+                eintrag["standort"] = ort
+                spur = list(eintrag.get("standort_spur") or [])
+                if not spur or abs(spur[-1][0] - ort["lat"]) + abs(spur[-1][1] - ort["lon"]) > 0.0004:
+                    spur.append([ort["lat"], ort["lon"], int(ort["zeit"])])
+                eintrag["standort_spur"] = spur[-STANDORT_VERLAUF:]
+                self._sichern()
+                return dict(ort)
+        return None
+
+    def besitzer_setzen(self, geraete_id: str, besitzer: str) -> dict:
+        sauber = " ".join(str(besitzer).split())[:40]
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") == geraete_id:
+                    eintrag["besitzer"] = sauber
+                    eintrag["besitzer_fest"] = bool(sauber)
+                    self._sichern()
+                    return self.geraet_sicht(dict(eintrag))
+        raise HandyFehler("Unbekanntes Geraet.")
+
+    def typ_setzen(self, geraete_id: str, typ: str) -> dict:
+        if typ not in GERAETE_TYPEN:
+            raise HandyFehler("Diesen Gerätetyp gibt es nicht.")
+        with self._lock:
+            for eintrag in self._data["geraete"]:
+                if eintrag.get("id") == geraete_id:
+                    eintrag["typ"] = typ
+                    self._sichern()
+                    return self.geraet_sicht(dict(eintrag))
+        raise HandyFehler("Unbekanntes Geraet.")
+
+    def direkt_erreichbar(self, geraete_id: str) -> bool:
+        if self._postfach(geraete_id) is not None:
+            return True
+        with self._lock:
+            return bool(self._warteschlangen.get(geraete_id))
 
     def geraet_entfernen(self, geraete_id: str) -> bool:
         with self._lock:
@@ -580,6 +696,9 @@ class HandyService:
             return {"rid": ruf, **await self.meldung_annehmen(geraet["id"], anfrage)}
         if op == "abmelden":
             return {"rid": ruf, "ok": self.geraet_entfernen(geraet["id"])}
+        if op == "standort":
+            ort = self.standort_merken(geraet["id"], anfrage.get("standort"))
+            return {"rid": ruf, "ok": True, "gespeichert": ort is not None}
         return {"rid": ruf, "ok": False, "fehler": "Unbekannte Anweisung."}
 
     def _aufraeumen(self) -> None:
@@ -681,7 +800,16 @@ class HandyService:
             sitzung["geraet"] = {
                 "name": str(anfrage.get("name", "") or "Android"),
                 "plattform": str(anfrage.get("plattform", "") or "Android"),
+                "typ": str(anfrage.get("typ", "") or ""),
+                "besitzer": str(anfrage.get("besitzer", "") or "")[:40],
             }
+            automatisch = bool(sitzung.get("auto"))
+        if automatisch:
+            try:
+                self.kopplung_beantworten(True)
+            except HandyFehler as exc:
+                return {"ok": False, "fehler": str(exc)}
+            return {"ok": True, "status": "verbunden"}
         return {"ok": True, "status": "wartet"}
 
     def _pair_stand(self) -> dict:
@@ -778,6 +906,9 @@ class HandyService:
         pfad = str(anfrage.get("path", "/api/chat"))
         if pfad == "/api/chat":
             from app.services.geraete_funktionen import HANDY_KONTEXT
+            from app.services.oekosystem_service import get_oekosystem
+
+            get_oekosystem().aktiv_merken(geraet["id"])
             marke = HANDY_KONTEXT.set(geraet["id"])
             try:
                 async for stueck in self._chat_strom(ruf, anfrage.get("body")):
@@ -1022,8 +1153,17 @@ class HandyService:
                 name = str(zustand.get("name") or "").strip()
                 if name and not eintrag.get("umbenannt"):
                     eintrag["name"] = name[:60]
+                besitzer = " ".join(str(anfrage.get("besitzer") or "").split())[:40]
+                if besitzer and not eintrag.get("besitzer_fest"):
+                    eintrag["besitzer"] = besitzer
+                if anfrage.get("typ") in GERAETE_TYPEN:
+                    eintrag["typ"] = anfrage.get("typ")
+                if "standort_teilen" in anfrage:
+                    eintrag["standort_teilen"] = bool(anfrage.get("standort_teilen"))
                 self._sichern()
                 break
+        if anfrage.get("standort") is not None:
+            self.standort_merken(geraete_id, anfrage.get("standort"))
         return {
             "ok": True,
             "rechte": self.rechte(geraete_id),
@@ -1371,8 +1511,13 @@ class HandyService:
         daten: dict | None = None,
         wartezeit: float = AUFTRAG_TTL,
     ) -> dict:
-        if self._geraet(geraete_id) is None:
+        ziel = self._geraet(geraete_id)
+        if ziel is None:
             raise HandyFehler("Unbekanntes Geraet.")
+        weiter = str(ziel.get("ueber") or "")
+        if weiter and weiter != geraete_id and op != "uhr" and not self.direkt_erreichbar(geraete_id) and self._geraet(weiter) is not None:
+            antwort = await self.auftrag(weiter, "uhr", {"uhr_op": op, "uhr": geraete_id, "uhr_daten": daten or {}}, wartezeit=wartezeit)
+            return {**antwort, "geraet": geraete_id, "ueber": weiter}
         kennung = secrets.token_hex(8)
         schleife = asyncio.get_running_loop()
         zukunft: asyncio.Future = schleife.create_future()

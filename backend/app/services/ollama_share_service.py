@@ -22,6 +22,7 @@ SHARE_FILE = DATA_DIR / "ollama_share.json"
 
 DISCOVERY_PORT = int(os.environ.get("JON_SHARE_DISCOVERY_PORT", "8762"))
 MAGIC = "jon-ollama-share"
+PC_MAGIC = "jon-pc-kopplung"
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 8
 INVITE_LENGTH = 10
@@ -580,6 +581,16 @@ class OllamaShareService:
                 try:
                     payload = json.loads(data.decode("utf-8"))
                 except Exception:
+                    return
+                if payload.get("magic") == PC_MAGIC:
+                    from app.services.pc_kopplung import antwort_fuer
+
+                    try:
+                        reply = antwort_fuer(payload, addr[0])
+                        if reply is not None:
+                            self.transport.sendto(json.dumps(reply).encode("utf-8"), addr)
+                    except Exception:
+                        return
                     return
                 if payload.get("magic") != MAGIC:
                     return

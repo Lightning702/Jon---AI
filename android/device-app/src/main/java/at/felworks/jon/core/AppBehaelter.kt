@@ -82,7 +82,16 @@ class AppBehaelter(private val context: Context) {
                             .put("kinder", at.felworks.jon.device.KinderModus.stand(context))
                         val faehigkeiten = mutableListOf("status", "apps", "durchsage", "klingeln", "regeln")
                         if (Hinweisdienst.aktiv(context)) faehigkeiten += "musik"
-                        val r = verbindung.geraeteOperation(JSONObject().put("op", "zustand").put("zustand", zustand).put("faehigkeiten", JSONArray(faehigkeiten)), 15_000)
+                        if (Ortung.erlaubt(context)) faehigkeiten += "standort"
+                        val meldung = JSONObject().put("op", "zustand").put("zustand", zustand).put("faehigkeiten", JSONArray(faehigkeiten))
+                            .put("typ", if (context.resources.configuration.smallestScreenWidthDp >= 600) "tablet" else "handy")
+                            .put("besitzer", at.felworks.jon.ki.JonKern.name(context))
+                            .put("standort_teilen", Ortung.teilen(context))
+                        if (Ortung.teilen(context) && rechte.optBoolean("standort", false)) {
+                            Ortung.beobachten(context)
+                            Ortung.zuletzt(context)?.let { meldung.put("standort", Ortung.json(it)) }
+                        }
+                        val r = verbindung.geraeteOperation(meldung, 15_000)
                         rechte = r.optJSONObject("rechte") ?: JSONObject()
                         gemeldet = android.os.SystemClock.elapsedRealtime()
                     }
@@ -95,6 +104,7 @@ class AppBehaelter(private val context: Context) {
                                 .put("trainings", offen.getJSONArray("trainings")).put("geloescht", offen.getJSONArray("geloescht")).put("quelle", "handy"))
                             FitnessLokal.abgeglichen(context, antwort.optJSONArray("trainings") ?: JSONArray())
                         }
+                        runCatching { gedaechtnisAbgleichen() }
                     }
                     val events = verbindung.abholen()
                     for (i in 0 until events.length()) {
@@ -165,11 +175,14 @@ class AppBehaelter(private val context: Context) {
             check(erledigt.vormerken(id)) { "Auftrag wurde bereits bearbeitet." }
             val op = daten.optString("op")
             val recht = when (op) {
-                "app-oeffnen" -> "apps"; "musik" -> "musik"; "zustand" -> "status"
+                "app-oeffnen" -> "apps"; "musik" -> "musik"; "zustand" -> "status"; "ort" -> "standort"; "uhr" -> "status"; "uhr-koppeln" -> "status"
                 "durchsage" -> "durchsage"; "klingeln" -> "klingeln"; "regeln" -> "regeln"; "zeitantwort" -> "regeln"
                 else -> error("Dieser Auftrag ist nicht erlaubt.")
             }
             check(rechte.optBoolean(recht, false)) { "Funktion ist auf dem Pi nicht freigegeben." }
+            if (op == "ort") return@runCatching standortTeilen(daten.optString("fuer"))
+            if (op == "uhr-koppeln") return@runCatching at.felworks.jon.uhrbruecke.Uhrbruecke.koppeln(context, this@AppBehaelter)
+            if (op == "uhr") return@runCatching at.felworks.jon.uhrbruecke.Uhrbruecke.anUhr(context, daten.optString("uhr_op"), daten.optJSONObject("uhr_daten") ?: JSONObject())
             withContext(Dispatchers.Main) {
                 when (op) {
                     "app-oeffnen" -> GeraeteApps.oeffnen(context, daten.optString("app"))
@@ -188,6 +201,43 @@ class AppBehaelter(private val context: Context) {
         }
         if (result.exceptionOrNull() is CancellationException) throw result.exceptionOrNull()!!
         verbindung.antworten(id, result.isSuccess, result.getOrNull(), result.exceptionOrNull()?.message.orEmpty())
+    }
+
+    private suspend fun standortTeilen(fuer: String): JSONObject {
+        check(Ortung.erlaubt(context)) { "Am Handy ist die Ortung für Jon nicht erlaubt." }
+        val ort = Ortung.jetzt(context) ?: error("Das Handy hat gerade keinen Standort. Ist die Ortung eingeschaltet?")
+        val wer = fuer.trim().take(40).ifBlank { "Jon" }
+        Benachrichtigung.familie(
+            context,
+            Sprache.t(context, "Standort geteilt", "Location shared"),
+            Sprache.t(context, "$wer hat über Jon gefragt, wo du bist.", "$wer asked Jon where you are."),
+            "karte",
+        )
+        return Ortung.json(ort)
+    }
+
+    private suspend fun gedaechtnisAbgleichen() {
+        val ablage = context.getSharedPreferences("jon-gedaechtnis-abgleich", Context.MODE_PRIVATE)
+        val gespeichert = runCatching { JSONArray(ablage.getString("bekannt", "[]")) }.getOrDefault(JSONArray())
+        val bekannt = (0 until gespeichert.length()).map { gespeichert.getString(it) }.toMutableSet()
+        val neu = at.felworks.jon.ki.Gedaechtnis.fakten(context).filter { it !in bekannt }
+        val antwort = verbindung.objekt(
+            "POST",
+            "/api/oekosystem/gedaechtnis",
+            JSONObject().put("eintraege", JSONArray(neu.map { JSONObject().put("content", it) })).put("seit", ablage.getString("stand", "")),
+        )
+        bekannt += neu
+        val eintraege = antwort.optJSONArray("eintraege") ?: JSONArray()
+        for (i in maxOf(0, eintraege.length() - 40) until eintraege.length()) {
+            val text = eintraege.optJSONObject(i)?.optString("content").orEmpty().trim().replace(Regex("\\s+"), " ").take(300)
+            if (text.isBlank() || text in bekannt) continue
+            runCatching { at.felworks.jon.ki.Gedaechtnis.merken(context, text) }
+            bekannt += text
+        }
+        ablage.edit()
+            .putString("bekannt", JSONArray(bekannt.toList().takeLast(600)).toString())
+            .putString("stand", antwort.optString("stand").ifBlank { ablage.getString("stand", "").orEmpty() })
+            .apply()
     }
 
     suspend fun melden(art: String, daten: JSONObject): JSONObject =

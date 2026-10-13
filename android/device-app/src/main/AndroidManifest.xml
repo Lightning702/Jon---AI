@@ -23,6 +23,8 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -88,7 +90,13 @@
         </service>
         <service android:name=".device.SprachDienst" android:exported="false" android:foregroundServiceType="microphone|mediaPlayback" />
         <service android:name=".device.KlingelDienst" android:exported="false" android:foregroundServiceType="mediaPlayback" />
-        <service android:name=".device.JonHintergrund" android:exported="false" android:foregroundServiceType="remoteMessaging|dataSync" />
+        <service android:name=".device.JonHintergrund" android:exported="false" android:foregroundServiceType="remoteMessaging|dataSync|location" />
+        <service android:name=".uhrbruecke.UhrDienst" android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.REQUEST_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/jon/" />
+            </intent-filter>
+        </service>
         <service android:name=".device.SprechenKachel" android:exported="true" android:icon="@drawable/ic_mikro" android:label="Mit Jon sprechen" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
         </service>
