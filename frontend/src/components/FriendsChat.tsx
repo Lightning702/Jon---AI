@@ -793,7 +793,7 @@ export default function FriendsChat({
                     </button>
                   )}
                   <div
-                    className={`relative max-w-[70%] px-3 py-2 rounded-2xl ${
+                    className={`relative max-w-[70%] min-w-0 px-3 py-2 rounded-2xl [overflow-wrap:anywhere] ${
                       mine
                         ? "bg-gradient-to-br from-gold-light/90 to-gold-dark/90 text-black rounded-br-md"
                         : mentioned

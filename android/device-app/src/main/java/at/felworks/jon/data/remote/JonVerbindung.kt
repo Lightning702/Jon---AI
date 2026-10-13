@@ -103,6 +103,11 @@ class JonVerbindung {
         }
     }
 
+    suspend fun weiterleiten(umschlag: JSONObject, wartezeit: Long = 120_000): String {
+        val (weg, _) = transport()
+        return weg.roh(umschlag, wartezeit)
+    }
+
     suspend fun abholen(): JSONArray = geraeteOperation(JSONObject().put("op", "warten").put("warten", 12), 30_000).optJSONArray("ereignisse") ?: JSONArray()
     suspend fun antworten(id: String, ok: Boolean, daten: JSONObject?, fehler: String) {
         geraeteOperation(JSONObject().put("op", "antwort").put("auftrag", id).put("ok", ok).put("daten", daten).put("fehler", fehler), 15_000)

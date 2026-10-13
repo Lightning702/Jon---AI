@@ -158,6 +158,99 @@ async def suchen(suche: str) -> str:
     return ""
 
 
+def _schlicht(text: object) -> str:
+    return re.sub(r"<[^>]+>", "", str(text or "")).strip()[:120]
+
+
+async def _commons_mit_herkunft(suche: str) -> list[dict]:
+    parameter = {
+        "action": "query", "format": "json", "generator": "search", "gsrnamespace": "6",
+        "gsrsearch": suche, "gsrlimit": "15", "prop": "imageinfo",
+        "iiprop": "url|size|mime|extmetadata", "iiurlwidth": "1600",
+        "iiextmetadatafilter": "Artist|LicenseShortName|ImageDescription",
+    }
+    async with httpx.AsyncClient(timeout=20, headers=KOPF) as client:
+        antwort = await client.get("https://commons.wikimedia.org/w/api.php", params=parameter)
+        antwort.raise_for_status()
+        seiten = list((antwort.json().get("query") or {}).get("pages", {}).values())
+    seiten.sort(key=lambda s: s.get("index", 99))
+    treffer = []
+    for seite in seiten:
+        info = (seite.get("imageinfo") or [{}])[0]
+        if info.get("mime") not in ("image/jpeg", "image/png"):
+            continue
+        if int(info.get("width", 0)) < 500:
+            continue
+        adresse = info.get("thumburl") or info.get("url")
+        if not adresse:
+            continue
+        meta = info.get("extmetadata") or {}
+        titel = str(seite.get("title", "")).removeprefix("File:")
+        treffer.append({
+            "adresse": adresse,
+            "titel": titel,
+            "quelle": "Wikimedia Commons",
+            "seite": "https://commons.wikimedia.org/wiki/File:" + titel.replace(" ", "_"),
+            "lizenz": _schlicht((meta.get("LicenseShortName") or {}).get("value")),
+            "autor": _schlicht((meta.get("Artist") or {}).get("value")),
+            "beschreibung": _schlicht((meta.get("ImageDescription") or {}).get("value")),
+        })
+    return treffer
+
+
+async def _openverse_mit_herkunft(suche: str) -> list[dict]:
+    async with httpx.AsyncClient(timeout=20, headers=KOPF) as client:
+        antwort = await client.get("https://api.openverse.org/v1/images/", params={"q": suche, "page_size": "12", "size": "large"})
+        antwort.raise_for_status()
+        return [
+            {
+                "adresse": e.get("url"),
+                "titel": str(e.get("title", "")),
+                "quelle": "Openverse",
+                "seite": str(e.get("foreign_landing_url") or ""),
+                "lizenz": (str(e.get("license", "")).upper() + " " + str(e.get("license_version", ""))).strip(),
+                "autor": str(e.get("creator") or ""),
+                "beschreibung": "",
+            }
+            for e in antwort.json().get("results", [])
+            if e.get("url")
+        ]
+
+
+async def finden(suche: str, anzahl: int = 1) -> list[dict]:
+    begriff = str(suche or "").strip()[:200]
+    from app.services.offline import aktiv
+
+    if not begriff or aktiv():
+        return []
+    ziel = max(1, min(4, int(anzahl or 1)))
+    gefunden: list[dict] = []
+    gesehen: set[str] = set()
+    for variante in varianten(begriff):
+        for quelle in (_commons_mit_herkunft, _openverse_mit_herkunft):
+            try:
+                ergebnisse = await quelle(variante)
+            except Exception as fehler:
+                leise(fehler, "services/bildquelle")
+                continue
+            for eintrag in ergebnisse:
+                if len(gefunden) >= ziel:
+                    return gefunden
+                adresse = str(eintrag.get("adresse") or "")
+                if not adresse or adresse in gesehen or not passt(eintrag.get("titel", ""), variante):
+                    continue
+                gesehen.add(adresse)
+                try:
+                    pfad = await herunterladen(adresse)
+                except Exception as fehler:
+                    leise(fehler, "services/bildquelle")
+                    continue
+                gefunden.append({**{k: v for k, v in eintrag.items() if k != "adresse"}, "pfad": pfad, "url": adresse})
+        if gefunden:
+            return gefunden
+    return gefunden
+
+
 def name_aus_url(url: str) -> str:
     teil = url.split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1]
     teil = re.sub(r"^\d+px-", "", teil)

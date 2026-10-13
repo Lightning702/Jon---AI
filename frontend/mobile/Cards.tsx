@@ -7,6 +7,7 @@ import {openFile} from "./Viewer";
 import FachteamKarte from "../src/components/agenten/FachteamKarte";
 import HarnessKarte from "../src/components/agenten/HarnessKarte";
 import {agentenAnfrage} from "./agenten";
+import {KarteikartenMobil, KopplungMobil, WebBildMobil} from "./Oekosystem";
 
 const MapCard = lazy(() => import("./MapCard"));
 
@@ -135,6 +136,9 @@ export function ResultCards({cards, notify, ohneDateien = false}: {cards: any[];
     if (card.kind === "deep_learning") return <Research key={i} data={data} notify={notify}/>;
     if (card.kind === "agenten" && data.id) return <div className="agenten-karte" key={i}><FachteamKarte id={data.id} aufgabe={data.aufgabe} request={agentenAnfrage}/></div>;
     if (card.kind === "harness" && data.id) return <div className="agenten-karte" key={i}><HarnessKarte id={data.id} request={agentenAnfrage}/></div>;
+    if (card.kind === "kopplung") return <KopplungMobil key={i} data={data} notify={notify}/>;
+    if (card.kind === "karteikarten") return <KarteikartenMobil key={i} data={data} notify={notify}/>;
+    if (card.kind === "webbild") return <WebBildMobil key={i} data={data}/>;
     return null;
   })}</>;
 }

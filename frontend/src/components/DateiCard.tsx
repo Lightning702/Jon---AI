@@ -78,6 +78,9 @@ export default function DateiCard({ dateien }: { dateien: JonDatei[] }) {
                 </div>
               </div>
             </div>
+            {datei.exists && datei.kind === "video" && (
+              <video src={dateiInhaltUrl(datei.path)} controls preload="metadata" className="mt-2.5 w-full max-h-[300px] rounded-lg bg-black" />
+            )}
             {datei.exists && (
               <div className="flex flex-wrap gap-1.5 mt-2.5">
                 <button

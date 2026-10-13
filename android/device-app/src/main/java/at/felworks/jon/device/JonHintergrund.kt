@@ -34,7 +34,10 @@ class JonHintergrund : Service() {
             Build.VERSION.SDK_INT >= 29 -> ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             else -> 0
         }
-        val gestartet = runCatching { ServiceCompat.startForeground(this, 4901, Benachrichtigung.dienst(this), typ) }.isSuccess
+        val mitOrt = Build.VERSION.SDK_INT >= 29 && Ortung.teilen(this) && Ortung.erlaubt(this)
+        val gestartet = (mitOrt && runCatching { ServiceCompat.startForeground(this, 4901, Benachrichtigung.dienst(this), typ or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION) }.isSuccess) ||
+            runCatching { ServiceCompat.startForeground(this, 4901, Benachrichtigung.dienst(this), typ) }.isSuccess
+        if (gestartet) Ortung.beobachten(this)
         if (!gestartet) {
             stopSelf()
             return START_NOT_STICKY
@@ -70,6 +73,7 @@ class JonHintergrund : Service() {
     }
 
     override fun onDestroy() {
+        Ortung.beenden(this)
         scope.cancel()
         super.onDestroy()
     }

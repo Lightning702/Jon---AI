@@ -26,3 +26,4 @@ rootProject.name = "Jon"
 
 
 include(":device-app")
+include(":watch-app")

@@ -1,7 +1,7 @@
 import {MutableRefObject, useEffect, useRef, useState} from "react";
 import {api, call, listen, native} from "./bridge";
 
-export type Step = {name?: string; summary?: string; status?: string; ok?: boolean; approval_id?: string; args?: any};
+export type Step = {name?: string; summary?: string; status?: string; ok?: boolean; approval_id?: string; args?: any; werkstatt?: any; werkstatt_ergebnis?: any};
 export type Message = {id: string; role: string; content: string; reasoning?: string; cards?: any[]; steps?: Step[]; seconds?: number; model?: string; bilder?: string[]; lokal?: boolean};
 export type Thread = {key: string; id?: string; title: string; messages: Message[]; provider: string; model: string; mode: string; workspace: string; temp?: boolean; busy?: boolean; partial?: string; reasoning?: string; steps?: Step[]; approval?: any; error?: string; cards?: any[]; started?: number; lokal?: boolean; fortschritt?: string};
 export type Motor = "pi" | "solo" | "lokal";

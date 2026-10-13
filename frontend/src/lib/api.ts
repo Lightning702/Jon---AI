@@ -1,3 +1,4 @@
+import type { WerkstattDaten, WerkstattErgebnis } from "./werkstatt";
 import { withToken } from "./token";
 
 function backendBase(): string {
@@ -61,6 +62,8 @@ export interface StreamEvent {
   card?: { kind: string; data: Record<string, unknown> };
   oeffne?: string;
   steuerung?: Steuerung;
+  werkstatt?: WerkstattDaten;
+  werkstatt_ergebnis?: WerkstattErgebnis;
 }
 
 export interface Steuerung {
@@ -2169,6 +2172,21 @@ async function dateiJson<T>(pfad: string, init?: RequestInit): Promise<T> {
 
 export const dateiAnsicht = (pfad: string) => dateiJson<DateiInhalt>(`/dateien/ansicht?pfad=${encodeURIComponent(pfad)}`);
 export const dateiAnsichtStand = (pfad: string) => dateiJson<{geaendert: number; groesse: number; render: RenderStand}>(`/dateien/ansicht/stand?pfad=${encodeURIComponent(pfad)}`);
+export interface BefehlAntwort {
+  text: string;
+  video?: { pfad: string; name: string; groesse: number; sekunden: number };
+  bild?: string;
+  bild_pfad?: string;
+  harness?: string;
+}
+
+export async function appBefehl(text: string): Promise<BefehlAntwort> {
+  const res = await fetch(`${BASE}/befehl`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+  const daten = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(daten?.detail ? String(daten.detail) : `HTTP ${res.status}`);
+  return daten as BefehlAntwort;
+}
+
 export const dateiKarte = (pfad: string) => dateiJson<JonDatei>(`/dateien/karte?pfad=${encodeURIComponent(pfad)}`);
 export const ansichtSeiteUrl = (pfad: string, nr: number, version = "") => withToken(`${BASE}/dateien/ansicht/seite?pfad=${encodeURIComponent(pfad)}&nr=${nr}&v=${encodeURIComponent(version)}`);
 export const ansichtBildUrl = (pfad: string, folie: number, form: number, version = "") => withToken(`${BASE}/dateien/ansicht/bild?pfad=${encodeURIComponent(pfad)}&folie=${folie}&form=${form}&v=${encodeURIComponent(version)}`);
@@ -3565,6 +3583,77 @@ export interface HandyGeraet {
   zustand_zeit?: number;
   meldungen?: HandyMeldung[];
   durchsagen?: HandyDurchsage[];
+  typ?: "handy" | "uhr" | "tablet" | "pc";
+  besitzer?: string;
+  ueber?: string;
+  standort?: { lat: number; lon: number; genau?: number; zeit?: number } | null;
+  standort_teilen?: boolean;
+}
+
+export interface GeraetOrt {
+  id: string;
+  name: string;
+  besitzer: string;
+  typ: string;
+  lat: number;
+  lon: number;
+  genau?: number;
+  zeit?: number;
+  alter_s: number;
+  frisch: boolean;
+  online: boolean;
+  akku?: number;
+  laedt?: boolean;
+  zuhause?: boolean;
+  jon?: string;
+  fern?: boolean;
+}
+
+export interface OekosystemStand {
+  ich: { id: string; name: string; typ: string; plattform: string; version?: string; cpu?: number; ram?: number; laufzeit?: number };
+  geraete: Array<{ id: string; name: string; typ: string; besitzer: string; online: boolean; akku?: number; standort?: unknown }>;
+  verbund: Array<{ id: string; name: string; plattform: string; version?: string; online?: boolean; gesehen?: number }>;
+  aktiv: { id: string; typ: string; name: string; alter_s: number };
+}
+
+async function oekoAntwort<T>(res: Response, standard: string): Promise<T> {
+  const daten = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((daten as { detail?: string }).detail ?? standard);
+  return daten as T;
+}
+
+export async function oekosystem(pruefen = false): Promise<OekosystemStand> {
+  return oekoAntwort(await fetch(`${BASE}/oekosystem${pruefen ? "?pruefen=true" : ""}`), "Geräte nicht verfügbar");
+}
+
+export async function geraeteStandorte(): Promise<{ orte: GeraetOrt[]; zuhause: { lat: number; lon: number; name: string } | null }> {
+  return oekoAntwort(await fetch(`${BASE}/oekosystem/standorte`), "Standorte nicht verfügbar");
+}
+
+export async function geraetBesitzerSetzen(id: string, besitzer: string): Promise<HandyGeraet> {
+  return oekoAntwort(
+    await fetch(`${BASE}/oekosystem/geraete/${encodeURIComponent(id)}/besitzer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ besitzer }),
+    }),
+    "Besitzer nicht gespeichert"
+  );
+}
+
+export async function geraetOrten(id: string): Promise<{ ok: boolean }> {
+  return oekoAntwort(await fetch(`${BASE}/oekosystem/geraete/${encodeURIComponent(id)}/standort`, { method: "POST" }), "Gerät hat keinen Standort gesendet");
+}
+
+export async function geraetKlingeln(ziel: string): Promise<{ ok: boolean }> {
+  return oekoAntwort(
+    await fetch(`${BASE}/oekosystem/klingeln`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ziel, sekunden: 30 }),
+    }),
+    "Gerät hat nicht geklingelt"
+  );
 }
 
 export async function handyKopplungStarten(): Promise<HandyKopplung> {

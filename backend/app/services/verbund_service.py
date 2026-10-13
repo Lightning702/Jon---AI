@@ -301,6 +301,7 @@ class VerbundService:
                         "op": "pair",
                         "name": self._eigener_name(),
                         "plattform": self._plattform(),
+                        "typ": "pc",
                     },
                     wartezeit=12.0,
                 )

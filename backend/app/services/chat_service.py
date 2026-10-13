@@ -265,6 +265,10 @@ TEXT_TOOL_RUNDEN = 12
 
 CARD_TOOLS = {
     "maps": "maps",
+    "wo_ist": "maps",
+    "geraet_verbinden": "kopplung",
+    "karteikarten": "karteikarten",
+    "bild_zeigen": "webbild",
     "deep_learning": "deep_learning",
     "create_image": "bild",
     "browser_task": "browser",
@@ -285,7 +289,15 @@ CARD_TOOLS = {
     "delete_alarm": "zeit",
 }
 
+OFFEN_ERZWUNGEN = {"bild_zeigen"}
+
 FORCED_PROMPTS = {
+    "bild_zeigen": (
+        "Der Nutzer will es visualisiert haben (Befehl /visualise). Rufe fuer diese Nachricht "
+        "ZUERST bild_zeigen mit einem treffenden englischen Suchbegriff auf (bei mehreren "
+        "Dingen anzahl 2 oder 3), dann beantworte die Frage vollstaendig und anschaulich und "
+        "beziehe dich auf das Bild. Darfst dafuer auch web_search nutzen."
+    ),
     "maps": (
         "Der Nutzer hat Jon Maps ausdruecklich angefordert (Befehl /maps). Du MUSST "
         "fuer diese Nachricht das Tool maps aufrufen, bevor du antwortest - ueberlege "
@@ -331,6 +343,51 @@ def _zeit_karte(_data: dict) -> dict | None:
     return {"kind": "zeit", "data": {"uhren": uhren}}
 
 
+def _wo_ist_karte(data: dict) -> dict | None:
+    if not data.get("ok") or not isinstance(data.get("lat"), (int, float)):
+        return None
+    person = str(data.get("person") or "Gesucht")
+    ort = {
+        "id": f"wo-ist-{person}",
+        "name": person,
+        "label": str(data.get("adresse") or data.get("geraet") or ""),
+        "lat": float(data["lat"]),
+        "lon": float(data["lon"]),
+        "kind": "person",
+        "category": str(data.get("typ") or ""),
+        "address": {},
+        "source": "jon",
+        "extra": {"icon": "📱"},
+    }
+    zusatz = " (zuhause)" if data.get("zuhause") else ""
+    return {
+        "kind": "maps",
+        "data": {
+            "aktion": "suche",
+            "anfrage": f"Wo ist {person}?",
+            "text": f"{person}: {data.get('adresse') or 'Standort'}{zusatz} · {data.get('wann', '')}",
+            "treffer": [ort],
+            "karte": {"center": {"lat": ort["lat"], "lon": ort["lon"]}, "zoom": 16, "marker": [ort]},
+        },
+    }
+
+
+def werkstatt_anhaengen(name, args, event: dict) -> None:
+    from app.services.werkstatt import vorschau
+
+    daten = vorschau(name or "", args or {})
+    if daten:
+        event["werkstatt"] = daten
+
+
+def werkstatt_fertig(name, result, event: dict) -> None:
+    from app.services.werkstatt import ergebnis
+
+    daten = ergebnis(name or "", result)
+    if daten:
+        event["werkstatt_ergebnis"] = daten
+
+
 def card_payload(name: str | None, result: str | None) -> dict | None:
     kind = CARD_TOOLS.get(name or "")
     if kind is None or not result:
@@ -360,6 +417,20 @@ def card_payload(name: str | None, result: str | None) -> dict | None:
         return {"kind": kind, "data": {"dateien": eindeutig}}
     if kind == "zeit":
         return _zeit_karte(data)
+    if name == "wo_ist":
+        return _wo_ist_karte(data)
+    if kind == "kopplung":
+        from app.services.werkzeuge_chatkarten import karte_kopplung
+
+        return karte_kopplung(data)
+    if kind == "karteikarten":
+        from app.services.werkzeuge_chatkarten import karte_karteikarten
+
+        return karte_karteikarten(data)
+    if kind == "webbild":
+        from app.services.werkzeuge_chatkarten import karte_webbild
+
+        return karte_webbild(data)
     if kind == "deep_learning":
         task = data.get("task")
         if isinstance(task, dict) and task.get("id"):
@@ -886,6 +957,29 @@ class ChatService:
                     )
             return conv.id
 
+    async def _schnell_wechseln(self, wechsel: tuple[str, bool], payload, conversation_id):
+        from app.services.fenster_wechsel import wechseln
+
+        ziel, tab = wechsel
+        args = {"ziel": ziel, "tab": tab}
+        yield {"type": "tool", "name": "wechseln", "status": "running", "args": args, "summary": describe_tool("wechseln", args)}
+        try:
+            ergebnis = await asyncio.to_thread(wechseln, ziel, True, tab)
+        except Exception as fehler:
+            ergebnis = {"error": str(fehler)}
+        ok = bool(ergebnis.get("ok"))
+        yield {"type": "tool", "name": "wechseln", "status": "done", "ok": ok}
+        if ok:
+            ort = ergebnis.get("tab") or ergebnis.get("fenster") or ziel
+            answer = f"Erledigt, ich habe zum {'Tab' if ergebnis.get('tab') else 'Fenster'} „{ort}“ gewechselt."
+        else:
+            offen = ", ".join(f"„{t}“" for t in (ergebnis.get("offen") or [])[:6])
+            answer = f"Ich finde kein Fenster und keinen Tab mit „{ziel}“." + (f" Offen sind gerade: {offen}." if offen else "")
+        yield {"type": "content", "delta": answer}
+        if payload.persist and conversation_id:
+            self._store_answer(conversation_id, answer, None)
+        yield {"type": "done", "conversation_id": conversation_id}
+
     def _store_answer(
         self,
         conversation_id: str,
@@ -1121,6 +1215,13 @@ class ChatService:
                     self._store_answer(conversation_id, answer, None)
                 yield {"type": "done", "conversation_id": conversation_id}
                 return
+            from app.services.fenster_wechsel import wunsch as wechsel_wunsch
+
+            wechsel = wechsel_wunsch(last_user) if not kinder else None
+            if wechsel:
+                async for teil in self._schnell_wechseln(wechsel, payload, conversation_id):
+                    yield teil
+                return
 
         from app.services.tools import runde_beginnen
 
@@ -1154,7 +1255,7 @@ class ChatService:
         if kinder:
             tools = werkzeuge_fuer_kinder(tools)
         if forced and use_tools:
-            tools = forced_tools(tools, forced)
+            tools = tools if forced in OFFEN_ERZWUNGEN else forced_tools(tools, forced)
             hint = FORCED_PROMPTS.get(forced)
             if hint:
                 request_messages.append(ChatMessage(role="system", content=hint))
@@ -1292,6 +1393,7 @@ class ChatService:
                             pending_approvals.append(approval_id)
                             event["approval_id"] = approval_id
                         team_vorbereiten(chunk.name, chunk.args, event)
+                        werkstatt_anhaengen(chunk.name, chunk.args, event)
                         yield event
                     elif chunk.kind == "tool_result":
                         if chunk.ok and chunk.name:
@@ -1304,6 +1406,7 @@ class ChatService:
                         }
                         if chunk.name == "harness_task" and chunk.ok:
                             harness_karte(chunk.result, event)
+                        werkstatt_fertig(chunk.name, chunk.result, event)
                         card = card_payload(chunk.name, chunk.result)
                         if card is not None:
                             event["card"] = card
@@ -1365,6 +1468,7 @@ class ChatService:
                         approval_id = approvals.create()
                         event["approval_id"] = approval_id
                     team_vorbereiten(name, args, event)
+                    werkstatt_anhaengen(name, args, event)
                     lauf_args = mit_lauf(name, args)
                     yield event
                     approved = (
@@ -1402,6 +1506,7 @@ class ChatService:
                     }
                     if name == "harness_task" and ok:
                         harness_karte(result, done_event)
+                    werkstatt_fertig(name, result, done_event)
                     if name == "oberflaeche" and ok:
                         try:
                             daten = json.loads(result or "{}")

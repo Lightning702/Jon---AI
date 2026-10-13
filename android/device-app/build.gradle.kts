@@ -6,8 +6,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val jonVersion = "1.7.1"
-val jonCode = 12
+val jonVersion = "1.8.2"
+val jonCode = 14
 val signingFile = file(providers.environmentVariable("JON_SIGNING_PROPERTIES").orElse("${System.getProperty("user.home")}/.android/jon-device-signing.properties").get())
 val signingValues = Properties().apply { if (signingFile.isFile) signingFile.inputStream().use { load(it) } }
 
@@ -116,6 +116,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.zxing.core)
     implementation(libs.okhttp)
+    implementation(libs.play.services.wearable)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

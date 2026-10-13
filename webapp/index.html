@@ -12,16 +12,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Jon" />
     <title>Jon</title>
-    <script type="module" crossorigin src="./assets/index-C0xJSe3W.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DUQ3D6MM.css">
+    <script type="module" crossorigin src="./assets/index-BVaeefzX.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BZP34_4m.css">
   </head>
   <body>
     <div id="root"></div>
     <div id="startfehler" hidden>
       <div class="karte">
-        <h1>Jon startet nicht</h1>
+        <h1><span id="startfehler-kreis" hidden></span><span id="startfehler-titel">Jon startet nicht</span></h1>
         <p id="startfehler-text"></p>
-        <pre id="startfehler-detail"></pre>
+        <pre id="startfehler-detail" hidden></pre>
         <button onclick="location.reload()">Seite neu laden</button>
       </div>
     </div>
@@ -38,8 +38,25 @@
         font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
         z-index: 9999;
       }
-      #startfehler[hidden] {
+      #startfehler[hidden],
+      #startfehler [hidden] {
         display: none;
+      }
+      #startfehler-kreis {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        margin-right: 8px;
+        border: 2px solid rgba(252, 211, 77, 0.25);
+        border-top-color: #fcd34d;
+        border-radius: 50%;
+        vertical-align: -1px;
+        animation: startfehler-drehen 0.9s linear infinite;
+      }
+      @keyframes startfehler-drehen {
+        to {
+          transform: rotate(360deg);
+        }
       }
       #startfehler .karte {
         width: 100%;
@@ -89,22 +106,40 @@
     <script>
       (function () {
         var erster = "";
-        function zeigen(grund) {
-          var schirm = document.getElementById("startfehler");
-          var wurzel = document.getElementById("root");
-          if (!schirm || (wurzel && wurzel.childElementCount > 0)) return;
+        var wurzel = document.getElementById("root");
+        var schirm = document.getElementById("startfehler");
+        function bereit() {
+          return !!wurzel && wurzel.childElementCount > 0;
+        }
+        function zeigen(titel, grund, wartet) {
+          if (!schirm || bereit()) return;
+          document.getElementById("startfehler-titel").textContent = titel;
           document.getElementById("startfehler-text").textContent = grund;
-          document.getElementById("startfehler-detail").textContent = erster;
+          document.getElementById("startfehler-kreis").hidden = !wartet;
+          var detail = document.getElementById("startfehler-detail");
+          detail.textContent = erster;
+          detail.hidden = !erster;
           schirm.hidden = false;
         }
         function merken(text) {
           if (!erster && text) erster = String(text);
         }
+        if (wurzel && window.MutationObserver) {
+          var beobachter = new MutationObserver(function () {
+            if (bereit() && schirm) {
+              schirm.hidden = true;
+              beobachter.disconnect();
+            }
+          });
+          beobachter.observe(wurzel, { childList: true });
+        }
         window.addEventListener("error", function (e) {
           merken((e && e.message) || "");
           setTimeout(function () {
             zeigen(
-              "Die Oberfläche ist beim Start abgebrochen. Meist fehlt dem Browser ein Recht, das es nur über localhost oder https gibt."
+              "Jon startet nicht",
+              "Die Oberfläche ist beim Start abgebrochen. Meist fehlt dem Browser ein Recht, das es nur über localhost oder https gibt.",
+              false
             );
           }, 400);
         });
@@ -113,9 +148,18 @@
         });
         setTimeout(function () {
           zeigen(
-            "Die Oberfläche lädt nicht. Prüfe, ob das Backend erreichbar ist und ob der Geräte-Schlüssel in der Adresse steht (…/app/?token=…)."
+            "Jon startet …",
+            "Jon bereitet die Oberfläche vor. Nach einem Update kann das beim ersten Start etwas dauern – das Fenster öffnet sich von selbst.",
+            true
           );
         }, 12000);
+        setTimeout(function () {
+          zeigen(
+            "Jon startet nicht",
+            "Die Oberfläche lädt nicht. Prüfe, ob das Backend erreichbar ist und ob der Geräte-Schlüssel in der Adresse steht (…/app/?token=…).",
+            false
+          );
+        }, 120000);
       })();
     </script>
   </body>

@@ -319,6 +319,22 @@ class HarnessService:
         atomic_write_text(self.directory / f'{task["id"]}.json', json.dumps(task, ensure_ascii=False))
         self.signals.setdefault(task["id"], asyncio.Event()).set()
 
+    def werkstatt(self, task: dict, name: str, args: dict) -> None:
+        from app.services.werkstatt import vorschau
+
+        daten = vorschau(name, args)
+        if daten:
+            task["werkstatt"] = {**daten, "nr": int(task.get("werkstatt", {}).get("nr", 0)) + 1, "zeit": time.time(), "fertig": False}
+            self.emit(task, "werkstatt", art=daten["art"], nr=task["werkstatt"]["nr"])
+
+    def werkstatt_fertig(self, task: dict, name: str, result) -> None:
+        from app.services.werkstatt import ergebnis
+
+        if not isinstance(task.get("werkstatt"), dict) or task["werkstatt"].get("fertig"):
+            return
+        task["werkstatt"]["fertig"] = True
+        task["werkstatt"]["ergebnis"] = ergebnis(name, result) or {"ok": True}
+
     def get(self, task_id: str) -> dict:
         if task_id not in self.tasks:
             raise KeyError("Aufgabe nicht gefunden.")
@@ -527,8 +543,10 @@ class HarnessService:
             if werkzeug in {"jon_tools", "tools", "liste"}:
                 return {"werkzeuge": jon_werkzeuge.katalog()}
             task["status"] = "waiting_for_tool"
+            self.werkstatt(task, werkzeug, innen)
             self.emit(task, "running_tool", tool=werkzeug)
             ergebnis = await jon_werkzeuge.ausfuehren(task, werkzeug, innen, self.approval, "harness")
+            self.werkstatt_fertig(task, werkzeug, ergebnis)
             for schluessel in ("path", "pfad"):
                 if isinstance(ergebnis.get(schluessel), str):
                     zustand.datei(task, ergebnis[schluessel])
@@ -600,10 +618,12 @@ class HarnessService:
             if not task["steps"]:
                 task["steps"] = [task["goal"][:300]]
                 self.emit(task, "hinweis", message="Kein Plan angegeben. Jon arbeitet direkt mit dem Auftrag als Plan.")
+            self.werkstatt(task, name, args)
             if name == "edit":
                 result = workspace.edit(str(args["path"]), str(args["old"]), str(args["new"]))
             else:
                 result = workspace.create(str(args["path"]), str(args["content"]), args.get("overwrite") is True or str(args.get("overwrite")).lower() == "true")
+            self.werkstatt_fertig(task, name, result)
             zustand.datei(task, str(args["path"]))
             zustand.vergessen(task, str(args["path"]))
             task["revision"] += 1
@@ -615,12 +635,15 @@ class HarnessService:
                 raise ValueError("Ungültiger Shellbefehl.")
             cwd = str(workspace.path(str(args.get("cwd", "."))))
             timeout = max(1, min(600, int(args.get("timeout", 180))))
+            self.werkstatt(task, name, {"command": command})
             if not await self.approval(task, name, {"command": command, "cwd": cwd, "timeout": timeout}):
+                self.werkstatt_fertig(task, name, {"error": "Freigabe abgelehnt oder abgelaufen."})
                 return {"error": "Freigabe abgelehnt oder abgelaufen. Nicht umgehen."}
             workspace.path(str(args.get("cwd", ".")))
             task["status"] = "verifying" if name == "verify" else "working"
             self.emit(task, "running_command", command=command, tool=name)
             result = await run_command(command, cwd, timeout)
+            self.werkstatt_fertig(task, name, result)
             if name == "command":
                 task["revision"] += 1
                 workspace.seen.clear()

@@ -20,6 +20,7 @@ from app.api.handy_routes import router as handy_router
 from app.api.anmeldung_routes import router as anmeldung_router
 from app.api.live_routes import router as live_router
 from app.api.verbund_routes import router as verbund_router
+from app.api.oekosystem_routes import router as oekosystem_router
 from app.api.mediathek_routes import router as mediathek_router
 from app.api.zeit_routes import router as zeit_router
 from app.api.p2p_routes import create_chat_app
@@ -749,6 +750,14 @@ async def lifespan(app: FastAPI):
 
     _spawn("live", get_live_service().schleife())
 
+    from app.services.oekosystem_service import get_oekosystem
+
+    _spawn("oekosystem", get_oekosystem().schleife())
+
+    from app.services.telegram_plan import schleife as telegram_plan_schleife
+
+    _spawn("telegram_plan", telegram_plan_schleife())
+
     async def _terminal_befehl() -> None:
         from app.services.terminal_service import automatisch
 
@@ -836,6 +845,7 @@ def create_app() -> FastAPI:
     app.include_router(anmeldung_router)
     app.include_router(live_router)
     app.include_router(verbund_router)
+    app.include_router(oekosystem_router)
     app.include_router(research_router)
     app.include_router(studio_router)
     app.include_router(mobile_router)

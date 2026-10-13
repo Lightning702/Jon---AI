@@ -2,7 +2,8 @@ import Symbol from "./components/Symbol";
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
-import MessageBubble, { ChatEntry } from "./components/MessageBubble";
+import { schrittAnwenden } from "./lib/werkstatt";
+import MessageBubble, { ChatCard, ChatEntry } from "./components/MessageBubble";
 import { karteAnhaengen, kartenLesen } from "./lib/karten";
 import Composer, { PendingAttachment } from "./components/Composer";
 import ClipboardPanel from "./components/ClipboardPanel";
@@ -53,7 +54,7 @@ import MediaPanel from "./components/MediaPanel";
 import AgentenDock from "./components/agenten/AgentenDock";
 import StartHero from "./components/StartHero";
 import { harnessRequest } from "./lib/harness";
-import { dateiKarte } from "./lib/api";
+import { appBefehl, dateiKarte } from "./lib/api";
 import type { JonDatei, Steuerung } from "./lib/api";
 import {
   ConversationSummary,
@@ -161,8 +162,25 @@ function uhrDauer(sekunden: number): string {
   return rest ? `${stunden} Std. ${rest} Min.` : `${stunden} Stunden`;
 }
 
+function vorlesenAn(): boolean {
+  try {
+    return localStorage.getItem("jon_vorlesen") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function vorlesenSetzen(an: boolean) {
+  try {
+    localStorage.setItem("jon_vorlesen", an ? "1" : "0");
+  } catch {
+    return;
+  }
+}
+
 const FORCE_COMMANDS: { pattern: RegExp; tool: string }[] = [
   { pattern: /^\/(maps|karte|karten|navigation)\s+([\s\S]+)$/i, tool: "maps" },
+  { pattern: /^\/(visualise|visualize|visualisiere|visualisieren|zeig)\s+([\s\S]+)$/i, tool: "bild_zeigen" },
   {
     pattern: /^\/(lerne|deep|deeplearning|research|forschung)\s+([\s\S]+)$/i,
     tool: "deep_learning",
@@ -1212,18 +1230,7 @@ export default function App() {
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistantEntry.id) return e;
-              const tools = [...(e.tools ?? [])];
-              if (evt.status === "running") {
-                tools.push({
-                  name: evt.name ?? "tool",
-                  done: false,
-                  args: evt.args,
-                  summary: evt.summary,
-                });
-              } else {
-                const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
-                if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
-              }
+              const tools = schrittAnwenden(e.tools, evt);
               const cards = karteAnhaengen(e.cards, evt.card, nextId);
               return { ...e, tools, cards };
             })
@@ -1369,7 +1376,79 @@ export default function App() {
     URL.revokeObjectURL(link.href);
   };
 
+  const runBefehl = async (befehlText: string) => {
+    const userEntry: ChatEntry = { id: nextId(), role: "user", content: befehlText };
+    const assistantEntry: ChatEntry = { id: nextId(), role: "assistant", content: "", streaming: true };
+    setEntries((prev) => [...prev, userEntry, assistantEntry]);
+    setStreaming(true);
+    let inhalt = "";
+    const karten: ChatCard[] = [];
+    try {
+      const antwort = await appBefehl(befehlText);
+      inhalt = (antwort.text || "Erledigt.").replace(/\*\*(.+?)\*\*/g, "$1");
+      if (antwort.video?.pfad) {
+        const karte = await dateiKarte(antwort.video.pfad).catch(() => null);
+        if (karte) karten.push({ id: nextId(), kind: "datei", data: { dateien: [karte] } });
+      }
+      if (antwort.bild_pfad) karten.push({ id: nextId(), kind: "webbild", data: { titel: "Bildschirm", bilder: [{ pfad: antwort.bild_pfad, titel: "Bildschirm" }] } });
+    } catch (e) {
+      inhalt = `[Fehler] ${e instanceof Error ? e.message : String(e)}`;
+    }
+    setEntries((prev) => prev.map((en) => (en.id === assistantEntry.id ? { ...en, content: inhalt, cards: karten.length ? karten : undefined, streaming: false } : en)));
+    setStreaming(false);
+  };
+
+  const telegramBefehl = async (roh: string): Promise<boolean> => {
+    const sauber = roh.trim();
+    const [kopf, ...rest] = sauber.split(/\s+/);
+    const befehl = kopf.toLowerCase().split("@")[0];
+    const argument = rest.join(" ").trim();
+    if (befehl === "/reset" || befehl === "/neu") {
+      startNew();
+      return true;
+    }
+    if (befehl === "/stopp" || befehl === "/stop") {
+      stop();
+      void runBefehl(sauber);
+      return true;
+    }
+    if (befehl === "/stimme" || befehl === "/voice" || befehl === "/endstimme") {
+      const an = befehl !== "/endstimme";
+      vorlesenSetzen(an);
+      if (!an) stopSpeaking();
+      void runSlashJob(sauber, "", async () => (an ? "Ich lese dir meine Antworten ab jetzt vor." : "Okay, nur noch Text."));
+      return true;
+    }
+    if (befehl === "/modell" || befehl === "/model" || befehl === "/ki" || befehl === "/anbieter" || befehl === "/provider") {
+      const anbieterSuche = befehl === "/anbieter" || befehl === "/provider";
+      const suche = argument.toLowerCase();
+      if (!suche) {
+        const zeilen = providers.filter((p) => p.configured).map((p) => `- **${p.label || p.provider}**${p.provider === provider ? ` · aktiv: ${model}` : ""}`);
+        void runSlashJob(sauber, "", async () => [`**Aktiv:** ${provider} · ${model}`, "", ...zeilen, "", "Wechseln: /anbieter ollama oder /modell gemma"].join("\n"));
+        return true;
+      }
+      for (const p of providers) {
+        const passendAnbieter = p.provider.toLowerCase().startsWith(suche) || String(p.label || "").toLowerCase().includes(suche);
+        const treffer = anbieterSuche ? (passendAnbieter ? p.models[0] || "" : null) : p.models.find((m) => m.toLowerCase().includes(suche)) ?? null;
+        if (treffer !== null && (anbieterSuche || treffer)) {
+          changeModel(p.provider, treffer || model);
+          void runSlashJob(sauber, "", async () => `Gewechselt zu **${p.label || p.provider}**${treffer ? ` · ${treffer.split("/").pop()}` : ""}.`);
+          return true;
+        }
+      }
+      void runSlashJob(sauber, "", async () => `Das finde ich nicht: ${argument}. Tippe ${anbieterSuche ? "/anbieter" : "/modell"} ohne Namen, dann siehst du alle.`);
+      return true;
+    }
+    const backend = ["/video", "/live", "/livebild", "/livestop", "/bildschirme", "/monitore", "/ja", "/nein", "/telegram", "/lernstatus", "/lernstop", "/lernweiter", "/projekte", "/projekt", "/harness", "/hneu", "/code", "/aufgaben", "/hstatus", "/hstop", "/diff", "/erlauben", "/ablehnen", "/hhelp", "/befehle", "/hilfe"];
+    if (backend.includes(befehl) || (befehl === "/lernen" && argument)) {
+      void runBefehl(sauber);
+      return true;
+    }
+    return false;
+  };
+
   const send = async (text: string, attachments: PendingAttachment[] = []) => {
+    if (!attachments.length && text.trim().startsWith("/") && (await telegramBefehl(text))) return;
     let forceTool = "";
     for (const entry of FORCE_COMMANDS) {
       const hit = text.trim().match(entry.pattern);
@@ -1443,7 +1522,6 @@ export default function App() {
       command === "/bild" ||
       command === "/bilder" ||
       command === "/foto" ||
-      command === "/video" ||
       command === "/studio"
     ) {
       setStudioOpen(true);
@@ -1943,6 +2021,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
       });
 
     let convId = activeId;
+    let gesagt = "";
 
     await streamChat(
       {
@@ -1972,31 +2051,22 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
           setEntries((prev) =>
             prev.map((e) => {
               if (e.id !== assistantEntry.id) return e;
-              const tools = [...(e.tools ?? [])];
-              if (evt.status === "running") {
-                tools.push({
-                  name: evt.name ?? "tool",
-                  done: false,
-                  args: evt.args,
-                  summary: evt.summary,
-                });
-              } else {
-                const i = tools.map((t) => t.name).lastIndexOf(evt.name ?? "tool");
-                if (i >= 0) tools[i] = { ...tools[i], done: true, ok: evt.ok };
-              }
+              const tools = schrittAnwenden(e.tools, evt);
               const cards = karteAnhaengen(e.cards, evt.card, nextId);
               return { ...e, tools, cards };
             })
           );
         },
-        onContent: (delta) =>
+        onContent: (delta) => {
+          gesagt += delta;
           setEntries((prev) =>
             prev.map((e) =>
               e.id === assistantEntry.id
                 ? { ...e, content: e.content + delta }
                 : e
             )
-          ),
+          );
+        },
         onError: (message) => {
           setApproval(null);
           setEntries((prev) =>
@@ -2009,6 +2079,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
         },
         onDone: async () => {
           setApproval(null);
+          if (vorlesenAn() && gesagt.trim()) void speak(gesagt);
           setEntries((prev) =>
             prev.map((e) =>
               e.id === assistantEntry.id ? { ...e, streaming: false } : e

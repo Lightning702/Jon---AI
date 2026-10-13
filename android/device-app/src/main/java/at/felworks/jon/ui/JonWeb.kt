@@ -460,6 +460,23 @@ class JonWebBruecke(private val activity: MainActivity, private val behaelter: A
                         if (!at.felworks.jon.device.Sichtbarkeit.vorne) at.felworks.jon.device.Benachrichtigung.antwortFertig(activity, inhalt.toString())
                         JSONObject()
                     }
+                    "ortung" -> ortungStand()
+                    "ortung-setzen" -> ortungSetzen(r.optBoolean("an"))
+                    "ortung-jetzt" -> {
+                        check(at.felworks.jon.device.Ortung.erlaubt(activity)) { "Erlaube Jon zuerst die Ortung." }
+                        at.felworks.jon.device.Ortung.jetzt(activity)?.let { at.felworks.jon.device.Ortung.json(it) } ?: error("Gerade kein Standort verfügbar.")
+                    }
+                    "route" -> withContext(Dispatchers.Main) {
+                        check(!GeraeteModus(activity).gesperrt) { "Im Kiosk-Modus geht das nicht." }
+                        val ziel = Uri.parse("geo:${r.getDouble("lat")},${r.getDouble("lon")}?q=${r.getDouble("lat")},${r.getDouble("lon")}(${Uri.encode(r.optString("name", "Ziel"))})")
+                        runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, ziel).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.getOrElse { error("Auf dem Handy ist keine Karten-App installiert.") }
+                        JSONObject()
+                    }
+                    "uhren" -> at.felworks.jon.uhrbruecke.Uhrbruecke.stand(activity)
+                    "uhr-koppeln" -> {
+                        check(behaelter.gekoppelt.value && behaelter.verbindung.lage.value.draht != Draht.AUS) { "Verbinde das Handy zuerst mit Jon." }
+                        at.felworks.jon.uhrbruecke.Uhrbruecke.koppeln(activity, behaelter)
+                    }
                     "hintergrund" -> {
                         if (r.has("an")) at.felworks.jon.device.JonHintergrund.setzen(activity, r.optBoolean("an"))
                         JSONObject().put("an", at.felworks.jon.device.JonHintergrund.aktiv(activity)).put("benachrichtigungen", at.felworks.jon.device.Benachrichtigung.erlaubt(activity))
@@ -635,11 +652,33 @@ class JonWebBruecke(private val activity: MainActivity, private val behaelter: A
             val url = PiKopplung.adressePruefen(r.getString("adresse"))
             QrNutzlast.lesen(JSONObject().put("t", "jon-pair").put("n", "Dein Pi").put("c", r.getString("code")).put("u", url).put("direct_only", true).toString()) ?: error("Der Code braucht 12 Zeichen.")
         }
-        val zugang = PiKopplung.verbinden(qr) { ereignis("pairing", JSONObject().put("text", it)) }
+        val typ = if (activity.resources.configuration.smallestScreenWidthDp >= 600) "tablet" else "handy"
+        val zugang = PiKopplung.verbinden(qr, JonKern.name(activity), typ) { ereignis("pairing", JSONObject().put("text", it)) }
         behaelter.koppeln(zugang)
         runCatching { behaelter.verbindung.pruefen() }
         runCatching { at.felworks.jon.device.JonHintergrund.starten(activity) }
         return JSONObject().put("name", zugang.pcName)
+    }
+
+    private fun ortungStand(): JSONObject = JSONObject()
+        .put("teilen", at.felworks.jon.device.Ortung.teilen(activity))
+        .put("erlaubt", at.felworks.jon.device.Ortung.erlaubt(activity))
+        .put("hintergrund", at.felworks.jon.device.Ortung.hintergrund(activity))
+        .put("besitzer", JonKern.name(activity))
+
+    private suspend fun ortungSetzen(an: Boolean): JSONObject {
+        if (an) {
+            check(erlauben(*rechteFuer("ort"))) { "Ohne Ortung kann Jon deinen Standort nicht teilen." }
+            if (Build.VERSION.SDK_INT >= 29 && !at.felworks.jon.device.Ortung.hintergrund(activity)) {
+                runCatching { erlauben(Manifest.permission.ACCESS_BACKGROUND_LOCATION) }
+            }
+        }
+        at.felworks.jon.device.Ortung.teilenSetzen(activity, an)
+        runCatching {
+            activity.stopService(Intent(activity, at.felworks.jon.device.JonHintergrund::class.java))
+            at.felworks.jon.device.JonHintergrund.starten(activity)
+        }
+        return ortungStand()
     }
 
     private fun kopieren(text: String) {

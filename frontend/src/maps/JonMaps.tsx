@@ -10,10 +10,12 @@ import LayerSheet from "./LayerSheet";
 import RoutePanel from "./RoutePanel";
 import PlaceSheet from "./PlaceSheet";
 import FriendSheet from "./FriendSheet";
+import GeraetSheet from "./GeraetSheet";
+import { GeraetOrt, geraeteStandorte } from "../lib/api";
 import InfoPanel from "./InfoPanel";
 import StreetView from "./StreetView";
 import WorldExplorer from "./WorldExplorer";
-import SpaceBackdrop from "./SpaceBackdrop";
+import KosmosHimmel from "./KosmosHimmel";
 import {
   FriendLocation,
   FriendsResult,
@@ -123,6 +125,11 @@ export default function JonMaps({
   const [homeName, setHomeName] = useState("");
   const [friends, setFriends] = useState<FriendsResult | null>(null);
   const [activeFriend, setActiveFriend] = useState<FriendLocation | null>(null);
+  const [geraeteOrte, setGeraeteOrte] = useState<GeraetOrt[]>([]);
+  const [aktivGeraet, setAktivGeraet] = useState<GeraetOrt | null>(null);
+  const wurzelRef = useRef<HTMLDivElement>(null);
+  const [obenEl, setObenEl] = useState<HTMLDivElement | null>(null);
+  const [dockHoehe, setDockHoehe] = useState<number | undefined>(undefined);
   const [infoTarget, setInfoTarget] = useState<InfoTarget | null>(null);
   const [info, setInfo] = useState<PlaceInfo | null>(null);
   const [infoBusy, setInfoBusy] = useState(false);
@@ -292,6 +299,22 @@ export default function JonMaps({
     const timer = window.setInterval(() => void refreshFriends(), 20000);
     return () => window.clearInterval(timer);
   }, [refreshFriends]);
+
+  const refreshGeraete = useCallback(async () => {
+    try {
+      const stand = await geraeteStandorte();
+      setGeraeteOrte(stand.orte);
+      setAktivGeraet((alt) => (alt ? stand.orte.find((o) => o.id === alt.id) ?? alt : alt));
+    } catch {
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshGeraete();
+    const timer = window.setInterval(() => void refreshGeraete(), 20000);
+    return () => window.clearInterval(timer);
+  }, [refreshGeraete]);
 
   const changeSharing = useCallback(
     async (patch: { aktiv?: boolean; alle?: boolean; peers?: string[] }) => {
@@ -615,8 +638,19 @@ export default function JonMaps({
         active: activeFriend?.id === friend.id,
       });
     });
+    geraeteOrte.forEach((ort) => {
+      list.push({
+        id: `geraet-${ort.id}`,
+        lat: ort.lat,
+        lon: ort.lon,
+        icon: (ort.besitzer || ort.name || "?").trim().slice(0, 1).toUpperCase(),
+        tone: "geraet",
+        stale: !ort.frisch,
+        active: aktivGeraet?.id === ort.id,
+      });
+    });
     return list;
-  }, [results, selected, routeStops, home, friends, activeFriend]);
+  }, [results, selected, routeStops, home, friends, activeFriend, geraeteOrte, aktivGeraet]);
 
   const routeLines = useMemo<MapRouteLine[]>(
     () =>
@@ -654,6 +688,17 @@ export default function JonMaps({
 
   const handleMarkerClick = useCallback(
     (id: string) => {
+      if (id.startsWith("geraet-")) {
+        const ort = geraeteOrte.find((eintrag) => eintrag.id === id.slice("geraet-".length));
+        if (ort) {
+          setAktivGeraet(ort);
+          setActiveFriend(null);
+          setSelected(null);
+          flyTo(ort.lat, ort.lon, Math.max(viewRef.current.zoom, 15));
+        }
+        return;
+      }
+      setAktivGeraet(null);
       if (id.startsWith("freund-")) {
         const peerId = id.slice("freund-".length);
         const friend = (friends?.freunde ?? []).find(
@@ -673,7 +718,7 @@ export default function JonMaps({
         flyTo(found.lat, found.lon, Math.max(viewRef.current.zoom, 15));
       }
     },
-    [results, flyTo, friends]
+    [results, flyTo, friends, geraeteOrte]
   );
 
   const is3d = view.pitch > 12;
@@ -745,9 +790,37 @@ export default function JonMaps({
 
   const overlayHidden = explorer || Boolean(street);
 
+  useEffect(() => {
+    const wurzel = wurzelRef.current;
+    const oben = obenEl;
+    if (!wurzel || !oben) return;
+    const messen = () => {
+      const rahmen = wurzel.getBoundingClientRect();
+      let unten = oben.getBoundingClientRect().bottom;
+      oben.querySelectorAll("*").forEach((kind) => {
+        const kante = (kind as HTMLElement).getBoundingClientRect().bottom;
+        if (kante > unten && kante <= rahmen.bottom) unten = kante;
+      });
+      const hoehe = Math.round(rahmen.bottom - unten - 18 - 14);
+      setDockHoehe((alt) => (alt === hoehe ? alt : hoehe));
+    };
+    messen();
+    const beobachter = new ResizeObserver(messen);
+    beobachter.observe(wurzel);
+    beobachter.observe(oben);
+    const aenderungen = new MutationObserver(() => requestAnimationFrame(messen));
+    aenderungen.observe(oben, { childList: true, subtree: true });
+    const takt = window.setInterval(messen, 900);
+    return () => {
+      beobachter.disconnect();
+      aenderungen.disconnect();
+      window.clearInterval(takt);
+    };
+  }, [obenEl]);
+
   return (
-    <div className="jm-root" data-jm-theme={theme}>
-      <SpaceBackdrop
+    <div className="jm-root" data-jm-theme={theme} ref={wurzelRef}>
+      <KosmosHimmel
         lat={view.lat}
         lon={view.lon}
         zoom={view.zoom}
@@ -785,7 +858,7 @@ export default function JonMaps({
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="jm-layer" style={{ top: 18, left: 18 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div ref={setObenEl} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div
                     className="jm-glass jm-glass--chrome"
@@ -855,6 +928,7 @@ export default function JonMaps({
               }}
             >
               <ControlDock
+                maxHoehe={dockHoehe}
                 bearing={view.bearing}
                 pitch={view.pitch}
                 is3d={is3d}
@@ -1024,7 +1098,47 @@ export default function JonMaps({
                     }}
                   />
                 )}
-                {selected && !activeFriend && !routeOpen && (
+                {aktivGeraet && !activeFriend && !routeOpen && (
+                  <GeraetSheet
+                    key={`geraet-${aktivGeraet.id}`}
+                    ort={aktivGeraet}
+                    distance={
+                      home
+                        ? Math.round(
+                            Math.hypot(
+                              (aktivGeraet.lat - home.lat) * 111320,
+                              (aktivGeraet.lon - home.lon) * 111320 * Math.cos((home.lat * Math.PI) / 180)
+                            )
+                          )
+                        : null
+                    }
+                    onClose={() => setAktivGeraet(null)}
+                    onRouteTo={() => {
+                      openRoute({
+                        id: `geraet:${aktivGeraet.id}`,
+                        name: aktivGeraet.besitzer || aktivGeraet.name,
+                        label: aktivGeraet.name,
+                        lat: aktivGeraet.lat,
+                        lon: aktivGeraet.lon,
+                        kind: "geraet",
+                        category: "",
+                        address: {},
+                        bbox: null,
+                        distance_m: null,
+                        source: "jon-geraete",
+                        extra: {},
+                      });
+                      setAktivGeraet(null);
+                    }}
+                    onStreet={() => {
+                      openStreet(aktivGeraet.lat, aktivGeraet.lon);
+                      setAktivGeraet(null);
+                    }}
+                    onAktualisiert={() => void refreshGeraete()}
+                    onMeldung={setToast}
+                  />
+                )}
+                {selected && !activeFriend && !aktivGeraet && !routeOpen && (
                   <PlaceSheet
                     key={selected.id + selected.lat}
                     place={selected}

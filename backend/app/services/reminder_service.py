@@ -39,6 +39,8 @@ class ReminderService:
         time: str = "",
         repeat: str = "daily",
         phone: str = "",
+        kanal: str = "",
+        datum: str = "",
     ) -> dict:
         item = {
             "id": uuid.uuid4().hex,
@@ -50,6 +52,10 @@ class ReminderService:
             "last_fired": None,
             "active": True,
         }
+        if kanal:
+            item["kanal"] = kanal
+        if datum:
+            item["datum"] = datum
         with self._lock:
             self._data.append(item)
             self._save()
@@ -74,6 +80,11 @@ class ReminderService:
         last = reminder.get("last_fired") or ""
         if not time_str:
             return False
+        datum = str(reminder.get("datum") or "")
+        if datum and datum > today:
+            return False
+        if datum and datum < today and reminder.get("repeat") == "once":
+            return not last
         try:
             hour, minute = [int(x) for x in time_str.split(":")[:2]]
         except Exception:
@@ -85,11 +96,13 @@ class ReminderService:
             return not last
         return not last.startswith(today)
 
-    def due(self) -> list[dict]:
+    def due(self, kanal: str = "") -> list[dict]:
         now = datetime.now()
         fired: list[dict] = []
         with self._lock:
             for reminder in self._data:
+                if str(reminder.get("kanal") or "") != kanal:
+                    continue
                 if self._due(reminder, now):
                     reminder["last_fired"] = now.isoformat(timespec="seconds")
                     if reminder["repeat"] == "once":

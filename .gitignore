@@ -67,6 +67,7 @@ android/.idea/
 android/local.properties
 android/**/build/
 android/device-app/ausgabe/
+android/watch-app/ausgabe/
 android/device-app/src/main/assets/device-web/
 artifacts/
 design/android-backup-20261002/

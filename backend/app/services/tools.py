@@ -137,6 +137,7 @@ _INT = {"type": "integer"}
 _BOOL = {"type": "boolean"}
 
 SAFE_TOOLS = {
+    "telegram_senden",
     "youtube_transkript",
     "get_screen_info",
     "list_windows",
@@ -184,6 +185,12 @@ SAFE_TOOLS = {
     "verlauf_heute",
     "netz_status",
     "geraete",
+    "wo_ist",
+    "karteikarten",
+    "haftnotiz",
+    "rezept",
+    "text_vermenschlichen",
+    "bild_zeigen",
     "selbsteinschaetzung",
     "ueberraschungen",
     "durchspielen",
@@ -240,6 +247,8 @@ GUEST_TOOLS = {
 
 
 CORE_TOOLS = {
+    "bild_zeigen",
+    "telegram_senden",
     "understand_screen",
     "was_laeuft",
     "wechseln",
@@ -368,6 +377,11 @@ WORK_ZUSATZ = {
 }
 
 KLEIN_TOOLS = GUEST_TOOLS | {
+    "bild_zeigen",
+    "telegram_senden",
+    "karteikarten",
+    "geraet_verbinden",
+    "wo_ist",
     "get_calendar",
     "calendar_add",
     "set_reminder",
@@ -870,6 +884,58 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "zeig mir deinen",
         ),
     ),
+    "lernen_kochen_notizen": (
+        {"karteikarten", "haftnotiz", "rezept", "text_vermenschlichen"},
+        (
+            "karteikarte",
+            "lernkarte",
+            "vokabel",
+            "abfragen",
+            "lernen",
+            "pruefung",
+            "prüfung",
+            "notiz",
+            "zettel",
+            "rezept",
+            "kochen",
+            "gericht",
+            "kühlschrank",
+            "kuehlschrank",
+            "zutaten",
+            "vermenschlich",
+            "menschlicher",
+            "humaniz",
+            "natürlicher",
+            "natuerlicher",
+            "ki-text",
+        ),
+    ),
+    "oekosystem": (
+        {"wo_ist", "geraete", "geraet_verbinden"},
+        (
+            "wo ist",
+            "wo sind",
+            "wo steckt",
+            "wo befindet",
+            "wo war",
+            "standort",
+            "orten",
+            "finde mein",
+            "uhr",
+            "smartwatch",
+            "watch",
+            "verbinde",
+            "koppel",
+            "qr",
+            "neues gerät",
+            "neues geraet",
+            "handy",
+            "tablet",
+            "geräte",
+            "geraete",
+            "familie",
+        ),
+    ),
     "netz": (
         {"netz_status", "browser_wahl"},
         (
@@ -940,6 +1006,10 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
         ),
     ),
     "pdf": ({"read_pdf"}, ("pdf", "dokument", "seite", "lesen")),
+    "telegram_senden": (
+        {"telegram_senden", "set_reminder", "list_reminders"},
+        ("telegram", "schick mir", "schreib mir", "nachricht um", "erinnere mich", "erinner mich"),
+    ),
     "stundenplan": (
         {"stundenplan", "morgen_nachricht"},
         (
@@ -1317,6 +1387,14 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return f"Speichert die Skill-Anleitung „{_shorten(args.get('name', ''))}“."
     if name == "set_reminder":
         return f"Erinnerung um {args.get('time', '')}: {_shorten(args.get('text', ''))}"
+    if name == "telegram_senden":
+        aktion = str(args.get("aktion", "") or "").lower()
+        if aktion in ("liste", "zeigen", "geplant"):
+            return "Zeigt geplante Telegram-Nachrichten."
+        if aktion in ("loeschen", "löschen", "entfernen", "absagen"):
+            return "Löscht eine geplante Telegram-Nachricht."
+        zeit = str(args.get("zeit", "") or args.get("time", "") or "")
+        return f"Plant eine Telegram-Nachricht ({zeit}): {_shorten(args.get('text', ''))}" if zeit else f"Schickt dir auf Telegram: {_shorten(args.get('text', ''))}"
     if name == "list_reminders":
         return "Listet aktive Erinnerungen auf."
     if name == "set_alarm":
@@ -1546,6 +1624,20 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Macht die letzte Dateiaktion rueckgaengig."
     if name == "geraete":
         return "Sieht nach, welche Jon-Geraete verbunden sind."
+    if name == "wo_ist":
+        return f"Sucht, wo {_shorten(args.get('person', '')) or 'die Person'} gerade ist."
+    if name == "geraet_verbinden":
+        return f"Bereitet die Kopplung vor ({_shorten(args.get('art') or 'handy')})."
+    if name == "karteikarten":
+        return f"Karteikarten: {_shorten(args.get('thema') or args.get('deck') or args.get('aktion') or '')}"
+    if name == "haftnotiz":
+        return f"Haftnotiz: {_shorten(args.get('text') or args.get('aktion') or '')}"
+    if name == "text_vermenschlichen":
+        return "Schreibt den Text natürlicher um."
+    if name == "rezept":
+        return f"Sucht ein Rezept: {_shorten(args.get('gericht') or args.get('zutaten') or '')}"
+    if name == "bild_zeigen":
+        return f"Sucht ein Bild: {_shorten(args.get('query') or '')}"
     if name == "geraet_fragen":
         ziel = _shorten(args.get("geraet", "")) or "einem anderen Geraet"
         return f"Fragt {ziel}: {_shorten(args.get('frage', ''))}"
@@ -2406,11 +2498,101 @@ class ToolBox:
             ),
             _tool(
                 "geraete",
-                "Zeigt alle Jon-Geraete im Verbund (z.B. der Raspberry Pi), samt "
-                "Name, Plattform, Version und wann sie zuletzt erreichbar waren. "
-                "Nutze das, wenn der Nutzer nach seinen Geraeten fragt.",
+                "Zeigt Jons ganzes Geraete-Oekosystem: diesen Jon, alle gekoppelten "
+                "Handys, Smartwatches und Tablets mit Besitzer, Online-Status, Akku und "
+                "Standort-Freigabe sowie die anderen Jons im Verbund (z.B. der Raspberry "
+                "Pi). Nutze das, wenn der Nutzer nach seinen Geraeten fragt.",
                 {},
                 [],
+            ),
+            _tool(
+                "bild_zeigen",
+                "Zeigt echte Fotos aus dem Netz (frei lizenziert, mit Quelle) direkt in deiner "
+                "Chat-Antwort. Nimm das, wenn der Nutzer ein Bild will ('zeig mir', 'wie sieht ... "
+                "aus'), bei /visualise IMMER, und von dir aus, wenn ein Bild beim Verstehen "
+                "wirklich hilft oder den Nutzer interessieren duerfte: Himmelskoerper (z.B. TON "
+                "618, Saturn, Andromeda), Tiere, Pflanzen, Orte, Bauwerke, Kunstwerke, "
+                "historische Ereignisse, Maschinen, Anatomie. Nicht bei Smalltalk, Code, "
+                "Rechnungen oder wenn der Nutzer keine Bilder will. query ist ein englischer "
+                "Suchbegriff, anzahl 1 bis 3, titel optional.",
+                {"query": _STR, "anzahl": _INT, "titel": _STR},
+                ["query"],
+            ),
+            _tool(
+                "geraet_verbinden",
+                "Verbindet ein neues Geraet mit Jon und zeigt dafuer direkt im Chat eine Karte "
+                "mit QR-Code, Code und Bestaetigen-Knopf. Nimm das IMMER bei 'verbinde mir ein "
+                "neues Geraet', 'kopple mein Handy', 'QR-Code fuers Handy', 'verbinde meine "
+                "Uhr', 'fuege den Pi hinzu'. art: handy (Standard), tablet, uhr (koppelt die "
+                "Smartwatch ueber ein verbundenes Handy automatisch) oder jon (ein anderer Jon, "
+                "z.B. Raspberry Pi oder PC). Bei 'verbinde meinen PC', 'verbinde meine PCs', "
+                "'verbinde mich mit meinem Laptop' nimm art=jon OHNE code: Jon sucht dann im "
+                "Heimnetz einen anderen Jon, der gerade wartet, und verbindet sich; findet er "
+                "keinen, wartet er selbst und der Nutzer sagt auf dem anderen PC dasselbe. Mit "
+                "code verbindet sich dieser Jon gezielt dorthin, name waehlt einen bestimmten PC. "
+                "Beschreib danach in einem Satz, was der Nutzer tun muss - den QR-Code siehst du "
+                "nicht, er steht in der Karte.",
+                {"art": _STR, "code": _STR, "name": _STR},
+                [],
+            ),
+            _tool(
+                "karteikarten",
+                "Lern-Karteikarten direkt im Chat: aktion=neu erstellt einen Stapel zu thema "
+                "und zeigt ihn als Lernkarte mit Umdrehen, Antwort pruefen und Wiederholung nach "
+                "Lernplan. Schreib die Karten am besten gleich selbst in karten (Liste aus "
+                "frage und antwort, 6 bis 20 Stueck, praezise und pruefungsnah); ohne karten "
+                "erzeugt Jon sie selbst. aktion=lernen oeffnet einen vorhandenen Stapel (deck = "
+                "Name), aktion=liste zeigt alle Stapel, aktion=loeschen entfernt einen.",
+                {
+                    "aktion": _STR,
+                    "thema": _STR,
+                    "deck": _STR,
+                    "karten": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {"frage": _STR, "antwort": _STR},
+                            "required": ["frage", "antwort"],
+                        },
+                    },
+                },
+                [],
+            ),
+            _tool(
+                "haftnotiz",
+                "Klebt eine Haftnotiz in Jons Notizwand (aktion=neu mit text, farbe gold, blau, "
+                "gruen, rosa oder lila, anheften=true fuer oben), zeigt offene Notizen "
+                "(aktion=liste), hakt eine ab (aktion=erledigt, text = Teil der Notiz) oder "
+                "loescht sie (aktion=loeschen). Fuer kurze Merkzettel wie 'Milch kaufen'.",
+                {"aktion": _STR, "text": _STR, "farbe": _STR, "id": _STR, "anheften": _BOOL},
+                [],
+            ),
+            _tool(
+                "text_vermenschlichen",
+                "Schreibt einen Text so um, dass er natuerlich und menschlich klingt statt nach "
+                "KI, und misst vorher und nachher, wie kuenstlich er wirkt. stil: neutral, "
+                "locker, formell oder akademisch; staerke 1 bis 3.",
+                {"text": _STR, "stil": _STR, "staerke": _INT},
+                ["text"],
+            ),
+            _tool(
+                "rezept",
+                "Kochassistent: gericht liefert ein vollstaendiges Rezept mit Zutaten und "
+                "Schritten, zutaten liefert passende Gerichte zu dem, was im Kuehlschrank ist.",
+                {"gericht": _STR, "zutaten": _STR},
+                [],
+            ),
+            _tool(
+                "wo_ist",
+                "Findet heraus, wo eine Person gerade ist: Jon sucht das Handy (oder "
+                "die Uhr), dessen Besitzer so heisst, fragt live den Standort ab und "
+                "liefert Adresse, ob die Person zuhause ist und wie aktuell das ist. "
+                "Nimm das IMMER bei 'Wo ist Felix?', 'Wo steckt Mama?', 'Ist Lena schon "
+                "zuhause?'. person ist der Name, so wie der Nutzer ihn sagt. Die "
+                "Person bekommt am Handy einen Hinweis, dass ihr Standort abgefragt "
+                "wurde. Antworte danach kurz mit Ort und Aktualitaet.",
+                {"person": _STR},
+                ["person"],
             ),
             _tool(
                 "geraet_fragen",
@@ -3019,6 +3201,25 @@ class ToolBox:
                 ["query"],
             ),
             _tool(
+                "telegram_senden",
+                "Schickt dem Nutzer eine Nachricht ueber SEINEN Telegram-Chat mit Jon - sofort "
+                "oder geplant. Nutze das IMMER, wenn er Telegram erwaehnt, z. B. 'schick mir um "
+                "20 Uhr auf Telegram eine Erinnerung an den Muell' -> zeit='20:00', text='Erinnerung: "
+                "Muell rausbringen'. text ist die fertige Nachricht (freundlich, kurz). zeit: HH:MM, "
+                "'in 10 Minuten' oder 'morgen 8 Uhr'; ohne zeit sofort. datum optional YYYY-MM-DD. "
+                "taeglich=true fuer jeden Tag. aktion liste zeigt geplante, aktion loeschen (id oder "
+                "text) entfernt eine. Jon verschickt geplante Nachrichten selbst, auch wenn die App zu ist.",
+                {
+                    "text": _STR,
+                    "zeit": _STR,
+                    "datum": _STR,
+                    "taeglich": _BOOL,
+                    "aktion": _STR,
+                    "id": _STR,
+                },
+                [],
+            ),
+            _tool(
                 "set_reminder",
                 "Legt eine zeitgebundene Erinnerung an. text = woran erinnert wird, "
                 "time = Uhrzeit HH:MM (24h), repeat = daily (taeglich) oder once (einmal). "
@@ -3249,8 +3450,8 @@ class ToolBox:
                 "Wechselt zu einem offenen Fenster ODER einem Browser-Tab, z. B. 'wechsle zu "
                 "Claude', 'geh zu YouTube', 'zeig Spotify'. ziel ist ein Teil des Titels oder "
                 "der Programmname. Sucht zuerst Fenster, dann Tabs in Chrome, Edge, Firefox und "
-                "Brave. aktion liste zeigt alle offenen Fenster.",
-                {"ziel": _STR, "aktion": _STR, "tabs": _BOOL},
+                "Brave. tab=true, wenn der Nutzer ausdruecklich einen Browser-Tab meint (dann zuerst Tabs, nicht Programme). aktion liste zeigt alle offenen Fenster.",
+                {"ziel": _STR, "aktion": _STR, "tabs": _BOOL, "tab": _BOOL},
                 [],
             ),
             _tool(

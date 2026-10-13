@@ -1,3 +1,4 @@
+import type {WerkstattDaten, WerkstattErgebnis} from "../../lib/werkstatt";
 import {BookOpen, CalendarCheck, Code2, FileSearch, Globe, Languages, Lightbulb, ListChecks, Palette, PenLine, Search, Sigma, SquareTerminal, FlaskConical, type LucideIcon} from "lucide-react";
 
 export type Anfrage = (pfad: string, body?: unknown, method?: string) => Promise<any>;
@@ -78,6 +79,7 @@ export interface HarnessAuftrag {
   kontext?: {zeichen: number; budget: number; schaetzung_tokens: number};
   aktives_modell?: string;
   fortschritt?: {nummer: number; text: string; zustand: "erledigt" | "aktiv" | "offen"}[];
+  werkstatt?: WerkstattDaten & {nr: number; zeit: number; fertig: boolean; ergebnis?: WerkstattErgebnis};
 }
 
 export type KernPhase = "ruhe" | "bereit" | "denken" | "verteilen" | "pruefen" | "sammeln" | "warten" | "fertig" | "offen" | "fehler";

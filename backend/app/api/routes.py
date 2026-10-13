@@ -217,6 +217,12 @@ async def provider_models(name: str) -> list[str]:
 
 @router.post("/chat")
 async def chat(payload: ChatIn) -> StreamingResponse:
+    from app.services.geraete_funktionen import HANDY_KONTEXT
+    from app.services.oekosystem_service import get_oekosystem
+
+    if payload.source != "telegram":
+        get_oekosystem().aktiv_merken(HANDY_KONTEXT.get() or "pc")
+
     async def event_stream():
         async for event in _chat_service.stream(payload):
             yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
@@ -583,9 +589,21 @@ async def add_reminder(payload: ReminderIn) -> dict:
     )
 
 
+@router.post("/befehl")
+async def app_befehl(payload: dict) -> dict:
+    from app.api.mobile_routes import command
+
+    return await command({**payload, "quelle": str(payload.get("quelle") or "app")})
+
+
 @router.get("/reminders/due")
 async def due_reminders() -> list[dict]:
-    return get_reminder_service().due()
+    from app.services.oekosystem_service import get_oekosystem
+
+    oeko = get_oekosystem()
+    if oeko.unterwegs() is not None:
+        return []
+    return oeko.nachholen("erinnerungen") + get_reminder_service().due()
 
 
 @router.delete("/reminders/{reminder_id}")
@@ -1640,8 +1658,12 @@ async def calendar_delete(entry_id: str) -> dict:
 @router.get("/calendar/due")
 async def calendar_due() -> list[dict]:
     from app.services.calendar_service import get_calendar_service
+    from app.services.oekosystem_service import get_oekosystem
 
-    return get_calendar_service().due()
+    oeko = get_oekosystem()
+    if oeko.unterwegs() is not None:
+        return []
+    return oeko.nachholen("termine") + get_calendar_service().due()
 
 
 @router.get("/music/now")

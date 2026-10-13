@@ -1,10 +1,13 @@
 import {AnimatePresence, motion} from "framer-motion";
 import {AlertTriangle, ArrowUpRight, Check, CheckCircle2, Code2, FileCode2, ListChecks, ShieldAlert, Square, XCircle} from "lucide-react";
-import {useMemo, useState} from "react";
+import {Suspense, lazy, useMemo, useState} from "react";
 import AgentenBuehne from "./AgentenBuehne";
 import AgentenStufen from "./AgentenStufen";
 import {Anfrage, dauerText, diffZahlen, ENDE, fehlerText, HARNESS_TEXT, HarnessAuftrag, harnessPhase, quelle, WERKZEUG_ICON, WERKZEUG_TEXT} from "./daten";
 import {useJetzt, useLive} from "./live";
+import type {RenderQuelle} from "../../lib/werkstatt";
+
+const LiveWerkstatt = lazy(() => import("../werkstatt/LiveWerkstatt"));
 
 const STUFEN = [{key: "planning", label: "Planen"}, {key: "working", label: "Umsetzen"}, {key: "verifying", label: "Prüfen"}, {key: "ende", label: "Fertig"}];
 
@@ -17,7 +20,7 @@ function stufeVon(auftrag: HarnessAuftrag): number {
 
 const klasse = (status: string) => status === "done" ? "ok" : status === "needs_review" ? "offen" : status === "waiting_approval" ? "warten" : ENDE.has(status) ? "fehler" : "laeuft";
 
-export function HarnessAnsicht({auftrag, kompakt = false, onStopp, onEntscheiden, onOeffnen, beschaeftigt}: {auftrag: HarnessAuftrag; kompakt?: boolean; onStopp?: () => void; onEntscheiden?: (erlauben: boolean) => void; onOeffnen?: () => void; beschaeftigt?: boolean}) {
+export function HarnessAnsicht({auftrag, kompakt = false, onStopp, onEntscheiden, onOeffnen, beschaeftigt, render}: {auftrag: HarnessAuftrag; kompakt?: boolean; onStopp?: () => void; onEntscheiden?: (erlauben: boolean) => void; onOeffnen?: () => void; beschaeftigt?: boolean; render?: RenderQuelle}) {
   const aktiv = !ENDE.has(auftrag.status);
   const jetzt = useJetzt(aktiv);
   const [planOffen, setPlanOffen] = useState(!kompakt);
@@ -44,6 +47,7 @@ export function HarnessAnsicht({auftrag, kompakt = false, onStopp, onEntscheiden
     <AgentenBuehne phase={harnessPhase(auftrag.status)} knoten={knoten} kernIcon={Code2} kernText="Harness" satellit={satellit} kompakt={kompakt}/>
     <AgentenStufen stufen={STUFEN} aktuell={stufeVon(auftrag)} fertig={!aktiv}/>
     {aktivitaet && <div className="ab-aktivitaet">{SatIcon ? <SatIcon/> : <Code2/>}<AnimatePresence mode="wait" initial={false}><motion.span key={aktivitaet} className={aktiv ? "ab-schimmer" : ""} initial={{opacity: 0, y: 4}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -4}} transition={{duration: 0.2}}>{aktivitaet}</motion.span></AnimatePresence></div>}
+    {auftrag.werkstatt && (aktiv || !kompakt) && <Suspense fallback={null}><LiveWerkstatt key={auftrag.id + ":" + auftrag.werkstatt.nr} kennung={"karte:" + auftrag.id + ":" + auftrag.werkstatt.nr} daten={auftrag.werkstatt} ergebnis={auftrag.werkstatt.ergebnis} laeuft={aktiv && !auftrag.werkstatt.fertig} animieren={aktiv && jetzt - auftrag.werkstatt.zeit < 45} render={render} kompakt startOffen={aktiv}/></Suspense>}
     <AnimatePresence>{auftrag.pending && <motion.div className="ab-freigabe" initial={{opacity: 0, scale: 0.97}} animate={{opacity: 1, scale: 1}} exit={{opacity: 0, scale: 0.97}}>
       <strong><ShieldAlert/>Deine Freigabe ist nötig</strong>
       <pre>{auftrag.pending.args.command}</pre>
@@ -66,7 +70,7 @@ export function HarnessAnsicht({auftrag, kompakt = false, onStopp, onEntscheiden
   </div>;
 }
 
-export default function HarnessKarte({id, request, kompakt = false, onOeffnen}: {id: string; request: Anfrage; kompakt?: boolean; onOeffnen?: (id: string) => void}) {
+export default function HarnessKarte({id, request, kompakt = false, onOeffnen, render}: {id: string; request: Anfrage; kompakt?: boolean; onOeffnen?: (id: string) => void; render?: RenderQuelle}) {
   const pfad = "/harness/tasks/" + encodeURIComponent(id);
   const {daten, setDaten, fehler, fehlversuche, neu} = useLive<HarnessAuftrag>(request, pfad, auftrag => ENDE.has(auftrag.status), 1200);
   const [beschaeftigt, setBeschaeftigt] = useState(false);
@@ -86,7 +90,7 @@ export default function HarnessKarte({id, request, kompakt = false, onOeffnen}: 
     </div>;
   }
   return <>
-    <HarnessAnsicht auftrag={daten} kompakt={kompakt} beschaeftigt={beschaeftigt}
+    <HarnessAnsicht auftrag={daten} kompakt={kompakt} beschaeftigt={beschaeftigt} render={render}
       onStopp={() => void handeln(async () => {setDaten(await request(pfad + "/cancel", {}));})}
       onEntscheiden={erlauben => void handeln(async () => {if (!daten.pending) return; await request(pfad + "/approve", {approval_id: daten.pending.id, allow: erlauben}); setDaten(await request(pfad)); neu();})}
       onOeffnen={onOeffnen ? () => onOeffnen(id) : undefined}/>

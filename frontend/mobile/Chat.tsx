@@ -1,6 +1,6 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {Archive, ArrowDown, Code2, Users, ArrowUp, BookOpen, CalendarPlus, Camera, Check, CloudSun, Cpu, Dumbbell, FileUp, Globe, Home, Image as ImageIcon, Laptop, ListChecks, MapPin, Mic, MoreVertical, MousePointerClick, Music2, Paperclip, Pencil, Pin, Plus, Podcast, Presentation, Search, Server, Share2, ShieldAlert, Smartphone, Sparkles, Square, SquarePen, Telescope, Terminal, ThumbsDown, ThumbsUp, Timer, Trash2, Volume2, Wrench, X, ChevronDown, ChevronRight, Copy, FileText, Folder, FolderPlus} from "lucide-react";
+import {Archive, ArrowDown, Code2, Users, ArrowUp, BookOpen, CalendarPlus, Camera, Check, CloudSun, Cpu, Dumbbell, FileUp, Globe, Home, Image as ImageIcon, Laptop, ListChecks, MapPin, Mic, MoreVertical, MousePointerClick, Music2, Paperclip, Pencil, Pin, Plus, Podcast, Presentation, Search, Server, Share2, ShieldAlert, Smartphone, Sparkles, Square, SquarePen, Telescope, Terminal, ThumbsDown, ThumbsUp, Timer, Trash2, Volume2, Wrench, X, ChevronDown, ChevronRight, Copy, FileText, Folder, FolderPlus, Eye, GraduationCap} from "lucide-react";
 import {api, call, haptic, listen, native, toBase64} from "./bridge";
 import {Chats, LANG, Message, Step} from "./useChats";
 import {ResultCards, FilePill} from "./Cards";
@@ -29,6 +29,8 @@ export const tools: Tool[] = [
   {id: "run_cmd", ph: "Welcher Befehl auf dem Pi?", label: "Terminal", hint: "Befehle auf dem Pi", icon: <Terminal/>, work: true, pi: true},
   {id: "maps", ph: "Wohin oder was suchst du?", label: "Jon Maps", hint: "Orte, Routen und Umgebung", icon: <MapPin/>, pi: true},
   {id: "web_search", ph: "Wonach soll Jon suchen?", label: "Websuche", hint: "Aktuelle Infos aus dem Netz", icon: <Search/>},
+  {id: "bild_zeigen", ph: "Was soll Jon dir zeigen und erklären?", label: "Visualisieren", hint: "Erklärt mit echten Bildern aus dem Netz", icon: <Eye/>, pi: true},
+  {id: "karteikarten", ph: "Was willst du lernen?", label: "Karteikarten", hint: "Lernkarten direkt im Chat", icon: <GraduationCap/>, pi: true},
   {id: "create_image", ph: "Beschreibe dein Bild", label: "Bild erstellen", hint: "Jon malt ein Bild", icon: <ImageIcon/>},
   {id: "get_weather", ph: "Für welchen Ort?", label: "Wetter", hint: "Vorhersage für deinen Ort", icon: <CloudSun/>},
   {id: "fitness", ph: "Was hast du trainiert?", label: "Fitness", hint: "Training eintragen", icon: <Dumbbell/>, vorlage: t => `Trag bitte dieses Training in mein Fitness-Tagebuch ein: ${t}`},
@@ -83,6 +85,14 @@ function Steps({steps, live}: {steps: Step[]; live?: boolean}) {
   })}</div>;
 }
 
+const LiveWerkstatt = React.lazy(() => import("../src/components/werkstatt/LiveWerkstatt"));
+
+function Werkstaetten({steps, live}: {steps: Step[]; live?: boolean}) {
+  const liste = steps.filter(s => s.werkstatt);
+  if (!liste.length) return null;
+  return <div className="werkstaetten"><React.Suspense fallback={null}>{liste.map((s, i) => <LiveWerkstatt key={i} daten={s.werkstatt} ergebnis={s.werkstatt_ergebnis} laeuft={!!live && s.status === "running"} animieren={!!live} startOffen={!live ? i === liste.length - 1 : s.status === "running" || i === liste.length - 1}/>)}</React.Suspense></div>;
+}
+
 function Thought({message, work}: {message: Message; work: boolean}) {
   const [open, setOpen] = useState(work && !!message.steps?.length);
   if (!message.steps?.length && !message.reasoning) return null;
@@ -113,6 +123,7 @@ function Assistant({m, shell, work, onShare}: {m: Message; shell: Shell; work: b
   }
   return <article className="assistant">
     <Thought message={m} work={work}/>
+    {!!m.steps?.length && <Werkstaetten steps={m.steps}/>}
     {m.content && <Markdown text={m.content} notify={notify}/>}
     <ResultCards cards={m.cards || []} notify={notify} ohneDateien/>
     <ErgebnisKarten m={m} shell={shell}/>
@@ -337,8 +348,9 @@ export function ChatScreen({shell, openDrawer, onEdge}: {shell: Shell; openDrawe
     const angehaengt = anhang;
     setAnhang(null);
     near.current = true;
-    const nachricht = tool?.vorlage ? tool.vorlage(content) : content;
-    const force = tool && !tool.vorlage && piWeg ? tool.id : "";
+    const befehl = !tool && piWeg ? content.match(/^\/(visualise|visualize|visualisiere|visualisieren|zeig)\s+([\s\S]+)$/i) : null;
+    const nachricht = befehl ? befehl[2].trim() : tool?.vorlage ? tool.vorlage(content) : content;
+    const force = befehl ? "bild_zeigen" : tool && !tool.vorlage && piWeg ? tool.id : "";
     await chats.send(nachricht, angehaengt?.content || "", undefined, force, angehaengt?.bilder || []);
   }
   async function patchChat(patch: any) {
@@ -421,6 +433,7 @@ export function ChatScreen({shell, openDrawer, onEdge}: {shell: Shell; openDrawe
       <AnimatePresence>{plan && <PlanKarte plan={plan} starten={planStarten} abbrechen={() => {planStopp.current = true; if (plan.phase === "laeuft") chats.stop(); else {setText(plan.ziel); setPlan(null);}}} entfernen={i => setPlan({...plan, schritte: plan.schritte.filter((_, n) => n !== i)})}/>}</AnimatePresence>
       {c.busy && <motion.article className="assistant" initial={{opacity: 0}} animate={{opacity: 1}}>
         {!!c.steps?.length && <Steps steps={c.steps} live/>}
+        {!!c.steps?.length && <Werkstaetten steps={c.steps} live/>}
         {c.reasoning && !c.partial && <div className="reasoning-box shimmer">{c.reasoning.slice(-280)}</div>}
         {c.partial ? <Markdown text={c.partial} notify={notify}/> : !c.steps?.length && <span className="typing"><i/><i/><i/></span>}
         {!c.partial && !!c.steps?.length && <span className="shimmer" style={{fontSize: 15}}>{c.approval ? "Wartet auf deine Freigabe" : "Jon arbeitet …"}</span>}

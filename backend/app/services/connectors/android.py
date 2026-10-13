@@ -11,7 +11,8 @@ _INT = {"type": "integer"}
 _GERAET = {
     "type": "string",
     "description": (
-        "Name oder Kennung des Handys. Weglassen, wenn nur ein Handy gekoppelt ist."
+        "Name, Besitzer oder Kennung des Geraets, zum Beispiel 'Felix', 'Uhr' oder "
+        "'Mamas Handy'. Weglassen, wenn nur ein Geraet gekoppelt ist."
     ),
 }
 
@@ -334,11 +335,20 @@ class AndroidConnector(Connector):
             )
         wunsch = str(args.get("device") or args.get("geraet") or "").strip().lower()
         if wunsch:
+            from app.services.oekosystem_service import name_passt
+
+            typen = {"uhr": "uhr", "smartwatch": "uhr", "watch": "uhr", "handy": "handy", "tablet": "tablet"}
+            woerter = [wort for wort in wunsch.replace("'", " ").replace("’", " ").split() if wort]
+            typ = next((typen[wort] for wort in woerter if wort in typen), "")
+            rest = " ".join(wort for wort in woerter if wort not in typen and wort not in ("von", "das", "die", "der", "mein", "meine", "meinen"))
             treffer = [
                 geraet
                 for geraet in alle
                 if geraet["id"].lower() == wunsch
                 or wunsch in str(geraet.get("name", "")).lower()
+                or (rest and name_passt(rest.rstrip("s"), geraet.get("besitzer")) and (not typ or geraet.get("typ") == typ))
+                or (rest and name_passt(rest, geraet.get("besitzer")) and (not typ or geraet.get("typ") == typ))
+                or (typ and not rest and geraet.get("typ") == typ)
             ]
             if not treffer:
                 namen = ", ".join(geraet.get("name", geraet["id"]) for geraet in alle)
@@ -462,8 +472,12 @@ class AndroidConnector(Connector):
                 {"text": text[:20000]},
             )
         if name == "android_location_get":
+            from app.api.oekosystem_routes import _fragender
+
             geraet = self._waehlen(args, "standort")
-            return await self._auftrag(geraet, "ort", "standort", {}, wartezeit=60.0)
+            ergebnis = await self._auftrag(geraet, "ort", "standort", {"fuer": _fragender()}, wartezeit=60.0)
+            dienst.standort_merken(geraet["id"], ergebnis)
+            return ergebnis
         if name == "android_contacts_search":
             geraet = self._waehlen(args, "kontakte")
             suche = str(args.get("query") or args.get("suche") or "").strip()
@@ -494,9 +508,19 @@ class AndroidConnector(Connector):
     async def _eltern(self, name: str, args: dict[str, Any]) -> dict:
         from app.services.geraete_funktionen import HANDY_KONTEXT
 
+        dienst = self._dienst()
+        if HANDY_KONTEXT.get() and name == "android_ring":
+            from app.services.oekosystem_service import OekoFehler, get_oekosystem
+
+            ziel = ""
+            if args.get("device"):
+                ziel = self._waehlen(args, "klingeln")["id"]
+            try:
+                return await get_oekosystem().klingeln(HANDY_KONTEXT.get(), ziel, int(args.get("seconds") or 30))
+            except OekoFehler as exc:
+                raise HandyFehler(str(exc)) from exc
         if HANDY_KONTEXT.get():
             raise HandyFehler("Das geht nur von Jon am PC oder Pi aus, nicht vom Gerät selbst.")
-        dienst = self._dienst()
         recht = {"android_announce": "durchsage", "android_ring": "klingeln"}.get(name, "regeln")
         geraet = self._waehlen(args, recht)
         geraet_name = geraet.get("name", geraet["id"])
@@ -544,6 +568,8 @@ class AndroidConnector(Connector):
         return {
             "id": geraet["id"],
             "name": geraet.get("name", ""),
+            "typ": geraet.get("typ", "handy"),
+            "besitzer": geraet.get("besitzer", ""),
             "plattform": geraet.get("plattform", ""),
             "online": bool(geraet.get("online")),
             "akku": zustand.get("akku"),

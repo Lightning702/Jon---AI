@@ -96,3 +96,15 @@
 @keyframes hv-dreh{to{transform:rotate(360deg)}}
 @media(max-width:1100px){.harness-topbar-meta{display:none}}
 @media(prefers-reduced-motion:reduce){.hv-puls,.hv-laeuft,.hv-live::after,.hv-cursor,.hv-dreh{animation:none}}
+
+.hv-werkstatt {
+  margin: 14px 0 4px;
+}
+
+.hv-werkstatt .lw-buehne,
+.hv-werkstatt .lw-papier,
+.hv-werkstatt .lw-seite-echt {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}

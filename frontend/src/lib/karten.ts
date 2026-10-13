@@ -11,6 +11,9 @@ export const KARTEN_ARTEN = [
   "wochenbericht",
   "agenten",
   "harness",
+  "kopplung",
+  "karteikarten",
+  "webbild",
 ] as const;
 
 export type KartenArt = (typeof KARTEN_ARTEN)[number];
