@@ -112,6 +112,8 @@ async def _openverse(suche: str) -> list[str]:
         return [(e.get("url"), str(e.get("title", ""))) for e in antwort.json().get("results", []) if e.get("url")]
 
 
+UNBRAUCHBAR = re.compile(r"glitch|\bcorrupt(?:ed)?\b|datamosh|databend|data loss of image|compression artifact|broken image|kaputt", re.I)
+
 FUELLWOERTER = {"a", "an", "the", "of", "with", "and", "on", "in", "for", "background", "photo", "image", "picture", "professional", "high", "quality", "realistic"}
 
 
@@ -128,6 +130,8 @@ def varianten(suche: str) -> list[str]:
 
 
 def passt(titel: str, suche: str) -> bool:
+    if UNBRAUCHBAR.search(str(titel or "")):
+        return False
     woerter = [w.lower() for w in re.split(r"[\W_]+", suche) if len(w) >= 3 and w.lower() not in FUELLWOERTER]
     if not woerter:
         return True

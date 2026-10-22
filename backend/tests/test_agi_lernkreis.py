@@ -77,14 +77,14 @@ def test_neugier_sichere_antwort_erzeugt_keine_frage():
 
 def test_neugier_antwort_landet_im_gedaechtnis(monkeypatch):
     dienst = get_neugier_service()
-    frage = dienst.fragen("Welchen Kaffee mag Felix am Morgen?", dringlichkeit=0.9)
+    frage = dienst.fragen("Welchen Kaffee mag Lena am Morgen?", dringlichkeit=0.9)
 
     async def _suche(query, limit=6, read=False):
-        return {"treffer": [{"title": "Notiz", "snippet": "Felix trinkt Espresso."}]}
+        return {"treffer": [{"title": "Notiz", "snippet": "Lena trinkt Espresso."}]}
 
     async def _complete(system, user, *args, **kwargs):
         assert "Espresso" in user
-        return "Felix trinkt morgens Espresso."
+        return "Lena trinkt morgens Espresso."
 
     monkeypatch.setattr("app.services.websearch_service.search_web", _suche)
     monkeypatch.setattr("app.services.llm.complete", _complete)

@@ -78,6 +78,7 @@ Bildschirm.
 ## Präsentationen
 
 - `create_pptx` baut eine fertige **PowerPoint-Datei (.pptx)** im 16:9-Format
+- Standard-Design `hell`: weiße Folien, randlose oder runde Fotos, gestrichelte Bögen, Akzentpunkte, Schlussfolie mit Smiley; bei viel Text wird das Bild schmaler
 - Layouts: `title`, `bullets`, `cards`, `stat`, `two_columns`, `image`, `quote`,
   `timeline`, `closing` — inklusive Sprechernotizen
 - Elf Farbwelten (`midnight`, `ocean`, `forest`, `sage`, `teal`, `coral`, `terracotta`,
@@ -250,8 +251,27 @@ Bildschirm.
 - **Meeting-Mitschrift** (`/meeting`) — System-Ton + Mikrofon (Fifine bevorzugt), live
   transkribiert, Zusammenfassung mit To-dos in den Kalender
 
+## /btw und Nachaufträge
+
+- `/btw <Frage>` im Chat, in Jon Code, im Harness, im Terminal-Harness und auf Telegram: sofortige Antwort, Jon arbeitet weiter
+- `Alt+B` öffnet das Fenster „Nebenbei“ in der App
+- Was du während der Arbeit schreibst oder mit „danach: …“ beginnst, wird vorgemerkt und automatisch danach erledigt
+
+## Bildschirm verstehen
+
+- `bildschirm_lesen`, `bildschirm_klicken`, `bildschirm_eingeben`: Windows-Bedienhilfen, Texterkennung und Markierungen für das Seh-Modell
+- „Klick auf Start“, „schreib Pizza ins Suchfeld“ – auch über Telegram
+- `pc_strom`: herunterfahren, neu starten, sperren, Energiesparen, Abbrechen
+
+## Jon Lehrer
+
+- Kurs aus Fach, Ziel, Termin und Lernunterlagen, Lektionen werden parallel gebaut
+- Übungen mit Rückmeldung, Wiederholung nach Lernkurve, Probetest, Fortschritt
+
 ## Telegram
 
+- Antworten erscheinen live, Freigaben als Knöpfe, `/btw` für Zwischenfragen
+- `/aus`, `/neustart`, `/schlafen`, `/sperren`, `/abbrechen`, `/bildschirm`
 - Fotos per Vision-Modell analysieren, Maus/Tastatur direkt steuern
 - Lange Sprachnachrichten zusammenfassen + Termine in den Kalender
 - Standort-Erinnerungen: benannte Orte + Geofencing über Live-Standort

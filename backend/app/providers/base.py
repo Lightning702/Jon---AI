@@ -26,6 +26,7 @@ class ChatRequest:
     slot: str = "jon"
     first_token_timeout: float = 0.0
     context_window: int = 0
+    denken: bool | None = None
 
 
 @dataclass

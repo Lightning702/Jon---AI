@@ -59,7 +59,7 @@ const DEFAULT: Cfg = {
   pet_companion: "none",
   pet_3d: false,
   pet_provider: "",
-  pet_model: "meta/muse-glimmer-30b",
+  pet_model: "nvidia/nemotron-3.5-lightning-30b-a3b",
 };
 
 function schaufarbe(accent: string): string {
@@ -401,7 +401,7 @@ export default function PetConfig({ onClose }: { onClose: () => void }) {
                 onChange={(e) => update({ pet_model: e.target.value })}
                 className={selectField}
               >
-                <option value="">Automatisch (meta/muse-glimmer-30b)</option>
+                <option value="">Automatisch (nvidia/nemotron-3.5-lightning-30b-a3b)</option>
                 {cfg.pet_model && !models.includes(cfg.pet_model) && (
                   <option value={cfg.pet_model}>{cfg.pet_model}</option>
                 )}

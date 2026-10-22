@@ -52,7 +52,7 @@ def test_vault_verschluesselung(tmp_path, monkeypatch):
     svc = vs.VaultService()
     assert not svc.exists()
     assert svc.create("geheim12")["ok"]
-    entry = svc.add("GitHub", "felix", "s3cret!")
+    entry = svc.add("GitHub", "lena", "s3cret!")
     assert entry["title"] == "GitHub"
     assert svc.reveal(entry["id"])["secret"] == "s3cret!"
     raw = (tmp_path / "vault.dat").read_bytes()

@@ -104,6 +104,10 @@ hiddenimports += [
 ]
 
 datas += [("app/static", "app/static")]
+_skills = Path(SPECPATH).parent / "skills"
+if _skills.is_dir():
+    for _pfad in _skills.rglob("*.md"):
+        datas.append((str(_pfad), str(Path("skills_eingebaut") / _pfad.relative_to(_skills).parent)))
 _model = Path(SPECPATH) / "assets" / "models" / "whisper-base"
 if not (_model / "model.bin").is_file():
     raise RuntimeError("Das Whisper-Modell fehlt. scripts/build_installer.py verwenden.")

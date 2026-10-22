@@ -47,7 +47,29 @@ def starter() -> tuple[str, str]:
     return python, str(_backend_wurzel())
 
 
-def _inhalt() -> str:
+HARNESS_WIN = r"%LOCALAPPDATA%\Jon\Harness\jon-harness.exe"
+HARNESS_UNIX = "$HOME/.local/share/jon-harness/jon-harness.pyz"
+
+
+def harness_installiert() -> Path | None:
+    if _windows():
+        kandidat = Path(os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")) / "Jon" / "Harness" / "jon-harness.exe"
+    else:
+        kandidat = Path.home() / ".local" / "share" / "jon-harness" / "jon-harness.pyz"
+    return kandidat if kandidat.is_file() else None
+
+
+def _vorschalten(inhalt: str) -> str:
+    if _windows():
+        kopf, _, rest = inhalt.partition("\r\n")
+        weiche = f'if exist "{HARNESS_WIN}" (\r\n  "{HARNESS_WIN}" %*\r\n  exit /b\r\n)\r\n'
+        return f"{kopf}\r\n{weiche}{rest}"
+    kopf, _, rest = inhalt.partition("\n")
+    weiche = f'if [ -f "{HARNESS_UNIX}" ]; then exec python3 "{HARNESS_UNIX}" "$@"; fi\n'
+    return f"{kopf}\n{weiche}{rest}"
+
+
+def _app_inhalt() -> str:
     ziel, zusatz = starter()
     if _gebuendelt() is not None:
         if _windows():
@@ -70,8 +92,12 @@ def _inhalt() -> str:
     )
 
 
+def _inhalt() -> str:
+    return _vorschalten(_app_inhalt())
+
+
 def _harness_inhalt() -> str:
-    return _inhalt().replace("cli %*", "cli harness %*").replace('cli "$@"', 'cli harness "$@"')
+    return _vorschalten(_app_inhalt().replace("cli %*", "cli harness %*").replace('cli "$@"', 'cli harness "$@"'))
 
 
 def harness_pfade() -> list[Path]:

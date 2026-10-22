@@ -21,7 +21,7 @@ def frischer_zugang(tmp_path, monkeypatch):
     yield tmp_path / "anmeldung.json"
 
 
-def _einrichten(name="Felix", passwort="geheim123"):
+def _einrichten(name="Lena", passwort="geheim123"):
     return client.post(
         "/api/anmeldung/einrichten", json={"benutzername": name, "passwort": passwort}
     )
@@ -39,16 +39,16 @@ def test_erst_einrichten_dann_anmelden(frischer_zugang):
     assert stand["support"] == "https://felworks-impressum.netlify.app/support"
     assert _einrichten().json() == {"ok": True}
     assert client.get("/api/anmeldung").json()["eingerichtet"] is True
-    assert _pruefen("Felix", "geheim123").json() == {"ok": True}
-    assert _pruefen("  felix ", "geheim123").status_code == 200
+    assert _pruefen("Lena", "geheim123").json() == {"ok": True}
+    assert _pruefen("  lena ", "geheim123").status_code == 200
     assert _einrichten("Anders", "passwort99").status_code == 409
 
 
 def test_zugang_liegt_nur_als_hash_auf_der_platte(frischer_zugang):
-    _einrichten("Felix", "geheim123")
+    _einrichten("Lena", "geheim123")
     inhalt = frischer_zugang.read_text(encoding="utf-8")
     assert "geheim123" not in inhalt
-    assert "felix" not in inhalt.lower().replace("felix-", "")
+    assert "lena" not in inhalt.lower().replace("lena-", "")
     daten = json.loads(inhalt)
     assert daten["verfahren"] == "argon2id"
     assert daten["passwort"].startswith("$argon2id$")
@@ -57,22 +57,22 @@ def test_zugang_liegt_nur_als_hash_auf_der_platte(frischer_zugang):
 
 def test_falsche_daten_und_sperre_nach_fuenf_versuchen():
     _einrichten()
-    antwort = _pruefen("Felix", "falsch")
+    antwort = _pruefen("Lena", "falsch")
     assert antwort.status_code == 401
     assert antwort.json()["versuche_uebrig"] == 4
     assert _pruefen("Jemand", "geheim123").status_code == 401
     for _ in range(2):
-        _pruefen("Felix", "falsch")
-    gesperrt = _pruefen("Felix", "falsch")
+        _pruefen("Lena", "falsch")
+    gesperrt = _pruefen("Lena", "falsch")
     assert gesperrt.status_code == 429
     assert gesperrt.json()["sekunden"] == 60
-    assert _pruefen("Felix", "geheim123").status_code == 429
+    assert _pruefen("Lena", "geheim123").status_code == 429
     assert client.get("/api/anmeldung").json()["gesperrt_sekunden"] > 0
 
 
 def test_zu_kurze_zugangsdaten_werden_abgelehnt():
     assert _einrichten("F", "geheim123").status_code == 400
-    antwort = _einrichten("Felix", "123")
+    antwort = _einrichten("Lena", "123")
     assert antwort.status_code == 400
     assert "mindestens" in antwort.json()["detail"]
     assert client.get("/api/anmeldung").json()["eingerichtet"] is False
@@ -82,24 +82,24 @@ def test_benutzername_und_passwort_aendern():
     _einrichten()
     falsch = client.post(
         "/api/anmeldung/aendern",
-        json={"benutzername": "Felix", "passwort": "falsch", "neues_passwort": "neues123"},
+        json={"benutzername": "Lena", "passwort": "falsch", "neues_passwort": "neues123"},
     )
     assert falsch.status_code == 401
     leer = client.post(
-        "/api/anmeldung/aendern", json={"benutzername": "Felix", "passwort": "geheim123"}
+        "/api/anmeldung/aendern", json={"benutzername": "Lena", "passwort": "geheim123"}
     )
     assert leer.status_code == 400
     ok = client.post(
         "/api/anmeldung/aendern",
         json={
-            "benutzername": "Felix",
+            "benutzername": "Lena",
             "passwort": "geheim123",
             "neuer_benutzername": "Chef",
             "neues_passwort": "neues123",
         },
     )
     assert ok.json() == {"ok": True}
-    assert _pruefen("Felix", "geheim123").status_code == 401
+    assert _pruefen("Lena", "geheim123").status_code == 401
     assert _pruefen("Chef", "neues123").status_code == 200
     nur_passwort = client.post(
         "/api/anmeldung/aendern",
@@ -117,10 +117,10 @@ def test_anmeldung_braucht_den_geraete_schluessel():
 def test_alter_pbkdf2_zugang_wird_beim_anmelden_auf_argon2id_umgestellt(frischer_zugang):
     from app.core.store import atomic_write_json
 
-    atomic_write_json(frischer_zugang, an._alt_eintrag("Felix", "geheim123"))
-    assert _pruefen("Felix", "falsch").status_code == 401
+    atomic_write_json(frischer_zugang, an._alt_eintrag("Lena", "geheim123"))
+    assert _pruefen("Lena", "falsch").status_code == 401
     assert json.loads(frischer_zugang.read_text(encoding="utf-8"))["verfahren"] == "pbkdf2-sha256"
-    assert _pruefen("Felix", "geheim123").status_code == 200
+    assert _pruefen("Lena", "geheim123").status_code == 200
     daten = json.loads(frischer_zugang.read_text(encoding="utf-8"))
     assert daten["verfahren"] == "argon2id"
-    assert _pruefen("felix", "geheim123").status_code == 200
+    assert _pruefen("lena", "geheim123").status_code == 200

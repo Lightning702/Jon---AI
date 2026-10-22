@@ -375,7 +375,7 @@ def test_handshake_erstellt_und_tritt_bei(service):
     async def run():
         first = FakeTransport()
         pair = await service.handshake(
-            {"t": "create", "game": "aetheria", "name": "Felix", "seed": 7}, first
+            {"t": "create", "game": "aetheria", "name": "Lena", "seed": 7}, first
         )
         assert pair is not None
         lobby, host = pair
@@ -542,7 +542,7 @@ def test_rest_api_ist_in_der_echten_app_verdrahtet(monkeypatch, tmp_path):
             assert "blockwelt" in info.json()["games"]
 
             created = await client.post(
-                "/api/mp/create", json={"game": "blockwelt", "name": "Felix"}
+                "/api/mp/create", json={"game": "blockwelt", "name": "Lena"}
             )
             assert created.status_code == 200
             code = created.json()["code"]
@@ -693,7 +693,7 @@ def test_beacon_findet_lobby_und_listet_offene_spiele(monkeypatch, tmp_path):
 
     gastgeber = mp.MultiplayerService()
     gast = mp.MultiplayerService()
-    lobby, _ = gastgeber.create_lobby("echo", "Felix", max_players=4)
+    lobby, _ = gastgeber.create_lobby("echo", "Lena", max_players=4)
 
     async def run():
         server = lan.CoopBeacon()
@@ -713,7 +713,7 @@ def test_beacon_findet_lobby_und_listet_offene_spiele(monkeypatch, tmp_path):
             assert found["tcp_port"] == 8759
             assert found["ws_port"] == 8760
             assert found["origin"] == "http://127.0.0.1:8760"
-            assert found["host_name"] == "Felix"
+            assert found["host_name"] == "Lena"
 
             assert await client.find("ZZZZZZ", timeout=0.8) is None
 

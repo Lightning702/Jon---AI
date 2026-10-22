@@ -18,12 +18,20 @@ else:
 ENV_FILE = ROOT_DIR / ".env"
 
 NVIDIA_JON_MODELL = "nvidia/nemotron-3-ultra-550b-a55b"
-NVIDIA_EMIL_MODELL = "meta/muse-glimmer-30b"
+NVIDIA_EMIL_MODELL = "nvidia/nemotron-3.5-lightning-30b-a3b"
+NVIDIA_SEHEN_MODELL = "nvidia/nemotron-3.5-super-vl-120b-a12b"
 ABGESCHALTETE_MODELLE = {
     "openai/gpt-oss-120b": NVIDIA_JON_MODELL,
-    "openai/gpt-oss-20b": NVIDIA_EMIL_MODELL,
     "meta/llama-3.1-8b-instruct": NVIDIA_EMIL_MODELL,
     "nvidia/llama-3.1-nemotron-70b-instruct": NVIDIA_JON_MODELL,
+    "mistralai/mistral-nemotron": NVIDIA_JON_MODELL,
+    "nvidia/nemotron-3-super-120b-a12b": NVIDIA_JON_MODELL,
+    "nvidia/nemotron-nano-3-30b-a3b": NVIDIA_EMIL_MODELL,
+    "meta/muse-glimmer-30b": NVIDIA_EMIL_MODELL,
+    "meta/llama-4-maverick-17b-128e-instruct": NVIDIA_JON_MODELL,
+    "qwen/qwen3-next-80b-a3b-instruct": NVIDIA_JON_MODELL,
+    "moonshotai/kimi-k2-instruct-0905": NVIDIA_JON_MODELL,
+    "deepseek-ai/deepseek-v3.1-terminus": NVIDIA_JON_MODELL,
 }
 
 
@@ -111,7 +119,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.64.1"
+    app_version: str = "4.65.1"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = ""

@@ -53,9 +53,14 @@ KONTINGENT = 300
 KOSTENLOS_PRO_IP = 12
 KOSTENLOS_MAX = 200_000
 KOSTENLOS_NAME = "Jon Premium kostenlos"
+GAST_NAME = "FelWorks Gast"
+GAST_PRO_IP = 20
+GAST_KONTINGENT = 150
+GAST_TAG_MAX = 6000
+GAST_MAX = 500_000
 DIENSTE = ("jon", "jon-codes", "jon-demo")
 NIM_BASIS = "https://integrate.api.nvidia.com/v1"
-MODELLE = ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-3.5-lightning-30b-a3b", "mistralai/mistral-nemotron"]
+MODELLE = ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3.5-lightning-30b-a3b", "nvidia/nemotron-3.5-super-vl-120b-a12b", "openai/gpt-oss-20b"]
 WURZEL = Path(__file__).resolve().parents[2]
 
 
@@ -111,6 +116,7 @@ class Codeserver:
         self.fehler_ip: dict[str, deque] = {}
         self.fehler_alle: deque = deque()
         self.kostenlos_ip: dict[str, deque] = {}
+        self.gast_ip: dict[str, deque] = {}
         self._schluessel: Ed25519PrivateKey | None = None
         self.befehl = befehl_ausfuehren
         self.melden = self._telegram
@@ -170,7 +176,7 @@ class Codeserver:
             inhalt = json.loads(b64url_lesen(teile[1]))
         except (InvalidSignature, ValueError, TypeError):
             raise HTTPException(403, "Diese Lizenz stammt nicht von diesem Codeserver.")
-        if not isinstance(inhalt, dict) or inhalt.get("stufe") not in ARTEN:
+        if not isinstance(inhalt, dict) or (inhalt.get("stufe") not in ARTEN and not (inhalt.get("stufe") == "gast" and inhalt.get("gast"))):
             raise HTTPException(403, "Diese Lizenz stammt nicht von diesem Codeserver.")
         return inhalt
 
@@ -334,10 +340,72 @@ class Codeserver:
                 self._json("kostenlos.json", daten)
         return self.kostenlos_stand()
 
+    def _gast(self) -> dict:
+        daten = self._lesen("gast.json", {})
+        daten.setdefault("aktiv", True)
+        daten.setdefault("kontingent", GAST_KONTINGENT)
+        daten.setdefault("tag_max", GAST_TAG_MAX)
+        daten.setdefault("geraete", {})
+        return daten
+
+    def gast_token(self, geraet: str) -> str:
+        return self.signieren({"stufe": "gast", "name": GAST_NAME, "geraete": [geraet], "gast": True, "quelle": "gast"})
+
+    def gast_holen(self, geraet: str, ip: str, art: str = "") -> dict:
+        jetzt = self.uhr()
+        with self.lock:
+            daten = self._gast()
+            if not daten["aktiv"]:
+                raise HTTPException(403, "Der freie FelWorks-Zugang ist gerade ausgeschaltet. Hinterlege einen eigenen API-Schlüssel.")
+            eintrag = daten["geraete"].get(geraet)
+            if eintrag is None:
+                verlauf = self.gast_ip.setdefault(ip, deque())
+                while verlauf and jetzt - verlauf[0] > 3600:
+                    verlauf.popleft()
+                if len(verlauf) >= GAST_PRO_IP:
+                    raise HTTPException(429, "Von hier wurden gerade zu viele Geräte angemeldet. Bitte in einer Stunde noch einmal.")
+                if len(daten["geraete"]) >= GAST_MAX:
+                    raise HTTPException(503, "Gerade können keine weiteren Geräte den freien Zugang bekommen.")
+                verlauf.append(jetzt)
+                if len(self.gast_ip) > 5000:
+                    self.gast_ip = {k: v for k, v in self.gast_ip.items() if v and jetzt - v[-1] < 3600}
+                eintrag = daten["geraete"][geraet] = {"seit": int(jetzt)}
+            eintrag["zuletzt"] = int(jetzt)
+            if art:
+                eintrag["art"] = art[:20]
+            self._json("gast.json", daten)
+        return {"token": self.gast_token(geraet), "stufe": "gast", "kontingent": int(daten["kontingent"]), "modelle": list(MODELLE)}
+
+    def gast_stand(self) -> dict:
+        daten = self._gast()
+        llm = self._llm()
+        heute = date.today().isoformat()
+        geraete = daten["geraete"].values()
+        return {"aktiv": bool(daten["aktiv"]), "kontingent": int(daten["kontingent"]), "tag_max": int(daten["tag_max"]), "geraete": len(daten["geraete"]), "aktiv_7_tage": sum(1 for g in geraete if self.uhr() - float(g.get("zuletzt") or 0) < 7 * TAG), "heute": int(llm.get("gast_heute", 0)) if llm["datum"] == heute else 0}
+
+    def gast_setzen(self, aktiv: bool | None = None, kontingent: int | None = None, tag_max: int | None = None) -> dict:
+        with self.lock:
+            daten = self._gast()
+            if aktiv is not None:
+                daten["aktiv"] = bool(aktiv)
+            if kontingent is not None:
+                daten["kontingent"] = max(0, min(100000, int(kontingent)))
+            if tag_max is not None:
+                daten["tag_max"] = max(0, min(10_000_000, int(tag_max)))
+            self._json("gast.json", daten)
+        return self.gast_stand()
+
     def person(self, token: str, geraet: str) -> dict:
         inhalt = self.lesen(token)
         if geraet not in inhalt.get("geraete", []):
             raise HTTPException(403, "Diese Lizenz gehört zu einem anderen Gerät.")
+        if inhalt.get("gast"):
+            daten = self._gast()
+            if not daten["aktiv"]:
+                raise HTTPException(403, "Der freie FelWorks-Zugang ist gerade ausgeschaltet. Hinterlege einen eigenen API-Schlüssel.")
+            if geraet not in daten["geraete"]:
+                raise HTTPException(403, "Dieses Gerät hat keinen freien FelWorks-Zugang mehr.")
+            return {"rolle": "gast", "haupt": False, "id": "gast-" + geraet[:12], "name": GAST_NAME, "geraet": geraet, "gast": True}
         if inhalt.get("kostenlos"):
             daten = self._kostenlos()
             if not daten["aktiv"]:
@@ -365,7 +433,9 @@ class Codeserver:
         if bericht:
             self._bericht(person, bericht)
         with self.lock:
-            if person["haupt"]:
+            if person.get("gast"):
+                neu = self.gast_token(geraet)
+            elif person["haupt"]:
                 neu = self.admin_token(geraet)
             elif person.get("kostenlos"):
                 daten = self._kostenlos()
@@ -538,7 +608,7 @@ class Codeserver:
                 summen[feld].update(nutzung.get(feld, {}))
             geraete.append({"geraet": geraet, "kurz": geraet[:6], **{k: v for k, v in eintrag.items() if k != "nutzung"}, "anfragen": int(nutzung.get("anfragen") or 0), "tokens": int(nutzung.get("tokens") or 0), "felworks_heute": int(llm["verbrauch"].get(geraet, 0)) if llm["datum"] == date.today().isoformat() else 0})
         geraete.sort(key=lambda g: g.get("zuletzt", 0), reverse=True)
-        return {"geraete": geraete, "summe": {"geraete": len(geraete), "anfragen": anfragen, "tokens": tokens, "fehler": fehler, **{feld: summen[feld].most_common(10) for feld in summen}}, "felworks": {"kontingent": int(llm["kontingent"]), "heute": sum(llm["verbrauch"].values()) if llm["datum"] == date.today().isoformat() else 0, "gesamt": int(llm.get("gesamt", 0))}}
+        return {"geraete": geraete, "summe": {"geraete": len(geraete), "anfragen": anfragen, "tokens": tokens, "fehler": fehler, **{feld: summen[feld].most_common(10) for feld in summen}}, "felworks": {"kontingent": int(llm["kontingent"]), "heute": sum(llm["verbrauch"].values()) if llm["datum"] == date.today().isoformat() else 0, "gesamt": int(llm.get("gesamt", 0))}, "gast": self.gast_stand()}
 
     def _team(self) -> dict:
         daten = self._lesen("team.json", {})
@@ -718,16 +788,32 @@ class Codeserver:
             raise HTTPException(401, "Für den FelWorks-Modellzugang fehlt die Lizenz.")
         inhalt = self.lesen(token)
         geraete = inhalt.get("geraete") or [""]
-        return self.team_pruefen(token, geraete[0], "modell")
+        person = self.person(token, geraete[0])
+        if person["rolle"] in TEAM:
+            if not self.flags_fuer(person).get("modell"):
+                raise HTTPException(403, f"„{FLAGS['modell'][0]}“ hat der Admin für dich ausgeschaltet.")
+            return person
+        if not self._gast()["aktiv"]:
+            raise HTTPException(403, "Der freie FelWorks-Zugang ist gerade ausgeschaltet. Hinterlege einen eigenen API-Schlüssel.")
+        return {**person, "gast": True}
 
     def llm_verbrauchen(self, person: dict) -> dict:
         heute = date.today().isoformat()
         with self.lock:
             daten = self._llm()
             if daten["datum"] != heute:
-                daten.update(datum=heute, verbrauch={})
+                daten.update(datum=heute, verbrauch={}, gast_heute=0)
             schon = int(daten["verbrauch"].get(person["geraet"], 0))
-            if person["rolle"] != "admin" and schon >= int(daten["kontingent"]):
+            if daten["datum"] == heute and "gast_heute" not in daten:
+                daten["gast_heute"] = 0
+            if person.get("gast"):
+                gast = self._gast()
+                if int(daten.get("gast_heute", 0)) >= int(gast["tag_max"]):
+                    raise HTTPException(429, "Der freie FelWorks-Zugang ist für heute ausgelastet. Morgen geht es weiter – oder hinterlege einen eigenen API-Schlüssel.")
+                if schon >= int(gast["kontingent"]):
+                    raise HTTPException(429, f"Deine {gast['kontingent']} freien Anfragen über FelWorks für heute sind aufgebraucht. Morgen geht es weiter – oder hinterlege einen eigenen API-Schlüssel.")
+                daten["gast_heute"] = int(daten.get("gast_heute", 0)) + 1
+            elif person["rolle"] != "admin" and schon >= int(daten["kontingent"]):
                 raise HTTPException(429, f"Dein Tageskontingent von {daten['kontingent']} Anfragen über FelWorks ist aufgebraucht. Morgen geht es weiter, oder frag den Admin.")
             daten["verbrauch"][person["geraet"]] = schon + 1
             daten["gesamt"] = int(daten.get("gesamt", 0)) + 1
@@ -923,6 +1009,17 @@ class Kostenlos(Lizenz):
     aktiv: bool
 
 
+class GastHolen(BaseModel):
+    geraet: str = Field(pattern=GERAET)
+    art: str = Field(default="", max_length=20)
+
+
+class GastSetzen(Lizenz):
+    aktiv: bool | None = None
+    kontingent: int | None = Field(default=None, ge=0, le=100000)
+    tag_max: int | None = Field(default=None, ge=0, le=10_000_000)
+
+
 class Dienst(Lizenz):
     dienst: str = Field(pattern="^(jon|jon-codes|jon-demo)$")
 
@@ -949,7 +1046,21 @@ def erstellen(server: Codeserver | None = None, pause: float = 1.2) -> FastAPI:
 
     @app.get("/codes/status")
     async def status() -> dict:
-        return {"ok": True, "oeffentlich": dienst.oeffentlich(), "admin": bool(dienst.admin().get("hash")), "kostenlos": dienst.kostenlos_aktiv()}
+        return {"ok": True, "oeffentlich": dienst.oeffentlich(), "admin": bool(dienst.admin().get("hash")), "kostenlos": dienst.kostenlos_aktiv(), "gast": bool(dienst._gast()["aktiv"])}
+
+    @app.post("/codes/gast")
+    async def gast(daten: GastHolen, request: Request) -> dict:
+        return dienst.gast_holen(daten.geraet, adresse(request), daten.art)
+
+    @app.post("/codes/gast/stand")
+    async def gast_stand(daten: Lizenz) -> dict:
+        dienst.admin_pruefen(daten.token, daten.geraet)
+        return dienst.gast_stand()
+
+    @app.post("/codes/gast/setzen")
+    async def gast_setzen(daten: GastSetzen) -> dict:
+        dienst.admin_pruefen(daten.token, daten.geraet)
+        return dienst.gast_setzen(daten.aktiv, daten.kontingent, daten.tag_max)
 
     @app.post("/codes/kostenlos")
     async def kostenlos(daten: Geraet, request: Request) -> dict:

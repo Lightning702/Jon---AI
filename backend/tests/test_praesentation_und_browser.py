@@ -459,7 +459,8 @@ def test_skill_verlangt_ausformulierten_text():
     assert "Niemals Platzhalter" in text
     assert "bild_prompt" in text
     assert "diagramm" in text
-    assert "400–900 Zeichen" in text
+    assert "250–600 Zeichen" in text
+    assert "Storyline" in text
 
 
 def test_verknuepfung_wird_angelegt_und_entfernt(tmp_path, monkeypatch):

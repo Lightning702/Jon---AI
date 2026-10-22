@@ -27,7 +27,7 @@ class _KeineKarte:
         return None
 
     async def home_details(self):
-        return {"lat": 47.75, "lon": 16.23, "name": "Zuhause", "quelle": "nutzer"}
+        return {"lat": 48.21, "lon": 16.37, "name": "Zuhause", "quelle": "nutzer"}
 
 
 @pytest.fixture(autouse=True)
@@ -58,11 +58,11 @@ def _aufraeumen(*kennungen: str) -> None:
 
 
 def test_namen_werden_tolerant_verglichen():
-    assert name_passt("Felix", "Felix") == 3
-    assert name_passt("felix", "Felix Heinisch") == 2
-    assert name_passt("Félix", "felix") == 3
-    assert name_passt("Mama", "Felix") == 0
-    assert name_passt("Feli", "Felix Heinisch") == 1
+    assert name_passt("Lena", "Lena") == 3
+    assert name_passt("lena", "Lena Berger") == 2
+    assert name_passt("Léna", "lena") == 3
+    assert name_passt("Mama", "Lena") == 0
+    assert name_passt("Len", "Lena Berger") == 1
 
 
 def test_geraetetyp_wird_erkannt():
@@ -81,12 +81,12 @@ def test_standort_wird_geprueft():
 
 
 def test_uhr_koppelt_ueber_das_handy_ohne_bestaetigung():
-    handy = _koppeln("Galaxy A54", "Android 15 · Jon Gerät", besitzer="Felix")
+    handy = _koppeln("Galaxy A54", "Android 15 · Jon Gerät", besitzer="Lena")
     try:
         dienst = get_handy_service()
-        dienst.besitzer_setzen(handy, "Felix")
+        dienst.besitzer_setzen(handy, "Lena")
         daten = asyncio.run(get_oekosystem().uhr_koppeln(handy))
-        assert len(daten["code"]) == 12 and daten["besitzer"] == "Felix"
+        assert len(daten["code"]) == 12 and daten["besitzer"] == "Lena"
         uhr_schluessel = schluessel_fuer_code(daten["code"])
         thema = thema_fuer(daten["code"])
         zusatz = f"pair:{thema}".encode()
@@ -97,7 +97,7 @@ def test_uhr_koppelt_ueber_das_handy_ohne_bestaetigung():
         ergebnis = _entschluesseln(uhr_schluessel, zusatz, asyncio.run(dienst.umschlag(umschlag)))
         uhr = ergebnis["geraet"]
         eintrag = next(g for g in dienst.geraete() if g["id"] == uhr)
-        assert eintrag["typ"] == "uhr" and eintrag["besitzer"] == "Felix" and eintrag["ueber"] == handy
+        assert eintrag["typ"] == "uhr" and eintrag["besitzer"] == "Lena" and eintrag["ueber"] == handy
     finally:
         dienst.kopplung_abbrechen()
         _aufraeumen(handy, locals().get("uhr", ""))
@@ -111,7 +111,7 @@ def test_wo_ist_braucht_freigabe_und_nutzt_gespeicherten_standort():
         with pytest.raises(OekoFehler, match="nicht freigegeben"):
             asyncio.run(get_oekosystem().wo_ist("Lena", "Mama"))
         dienst.rechte_setzen(handy, "standort", True)
-        assert dienst.standort_merken(handy, {"lat": 47.7501, "lon": 16.2302, "genau": 15}) is not None
+        assert dienst.standort_merken(handy, {"lat": 48.2101, "lon": 16.3702, "genau": 15}) is not None
         ergebnis = asyncio.run(get_oekosystem().wo_ist("lena", "Mama"))
         assert ergebnis["ok"] and ergebnis["person"] == "lena"
         assert ergebnis["zuhause"] is True
@@ -139,7 +139,7 @@ def test_standort_ohne_freigabe_wird_nicht_gespeichert():
 
 def test_auftrag_an_offline_uhr_geht_ueber_das_handy():
     handy = _koppeln("Galaxy S25", "Android 16 · Jon Gerät")
-    uhr = _koppeln("Galaxy Watch", "Wear OS · Jon Uhr", auto={"typ": "uhr", "besitzer": "Felix", "ueber": handy})
+    uhr = _koppeln("Galaxy Watch", "Wear OS · Jon Uhr", auto={"typ": "uhr", "besitzer": "Lena", "ueber": handy})
     dienst = get_handy_service()
 
     async def ablauf():
@@ -163,10 +163,10 @@ def test_auftrag_an_offline_uhr_geht_ueber_das_handy():
 def test_uhr_laesst_nur_eigenes_handy_klingeln(monkeypatch):
     handy = _koppeln("Galaxy A54", "Android 15 · Jon Gerät")
     fremd = _koppeln("Mamas Handy", "Android 14 · Jon Gerät")
-    uhr = _koppeln("Galaxy Watch", "Wear OS · Jon Uhr", auto={"typ": "uhr", "besitzer": "Felix", "ueber": handy})
+    uhr = _koppeln("Galaxy Watch", "Wear OS · Jon Uhr", auto={"typ": "uhr", "besitzer": "Lena", "ueber": handy})
     dienst = get_handy_service()
-    dienst.besitzer_setzen(handy, "Felix")
-    dienst.besitzer_setzen(fremd, "Anita")
+    dienst.besitzer_setzen(handy, "Lena")
+    dienst.besitzer_setzen(fremd, "Mia")
     geklingelt: list[str] = []
 
     async def klingeln(geraete_id, sekunden=30):
@@ -200,12 +200,12 @@ def test_aktives_geraet_lenkt_erinnerungen_um():
 def test_gedaechtnis_wird_getauscht_ohne_echo():
     oeko = get_oekosystem()
     vorher = oeko.gedaechtnis_export()["stand"]
-    ergebnis = asyncio.run(oeko.gedaechtnis_tauschen("abc123", [{"content": "Felix trinkt gern Kakao mit Zimt."}], vorher))
+    ergebnis = asyncio.run(oeko.gedaechtnis_tauschen("abc123", [{"content": "Lena trinkt gern Kakao mit Zimt."}], vorher))
     assert ergebnis["neu"] == 1
     assert all("Kakao mit Zimt" not in e["content"] for e in ergebnis["eintraege"])
     fremd = oeko.gedaechtnis_export(vorher, "geraet:anderes")
     assert any("Kakao mit Zimt" in e["content"] for e in fremd["eintraege"])
-    doppelt = asyncio.run(oeko.gedaechtnis_tauschen("abc123", [{"content": "Felix trinkt gern Kakao mit Zimt."}], vorher))
+    doppelt = asyncio.run(oeko.gedaechtnis_tauschen("abc123", [{"content": "Lena trinkt gern Kakao mit Zimt."}], vorher))
     assert doppelt["neu"] == 0
 
 
@@ -221,7 +221,7 @@ def test_routen_liefern_uebersicht_und_standorte():
 def test_wo_ist_karte_wird_gebaut():
     from app.services.chat_service import card_payload
 
-    karte = card_payload("wo_ist", json.dumps({"ok": True, "person": "Felix", "lat": 47.7, "lon": 16.2, "adresse": "Grazerstraße 11", "wann": "gerade eben", "zuhause": True}))
+    karte = card_payload("wo_ist", json.dumps({"ok": True, "person": "Lena", "lat": 48.2, "lon": 16.36, "adresse": "Hauptplatz 1", "wann": "gerade eben", "zuhause": True}))
     assert karte["kind"] == "maps"
-    assert karte["data"]["karte"]["marker"][0]["name"] == "Felix"
+    assert karte["data"]["karte"]["marker"][0]["name"] == "Lena"
     assert card_payload("wo_ist", json.dumps({"ok": False, "error": "x"})) is None

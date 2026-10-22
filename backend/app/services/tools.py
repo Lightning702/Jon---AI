@@ -250,6 +250,10 @@ CORE_TOOLS = {
     "bild_zeigen",
     "telegram_senden",
     "understand_screen",
+    "bildschirm_lesen",
+    "bildschirm_klicken",
+    "bildschirm_eingeben",
+    "pc_strom",
     "was_laeuft",
     "wechseln",
     "harness_task",
@@ -1143,6 +1147,37 @@ def select_tools(context: str) -> set[str] | None:
     return allowed
 
 
+def _pfad_reparieren(roh: str) -> str:
+    import os
+
+    text = os.path.expandvars(str(roh or "").strip().strip('"'))
+    if not text:
+        return ""
+    pfad = Path(text).expanduser()
+    teile = list(pfad.parts)
+    if len(teile) >= 3 and teile[1].lower() == "users" and not Path(*teile[:3]).exists():
+        pfad = Path.home().joinpath(*teile[3:])
+        teile = list(pfad.parts)
+    heim = Path.home()
+    try:
+        relativ = pfad.relative_to(heim)
+        if relativ.parts and relativ.parts[0].lower() == "desktop":
+            from app.services.verknuepfung_service import schreibtisch
+
+            pfad = schreibtisch().joinpath(*relativ.parts[1:])
+    except ValueError:
+        pass
+    if not pfad.is_absolute() and teile and teile[0].lower() == "desktop":
+        from app.services.verknuepfung_service import schreibtisch
+
+        pfad = schreibtisch().joinpath(*teile[1:])
+    try:
+        pfad.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as fehler:
+        leise(fehler, "services/tools")
+    return str(pfad)
+
+
 def _shorten(value: Any, limit: int = 120) -> str:
     text = str(value).replace("\n", " ").strip()
     return text if len(text) <= limit else text[: limit - 1] + "…"
@@ -1318,6 +1353,22 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return f"Kopiert in die Zwischenablage: {_shorten(args.get('text', ''))}"
     if name == "screenshot":
         return "Macht einen Screenshot des Bildschirms."
+    if name == "bildschirm_lesen":
+        return "Schaut sich den Bildschirm an."
+    if name == "bildschirm_klicken":
+        art = str(args.get("art") or "")
+        vorsatz = {"doppel": "Doppelklickt", "rechts": "Rechtsklickt"}.get(art, "Klickt")
+        return f"{vorsatz} auf „{_shorten(args.get('ziel', ''), 60)}“."
+    if name == "bildschirm_eingeben":
+        ziel = str(args.get("ziel") or "").strip()
+        return f"Schreibt „{_shorten(args.get('text', ''), 50)}“" + (f" in „{_shorten(ziel, 40)}“." if ziel else ".")
+    if name == "lehrer":
+        aktion = str(args.get("aktion") or "stand")
+        return {"erstellen": f"Baut einen Lernkurs: {_shorten(args.get('fach', ''), 60)}", "frage": "Fragt den Lehrer.", "aufgabe": "Holt die nächste Übung.", "antwort": "Korrigiert die Antwort."}.get(aktion, "Schaut in die Lernkurse.")
+    if name == "pc_strom":
+        from app.services.pc_strom import AKTIONEN
+
+        return f"PC: {AKTIONEN.get(str(args.get('aktion', '')).lower(), str(args.get('aktion', '')))}."
     if name == "http_get":
         return f"Ruft {_shorten(args.get('url', ''))} ab."
     if name == "download_file":
@@ -1812,6 +1863,11 @@ GRUPPEN_TITEL: list[tuple[str, str, str]] = [
 ]
 
 _PC_TOOLS = {
+    "bildschirm_lesen",
+    "bildschirm_klicken",
+    "bildschirm_eingeben",
+    "pc_strom",
+    "lehrer",
     "run_powershell",
     "run_cmd",
     "start_program",
@@ -2587,7 +2643,7 @@ class ToolBox:
                 "Findet heraus, wo eine Person gerade ist: Jon sucht das Handy (oder "
                 "die Uhr), dessen Besitzer so heisst, fragt live den Standort ab und "
                 "liefert Adresse, ob die Person zuhause ist und wie aktuell das ist. "
-                "Nimm das IMMER bei 'Wo ist Felix?', 'Wo steckt Mama?', 'Ist Lena schon "
+                "Nimm das IMMER bei 'Wo ist Lena?', 'Wo steckt Mama?', 'Ist Lena schon "
                 "zuhause?'. person ist der Name, so wie der Nutzer ihn sagt. Die "
                 "Person bekommt am Handy einen Hinweis, dass ihr Standort abgefragt "
                 "wurde. Antworte danach kurz mit Ort und Aktualitaet.",
@@ -3118,11 +3174,58 @@ class ToolBox:
             ),
             _tool(
                 "screenshot",
-                "Macht einen Screenshot. Mit path wird als Datei gespeichert, sonst als "
-                "Data-URL zurueckgegeben. Nutze das, um zu pruefen, was auf dem Bildschirm "
-                "ist.",
+                "Speichert einen Screenshot als Bilddatei (path optional). Um zu VERSTEHEN, "
+                "was auf dem Bildschirm ist, nimm bildschirm_lesen - ein Screenshot allein "
+                "zeigt dir nichts.",
                 {"path": _STR},
                 [],
+            ),
+            _tool(
+                "bildschirm_lesen",
+                "Schaut sich den echten Bildschirm des Nutzers an und liefert das aktive "
+                "Fenster, alle sichtbaren Bedienelemente (Knoepfe, Links, Felder, Tabs, "
+                "Taskleiste) mit Nummern und den sichtbaren Text. Mit frage oder genau=true "
+                "beschreibt zusaetzlich ein Vision-Modell das Bild. Nutze das IMMER zuerst, "
+                "wenn der Nutzer etwas auf dem Bildschirm meint ('was siehst du', 'klick da "
+                "auf weiter', 'welche Fehlermeldung').",
+                {"frage": _STR, "genau": _BOOL},
+                [],
+            ),
+            _tool(
+                "bildschirm_klicken",
+                "Klickt auf ein sichtbares Element ueber seinen Namen oder seine Beschriftung, "
+                "z. B. ziel='Start', ziel='Anmelden', ziel='Weiter', ziel='Suchfeld', "
+                "ziel='Play'. Funktioniert in jedem Programm und auf jeder Website, auch auf "
+                "Zweitbildschirmen; Jon findet das Element per Bedienhilfe, Texterkennung "
+                "und notfalls per Bildverstehen. ziel darf auch eine Nummer aus "
+                "bildschirm_lesen sein. art: links (Standard), rechts, doppel. Rate nie "
+                "Koordinaten mit mouse_click, wenn du einen Namen hast.",
+                {"ziel": _STR, "art": {"type": "string", "enum": ["links", "rechts", "doppel"]}},
+                ["ziel"],
+            ),
+            _tool(
+                "bildschirm_eingeben",
+                "Klickt in ein sichtbares Eingabefeld (ziel, z. B. 'Suchfeld', 'E-Mail', "
+                "'Nachricht') und schreibt text hinein; enter=true schickt ab. Ohne ziel wird "
+                "ins gerade aktive Feld geschrieben.",
+                {"ziel": _STR, "text": _STR, "enter": _BOOL},
+                ["text"],
+            ),
+            _tool(
+                "lehrer",
+                "Jon Lehrer: persönlicher Lernkurs aus den Lerndateien des Nutzers. aktion=erstellen baut aus fach (z. B. 'Deutsch: Kommasetzung', 'Englisch Vokabeln Unit 3', 'Mathe Bruchrechnen'), optional ziel, niveau, termin (JJJJ-MM-TT) und dateien (Pfade hochgeladener Dateien: PDF, Word, PowerPoint, Bilder, Text) automatisch Lektionen mit Erklärungen und Übungen. aktion=stand zeigt Kurse und Fortschritt, aufgabe holt die nächste Übung (kurs), antwort prüft eine Antwort (kurs, aufgabe, antwort), frage beantwortet eine Frage zum Stoff (kurs, text). Nutze das IMMER, wenn jemand etwas lernen, üben oder sich auf eine Prüfung oder Schularbeit vorbereiten will.",
+                {"aktion": {"type": "string", "enum": ["stand", "erstellen", "aufgabe", "antwort", "frage"]}, "fach": _STR, "ziel": _STR, "niveau": _STR, "termin": _STR, "dateien": {"type": "array", "items": {"type": "string"}}, "kurs": _STR, "aufgabe": _STR, "antwort": _STR, "text": _STR},
+                ["aktion"],
+            ),
+            _tool(
+                "pc_strom",
+                "Schaltet den PC: herunterfahren, neustarten, energiesparen, ruhezustand, "
+                "sperren, abmelden, bildschirm_aus oder abbrechen (stoppt geplantes "
+                "Herunterfahren/Neustarten). Herunterfahren und Neustarten laufen mit "
+                "sekunden Vorlauf (Standard 30), damit der Nutzer noch abbrechen kann. Nur "
+                "wenn der Nutzer das ausdruecklich will.",
+                {"aktion": {"type": "string", "enum": ["herunterfahren", "neustarten", "energiesparen", "ruhezustand", "sperren", "abmelden", "bildschirm_aus", "abbrechen"]}, "sekunden": _INT},
+                ["aktion"],
             ),
             _tool(
                 "http_get",
@@ -3352,7 +3455,7 @@ class ToolBox:
                 "notes (Sprechernotizen, 2-4 Saetze), uebergang (fade, push, wipe, "
                 "morph, cover, split, zoom, reveal, glitter, keiner), tempo (langsam, "
                 "mittel, schnell).\n"
-                "theme: midnight, forest, coral, terracotta, ocean, charcoal, teal, "
+                "theme: hell (Standard: weiss, grosse randlose Fotos, runde Bildausschnitte, orange Akzentlinie - wie eine moderne Office-Praesentation), midnight, forest, coral, terracotta, ocean, charcoal, teal, "
                 "berry, sage, cherry, gold.\n"
                 "QUALITAET BEIM ERSTEN MAL: Hoechstens 5 Stichpunkte je Folie, je ein Satz mit "
                 "hoechstens ~15 Woertern - lieber eine Folie mehr. Jede Inhaltsfolie bekommt ein "
@@ -4436,6 +4539,47 @@ class ToolBox:
         return result
 
     async def _dispatch(self, name: str, args: dict[str, Any]) -> str:
+        if name in ("bildschirm_lesen", "bildschirm_klicken", "bildschirm_eingeben"):
+            from app.services import bildschirm_agent
+
+            try:
+                if name == "bildschirm_lesen":
+                    ergebnis = await bildschirm_agent.lesen(str(args.get("frage") or ""), bool(args.get("genau")))
+                elif name == "bildschirm_klicken":
+                    ergebnis = await bildschirm_agent.klicken(str(args.get("ziel") or ""), str(args.get("art") or "links"))
+                else:
+                    ergebnis = await bildschirm_agent.eingeben(str(args.get("ziel") or ""), str(args.get("text") or ""), bool(args.get("enter")))
+            except Exception as exc:
+                ergebnis = {"error": f"Bildschirm: {exc}"}
+            return json.dumps(ergebnis, ensure_ascii=False)
+        if name == "lehrer":
+            from app.services.lehrer_service import get_lehrer_service
+
+            dienst = get_lehrer_service()
+            aktion = str(args.get("aktion") or "stand")
+            kurs = str(args.get("kurs") or "")
+            try:
+                if aktion == "erstellen":
+                    neu = dienst.erstellen(str(args.get("fach") or ""), str(args.get("ziel") or ""), str(args.get("niveau") or ""), str(args.get("termin") or ""), [str(p) for p in args.get("dateien") or []])
+                    dienst.starten(neu)
+                    return json.dumps({"ok": True, "kurs": neu["id"], "hinweis": "Der Kurs wird gerade gebaut (meist 1-3 Minuten). Er erscheint unter Werkzeuge → Jon Lehrer; danach kann der Nutzer sofort üben.", "oeffne": "lehrer"}, ensure_ascii=False)
+                if not kurs and aktion != "stand":
+                    kurse = dienst.liste()
+                    kurs = kurse[0]["id"] if kurse else ""
+                if aktion == "aufgabe":
+                    return json.dumps(await dienst.naechste(kurs), ensure_ascii=False)
+                if aktion == "antwort":
+                    return json.dumps(await dienst.antworten(kurs, str(args.get("aufgabe") or ""), str(args.get("antwort") or "")), ensure_ascii=False)
+                if aktion == "frage":
+                    return json.dumps(await dienst.fragen(kurs, str(args.get("text") or "")), ensure_ascii=False)
+                return json.dumps({"kurse": dienst.textstand()}, ensure_ascii=False)
+            except ValueError as exc:
+                return json.dumps({"error": str(exc)}, ensure_ascii=False)
+        if name == "pc_strom":
+            from app.services.pc_strom import ausfuehren
+
+            sekunden = args.get("sekunden")
+            return json.dumps(await asyncio.to_thread(ausfuehren, str(args.get("aktion") or ""), 30 if sekunden is None else int(sekunden)), ensure_ascii=False)
         if name == "understand_screen":
             from app.services.mini_jon_agent import get_mini_jon_agent
             from app.services.mini_jon_screen import analyze
@@ -4654,12 +4798,13 @@ class ToolBox:
                 [f for f in folien if isinstance(f, dict)],
                 args.get("bilder", True) is not False,
             )
+            ziel = _pfad_reparieren(str(args.get("path", "")))
             ergebnis = await asyncio.to_thread(
                 pptx.create,
                 str(args.get("title", "Praesentation")),
                 list(folien),
-                str(args.get("path", "")) or None,
-                str(args.get("theme", "")) or "midnight",
+                ziel or None,
+                str(args.get("theme", "")) or "hell",
                 str(args.get("subtitle", "")),
                 args.get("effekte", True) is not False,
             )
@@ -5287,9 +5432,15 @@ class ToolBox:
             return json.dumps({"set": svc.clipboard_set(str(args.get("text", "")))})
         if name == "screenshot":
             path = args.get("path")
-            return json.dumps(
-                svc.screenshot(str(path) if path else None), ensure_ascii=False
-            )
+            if not path:
+                from app.core.config import DATA_DIR
+
+                ordner = DATA_DIR / "screenshots"
+                ordner.mkdir(parents=True, exist_ok=True)
+                path = str(ordner / f"bildschirm-{int(time.time())}.png")
+            daten = svc.screenshot(str(path))
+            daten["hinweis"] = "Gespeichert. Um zu sehen, was darauf ist, nutze bildschirm_lesen."
+            return json.dumps(daten, ensure_ascii=False)
         if name == "http_get":
             return json.dumps(svc.http_get(str(args.get("url", ""))), ensure_ascii=False)
         if name == "download_file":

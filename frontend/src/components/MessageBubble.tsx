@@ -2,7 +2,7 @@ import { FileSpreadsheet, FileText, Image as ImageIcon, Paperclip, Presentation 
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, lazy, useState } from "react";
 import { toolDetail, toolLabel } from "../lib/toolInfo";
-import { ohneTabellen } from "../lib/text";
+import ChatText from "./ChatText";
 import type { MapsCardData } from "../lib/maps";
 import type { BrowserTaskDaten, JonDatei, JonUhr, JonWecker, StudioWork } from "../lib/api";
 import type { ZeitAnfrageDaten } from "./ZeitAnfrageCard";
@@ -305,7 +305,7 @@ export default function MessageBubble({
               <JonDenkt text={laufend ? "Jon arbeitet …" : "Jon denkt nach …"} />
             ) : (
               <>
-                <span>{ohneTabellen(entry.content)}</span>
+                <ChatText text={entry.content} />
                 {entry.streaming && (
                   <span className="inline-block w-2 h-4 ml-0.5 align-middle bg-gold animate-pulse rounded-sm" />
                 )}

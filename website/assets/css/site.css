@@ -676,3 +676,28 @@ a.chip:hover{color:var(--text);border-color:rgba(255,255,255,.35)}
 .legal-hero .newbadge+h1{margin-top:26px}
 .jon-site .doc{grid-template-columns:minmax(0,1fr)}
 .jon-site .doc-card{min-width:0}
+
+.term-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:22px;align-items:stretch}
+.term-install{display:flex;flex-direction:column;gap:14px;padding:26px;border-radius:var(--radius);border:1px solid var(--gold-line);background:linear-gradient(180deg,rgba(217,181,74,.07),rgba(255,255,255,.01))}
+.term-tabs{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);align-self:flex-start}
+.term-tab{padding:7px 14px;border-radius:9px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;cursor:pointer;transition:background .2s,color .2s}
+.term-tab.is-active{background:rgba(217,181,74,.16);color:var(--text)}
+.term-cmd{display:flex;align-items:center;gap:12px;padding:14px 14px 14px 18px;border-radius:14px;border:1px solid rgba(79,141,251,.28);background:#060913;font-family:var(--mono);font-size:14.5px;color:#d4e3ff;box-shadow:0 0 40px -18px rgba(79,141,251,.6)}
+.term-cmd[hidden]{display:none}
+.term-cmd__prompt{color:var(--gold-2);font-weight:700;flex-shrink:0}
+.term-cmd code{flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;user-select:all}
+.term-copy{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;padding:8px 12px;border-radius:10px;border:1px solid var(--gold-line);background:rgba(217,181,74,.12);color:var(--text);font:600 13px var(--sans,inherit);cursor:pointer;transition:background .2s,transform .15s}
+.term-copy:hover{background:rgba(217,181,74,.22)}
+.term-copy:active{transform:scale(.96)}
+.term-copy.is-done{border-color:rgba(104,211,145,.5);background:rgba(104,211,145,.16)}
+.term-copy .i{width:16px;height:16px}
+.term-steps{margin:4px 0 0;padding-left:20px;display:grid;gap:8px;color:var(--muted);font-size:15px}
+.term-steps b{color:var(--text)}
+.term-steps code{font-family:var(--mono);color:var(--gold-2);background:rgba(217,181,74,.1);padding:1px 6px;border-radius:6px}
+.term-window{display:flex;flex-direction:column}
+.term-out{margin:0;padding:18px 20px 22px;font-family:var(--mono);font-size:13px;line-height:1.75;color:#cfd6e6;white-space:pre-wrap;overflow-wrap:anywhere}
+.term-out b{color:#fff;font-weight:600}
+.t-gold{color:#e8b94a}.t-blue{color:#5e9cff}.t-green{color:#68d391}.t-cyan{color:#5cd6d6}.t-dim{color:#7b8294}
+.term-features{margin-top:22px}
+@media (max-width: 980px){.term-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width: 560px){.term-cmd{flex-wrap:wrap;align-items:flex-start;font-size:13.5px}.term-copy{width:100%;justify-content:center}}

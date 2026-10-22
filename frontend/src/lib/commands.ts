@@ -8,6 +8,7 @@ export interface SlashCommand {
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
+  {cmd: "/btw", aliases: ["/nebenbei"], icon: "💬", title: "Nebenbei fragen, während Jon arbeitet – „danach: …“ merkt einen Auftrag vor (Alt+B)", arg: "Frage", gruppe: "Arbeiten"},
   {cmd: "/transkript", aliases: ["/transcribe", "/stt"], icon: "🎙️", title: "Audiodatei vollständig in Text umwandeln", gruppe: "Medien"},
   {cmd: "/podcast", aliases: ["/tts", "/audio"], icon: "🎧", title: "Text als Audiodatei erstellen", gruppe: "Medien"},
   {

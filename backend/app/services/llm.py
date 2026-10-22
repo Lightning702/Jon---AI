@@ -16,6 +16,7 @@ async def complete(
     temperature: float = 0.9,
     slot: str = "jon",
     first_token_timeout: float = 0.0,
+    denken: bool | None = None,
 ) -> str:
     settings = get_settings()
     provider = provider or settings.default_provider
@@ -24,6 +25,12 @@ async def complete(
 
     provider, model = lokal_erzwingen(provider, model)
     prov = get_registry().get(provider)
+    if not prov.available():
+        ersatz = get_registry().all().get("felworks")
+        if ersatz is not None and ersatz.available():
+            provider, prov = "felworks", ersatz
+            modelle = list(getattr(ersatz, "_default_models", []) or [])
+            model = model if model in modelle else (modelle[0] if modelle else model)
     messages = []
     if system:
         messages.append(ChatMessage(role="system", content=system))
@@ -37,6 +44,7 @@ async def complete(
         tools=[],
         slot=slot,
         first_token_timeout=first_token_timeout,
+        denken=denken,
     )
     from app.services.premium import unbegrenzt
 

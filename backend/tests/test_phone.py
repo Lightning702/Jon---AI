@@ -64,7 +64,7 @@ def test_resample_haelt_die_laenge_ein():
 
 
 def test_sip_uri_parsen():
-    uri = parse_uri('"Felix" <sip:jon-phone@192.168.0.5:5062;transport=udp>')
+    uri = parse_uri('"Lena" <sip:jon-phone@192.168.0.5:5062;transport=udp>')
     assert uri.user == "jon-phone"
     assert uri.host == "192.168.0.5"
     assert uri.port == 5062
@@ -419,7 +419,7 @@ async def _rtp_uebertraegt_audio():
 
 
 def test_telefonstil_entfernt_markdown():
-    text = "**Hallo** Felix\n- Punkt eins\n```code```\n# Titel"
+    text = "**Hallo** Lena\n- Punkt eins\n```code```\n# Titel"
     clean = _phone_style(text)
     assert "*" not in clean
     assert "```" not in clean

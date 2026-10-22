@@ -43,10 +43,9 @@ class ProviderRegistry:
             key_resolver=self._resolver("nvidia"),
             default_models=[
                 "nvidia/nemotron-3-ultra-550b-a55b",
-                "meta/muse-glimmer-30b",
-                "mistralai/mistral-nemotron",
                 "nvidia/nemotron-3.5-lightning-30b-a3b",
-                "nvidia/nemotron-3-super-120b-a12b",
+                "nvidia/nemotron-3.5-super-vl-120b-a12b",
+                "openai/gpt-oss-20b",
             ],
             timeout=t,
         )
@@ -142,9 +141,9 @@ class ProviderRegistry:
             key_resolver=felworks_zugang,
             default_models=[
                 "nvidia/nemotron-3-ultra-550b-a55b",
-                "nvidia/nemotron-3-super-120b-a12b",
                 "nvidia/nemotron-3.5-lightning-30b-a3b",
-                "mistralai/mistral-nemotron",
+                "nvidia/nemotron-3.5-super-vl-120b-a12b",
+                "openai/gpt-oss-20b",
             ],
             timeout=t,
         )

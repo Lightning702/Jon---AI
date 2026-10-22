@@ -229,8 +229,22 @@ def bewerten(name: str, args: dict | None = None) -> Stufe:
     if werkzeug == "datei_kommentare" and str(werte.get("aktion", "lesen")).strip().lower() in ("", "lesen", "liste"):
         return Stufe(NIEDRIG, LESEN, "Nur lesend.")
 
-    if werkzeug == "was_laeuft":
+    if werkzeug in ("was_laeuft", "bildschirm_lesen"):
         return Stufe(NIEDRIG, LESEN, "Nur lesend.")
+
+    if werkzeug == "pc_strom":
+        aktion = str(werte.get("aktion", "")).strip().lower()
+        if aktion in ("abbrechen", "sperren", "bildschirm_aus"):
+            return Stufe(NIEDRIG, AENDERN, "Harmlos und sofort umkehrbar.")
+        if aktion in ("herunterfahren", "neustarten"):
+            try:
+                vorlauf = int(werte.get("sekunden", 30))
+            except (TypeError, ValueError):
+                vorlauf = 30
+            if vorlauf >= 10:
+                return Stufe(MITTEL, AENDERN, "Mit Vorlauf, laesst sich noch abbrechen.")
+            return Stufe(HOCH, ZERSTOEREND, "Sofortiges Herunterfahren beendet alle offenen Programme.")
+        return Stufe(MITTEL, AENDERN, "Schaltet den PC um.")
 
     if werkzeug == "wechseln":
         return Stufe(NIEDRIG, AENDERN, "Wechselt nur das sichtbare Fenster.")

@@ -192,7 +192,7 @@ async def providers() -> list[ProviderStatus]:
         found = [f for f in found if ist_lokal(f.provider, (f.models or [""])[0] if f.models else "")]
     from app.services.premium import get_premium
 
-    if get_premium().felworks_schluessel() and not offline_aktiv():
+    if not offline_aktiv() and await asyncio.to_thread(get_premium().felworks_schluessel, True):
         felworks = registry.all().get("felworks")
         found.append(
             ProviderStatus(

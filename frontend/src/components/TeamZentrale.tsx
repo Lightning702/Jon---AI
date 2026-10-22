@@ -268,6 +268,38 @@ function Kostenlos({ onFehler }: { onFehler: (text: string) => void }) {
   </div>;
 }
 
+interface GastStand { aktiv: boolean; kontingent: number; tag_max: number; geraete: number; aktiv_7_tage: number; heute: number }
+
+function Gastzugang({ onFehler }: { onFehler: (text: string) => void }) {
+  const [stand, setStand] = useState<GastStand | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [kontingent, setKontingent] = useState("");
+  useEffect(() => {void teamAnfrage<GastStand>("gast/stand").then(s => { setStand(s); setKontingent(String(s.kontingent)); }).catch(e => onFehler(fehlerText(e)));}, []);
+  const setzen = async (werte: Partial<GastStand>) => {
+    if (werte.aktiv === false && !confirm("Freien FelWorks-Zugang ausschalten? Terminal und Jon ohne eigenen Schlüssel bekommen dann keine Antworten mehr über FelWorks.")) return;
+    setBusy(true);
+    onFehler("");
+    try {
+      const neu = await teamAnfrage<GastStand>("gast/setzen", werte);
+      setStand(neu);
+      setKontingent(String(neu.kontingent));
+    } catch (e) {
+      onFehler(fehlerText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return <div className={"tz-karte tz-kostenlos " + (stand?.aktiv ? "an" : "")}>
+    <div className="tz-kostenlos-kopf">
+      <span className="tz-kostenlos-icon"><Sparkles size={16} /></span>
+      <span><b>FelWorks ohne Schlüssel</b><small>{!stand ? "Frage FelWorks …" : stand.aktiv ? "Jon Harness im Terminal und Jon ohne eigenen Schlüssel antworten über FelWorks." : "Aus. Wer keinen eigenen Schlüssel hat, muss einen eintragen."}</small></span>
+      <label className="tz-schalter" title={stand?.aktiv ? "Freien Zugang ausschalten" : "Freien Zugang einschalten"}><input type="checkbox" checked={!!stand?.aktiv} disabled={!stand || busy} onChange={e => void setzen({ aktiv: e.target.checked })} aria-label="FelWorks ohne Schlüssel" /><span className="tz-schalter-bahn"><i /></span></label>
+    </div>
+    {stand && <div className="tz-kostenlos-zahlen"><span><b>{zahl(stand.geraete)}</b> Geräte</span><span><b>{zahl(stand.aktiv_7_tage)}</b> aktiv in 7 Tagen</span><span><b>{zahl(stand.heute)}</b> Anfragen heute (max. {zahl(stand.tag_max)})</span></div>}
+    {stand && <div className="tz-zeile"><input type="number" min={0} max={100000} value={kontingent} onChange={e => setKontingent(e.target.value)} aria-label="Freie Anfragen pro Gerät und Tag" /><span>freie Anfragen pro Gerät und Tag</span><button type="button" className="tz-klein" disabled={busy || !kontingent || Number(kontingent) === stand.kontingent} onClick={() => void setzen({ kontingent: Number(kontingent) })}><Check size={12} />Speichern</button></div>}
+  </div>;
+}
+
 interface FlagEintrag { name: string; beschreibung: string; an: boolean; fuer: "alle" | "auswahl"; codes: string[]; eigen: boolean }
 
 function Schalter({ onFehler }: { onFehler: (text: string) => void }) {
@@ -539,7 +571,7 @@ export default function TeamZentrale({ status, onFehler, onNeuLaden }: { status:
     </nav>
     <AnimatePresence mode="wait" initial={false}>
       <motion.div key={bereich} className="tz-inhalt" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16 }}>
-        {bereich === "codes" && <><Kostenlos onFehler={onFehler} /><EntwicklerCodes onFehler={onFehler} /></>}
+        {bereich === "codes" && <><Kostenlos onFehler={onFehler} /><Gastzugang onFehler={onFehler} /><EntwicklerCodes onFehler={onFehler} /></>}
         {bereich === "team" && <TeamChat admin={admin} onFehler={onFehler} onGelesen={onNeuLaden} />}
         {bereich === "fehler" && <FehlerMelden onFehler={onFehler} />}
         {bereich === "geraete" && <Geraete onFehler={onFehler} />}

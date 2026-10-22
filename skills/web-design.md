@@ -98,6 +98,25 @@ document.querySelectorAll(".karte").forEach(k => {
 });
 ```
 
+## Agentur-Niveau – woran man es erkennt
+
+- **Ein klares Konzept:** Vor dem Code legst du Stimmung, Zielgruppe, Hauptfarbe,
+  Akzentfarbe und Schriftpaar fest (z. B. „ruhig und hochwertig: Tiefblau, Gold-Akzent,
+  Display-Schrift groß und eng gesetzt“).
+- **Typografie mit Spannung:** Hero-Überschrift groß (5–8 rem auf Desktop), enger
+  Buchstabenabstand (`letter-spacing: -0.02em`), Fließtext 17–19 px, Zwischenzeilen
+  großzügig. Eine Überschrift darf mit einem farbigen Verlauf (`background-clip: text`)
+  hervorgehoben werden.
+- **Rhythmus:** Sektionen wechseln zwischen Text-links/Bild-rechts, Kartenrastern,
+  großen Zahlen, Zitaten und vollflächigen Bildern. Abstände zwischen Sektionen
+  96–160 px auf Desktop.
+- **Echte Inhalte:** passende Texte in der Sprache der Zielgruppe, glaubwürdige Zahlen,
+  Testimonials nur, wenn sie echt sind; Bilder von Unsplash/Pexels nur als feste URL,
+  sonst CSS-Verläufe, SVG-Illustrationen oder Canvas-Effekte.
+- **Details, die Qualität zeigen:** feine Rauschtextur oder Gitter im Hintergrund,
+  leuchtende Ränder an Karten, Icons als Inline-SVG im selben Strichstil, Favicon,
+  `<meta name="description">`, Open-Graph-Tags, Smooth Scroll zu Ankern.
+
 ## Vorgehen für Jon
 
 1. Kläre in einem Satz Ziel und Stil (falls unklar, nimm dunkel + eine Akzentfarbe).

@@ -108,3 +108,40 @@ document.querySelectorAll('[data-video]').forEach((box) => {
 
 const year = document.getElementById('jahr');
 if (year) year.textContent = String(new Date().getFullYear());
+
+document.querySelectorAll('.term-tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.term-tab').forEach((t) => {
+      const aktiv = t === tab;
+      t.classList.toggle('is-active', aktiv);
+      t.setAttribute('aria-selected', String(aktiv));
+    });
+    document.querySelectorAll('.term-cmd').forEach((box) => { box.hidden = box.dataset.os !== tab.dataset.os; });
+  });
+});
+if (/Mac|Linux|X11/.test(navigator.userAgent) && !/Windows/.test(navigator.userAgent)) {
+  const unix = document.querySelector('.term-tab[data-os="unix"]');
+  if (unix) unix.click();
+}
+document.querySelectorAll('.term-copy').forEach((knopf) => {
+  knopf.addEventListener('click', async () => {
+    const text = knopf.dataset.copy || '';
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const feld = document.createElement('textarea');
+      feld.value = text;
+      document.body.appendChild(feld);
+      feld.select();
+      document.execCommand('copy');
+      feld.remove();
+    }
+    const label = knopf.querySelector('span');
+    knopf.classList.add('is-done');
+    if (label) label.textContent = 'Kopiert';
+    setTimeout(() => {
+      knopf.classList.remove('is-done');
+      if (label) label.textContent = 'Kopieren';
+    }, 1800);
+  });
+});

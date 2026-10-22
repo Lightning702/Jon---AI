@@ -49,7 +49,7 @@ def test_admin_code_liefert_signierte_admin_lizenz_ohne_klartext_auf_der_platte(
     assert "exp" not in inhalt
     for datei in server.ordner.iterdir():
         assert ADMIN not in datei.read_text(encoding="utf-8")
-    assert client.get("/codes/status").json() == {"ok": True, "oeffentlich": server.oeffentlich(), "admin": True, "kostenlos": True}
+    assert client.get("/codes/status").json() == {"ok": True, "oeffentlich": server.oeffentlich(), "admin": True, "kostenlos": True, "gast": True}
 
 
 def test_admin_erzeugt_entwickler_codes_die_nur_als_hash_gespeichert_werden(server, client):
@@ -575,3 +575,39 @@ def test_jon_meldet_kein_kostenloses_premium_wenn_der_pi_fehlt(jon):
 
     jon.codeserver = nicht_erreichbar
     assert asyncio.run(jon.kostenlos_verfuegbar()) is False
+
+
+def test_felworks_gast_ohne_premium_mit_kontingent(server, client):
+    import httpx
+
+    def nvidia(anfrage: httpx.Request) -> httpx.Response:
+        if anfrage.url.path.endswith("/models"):
+            return httpx.Response(200, json={"data": [{"id": "nvidia/nemotron-3-ultra-550b-a55b"}]})
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "Hallo Gast"}}]})
+
+    server.llm_transport = httpx.MockTransport(nvidia)
+    server.llm_schluessel, server.llm_basis = "nvapi-geheim", "https://nvidia.example/v1"
+    gast = client.post("/codes/gast", json={"geraet": ANDERES, "art": "terminal"})
+    assert gast.status_code == 200 and gast.json()["stufe"] == "gast"
+    kopf = {"Authorization": f"Bearer {gast.json()['token']}"}
+    assert client.get("/codes/llm/v1/models", headers=kopf).status_code == 200
+    antwort = client.post("/codes/llm/v1/chat/completions", headers=kopf, json={"model": "x", "messages": [{"role": "user", "content": "Hi"}]})
+    assert antwort.json()["choices"][0]["message"]["content"] == "Hallo Gast"
+    assert client.post("/codes/team/liste", json={"token": gast.json()["token"], "geraet": ANDERES}).status_code in (403, 404, 422)
+    erneuert = client.post("/codes/erneuern", json={"token": gast.json()["token"], "geraet": ANDERES})
+    assert erneuert.status_code == 200 and erneuert.json()["token"]
+    admin = _admin(client)
+    stand = client.post("/codes/gast/setzen", json={"token": admin, "geraet": GERAET, "kontingent": 1})
+    assert stand.json()["kontingent"] == 1 and stand.json()["heute"] == 1
+    voll = client.post("/codes/llm/v1/chat/completions", headers=kopf, json={"model": "x", "messages": [{"role": "user", "content": "Hi"}]})
+    assert voll.status_code == 429 and "freien Anfragen" in voll.json()["detail"]
+    client.post("/codes/gast/setzen", json={"token": admin, "geraet": GERAET, "aktiv": False})
+    assert client.get("/codes/llm/v1/models", headers=kopf).status_code == 403
+    assert client.post("/codes/gast", json={"geraet": GERAET}).status_code == 403
+
+
+def test_felworks_gast_wird_pro_adresse_gebremst(server, client):
+    for nummer in range(20):
+        assert client.post("/codes/gast", json={"geraet": f"{nummer:020x}"}).status_code == 200
+    assert client.post("/codes/gast", json={"geraet": "f" * 20}).status_code == 429
+    assert client.post("/codes/gast", json={"geraet": f"{3:020x}"}).status_code == 200

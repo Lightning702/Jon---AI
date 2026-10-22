@@ -121,6 +121,19 @@ async def cancel(task_id: str) -> dict:
     return await get_harness_service().cancel(task_id)
 
 
+class Nachauftrag(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+
+
+@router.post("/harness/tasks/{task_id}/nachauftrag")
+async def nachauftrag(task_id: str, daten: Nachauftrag) -> dict:
+    task_or_404(task_id)
+    try:
+        return {"nachauftraege": get_harness_service().nachauftrag(task_id, daten.text)}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+
 @router.post("/harness/tasks/{task_id}/approve")
 async def approve(task_id: str, payload: Approval) -> dict:
     task_or_404(task_id)

@@ -100,12 +100,12 @@ def test_ausgeschaltete_freigabe_laesst_niemanden_herein(shares):
 
 
 def test_oeffentlich_gibt_token_und_zeigt_benutzer(shares):
-    shares.update_share({"enabled": True, "visibility": "public", "name": "Felix PC"})
+    shares.update_share({"enabled": True, "visibility": "public", "name": "Lena PC"})
     result = shares.join(
         {"code": shares.share()["code"], "name": "Anna", "user_id": "abc"}, "10.0.0.9"
     )
     assert result["token"]
-    assert result["name"] == "Felix PC"
+    assert result["name"] == "Lena PC"
     users = shares.users()
     assert len(users) == 1
     assert users[0]["user"] == "Anna"
@@ -220,10 +220,10 @@ def test_endpunkt_ohne_token_gibt_401(host, shares):
 
 def test_info_verraet_nichts_wenn_privat(host, shares):
     assert host.get("/share/info").json() == {"available": False}
-    shares.update_share({"enabled": True, "visibility": "public", "name": "Felix PC"})
+    shares.update_share({"enabled": True, "visibility": "public", "name": "Lena PC"})
     info = host.get("/share/info").json()
     assert info["available"] is True
-    assert info["name"] == "Felix PC"
+    assert info["name"] == "Lena PC"
 
 
 def test_beitritt_und_modelle_ueber_http(host, shares, ollama, monkeypatch):
@@ -352,9 +352,9 @@ def _remote(shares, models=("llama3.2",)):
             "base": "http://192.168.1.50:8758",
             "token": "geheim",
             "grant_id": "g1",
-            "name": "Felix PC",
+            "name": "Lena PC",
             "description": "",
-            "owner": "Felix",
+            "owner": "Lena",
             "added_at": "",
             "last_ok": "",
             "models": list(models),
@@ -448,9 +448,9 @@ def test_verbindung_speichern_und_trennen(shares, monkeypatch):
                 json={
                     "token": "t1",
                     "grant_id": "g1",
-                    "name": "Felix PC",
+                    "name": "Lena PC",
                     "description": "Grosse Grafikkarte",
-                    "owner": "Felix",
+                    "owner": "Lena",
                 },
             )
         assert request.headers.get("authorization") == "Bearer t1"
@@ -458,7 +458,7 @@ def test_verbindung_speichern_und_trennen(shares, monkeypatch):
 
     _patch_client(monkeypatch, handler)
     entry = asyncio.run(shares.connect("AB39KD12@192.168.1.50:8758"))
-    assert entry["name"] == "Felix PC"
+    assert entry["name"] == "Lena PC"
     assert "token" not in entry
     assert shares.remote_models() == ["share:AB39KD12/llama3.2"]
     assert shares.forget_remote("AB39KD12") is True
@@ -499,19 +499,19 @@ def test_netzwerksuche_kennt_offene_einladungen(shares):
 def test_geteilter_server_wird_ein_eigener_anbieter(shares, ollama, monkeypatch):
     monkeypatch.setattr(share_mod, "_service", shares)
     _remote(shares, models=("llama3.2", "mistral"))
-    shares.update_remote("AB39KD12", {"model": "llama3.2", "owner": "Felix"})
+    shares.update_remote("AB39KD12", {"model": "llama3.2", "owner": "Lena"})
     eintraege = shares.providers()
     assert eintraege == [
         {
             "provider": "share:AB39KD12",
-            "label": "Ollama von Felix",
-            "owner": "Felix",
+            "label": "Ollama von Lena",
+            "owner": "Lena",
             "model": "llama3.2",
         }
     ]
     liste = client.get("/api/providers").json()
     geteilt = [p for p in liste if p["provider"] == "share:AB39KD12"]
-    assert geteilt and geteilt[0]["label"] == "Ollama von Felix"
+    assert geteilt and geteilt[0]["label"] == "Ollama von Lena"
     assert geteilt[0]["models"] == ["llama3.2"]
     assert geteilt[0]["locked"] is True
     assert geteilt[0]["configured"] is True

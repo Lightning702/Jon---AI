@@ -40,6 +40,9 @@
   <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3M12.5 15H17"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-grad" viewBox="0 0 24 24"><path d="m2.5 9 9.5-5 9.5 5-9.5 5-9.5-5Z"/><path d="M6.5 11.2V16c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3v-4.8M21.5 9v5"/></symbol>
   <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 8-4 4 4 4M15.5 8l4 4-4 4M13.5 5l-3 14"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5v-3a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5v-3a4 4 0 0 1 7.5-2"/></symbol>
@@ -103,6 +106,7 @@
     </a>
     <nav class="nav__links" id="menu" aria-label="Hauptnavigation">
       <a href="#features">Funktionen</a>
+      <a href="#terminal">Terminal</a>
       <a href="#install">Installation</a>
       <a href="#games">Spiele</a>
       <a href="ollama.html">Ollama</a>
@@ -123,7 +127,7 @@
     <div class="hero__bg" aria-hidden="true"></div>
     <div class="container hero__grid">
       <div class="hero__copy">
-        <a class="newbadge reveal" href="#harness-medien"><b>NEU 4.64.1</b> Live-Werkstatt, ein Jon für alle Geräte und Telegram auf Zuruf</a>
+        <a class="newbadge reveal" href="#terminal"><b>NEU 4.65.1</b> Jon im Terminal, /btw nebenbei fragen und Jon Lehrer</a>
         <h1 class="reveal" style="--d:80ms">Dein <em>KI-Desktop</em><br>Assistent für Windows</h1>
         <p class="lead reveal" style="--d:160ms">Jon von <strong>FelWorks</strong> steuert deinen gesamten Computer intelligent. KI mit deinem gewählten Anbieter, Sprachsteuerung, Echtzeit-Streaming, Langzeitgedächtnis und voller Systemsteuerung — in einem eleganten Black-&amp;-Gold-Design.</p>
         <div class="hero__actions reveal" style="--d:240ms">
@@ -171,6 +175,8 @@
     <div class="container">
       <nav class="jump reveal" aria-label="Auf dieser Seite">
         <a href="#features">Funktionen</a>
+        <a href="#terminal">Terminal</a>
+        <a href="#lehrer">Jon Lehrer</a>
         <a href="#install">Installation</a>
         <a href="#app">Handy-App</a>
         <a href="#unterwegs">Unterwegs</a>
@@ -183,6 +189,76 @@
         <a href="#about">Über mich</a>
         <a href="#download">Download</a>
       </nav>
+    </div>
+  </section>
+
+  <section class="section" id="terminal">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Neu · Jon Harness</p>
+        <h2>Jon im <em>Terminal</em></h2>
+        <p class="section__lead">Ein Coding-Agent wie die großen – nur von FelWorks. Er liest dein Projekt, plant, ändert Dateien, führt Tests aus und macht weiter, bis es läuft. Installiert mit einer Zeile, sofort kostenlos nutzbar, ganz ohne API-Schlüssel.</p>
+      </header>
+      <div class="term-grid">
+        <div class="term-install reveal">
+          <div class="term-tabs" role="tablist" aria-label="Betriebssystem">
+            <button class="term-tab is-active" type="button" role="tab" aria-selected="true" data-os="win">Windows</button>
+            <button class="term-tab" type="button" role="tab" aria-selected="false" data-os="unix">macOS / Linux</button>
+          </div>
+          <div class="term-cmd" data-os="win">
+            <span class="term-cmd__prompt">PS&gt;</span>
+            <code>irm https://getjon.info/install.ps1 | iex</code>
+            <button class="term-copy" type="button" data-copy="irm https://getjon.info/install.ps1 | iex" aria-label="Befehl kopieren"><svg class="i"><use href="#i-copy"/></svg><span>Kopieren</span></button>
+          </div>
+          <div class="term-cmd" data-os="unix" hidden>
+            <span class="term-cmd__prompt">$</span>
+            <code>curl -fsSL https://getjon.info/install.sh | sh</code>
+            <button class="term-copy" type="button" data-copy="curl -fsSL https://getjon.info/install.sh | sh" aria-label="Befehl kopieren"><svg class="i"><use href="#i-copy"/></svg><span>Kopieren</span></button>
+          </div>
+          <ol class="term-steps">
+            <li><b>Terminal öffnen</b> – unter Windows die PowerShell (Windows-Taste, „PowerShell“ tippen) – und die Zeile oben einfügen.</li>
+            <li>Danach einfach <code>jon</code> tippen – in jedem Ordner, in jedem Terminal, auch in VS Code.</li>
+            <li>Hast du Jon schon installiert, verbindet sich das Terminal von selbst mit ihm. Wenn nicht, läuft es eigenständig.</li>
+            <li>Während Jon arbeitet, tippst du einfach weiter: <code>/btw</code> stellt eine Zwischenfrage, alles andere erledigt er danach.</li>
+          </ol>
+        </div>
+        <div class="window term-window reveal" style="--d:80ms" aria-hidden="true">
+          <div class="window__bar"><i></i><i></i><i></i><span class="window__title"><b></b>Jon Harness</span><span class="window__status">~/projekte/snake</span></div>
+          <pre class="term-out"><span class="t-gold">› </span>Programmier mir Snake in 3D mit Highscore
+<span class="t-blue">●</span> <b>Plant</b>
+    <span class="t-green">✔</span> <span class="t-dim">Projekt ansehen</span>
+    <span class="t-gold">▶</span> index.html mit three.js anlegen
+    <span class="t-dim">○ Steuerung, Punkte, Sound</span>
+    <span class="t-dim">○ Testen und starten</span>
+<span class="t-blue">●</span> <b>Schreibt</b> <span class="t-cyan">index.html</span>
+  <span class="t-dim">⎿</span> <span class="t-green">412 Zeilen</span>
+<span class="t-blue">●</span> <b>Führt aus</b> <span class="t-cyan">npx serve -l 5173</span>
+  <span class="t-dim">⎿</span> <span class="t-green">Exitcode 0</span>
+<span class="t-gold">●</span> Fertig! Das Spiel liegt in <span class="t-cyan">index.html</span> – Pfeiltasten
+  steuern, Leertaste pausiert, der Highscore bleibt gespeichert.</pre>
+        </div>
+      </div>
+      <div class="feature-grid feature-grid--4 term-features">
+        <article class="card reveal"><span class="card__icon"><svg class="i"><use href="#i-spark"/></svg></span><h3>Kostenlos über FelWorks</h3><p>Ohne Schlüssel und ohne Premium sofort loslegen – mit einem freien Tageskontingent.</p></article>
+        <article class="card reveal" style="--d:60ms"><span class="card__icon"><svg class="i"><use href="#i-key"/></svg></span><h3><b>/api</b> für alle Anbieter</h3><p>Anbieter wählen, Schlüssel einmal eingeben – NVIDIA, OpenAI, Claude, Gemini, DeepSeek, Groq, OpenRouter, Ollama und mehr.</p></article>
+        <article class="card reveal" style="--d:120ms"><span class="card__icon"><svg class="i"><use href="#i-plug"/></svg></span><h3>Verbindet sich mit Jon</h3><p>Läuft Jon am PC, nutzt das Terminal seine Modelle und gibt ihm Aufträge: Bildschirm, PowerPoint, Telegram, Musik.</p></article>
+        <article class="card reveal" style="--d:180ms"><span class="card__icon"><svg class="i"><use href="#i-target"/></svg></span><h3>/ziel und /verbessern</h3><p>Jon arbeitet selbstständig, bis ein Ziel erreicht ist – oder prüft, bewertet und verbessert dein Projekt in Runden.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tight" id="lehrer">
+    <div class="container">
+      <header class="section__head reveal">
+        <p class="kicker">Neu · Jon Lehrer</p>
+        <h2>Dein <em>Privatlehrer</em> aus deinen Unterlagen</h2>
+        <p class="section__lead">Sag Jon einmal, was du lernst, und gib ihm alle Lernunterlagen – Mitschriften, Arbeitsblätter, PDFs, Fotos vom Heft, Folien. Jon baut daraus einen Kurs mit Erklärungen, Übungen, Korrektur und Probetest.</p>
+      </header>
+      <div class="steps-grid">
+        <article class="step-card reveal"><span class="step-card__n">1</span><h3>Fach und Ziel nennen</h3><p>Zum Beispiel <b>„Deutsch: Kommasetzung, Schularbeit am 20.11.“</b> – in der App unter Werkzeuge → Jon Lehrer, im Chat oder über Telegram.</p></article>
+        <article class="step-card reveal" style="--d:60ms"><span class="step-card__n">2</span><h3>Unterlagen hineinziehen</h3><p>PDF, Word, PowerPoint, Bilder oder Text. Jon liest alles, ordnet den Stoff und plant die Lektionen vom Einfachen zum Schweren.</p></article>
+        <article class="step-card reveal" style="--d:120ms"><span class="step-card__n">3</span><h3>Lernen, üben, bestehen</h3><p>Erklärungen mit Beispielen und Spickzettel, Übungen mit freundlicher Korrektur, Wiederholung nach Plan und ein Probetest vor dem Termin.</p></article>
+      </div>
     </div>
   </section>
 
@@ -358,12 +434,12 @@
       <header class="section__head reveal">
         <p class="kicker">Installation</p>
         <h2>In <em>3 Schritten</em> startklar</h2>
-        <p class="section__lead">Der schnellste Weg: die fertige <a class="gold-link" href="#download">Jon-Setup.exe</a> — App, Mini Jon und Backend inklusive, API-Keys trägst du direkt in der App ein. Für Entwickler geht es auch aus dem Quellcode:</p>
+        <p class="section__lead">Der schnellste Weg: die fertige <a class="gold-link" href="#download">Jon-Setup.exe</a> — App, Mini Jon und Backend inklusive. Jon läuft sofort kostenlos über FelWorks, eigene API-Schlüssel kannst du jederzeit in der App ergänzen. Nur das Terminal? <a class="gold-link" href="#terminal">Eine Zeile genügt.</a> Für Entwickler geht es auch aus dem Quellcode:</p>
       </header>
       <div class="steps-grid">
         <article class="step-card reveal">
           <span class="step-card__n">1</span>
-          <h3>Projekt herunterladen &amp; API-Key setzen</h3><p>Lege deinen NVIDIA-Key in die Datei <b>.env</b>:</p><code class="code">NVIDIA_API_KEY=nvapi-...
+          <h3>Projekt herunterladen &amp; optional API-Key setzen</h3><p>Ohne Schlüssel nutzt Jon FelWorks. Eigener NVIDIA-Key in der Datei <b>.env</b>:</p><code class="code">NVIDIA_API_KEY=nvapi-...
 DEFAULT_MODEL=nvidia/nemotron-3-ultra-550b-a55b</code>
         </article>
         <article class="step-card reveal" style="--d:60ms">
@@ -526,7 +602,7 @@ cd frontend &amp;&amp; npm install</code>
         </ol>
         <div class="lobby reveal" style="--d:120ms" aria-hidden="true">
           <div class="lobby__code"><div><small>Freundschaftscode</small><b>AB39KD</b></div><span class="tag tag--gold">Lobby offen</span></div>
-          <div class="lobby__row"><span class="lobby__dot"></span><span class="lobby__who">Felix</span><span class="tag">Host</span><span class="lobby__ms">14 ms</span></div>
+          <div class="lobby__row"><span class="lobby__dot"></span><span class="lobby__who">Lena</span><span class="tag">Host</span><span class="lobby__ms">14 ms</span></div>
           <div class="lobby__row"><span class="lobby__dot"></span><span class="lobby__who">Jonas</span><span class="tag">Bereit</span><span class="lobby__ms">28 ms</span></div>
           <div class="lobby__row lobby__row--off"><span class="lobby__dot lobby__dot--dim"></span><span class="lobby__who">Freier Platz</span></div>
         </div>
@@ -777,7 +853,7 @@ cd frontend &amp;&amp; npm install</code>
 
   <section class="section section--tight" id="harness-medien">
     <div class="container">
-      <div class="section__head reveal"><p class="kicker">Neu in 4.64.1</p><h2>Jon arbeitet <em>vor deinen Augen</em></h2><p class="section__lead">Du siehst live, wie Jon Folien, Dokumente und Code baut. Jon läuft auf all deinen Geräten bis zur Smartwatch, schreibt dir auf Telegram zur gewünschten Uhrzeit und verbindet deine PCs im Heimnetz von selbst.</p></div>
+      <div class="section__head reveal"><p class="kicker">Neu in 4.65.1</p><h2>Jon arbeitet <em>vor deinen Augen</em></h2><p class="section__lead">Du siehst live, wie Jon Folien, Dokumente und Code baut. Jon läuft auf all deinen Geräten bis zur Smartwatch, schreibt dir auf Telegram zur gewünschten Uhrzeit und verbindet deine PCs im Heimnetz von selbst.</p></div>
       <div class="feature-grid">
         <article class="card reveal"><span class="card__icon"><svg class="i"><use href="#i-slides"/></svg></span><h3>Live-Werkstatt</h3><p>Jon baut eine PowerPoint Folie für Folie vor deinen Augen, tippt Word-Seiten, schreibt Code mit Zeilennummern und zeigt jede Änderung in Grün und Rot. Danach siehst du die echten Folien und Seiten. Genauso im Jon Harness und in der Handy-App.</p></article>
         <article class="card reveal"><span class="card__icon"><svg class="i"><use href="#i-phone"/></svg></span><h3>Ein Jon für alle Geräte</h3><p>Handys, Tablets, PCs und die Smartwatch mit Besitzernamen. „Wo ist Felix?“ holt den Standort vom Handy, Jon Maps zeigt alle Geräte, die Uhr spricht auf Knopfdruck mit Jon und lässt das Handy klingeln.</p></article>
@@ -791,7 +867,7 @@ cd frontend &amp;&amp; npm install</code>
   <section class="section section--tight" id="download">
     <div class="container">
       <div class="download reveal">
-        <p class="kicker">Download · Version 4.64.1</p>
+        <p class="kicker">Download · Version 4.65.1</p>
         <h2><em>Download</em></h2>
         <p class="section__lead">Jon App mit Mini Jon und Backend — komplett in einem Paket. Wähle, wie du Jon haben willst.</p>
         <div class="split-cta">
@@ -856,7 +932,7 @@ cd frontend &amp;&amp; npm install</code>
     </div>
     <div class="footer__word" aria-hidden="true">Jon</div>
     <div class="footer__bottom">
-      <div class="footer-meta">Jon — KI-Desktop-Assistent von FelWorks · v4.64.1 · Läuft lokal auf deinem Rechner</div>
+      <div class="footer-meta">Jon — KI-Desktop-Assistent von FelWorks · v4.65.1 · Läuft lokal auf deinem Rechner</div>
       <div class="footer-meta">© 2026 FelWorks · Theresienfeld, Österreich</div>
     </div>
   </div>

@@ -4,11 +4,18 @@ import { connectAccount, getProviders, saveUserSettings } from "../lib/api";
 
 const PROVIDERS = [
   {
+    id: "felworks",
+    label: "FelWorks – sofort loslegen",
+    hint: "Kostenlos und ohne Schlüssel. Jon nutzt die FelWorks-Modelle mit Tageskontingent.",
+    url: "https://getjon.info",
+    model: "nvidia/nemotron-3-ultra-550b-a55b",
+  },
+  {
     id: "nvidia",
     label: "NVIDIA",
     hint: "Kostenlos, empfohlen — Schlüssel auf build.nvidia.com",
     url: "https://build.nvidia.com",
-    model: "meta/muse-glimmer-30b",
+    model: "nvidia/nemotron-3-ultra-550b-a55b",
   },
   {
     id: "openai",
@@ -40,20 +47,25 @@ export default function SetupWizard({ onDone }: { onDone: () => void }) {
   const [error, setError] = useState("");
 
   const local = provider.id === "ollama";
+  const ohneSchluessel = local || provider.id === "felworks";
 
   const finish = async () => {
     setError("");
-    if (!local && !key.trim()) {
+    if (!ohneSchluessel && !key.trim()) {
       setError("Bitte trage deinen API-Schlüssel ein.");
       return;
     }
     setBusy(true);
     try {
-      if (!local) await connectAccount(provider.id, key.trim(), provider.model);
+      if (!ohneSchluessel) await connectAccount(provider.id, key.trim(), provider.model);
       const list = await getProviders();
       const found = list.find((p) => p.provider === provider.id);
       if (!found || (!found.configured && !local)) {
-        setError("Der Schlüssel wurde nicht akzeptiert. Stimmt er?");
+        setError(
+          provider.id === "felworks"
+            ? "FelWorks ist gerade nicht erreichbar. Prüfe die Internetverbindung oder wähle einen anderen Anbieter."
+            : "Der Schlüssel wurde nicht akzeptiert. Stimmt er?"
+        );
         setBusy(false);
         return;
       }
@@ -86,8 +98,8 @@ export default function SetupWizard({ onDone }: { onDone: () => void }) {
           <div className="text-4xl mb-2"><Symbol zeichen="🙂" /></div>
           <h2 className="text-xl font-semibold gold-text">Jon einrichten</h2>
           <p className="text-[12px] text-white/45 mt-1">
-            Jon braucht ein Sprachmodell. Wähle einen Anbieter — der erste ist
-            kostenlos.
+            Jon braucht ein Sprachmodell. Mit FelWorks geht es sofort und
+            kostenlos los – eigene Schlüssel kannst du jederzeit ergänzen.
           </p>
         </div>
 
@@ -118,7 +130,7 @@ export default function SetupWizard({ onDone }: { onDone: () => void }) {
           ))}
         </div>
 
-        {!local && (
+        {!ohneSchluessel && (
           <>
             <input
               type="password"

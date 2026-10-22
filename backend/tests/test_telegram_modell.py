@@ -29,12 +29,13 @@ def _telegram_wahl_zuruecksetzen():
 
 def test_abgeschaltete_nvidia_modelle_werden_ersetzt():
     assert lebendes_modell("openai/gpt-oss-120b") == NVIDIA_JON_MODELL
-    assert lebendes_modell("openai/gpt-oss-20b") == NVIDIA_EMIL_MODELL
+    assert lebendes_modell("openai/gpt-oss-20b") == "openai/gpt-oss-20b"
     assert lebendes_modell("openai/gpt-oss-120b", "openrouter") == "openai/gpt-oss-120b"
-    assert lebendes_modell("meta/muse-glimmer-30b") == "meta/muse-glimmer-30b"
+    assert lebendes_modell("meta/muse-glimmer-30b") == NVIDIA_EMIL_MODELL
+    assert lebendes_modell("mistralai/mistral-nemotron") == NVIDIA_JON_MODELL
     alt = Settings(
         default_jon_model="openai/gpt-oss-120b",
-        default_emil_model="openai/gpt-oss-20b",
+        default_emil_model="meta/muse-glimmer-30b",
     )
     assert alt.jon_model == NVIDIA_JON_MODELL
     assert alt.emil_model == NVIDIA_EMIL_MODELL

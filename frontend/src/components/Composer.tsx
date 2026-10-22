@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { JonDatei, describeAttachment, uploadAttachment } from "../lib/api";
-import { AlertTriangle, AudioLines, FileSpreadsheet, FileText, Image as BildIcon, Loader2, Paperclip, Presentation } from "lucide-react";
+import { AlertTriangle, AudioLines, FileSpreadsheet, FileText, Image as BildIcon, ListPlus, Loader2, MessageCircle, Paperclip, Presentation, X } from "lucide-react";
+import { btwOeffnen, btwRest, istBtw } from "../lib/btw";
 import {uploadMedia} from "../lib/media";
 import { SlashCommand, matchCommands } from "../lib/commands";
 import { useT } from "../hooks/useT";
@@ -24,6 +25,9 @@ interface Props {
   onSend: (text: string, attachments: PendingAttachment[]) => void;
   onStop: () => void;
   streaming: boolean;
+  warteschlange?: string[];
+  onQueue?: (text: string, attachments: PendingAttachment[]) => void;
+  onQueueRemove?: (index: number) => void;
 }
 
 let attId = 0;
@@ -42,7 +46,7 @@ const kindIcon = (kind: string, status: string) => {
   return <Paperclip size={13} />;
 };
 
-export default function Composer({ disabled, onSend, onStop, streaming }: Props) {
+export default function Composer({ disabled, onSend, onStop, streaming, warteschlange = [], onQueue, onQueueRemove }: Props) {
   const { t } = useT();
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
@@ -121,13 +125,29 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
   const loading = attachments.some((a) => a.status === "loading");
   const ready = attachments.filter((a) => a.status === "ready");
 
-  const submit = () => {
-    const value = text.trim();
-    if ((!value && ready.length === 0) || disabled || loading) return;
-    onSend(value, ready);
+  const leeren = () => {
     setText("");
     setAttachments([]);
+    setClosedFor("");
     if (ref.current) ref.current.style.height = "auto";
+  };
+
+  const submit = () => {
+    const value = text.trim();
+    if (istBtw(value)) {
+      btwOeffnen(btwRest(value) || null);
+      setText("");
+      if (ref.current) ref.current.style.height = "auto";
+      return;
+    }
+    if ((!value && ready.length === 0) || disabled || loading) return;
+    if (streaming && onQueue) {
+      onQueue(value, ready);
+      leeren();
+      return;
+    }
+    onSend(value, ready);
+    leeren();
   };
 
   const pick = (command: SlashCommand) => {
@@ -141,6 +161,11 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
       setText(command.cmd);
       setClosedFor(command.cmd);
       ref.current?.focus();
+      return;
+    }
+    if (streaming && onQueue) {
+      onQueue(command.cmd, ready);
+      leeren();
       return;
     }
     onSend(command.cmd, ready);
@@ -254,6 +279,27 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
               {diktat === "hoert" ? <span>Ich höre zu. Mit <b>■</b> beenden, mit <b>Esc</b> verwerfen. Der Text landet im Eingabefeld, gesendet wird erst mit „Senden“.</span> : diktat === "wandelt" ? <span>Wandle deine Sprachnachricht in Text um …</span> : <span>{diktatFehler}</span>}
             </div>
           )}
+          {(warteschlange.length > 0 || streaming) && (
+            <div className="btw-schlange">
+              {warteschlange.map((eintrag, index) => (
+                <span key={index + eintrag} className="btw-chip" title={eintrag}>
+                  <ListPlus size={12} />
+                  <em>Danach: {eintrag}</em>
+                  {onQueueRemove && (
+                    <button aria-label="Aus der Warteschlange nehmen" onClick={() => onQueueRemove(index)}>
+                      <X size={11} />
+                    </button>
+                  )}
+                </span>
+              ))}
+              {streaming && (
+                <button className="btw-knopf" title="Zwischenfrage stellen, ohne Jon zu unterbrechen (Alt+B)" onClick={() => btwOeffnen()}>
+                  <MessageCircle size={12} />
+                  /btw nebenbei fragen
+                </button>
+              )}
+            </div>
+          )}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-1.5 px-2 pt-1 pb-2">
               {attachments.map((a) => (
@@ -320,10 +366,20 @@ export default function Composer({ disabled, onSend, onStop, streaming }: Props)
               onKeyDown={onKey}
               onPaste={onPaste}
               rows={1}
-              placeholder={dragging ? t("drop_file") : diktat === "hoert" ? "Ich höre zu …" : diktat === "wandelt" ? "Wird in Text umgewandelt …" : t("chat_placeholder")}
+              placeholder={dragging ? t("drop_file") : diktat === "hoert" ? "Ich höre zu …" : diktat === "wandelt" ? "Wird in Text umgewandelt …" : streaming ? "Schreib weiter – kommt danach dran · /btw fragt nebenbei" : t("chat_placeholder")}
               className="flex-1 min-w-0 bg-transparent resize-none outline-none px-2 md:px-3 py-2.5 md:py-2 text-[16px] md:text-[15px] text-white/90 placeholder-white/30 max-h-44"
             />
             <DiktatKnopf disabled={disabled} onText={diktiert} onZustand={setDiktat} onFehler={setDiktatFehler} />
+            {streaming && onQueue && !!text.trim() && !istBtw(text) && (
+              <button
+                onClick={submit}
+                title="Nach der aktuellen Antwort senden (Enter)"
+                className="flex items-center gap-1.5 px-3 py-2.5 md:py-2 shrink-0 rounded-xl border border-gold/40 bg-gold/10 text-gold text-[13px] font-medium hover:bg-gold/20 transition"
+              >
+                <ListPlus size={14} />
+                Danach
+              </button>
+            )}
             {streaming ? (
               <button
                 onClick={onStop}

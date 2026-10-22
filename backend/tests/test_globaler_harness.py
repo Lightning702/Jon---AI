@@ -219,3 +219,36 @@ def test_plan_nimmt_lange_und_strukturierte_plaene_an():
     assert plan_schritte({"steps": "1. eins\n2. zwei"}) == ["eins", "zwei"]
     assert plan_schritte({"steps": []}) == []
     assert MAX_PLAN >= 20
+
+
+def test_endloses_neu_erstellen_wird_gestoppt(tmp_path, jon_ordner, monkeypatch):
+    from app.services import tools as tools_modul
+
+    erstellt = []
+
+    async def ausfuehren(self, name, args, source=None):
+        erstellt.append(name)
+        return json.dumps({"ok": True, "path": f"C:/Jon/Documents/Datensicherung-{len(erstellt)}.pptx", "qualitaet": ["Die Präsentation enthält kein einziges Bild."]})
+
+    monkeypatch.setattr(tools_modul.ToolBox, "execute", ausfuehren)
+    monkeypatch.setattr(HarnessService, "alles_erlaubt", staticmethod(lambda: True))
+    aufrufe = {"n": 0}
+    kontexte = []
+
+    async def modell(system, user, **kwargs):
+        aufrufe["n"] += 1
+        kontexte.append(user)
+        if aufrufe["n"] == 1:
+            return json.dumps({"tool": "plan", "args": {"steps": ["Präsentation bauen"]}})
+        return json.dumps({"note": "Ich baue die finale Fassung.", "step": 1, "tool": "jon", "args": {"name": "create_pptx", "args": {"title": "Datensicherung", "slides": [{"layout": "title", "title": "Datensicherung"}]}}})
+
+    async def lauf():
+        service = HarnessService(tmp_path / "harness", modell)
+        return await _ende(service, service.start("Erstelle eine PowerPoint über Datensicherung", "", modus="allgemein"), 30)
+
+    ergebnis = asyncio.run(lauf())
+    assert ergebnis["status"] == "done"
+    assert len(erstellt) == 5
+    assert "Datensicherung-5.pptx" in ergebnis["summary"]
+    assert any("Erstelle sie NICHT noch einmal" in k for k in kontexte)
+    assert aufrufe["n"] <= 9

@@ -1,0 +1,43 @@
+.btw-fenster{position:fixed;right:18px;bottom:18px;z-index:400;width:min(380px,calc(100vw - 32px));max-height:min(540px,calc(100vh - 90px));display:flex;flex-direction:column;border-radius:16px;border:1px solid rgba(229,200,137,.28);background:rgba(16,16,22,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04) inset;color:rgba(255,255,255,.88);overflow:hidden}
+.btw-fenster header{display:flex;align-items:center;gap:.6rem;padding:.7rem .75rem .6rem .9rem;border-bottom:1px solid rgba(255,255,255,.08);color:#e5c889}
+.btw-fenster header div{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.15}
+.btw-fenster header strong{font-size:13px;font-weight:600;color:rgba(255,255,255,.92)}
+.btw-fenster header span{font-size:11px;color:rgba(255,255,255,.42)}
+.btw-fenster header button{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;color:rgba(255,255,255,.5);transition:background-color .15s,color .15s}
+.btw-fenster header button:hover{background:rgba(255,255,255,.08);color:#fff}
+.btw-liste{flex:1;min-height:90px;overflow-y:auto;overscroll-behavior:contain;padding:.75rem .85rem;display:flex;flex-direction:column;gap:.75rem}
+.btw-leer p{font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.55);margin:0 0 .5rem}
+.btw-leer b{color:#e5c889;font-weight:600}
+.btw-beispiele{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem}
+.btw-beispiele button{font-size:11.5px;padding:.3rem .6rem;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.7);transition:border-color .15s,color .15s,background-color .15s}
+.btw-beispiele button:hover{border-color:rgba(229,200,137,.5);color:#e5c889;background:rgba(229,200,137,.07)}
+.btw-eintrag{display:flex;flex-direction:column;gap:.35rem}
+.btw-frage{align-self:flex-end;max-width:88%;padding:.45rem .7rem;border-radius:12px 12px 4px 12px;background:rgba(229,200,137,.14);border:1px solid rgba(229,200,137,.25);font-size:12.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.btw-antwort{display:flex;gap:.45rem;align-items:flex-start;font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.82);white-space:pre-wrap;word-break:break-word}
+.btw-antwort svg{flex:none;margin-top:.2rem;color:rgba(229,200,137,.75)}
+.btw-antwort.nachauftrag{padding:.45rem .6rem;border-radius:10px;background:rgba(116,192,140,.1);border:1px solid rgba(116,192,140,.3);color:#cfe9d6}
+.btw-antwort.nachauftrag svg{color:#8fd3a3}
+.btw-antwort.fehler{color:#f6b8b1}
+.btw-antwort b{color:#fff;font-weight:600}
+.btw-antwort code{font-size:11.5px;padding:.05rem .3rem;border-radius:5px;background:rgba(255,255,255,.08)}
+.btw-antwort.fehler svg{color:#f28b82}
+.btw-wartet{display:inline-flex;align-items:center;gap:.4rem;color:rgba(255,255,255,.45)}
+.btw-dreht{animation:btw-dreh 1s linear infinite}
+.btw-eingabe{display:flex;align-items:flex-end;gap:.45rem;padding:.55rem .6rem .45rem;border-top:1px solid rgba(255,255,255,.08)}
+.btw-eingabe textarea{flex:1;min-width:0;resize:none;max-height:110px;padding:.45rem .6rem;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);outline:none;font-size:13px;line-height:1.4;color:rgba(255,255,255,.9)}
+.btw-eingabe textarea:focus{border-color:rgba(229,200,137,.5)}
+.btw-eingabe textarea::placeholder{color:rgba(255,255,255,.3)}
+.btw-eingabe button{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:10px;color:#111;background:linear-gradient(135deg,#f0d9a0,#c9a24a);transition:filter .15s,opacity .15s}
+.btw-eingabe button:disabled{opacity:.35}
+.btw-eingabe button:hover:not(:disabled){filter:brightness(1.08)}
+.btw-fenster footer{padding:0 .85rem .55rem;font-size:10.5px;color:rgba(255,255,255,.3)}
+.btw-schlange{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;padding:0 .5rem .45rem;font-size:11px;color:rgba(255,255,255,.45)}
+.btw-schlange span.btw-chip{display:inline-flex;align-items:center;gap:.3rem;max-width:260px;padding:.2rem .5rem;border-radius:999px;border:1px solid rgba(116,192,140,.35);background:rgba(116,192,140,.1);color:#cfe9d6}
+.btw-schlange span.btw-chip em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btw-chip button{display:inline-grid;place-items:center;color:rgba(255,255,255,.45)}
+.btw-chip button:hover{color:#fff}
+.btw-knopf{display:inline-flex;align-items:center;gap:.3rem;font-size:11px;padding:.2rem .5rem;border-radius:999px;border:1px solid rgba(229,200,137,.3);color:#e5c889;background:rgba(229,200,137,.06);transition:background-color .15s}
+.btw-knopf:hover{background:rgba(229,200,137,.14)}
+@media(max-width:640px){.btw-fenster{right:12px;left:12px;bottom:12px;width:auto}}
+@keyframes btw-dreh{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.btw-dreht{animation:none}}

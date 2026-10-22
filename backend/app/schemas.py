@@ -151,6 +151,7 @@ class SettingsIn(BaseModel):
     kritiker_schwelle: float | None = None
     erwartung_enabled: bool | None = None
     metakognition_enabled: bool | None = None
+    schnell_antworten: bool | None = None
     neugier_enabled: bool | None = None
     neugier_auto: bool | None = None
     neugier_pro_lauf: int | None = None

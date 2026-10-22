@@ -21,13 +21,24 @@ THEMES: dict[str, dict[str, str]] = {
     "sage": {"primary": "50808E", "secondary": "84B59F", "accent": "D9B25F", "dark": "22333B", "light": "F5F8F3", "muted": "5A7068", "soft": "E2EDE3"},
     "cherry": {"primary": "990011", "secondary": "D96C6C", "accent": "2F3C7E", "dark": "3B0007", "light": "FCF6F5", "muted": "7C4B4B", "soft": "F4E0DE"},
     "gold": {"primary": "1A1A1E", "secondary": "5A5A66", "accent": "E5B53A", "dark": "0B0B0D", "light": "F7F5F0", "muted": "5A5A5F", "soft": "EDE8DC"},
+    "hell": {"primary": "156082", "secondary": "0F9ED5", "accent": "E97132", "dark": "262626", "light": "FFFFFF", "muted": "595959", "soft": "F2F2F2", "tief": "0E2841", "stil": "hell"},
 }
-DEFAULT_THEME = "midnight"
+THEMA_NAMEN = {"modern": "hell", "designer": "hell", "weiss": "hell", "white": "hell", "light": "hell", "clean": "hell", "standard": "hell", "office": "hell"}
+DEFAULT_THEME = "hell"
 CONTENT_TOP = 2.0
 CONTENT_BOTTOM = SLIDE_H - 0.75
 
 FONT_TITLE = "Cambria"
 FONT_BODY = "Calibri"
+SCHRIFT = {"titel": FONT_TITLE, "text": FONT_BODY}
+
+
+def titelschrift() -> str:
+    return SCHRIFT["titel"]
+
+
+def textschrift() -> str:
+    return SCHRIFT["text"]
 
 
 def _kopf(eintrag) -> str:
@@ -48,7 +59,9 @@ def _inhalt(eintrag) -> str:
 
 
 def _theme(name: str) -> dict[str, str]:
-    return THEMES.get(str(name).strip().lower(), THEMES[DEFAULT_THEME])
+    schluessel = str(name or "").strip().lower()
+    schluessel = THEMA_NAMEN.get(schluessel, schluessel)
+    return THEMES.get(schluessel, THEMES[DEFAULT_THEME])
 
 
 def _rgb(value: str):
@@ -98,7 +111,7 @@ def _text(
     size: int,
     color: str,
     bold: bool = False,
-    font: str = FONT_BODY,
+    font: str = "",
     italic: bool = False,
     align: str = "left",
     anchor: str = "top",
@@ -124,7 +137,7 @@ def _text(
     run.font.size = Pt(size)
     run.font.bold = bold
     run.font.italic = italic
-    run.font.name = font
+    run.font.name = font or textschrift()
     run.font.color.rgb = _rgb(color)
     return box
 
@@ -158,7 +171,7 @@ def _bullets(
         marker.text = "        –  " if unter else "▪  "
         marker.font.size = Pt(size - 1 if unter else size)
         marker.font.color.rgb = _rgb(accent)
-        marker.font.name = FONT_BODY
+        marker.font.name = textschrift()
         run = paragraph.add_run()
         if ":" in text and len(text.split(":", 1)[0]) <= 28:
             head, tail = text.split(":", 1)
@@ -167,12 +180,12 @@ def _bullets(
             rest = paragraph.add_run()
             rest.text = tail
             rest.font.size = Pt(size)
-            rest.font.name = FONT_BODY
+            rest.font.name = textschrift()
             rest.font.color.rgb = _rgb(color)
         else:
             run.text = text
         run.font.size = Pt(size)
-        run.font.name = FONT_BODY
+        run.font.name = textschrift()
         run.font.color.rgb = _rgb(color)
     return box
 
@@ -212,7 +225,7 @@ def _circle(slide, left: float, top: float, size: float, fill: str, label: str, 
     run.text = str(label)
     run.font.size = Pt(int(size * 26))
     run.font.bold = True
-    run.font.name = FONT_BODY
+    run.font.name = textschrift()
     run.font.color.rgb = _rgb(color)
     return shape
 
@@ -341,13 +354,25 @@ def _centered(needed: float, top: float = CONTENT_TOP, bottom: float = CONTENT_B
 def _heading(slide, title: str, colors: dict[str, str], on_dark: bool = False) -> None:
     if not title:
         return
+    if colors.get("stil") == "hell":
+        from app.services.pptx_hell import _linie
+
+        _text(slide, title, MARGIN, 0.45, SLIDE_W - 2 * MARGIN, 1.05, _fit(title, 38, 28, 44), colors["light"] if on_dark else colors["dark"], font=titelschrift(), anchor="bottom")
+        _linie(slide, MARGIN, 1.66, 3.2, colors["accent"])
+        return
     color = colors["light"] if on_dark else colors["primary"]
-    _text(slide, title, MARGIN, 0.62, SLIDE_W - 2 * MARGIN, 1.1, _fit(title, 36, 28, 40), color, bold=True, font=FONT_TITLE)
+    _text(slide, title, MARGIN, 0.62, SLIDE_W - 2 * MARGIN, 1.1, _fit(title, 36, 28, 40), color, bold=True, font=titelschrift())
 
 
 def _corner(slide, colors: dict[str, str], color: str | None = None) -> None:
     from pptx.enum.shapes import MSO_SHAPE
     from pptx.util import Inches
+
+    if colors.get("stil") == "hell":
+        from app.services.pptx_hell import _ring
+
+        _ring(slide, SLIDE_W - 2.6, SLIDE_H - 2.5, 3.8, colors["soft"], 10)
+        return
 
     shape = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(SLIDE_W - 3.1), Inches(SLIDE_H - 3.1), Inches(5.4), Inches(5.4))
     shape.fill.solid()
@@ -369,7 +394,7 @@ def _title_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     _hintergrundbild(slide, data, colors)
     title = str(data.get("title", ""))
     subtitle = str(data.get("subtitle", data.get("text", "")))
-    _text(slide, title, MARGIN, 2.35, SLIDE_W - 2 * MARGIN - 2.6, 2.0, _fit(title, 54, 38, 26), colors["light"], bold=True, font=FONT_TITLE)
+    _text(slide, title, MARGIN, 2.35, SLIDE_W - 2 * MARGIN - 2.6, 2.0, _fit(title, 54, 38, 26), colors["light"], bold=True, font=titelschrift())
     if subtitle:
         _text(slide, subtitle, MARGIN, 4.45, SLIDE_W - 2 * MARGIN - 3.4, 1.0, 20, colors["secondary"], italic=True)
     footer = str(data.get("footer", ""))
@@ -424,7 +449,7 @@ def _cards_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
         head = _kopf(item)
         body = _inhalt(item)
         _circle(slide, left + 0.4, top + 0.45, 0.7, colors["primary"], str(index + 1), colors["light"])
-        _text(slide, head, left + 0.4, top + 1.4, width - 0.8, 0.7, _fit(head, 21, 17, 18), colors["primary"], bold=True, font=FONT_TITLE)
+        _text(slide, head, left + 0.4, top + 1.4, width - 0.8, 0.7, _fit(head, 21, 17, 18), colors["primary"], bold=True, font=titelschrift())
         if body:
             _text(slide, body, left + 0.4, top + 2.15, width - 0.8, height - 2.5, 15, colors["dark"])
 
@@ -443,7 +468,7 @@ def _stat_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
         left = MARGIN + index * width
         value = _kopf(item)
         label = _inhalt(item)
-        _text(slide, value, left, top, width - 0.4, 1.5, _fit(value, 68, 40, 6), colors["accent"], bold=True, font=FONT_TITLE, align="center")
+        _text(slide, value, left, top, width - 0.4, 1.5, _fit(value, 68, 40, 6), colors["accent"], bold=True, font=titelschrift(), align="center")
         if label:
             _text(slide, label, left, top + 1.65, width - 0.4, 1.0, 17, colors["light"], align="center")
 
@@ -491,7 +516,7 @@ def _two_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
         if head:
             groesse = 22 if len(head) < 40 else 18 if len(head) < 80 else 15
             kopf_hoehe = _text_hoehe(head, width - 0.9, groesse, 1.15) + 0.15
-            _text(slide, head, left + 0.45, inner, width - 0.9, kopf_hoehe, groesse, colors["primary"], bold=True, font=FONT_TITLE)
+            _text(slide, head, left + 0.45, inner, width - 0.9, kopf_hoehe, groesse, colors["primary"], bold=True, font=titelschrift())
             inner += kopf_hoehe + 0.2
         if text:
             text_hoehe = _text_hoehe(text, width - 0.9, size, 1.24) + 0.1
@@ -512,7 +537,7 @@ def _image_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     text = str(data.get("text", ""))
     needed = 1.5 + (1.3 if text else 0) + _bullet_height(items, 16)
     top = _centered(needed, 1.0, SLIDE_H - 1.0)
-    _text(slide, title, MARGIN, top, width, 1.6, _fit(title, 38, 28, 26), colors["primary"], bold=True, font=FONT_TITLE)
+    _text(slide, title, MARGIN, top, width, 1.6, _fit(title, 38, 28, 26), colors["primary"], bold=True, font=titelschrift())
     top += 1.5
     if text:
         _text(slide, text, MARGIN, top, width, 1.2, 17, colors["muted"])
@@ -534,7 +559,7 @@ def _fill_half(slide, colors: dict[str, str]) -> None:
 def _quote_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     _fill(slide, colors["dark"])
     quote = str(data.get("text", data.get("title", "")))
-    _text(slide, f"„{quote}“", 1.6, 2.1, SLIDE_W - 3.2, 3.0, _fit(quote, 34, 24, 90), colors["light"], italic=True, font=FONT_TITLE, align="center", anchor="middle")
+    _text(slide, f"„{quote}“", 1.6, 2.1, SLIDE_W - 3.2, 3.0, _fit(quote, 34, 24, 90), colors["light"], italic=True, font=titelschrift(), align="center", anchor="middle")
     source = str(data.get("subtitle", data.get("source", "")))
     if source:
         _text(slide, f"— {source}", 1.6, 5.4, SLIDE_W - 3.2, 0.6, 16, colors["accent"], align="center")
@@ -554,7 +579,7 @@ def _timeline_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
         head = _kopf(item)
         body = _inhalt(item)
         _circle(slide, MARGIN, row, 0.62, colors["primary"], str(index + 1), colors["light"])
-        _text(slide, head, MARGIN + 1.0, row, SLIDE_W - MARGIN * 2 - 1.0, 0.45, 20, colors["primary"], bold=True, font=FONT_TITLE)
+        _text(slide, head, MARGIN + 1.0, row, SLIDE_W - MARGIN * 2 - 1.0, 0.45, 20, colors["primary"], bold=True, font=titelschrift())
         if body:
             _text(slide, body, MARGIN + 1.0, row + 0.5, SLIDE_W - MARGIN * 2 - 1.0, step - 0.55, 15, colors["dark"])
 
@@ -562,7 +587,7 @@ def _timeline_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
 def _closing_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     _hintergrundbild(slide, data, colors)
     title = str(data.get("title", "Danke!"))
-    _text(slide, title, MARGIN, 2.7, SLIDE_W - 2 * MARGIN - 2.8, 1.6, _fit(title, 48, 34, 24), colors["light"], bold=True, font=FONT_TITLE)
+    _text(slide, title, MARGIN, 2.7, SLIDE_W - 2 * MARGIN - 2.8, 1.6, _fit(title, 48, 34, 24), colors["light"], bold=True, font=titelschrift())
     subtitle = str(data.get("subtitle", data.get("text", "")))
     if subtitle:
         _text(slide, subtitle, MARGIN, 4.4, SLIDE_W - 2 * MARGIN - 3.4, 1.2, 18, colors["secondary"])
@@ -599,7 +624,7 @@ def _text_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
           CONTENT_BOTTOM - CONTENT_TOP + 0.35, colors["soft"])
     absaetze(
         slide, texte, MARGIN + 0.1, CONTENT_TOP + 0.05, SLIDE_W - 2 * MARGIN - 0.2,
-        CONTENT_BOTTOM - CONTENT_TOP, size, colors, _rgb, FONT_BODY,
+        CONTENT_BOTTOM - CONTENT_TOP, size, colors, _rgb, textschrift(),
     )
 
 
@@ -639,7 +664,7 @@ def _chart_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     gebaut = diagramm(
         slide, quelle if isinstance(quelle, dict) else {}, MARGIN, top,
         SLIDE_W - 2 * MARGIN, max(2.4, CONTENT_BOTTOM - top - 0.1),
-        colors, _rgb, FONT_BODY,
+        colors, _rgb, textschrift(),
     )
     if gebaut is None:
         _bullets_slide(prs, slide, data, colors)
@@ -658,7 +683,7 @@ def _table_slide(prs, slide, data: dict, colors: dict[str, str]) -> None:
     quelle = data.get("tabelle") or data.get("table") or data.get("rows") or []
     gebaut = tabelle(
         slide, quelle, MARGIN, top, SLIDE_W - 2 * MARGIN,
-        max(1.2, CONTENT_BOTTOM - top), colors, _rgb, FONT_BODY,
+        max(1.2, CONTENT_BOTTOM - top), colors, _rgb, textschrift(),
     )
     if gebaut is None:
         _bullets_slide(prs, slide, data, colors)
@@ -755,6 +780,10 @@ class PptxService:
 
         slides = folien_normalisieren(slides, title)
         colors = _theme(theme)
+        from app.services import pptx_hell
+
+        hell = pptx_hell.aktiv(colors)
+        SCHRIFT.update(titel=pptx_hell.TITEL if hell else FONT_TITLE, text=pptx_hell.TEXT if hell else FONT_BODY)
         prs = Presentation()
         prs.slide_width = Inches(SLIDE_W)
         prs.slide_height = Inches(SLIDE_H)
@@ -768,6 +797,9 @@ class PptxService:
                 data = {"layout": "bullets", "title": str(data)}
             layout = str(data.get("layout", "bullets")).strip().lower()
             builder = LAYOUTS.get(layout, _bullets_slide)
+            if hell:
+                data = {**data, "_nummer": nummer}
+                builder = pptx_hell.LAYOUTS.get(layout, builder)
             slide = _blank(prs)
             builder(prs, slide, data, colors)
             _fusszeile(slide, data, layout, nummer, colors)
@@ -942,7 +974,8 @@ def pruefen(prs, slides: list) -> list[str]:
         hat_mehr = any(getattr(f, "has_chart", False) and f.has_chart or getattr(f, "has_table", False) and f.has_table for f in formen)
         bilder += 1 if hat_bild else 0
         zeichen = sum(len(t) for t in texte[1:]) if texte else 0
-        if nummer > 1 and len(texte) <= 1 and not hat_bild and not hat_mehr:
+        art = str((slides[nummer - 1] if nummer - 1 < len(slides) and isinstance(slides[nummer - 1], dict) else {}).get("layout", "")).lower()
+        if nummer > 1 and art not in ("closing", "title", "quote") and len(texte) <= 1 and not hat_bild and not hat_mehr:
             hinweise.append(f"Folie {nummer} hat keinen Inhalt ausser der Überschrift.")
         if zeichen > 900:
             hinweise.append(f"Folie {nummer} hat sehr viel Text ({zeichen} Zeichen) – kürzen oder auf zwei Folien teilen.")
@@ -960,13 +993,14 @@ def pruefen(prs, slides: list) -> list[str]:
                     continue
                 break
     if len(prs.slides) >= 4 and bilder == 0:
-        hinweise.append("Die Präsentation enthält kein einziges Bild – Titelfolie und Inhaltsfolien mit bild_suche, image oder bild_prompt ergänzen.")
+        hinweise.append("Hinweis: Die Präsentation enthält noch kein Bild. Wenn du passende Fotos findest, ergänze sie einmal gezielt mit edit_pptx (bild_suche). Gibt es zum Thema keine freien Fotos, ist die Datei trotzdem fertig – nicht neu erstellen.")
     elif len(prs.slides) >= 8 and bilder * 5 < len(prs.slides):
-        hinweise.append(f"Nur {bilder} Bild(er) bei {len(prs.slides)} Folien – erklärende Bilder oder Schemata ergänzen.")
+        hinweise.append(f"Hinweis: Nur {bilder} Bild(er) bei {len(prs.slides)} Folien. Bei Bedarf einzelne Bilder mit edit_pptx ergänzen – nicht die ganze Präsentation neu erstellen.")
     return list(dict.fromkeys(hinweise))[:20]
 
 
 def _theme_name(theme: str) -> str:
+    theme = THEMA_NAMEN.get(str(theme or "").strip().lower(), theme)
     name = str(theme).strip().lower()
     return name if name in THEMES else DEFAULT_THEME
 

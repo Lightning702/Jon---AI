@@ -43,8 +43,8 @@ async def _leer(*args, **kwargs):
 
 
 def test_banner_zeigt_logo_menue_und_figur(stift):
-    text = kunst.kopf(stift, "4.51.3", "Felix", False)
-    assert "Hallo Felix!" in text
+    text = kunst.kopf(stift, "4.51.3", "Lena", False)
+    assert "Hallo Lena!" in text
     assert "v4.51.3" in text
     for eintrag in ("Chat", "Code", "Dateien", "System", "Browser", "Projekte"):
         assert eintrag in text
@@ -56,13 +56,13 @@ def test_banner_zeigt_logo_menue_und_figur(stift):
 
 
 def test_banner_bleibt_im_schmalen_terminal_lesbar(stift):
-    text = kunst.kopf(stift, "4.51.3", "Felix", True)
+    text = kunst.kopf(stift, "4.51.3", "Lena", True)
     assert "███" not in text
     assert max(len(z) for z in text.splitlines()) < 80
 
 
 def test_banner_zeilen_sind_gleich_lang(stift):
-    zeilen = kunst.kopf(stift, "4.51.3", "Felix", False).splitlines()
+    zeilen = kunst.kopf(stift, "4.51.3", "Lena", False).splitlines()
     anfang = [z.index("╭") for z in zeilen if "╭" in z and z.strip().startswith("╭")]
     assert anfang and len(set(anfang)) == 1
 
