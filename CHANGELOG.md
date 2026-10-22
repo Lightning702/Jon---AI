@@ -48,6 +48,7 @@ Alle nennenswerten Änderungen an Jon.
 - **Harness hing stundenlang an einer PowerPoint:** Jon erstellte dieselbe Präsentation immer wieder neu. Ein Wiederholungswächter stoppt das, Bildangaben in jeder Form werden verstanden. Derselbe Auftrag dauert jetzt etwa vier Minuten.
 - **Reihenfolge im Verlauf:** Nach dem Neuladen stand deine zweite Frage unter Jons Antwort. Außerdem ging eine wiederholte gleiche Nachricht (etwa ein zweites „ja“) verloren.
 - **Mitgelieferte Skills** fehlten im fertigen Programm.
+- **Blockwelt fehlte im Download:** Das Spiel lag nur im Quellcode, jetzt ist es in Jon-Setup.exe und im ZIP dabei.
 - **Erfundene Ordner:** Nennt das Modell einen falschen Benutzerordner, speichert Jon trotzdem am richtigen Ort.
 - **Maus in der Bildschirmecke** löste bei Klicks keinen Abbruch mehr aus.
 - **Datenschutz:** Persönliche Beispieldaten wurden aus App, Tests und Dokumentation entfernt.

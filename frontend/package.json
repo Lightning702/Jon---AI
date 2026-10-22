@@ -98,6 +98,17 @@
           "!bin/*.log",
           "vorschau/**/*"
         ]
+      },
+      {
+        "from": "../spiele/BLOCKWELT",
+        "to": "BLOCKWELT",
+        "filter": [
+          "jon-spiele.json",
+          "README.md",
+          "bin/**/*",
+          "!bin/*.log",
+          "vorschau/**/*"
+        ]
       }
     ],
     "directories": {
