@@ -206,6 +206,8 @@ class Terminal:
 
     def _fehler(self, fehler: netz.NetzFehler) -> None:
         text = str(fehler)
+        if self.agent.anbieter == "felworks" and fehler.status in (401, 403):
+            text = "Der freie FelWorks-Zugang hat diese Anfrage nicht angenommen."
         sag(f("  ✕ " + text, ROT))
         if self.agent.anbieter == "felworks":
             if self.verbindung.felworks.fehler:
