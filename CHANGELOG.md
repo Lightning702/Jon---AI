@@ -11,6 +11,22 @@ Alle nennenswerten Änderungen an Jon.
 - **FelWorks ohne Schlüssel:** Im Terminal funktioniert FelWorks immer – ohne API-Schlüssel und ohne Premium. Mit `/api` wählst du zuerst den Anbieter (NVIDIA, OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Groq, Mistral, xAI, Ollama, LM Studio) und gibst den Schlüssel einmal ein, verschlüsselt gespeichert.
 - **Befehle:** `/ziel`, `/verbessern`, `/design`, `/spiel`, `/praesentation`, `/init`, `/modus`, `/denken`, `/rueckgaengig`, `/kompakt`, `/fortsetzen`, `/update` und mehr – `/hilfe` zeigt alle.
 
+### Code ansehen und testen – Jon Testumgebung
+
+- **Code live im Chat:** Schreibt Jon HTML, Python, PHP oder JavaScript, erscheint der Code als Block mit Vorschau, Ausführen, Speichern und Kopieren. Websites und Spiele laufen direkt im Chat, Python und Node zeigen ihre Ausgabe darunter.
+- **Jon Testumgebung (`/test`):** Ein wegwerfbarer Platz zum Ausprobieren mit Dateien, Editor, Terminal und großer Vorschau. Neu anlegen, zurücksetzen und löschen mit einem Klick. Läuft Docker, ist jede Umgebung eine echte Linux-Maschine mit Python, Node und PHP, sonst ein abgeschotteter Ordner mit Zeitlimit. Jon nutzt sie selbst, um seinen Code zu prüfen.
+- **Kein Abbruch mehr bei großen Spielen:** Jon schreibt lange Programme sichtbar in den Chat statt minutenlang unsichtbar in ein Werkzeug. Drosselt der Anbieter (429), wartet Jon kurz und versucht es erneut.
+
+### Jons Denken sichtbar
+
+- **Live mitlesen:** Während Jon nachdenkt, siehst du seine Gedanken mit Sekundenzähler. Danach klappen sie zu „Gedanken · 12 s gedacht“ zusammen.
+- **Denkt, wo es sich lohnt:** Bei Code, Spielen, Websites, Erklärungen und Planungen denkt Jon wieder gründlich mit, einfache Fragen bleiben blitzschnell.
+
+### Hell und Cozy für die ganze App
+
+- **Überall gleich:** Hell und Cozy gelten jetzt für jedes Fenster – Chat, Harness, Team-Zentrale, Lehrer, Testumgebung, /btw.
+- **Schonend für die Augen:** Hell ist ein sanftes Hellgrau statt grellem Weiß, Cozy ein warmes Creme wie Papier. Fotos, Videos, Karten und Vorschauen behalten ihre echten Farben.
+
 ### /btw – nebenbei fragen, während Jon arbeitet
 
 - **Überall:** im Chat, in Jon Code, im Jon Harness, im Terminal und auf Telegram. `/btw Wie weit bist du?` öffnet ein kleines Fenster und Jon antwortet sofort, ohne seine Arbeit zu unterbrechen. In der App öffnet und schließt `Alt+B` das Fenster.
@@ -45,6 +61,8 @@ Alle nennenswerten Änderungen an Jon.
 
 ### Behoben
 
+- **Keine Kopien mehr:** Jon speicherte PowerPoints und Dokumente bei jeder Änderung als neue Datei (`…-4.pptx`, `…-5.pptx`). Jetzt aktualisiert er seine eigene Datei; Dateien, die du selbst geändert hast, rührt er nicht an. Eine zweite Fassung gibt es nur, wenn du sie ausdrücklich willst.
+- **„Not Found“ bei Lehrer und /btw:** Läuft noch ein älteres Jon-Backend, sagt die App jetzt klar, dass Jon einmal neu gestartet werden muss.
 - **Harness hing stundenlang an einer PowerPoint:** Jon erstellte dieselbe Präsentation immer wieder neu. Ein Wiederholungswächter stoppt das, Bildangaben in jeder Form werden verstanden. Derselbe Auftrag dauert jetzt etwa vier Minuten.
 - **Reihenfolge im Verlauf:** Nach dem Neuladen stand deine zweite Frage unter Jons Antwort. Außerdem ging eine wiederholte gleiche Nachricht (etwa ein zweites „ja“) verloren.
 - **Mitgelieferte Skills** fehlten im fertigen Programm.

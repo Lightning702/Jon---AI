@@ -67,9 +67,19 @@ WOCHENTAGE = (
 DENK_WUENSCHE = ("denk nach", "denk gründlich", "denk gruendlich", "überleg", "ueberleg", "genau nachdenken", "schritt für schritt", "schritt fuer schritt", "think", "beweise", "herleit")
 
 
+DENK_THEMEN = re.compile(
+    r"\b(?:cod(?:e|en|ier)|programmier|skript|script|html|css|javascript|typescript|python|php|java\b|c\+\+|sql|"
+    r"spiel|game|website|webseite|homepage|app\b|algorithm|debug|fehler(?:suche|meldung)|erkl(?:ae|ä)r|warum|wieso|weshalb|"
+    r"wie funktioniert|analysier|vergleich|plane|planung|berechne|rechne|beweis|herleit|optimier|strategie|konzept)",
+    re.IGNORECASE,
+)
+
+
 def denken_noetig(text: str, urteil: dict | None, coding: bool) -> bool | None:
     klein = (text or "").lower()
     if any(wunsch in klein for wunsch in DENK_WUENSCHE):
+        return True
+    if len(klein) >= 12 and DENK_THEMEN.search(klein):
         return True
     if coding:
         return True

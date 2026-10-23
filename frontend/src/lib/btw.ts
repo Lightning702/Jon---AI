@@ -1,4 +1,5 @@
 import { BASE } from "./api";
+import { fehlerText } from "./version";
 
 export type BtwQuelle = "chat" | "code" | "harness";
 
@@ -70,6 +71,6 @@ export async function btwFragen(frage: string, kontext: BtwKontext): Promise<Btw
       nebenbei: String(kontext.nebenbei || "").slice(0, 5000),
     }),
   });
-  if (!antwort.ok) throw new Error(`Jon antwortet gerade nicht (${antwort.status}).`);
+  if (!antwort.ok) throw new Error(fehlerText(antwort.status, (await antwort.json().catch(() => ({}))).detail));
   return antwort.json();
 }

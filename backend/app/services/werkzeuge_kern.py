@@ -538,6 +538,45 @@ async def _plan_ausfuehren(box: Any, args: dict, name: str = "") -> str:
     return antwort(fertig)
 
 
+@werkzeug_async("testumgebung")
+async def _testumgebung(box: Any, args: dict, name: str = "") -> str:
+    import asyncio
+
+    from app.services.testumgebung import Fehler, get_testumgebung
+
+    dienst = get_testumgebung()
+    aktion = str(args.get("aktion", "") or ("code" if args.get("code") else "ausfuehren" if args.get("befehl") else "liste")).strip().lower()
+    wunsch = str(args.get("umgebung", "") or args.get("id", "")).strip()
+
+    def tun() -> dict:
+        if aktion in ("liste", "list"):
+            return dienst.liste()
+        if aktion in ("neu", "erstellen"):
+            maschine = args.get("maschine")
+            return dienst.erstellen(str(args.get("name", "")), None if maschine is None else str(maschine).lower() in ("true", "1", "ja"))
+        kennung = wunsch or dienst.standard()
+        if aktion in ("loeschen", "löschen", "delete"):
+            return dienst.loeschen(kennung)
+        if aktion in ("zuruecksetzen", "zurücksetzen", "reset"):
+            return dienst.zuruecksetzen(kennung)
+        if aktion in ("dateien", "files"):
+            return dienst.dateien(kennung)
+        if aktion in ("lesen", "datei_lesen", "read"):
+            return dienst.lesen(kennung, str(args.get("pfad", "")))
+        if aktion in ("schreiben", "datei_schreiben", "write"):
+            return dienst.schreiben(kennung, str(args.get("pfad", "")), str(args.get("inhalt", "")))
+        if aktion == "code":
+            return dienst.code(kennung, str(args.get("sprache", "")), str(args.get("code", "")), str(args.get("dateiname", "")))
+        if aktion in ("ausfuehren", "ausführen", "run"):
+            return dienst.ausfuehren(kennung, str(args.get("befehl", "")), float(args.get("zeit", 60) or 60))
+        raise Fehler(f"Unbekannte aktion '{aktion}'. Moeglich: liste, neu, code, ausfuehren, schreiben, lesen, dateien, zuruecksetzen, loeschen.")
+
+    try:
+        return antwort(await asyncio.to_thread(tun))
+    except Fehler as fehler:
+        return antwort({"error": str(fehler)})
+
+
 @werkzeug("datei_erstellen")
 def _datei_erstellen(box: Any, args: dict, name: str = "") -> str:
     from app.services.dokument_service import get_dokument_service
@@ -551,6 +590,7 @@ def _datei_erstellen(box: Any, args: dict, name: str = "") -> str:
             str(args.get("dateiname", "")),
             str(args.get("projekt", "")),
             quelle=getattr(box, "_source", "app"),
+            neue_datei=str(args.get("neue_datei", "")).lower() in ("true", "1", "ja"),
         )
     )
 

@@ -34,6 +34,7 @@ from app.api.datei_routes import router as datei_router
 from app.api.terminal_routes import router as terminal_router
 from app.api.lehrer_routes import router as lehrer_router
 from app.api.btw_routes import router as btw_router
+from app.api.testumgebung_routes import router as testumgebung_router, vorschau_router as testumgebung_vorschau
 from app.api.denken_routes import router as denken_router
 from app.api.routes import accounts, providers, router
 from app.api.studio_routes import router as studio_router
@@ -869,6 +870,8 @@ def create_app() -> FastAPI:
     app.include_router(terminal_router)
     app.include_router(lehrer_router)
     app.include_router(btw_router)
+    app.include_router(testumgebung_router)
+    app.include_router(testumgebung_vorschau)
 
     from pathlib import Path
 

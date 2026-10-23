@@ -70,7 +70,7 @@ def _rgb(value: str):
     return RGBColor.from_string(str(value).lstrip("#").upper()[:6])
 
 
-def _target_path(path: str | None, title: str) -> Path:
+def _target_path(path: str | None, title: str, neu: bool = False) -> Path:
     safe = "".join(c for c in title if c.isalnum() or c in " -_").strip() or "Praesentation"
     target = Path(str(path)).expanduser() if path else None
     if target is None or not target.is_absolute():
@@ -78,8 +78,12 @@ def _target_path(path: str | None, title: str) -> Path:
 
         name = f"{Path(target.name).stem if target is not None else safe}.pptx"
         wunsch = str(target.parent) if target is not None and str(target.parent) not in ("", ".") else ""
-        ziel = get_dateiraum_service().zielpfad(name, wunsch)
+        ziel = get_dateiraum_service().zielpfad(name, wunsch, neu=neu)
         target = Path(ziel["pfad"]) if not ziel.get("error") else DATA_DIR / "praesentationen" / name
+    elif not neu and not target.exists():
+        from app.services.jon_dateien import wiederverwenden
+
+        target = wiederverwenden(target.parent, target.with_suffix(".pptx").name) or target
     if target.suffix.lower() != ".pptx":
         target = target.with_suffix(".pptx")
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -766,6 +770,7 @@ class PptxService:
         theme: str = DEFAULT_THEME,
         subtitle: str = "",
         effekte: bool = True,
+        neue_datei: bool = False,
     ) -> dict[str, Any]:
         try:
             from pptx import Presentation
@@ -807,13 +812,18 @@ class PptxService:
             if effekte:
                 animiert += self._effekte(slide, nummer, layout, data, colors)
             made.append(layout if layout in LAYOUTS else "bullets")
-        target = _target_path(path, title)
+        from app.services import jon_dateien
+
+        target = _target_path(path, title, neue_datei)
+        aktualisiert = target.exists() and jon_dateien.von_jon(target)
         prs.save(str(target))
+        jon_dateien.merken(target, Path(str(path)).name if path else f"{title}.pptx")
         qualitaet = pruefen(prs, slides)
         return {
             "qualitaet": qualitaet,
             "ok": True,
             "path": str(target),
+            **({"aktualisiert": True, "hinweis_datei": "Deine bisherige Fassung wurde aktualisiert, es gibt keine zweite Kopie."} if aktualisiert else {}),
             "slides": len(made),
             "layouts": made,
             "theme": _theme_name(theme),

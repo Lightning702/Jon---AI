@@ -105,7 +105,7 @@ def test_relativer_pfad_landet_in_jons_ordner(tmp_path, monkeypatch):
     from app.services import dateiraum_service
 
     class Raum:
-        def zielpfad(self, name, wunsch=""):
+        def zielpfad(self, name, wunsch="", neu=False):
             ordner = tmp_path / "Jon" / (wunsch or "Documents")
             ordner.mkdir(parents=True, exist_ok=True)
             return {"pfad": str(ordner / name)}

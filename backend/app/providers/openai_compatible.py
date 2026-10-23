@@ -35,6 +35,7 @@ def tool_runden() -> int:
 
     return UNBEGRENZT_RUNDEN if unbegrenzt() else MAX_TOOL_ROUNDS
 TRANSIENT_RETRIES = 2
+RATE_RETRIES = 3
 DEFAULT_MAX_TOKENS = 32768
 MIN_MAX_TOKENS = 4096
 MODELS_CACHE_TTL = 300.0
@@ -70,7 +71,7 @@ STREAM_PAUSE_S = 180.0
 def fehlertext(exc: BaseException) -> str:
     text = str(exc).strip()
     if isinstance(exc, httpx.ReadTimeout):
-        return f"Die Verbindung ist mitten in der Antwort abgerissen (über {STREAM_PAUSE_S:.0f} Sekunden keine Daten). Der Anbieter ist überlastet. Versuche es erneut oder wähle ein anderes Modell."
+        return "Die Verbindung ist mitten in der Antwort abgerissen (mehrere Minuten keine Daten). Der Anbieter ist überlastet. Versuche es erneut oder wähle ein anderes Modell."
     if isinstance(exc, (httpx.RemoteProtocolError, httpx.ReadError)):
         return "Der Anbieter hat die Verbindung mitten in der Antwort getrennt. Versuche es erneut oder wähle ein anderes Modell."
     if isinstance(exc, httpx.TimeoutException):
@@ -207,7 +208,10 @@ class OpenAICompatibleProvider(LLMProvider):
 
     async def _create_with_retry(self, client: AsyncOpenAI, payload: dict):
         last: Exception | None = None
-        for attempt in range(TRANSIENT_RETRIES):
+        gebremst = 0
+        attempt = -1
+        while attempt + 1 < TRANSIENT_RETRIES + gebremst:
+            attempt += 1
             try:
                 return await client.chat.completions.create(**payload)
             except STALL_ERRORS as exc:
@@ -220,6 +224,16 @@ class OpenAICompatibleProvider(LLMProvider):
                 await asyncio.sleep(0.6 * (attempt + 1))
             except Exception as exc:
                 status = getattr(exc, "status_code", None)
+                if status == 429 and gebremst < RATE_RETRIES:
+                    gebremst += 1
+                    last = exc
+                    warten = 2.0 * (2 ** (gebremst - 1))
+                    try:
+                        warten = min(10.0, max(warten, float(getattr(getattr(exc, "response", None), "headers", {}).get("retry-after", 0) or 0)))
+                    except (TypeError, ValueError):
+                        pass
+                    await asyncio.sleep(warten)
+                    continue
                 if status is not None and status >= 500:
                     last = exc
                     await asyncio.sleep(0.6 * (attempt + 1))
@@ -297,7 +311,7 @@ class OpenAICompatibleProvider(LLMProvider):
             watchdog = guard if round_index == 0 else guard * 1.5
             caller = (
                 client.with_options(
-                    timeout=httpx.Timeout(max(STREAM_PAUSE_S, watchdog), connect=max(watchdog, 8.0)), max_retries=0
+                    timeout=httpx.Timeout(max(STREAM_PAUSE_S * (1.7 if use_tools else 1.0), watchdog), connect=max(watchdog, 8.0)), max_retries=0
                 )
                 if watchdog > 0
                 else client

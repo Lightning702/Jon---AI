@@ -604,8 +604,8 @@ export default function SettingsMenu({
 
   const themes: Choice[] = [
     { value: "dark", label: "Dunkel", hint: "Schwarz-Gold (Standard)." },
-    { value: "light", label: "Hell", hint: "Weißer Modus mit Gold-Akzenten." },
-    { value: "cozy", label: "Cozy", hint: "Weiß mit zartem Rosa — weich und warm." },
+    { value: "light", label: "Hell", hint: "Sanftes Hellgrau, angenehm für die Augen – überall in Jon." },
+    { value: "cozy", label: "Cozy", hint: "Warmes Creme wie Papier – weich und gemütlich, überall in Jon." },
   ];
 
   return (

@@ -251,6 +251,18 @@ Bildschirm.
 - **Meeting-Mitschrift** (`/meeting`) — System-Ton + Mikrofon (Fifine bevorzugt), live
   transkribiert, Zusammenfassung mit To-dos in den Kalender
 
+## Jon Testumgebung und Code im Chat
+
+- Codeblöcke im Chat mit Vorschau (HTML/SVG, abgeschottet), Ausführen (Python, Node, PHP, Bash, PowerShell), Speichern, Kopieren
+- `/test` öffnet die Testumgebung: Dateien, Editor, Terminal, Vorschau; neu, zurücksetzen, löschen
+- Mit Docker eine echte Linux-Maschine (alpine, Python, Node, PHP, `apk add`), sonst ein abgeschotteter Ordner mit Zeitlimit
+- Werkzeug `testumgebung` für Jon; `POST /api/testumgebung/{id}/code`, Vorschau unter `/testumgebung-vorschau/` mit CSP-Sandbox
+
+## Themes
+
+- Dunkel, Hell (sanftes Hellgrau) und Cozy (warmes Creme) gelten für die ganze App
+- Fotos, Videos, Karten und Dokumentvorschauen behalten ihre echten Farben
+
 ## /btw und Nachaufträge
 
 - `/btw <Frage>` im Chat, in Jon Code, im Harness, im Terminal-Harness und auf Telegram: sofortige Antwort, Jon arbeitet weiter

@@ -86,9 +86,10 @@ Bounding-Boxes (`THREE.Box3`), Gegner/Physik in `update(dt)`, HUD als HTML-Overl
 
 1. Kläre in einem Satz: Genre (Jump'n'Run, Runner, Shooter, Puzzle …), 2D oder 3D.
 2. Wähle das passende Gerüst oben.
-3. Schreibe die vollständige `index.html` mit `write_file`.
-4. Öffne sie mit `open_url` (Dateipfad), damit der Nutzer sofort spielen kann.
-5. Frag nach Wünschen (mehr Level, Sound, Gegner) und ändere gezielt mit `edit_file`.
+3. Im normalen Chat: Schreibe das komplette Spiel als EINEN ```html-Codeblock in deine Antwort. Jon zeigt ihn live mit Vorschau, Ausführen und Speichern – der Nutzer spielt sofort. Nie als langes Werkzeug-Argument, das bleibt minutenlang unsichtbar.
+4. In einem Projektordner (Jon Code, Harness) oder wenn der Nutzer einen Speicherort nennt: Schreibe die vollständige `index.html` mit `write_file` und öffne sie mit `open_url`.
+5. Selbst prüfen kannst du mit dem Werkzeug `testumgebung` (aktion code, sprache html oder javascript).
+6. Frag nach Wünschen (mehr Level, Sound, Gegner) und ändere gezielt.
 
 ## Game Feel – was ein gutes Spiel von einer Demo unterscheidet
 

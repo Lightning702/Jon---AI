@@ -135,14 +135,16 @@ def _zeilen_aus(inhalt) -> list[list[str]]:
 
 
 class DokumentService:
-    def _ziel(self, art: str, titel: str, wunsch: str, dateiname: str) -> dict:
+    def _ziel(self, art: str, titel: str, wunsch: str, dateiname: str, neu: bool = False) -> dict:
         endung = art.lower().lstrip(".")
         if endung == "markdown":
             endung = "md"
         name = saeubern(dateiname or f"{titel or 'Dokument'}.{endung}")
         if not Path(name).suffix:
             name = f"{name}.{endung}"
-        return get_dateiraum_service().zielpfad(name, wunsch)
+        ziel = get_dateiraum_service().zielpfad(name, wunsch, neu=neu)
+        ziel.setdefault("angefragt", name)
+        return ziel
 
     def erstellen(
         self,
@@ -154,6 +156,7 @@ class DokumentService:
         projekt: str = "",
         auftrag: str = "",
         quelle: str = "app",
+        neue_datei: bool = False,
     ) -> dict:
         endung = str(art or "").lower().lstrip(".").strip()
         if endung == "markdown":
@@ -167,7 +170,7 @@ class DokumentService:
                 "error": f"Dateityp .{endung} kann ich noch nicht erzeugen.",
                 "moeglich": sorted(BEKANNT),
             }
-        ziel = self._ziel(endung, titel, wunsch, dateiname)
+        ziel = self._ziel(endung, titel, wunsch, dateiname, neue_datei)
         if ziel.get("error"):
             return ziel
         pfad = Path(ziel["pfad"])
@@ -193,11 +196,18 @@ class DokumentService:
             return {"error": f"Die Datei liess sich nicht erzeugen: {exc}"}
         if not pfad.exists():
             return {"error": "Die Datei wurde nicht geschrieben."}
+        from app.services.jon_dateien import merken
+
+        merken(pfad, str(ziel.get("angefragt") or pfad.name))
         beschreibung = _ohne_auszeichnung(str(inhalt or ""))[:400]
         get_dateiindex_service().merken(
             pfad, titel or pfad.stem, beschreibung, projekt, auftrag, quelle
         )
-        return {"ok": True, "datei": karte(pfad, projekt, titel or pfad.stem)}
+        ergebnis = {"ok": True, "datei": karte(pfad, projekt, titel or pfad.stem)}
+        if ziel.get("aktualisiert"):
+            ergebnis["aktualisiert"] = True
+            ergebnis["hinweis"] = "Die bisherige Fassung wurde aktualisiert, es gibt keine zweite Kopie."
+        return ergebnis
 
     @staticmethod
     def _text(pfad: Path, titel: str, inhalt: str) -> None:

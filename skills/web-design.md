@@ -120,7 +120,7 @@ document.querySelectorAll(".karte").forEach(k => {
 ## Vorgehen für Jon
 
 1. Kläre in einem Satz Ziel und Stil (falls unklar, nimm dunkel + eine Akzentfarbe).
-2. Erzeuge die Ordnerstruktur, z. B. `write_file` auf `index.html`.
+2. Im normalen Chat: Schreibe die Seite als EINEN ```html-Codeblock (CSS und JS eingebettet) in deine Antwort – Jon zeigt ihn mit Vorschau und Speichern an. In einem Projektordner oder mit genanntem Speicherort: Erzeuge die Ordnerstruktur, z. B. `write_file` auf `index.html`.
 3. Schreibe das komplette Dokument mit `<!doctype html>`, `<head>` (Meta-Viewport, Titel,
    `<style>`), semantischem `<body>`.
 4. Öffne das Ergebnis mit `open_url` (Datei-Pfad) oder `open_in_vscode`, damit der Nutzer

@@ -1,0 +1,65 @@
+.tu-huelle{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+.tu{display:flex;flex-direction:column;width:min(1400px,100%);height:min(860px,100%);border-radius:18px;border:1px solid rgba(255,255,255,.1);background:#0f0f14;color:rgba(255,255,255,.88);box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden;font-size:13px}
+.tu-kopf{display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.08);color:#e5c889}
+.tu-titel{display:flex;flex-direction:column;line-height:1.2;margin-right:auto}
+.tu-titel strong{color:#fff;font-size:14px}
+.tu-titel span{font-size:11px;color:rgba(255,255,255,.45)}
+.tu-kopf select{max-width:220px;padding:.35rem .5rem;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:#16161c;color:#fff;font-size:12.5px}
+.tu-knopf{display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .65rem;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.78);font-size:12px;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.tu-knopf:hover:not(:disabled){border-color:rgba(229,200,137,.45);color:#e5c889}
+.tu-knopf:disabled{opacity:.4;cursor:default}
+.tu-knopf.gold{border-color:rgba(229,200,137,.45);background:rgba(229,200,137,.12);color:#f2dca8}
+.tu-knopf.gefahr:hover:not(:disabled){border-color:rgba(242,139,130,.55);color:#f6b8b1}
+.tu-zu{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;color:rgba(255,255,255,.55)}
+.tu-zu:hover{background:rgba(255,255,255,.08);color:#fff}
+.tu-leiste{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;padding:.55rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02)}
+.tu-leiste input{flex:1;min-width:160px;max-width:280px;padding:.35rem .6rem;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:12.5px;outline:none}
+.tu-leiste input:focus{border-color:rgba(229,200,137,.5)}
+.tu-docker{display:inline-flex;align-items:center;gap:.3rem;font-size:11.5px;color:rgba(255,255,255,.45);margin-left:auto}
+.tu-docker.an{color:#8fd3a3}
+.tu-hinweis{display:inline-flex;align-items:center;gap:.35rem;font-size:11.5px;color:#f2dca8}
+.tu-meldung{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;background:rgba(242,139,130,.1);border-bottom:1px solid rgba(242,139,130,.25);color:#f6b8b1;font-size:12.5px}
+.tu-meldung span{flex:1}
+.tu-inhalt{flex:1;min-height:0;display:grid;grid-template-columns:220px minmax(0,1.1fr) minmax(0,1fr)}
+.tu-dateien{display:flex;flex-direction:column;min-height:0;border-right:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.015)}
+.tu-abschnitt{padding:.7rem .9rem .4rem;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4)}
+.tu-liste{flex:1;min-height:0;overflow:auto;padding:0 .4rem}
+.tu-liste button{display:flex;align-items:center;gap:.45rem;width:100%;padding:.38rem .5rem;border-radius:8px;text-align:left;color:rgba(255,255,255,.72);font-size:12.5px}
+.tu-liste button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tu-liste button:hover{background:rgba(255,255,255,.05)}
+.tu-liste button.an{background:rgba(229,200,137,.12);color:#f2dca8}
+.tu-neu-datei{display:flex;gap:.35rem;padding:.55rem;border-top:1px solid rgba(255,255,255,.07)}
+.tu-neu-datei input{flex:1;min-width:0;padding:.35rem .5rem;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:12px;outline:none}
+.tu-neu-datei button{display:grid;place-items:center;width:30px;border-radius:8px;border:1px solid rgba(255,255,255,.12);color:#e5c889}
+.tu-editor{display:flex;flex-direction:column;min-height:0;border-right:1px solid rgba(255,255,255,.07)}
+.tu-editor-kopf{display:flex;align-items:center;gap:.45rem;padding:.5rem .7rem;border-bottom:1px solid rgba(255,255,255,.07)}
+.tu-editor-kopf span{flex:1;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:rgba(255,255,255,.6);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tu-editor textarea{flex:1;min-height:0;resize:none;padding:.8rem .9rem;border:0;outline:none;background:#0b0b0f;color:rgba(255,255,255,.88);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;line-height:1.55;tab-size:2;white-space:pre;overflow:auto}
+.tu-rechts{display:flex;flex-direction:column;min-height:0}
+.tu-tabs{display:flex;align-items:center;gap:.25rem;padding:.4rem .5rem;border-bottom:1px solid rgba(255,255,255,.07)}
+.tu-tabs button{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .65rem;border-radius:8px;font-size:12px;color:rgba(255,255,255,.55)}
+.tu-tabs button.an{background:rgba(255,255,255,.07);color:#fff}
+.tu-tabs .tu-neu-laden{margin-left:auto}
+.tu-terminal{flex:1;min-height:0;display:flex;flex-direction:column;background:#08080b}
+.tu-ausgabe{flex:1;min-height:0;overflow:auto;padding:.7rem .8rem;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.5}
+.tu-lauf{margin-bottom:.8rem}
+.tu-befehl{display:flex;gap:.45rem;color:#f2dca8;word-break:break-all}
+.tu-befehl span{color:rgba(255,255,255,.35)}
+.tu-lauf pre{margin:.25rem 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:rgba(255,255,255,.82)}
+.tu-fehler{color:#f6b8b1!important}
+.tu-exit{margin-top:.2rem;font-size:11px}
+.tu-exit.ok{color:#8fd3a3}
+.tu-exit.nok{color:#f6b8b1}
+.tu-wartet{display:flex;align-items:center;gap:.35rem;color:rgba(255,255,255,.45);margin-top:.2rem}
+.tu-eingabe{display:flex;align-items:center;gap:.45rem;padding:.5rem .7rem;border-top:1px solid rgba(255,255,255,.08)}
+.tu-eingabe span{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:rgba(255,255,255,.4);font-size:12px}
+.tu-eingabe input{flex:1;min-width:0;background:transparent;border:0;outline:none;color:#fff;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px}
+.tu-eingabe button{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#e5c889}
+.tu-eingabe button:disabled{opacity:.35}
+.tu-vorschau{flex:1;min-height:0;width:100%;border:0;background:#fff}
+.tu-leer{padding:.6rem .7rem;font-size:12px;color:rgba(255,255,255,.42);line-height:1.5}
+.tu-mitte{margin:auto;text-align:center;max-width:280px}
+.tu-dreh{animation:tu-dreh 1s linear infinite}
+@keyframes tu-dreh{to{transform:rotate(360deg)}}
+@media(max-width:900px){.tu-inhalt{grid-template-columns:1fr;grid-template-rows:auto minmax(220px,1fr) minmax(240px,1fr)}.tu-dateien{max-height:160px;border-right:0;border-bottom:1px solid rgba(255,255,255,.07)}.tu-editor{border-right:0;border-bottom:1px solid rgba(255,255,255,.07)}.tu-huelle{padding:0}.tu{border-radius:0;height:100%}}
+@media(prefers-reduced-motion:reduce){.tu-dreh{animation:none}}

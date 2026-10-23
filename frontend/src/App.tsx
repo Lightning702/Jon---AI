@@ -8,6 +8,7 @@ import { karteAnhaengen, kartenLesen } from "./lib/karten";
 import Composer, { PendingAttachment } from "./components/Composer";
 import BtwFenster from "./components/BtwFenster";
 import { btwKontextAnmelden } from "./lib/btw";
+import { backendVeraltet, OBERFLAECHE_VERSION } from "./lib/version";
 import ClipboardPanel from "./components/ClipboardPanel";
 import ModelPicker from "./components/ModelPicker";
 import VoiceIndicator, { VoiceUiState } from "./components/VoiceIndicator";
@@ -32,6 +33,7 @@ import Recipe from "./components/Recipe";
 import Studio from "./components/Studio";
 import Flashcards from "./components/Flashcards";
 import Lehrer from "./components/Lehrer";
+import Testumgebung from "./components/Testumgebung";
 import DenkenPanel from "./components/DenkenPanel";
 import ScreenExplain from "./components/ScreenExplain";
 import PrivateBrowser from "./components/PrivateBrowser";
@@ -282,6 +284,15 @@ export default function App() {
   const [studioOpen, setStudioOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const [lehrerOpen, setLehrerOpen] = useState(false);
+  const [testOffen, setTestOffen] = useState<{ id: string; datei: string } | null>(null);
+  useEffect(() => {
+    const oeffnen = (e: Event) => {
+      const ziel = (e as CustomEvent<{ id?: string; datei?: string }>).detail || {};
+      setTestOffen({ id: ziel.id || "standard", datei: ziel.datei || "" });
+    };
+    window.addEventListener("jon:testumgebung", oeffnen);
+    return () => window.removeEventListener("jon:testumgebung", oeffnen);
+  }, []);
   const [denkenOpen, setDenkenOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [privateBrowserOpen, setPrivateBrowserOpen] = useState(false);
@@ -309,6 +320,7 @@ export default function App() {
   const [unread, setUnread] = useState(0);
   const [setupOpen, setSetupOpen] = useState(false);
   const [version, setVersion] = useState("");
+  const [neustartZu, setNeustartZu] = useState(false);
   const [update, setUpdate] = useState<{ latest: string; url: string } | null>(
     null
   );
@@ -1305,6 +1317,7 @@ export default function App() {
       kochen: () => setRecipeOpen(true),
       lernen: () => setFlashcardsOpen(true),
       lehrer: () => setLehrerOpen(true),
+      testumgebung: () => setTestOffen({ id: "standard", datei: "" }),
       erklaer: () => setExplainOpen(true),
       telefon: () => setPhoneOpen(true),
       handy: () => setWerkzeugeOpen("handy"),
@@ -1580,6 +1593,10 @@ export default function App() {
     }
     if (command === "/lehrer" || command === "/lernkurs" || command === "/nachhilfe" || command === "/tutor") {
       setLehrerOpen(true);
+      return;
+    }
+    if (command === "/test" || command === "/testumgebung" || command === "/sandbox" || command === "/vm") {
+      setTestOffen({ id: "standard", datei: "" });
       return;
     }
     if (command === "/lernen" || command === "/karten" || command === "/quiz") {
@@ -2245,6 +2262,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                             { icon: "🔒", label: "Passwort-Tresor", act: () => setVaultOpen(true) },
                             { icon: "📔", label: "Sprach-Tagebuch", act: () => setJournalOpen(true) },
                             { icon: "🎓", label: "Jon Lehrer", hint: "/lehrer", act: () => setLehrerOpen(true) },
+                            { icon: "🧪", label: "Jon Testumgebung", hint: "/test", act: () => setTestOffen({ id: "standard", datei: "" }) },
                             { icon: "🎴", label: "Lern-Karteikarten", act: () => setFlashcardsOpen(true) },
                             { icon: "🧠", label: "Jons Denken", act: () => setDenkenOpen(true) },
                           ],
@@ -2394,6 +2412,16 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
             ref={scrollRef}
             className="flex-1 overflow-y-auto overscroll-contain px-3 py-4 md:px-6 md:py-6 space-y-4"
           >
+            {backendVeraltet(version) && !neustartZu && (
+              <div className="flex items-start gap-3 rounded-2xl border border-gold/35 bg-gold/10 px-4 py-3 text-[13px] text-white/85" role="status">
+                <span className="flex-1">
+                  <b className="text-gold">Jon wurde aktualisiert.</b> Die Oberfläche ist schon auf {OBERFLAECHE_VERSION}, das laufende Backend noch auf {version}. Starte Jon einmal neu, damit Lehrer, /btw und alles Neue funktionieren.
+                </span>
+                <button className="text-white/50 hover:text-white" aria-label="Hinweis schließen" onClick={() => setNeustartZu(true)}>
+                  ✕
+                </button>
+              </div>
+            )}
             <RoutineBanner />
             {entries.length === 0 && (
               <StartHero
@@ -2529,6 +2557,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
       {studioOpen && <Studio onClose={() => setStudioOpen(false)} />}
       {flashcardsOpen && <Flashcards onClose={() => setFlashcardsOpen(false)} />}
       {lehrerOpen && <Lehrer onClose={() => setLehrerOpen(false)} />}
+      {testOffen && <Testumgebung start={testOffen} onClose={() => setTestOffen(null)} />}
       {denkenOpen && <DenkenPanel onClose={() => setDenkenOpen(false)} />}
       {explainOpen && <ScreenExplain onClose={() => setExplainOpen(false)} />}
       {privateBrowserOpen && (

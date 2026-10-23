@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, lazy, useState } from "react";
 import { toolDetail, toolLabel } from "../lib/toolInfo";
 import ChatText from "./ChatText";
+import JonGedanken, { useSekunden } from "./JonGedanken";
 import type { MapsCardData } from "../lib/maps";
 import type { BrowserTaskDaten, JonDatei, JonUhr, JonWecker, StudioWork } from "../lib/api";
 import type { ZeitAnfrageDaten } from "./ZeitAnfrageCard";
@@ -72,6 +73,7 @@ interface BubbleProps {
 }
 
 function JonDenkt({ text }: { text: string }) {
+  const sekunden = useSekunden(true);
   return (
     <span className="flex items-center gap-2.5">
       <span className="jon-denkt" aria-hidden="true">
@@ -79,6 +81,7 @@ function JonDenkt({ text }: { text: string }) {
         <i />
       </span>
       <span className="jon-schimmer text-[12.5px]">{text}</span>
+      {sekunden >= 3 && <span className="text-[11.5px] text-white/35 tabular-nums">{sekunden} s</span>}
     </span>
   );
 }
@@ -91,7 +94,6 @@ export default function MessageBubble({
   onOpenHarness,
 }: BubbleProps) {
   const isUser = entry.role === "user";
-  const [showReasoning, setShowReasoning] = useState(false);
   const [openTool, setOpenTool] = useState<number | null>(null);
 
   const expanded = openTool !== null ? entry.tools?.[openTool] : undefined;
@@ -99,7 +101,7 @@ export default function MessageBubble({
   const laufend = entry.tools?.some((t) => !t.done) ?? false;
   const werkstatt = (entry.tools ?? []).filter((t) => t.werkstatt);
   const hatKarten = !isUser && (!!entry.cards?.length || werkstatt.length > 0);
-  const zeigtBlase = isUser || !!entry.content || (entry.streaming && !hatKarten) || !!entry.attachments?.length;
+  const zeigtBlase = isUser || !!entry.content || (entry.streaming && !hatKarten && !entry.reasoning) || !!entry.attachments?.length;
 
   if (isUser) {
     return (
@@ -222,28 +224,7 @@ export default function MessageBubble({
             )}
           </div>
         )}
-        {entry.reasoning && (
-          <div>
-            <button
-              onClick={() => setShowReasoning((v) => !v)}
-              className="text-[11px] text-gold/70 hover:text-gold transition"
-            >
-              {showReasoning ? "Denkprozess verbergen" : "Denkprozess anzeigen"}
-            </button>
-            <AnimatePresence initial={false}>
-              {showReasoning && (
-                <motion.pre
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-2 text-[12px] text-white/50 whitespace-pre-wrap [overflow-wrap:anywhere] border-l-2 border-gold/30 pl-3 overflow-hidden"
-                >
-                  {entry.reasoning}
-                </motion.pre>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
+        {entry.reasoning && <JonGedanken text={entry.reasoning} denktNoch={!!entry.streaming && !entry.content} />}
         {hatKarten && (
           <Suspense
             fallback={
@@ -305,7 +286,7 @@ export default function MessageBubble({
               <JonDenkt text={laufend ? "Jon arbeitet …" : "Jon denkt nach …"} />
             ) : (
               <>
-                <ChatText text={entry.content} />
+                <ChatText text={entry.content} fertig={!entry.streaming} />
                 {entry.streaming && (
                   <span className="inline-block w-2 h-4 ml-0.5 align-middle bg-gold animate-pulse rounded-sm" />
                 )}

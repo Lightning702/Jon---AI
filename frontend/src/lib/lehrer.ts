@@ -1,4 +1,5 @@
 import { BASE } from "./api";
+import { fehlerText } from "./version";
 
 export interface KursKurz {
   id: string;
@@ -63,7 +64,7 @@ export interface Bewertung {
 async function abrufen<T>(pfad: string, optionen?: RequestInit): Promise<T> {
   const antwort = await fetch(`${BASE}/lehrer${pfad}`, optionen);
   const daten = await antwort.json().catch(() => ({}));
-  if (!antwort.ok) throw new Error(typeof daten.detail === "string" ? daten.detail : `Fehler ${antwort.status}`);
+  if (!antwort.ok) throw new Error(fehlerText(antwort.status, daten.detail));
   return daten as T;
 }
 

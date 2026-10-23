@@ -254,6 +254,7 @@ CORE_TOOLS = {
     "bildschirm_klicken",
     "bildschirm_eingeben",
     "pc_strom",
+    "testumgebung",
     "was_laeuft",
     "wechseln",
     "harness_task",
@@ -1482,6 +1483,13 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return f"Bearbeitet das Word-Dokument {_shorten(args.get('path', ''))}" + (f" ({anzahl} Schritte)." if anzahl else ".")
     if name == "bild_suche":
         return f"Sucht ein Foto: {_shorten(args.get('query', '') or args.get('url', ''))}"
+    if name == "testumgebung":
+        aktion = str(args.get("aktion", "") or "").lower()
+        if aktion == "code":
+            return f"Testet {args.get('sprache', 'Code')} in der Testumgebung."
+        if args.get("befehl"):
+            return f"Führt in der Testumgebung aus: {_shorten(args.get('befehl', ''))}"
+        return f"Testumgebung: {aktion or 'Übersicht'}."
     if name == "was_laeuft":
         return "Schaut nach, welches Lied gerade läuft."
     if name == "wechseln":
@@ -1867,6 +1875,7 @@ _PC_TOOLS = {
     "bildschirm_klicken",
     "bildschirm_eingeben",
     "pc_strom",
+    "testumgebung",
     "lehrer",
     "run_powershell",
     "run_cmd",
@@ -2712,7 +2721,10 @@ class ToolBox:
                 "sonst z.B. 'desktop', 'desktop/Meine Projekte/Essen', 'dokumente' oder "
                 "ein Jon-Unterordner. Nutze das IMMER, wenn der Nutzer eine Datei, ein "
                 "Dokument, eine PDF, eine Tabelle oder einen Text haben will - sag nie, "
-                "du koenntest keine Dateien erstellen.",
+                "du koenntest keine Dateien erstellen. Aenderungen an einem bestehenden "
+                "Word-Dokument machst du mit edit_docx. Erzeugst du dieselbe Datei erneut, "
+                "ueberschreibt Jon seine eigene Fassung statt eine Kopie anzulegen; "
+                "neue_datei=true nur, wenn der Nutzer ausdruecklich eine zweite Datei will.",
                 {
                     "art": _STR,
                     "titel": _STR,
@@ -2723,6 +2735,7 @@ class ToolBox:
                     "ort": _STR,
                     "dateiname": _STR,
                     "projekt": _STR,
+                    "neue_datei": {"type": "boolean", "description": "true nur fuer eine ausdruecklich gewuenschte zweite Datei"},
                 },
                 ["art", "inhalt"],
             ),
@@ -3465,7 +3478,12 @@ class ToolBox:
                 "[{titel, text}], Gegenueberstellungen als two_columns mit items, Begriffe als "
                 "table. Fachliche Aussagen bekommen quelle. Keine leeren Folien. Das Ergebnis "
                 "enthaelt qualitaet mit Pruefhinweisen - ist es nicht leer, behebe die Punkte "
-                "sofort mit edit_pptx, bevor du dem Nutzer antwortest.",
+                "sofort mit edit_pptx, bevor du dem Nutzer antwortest.\n"
+                "EINE DATEI, KEINE KOPIEN: Soll eine bestehende Praesentation geaendert werden, "
+                "nimm edit_pptx. Rufst du create_pptx fuer dieselbe Praesentation erneut auf, "
+                "ueberschreibt Jon automatisch seine eigene Datei statt eine Kopie anzulegen. "
+                "Eine zusaetzliche Kopie nur mit neue_datei=true, wenn der Nutzer ausdruecklich "
+                "eine zweite Fassung will.",
                 {
                     "title": _STR,
                     "slides": {
@@ -3486,6 +3504,10 @@ class ToolBox:
                     "effekte": {
                         "type": "boolean",
                         "description": "false laesst Uebergaenge und Animationen weg",
+                    },
+                    "neue_datei": {
+                        "type": "boolean",
+                        "description": "true nur, wenn der Nutzer ausdruecklich eine zusaetzliche Kopie will",
                     },
                 },
                 ["title", "slides"],
@@ -3529,6 +3551,33 @@ class ToolBox:
                     "theme": _STR,
                 },
                 ["path", "aktionen"],
+            ),
+            _tool(
+                "testumgebung",
+                "Jons Testumgebung: eine wegwerfbare Umgebung zum Ausprobieren von Code, die auch der "
+                "Nutzer sieht. Mit Docker ist sie eine echte Linux-Maschine (Python, Node, PHP, apk add), "
+                "sonst ein abgeschotteter Ordner auf dem PC. aktion: code (sprache = python|javascript|php|"
+                "bash|powershell|html, code = vollstaendiger Code; html liefert eine vorschau-Adresse), "
+                "ausfuehren (befehl, z. B. 'pip install requests' oder 'node test.js'), schreiben (pfad, "
+                "inhalt), lesen (pfad), dateien, liste, neu (name, maschine), zuruecksetzen, loeschen. "
+                "umgebung ist die id, leer = Standard. Nutze das, um selbst geschriebenen Code zu pruefen, "
+                "bevor du ihn als fertig meldest. WICHTIG: Grosse Programme, Websites und Spiele schreibst du "
+                "NICHT hier hinein, sondern als Markdown-Codeblock in deine Antwort - dort sieht der Nutzer sie "
+                "live und hat Vorschau, Ausfuehren und Speichern. Hier nur kurze Tests und Befehle. Liefert "
+                "das Werkzeug vorschau, verlinke sie als [Vorschau](vorschau-Adresse) - Jon zeigt sie direkt im Chat.",
+                {
+                    "aktion": _STR,
+                    "umgebung": _STR,
+                    "sprache": _STR,
+                    "code": _STR,
+                    "dateiname": _STR,
+                    "befehl": _STR,
+                    "pfad": _STR,
+                    "inhalt": _STR,
+                    "name": _STR,
+                    "maschine": {"type": "boolean"},
+                },
+                ["aktion"],
             ),
             _tool(
                 "bild_suche",
@@ -4807,6 +4856,7 @@ class ToolBox:
                 str(args.get("theme", "")) or "hell",
                 str(args.get("subtitle", "")),
                 args.get("effekte", True) is not False,
+                str(args.get("neue_datei", "")).lower() in ("true", "1", "ja"),
             )
         except Exception as exc:
             return json.dumps({"error": str(exc)}, ensure_ascii=False)
