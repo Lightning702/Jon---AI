@@ -64,6 +64,30 @@ WOCHENTAGE = (
 )
 
 
+DENK_WUENSCHE = ("denk nach", "denk gründlich", "denk gruendlich", "überleg", "ueberleg", "genau nachdenken", "schritt für schritt", "schritt fuer schritt", "think", "beweise", "herleit")
+
+
+DENK_THEMEN = re.compile(
+    r"\b(?:cod(?:e|en|ier)|programmier|skript|script|html|css|javascript|typescript|python|php|java\b|c\+\+|sql|"
+    r"spiel|game|website|webseite|homepage|app\b|algorithm|debug|fehler(?:suche|meldung)|erkl(?:ae|ä)r|warum|wieso|weshalb|"
+    r"wie funktioniert|analysier|vergleich|plane|planung|berechne|rechne|beweis|herleit|optimier|strategie|konzept)",
+    re.IGNORECASE,
+)
+
+
+def denken_noetig(text: str, urteil: dict | None, coding: bool) -> bool | None:
+    klein = (text or "").lower()
+    if any(wunsch in klein for wunsch in DENK_WUENSCHE):
+        return True
+    if len(klein) >= 12 and DENK_THEMEN.search(klein):
+        return True
+    if coding:
+        return True
+    if urteil and urteil.get("stufe") == "gruendlich":
+        return True
+    return None
+
+
 def heute_block() -> str:
     from datetime import datetime
 
@@ -197,6 +221,7 @@ OPENROUTER_FREE_DEFAULTS = (
 )
 
 ALTERNATIVE_PROVIDERS = (
+    "felworks",
     "groq",
     "openrouter",
     "together",
@@ -917,6 +942,7 @@ class ChatService:
                 or self._settings.jon_model
             )
         provider, model = self._share_route(provider, lebendes_modell(model, provider))
+        provider, model = self._ersatz_ohne_schluessel(provider, model)
         if slot != "emil":
             from app.services.aufgaben_modelle import fuer_chat
 
@@ -924,6 +950,21 @@ class ChatService:
         from app.services.offline import lokal_erzwingen
 
         return lokal_erzwingen(provider, model)
+
+    def _ersatz_ohne_schluessel(self, provider: str, model: str) -> tuple[str, str]:
+        try:
+            if self._registry.get(provider).available():
+                return provider, model
+        except Exception as fehler:
+            leise(fehler, "services/chat_service")
+        try:
+            felworks = self._registry.get("felworks")
+            if felworks.available():
+                modelle = list(getattr(felworks, "_default_models", []) or [])
+                return "felworks", model if model in modelle else (modelle[0] if modelle else model)
+        except Exception as fehler:
+            leise(fehler, "services/chat_service")
+        return provider, model
 
     def _ensure_conversation(self, payload: ChatIn, provider: str, model: str) -> str:
         with session_scope() as session:
@@ -940,21 +981,27 @@ class ChatService:
                 session.flush()
             conv.provider = provider
             conv.model = model
-            count = len(conv.messages)
+            gespeichert = list(conv.messages)
+            position = max((em.position for em in gespeichert), default=-1) + 1
+            letzte = gespeichert[-1] if gespeichert else None
             for idx, m in enumerate(payload.messages):
-                exists = any(
-                    em.role == m.role and em.content == m.content
-                    for em in conv.messages
-                )
+                if idx == len(payload.messages) - 1 and m.role == "user":
+                    exists = letzte is not None and letzte.role == "user" and letzte.content == m.content
+                else:
+                    exists = any(
+                        em.role == m.role and em.content == m.content
+                        for em in gespeichert
+                    )
                 if not exists:
                     session.add(
                         Message(
                             conversation_id=conv.id,
                             role=m.role,
                             content=m.content,
-                            position=count + idx,
+                            position=position,
                         )
                     )
+                    position += 1
             return conv.id
 
     async def _schnell_wechseln(self, wechsel: tuple[str, bool], payload, conversation_id):
@@ -991,7 +1038,7 @@ class ChatService:
             conv = session.get(Conversation, conversation_id)
             if conv is None:
                 return
-            position = len(conv.messages)
+            position = max((em.position for em in conv.messages), default=-1) + 1
             session.add(
                 Message(
                     conversation_id=conversation_id,
@@ -1269,6 +1316,7 @@ class ChatService:
             tools=tools,
             slot=slot,
             first_token_timeout=GEDULD_QUELLEN.get(payload.source, 0.0),
+            denken=denken_noetig(latest_user, urteil, coding_mode),
         )
 
         budget = get_budget_service()

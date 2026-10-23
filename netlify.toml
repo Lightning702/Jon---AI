@@ -17,6 +17,24 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [[headers]]
+  for = "/install.ps1"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/install.sh"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/jon-harness.pyz"
+  [headers.values]
+    Content-Type = "application/octet-stream"
+    Content-Disposition = "attachment; filename=jon-harness.pyz"
+
+[[headers]]
   for = "/jon.zip"
   [headers.values]
     Content-Type = "application/zip"
@@ -36,6 +54,12 @@
 [[redirects]]
   from = "/nvidia/*"
   to = "https://integrate.api.nvidia.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/install"
+  to = "/install.ps1"
   status = 200
   force = true
 

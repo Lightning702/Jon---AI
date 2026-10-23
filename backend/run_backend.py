@@ -6,10 +6,21 @@ import sys
 
 CLI_WOERTER = ("cli", "terminal", "jon")
 EINRICHT_WOERTER = ("terminal-einrichten", "terminal-entfernen")
+PYTHON_SCHALTER = ("-m", "-c", "-X", "-u", "-I", "-E", "-B", "-O", "-S")
+
+
+def python_aufruf(argumente: list[str]) -> bool:
+    if len(argumente) < 2:
+        return False
+    erstes = argumente[1]
+    return erstes in PYTHON_SCHALTER or erstes.lower().endswith((".py", ".pyw"))
 
 
 def main() -> None:
     if getattr(sys, "frozen", False):
+        if python_aufruf(sys.argv):
+            sys.stderr.write("Das Jon-Backend ist kein Python-Interpreter. Installiere Python von python.org, um Skripte auszuführen.\n")
+            sys.exit(2)
         os.chdir(os.path.dirname(sys.executable))
 
     if len(sys.argv) > 1 and sys.argv[1].lower() in EINRICHT_WOERTER:

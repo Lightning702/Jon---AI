@@ -19,6 +19,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from app.core.config import DATA_DIR, get_settings
+from app.core.fehler import leise
 from app.core.store import atomic_write_text
 
 OEFFENTLICH = "cJYQcvvuqg2j3a1Rnqyg+YdlBD6XIwhENSF4HKcpaQw="
@@ -27,7 +28,7 @@ VERSION = "JON1"
 STUFEN = {"standard": "Standard", "premium": "Premium", "admin": "Admin", "entwickler": "Entwickler"}
 UNBEGRENZT = {"premium", "admin", "entwickler"}
 TEAM = {"admin", "entwickler"}
-TEAM_AKTIONEN = {"liste", "erstellen", "bearbeiten", "geraet-entfernen", "sperren", "team/liste", "team/ungelesen", "team/senden", "team/gelesen", "team/anhang", "team/stimme", "team/status", "team/loeschen", "flags/liste", "flags/setzen", "statistik", "llm/kontingent", "pi/status", "pi/neustart", "pi/log", "pi/aktualisieren", "skills/liste", "skills/teilen", "skills/holen", "skills/entfernen", "kostenlos/stand", "kostenlos/setzen"}
+TEAM_AKTIONEN = {"liste", "erstellen", "bearbeiten", "geraet-entfernen", "sperren", "team/liste", "team/ungelesen", "team/senden", "team/gelesen", "team/anhang", "team/stimme", "team/status", "team/loeschen", "flags/liste", "flags/setzen", "statistik", "llm/kontingent", "pi/status", "pi/neustart", "pi/log", "pi/aktualisieren", "skills/liste", "skills/teilen", "skills/holen", "skills/entfernen", "kostenlos/stand", "kostenlos/setzen", "gast/stand", "gast/setzen"}
 GEHEIM_MUSTER = re.compile(r"(?:nvapi-|sk-|sk_live_|sk_test_|rk_live_|ghp_|gsk_|xai-|AIza)[A-Za-z0-9_\-]{8,}|Bearer\s+\S+|JON1\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+")
 GEHEIM_FELD = re.compile(r"(?i)\b(token|key|passwort|password|secret|api_key|apikey)(\s*[=:]\s*)\S+")
 
@@ -148,6 +149,9 @@ class Premium:
         self._cache: tuple[str, dict] | None = None
         self.offen: dict = {}
         self._kostenlos: tuple[float, bool] = (0.0, False)
+        self.gast_datei = self.directory / "felworks_gast.json"
+        self._gast_fehler = 0.0
+        self._gast_lock = threading.Lock()
 
     def geraet(self) -> str:
         if self._geraet:
@@ -247,8 +251,56 @@ class Premium:
             return True
         return bool((self.zustand().get("flags") or {}).get(schluessel, True))
 
-    def felworks_schluessel(self) -> str | None:
-        return self.token() if self.flag("modell") else None
+    def felworks_schluessel(self, holen: bool = False) -> str | None:
+        if self.flag("modell"):
+            return self.token()
+        return self.gast_token(holen)
+
+    def gast_token(self, holen: bool = False) -> str | None:
+        try:
+            from app.services.settings_service import get_settings_service
+
+            if not get_settings_service().get().get("felworks_gast", True):
+                return None
+        except Exception as fehler:
+            leise(fehler, "premium/gast")
+        try:
+            daten = json.loads(self.gast_datei.read_text(encoding="utf-8"))
+            if daten.get("geraet") == self.geraet() and daten.get("token"):
+                return str(daten["token"])
+        except (OSError, ValueError, AttributeError):
+            pass
+        if not holen or time.time() - self._gast_fehler < 600:
+            return None
+        if not self._gast_lock.acquire(blocking=False):
+            return None
+        try:
+            from app.core.netzweg import sync_client
+
+            basis = get_settings().jon_codes_url.rstrip("/")
+            with sync_client(timeout=8) as client:
+                antwort = client.post(f"{basis}/gast", json={"geraet": self.geraet(), "art": "app"})
+            inhalt = antwort.json() if antwort.status_code == 200 else {}
+            token = str(inhalt.get("token") or "")
+            if not token:
+                self._gast_fehler = time.time()
+                return None
+            self.directory.mkdir(parents=True, exist_ok=True)
+            atomic_write_text(self.gast_datei, json.dumps({"token": token, "geraet": self.geraet(), "seit": int(time.time())}))
+            return token
+        except Exception as fehler:
+            self._gast_fehler = time.time()
+            leise(fehler, "premium/gast")
+            return None
+        finally:
+            self._gast_lock.release()
+
+    def gast_verwerfen(self) -> None:
+        try:
+            self.gast_datei.unlink()
+        except OSError:
+            pass
+        self._gast_fehler = time.time()
 
     def beta_aktiv(self) -> bool:
         return self.flag("beta") and bool(self.zustand().get("beta"))
@@ -328,8 +380,10 @@ class Premium:
         }
 
     async def _senden(self, adresse: str, daten: dict, wer: str) -> dict:
+        from app.core.netzweg import async_client, umleitbar
+
         try:
-            async with httpx.AsyncClient(timeout=40) as client:
+            async with (async_client(timeout=40) if umleitbar(httpx.URL(adresse).host) else httpx.AsyncClient(timeout=40)) as client:
                 for _ in range(3):
                     antwort = await client.post(adresse, json=daten)
                     if antwort.status_code not in {301, 302, 307, 308} or not antwort.headers.get("location"):

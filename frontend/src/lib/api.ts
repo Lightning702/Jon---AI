@@ -329,6 +329,7 @@ export interface UserSettings {
   kritiker_schwelle?: number;
   erwartung_enabled?: boolean;
   metakognition_enabled?: boolean;
+  schnell_antworten?: boolean;
   neugier_enabled?: boolean;
   neugier_auto?: boolean;
   neugier_pro_lauf?: number;
@@ -375,7 +376,7 @@ const STANDARD_SETTINGS: UserSettings = {
     telegram_video_bildschirm: "maus",
     mini_jon_bot_token: "",
     pet_provider: "",
-    pet_model: "meta/muse-glimmer-30b",
+    pet_model: "nvidia/nemotron-3.5-lightning-30b-a3b",
     relay_enabled: false,
     relay_broker: "broker.hivemq.com",
     relay_port: 1883,
@@ -418,6 +419,7 @@ const STANDARD_SETTINGS: UserSettings = {
     kritiker_schwelle: 0.5,
     erwartung_enabled: true,
     metakognition_enabled: true,
+    schnell_antworten: true,
     neugier_enabled: true,
     neugier_auto: false,
     neugier_pro_lauf: 3,

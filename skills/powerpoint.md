@@ -26,21 +26,37 @@ umgesetzten Kommentare mit `datei_kommentare` (aktion `erledigt`, ids) ab.
 
 Übergänge und Animationen kommen **automatisch**. Du musst nichts dafür tun.
 
-## Die wichtigste Regel: schreib richtig aus
+## Die wichtigste Regel: klare Aussagen statt Stichwortsalat
 
-Das war bisher der größte Fehler. Eine Folie mit fünf Stichwörtern ist keine
-Präsentation, sondern eine Gliederung.
+Eine Folie mit fünf losen Stichwörtern ist keine Präsentation, sondern eine Gliederung.
+Eine Folie voller Absätze ist ein Dokument. Gute Folien liegen dazwischen:
 
-- **Jede Inhaltsfolie braucht einen `text`** — ein bis drei Sätze, die den Gedanken
-  wirklich erklären. Der steht als Einleitung über dem Inhalt.
-- **Stichpunkte sind ganze Aussagen.** Schreib `Begriff: Erklärung in einem vollen
-  Satz`, nicht nur `Begriff`. 10–25 Wörter pro Punkt sind richtig, nicht 3.
-- **Sprechernotizen sind Pflicht**: 2–4 Sätze pro Folie, was man dazu sagt, inklusive
-  Übergang zur nächsten Folie.
-- **Niemals Platzhalter.** Kein `X Prozent`, kein `Wert eintragen`, kein `Lorem ipsum`,
-  kein `2X PB/Monat`. Kennst du eine Zahl nicht, such sie mit `web_search` oder lass
-  den Punkt weg. Eine erfundene Zahl ist schlimmer als keine.
-- Faustregel für die Textmenge: **400–900 Zeichen sichtbarer Text pro Inhaltsfolie**.
+- **Die Überschrift ist die Kernaussage** als kurzer Satz („Windkraft liefert heute ein
+  Drittel des Stroms“), nicht nur ein Stichwort („Windkraft“).
+- **Jede Inhaltsfolie bekommt einen `text`** — ein bis zwei Sätze, die den Gedanken
+  erklären. Er steht als Einleitung über dem Inhalt.
+- **Höchstens 5 Stichpunkte, jeder eine ganze Aussage mit 8–18 Wörtern**, gern im Muster
+  `Begriff: Erklärung`. Mehr Inhalt bekommt eine zweite Folie.
+- **Die Details gehören in die Sprechernotizen**: 2–4 Sätze pro Folie, was man dazu
+  sagt, inklusive Übergang zur nächsten Folie.
+- **Niemals Platzhalter.** Kein `X Prozent`, kein `Wert eintragen`, kein `Lorem ipsum`.
+  Kennst du eine Zahl nicht, such sie mit `web_search` oder lass den Punkt weg. Eine
+  erfundene Zahl ist schlimmer als keine.
+- Faustregel für die Textmenge: **250–600 Zeichen sichtbarer Text pro Inhaltsfolie**.
+
+## Storyline: eine Präsentation erzählt etwas
+
+1. **Einstieg mit Haken:** eine überraschende Zahl, Frage oder ein Bild auf der Titel-
+   oder zweiten Folie.
+2. **Worum geht es und warum ist es wichtig?** (Problem, Bedeutung, Zielgruppe)
+3. **Hauptteil in 3–5 Kapiteln**, jedes mit einer klaren Botschaft. Abläufe als
+   `timeline`, Vergleiche als `compare`/`two_columns`, Zahlen als `chart`/`stat`.
+4. **Fazit mit Handlungsaufforderung** oder der einen Sache, die hängen bleiben soll.
+5. Für Schulreferate zusätzlich: Quellenfolie am Ende und Fachbegriffe als Glossar-
+   `table`; Sprache passend zur Klasse.
+
+**Rhythmus:** Spätestens jede zweite Folie hat etwas Visuelles — Bild, Diagramm, große
+Zahl oder Zitat. Helle Inhaltsfolien wechseln mit dunklen Ankerfolien.
 
 ## Layouts
 
@@ -123,10 +139,38 @@ Weitere Regeln:
 - Dunkle Folien (`title`, `stat`, `quote`, `closing`) als Anker zwischen hellen.
 - Höchstens 6 Stichpunkte pro Folie — aber die dann ausformuliert.
 
+## Standard-Design „hell“ (so wie die Präsentationen des Nutzers)
+
+Ohne besonderen Wunsch nimmst du `theme: "hell"` – das ist das Standard-Design und sieht aus
+wie eine moderne Office-Präsentation:
+
+- **Titelfolie** mit einem großen, passenden Foto über die ganze Folie, darauf weißer Titel und
+  die Namen der Vortragenden als Untertitel (`image` oder `bild_suche` auf der `title`-Folie).
+- **Jede Inhaltsfolie bekommt ein Foto** (`bild_suche` mit englischem, konkretem Suchbegriff).
+  Jon setzt es abwechselnd randlos auf die rechte Hälfte oder rund ausgeschnitten mit
+  gestricheltem Bogen – darum musst du dich nicht kümmern.
+- **Überschrift als Frage oder Aussage** („Was ist ein Algorithmus?“, „Wichtige
+  Anwendungsbereiche der KI“), darunter eine kurze orange Akzentlinie (automatisch).
+- **3–5 kurze Punkte** pro Folie, jeder höchstens eine Zeile bis eineinhalb Zeilen. Aufzählungen
+  wie Länder, Programme oder Bereiche dürfen einzelne Wörter sein.
+- **Chancen und Risiken** oder andere Gegenüberstellungen als `quote`-Folie mit `items`
+  (dunkel, Foto im Hintergrund, Titel links, Punkte rechts).
+- **Fazit** als `text`- oder `bullets`-Folie, danach eine **Quellenfolie** (`bullets` mit den Links)
+  und zum Schluss `closing` mit „Vielen Dank für Ihre Aufmerksamkeit“.
+
+**Bilder immer als Text angeben:** `"image": "C:/Pfad/bild.jpg"` oder `"image": "https://…"`,
+`"bild_suche": "solar panels on roof"`, `"bild_prompt": "…"` – Jon versteht zwar auch Objekte wie
+`{"path": …}`, aber Text ist eindeutig.
+
+**Einmal erstellen, dann verbessern:** Eine fertige Präsentation baust du nie komplett neu.
+Fehlt etwas, änderst du gezielt mit `edit_pptx`. Das Feld `qualitaet` enthält Hinweise, keine
+Fehler – was sich nicht beheben lässt, nennst du dem Nutzer und meldest fertig.
+
 ## Farbwahl
 
 | Theme | Passt zu |
 | --- | --- |
+| `hell` | Standard für alles: Schule, Referate, Business, Vorträge |
 | `midnight` | Business, Technik, Strategie |
 | `ocean` | Daten, Forschung, Bildung |
 | `forest` | Umwelt, Nachhaltigkeit, Biologie |

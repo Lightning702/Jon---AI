@@ -1,5 +1,38 @@
 # Jon Harness und MiniJon
 
+## Jon Harness im Terminal
+
+Installation in PowerShell:
+
+```powershell
+irm https://getjon.info/install.ps1 | iex
+```
+
+macOS und Linux:
+
+```bash
+curl -fsSL https://getjon.info/install.sh | sh
+```
+
+Danach startet `jon` in jedem Ordner den Harness. Er prüft beim Start, ob Jon auf diesem PC läuft. Wenn ja, nutzt er Jons Modell und alle Jon-Werkzeuge. Wenn nein, arbeitet er eigenständig mit FelWorks – ohne API-Schlüssel und ohne Premium. `/api` wählt zuerst den Anbieter und fragt den Schlüssel einmal ab, `/modell` wechselt das Modell, `/hilfe` zeigt alle Befehle.
+
+```text
+jon                                  Harness im aktuellen Ordner
+jon "Baue mir eine Portfolio-Website" mit erstem Auftrag
+jon --auto                           Dateien und Befehle ohne Rückfrage
+jon -c                               letztes Gespräch fortsetzen
+```
+
+### Nebenbei fragen mit /btw
+
+Während Jon arbeitet, kannst du einfach tippen. Die Zeile erscheint hinter der Statusanzeige.
+
+- `/btw <Frage>` – Jon antwortet sofort in einem Kasten, ohne die Arbeit zu unterbrechen und ohne die Frage in den Verlauf zu übernehmen.
+- Alles andere (oder `danach: …`) wird vorgemerkt und läuft automatisch, sobald der aktuelle Auftrag fertig ist.
+- Esc leert die Zeile, Freigabe-Fragen haben Vorrang vor der Nebeneingabe.
+
+In der App gibt es dasselbe im Chat, in Jon Code und im Harness-Panel: `/btw` im Eingabefeld oder `Alt+B` öffnet das Fenster „Nebenbei“. Im Harness-Panel landet alles, was du während eines laufenden Auftrags schickst, als Nachauftrag in derselben Sitzung (`POST /api/harness/tasks/{id}/nachauftrag`). Zwischenfragen laufen über `POST /api/btw`. Auf Telegram heißt der Befehl ebenfalls `/btw`.
+
 Stand: 3. Oktober 2026, Jon 4.58.1. Der Harness öffnet in der App einen eigenen Arbeitsbereich mit Sitzungsleiste, Eingabefeld unten, animierter Live-Ansicht, Diff-Ansicht und Projektvorschau. Er arbeitet immer mit Jons Modell aus den Einstellungen – auch wenn der Auftrag aus MiniJon kommt. MiniJon kann den Fortschritt nur noch als Begleiter anzeigen.
 
 ## Einstieg
@@ -20,7 +53,7 @@ Der Terminal-Client nutzt ein erreichbares Jon-Backend. Wenn keine Verbindung au
 
 ## Sitzungen
 
-Ein Auftrag im Harness eröffnet eine Sitzung. Jeder weitere Auftrag, den du im Eingabefeld schickst, bleibt in dieser Sitzung: Jon bekommt die früheren Aufträge, ihre Zusammenfassungen, die geänderten Dateien und die Prüfergebnisse mit und liest betroffene Dateien vor einer Änderung erneut. Frühere Aufträge erscheinen im Verlauf eingeklappt, der aktuelle vollständig. **Änderungen** zeigt alle Dateien der Sitzung. Solange ein Auftrag läuft, wartet das Eingabefeld, bis er fertig ist. **Neue Sitzung** beginnt ein neues Thema.
+Ein Auftrag im Harness eröffnet eine Sitzung. Jeder weitere Auftrag, den du im Eingabefeld schickst, bleibt in dieser Sitzung: Jon bekommt die früheren Aufträge, ihre Zusammenfassungen, die geänderten Dateien und die Prüfergebnisse mit und liest betroffene Dateien vor einer Änderung erneut. Frühere Aufträge erscheinen im Verlauf eingeklappt, der aktuelle vollständig. **Änderungen** zeigt alle Dateien der Sitzung. Schickst du etwas, während ein Auftrag läuft, merkt Jon es als Nachauftrag vor und startet es automatisch danach; `/btw` stellt eine Zwischenfrage. **Neue Sitzung** beginnt ein neues Thema.
 
 Startet Jon im normalen Chat einen Harness-Auftrag, setzt er die zuletzt aktive Sitzung desselben Projekts fort, wenn sie in den letzten drei Stunden benutzt wurde. Mit `new_session` im Werkzeug `harness_task` beginnt er bewusst neu. In Telegram setzt `/harness <Auftrag>` die laufende Sitzung fort, `/hneu <Auftrag>` beginnt eine neue.
 

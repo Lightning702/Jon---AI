@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, Compass, FileCode2, Folder, FolderPlus, GitBranch, Loader2, MessagesSquare, Monitor, PanelLeft, Plus, RotateCcw, Search, Settings2, ShieldCheck, ShieldOff, Sparkles, Square, X} from "lucide-react";
+import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, Compass, FileCode2, Folder, FolderPlus, GitBranch, ListPlus, Loader2, MessageCircle, MessagesSquare, Monitor, PanelLeft, Plus, RotateCcw, Search, Settings2, ShieldCheck, ShieldOff, Sparkles, Square, X} from "lucide-react";
+import {btwKontextAnmelden, btwOeffnen, btwRest, istBtw} from "../lib/btw";
 import {addProject, getUserSettings, JonProject, pickFolderDialog} from "../lib/api";
 import {finished, HarnessSitzung, HarnessTask, harnessRequest, taskLabels} from "../lib/harness";
 import AgentenBuehne from "./agenten/AgentenBuehne";
@@ -103,7 +104,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
             try {
               const data = await harnessRequest<{root: string; tasks: HarnessTask[]}>(`/harness/threads/${selected}`, undefined, undefined, controller.signal);
               if (controller.signal.aborted) return;
-              const stand = JSON.stringify(data.tasks.map(t => [t.id, t.status, t.updated_at, t.step, t.log?.length, t.changes.length, t.checks.length, t.pending?.id, t.specialists?.map(a => a.status).join(), t.summary.length, t.werkstatt?.nr, t.werkstatt?.fertig]));
+              const stand = JSON.stringify(data.tasks.map(t => [t.id, t.status, t.updated_at, t.step, t.log?.length, t.changes.length, t.checks.length, t.pending?.id, t.specialists?.map(a => a.status).join(), t.summary.length, t.werkstatt?.nr, t.werkstatt?.fertig, t.nachauftraege?.length]));
               if (stand !== aufgabenStand.current) {aufgabenStand.current = stand; setTasks(data.tasks);}
               fast = data.tasks.some(t => !finished.has(t.status));
               let geaendert = false;
@@ -154,6 +155,17 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
     setProjects(items => items.some(p => p.id === project.id) ? items : [...items, project]); setSetupOpen(false); newTask(project.root);
   });
   const start = (text = goal) => action(async () => {
+    if (istBtw(text)) {
+      setGoal("");
+      btwOeffnen(btwRest(text) || null);
+      return;
+    }
+    if (working && letzte && imThread) {
+      const daten = await harnessRequest<{nachauftraege: string[]}>(`/harness/tasks/${letzte.id}/nachauftrag`, {text: text.trim()});
+      setTasks(items => items.map(t => t.id === letzte.id ? {...t, nachauftraege: daten.nachauftraege} : t));
+      setGoal("");
+      return;
+    }
     if (allgemein) {
       if (!text.trim()) return;
       const fortsetzen = selected && !drafting && sitzungen.find(s => s.id === selected)?.modus === "allgemein" ? selected : "";
@@ -202,7 +214,14 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
     return [...result.values()];
   }, [tasks]);
   const imThread = !!selected && !drafting && !!tasks.length;
-  const sendbar = !busy && !working && !!goal.trim() && (allgemein || !!root.trim());
+  const nebenbei = istBtw(goal);
+  const sendbar = !busy && !!goal.trim() && (nebenbei || (working ? imThread : allgemein || !!root.trim()));
+  const btwStand = useRef({letzte, working, setGoal});
+  btwStand.current = {letzte, working, setGoal};
+  useEffect(() => btwKontextAnmelden(() => {
+    const stand = btwStand.current;
+    return {quelle: "harness", arbeitet: stand.working, taskId: stand.letzte?.id, nebenbei: stand.letzte ? "" : "Noch kein Auftrag gestartet.", nachauftrag: (text: string) => stand.setGoal(text)};
+  }), []);
   useEffect(() => {
     const el = feed.current;
     if (!el) return;
@@ -267,8 +286,9 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
       <div className="harness-composer-wrap">
         <AnimatePresence>{setupOpen && <motion.div className="harness-project-setup" initial={{opacity: 0, y: 8}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: 8}}><label>Projektordner<input aria-label="Arbeitsordner" value={root} onChange={e => {setRoot(e.target.value); if (imThread) setDrafting(true);}} placeholder="C:\Projekte\MeineApp"/></label><button disabled={busy} onClick={() => void pick()}><FolderPlus size={16}/>Ordner wählen</button><button aria-label="Projektauswahl schließen" onClick={() => setSetupOpen(false)}><X size={15}/></button></motion.div>}</AnimatePresence>
         <form className={"harness-composer " + (working ? "arbeitet" : "")} onSubmit={e => {e.preventDefault(); if (sendbar) void start();}}>
-          {imThread && <div className="harness-sitzung-hinweis"><MessagesSquare size={12}/><span>{working ? "Jon arbeitet gerade. Dein nächster Auftrag kommt in diese Sitzung, sobald er fertig ist." : "Folgeauftrag in dieser Sitzung · Jon kennt alles, was bisher passiert ist"}</span><button type="button" onClick={() => newTask(root)}>Neue Sitzung</button></div>}
-          <textarea ref={composer} aria-label="Dein Auftrag" placeholder={imThread ? "Was soll Jon als Nächstes tun?" : "Beschreibe, was Jon für dich bauen soll …"} rows={2} value={goal} maxLength={12000} onChange={e => setGoal(e.target.value)} onKeyDown={e => {if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {e.preventDefault(); if (sendbar) void start();}}}/>
+          {imThread && <div className="harness-sitzung-hinweis"><MessagesSquare size={12}/><span>{working ? "Jon arbeitet gerade. Was du jetzt schickst, erledigt er direkt danach. Mit /btw fragst du nebenbei." : "Folgeauftrag in dieser Sitzung · Jon kennt alles, was bisher passiert ist"}</span>{working && <button type="button" onClick={() => btwOeffnen()} title="Zwischenfrage stellen, ohne Jon zu unterbrechen (Alt+B)"><MessageCircle size={12}/> /btw</button>}<button type="button" onClick={() => newTask(root)}>Neue Sitzung</button></div>}
+          {working && !!letzte?.nachauftraege?.length && <div className="btw-schlange">{letzte.nachauftraege.map((eintrag, index) => <span key={index + eintrag} className="btw-chip" title={eintrag}><ListPlus size={12}/><em>Danach: {eintrag}</em></span>)}</div>}
+          <textarea ref={composer} aria-label="Dein Auftrag" placeholder={working && imThread ? "Was soll Jon danach tun? · /btw fragt nebenbei" : imThread ? "Was soll Jon als Nächstes tun?" : "Beschreibe, was Jon für dich bauen soll …"} rows={2} value={goal} maxLength={12000} onChange={e => setGoal(e.target.value)} onKeyDown={e => {if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {e.preventDefault(); if (sendbar) void start();}}}/>
           <div className="harness-composer-bar">
             <button type="button" aria-label="Projekt wählen" title="Projekt wählen" onClick={() => setSetupOpen(v => !v)}><Plus size={19}/></button>
             {!allgemein && <button type="button" className="harness-project-badge" title={root || "Projektordner wählen"} onClick={() => setSetupOpen(v => !v)}><Folder size={14}/><span>{projectName}</span><ChevronDown size={12}/></button>}
@@ -278,7 +298,7 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
             <button type="button" className={"harness-companion " + (mini ? "an" : "")} aria-pressed={mini} title="MiniJon zeigt den Fortschritt auf deinem Bildschirm" onClick={() => setMini(v => !v)}><Sparkles size={13}/><span>MiniJon begleitet</span></button>
             <span className="harness-model" title="Der Harness nutzt immer Jons Modell aus den Einstellungen">Jon · {modelLabel}</span>
             {working && letzte && <button type="button" className="harness-stop" disabled={busy} title="Aktuellen Auftrag stoppen" aria-label="Aktuellen Auftrag stoppen" onClick={() => void stop(letzte)}><Square size={13} fill="currentColor"/></button>}
-            <button className="harness-send" type="submit" aria-label={imThread ? "Folgeauftrag senden" : "Auftrag starten"} title={working ? "Warte, bis der laufende Auftrag fertig ist" : imThread ? "Folgeauftrag senden" : "Auftrag starten"} disabled={!sendbar}>{busy ? <Loader2 size={18} className="harness-spin"/> : <ArrowUp size={19}/>}</button>
+            <button className="harness-send" type="submit" aria-label={nebenbei ? "Nebenbei fragen" : working ? "Für danach vormerken" : imThread ? "Folgeauftrag senden" : "Auftrag starten"} title={nebenbei ? "Nebenbei fragen" : working ? "Jon erledigt das, sobald der laufende Auftrag fertig ist" : imThread ? "Folgeauftrag senden" : "Auftrag starten"} disabled={!sendbar}>{busy ? <Loader2 size={18} className="harness-spin"/> : working && !nebenbei ? <ListPlus size={18}/> : <ArrowUp size={19}/>}</button>
           </div>
         </form>
         <p className="harness-composer-note">{!root ? "Wähle zuerst einen Projektordner über + oder die Projektleiste." : imThread ? "Enter sendet den Folgeauftrag in diese Sitzung. Für ein neues Thema starte eine neue Sitzung." : "Jon arbeitet im gewählten Projekt. Mehrere Sitzungen können in verschiedenen Projekten gleichzeitig laufen."}</p>

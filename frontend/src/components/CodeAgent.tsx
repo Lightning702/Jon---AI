@@ -2,6 +2,8 @@ import Symbol from "./Symbol";
 import { useEffect, useRef, useState } from "react";
 import MessageBubble, { ChatEntry } from "./MessageBubble";
 import { schrittAnwenden } from "../lib/werkstatt";
+import { btwKontextAnmelden, btwOeffnen, btwRest, istBtw } from "../lib/btw";
+import { ListPlus, MessageCircle, X } from "lucide-react";
 import ProjectPanel from "./ProjectPanel";
 import {
   FileEntry,
@@ -225,6 +227,7 @@ export default function CodeAgent({
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [warteschlange, setWarteschlange] = useState<string[]>([]);
   const [goal, setGoal] = useState("");
   const [goalSteps, setGoalSteps] = useState<GoalStep[]>([]);
   const [goalRunning, setGoalRunning] = useState(false);
@@ -928,10 +931,18 @@ export default function CodeAgent({
     return true;
   };
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || streaming) return;
-    setInput("");
+  const send = async (vorgabe?: string) => {
+    const text = (vorgabe ?? input).trim();
+    if (!text) return;
+    if (vorgabe === undefined) setInput("");
+    if (istBtw(text)) {
+      btwOeffnen(btwRest(text) || null);
+      return;
+    }
+    if (streaming || (goalRunning && !goalQuestion)) {
+      setWarteschlange((alt) => [...alt, text]);
+      return;
+    }
     if (text.startsWith("/")) {
       handleCommand(text);
       return;
@@ -1042,6 +1053,40 @@ export default function CodeAgent({
     setPreviewMode("file");
     setView("preview");
   };
+
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  const schlangeLaeuft = useRef(false);
+  const [schlangeTakt, setSchlangeTakt] = useState(0);
+  useEffect(() => {
+    if (streaming || goalRunning || !warteschlange.length || schlangeLaeuft.current) return;
+    const [naechster, ...rest] = warteschlange;
+    schlangeLaeuft.current = true;
+    setWarteschlange(rest);
+    void sendRef.current(naechster).finally(() => {
+      schlangeLaeuft.current = false;
+      setSchlangeTakt((takt) => takt + 1);
+    });
+  }, [streaming, goalRunning, warteschlange, schlangeTakt]);
+
+  const btwStand = useRef({ entries, arbeitet: false, goal, workspace, datei: "" });
+  btwStand.current = { entries, arbeitet: streaming || goalRunning, goal, workspace, datei: filePathRef.current || "" };
+  useEffect(
+    () =>
+      btwKontextAnmelden(() => {
+        const stand = btwStand.current;
+        const letzte = [...stand.entries].reverse().find((e) => e.role === "user");
+        const teile = [stand.workspace ? `Projektordner: ${stand.workspace}` : "", stand.datei ? `Offene Datei: ${stand.datei}` : "", stand.goal ? `Ziel: ${stand.goal}` : "", stand.arbeitet && letzte ? `Jon arbeitet gerade an: ${letzte.content}` : ""];
+        return {
+          quelle: "code",
+          arbeitet: stand.arbeitet,
+          verlauf: stand.entries.filter((e) => (e.role === "user" || e.role === "assistant") && e.content && !e.streaming).slice(-12).map((e) => ({ role: e.role, content: e.content })),
+          nebenbei: teile.filter(Boolean).join("\n"),
+          nachauftrag: (text: string) => setWarteschlange((alt) => [...alt, text]),
+        };
+      }),
+    []
+  );
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-ink-900">
@@ -1573,6 +1618,25 @@ export default function CodeAgent({
             ))}
           </div>
           <div className="p-2 border-t border-white/10">
+            {(warteschlange.length > 0 || streaming || goalRunning) && (
+              <div className="btw-schlange">
+                {warteschlange.map((eintrag, index) => (
+                  <span key={index + eintrag} className="btw-chip" title={eintrag}>
+                    <ListPlus size={12} />
+                    <em>Danach: {eintrag}</em>
+                    <button aria-label="Aus der Warteschlange nehmen" onClick={() => setWarteschlange((alt) => alt.filter((_, stelle) => stelle !== index))}>
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+                {(streaming || goalRunning) && (
+                  <button className="btw-knopf" title="Zwischenfrage stellen, ohne Jon zu unterbrechen (Alt+B)" onClick={() => btwOeffnen()}>
+                    <MessageCircle size={12} />
+                    /btw nebenbei fragen
+                  </button>
+                )}
+              </div>
+            )}
             <div className="glass rounded-xl flex items-end gap-2 p-1.5">
               <textarea
                 value={input}
@@ -1584,15 +1648,15 @@ export default function CodeAgent({
                   }
                 }}
                 rows={1}
-                placeholder="Jon beauftragen … (/goal Ziel, /help)"
+                placeholder={streaming || goalRunning ? "Schreib weiter – kommt danach dran · /btw fragt nebenbei" : "Jon beauftragen … (/goal Ziel, /help, /btw)"}
                 className="flex-1 bg-transparent resize-none outline-none px-2 py-1.5 text-[13px] text-white/90 placeholder-white/30 max-h-32"
               />
               <button
                 onClick={() => void send()}
-                disabled={streaming || !input.trim()}
+                disabled={!input.trim()}
                 className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-gold-light to-gold-dark text-black text-[12px] font-semibold disabled:opacity-40"
               >
-                {streaming ? "…" : "Senden"}
+                {(streaming || (goalRunning && !goalQuestion)) && !istBtw(input) ? "Danach" : "Senden"}
               </button>
             </div>
           </div>

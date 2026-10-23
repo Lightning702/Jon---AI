@@ -34,6 +34,21 @@ def _require_automation() -> None:
             "Maus-/Tastatursteuerung nicht verfuegbar "
             f"({AUTOMATION_ERROR}). Installiere: pip install pyautogui pygetwindow pyperclip"
         )
+    _ecke_meiden()
+
+
+def _ecke_meiden() -> None:
+    try:
+        x, y = pyautogui.position()
+        breite, hoehe = pyautogui.size()
+        if (x, y) not in ((0, 0), (0, hoehe - 1), (breite - 1, 0), (breite - 1, hoehe - 1)):
+            return
+        neu_x = 12 if x == 0 else breite - 13
+        neu_y = 12 if y == 0 else hoehe - 13
+        if os.name == "nt":
+            ctypes.windll.user32.SetCursorPos(int(neu_x), int(neu_y))
+    except Exception as fehler:
+        leise(fehler, "services/automation_service")
 
 
 def _virtual_bounds() -> tuple[int, int, int, int]:
@@ -95,6 +110,7 @@ class AutomationService:
         if x is not None and y is not None:
             px, py = self._resolve(x, y)
             pyautogui.moveTo(px, py, duration=0.25)
+        _ecke_meiden()
         pyautogui.click(button=button, clicks=clicks, interval=0.1)
         pos = pyautogui.position()
         return {"clicked_at": [pos.x, pos.y], "button": button, "clicks": clicks}

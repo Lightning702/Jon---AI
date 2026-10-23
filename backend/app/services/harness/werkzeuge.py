@@ -63,6 +63,7 @@ async def ausfuehren(
     from app.services.tools import ToolBox, describe_tool
 
     name = str(name or "").strip()
+    name = {"bild_prompt": "create_image", "image_search": "bild_suche", "bildsuche": "bild_suche", "websuche": "web_search", "suche": "web_search"}.get(name, name)
     if not name:
         raise ValueError("name fehlt. Gib das Jon-Werkzeug an, z. B. web_search.")
     if name in VERBOTEN:

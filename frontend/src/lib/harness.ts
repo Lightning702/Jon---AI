@@ -1,4 +1,5 @@
 import { BASE } from "./api";
+import { NEUSTART_HINWEIS } from "./version";
 import type { HarnessAuftrag } from "../components/agenten/daten";
 
 export type HarnessTask = HarnessAuftrag;
@@ -35,7 +36,7 @@ export async function harnessRequest<T>(path: string, body?: unknown, method?: s
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const detail = typeof data.detail === "string" ? data.detail : "";
-    throw new Error(detail || (response.status === 401 ? "Verbindung zu Jon nicht autorisiert. Bitte die App neu öffnen." : response.status === 404 ? "Diese Funktion ist im laufenden Backend noch nicht verfügbar. Jon aus dem aktualisierten Projekt neu starten." : `Jon antwortet mit Fehler ${response.status}.`));
+    throw new Error(response.status === 404 && (!detail || detail === "Not Found") ? NEUSTART_HINWEIS : detail || (response.status === 401 ? "Verbindung zu Jon nicht autorisiert. Bitte die App neu öffnen." : response.status === 404 ? "Diese Funktion ist im laufenden Backend noch nicht verfügbar. Jon aus dem aktualisierten Projekt neu starten." : `Jon antwortet mit Fehler ${response.status}.`));
   }
   return response.json();
 }

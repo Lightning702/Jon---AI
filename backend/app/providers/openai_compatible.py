@@ -35,11 +35,29 @@ def tool_runden() -> int:
 
     return UNBEGRENZT_RUNDEN if unbegrenzt() else MAX_TOOL_ROUNDS
 TRANSIENT_RETRIES = 2
+RATE_RETRIES = 3
 DEFAULT_MAX_TOKENS = 32768
 MIN_MAX_TOKENS = 4096
 MODELS_CACHE_TTL = 300.0
 MODELS_FAIL_TTL = 30.0
 REASONING_MODELS = ("gpt-oss",)
+DENK_SCHALTER = ("nemotron-3", "nemotron-nano-3", "nemotron-3.5")
+
+
+def denk_extra(modell: str, denken: bool | None) -> dict:
+    name = (modell or "").lower()
+    if not any(marke in name for marke in DENK_SCHALTER):
+        return {}
+    if denken is None:
+        try:
+            from app.services.settings_service import get_settings_service
+
+            if not get_settings_service().get().get("schnell_antworten", True):
+                return {}
+        except Exception:
+            return {}
+        denken = False
+    return {"chat_template_kwargs": {"enable_thinking": bool(denken)}}
 PATIENT_PROVIDERS = ("ollama", "lmstudio")
 LEAD_GATE = 40
 TEMPLATE_TOKEN = re.compile(r"<\|[a-z_]+\|>")
@@ -53,7 +71,7 @@ STREAM_PAUSE_S = 180.0
 def fehlertext(exc: BaseException) -> str:
     text = str(exc).strip()
     if isinstance(exc, httpx.ReadTimeout):
-        return f"Die Verbindung ist mitten in der Antwort abgerissen (über {STREAM_PAUSE_S:.0f} Sekunden keine Daten). Der Anbieter ist überlastet. Versuche es erneut oder wähle ein anderes Modell."
+        return "Die Verbindung ist mitten in der Antwort abgerissen (mehrere Minuten keine Daten). Der Anbieter ist überlastet. Versuche es erneut oder wähle ein anderes Modell."
     if isinstance(exc, (httpx.RemoteProtocolError, httpx.ReadError)):
         return "Der Anbieter hat die Verbindung mitten in der Antwort getrennt. Versuche es erneut oder wähle ein anderes Modell."
     if isinstance(exc, httpx.TimeoutException):
@@ -94,6 +112,7 @@ class OpenAICompatibleProvider(LLMProvider):
         self._timeout = timeout
         self._clients: dict[str, AsyncOpenAI] = {}
         self._no_tool_models: set[str] = set()
+        self._ohne_denkschalter: set[str] = set()
         self._models_cache: list[str] | None = None
         self._models_cached_at = 0.0
         self._models_cache_ttl = 0.0
@@ -112,11 +131,17 @@ class OpenAICompatibleProvider(LLMProvider):
             raise ProviderError(f"{self.name}: API key missing")
         client = self._clients.get(key)
         if client is None:
+            from app.core.netzweg import async_client, umleitbar
+
+            extra = {}
+            if umleitbar(httpx.URL(self._base_url).host):
+                extra["http_client"] = async_client(timeout=self._timeout)
             client = AsyncOpenAI(
                 base_url=self._base_url,
                 api_key=key,
                 timeout=self._timeout,
                 max_retries=1,
+                **extra,
             )
             self._clients[key] = client
         return client
@@ -158,9 +183,11 @@ class OpenAICompatibleProvider(LLMProvider):
         self, model: str, data_url: str, prompt: str, max_tokens: int = 300, slot: str = "jon"
     ) -> str:
         client = self._client(slot)
+        zusatz = denk_extra(model, False)
         completion = await client.with_options(
             timeout=45.0, max_retries=0
         ).chat.completions.create(
+            **({"extra_body": zusatz} if zusatz else {}),
             model=model,
             messages=[
                 {
@@ -181,7 +208,10 @@ class OpenAICompatibleProvider(LLMProvider):
 
     async def _create_with_retry(self, client: AsyncOpenAI, payload: dict):
         last: Exception | None = None
-        for attempt in range(TRANSIENT_RETRIES):
+        gebremst = 0
+        attempt = -1
+        while attempt + 1 < TRANSIENT_RETRIES + gebremst:
+            attempt += 1
             try:
                 return await client.chat.completions.create(**payload)
             except STALL_ERRORS as exc:
@@ -194,6 +224,16 @@ class OpenAICompatibleProvider(LLMProvider):
                 await asyncio.sleep(0.6 * (attempt + 1))
             except Exception as exc:
                 status = getattr(exc, "status_code", None)
+                if status == 429 and gebremst < RATE_RETRIES:
+                    gebremst += 1
+                    last = exc
+                    warten = 2.0 * (2 ** (gebremst - 1))
+                    try:
+                        warten = min(10.0, max(warten, float(getattr(getattr(exc, "response", None), "headers", {}).get("retry-after", 0) or 0)))
+                    except (TypeError, ValueError):
+                        pass
+                    await asyncio.sleep(warten)
+                    continue
                 if status is not None and status >= 500:
                     last = exc
                     await asyncio.sleep(0.6 * (attempt + 1))
@@ -201,8 +241,10 @@ class OpenAICompatibleProvider(LLMProvider):
                 if (
                     status == 400
                     and payload.get("extra_body")
-                    and "reasoning" in str(exc).lower()
+                    and any(w in str(exc).lower() for w in ("reasoning", "chat_template", "enable_thinking", "extra"))
                 ):
+                    if "chat_template_kwargs" in (payload.get("extra_body") or {}):
+                        self.__dict__.setdefault("_ohne_denkschalter", set()).add(payload.get("model", ""))
                     payload.pop("extra_body", None)
                     last = exc
                     continue
@@ -260,12 +302,16 @@ class OpenAICompatibleProvider(LLMProvider):
             and any(marker in request.model.lower() for marker in REASONING_MODELS)
             else None
         )
+        if request.model not in getattr(self, "_ohne_denkschalter", set()):
+            schalter = denk_extra(request.model, request.denken)
+            if schalter:
+                extra_body = {**(extra_body or {}), **schalter}
 
         for round_index in range(rounds):
             watchdog = guard if round_index == 0 else guard * 1.5
             caller = (
                 client.with_options(
-                    timeout=httpx.Timeout(max(STREAM_PAUSE_S, watchdog), connect=max(watchdog, 8.0)), max_retries=0
+                    timeout=httpx.Timeout(max(STREAM_PAUSE_S * (1.7 if use_tools else 1.0), watchdog), connect=max(watchdog, 8.0)), max_retries=0
                 )
                 if watchdog > 0
                 else client

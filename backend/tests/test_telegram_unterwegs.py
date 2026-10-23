@@ -18,15 +18,15 @@ def _routenkarte() -> dict:
             "aktion": "route",
             "modus": "fuss",
             "filter": "supermarkt",
-            "start": {"name": "Vogelweiderstraße", "lat": 47.8095, "lon": 13.055},
+            "start": {"name": "Bahnhofstraße", "lat": 47.8095, "lon": 13.055},
             "ziel": {
                 "name": "Billa",
-                "label": "Vogelweiderstraße 63",
+                "label": "Bahnhofstraße 63",
                 "lat": 47.8101,
                 "lon": 13.0559,
             },
             "stationen": [
-                {"name": "Vogelweiderstraße", "lat": 47.8095, "lon": 13.055},
+                {"name": "Bahnhofstraße", "lat": 47.8095, "lon": 13.055},
                 {"name": "Billa", "lat": 47.8101, "lon": 13.0559},
             ],
         },
@@ -94,7 +94,7 @@ def test_karte_wird_zu_pin_und_routenlink():
     punkte = te.map_points(karten)
     assert len(punkte) == 1
     assert punkte[0]["titel"] == "Billa"
-    assert punkte[0]["label"] == "Vogelweiderstraße 63"
+    assert punkte[0]["label"] == "Bahnhofstraße 63"
     link = te.map_links(karten)[0]
     assert "openstreetmap.org/directions" in link
     assert "fossgis_osrm_foot" in link

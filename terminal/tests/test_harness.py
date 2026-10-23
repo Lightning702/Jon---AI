@@ -1,0 +1,241 @@
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from jon_harness import netz, speicher
+from jon_harness.agent import Agent, Sitzung
+from jon_harness.anbieter import KATALOG, Jon, Verbindung
+from jon_harness.werkzeuge import Werkzeugkasten, ausfuehren, befehl_gefaehrlich, befehl_sicher
+
+
+@pytest.fixture(autouse=True)
+def eigener_ordner(tmp_path, monkeypatch):
+    monkeypatch.setenv("JON_HARNESS_DIR", str(tmp_path / "harness"))
+    monkeypatch.setenv("JON_HARNESS_OHNE_JON", "1")
+    for name in list(__import__("os").environ):
+        if name.endswith("_API_KEY") or (name.startswith("JON_") and name.endswith("_KEY")):
+            monkeypatch.delenv(name, raising=False)
+
+
+def test_schluessel_werden_verschluesselt_gespeichert(tmp_path):
+    einstellungen = speicher.Einstellungen()
+    einstellungen.schluessel_setzen("nvidia", "nvapi-geheim-123")
+    roh = (tmp_path / "harness" / "einstellungen.json").read_text(encoding="utf-8")
+    assert "nvapi-geheim-123" not in roh
+    assert speicher.Einstellungen().schluessel("nvidia") == "nvapi-geheim-123"
+    assert len(einstellungen.get("geraet")) == 20
+
+
+def test_dateien_lesen_schreiben_bearbeiten(tmp_path):
+    kasten = Werkzeugkasten(tmp_path)
+    assert ausfuehren(kasten, "datei_schreiben", {"pfad": "app.py", "inhalt": "def a():\n    return 1\n"}).ok
+    gelesen = ausfuehren(kasten, "datei_lesen", {"pfad": "app.py"})
+    assert "return 1" in gelesen.text and gelesen.text.lstrip().startswith("1")
+    bearbeitet = ausfuehren(kasten, "datei_bearbeiten", {"pfad": "app.py", "alt": "return 1", "neu": "return 2"})
+    assert bearbeitet.ok and "+1" in bearbeitet.kurz
+    assert (tmp_path / "app.py").read_text(encoding="utf-8") == "def a():\n    return 2\n"
+    fehlt = ausfuehren(kasten, "datei_bearbeiten", {"pfad": "app.py", "alt": "gibt es nicht", "neu": "x"})
+    assert not fehlt.ok
+    assert "zurückgesetzt" in kasten.rueckgaengig()
+    assert "return 1" in (tmp_path / "app.py").read_text(encoding="utf-8")
+
+
+def test_bearbeiten_toleriert_einrueckung_und_tabs(tmp_path):
+    (tmp_path / "a.py").write_text("if x:\n\tdo()   \n", encoding="utf-8")
+    kasten = Werkzeugkasten(tmp_path)
+    kasten.datei_lesen("a.py")
+    assert ausfuehren(kasten, "datei_bearbeiten", {"pfad": "a.py", "alt": "if x:\n    do()", "neu": "if y:\n    go()"}).ok
+    assert (tmp_path / "a.py").read_text(encoding="utf-8").startswith("if y:")
+
+
+def test_ueberschreiben_nur_nach_lesen(tmp_path):
+    (tmp_path / "x.txt").write_text("alt", encoding="utf-8")
+    kasten = Werkzeugkasten(tmp_path)
+    assert not ausfuehren(kasten, "datei_schreiben", {"pfad": "x.txt", "inhalt": "neu"}).ok
+    kasten.datei_lesen("x.txt")
+    assert ausfuehren(kasten, "datei_schreiben", {"pfad": "x.txt", "inhalt": "neu"}).ok
+
+
+def test_suchen_und_finden(tmp_path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.ts").write_text("const zahl = 42\n", encoding="utf-8")
+    (tmp_path / "node_modules").mkdir()
+    (tmp_path / "node_modules" / "x.ts").write_text("const zahl = 1\n", encoding="utf-8")
+    kasten = Werkzeugkasten(tmp_path)
+    gefunden = ausfuehren(kasten, "dateien_finden", {"muster": "**/*.ts"})
+    assert "src/main.ts" in gefunden.text and "node_modules" not in gefunden.text
+    treffer = ausfuehren(kasten, "text_suchen", {"muster": r"zahl\s*=\s*42"})
+    assert "src/main.ts:1" in treffer.text
+
+
+def test_befehl_ausfuehren(tmp_path):
+    kasten = Werkzeugkasten(tmp_path)
+    ergebnis = ausfuehren(kasten, "befehl", {"befehl": "echo hallo-jon"})
+    assert ergebnis.ok and "hallo-jon" in ergebnis.text
+
+
+def test_befehle_einstufen():
+    assert befehl_sicher("git status")
+    assert befehl_sicher("npm run test")
+    assert not befehl_sicher("git status; rm -rf /")
+    assert befehl_gefaehrlich("rm -rf ~/")
+    assert befehl_gefaehrlich("Stop-Computer -Force")
+    assert not befehl_gefaehrlich("npm install")
+
+
+def test_fehlertext_ist_verstaendlich():
+    assert "API-Schlüssel" in netz.fehlertext(401, '{"error": {"message": "invalid key"}}')
+    assert netz.fehlertext(429, '{"detail": "Kontingent aufgebraucht"}') == "Kontingent aufgebraucht"
+
+
+class _Antwort:
+    def __init__(self, zeilen):
+        self._zeilen = zeilen
+
+    def zeilen(self):
+        yield from self._zeilen
+
+    def schliessen(self):
+        pass
+
+
+def _sse(*ereignisse):
+    return [f"data: {json.dumps(e)}" for e in ereignisse] + ["data: [DONE]"]
+
+
+def test_agent_fuehrt_werkzeuge_aus_und_antwortet(tmp_path, monkeypatch):
+    (tmp_path / "README.md").write_text("Hallo Projekt", encoding="utf-8")
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    antworten = [
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "a1", "function": {"name": "datei_lesen", "arguments": "{\"pfad\": \"README.md\"}"}}]}}]}),
+        _sse({"choices": [{"delta": {"content": "Im README steht Hallo Projekt."}}]}, {"usage": {"prompt_tokens": 10, "completion_tokens": 5}, "choices": []}),
+    ]
+    gesehen = []
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        gesehen.append([n["role"] for n in nachrichten])
+        return _Antwort(antworten.pop(0)), True
+
+    monkeypatch.setattr(verbindung, "strom", strom)
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "vorsichtig")
+    antwort = agent.runde("Was steht im README?", still=True)
+    assert antwort == "Im README steht Hallo Projekt."
+    assert gesehen[1][-1] == "tool"
+    assert agent.sitzung.tokens_ein == 10
+
+
+def test_agent_textmodus_ohne_funktionsaufrufe(tmp_path, monkeypatch):
+    (tmp_path / "a.txt").write_text("Inhalt A", encoding="utf-8")
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    verbindung.ohne_werkzeuge.add("ollama|klein")
+    antworten = [
+        _sse({"choices": [{"delta": {"content": "Ich schaue nach.\n```werkzeug\n{\"name\": \"datei_lesen\", \"args\": {\"pfad\": \"a.txt\"}}\n```"}}]}),
+        _sse({"choices": [{"delta": {"content": "Da steht Inhalt A."}}]}),
+    ]
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        assert werkzeuge is None
+        assert "WERKZEUGE OHNE FUNKTIONSAUFRUFE" in nachrichten[0]["content"]
+        return _Antwort(antworten.pop(0)), False
+
+    monkeypatch.setattr(verbindung, "strom", strom)
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "ollama", "klein")
+    assert agent.runde("Was steht in a.txt?", still=True) == "Da steht Inhalt A."
+    assert any("Inhalt A" in str(n.get("content")) for n in agent.sitzung.nachrichten if n["role"] == "user")
+
+
+def test_abgelehnte_aktion_wird_gemeldet(tmp_path, monkeypatch):
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    antworten = [
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "b1", "function": {"name": "befehl", "arguments": "{\"befehl\": \"npm install\"}"}}]}}]}),
+        _sse({"choices": [{"delta": {"content": "Okay, lasse ich."}}]}),
+    ]
+    monkeypatch.setattr(verbindung, "strom", lambda *a, **k: (_Antwort(antworten.pop(0)), True))
+    monkeypatch.setattr("builtins.input", lambda *a: "n")
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "vorsichtig")
+    assert agent.runde("installier", still=True) == "Okay, lasse ich."
+    werkzeug = next(n for n in agent.sitzung.nachrichten if n["role"] == "tool")
+    assert "abgelehnt" in werkzeug["content"]
+
+
+def test_strom_faellt_ohne_denkschalter_und_werkzeuge_zurueck(monkeypatch):
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    monkeypatch.setattr(verbindung.felworks, "token", lambda neu=False: "t")
+    gesendet = []
+
+    def anfrage(methode, url, daten=None, kopf=None, zeit=60, strom=False, **k):
+        gesendet.append(dict(daten))
+        if len(gesendet) == 1:
+            raise netz.NetzFehler("x", 400, "unknown field chat_template_kwargs")
+        if len(gesendet) == 2:
+            raise netz.NetzFehler("x", 400, "tools are not supported for this model")
+        return "ok"
+
+    monkeypatch.setattr(netz, "anfrage", anfrage)
+    antwort, mit = verbindung.strom("felworks", "nvidia/nemotron-3-ultra-550b-a55b", [{"role": "user", "content": "hi"}], [{"type": "function"}])
+    assert antwort == "ok" and mit is False
+    assert "chat_template_kwargs" in gesendet[0] and "chat_template_kwargs" not in gesendet[1]
+    assert "tools" in gesendet[1] and "tools" not in gesendet[2]
+
+
+def test_katalog_hat_alle_wichtigen_anbieter():
+    for kennung in ("felworks", "jon", "nvidia", "openai", "anthropic", "gemini", "deepseek", "openrouter", "groq", "mistral", "xai", "ollama", "lmstudio"):
+        assert kennung in KATALOG
+    assert not KATALOG["felworks"].braucht_schluessel
+
+
+def test_nebenbei_erkennt_btw_und_nachauftraege():
+    from jon_harness.nebenbei import auftrag_aus, frage_aus, ist_btw
+
+    assert ist_btw("/btw wie weit bist du?") and ist_btw("  /nebenbei: was ist das?")
+    assert not ist_btw("/hilfe")
+    assert frage_aus("/btw: wie weit bist du?") == "wie weit bist du?"
+    assert auftrag_aus("danach: schreib Tests") == "schreib Tests"
+    assert auftrag_aus("schreib Tests") == "schreib Tests"
+
+
+def test_nebenbei_merkt_vor_und_beantwortet_im_hintergrund(capsys):
+    from jon_harness.nebenbei import Nebenbei
+
+    fragen = []
+
+    def beantworten(frage):
+        fragen.append(frage)
+        return "Ich bin gleich fertig, noch **zwei** Dateien."
+
+    nebenbei = Nebenbei(beantworten)
+    nebenbei._zeile("danach: schreib noch Tests")
+    nebenbei._zeile("/btw wie weit bist du?")
+    for faden in nebenbei._fragen:
+        faden.join(timeout=5)
+    assert fragen == ["wie weit bist du?"]
+    assert nebenbei.naechste() == "schreib noch Tests"
+    assert nebenbei.naechste() is None
+    ausgabe = capsys.readouterr().out
+    assert "vorgemerkt für danach" in ausgabe
+    assert "Nebenbei" in ausgabe and "zwei Dateien" in ausgabe and "**" not in ausgabe
+
+
+def test_zwischenfrage_kennt_den_verlauf_ohne_ihn_zu_aendern(tmp_path, monkeypatch):
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    gesehen = {}
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        gesehen.update(nachrichten=nachrichten, werkzeuge=werkzeuge, denken=denken)
+        return _Antwort(_sse({"choices": [{"delta": {"content": "Ich baue gerade die Startseite."}}]})), False
+
+    monkeypatch.setattr(verbindung, "strom", strom)
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "vorsichtig")
+    agent.sitzung.nachrichten = [{"role": "user", "content": "Baue eine Startseite"}, {"role": "assistant", "content": "", "tool_calls": [{"id": "a", "type": "function", "function": {"name": "datei_schreiben", "arguments": "{}"}}]}]
+    vorher = json.dumps(agent.sitzung.nachrichten)
+    assert agent.zwischenfrage("woran arbeitest du?") == "Ich baue gerade die Startseite."
+    assert json.dumps(agent.sitzung.nachrichten) == vorher
+    assert gesehen["werkzeuge"] is None and gesehen["denken"] is False
+    inhalt = gesehen["nachrichten"][-1]["content"]
+    assert "Baue eine Startseite" in inhalt and "datei_schreiben" in inhalt and "ZWISCHENFRAGE: woran arbeitest du?" in inhalt

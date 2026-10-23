@@ -13,7 +13,7 @@ pytest.importorskip("pptx")
 
 
 DECK = [
-    {"layout": "title", "title": "Klimawandel", "subtitle": "Ein Ueberblick", "footer": "Felix"},
+    {"layout": "title", "title": "Klimawandel", "subtitle": "Ein Ueberblick", "footer": "Lena"},
     {"layout": "bullets", "title": "Ursachen", "bullets": ["CO2: fossile Energie", "Methan: Landwirtschaft"], "notes": "Kurz halten"},
     {"layout": "cards", "title": "Drei Hebel", "items": [{"title": "Strom", "text": "Erneuerbar"}, {"title": "Waerme", "text": "Pumpen"}]},
     {"layout": "stat", "title": "Zahlen", "items": [{"title": "1,5 °C", "text": "Ziel"}, {"title": "420", "text": "ppm CO2"}]},
@@ -105,7 +105,7 @@ def test_relativer_pfad_landet_in_jons_ordner(tmp_path, monkeypatch):
     from app.services import dateiraum_service
 
     class Raum:
-        def zielpfad(self, name, wunsch=""):
+        def zielpfad(self, name, wunsch="", neu=False):
             ordner = tmp_path / "Jon" / (wunsch or "Documents")
             ordner.mkdir(parents=True, exist_ok=True)
             return {"pfad": str(ordner / name)}
@@ -115,3 +115,31 @@ def test_relativer_pfad_landet_in_jons_ordner(tmp_path, monkeypatch):
     assert ergebnis["ok"]
     assert Path(ergebnis["path"]) == tmp_path / "Jon" / "Documents" / "Jon-Test.pptx"
     assert Path(ergebnis["path"]).is_file()
+
+
+def test_hell_design_mit_bildobjekten_und_schlussfolie(tmp_path):
+    from PIL import Image
+    from pptx import Presentation
+
+    from app.services.pptx_service import get_pptx_service
+
+    foto = tmp_path / "foto.jpg"
+    Image.new("RGB", (800, 600), (40, 90, 160)).save(foto)
+    folien = [
+        {"layout": "title", "title": "Künstliche Intelligenz", "subtitle": "Referat", "image": {"path": str(foto), "alt": "KI"}},
+        {"layout": "bullets", "title": "Was ist ein Algorithmus?", "bullets": ["Schritt-für-Schritt-Anleitung", "Feste Reihenfolge"], "image": {"pfad": str(foto)}},
+        {"layout": "bullets", "title": "Wo gibt es KI?", "bullets": ["Medizin", "Verkehr"], "image": str(foto)},
+        {"layout": "closing", "title": "Vielen Dank für Ihre Aufmerksamkeit"},
+    ]
+    ergebnis = get_pptx_service().create("KI", folien, str(tmp_path / "ki.pptx"))
+    assert ergebnis["ok"] and ergebnis["theme"] == "hell"
+    assert not any("keinen Inhalt" in h for h in ergebnis["qualitaet"])
+    prs = Presentation(ergebnis["path"])
+    bilder = [sum(1 for f in folie.shapes if f.shape_type == 13) for folie in prs.slides]
+    assert bilder[:3] == [1, 1, 1]
+    rund = [f for f in prs.slides[1].shapes if f.shape_type == 13][0]
+    assert "ellipse" in rund._element.xml
+    assert "Deko-Bogen" in {f.name for f in prs.slides[1].shapes}
+    assert "Akzentlinie" in {f.name for f in prs.slides[2].shapes}
+    namen = {f.name for f in prs.slides[3].shapes}
+    assert "Deko-Ring" in namen

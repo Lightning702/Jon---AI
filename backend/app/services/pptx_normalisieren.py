@@ -84,7 +84,71 @@ def _texte(wert) -> list[str]:
     return []
 
 
+PFAD_SCHLUESSEL = ("path", "pfad", "file", "datei", "src", "bild_pfad", "local", "lokal", "image", "bild")
+URL_SCHLUESSEL = ("url", "image_url", "bild_url", "href", "link")
+SUCH_SCHLUESSEL = ("query", "suche", "search", "bild_suche", "image_search", "q", "keywords", "suchbegriff", "stichwort")
+PROMPT_SCHLUESSEL = ("prompt", "bild_prompt", "image_prompt", "beschreibung_fuer_ki", "generate")
+
+
+def bildquelle(wert) -> dict:
+    if isinstance(wert, list):
+        for teil in wert:
+            gefunden = bildquelle(teil)
+            if gefunden:
+                return gefunden
+        return {}
+    if isinstance(wert, str):
+        text = wert.strip()
+        if not text:
+            return {}
+        return {"image": text}
+    if not isinstance(wert, dict):
+        return {}
+    for schluessel in PFAD_SCHLUESSEL:
+        if isinstance(wert.get(schluessel), str) and wert[schluessel].strip():
+            return {"image": wert[schluessel].strip()}
+    for schluessel in URL_SCHLUESSEL:
+        if isinstance(wert.get(schluessel), str) and wert[schluessel].strip():
+            return {"image": wert[schluessel].strip()}
+    for schluessel in SUCH_SCHLUESSEL:
+        if isinstance(wert.get(schluessel), str) and wert[schluessel].strip():
+            return {"bild_suche": wert[schluessel].strip()}
+    for schluessel in PROMPT_SCHLUESSEL:
+        if isinstance(wert.get(schluessel), str) and wert[schluessel].strip():
+            return {"bild_prompt": wert[schluessel].strip()}
+    return {}
+
+
+def _bild_aufloesen(eintrag: dict) -> None:
+    for feld in ("image", "images", "bilder", "picture", "pictures", "img", "bild_url", "image_url"):
+        wert = eintrag.get(feld)
+        if wert is None or (isinstance(wert, str) and feld in ("image", "bild_url", "image_url")):
+            continue
+        eintrag.pop(feld, None)
+        for schluessel, inhalt in bildquelle(wert).items():
+            if not eintrag.get(schluessel):
+                eintrag[schluessel] = inhalt
+    for feld in ("bild_suche", "image_search", "bild_prompt", "image_prompt"):
+        wert = eintrag.get(feld)
+        if isinstance(wert, (dict, list)):
+            eintrag.pop(feld)
+            gefunden = bildquelle(wert)
+            if gefunden:
+                ziel, inhalt = next(iter(gefunden.items()))
+                if ziel == "image" and feld in ("bild_suche", "image_search"):
+                    ziel = "bild_suche"
+                eintrag.setdefault(ziel, inhalt)
+    if isinstance(eintrag.get("image_search"), str) and not eintrag.get("bild_suche"):
+        eintrag["bild_suche"] = eintrag.pop("image_search")
+    if isinstance(eintrag.get("image_prompt"), str) and not eintrag.get("bild_prompt"):
+        eintrag["bild_prompt"] = eintrag.pop("image_prompt")
+    for feld in ("image_url", "bild_url"):
+        if isinstance(eintrag.get(feld), str) and not eintrag.get("image"):
+            eintrag["image"] = eintrag.pop(feld)
+
+
 def _bild(eintrag: dict) -> None:
+    _bild_aufloesen(eintrag)
     for feld in ("background", "hintergrund", "hintergrundbild", "background_image", "bild", "photo", "foto"):
         wert = eintrag.pop(feld, None)
         if not wert:
@@ -97,6 +161,9 @@ def _bild(eintrag: dict) -> None:
                 eintrag["image_url"] = wert["url"]
             if wert.get("suche") and not eintrag.get("bild_suche"):
                 eintrag["bild_suche"] = wert["suche"]
+            if not any(eintrag.get(f) for f in BILD_FELDER):
+                for schluessel, inhalt in bildquelle(wert).items():
+                    eintrag.setdefault(schluessel, inhalt)
         elif isinstance(wert, str) and not eintrag.get("image"):
             eintrag["image"] = wert
 

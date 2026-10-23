@@ -9,7 +9,7 @@ from app.services.settings_service import get_settings_service
 from app.services.system_service import SystemService
 
 VISION_DEFAULTS = {
-    "nvidia": "meta/llama-3.2-11b-vision-instruct",
+    "nvidia": "nvidia/nemotron-3.5-super-vl-120b-a12b",
     "openai": "gpt-4o-mini",
     "openrouter": "openai/gpt-4o-mini",
     "xai": "grok-2-vision-latest",

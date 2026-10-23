@@ -188,7 +188,7 @@ def test_tresor_eintrag_bleibt_nach_neustart(tresor, tmp_path, monkeypatch):
     from app.services import vault_service
 
     tresor.create("geheim123")
-    tresor.add("Mail", "felix", "sehr-geheim")
+    tresor.add("Mail", "lena", "sehr-geheim")
     tresor.lock()
 
     monkeypatch.setattr(vault_service, "VAULT_FILE", tmp_path / "vault.dat")
@@ -201,7 +201,7 @@ def test_tresor_eintrag_bleibt_nach_neustart(tresor, tmp_path, monkeypatch):
 
 def test_tresor_gibt_ohne_entsperrung_nichts_heraus(tresor):
     tresor.create("geheim123")
-    tresor.add("Mail", "felix", "sehr-geheim")
+    tresor.add("Mail", "lena", "sehr-geheim")
     eintrag = tresor.list()["entries"][0]["id"]
     tresor.lock()
     gesperrt = tresor.list()

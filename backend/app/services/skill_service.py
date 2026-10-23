@@ -24,9 +24,66 @@ def _first_heading(text: str) -> str:
     return ""
 
 
+def eingebaute_quelle() -> Path | None:
+    import sys
+
+    basis = getattr(sys, "_MEIPASS", None)
+    if not basis:
+        return None
+    quelle = Path(basis) / "skills_eingebaut"
+    return quelle if quelle.is_dir() else None
+
+
+def eingebaute_einspielen(quelle: Path | None = None, ziel: Path | None = None) -> list[str]:
+    import hashlib
+    import json
+
+    quelle = quelle or eingebaute_quelle()
+    ziel = ziel or SKILLS_DIR
+    if quelle is None or not quelle.is_dir():
+        return []
+    stand_datei = ziel / ".eingebaut.json"
+    try:
+        stand = json.loads(stand_datei.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        stand = {}
+    if not isinstance(stand, dict):
+        stand = {}
+    geaendert = []
+    for datei in quelle.rglob("*.md"):
+        relativ = datei.relative_to(quelle).as_posix()
+        neu = datei.read_bytes()
+        neu_hash = hashlib.sha256(neu).hexdigest()
+        ziel_datei = ziel / relativ
+        if ziel_datei.exists():
+            vorhanden = hashlib.sha256(ziel_datei.read_bytes()).hexdigest()
+            if vorhanden == neu_hash:
+                stand[relativ] = neu_hash
+                continue
+            if stand.get(relativ) != vorhanden:
+                continue
+        ziel_datei.parent.mkdir(parents=True, exist_ok=True)
+        ziel_datei.write_bytes(neu)
+        stand[relativ] = neu_hash
+        geaendert.append(relativ)
+    ziel.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(stand_datei, json.dumps(stand, ensure_ascii=False, indent=1))
+    return geaendert
+
+
+_eingespielt = False
+
+
 class SkillService:
     def __init__(self) -> None:
+        global _eingespielt
         SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+        if not _eingespielt:
+            _eingespielt = True
+            try:
+                eingebaute_einspielen()
+            except Exception:
+                pass
 
     def _check(self, name: str) -> str:
         if not _NAME_RE.match(name):

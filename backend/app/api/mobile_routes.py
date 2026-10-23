@@ -247,7 +247,12 @@ async def run_file(payload: dict) -> dict:
     if endung not in AUSFUEHRBAR:
         raise HTTPException(400, "Ausführen geht mit .py, .sh und .js. Websites öffnest du mit „Website ansehen“.")
     if endung == ".py":
-        befehl = [sys.executable, "-X", "utf8", target.name]
+        from app.services.testumgebung import _programm
+
+        python = _programm("python")
+        if not python:
+            raise HTTPException(400, "Python ist auf diesem Gerät nicht installiert.")
+        befehl = [python, "-X", "utf8", target.name]
     elif endung == ".sh":
         bash = shutil.which("bash")
         if not bash:

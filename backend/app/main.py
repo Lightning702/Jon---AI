@@ -31,6 +31,10 @@ from app.api.phone_routes import router as phone_router
 from app.api.research_routes import router as research_router
 from app.api.browser_routes import router as browser_router
 from app.api.datei_routes import router as datei_router
+from app.api.terminal_routes import router as terminal_router
+from app.api.lehrer_routes import router as lehrer_router
+from app.api.btw_routes import router as btw_router
+from app.api.testumgebung_routes import router as testumgebung_router, vorschau_router as testumgebung_vorschau
 from app.api.denken_routes import router as denken_router
 from app.api.routes import accounts, providers, router
 from app.api.studio_routes import router as studio_router
@@ -56,6 +60,10 @@ _log = logbook_logger("main")
 
 async def _warm_caches() -> None:
     with suppress(Exception):
+        from app.services.tool_index import aufbauen
+
+        await asyncio.to_thread(aufbauen)
+    with suppress(Exception):
         await providers()
     with suppress(Exception):
         await accounts()
@@ -80,6 +88,10 @@ async def _premium_erneuern() -> None:
 
     await asyncio.sleep(20)
     while True:
+        try:
+            await asyncio.to_thread(get_premium().felworks_schluessel, True)
+        except Exception as fehler:
+            _log.info("FelWorks-Gastzugang noch nicht verfuegbar: %s", fehler)
         try:
             if get_premium().braucht_erneuerung():
                 await get_premium().erneuern()
@@ -855,6 +867,11 @@ def create_app() -> FastAPI:
     app.include_router(browser_router)
     app.include_router(denken_router)
     app.include_router(datei_router)
+    app.include_router(terminal_router)
+    app.include_router(lehrer_router)
+    app.include_router(btw_router)
+    app.include_router(testumgebung_router)
+    app.include_router(testumgebung_vorschau)
 
     from pathlib import Path
 

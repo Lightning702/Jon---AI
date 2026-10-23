@@ -229,11 +229,48 @@ def bewerten(name: str, args: dict | None = None) -> Stufe:
     if werkzeug == "datei_kommentare" and str(werte.get("aktion", "lesen")).strip().lower() in ("", "lesen", "liste"):
         return Stufe(NIEDRIG, LESEN, "Nur lesend.")
 
-    if werkzeug == "was_laeuft":
+    if werkzeug in ("was_laeuft", "bildschirm_lesen"):
         return Stufe(NIEDRIG, LESEN, "Nur lesend.")
+
+    if werkzeug == "pc_strom":
+        aktion = str(werte.get("aktion", "")).strip().lower()
+        if aktion in ("abbrechen", "sperren", "bildschirm_aus"):
+            return Stufe(NIEDRIG, AENDERN, "Harmlos und sofort umkehrbar.")
+        if aktion in ("herunterfahren", "neustarten"):
+            try:
+                vorlauf = int(werte.get("sekunden", 30))
+            except (TypeError, ValueError):
+                vorlauf = 30
+            if vorlauf >= 10:
+                return Stufe(MITTEL, AENDERN, "Mit Vorlauf, laesst sich noch abbrechen.")
+            return Stufe(HOCH, ZERSTOEREND, "Sofortiges Herunterfahren beendet alle offenen Programme.")
+        return Stufe(MITTEL, AENDERN, "Schaltet den PC um.")
 
     if werkzeug == "wechseln":
         return Stufe(NIEDRIG, AENDERN, "Wechselt nur das sichtbare Fenster.")
+
+    if werkzeug == "testumgebung":
+        aktion = str(werte.get("aktion", "")).strip().lower()
+        if aktion in ("", "liste", "dateien", "lesen", "datei_lesen"):
+            return Stufe(NIEDRIG, LESEN, "Nur lesend.")
+        if aktion in ("schreiben", "datei_schreiben", "neu", "erstellen") or (aktion == "code" and str(werte.get("sprache", "")).strip().lower() in ("html", "htm", "svg", "css")):
+            return Stufe(NIEDRIG, AENDERN, "Aendert nur die Testumgebung.")
+        if aktion in ("loeschen", "löschen", "zuruecksetzen", "zurücksetzen"):
+            return Stufe(MITTEL, AENDERN, "Verwirft die Testumgebung samt Dateien.")
+        try:
+            from app.services.testumgebung import get_testumgebung
+
+            dienst = get_testumgebung()
+            kennung = str(werte.get("umgebung", "") or "standard")
+            maschine = dienst.beschreiben(kennung)["modus"] == "maschine"
+        except Exception:
+            maschine = False
+        if maschine:
+            return Stufe(NIEDRIG, AENDERN, "Laeuft abgeschottet in der Linux-Maschine.")
+        treffer = _befehl_gefaehrlich(str(werte.get("befehl", "")))
+        if treffer:
+            return Stufe(HOCH, ZERSTOEREND, f"Gefaehrlicher Befehl: {treffer}")
+        return Stufe(MITTEL, AENDERN, "Laeuft im Testordner auf diesem PC.")
 
     if werkzeug in ("stundenplan", "morgen_nachricht"):
         aktion = str(werte.get("aktion", "")).strip().lower()

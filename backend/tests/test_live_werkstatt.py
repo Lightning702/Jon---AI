@@ -25,7 +25,7 @@ def test_folien_vorschau_normalisiert_und_kopiert():
 def test_folien_als_text_und_unbekanntes_theme():
     daten = vorschau("create_pptx", {"title": "X", "theme": "gibtsnicht", "slides": json.dumps([{"title": "Eins"}])})
     assert daten["folien"][0]["titel"] == "Eins"
-    assert daten["farben"]["primary"] == "#1E2761"
+    assert daten["farben"]["primary"] == "#156082"
 
 
 def test_pptx_und_docx_aenderungen():

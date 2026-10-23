@@ -86,15 +86,46 @@ Bounding-Boxes (`THREE.Box3`), Gegner/Physik in `update(dt)`, HUD als HTML-Overl
 
 1. Kläre in einem Satz: Genre (Jump'n'Run, Runner, Shooter, Puzzle …), 2D oder 3D.
 2. Wähle das passende Gerüst oben.
-3. Schreibe die vollständige `index.html` mit `write_file`.
-4. Öffne sie mit `open_url` (Dateipfad), damit der Nutzer sofort spielen kann.
-5. Frag nach Wünschen (mehr Level, Sound, Gegner) und ändere gezielt mit `edit_file`.
+3. Im normalen Chat: Schreibe das komplette Spiel als EINEN ```html-Codeblock in deine Antwort. Jon zeigt ihn live mit Vorschau, Ausführen und Speichern – der Nutzer spielt sofort. Nie als langes Werkzeug-Argument, das bleibt minutenlang unsichtbar.
+4. In einem Projektordner (Jon Code, Harness) oder wenn der Nutzer einen Speicherort nennt: Schreibe die vollständige `index.html` mit `write_file` und öffne sie mit `open_url`.
+5. Selbst prüfen kannst du mit dem Werkzeug `testumgebung` (aktion code, sprache html oder javascript).
+6. Frag nach Wünschen (mehr Level, Sound, Gegner) und ändere gezielt.
+
+## Game Feel – was ein gutes Spiel von einer Demo unterscheidet
+
+- **Saft (Juice):** Partikel bei Treffern und Einsammeln, kurzer Screenshake (3–8 px,
+  abklingend), Hit-Stop von 40–80 ms bei schweren Treffern, Aufblitzen getroffener
+  Gegner, Zahlen, die aufsteigen („+10“).
+- **Bewegung mit Gefühl:** Beschleunigung und Reibung statt sofortiger Geschwindigkeit,
+  Coyote-Time (100 ms) und Sprungpuffer bei Jump'n'Runs, Kamera folgt weich (`lerp`).
+- **Sound selbst erzeugt** mit der WebAudio-API (Oszillator + Hüllkurve für Sprung,
+  Treffer, Einsammeln, Game Over; Rauschen für Explosionen). Erst nach der ersten
+  Nutzereingabe starten (`audioCtx.resume()`), Lautstärke-Taste M zum Stummschalten.
+- **Fortschritt:** steigende Schwierigkeit (Tempo, Gegnerzahl, Muster), Highscore in
+  `localStorage`, kurze Zwischenziele (Level, Wellen, Combos).
+- **Klarheit:** Spieler, Gegner und Einsammelbares unterscheiden sich in Form und Farbe;
+  HUD oben, groß und gut lesbar; Pause mit P oder Esc.
+- **Performance:** Objekte wiederverwenden (Pools), keine Arrays pro Frame neu bauen,
+  Canvas mit `devicePixelRatio` schärfen, 60 FPS auch auf schwachen Laptops.
+- **3D mit Three.js:** feste Version per Import-Map, `renderer.outputColorSpace =
+  THREE.SRGBColorSpace`, ACES-Tone-Mapping, Schatten nur für die wichtigsten Objekte,
+  Nebel für Tiefe, `setPixelRatio(Math.min(devicePixelRatio, 2))`.
+
+## Prüfen, bevor du fertig meldest
+
+- Die Datei mit `node --check` prüfen geht bei HTML nicht – ziehe dafür das Skript in eine
+  temporäre `.js`-Datei oder öffne das Spiel und schau in die Konsole.
+- Spiele mindestens eine Runde im Kopf durch: Start → Spielen → Game Over → Neustart.
+- Teste Tastatur, Maus und Touch-Eingaben und die Größenänderung des Fensters.
 
 ## Checkliste
 
 - [ ] Startbildschirm und Neustart vorhanden
 - [ ] Delta-Zeit-basierter Game-Loop
 - [ ] Tastatur **und** Touch/Maus funktionieren
-- [ ] Score/Feedback sichtbar
+- [ ] Score/Feedback sichtbar, Highscore gespeichert
+- [ ] Partikel, Screenshake oder andere Treffer-Effekte
+- [ ] Selbst erzeugte Sounds mit Stummschalter
+- [ ] Pause und steigende Schwierigkeit
 - [ ] Läuft flüssig, keine Fehler in der Konsole
 - [ ] 3D nur, wenn Internet für die Three.js-CDN da ist; sonst 2D-Canvas

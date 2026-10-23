@@ -11,7 +11,7 @@ _INT = {"type": "integer"}
 _GERAET = {
     "type": "string",
     "description": (
-        "Name, Besitzer oder Kennung des Geraets, zum Beispiel 'Felix', 'Uhr' oder "
+        "Name, Besitzer oder Kennung des Geraets, zum Beispiel 'Lena', 'Uhr' oder "
         "'Mamas Handy'. Weglassen, wenn nur ein Geraet gekoppelt ist."
     ),
 }

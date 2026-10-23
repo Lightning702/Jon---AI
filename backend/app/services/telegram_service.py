@@ -20,7 +20,8 @@ from app.core.logbook import logger as logbook_logger
 HISTORY_FILE = DATA_DIR / "telegram_memory.json"
 HISTORY_KEEP = 40
 HISTORY_SEND = 12
-ZEITLIMIT = 300
+ZEITLIMIT = 600
+ENTWURF_TAKT = 1.2
 OLLAMA_LISTE = 12
 LIVE_STUECK = 10
 LIVE_DAUER = 600
@@ -69,7 +70,13 @@ class TelegramService:
         self._username_token = ""
         self._research_watch: dict[str, asyncio.Task] = {}
         self._harness_watch: dict[str, asyncio.Task] = {}
+        self._freigaben: dict[str, list[dict]] = {}
+        self._http: httpx.AsyncClient | None = None
         self._last_home = 0.0
+        self._entwuerfe: dict[str, dict] = {}
+        self._gerade: dict[str, str] = {}
+        self._nebenbei: set[asyncio.Task] = set()
+        self._befehle_token = ""
         self._stand: dict = {
             "letzte_abfrage": 0.0,
             "letzter_fehler": "",
@@ -256,17 +263,98 @@ class TelegramService:
     def _token(self) -> str:
         return str(get_settings_service().get().get("telegram_bot_token", "")).strip()
 
-    async def _api(self, method: str, payload: dict) -> None:
+    def _client(self) -> httpx.AsyncClient:
+        if self._http is None or self._http.is_closed:
+            self._http = httpx.AsyncClient(timeout=httpx.Timeout(20, connect=10), limits=httpx.Limits(max_keepalive_connections=8, keepalive_expiry=60))
+        return self._http
+
+    async def _api_antwort(self, method: str, payload: dict) -> dict:
         token = self._token()
         if not token:
-            return
+            return {}
         try:
-            async with httpx.AsyncClient(timeout=15) as client:
-                await client.post(
-                    f"https://api.telegram.org/bot{token}/{method}", json=payload
-                )
+            antwort = await self._client().post(f"https://api.telegram.org/bot{token}/{method}", json=payload)
+            return antwort.json()
         except Exception as _fehler:
             leise(_fehler, "services/telegram_service")
+            if self._http is not None:
+                try:
+                    await self._http.aclose()
+                except Exception as fehler:
+                    leise(fehler, "services/telegram_service")
+                self._http = None
+            return {}
+
+    async def _api(self, method: str, payload: dict) -> None:
+        await self._api_antwort(method, payload)
+
+    async def _nachricht(self, chat_id: str | int, text: str, knoepfe: list | None = None) -> int | None:
+        daten = {"chat_id": chat_id, "text": text[:4000]}
+        if knoepfe:
+            daten["reply_markup"] = {"inline_keyboard": knoepfe}
+        antwort = await self._api_antwort("sendMessage", daten)
+        ergebnis = antwort.get("result") if isinstance(antwort, dict) else None
+        return int(ergebnis["message_id"]) if isinstance(ergebnis, dict) and ergebnis.get("message_id") else None
+
+    async def _aendern(self, chat_id: str | int, nachricht: int, text: str, knoepfe: list | None = None) -> bool:
+        daten = {"chat_id": chat_id, "message_id": nachricht, "text": text[:4000]}
+        daten["reply_markup"] = {"inline_keyboard": knoepfe or []}
+        antwort = await self._api_antwort("editMessageText", daten)
+        return bool(antwort.get("ok")) or "not modified" in str(antwort.get("description", ""))
+
+    async def _freigabe_fragen(self, chat_id: str, event: dict) -> None:
+        kennung = str(event.get("approval_id") or "")
+        if not kennung:
+            return
+        zusammenfassung = str(event.get("summary") or event.get("name") or "eine Aktion")
+        risiko = str(event.get("risiko") or "")
+        text = f"Darf ich das ausfuehren?\n\n{zusammenfassung}" + (f"\n\nRisiko: {risiko}" if risiko else "")
+        befehl = str((event.get("args") or {}).get("command") or "")
+        if befehl:
+            text += f"\n\nBefehl: {befehl[:600]}"
+        knoepfe = [[{"text": "Ja, ausfuehren", "callback_data": f"jf:{kennung}:1"}, {"text": "Nein", "callback_data": f"jf:{kennung}:0"}]]
+        nachricht = await self._nachricht(chat_id, text, knoepfe)
+        self._freigaben.setdefault(chat_id, []).append({"id": kennung, "nachricht": nachricht, "text": text})
+        del self._freigaben[chat_id][:-10]
+
+    async def _freigabe_loesen(self, chat_id: str, kennung: str, erlaubt: bool) -> bool:
+        from app.services.approval_service import get_approval_service
+
+        geloest = get_approval_service().resolve(kennung, erlaubt)
+        eintraege = self._freigaben.get(chat_id, [])
+        for eintrag in list(eintraege):
+            if eintrag["id"] == kennung:
+                eintraege.remove(eintrag)
+                if eintrag.get("nachricht"):
+                    zusatz = "Erlaubt, ich mache weiter." if erlaubt else "Abgelehnt."
+                    if not geloest:
+                        zusatz = "Diese Anfrage ist schon abgelaufen."
+                    await self._aendern(chat_id, eintrag["nachricht"], f"{eintrag['text']}\n\n{zusatz}")
+        return geloest
+
+    def _offene_freigaben(self, chat_id: str) -> list[dict]:
+        from app.services.approval_service import get_approval_service
+
+        offen = set(get_approval_service().offen())
+        eintraege = [e for e in self._freigaben.get(chat_id, []) if e["id"] in offen]
+        self._freigaben[chat_id] = eintraege
+        return eintraege
+
+    async def _rueckfrage(self, anfrage: dict) -> None:
+        daten = str(anfrage.get("data") or "")
+        nachricht = anfrage.get("message") or {}
+        chat_id = str((nachricht.get("chat") or {}).get("id") or "")
+        gebunden = str(get_settings_service().get().get("telegram_chat_id", "")).strip()
+        antwort = "Erledigt."
+        if not chat_id or (gebunden and chat_id != gebunden):
+            antwort = "Das darfst du hier nicht."
+        elif daten.startswith("jf:"):
+            teile = daten.split(":")
+            if len(teile) == 3:
+                erlaubt = teile[2] == "1"
+                geloest = await self._freigabe_loesen(chat_id, teile[1], erlaubt)
+                antwort = ("Erlaubt" if erlaubt else "Abgelehnt") if geloest else "Schon abgelaufen"
+        await self._api("answerCallbackQuery", {"callback_query_id": anfrage.get("id"), "text": antwort})
 
     async def bot_username(self) -> str:
         token = self._token()
@@ -1040,14 +1128,18 @@ class TelegramService:
         system += (
             "\n\nDu antwortest gerade ueber Telegram auf dem Handy des Nutzers. "
             "Halte Antworten kompakt und gut lesbar ohne Markdown-Tabellen. "
-            "Du steuerst dabei wirklich seinen PC zuhause: Sagt er z. B. "
-            "'schreibe hallo', rufe keyboard_type mit dem Text auf. Sagt er "
-            "'linksklicke' oder 'klick', rufe mouse_click OHNE x und y auf - "
-            "dann wird an der aktuellen Mausposition geklickt, ohne die Maus zu "
-            "bewegen. Uebergib x/y nur, wenn er ein konkretes Ziel nennt. "
-            "keyboard_press drueckt einzelne Tasten, keyboard_hotkey "
-            "Kombinationen, screenshot zeigt dir den Bildschirm. Fuehre solche "
-            "Befehle direkt aus, statt nachzufragen. Waehrend du Maus, Tastatur, "
+            "Du steuerst dabei wirklich seinen PC zuhause und SIEHST seinen "
+            "Bildschirm: bildschirm_lesen liefert dir das aktive Fenster, alle "
+            "Knoepfe, Links, Felder und den sichtbaren Text. Meint er etwas auf dem "
+            "Bildschirm ('klick auf Start', 'druck auf Weiter', 'geh auf Anmelden', "
+            "'was steht da'), nimm bildschirm_klicken mit der sichtbaren Beschriftung "
+            "als ziel bzw. bildschirm_lesen - nie geratene Koordinaten. In Felder "
+            "schreibst du mit bildschirm_eingeben. Sagt er nur 'schreibe hallo', rufe "
+            "keyboard_type auf; nur 'klick' ohne Ziel ist mouse_click OHNE x und y "
+            "(aktuelle Mausposition). keyboard_press drueckt Tasten, keyboard_hotkey "
+            "Kombinationen. Herunterfahren, Neustart, Energiesparen und Sperren "
+            "machst du mit pc_strom. Fuehre solche Befehle sofort aus, statt "
+            "nachzufragen. Waehrend du Maus, Tastatur, "
             "Programme oder den Browser benutzt, nimmt Jon den Bildschirm auf und "
             "schickt das Video danach automatisch hier in den Chat - sag also nie, "
             "du koenntest kein Video schicken. Ein Live-Video gibt es mit /live, "
@@ -1240,6 +1332,23 @@ class TelegramService:
         running_summaries: dict[str, str] = {}
         cards: list[dict] = []
         announced = 0
+        entwurf = self._entwuerfe.setdefault(chat_id, {})
+        entwurf.clear()
+        entwurf.update(id=None, text="", zeit=0.0, ab=0)
+
+        async def entwurf_zeigen() -> None:
+            text = "".join(parts[entwurf["ab"]:]).strip()
+            jetzt = time.monotonic()
+            if len(text) < 20 or jetzt - entwurf["zeit"] < ENTWURF_TAKT or len(text) > 3800:
+                return
+            entwurf["zeit"] = jetzt
+            anzeige = text + " …"
+            if entwurf["id"] is None:
+                entwurf["id"] = await self._nachricht(chat_id, anzeige)
+            elif anzeige != entwurf["text"]:
+                await self._aendern(chat_id, entwurf["id"], anzeige)
+            entwurf["text"] = anzeige
+
         async for event in self._chat_service.stream(payload):
             kind = event.get("type")
             card = event.get("card")
@@ -1247,13 +1356,16 @@ class TelegramService:
                 cards.append(card)
             if kind == "content":
                 parts.append(event.get("delta") or "")
+                await entwurf_zeigen()
             elif kind == "tool" and event.get("status") == "running":
                 if begleiter is not None and event.get("name"):
                     await begleiter.werkzeug(str(event["name"]))
                 summary = event.get("summary") or event.get("name") or "Aktion"
                 if event.get("name"):
                     running_summaries[str(event["name"])] = str(summary)
-                if announced < 3:
+                if event.get("approval_id"):
+                    await self._freigabe_fragen(chat_id, event)
+                elif announced < 3:
                     announced += 1
                     await self.send(chat_id, f"⚙️ {summary}")
             elif kind == "tool" and event.get("status") == "done":
@@ -1381,12 +1493,56 @@ class TelegramService:
             return f"Das ging nicht: {exc}"
         return None
 
+    async def _schnellweg(self, text: str, begleiter) -> str | None:
+        from app.services import bildschirm_agent, pc_strom
+
+        aktion = pc_strom.erkennen(text)
+        if aktion:
+            sekunden = pc_strom.vorlauf(text, 30 if aktion in ("herunterfahren", "neustarten") else 0)
+            ergebnis = await asyncio.to_thread(pc_strom.ausfuehren, aktion, sekunden)
+            self._direkt_loggen("pc_strom", {"aktion": aktion, "sekunden": sekunden}, ergebnis)
+            return pc_strom.text(ergebnis)
+        befehl = bildschirm_agent.befehl_erkennen(text)
+        if not befehl:
+            return None
+        if begleiter is not None:
+            await begleiter.werkzeug("mouse_click")
+        if befehl["aktion"] == "klicken":
+            ergebnis = await bildschirm_agent.klicken(befehl["ziel"], befehl.get("art", "links"))
+            self._direkt_loggen("bildschirm_klicken", befehl, ergebnis)
+            if ergebnis.get("error"):
+                return None
+            art = {"doppel": "Doppelklick auf", "rechts": "Rechtsklick auf"}.get(befehl.get("art", ""), "Geklickt:")
+            zeile = f"🖱️ {art} {ergebnis['geklickt']}"
+            if ergebnis.get("fenster_gewechselt") and ergebnis.get("fenster"):
+                zeile += f"\nJetzt offen: {ergebnis['fenster']}"
+            return zeile
+        ergebnis = await bildschirm_agent.eingeben(befehl["ziel"], befehl["text"], False)
+        self._direkt_loggen("bildschirm_eingeben", befehl, ergebnis)
+        if ergebnis.get("error"):
+            return None
+        return f"⌨️ „{befehl['text']}“ in {ergebnis.get('geklickt') or befehl['ziel']} geschrieben."
+
+    def _direkt_loggen(self, werkzeug: str, args: dict, ergebnis: dict) -> None:
+        try:
+            from app.services.action_log_service import log_action
+
+            log_action("telegram", werkzeug, args, json.dumps(ergebnis, ensure_ascii=False)[:500], ok=not ergebnis.get("error"))
+        except Exception as fehler:
+            leise(fehler, "services/telegram_service")
+
     async def _handle(self, chat_id: str, text: str, voice: bool = False) -> None:
         begleiter = self._aktionsvideo()
-        if begleiter is not None and self._klingt_nach_direktbefehl(text):
+        try:
+            direct = await self._schnellweg(text, begleiter)
+        except Exception as fehler:
+            leise(fehler, "services/telegram_service")
+            direct = None
+        if direct is None and begleiter is not None and self._klingt_nach_direktbefehl(text):
             await begleiter.werkzeug("mouse_click")
         try:
-            direct = await asyncio.to_thread(self._direct_control, text)
+            if direct is None:
+                direct = await asyncio.to_thread(self._direct_control, text)
         except BaseException:
             if begleiter is not None:
                 await begleiter.verwerfen()
@@ -1432,18 +1588,38 @@ class TelegramService:
         wants_voice = (voice or chat_id in self._voice_reply) and chat_id not in self._voice_off
         if wants_voice:
             await self.send_voice(chat_id, answer)
-        await self.send(chat_id, answer)
+        entwurf = self._entwuerfe.pop(chat_id, {}) or {}
+        from app.services.text_format import ohne_tabellen
+
+        sauber = ohne_tabellen(answer)
+        if entwurf.get("id") and len(sauber) <= 3900 and await self._aendern(chat_id, entwurf["id"], sauber):
+            pass
+        else:
+            await self.send(chat_id, answer)
         await self._aktionsvideo_senden(chat_id, begleiter)
         await self.send_cards(chat_id, cards)
 
-    def _launch(self, chat_id: str, text: str, voice: bool = False) -> None:
+    def _launch(self, chat_id: str, text: str, voice: bool = False, still: bool = False) -> int:
         laufend = [t for t in self._running.get(chat_id, []) if not t.done()]
         vorher = laufend[-1] if laufend else None
         task = asyncio.create_task(
-            self._der_reihe_nach(vorher, len(laufend), chat_id, text, voice)
+            self._der_reihe_nach(vorher, 0 if still else len(laufend), chat_id, text, voice)
         )
         laufend.append(task)
         self._running[chat_id] = laufend
+        return len(laufend) - 1
+
+    async def _btw(self, chat_id: str, text: str) -> None:
+        from app.services import btw_service
+
+        frage = btw_service.ohne_befehl(text)
+        if frage and btw_service.ist_nachauftrag(frage):
+            auftrag = btw_service.auftrag_text(frage)
+            vorne = self._launch(chat_id, auftrag, still=True)
+            await self.send(chat_id, f"Notiert. Sobald ich fertig bin, mache ich: {auftrag}" if vorne else f"Gerade läuft nichts – ich mache es sofort: {auftrag}")
+            return
+        ergebnis = await btw_service.antworten(frage, self._histories.get(chat_id, [])[-12:], nebenbei=self._gerade.get(chat_id, ""))
+        await self.send(chat_id, "Nebenbei: " + str(ergebnis.get("antwort", "")))
 
     async def _der_reihe_nach(
         self,
@@ -1461,7 +1637,12 @@ class TelegramService:
                     "ich direkt zu dieser.",
                 )
             await asyncio.wait({vorher})
-        await self._handle(chat_id, text, voice)
+        self._gerade[chat_id] = text
+        try:
+            await self._handle(chat_id, text, voice)
+        finally:
+            if self._gerade.get(chat_id) == text:
+                self._gerade.pop(chat_id, None)
 
     async def _cancel_running(self, chat_id: str) -> bool:
         laufend = [t for t in self._running.pop(chat_id, []) if not t.done()]
@@ -1605,11 +1786,41 @@ class TelegramService:
         liste = self._stundenplan_liste()
         await self.send(chat_id, text + (f"\n\n{liste}" if liste else ""))
 
+    async def _befehle_melden(self, token: str) -> None:
+        if self._befehle_token == token:
+            return
+        befehle = [
+            ("bildschirm", "Was gerade auf dem PC offen ist"),
+            ("live", "Live-Video vom Bildschirm"),
+            ("video", "Kurzes Bildschirmvideo"),
+            ("aus", "PC herunterfahren (30 s Vorlauf)"),
+            ("neustart", "PC neu starten"),
+            ("schlafen", "Energiesparmodus"),
+            ("sperren", "PC sperren"),
+            ("abbrechen", "Herunterfahren stoppen"),
+            ("btw", "Zwischenfrage, waehrend ich arbeite"),
+            ("stopp", "Laufende Aktion abbrechen"),
+            ("modell", "KI-Modell anzeigen oder wechseln"),
+            ("anbieter", "KI-Anbieter anzeigen oder wechseln"),
+            ("stimme", "Antworten als Sprachnachricht"),
+            ("endstimme", "Nur noch Text"),
+            ("reset", "Gespraech vergessen"),
+            ("start", "Hilfe"),
+        ]
+        antwort = await self._api_antwort("setMyCommands", {"commands": [{"command": n, "description": b} for n, b in befehle]})
+        if antwort.get("ok"):
+            self._befehle_token = token
+
     async def poll_once(self) -> None:
         token = self._token()
         if not token:
             await asyncio.sleep(5)
             return
+        if self._befehle_token != token:
+            try:
+                await self._befehle_melden(token)
+            except Exception as fehler:
+                leise(fehler, "services/telegram_service")
         try:
             async with httpx.AsyncClient(timeout=35) as client:
                 response = await client.get(
@@ -1635,6 +1846,12 @@ class TelegramService:
         self._stand["updates"] += len(data.get("result", []))
         for update in data.get("result", []):
             self._offset = max(self._offset, int(update["update_id"]) + 1)
+            if update.get("callback_query"):
+                try:
+                    await self._rueckfrage(update["callback_query"])
+                except Exception as fehler:
+                    leise(fehler, "services/telegram_service")
+                continue
             edited = update.get("edited_message") or {}
             message = update.get("message") or edited or {}
             chat_id = (message.get("chat") or {}).get("id")
@@ -1746,6 +1963,14 @@ class TelegramService:
                     "Schick mir gerne auch eine Sprachnachricht. Teile mir deinen "
                     "Standort (📎 → Standort), dann plane ich Routen ab hier — zum "
                     "Beispiel: Route zum nächsten Supermarkt.\n\n"
+                    "Ich sehe deinen Bildschirm: Sag einfach 'klick auf Start', "
+                    "'druck auf Weiter' oder 'schreib Pizza in das Suchfeld' - ich "
+                    "finde den Knopf selbst, egal ob Website oder Programm. "
+                    "PC: /aus = herunterfahren · /neustart · /schlafen · /sperren · "
+                    "/abbrechen = Herunterfahren stoppen · /bildschirm = was gerade "
+                    "offen ist.\n\n"
+                    "Waehrend ich arbeite: /btw <Frage> = schnelle Zwischenfrage, "
+                    "/btw danach <Auftrag> = Auftrag fuer danach vormerken.\n\n"
                     "Befehle: /live = Live-Video von meinem Bildschirm (alle 10 "
                     "Sekunden ein neues Stueck, /live 2 = zweiter Bildschirm, "
                     "/live alle = alle) · /video = sofort ein kurzes Video · "
@@ -1791,8 +2016,38 @@ class TelegramService:
             if text.split()[0].lower() in ("/anbieter", "/provider"):
                 await self.send(chat_id, await self._anbieter_befehl(text))
                 continue
-            if text.split()[0].lower() in ("/ja", "/nein"):
-                await self.send(chat_id, await self._zeitanfrage_antwort(text, text.split()[0].lower() == "/ja"))
+            erstes = text.split()[0].lower().strip(".!")
+            offene = self._offene_freigaben(str(chat_id))
+            if offene and (erstes in ("/ja", "/nein", "ja", "nein", "jo", "ok", "okay", "mach", "nö", "noe", "stopp") and len(text.split()) <= 3):
+                erlaubt = erstes in ("/ja", "ja", "jo", "ok", "okay", "mach")
+                geloest = await self._freigabe_loesen(str(chat_id), offene[-1]["id"], erlaubt)
+                if not geloest:
+                    await self.send(chat_id, "Diese Anfrage ist schon abgelaufen.")
+                continue
+            if erstes in ("/ja", "/nein"):
+                await self.send(chat_id, await self._zeitanfrage_antwort(text, erstes == "/ja"))
+                continue
+            if erstes in ("/btw", "/nebenbei"):
+                nebenbei = asyncio.create_task(self._btw(str(chat_id), "/btw " + (text.split(maxsplit=1)[1] if len(text.split()) > 1 else "")))
+                self._nebenbei.add(nebenbei)
+                nebenbei.add_done_callback(self._nebenbei.discard)
+                continue
+            if erstes in ("/abbrechen", "/nichtaus", "/bleibwach"):
+                from app.services import pc_strom
+
+                ergebnis = await asyncio.to_thread(pc_strom.ausfuehren, "abbrechen", 0)
+                await self.send(chat_id, pc_strom.text(ergebnis))
+                continue
+            if erstes in ("/aus", "/herunterfahren", "/shutdown", "/neustart", "/sperren", "/schlafen"):
+                from app.services import pc_strom
+
+                welche = {"/aus": "herunterfahren", "/herunterfahren": "herunterfahren", "/shutdown": "herunterfahren", "/neustart": "neustarten", "/sperren": "sperren", "/schlafen": "energiesparen"}[erstes]
+                sekunden = pc_strom.vorlauf(text, 30 if welche in ("herunterfahren", "neustarten") else 0)
+                ergebnis = await asyncio.to_thread(pc_strom.ausfuehren, welche, sekunden)
+                await self.send(chat_id, pc_strom.text(ergebnis))
+                continue
+            if erstes in ("/bildschirm", "/sehen", "/screen"):
+                self._launch(str(chat_id), "Schau dir meinen Bildschirm mit bildschirm_lesen (genau=true) an und sag mir kurz, was gerade offen ist und was ich da sehe." + (" Frage: " + text.split(maxsplit=1)[1] if len(text.split()) > 1 else ""))
                 continue
             if text.startswith("/geraete") or text.startswith("/geräte"):
                 await self.send(chat_id, await self._geraete_text())

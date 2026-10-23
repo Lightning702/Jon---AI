@@ -76,3 +76,5 @@ backend/assets/models/
 design/minijon-v1/*.png
 design/minijon-v1/*.wav
 design/minijon-v1/*.mp3
+/build/harness/
+/build/harness-pyz/

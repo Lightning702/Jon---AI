@@ -197,6 +197,7 @@ export default function SettingsMenu({
   const [kritiker, setKritiker] = useState(false);
   const [erwartung, setErwartung] = useState(true);
   const [metakognition, setMetakognition] = useState(true);
+  const [schnell, setSchnell] = useState(true);
   const [neugier, setNeugier] = useState(true);
   const [neugierAuto, setNeugierAuto] = useState(false);
   const [fertigkeitAuto, setFertigkeitAuto] = useState(false);
@@ -309,6 +310,7 @@ export default function SettingsMenu({
       setKritiker(s.kritiker_enabled === true);
       setErwartung(s.erwartung_enabled !== false);
       setMetakognition(s.metakognition_enabled !== false);
+      setSchnell(s.schnell_antworten !== false);
       setNeugier(s.neugier_enabled !== false);
       setNeugierAuto(s.neugier_auto === true);
       setFertigkeitAuto(s.fertigkeit_auto === true);
@@ -429,6 +431,11 @@ export default function SettingsMenu({
     void saveUserSettings({ erwartung_enabled: next });
   };
 
+  const toggleSchnell = () => {
+    const next = !schnell;
+    setSchnell(next);
+    void saveUserSettings({ schnell_antworten: next });
+  };
   const toggleMetakognition = () => {
     const next = !metakognition;
     setMetakognition(next);
@@ -597,8 +604,8 @@ export default function SettingsMenu({
 
   const themes: Choice[] = [
     { value: "dark", label: "Dunkel", hint: "Schwarz-Gold (Standard)." },
-    { value: "light", label: "Hell", hint: "Weißer Modus mit Gold-Akzenten." },
-    { value: "cozy", label: "Cozy", hint: "Weiß mit zartem Rosa — weich und warm." },
+    { value: "light", label: "Hell", hint: "Sanftes Hellgrau, angenehm für die Augen – überall in Jon." },
+    { value: "cozy", label: "Cozy", hint: "Warmes Creme wie Papier – weich und gemütlich, überall in Jon." },
   ];
 
   return (
@@ -980,6 +987,12 @@ export default function SettingsMenu({
                 hint="Vor jedem Werkzeug schätzt Jon, wie sicher es klappt, und vergleicht es danach mit dem Ergebnis. Aus den Überraschungen lernt er. Läuft lokal und kostet nichts."
                 on={erwartung}
                 onClick={toggleErwartung}
+              />
+              <Toggle
+                label="Blitzschnell antworten"
+                hint="Jon antwortet sofort und denkt nur bei schweren Fragen, beim Programmieren oder wenn du „denk nach“ sagst vorher lange nach. Mit NVIDIA kommt die erste Antwort so in unter einer Sekunde statt nach mehreren Sekunden."
+                on={schnell}
+                onClick={toggleSchnell}
               />
               <Toggle
                 label="Aufwand selbst einteilen"

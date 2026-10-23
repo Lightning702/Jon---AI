@@ -207,6 +207,9 @@ def _anwenden(quelle: Path, aktionen: list[dict]) -> dict:
     except PermissionError:
         ziel = quelle.with_name(f"{quelle.stem} (bearbeitet).docx")
         dokument.save(str(ziel))
+    from app.services.jon_dateien import aktualisieren
+
+    aktualisieren(ziel)
     ergebnis: dict = {"ok": True, "path": str(ziel), "erledigt": erledigt}
     if ziel != quelle:
         ergebnis["hinweis"] = "Die Originaldatei ist gerade in Word geöffnet und gesperrt - die Änderungen liegen in einer Kopie."

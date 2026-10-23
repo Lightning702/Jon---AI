@@ -2,6 +2,75 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.1] — 2026-10-22
+
+### Jon Harness im Terminal
+
+- **Mit einer Zeile installiert:** `irm https://getjon.info/install.ps1 | iex` in PowerShell (macOS und Linux: `curl -fsSL https://getjon.info/install.sh | sh`). Danach startet `jon` in jedem Ordner einen Coding- und Arbeits-Agenten wie Claude Code oder Codex – mit Dateien lesen, schreiben und bearbeiten, Befehlen, Websuche, Aufgabenliste, Diffs, Rückgängig und Projektgedächtnis `JON.md`.
+- **Verbindet sich selbst mit Jon:** Läuft Jon auf dem PC, nutzt der Harness automatisch dessen Modell und alle Jon-Werkzeuge (PowerPoint, Word, Bilder, Bildschirm). Ohne Jon läuft er eigenständig.
+- **FelWorks ohne Schlüssel:** Im Terminal funktioniert FelWorks immer – ohne API-Schlüssel und ohne Premium. Mit `/api` wählst du zuerst den Anbieter (NVIDIA, OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Groq, Mistral, xAI, Ollama, LM Studio) und gibst den Schlüssel einmal ein, verschlüsselt gespeichert.
+- **Befehle:** `/ziel`, `/verbessern`, `/design`, `/spiel`, `/praesentation`, `/init`, `/modus`, `/denken`, `/rueckgaengig`, `/kompakt`, `/fortsetzen`, `/update` und mehr – `/hilfe` zeigt alle.
+
+### Code ansehen und testen – Jon Testumgebung
+
+- **Code live im Chat:** Schreibt Jon HTML, Python, PHP oder JavaScript, erscheint der Code als Block mit Vorschau, Ausführen, Speichern und Kopieren. Websites und Spiele laufen direkt im Chat, Python und Node zeigen ihre Ausgabe darunter.
+- **Jon Testumgebung (`/test`):** Ein wegwerfbarer Platz zum Ausprobieren mit Dateien, Editor, Terminal und großer Vorschau. Neu anlegen, zurücksetzen und löschen mit einem Klick. Läuft Docker, ist jede Umgebung eine echte Linux-Maschine mit Python, Node und PHP, sonst ein abgeschotteter Ordner mit Zeitlimit. Jon nutzt sie selbst, um seinen Code zu prüfen.
+- **Kein Abbruch mehr bei großen Spielen:** Jon schreibt lange Programme sichtbar in den Chat statt minutenlang unsichtbar in ein Werkzeug. Drosselt der Anbieter (429), wartet Jon kurz und versucht es erneut.
+
+### Jons Denken sichtbar
+
+- **Live mitlesen:** Während Jon nachdenkt, siehst du seine Gedanken mit Sekundenzähler. Danach klappen sie zu „Gedanken · 12 s gedacht“ zusammen.
+- **Denkt, wo es sich lohnt:** Bei Code, Spielen, Websites, Erklärungen und Planungen denkt Jon wieder gründlich mit, einfache Fragen bleiben blitzschnell.
+
+### Hell und Cozy für die ganze App
+
+- **Überall gleich:** Hell und Cozy gelten jetzt für jedes Fenster – Chat, Harness, Team-Zentrale, Lehrer, Testumgebung, /btw.
+- **Schonend für die Augen:** Hell ist ein sanftes Hellgrau statt grellem Weiß, Cozy ein warmes Creme wie Papier. Fotos, Videos, Karten und Vorschauen behalten ihre echten Farben.
+
+### /btw – nebenbei fragen, während Jon arbeitet
+
+- **Überall:** im Chat, in Jon Code, im Jon Harness, im Terminal und auf Telegram. `/btw Wie weit bist du?` öffnet ein kleines Fenster und Jon antwortet sofort, ohne seine Arbeit zu unterbrechen. In der App öffnet und schließt `Alt+B` das Fenster.
+- **„Danach …“:** Schreibst du während der Arbeit einfach weiter oder `/btw danach: fass das zusammen`, merkt Jon sich den Auftrag und erledigt ihn automatisch, sobald er fertig ist. Vorgemerkte Aufträge stehen als Chips über dem Eingabefeld und lassen sich wieder entfernen.
+
+### Telegram ist schnell und kann den PC steuern
+
+- **Antworten in Sekunden:** Jon schreibt seine Antwort live in die Nachricht, statt minutenlang still zu sein. Fragen nach einer Freigabe kommen als Knöpfe, statt den Chat zu blockieren.
+- **PC herunterfahren und mehr:** `/aus` (30 Sekunden Vorlauf), `/neustart`, `/schlafen`, `/sperren`, `/abbrechen` und `/bildschirm` – oder einfach „fahr den PC in 10 Minuten herunter“.
+
+### Jon versteht deinen Bildschirm
+
+- **„Klick auf Start“:** Jon liest Fenster, Knöpfe und Felder über Windows-Bedienhilfen und Texterkennung, findet das richtige Element selbst und klickt oder tippt dort – auf Websites genauso wie in Programmen. Reicht das nicht, markiert er die Kandidaten auf einem Bildschirmfoto und lässt das Seh-Modell wählen.
+- **Werkzeuge:** `bildschirm_lesen`, `bildschirm_klicken`, `bildschirm_eingeben` und `pc_strom` – auch über Telegram.
+
+### Jon Lehrer
+
+- **Einmal sagen, was du lernst:** Fach, Ziel und Termin angeben, Lernunterlagen (PDF, Word, PowerPoint, Fotos) hineinziehen – Jon baut einen ganzen Kurs mit Lektionen, Beispielen, Begriffen und Übungen.
+- **Lernt mit dir:** Aufgaben mit Rückmeldung, Wiederholung nach Lernkurve, Erklärungen auf Nachfrage, Probetest und Fortschritt je Lektion.
+
+### Präsentationen wie von Hand gestaltet
+
+- **Neues Standard-Design „hell“:** Weiße Folien, große Fotos randlos oder rund ausgeschnitten, gestrichelte Bögen, Akzentpunkte und eine freundliche Schlussfolie – nach dem Vorbild echter Schulpräsentationen.
+- **Mehr Platz für Text:** Bei viel Inhalt wird das Bild schmaler, damit die Schrift groß bleibt. Lange deutsche Wörter brechen nicht mehr mitten im Wort um.
+- **Bessere Bilder:** Absichtlich verfälschte Beispielbilder (etwa „Data loss of image file“) werden aussortiert.
+
+### Schneller und klüger
+
+- **Blitzschnelle Antworten:** Bei NVIDIA-Modellen schaltet Jon das lange Nachdenken nur noch ein, wenn die Aufgabe es braucht. Die erste Antwort kommt meist in unter drei Sekunden. Abschaltbar unter „Blitzschnell antworten“.
+- **Designer und Spieleprogrammierer:** Neue Regeln für Oberflächen auf Agentur-Niveau und komplett spielbare Spiele, dazu der Skill „selbst-verbessern“, mit dem Jon seine eigenen Funktionen prüft, bewertet und verbessert.
+- **Antworten mit Formatierung:** Überschriften, Fettdruck, Listen, Code und Links erscheinen im Chat jetzt richtig formatiert statt als Sternchen und Rauten.
+
+### Behoben
+
+- **Keine Kopien mehr:** Jon speicherte PowerPoints und Dokumente bei jeder Änderung als neue Datei (`…-4.pptx`, `…-5.pptx`). Jetzt aktualisiert er seine eigene Datei; Dateien, die du selbst geändert hast, rührt er nicht an. Eine zweite Fassung gibt es nur, wenn du sie ausdrücklich willst.
+- **„Not Found“ bei Lehrer und /btw:** Läuft noch ein älteres Jon-Backend, sagt die App jetzt klar, dass Jon einmal neu gestartet werden muss.
+- **Harness hing stundenlang an einer PowerPoint:** Jon erstellte dieselbe Präsentation immer wieder neu. Ein Wiederholungswächter stoppt das, Bildangaben in jeder Form werden verstanden. Derselbe Auftrag dauert jetzt etwa vier Minuten.
+- **Reihenfolge im Verlauf:** Nach dem Neuladen stand deine zweite Frage unter Jons Antwort. Außerdem ging eine wiederholte gleiche Nachricht (etwa ein zweites „ja“) verloren.
+- **Mitgelieferte Skills** fehlten im fertigen Programm.
+- **Blockwelt fehlte im Download:** Das Spiel lag nur im Quellcode, jetzt ist es in Jon-Setup.exe und im ZIP dabei.
+- **Erfundene Ordner:** Nennt das Modell einen falschen Benutzerordner, speichert Jon trotzdem am richtigen Ort.
+- **Maus in der Bildschirmecke** löste bei Klicks keinen Abbruch mehr aus.
+- **Datenschutz:** Persönliche Beispieldaten wurden aus App, Tests und Dokumentation entfernt.
+
 ## [4.64.1] — 2026-10-13
 
 ### Live-Werkstatt: Jon arbeitet vor deinen Augen
@@ -14,7 +83,7 @@ Alle nennenswerten Änderungen an Jon.
 ### Ein Jon für alle Geräte
 
 - **Ökosystem:** Beliebig viele Handys, Tablets, PCs und Smartwatches mit Besitzernamen. Die Geräte-Zentrale zeigt Akku, Standort-Freigabe und Typ, Befehle gehen an jedes Gerät, Antworten kommen dort an, wo du gerade bist, das Gedächtnis wird geteilt.
-- **„Wo ist Felix?“:** Jon fragt den Standort vom Handy des Besitzers ab und schickt ihn der fragenden Person. Jon Maps zeigt alle Geräte dauerhaft auf der Karte.
+- **„Wo ist Lena?“:** Jon fragt den Standort vom Handy des Besitzers ab und schickt ihn der fragenden Person. Jon Maps zeigt alle Geräte dauerhaft auf der Karte.
 - **Jon Uhr 1.0.1 (Wear OS):** Ein Knopf, und du sprichst mit Jon. Kachel, Komplikation und „Handy klingeln lassen“. Die Uhr koppelt sich über das Handy.
 - **Jon Gerät 1.8.2:** Standort für Wo-ist und Jon Maps, Uhr-Brücke, Jon Maps in der App, Live-Werkstatt im Chat und alle neuen Befehle.
 - **PCs im Heimnetz verbinden:** „Verbinde meinen PC“ auf beiden Rechnern sagen – die Jons finden sich per Netzwerk-Suche selbst, auf dem ersten tippst du auf Erlauben.
@@ -1354,7 +1423,7 @@ machen kann.
 
 - Die Frage aus Jon Maps enthält jetzt den vollständigen Ort: Straße, Hausnummer,
   Postleitzahl, Ort, Bundesland, Land und die genauen Koordinaten. Fehlt der Straßenname,
-  schreibt Jon „Felixdorf Hausnummer 21".
+  schreibt Jon „Musterdorf Hausnummer 21".
 - `/maps <Frage>` erzwingt die Karte: Jon überlegt nicht mehr, ob eine Karte passt,
   sondern sucht wirklich in der Umgebung dieses Ortes und fragt nicht nach der Stadt.
   `/lerne <Thema>` startet genauso direkt eine Tiefenrecherche.
@@ -1807,7 +1876,7 @@ protokolliert und im Einrichtungs-Tab angezeigt.
 
 Sag „Jon, ruf mich in 15 Minuten an" — und 15 Minuten später klingelt dein Handy. Nicht
 eine Benachrichtigung, sondern ein **echter eingehender Anruf** mit Annehmen und
-Ablehnen. Du hebst ab, Jon sagt „Hey Felix!", und ihr redet.
+Ablehnen. Du hebst ab, Jon sagt „Hey du!", und ihr redet.
 
 **Ohne Anbieter, ohne Kosten.** Kein Twilio, kein Vonage, keine Telefonie-API. Jon ist
 selbst die Telefonanlage: ein SIP-Registrar und ein SIP-Endpunkt direkt im Backend, dazu
@@ -2523,7 +2592,7 @@ Tür auf, Spieler in die Kabine, Blick zur Kabinentür, Ding — und das Etagenp
 - Über den Stopp-Knopf im Ziel-Panel brichst du jederzeit ab.
 
 ### Neu — Über-mich-Seite auf der Website
-- Die Website hat jetzt eine „Über mich"-Sektion über Felix und das Jon-Projekt.
+- Die Website hat jetzt eine „Über mich"-Sektion über den Entwickler und das Jon-Projekt.
 
 ## [3.29.0] — 2026-07-22
 

@@ -60,6 +60,5 @@
 .wz-marke-gelb{color:#f3d58c;background:rgba(243,197,107,.1)}
 .wz-leer{padding:24px 6px;font-size:12.5px;color:#77736a}
 .wz-fuss{flex:none;padding:11px 18px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#6f6b62}
-html.light .wz-fenster{color:#24211b}
 @media(max-width:760px){.wz-schleier{padding:0}.wz-fenster{height:100%;border-radius:0}.wz-kopf{flex-wrap:wrap}.wz-suche{order:3;flex-basis:100%;max-width:none}.wz-nav{width:180px}.wz-liste{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.wz-werkzeug{animation:none}}

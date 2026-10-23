@@ -80,6 +80,7 @@ export interface HarnessAuftrag {
   aktives_modell?: string;
   fortschritt?: {nummer: number; text: string; zustand: "erledigt" | "aktiv" | "offen"}[];
   werkstatt?: WerkstattDaten & {nr: number; zeit: number; fertig: boolean; ergebnis?: WerkstattErgebnis};
+  nachauftraege?: string[];
 }
 
 export type KernPhase = "ruhe" | "bereit" | "denken" | "verteilen" | "pruefen" | "sammeln" | "warten" | "fertig" | "offen" | "fehler";

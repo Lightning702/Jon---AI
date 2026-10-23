@@ -333,7 +333,7 @@ class DateiraumService:
         return ordner / f"{stamm}-{os.getpid()}{endung}"
 
     def zielpfad(
-        self, dateiname: str, wunsch: str = "", ueberschreiben: bool = False
+        self, dateiname: str, wunsch: str = "", ueberschreiben: bool = False, neu: bool = False
     ) -> dict:
         sauber = saeubern(dateiname)
         endung = Path(sauber).suffix.lstrip(".")
@@ -341,11 +341,22 @@ class DateiraumService:
         if ordner.get("error"):
             return ordner
         basis = Path(ordner["pfad"])
-        ziel = basis / sauber if ueberschreiben else self.eindeutig(basis, sauber)
+        wieder = None
+        if not ueberschreiben and not neu:
+            from app.services.jon_dateien import wiederverwenden
+
+            wieder = wiederverwenden(basis, sauber)
+        if wieder is not None:
+            ziel = wieder
+        else:
+            ziel = basis / sauber if ueberschreiben else self.eindeutig(basis, sauber)
         erlaubt, grund = self.frei(ziel)
         if not erlaubt:
             return {"error": grund, "pfad": str(ziel)}
-        return {"pfad": str(ziel), "ordner": str(basis), "name": ziel.name}
+        ergebnis = {"pfad": str(ziel), "ordner": str(basis), "name": ziel.name}
+        if wieder is not None:
+            ergebnis["aktualisiert"] = True
+        return ergebnis
 
     def stand(self) -> dict:
         wurzel = self.sicherstellen()

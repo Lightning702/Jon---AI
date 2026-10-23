@@ -363,10 +363,11 @@ def test_modelle_pro_slot():
 
     s = Settings(
         default_jon_model="nvidia/nemotron-3-ultra-550b-a55b",
-        default_emil_model="meta/muse-glimmer-30b",
+        default_emil_model="nvidia/nemotron-3.5-lightning-30b-a3b",
     )
     assert s.model_for("jon") == "nvidia/nemotron-3-ultra-550b-a55b"
-    assert s.model_for("emil") == "meta/muse-glimmer-30b"
+    assert s.model_for("emil") == "nvidia/nemotron-3.5-lightning-30b-a3b"
+    assert Settings(default_emil_model="meta/muse-glimmer-30b").model_for("emil") == "nvidia/nemotron-3.5-lightning-30b-a3b"
     assert Settings(default_jon_model="a", default_emil_model="").emil_model == "a"
 
 
@@ -454,10 +455,10 @@ def test_anbieterwechsel_abschaltbar():
 def test_rollenmarker_werden_entfernt():
     from app.providers.openai_compatible import clean_lead
 
-    assert clean_lead("assistant\n\nHallo Felix") == "Hallo Felix"
+    assert clean_lead("assistant\n\nHallo Lena") == "Hallo Lena"
     assert clean_lead("<|start_header_id|>assistant<|end_header_id|>\n\nHi") == "Hi"
     assert clean_lead("system: Hallo") == "Hallo"
-    assert clean_lead("Hallo Felix") == "Hallo Felix"
+    assert clean_lead("Hallo Lena") == "Hallo Lena"
     assert clean_lead("Assistenten helfen dir") == "Assistenten helfen dir"
 
 
