@@ -122,7 +122,8 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
 **Jon Harness im Terminal:** In PowerShell `irm https://getjon.info/install.ps1 | iex`,
 danach startet `jon` in jedem Ordner einen Coding-Agenten. Er verbindet sich selbst mit
 Jon, wenn Jon läuft, und funktioniert mit FelWorks auch ohne API-Schlüssel. Mehr in
-[docs/JON-HARNESS.md](docs/JON-HARNESS.md).
+[docs/JON-HARNESS.md](docs/JON-HARNESS.md). Direkt von GitHub geht es genauso:
+`irm https://raw.githubusercontent.com/Lightning702/Jon---AI/main/website/install.ps1 | iex`
 
 ---
 
