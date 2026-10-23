@@ -380,6 +380,7 @@ async def _telegram_watcher() -> None:
     from app.services.telegram_service import get_telegram_service
 
     service = get_telegram_service()
+    aufwaermen = asyncio.gather(asyncio.to_thread(service.aufwaermen), service.verbindung_aufwaermen())
     while True:
         try:
             await service.poll_once()

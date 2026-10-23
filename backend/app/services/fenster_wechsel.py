@@ -111,7 +111,29 @@ def _punkte(ziel: str, eintrag: dict) -> int:
     return 0
 
 
+def _gekoppelt_vorholen(hwnd: int) -> None:
+    import ctypes
+
+    import win32gui
+    import win32process
+
+    user32 = ctypes.windll.user32
+    eigener = ctypes.windll.kernel32.GetCurrentThreadId()
+    vorne = win32gui.GetForegroundWindow()
+    fremde = {t for t in (win32process.GetWindowThreadProcessId(vorne)[0] if vorne else 0, win32process.GetWindowThreadProcessId(hwnd)[0]) if t and t != eigener}
+    gekoppelt = [t for t in fremde if user32.AttachThreadInput(eigener, t, True)]
+    try:
+        win32gui.BringWindowToTop(hwnd)
+        win32gui.SetForegroundWindow(hwnd)
+        user32.SetFocus(hwnd)
+    finally:
+        for t in gekoppelt:
+            user32.AttachThreadInput(eigener, t, False)
+
+
 def _vordergrund(hwnd: int) -> bool:
+    import ctypes
+
     import win32con
     import win32gui
 
@@ -124,9 +146,20 @@ def _vordergrund(hwnd: int) -> bool:
             pyautogui.press("alt")
         except Exception as fehler:
             leise(fehler, "services/fenster_wechsel")
-        win32gui.SetForegroundWindow(hwnd)
-        time.sleep(0.25)
-        return win32gui.GetForegroundWindow() == hwnd
+        versuche = (
+            lambda: win32gui.SetForegroundWindow(hwnd),
+            lambda: _gekoppelt_vorholen(hwnd),
+            lambda: ctypes.windll.user32.SwitchToThisWindow(hwnd, True),
+        )
+        for versuch in versuche:
+            try:
+                versuch()
+            except Exception as fehler:
+                leise(fehler, "services/fenster_wechsel")
+            time.sleep(0.25)
+            if win32gui.GetForegroundWindow() == hwnd:
+                return True
+        return False
     except Exception as fehler:
         leise(fehler, "services/fenster_wechsel")
         return False

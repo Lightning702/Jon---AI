@@ -17,6 +17,13 @@ Alle nennenswerten Änderungen an Jon.
 - **Telegram:** Während Jon nachdenkt, zeigt die Nachricht „Jon denkt nach …“ mit seinen aktuellen Gedanken, danach erscheint die Antwort an derselben Stelle. /btw-Antworten kommen ohne Markdown-Sternchen.
 - **Harness:** Jede Überlegung steht als aufklappbarer Eintrag „Jon denkt“ im Verlauf, der neueste ist offen.
 
+### Telegram schneller, Klicks auf Zuruf zuverlässig
+
+- **Erste Antwort viel schneller:** Jon wärmt beim Start Verbindung, Chat und Bildschirmsteuerung vor. Die erste Nachricht nach dem Start zeigt Gedanken nach rund 3 Sekunden und die Antwort nach 5 bis 6 Sekunden statt nach 12 bis 23 Sekunden.
+- **„Klick im Fenster Chrome auf Start“:** Jon holt das genannte Fenster nach vorne und sucht den Knopf nur dort, auch wenn Windows einem Hintergrundprogramm den Fensterwechsel sonst verweigert. Live über Telegram geprüft: Klick nach 7 Sekunden.
+- **Kein blinder Klick mehr:** Ein Satz wie „klick … auf …“ klickt nie mehr einfach an die aktuelle Mausposition, sondern sucht das genannte Ziel.
+- **Sicherheitsfenster bleiben deine Sache:** In Windows-Sicherheit, Firewall-Abfragen, Benutzerkontensteuerung oder Anmeldefenster klickt Jon nie selbst. Er sagt dir stattdessen, dass dort etwas auf dich wartet – auch wenn so ein Fenster den ganzen Bildschirm abdunkelt.
+
 ### Harness zuverlässiger
 
 - **Dateien am richtigen Ort:** Relative Pfade landen im Arbeitsordner des Auftrags statt im Programmordner. `datei_erstellen` legt Dateien ohne Ortsangabe im Arbeitsordner an und versteht auch englische Felder wie `path` und `content`.

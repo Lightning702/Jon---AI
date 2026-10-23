@@ -111,6 +111,12 @@ class AutomationService:
             px, py = self._resolve(x, y)
             pyautogui.moveTo(px, py, duration=0.25)
         _ecke_meiden()
+        from app.services.bildschirm_agent import fenster_an, sicherheitsfenster
+
+        stelle = pyautogui.position()
+        unter = fenster_an(stelle.x, stelle.y)
+        if sicherheitsfenster(unter):
+            return {"error": f"Unter der Maus liegt das Sicherheitsfenster \"{unter}\". Dort klicke ich nicht selbst, das entscheidest du.", "sicherheit": True}
         pyautogui.click(button=button, clicks=clicks, interval=0.1)
         pos = pyautogui.position()
         return {"clicked_at": [pos.x, pos.y], "button": button, "clicks": clicks}

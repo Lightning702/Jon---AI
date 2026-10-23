@@ -703,7 +703,31 @@ async def lesen(frage: str = "", genau: bool = False, mit_text: bool = True) -> 
     return ergebnis
 
 
-async def finden(ziel: str) -> tuple[Element | tuple[int, int] | None, str, dict]:
+SICHERHEITSFENSTER = ("windows-sicherheit", "windows security", "benutzerkontensteuerung", "user account control", "windows-firewall", "windows defender firewall", "anmeldeinformationen", "credential")
+
+
+def fenster_an(x: int, y: int) -> str:
+    if os.name != "nt":
+        return ""
+    try:
+        import win32gui
+
+        hwnd = win32gui.WindowFromPoint((int(x), int(y)))
+        wurzel = win32gui.GetAncestor(hwnd, 2) or hwnd
+        if win32gui.GetClassName(wurzel) == "Shell_SystemDim":
+            return "Windows-Sicherheit"
+        return win32gui.GetWindowText(wurzel) or ""
+    except Exception as fehler:
+        leise(fehler, "bildschirm_agent")
+        return ""
+
+
+def sicherheitsfenster(titel: str) -> bool:
+    klein = (titel or "").casefold()
+    return any(wort in klein for wort in SICHERHEITSFENSTER)
+
+
+async def finden(ziel: str, nur_fenster: bool = False) -> tuple[Element | tuple[int, int] | None, str, dict]:
     nummer = ziel_nummer(ziel)
     if nummer is not None:
         element = _aus_liste(nummer)
@@ -732,10 +756,11 @@ async def finden(ziel: str) -> tuple[Element | tuple[int, int] | None, str, dict
     treffer = eindeutig(liste)
     if treffer is not None:
         return treffer, "text", ui
-    liste = kandidaten(ziel, ui["elemente"], ocr)
-    treffer = eindeutig(liste)
-    if treffer is not None:
-        return treffer, "taskleiste" if treffer.quelle == "taskleiste" else "text", ui
+    if not nur_fenster:
+        liste = kandidaten(ziel, ui["elemente"], ocr)
+        treffer = eindeutig(liste)
+        if treffer is not None:
+            return treffer, "taskleiste" if treffer.quelle == "taskleiste" else "text", ui
     if liste:
         gewaehlt = await per_markierung(ziel, liste, fenster)
         if gewaehlt is not None:
@@ -757,16 +782,34 @@ def _vordergrund_titel() -> str:
         return ""
 
 
-async def klicken(ziel: str, art: str = "links") -> dict:
+async def fenster_nach_vorne(fenster: str) -> dict:
+    from app.services.fenster_wechsel import wechseln
+
+    try:
+        ergebnis = await asyncio.to_thread(wechseln, fenster, False)
+    except Exception as fehler:
+        leise(fehler, "bildschirm_agent")
+        return {"error": str(fehler)}
+    if not ergebnis.get("error"):
+        _letzte["zeit"] = 0.0
+        await asyncio.sleep(0.4)
+    return ergebnis
+
+
+async def klicken(ziel: str, art: str = "links", fenster: str = "") -> dict:
     from app.services.automation_service import AutomationService
 
     ziel = (ziel or "").strip()
     if not ziel:
         return {"error": "Sag mir, worauf ich klicken soll, z. B. ziel='Start'."}
-    gefunden, weg, _ui = await finden(ziel)
+    if (fenster or "").strip():
+        vorne = await fenster_nach_vorne(fenster.strip())
+        if vorne.get("error"):
+            return {"error": f"Das Fenster \"{fenster.strip()}\" finde ich gerade nicht.", "tipp": "Mit bildschirm_lesen oder was_laeuft siehst du, welche Fenster offen sind."}
+    gefunden, weg, _ui = await finden(ziel, bool((fenster or "").strip()))
     if gefunden is None:
         return {
-            "error": f"Ich finde \"{ziel}\" gerade nicht auf dem Bildschirm.",
+            "error": f"Ich finde \"{ziel}\" gerade nicht" + (f" im Fenster \"{fenster.strip()}\"." if (fenster or "").strip() else " auf dem Bildschirm."),
             "tipp": "Mit bildschirm_lesen siehst du, was sichtbar ist. Eventuell muss erst gescrollt oder ein Fenster nach vorne geholt werden.",
         }
     if isinstance(gefunden, Element):
@@ -775,10 +818,18 @@ async def klicken(ziel: str, art: str = "links") -> dict:
     else:
         x, y = gefunden
         beschreibung = ziel
+    unter = fenster_an(x, y)
+    if sicherheitsfenster(unter):
+        return {
+            "error": f"An dieser Stelle liegt das Sicherheitsfenster \"{unter}\". Dort klicke ich nicht selbst, das entscheidest du.",
+            "sicherheit": True,
+        }
     knopf = {"rechts": "right", "right": "right", "mitte": "middle"}.get(art, "left")
     anzahl = 2 if art in ("doppel", "doppelt", "double") else 1
     vorher = _vordergrund_titel()
-    await asyncio.to_thread(AutomationService().mouse_click, x, y, knopf, anzahl)
+    geklickt = await asyncio.to_thread(AutomationService().mouse_click, x, y, knopf, anzahl)
+    if geklickt.get("error"):
+        return geklickt
     await asyncio.sleep(0.7)
     nachher = _vordergrund_titel()
     ergebnis = {"geklickt": beschreibung, "position": [x, y], "erkannt_per": weg, "fenster": nachher}
@@ -807,6 +858,15 @@ BEFEHL_KLICK = re.compile(
     r"^(?:bitte\s+)?(?:(doppel|rechts|links)\s*)?(?:klick(?:e|en)?|click|tipp(?:e)?|drück(?:e)?|drueck(?:e)?)\s+(?:mal\s+|bitte\s+)?(?:auf|on)\s+(.+?)(?:\s+(?:an|bitte|drauf))?[.!?]*$",
     re.IGNORECASE,
 )
+BEFEHL_KLICK_FENSTER = re.compile(
+    r"^(?:bitte\s+)?(?:(doppel|rechts|links)\s*)?(?:klick(?:e|en)?|click|tipp(?:e)?|drück(?:e)?|drueck(?:e)?)\s+(?:mal\s+|bitte\s+)?(?:im|in|in\s+dem|bei)\s+(?:fenster|programm|app|tab)?\s*(.+?)\s+(?:auf|on)\s+(.+?)(?:\s+(?:an|bitte|drauf))?[.!?]*$",
+    re.IGNORECASE,
+)
+BEFEHL_KLICK_FENSTER_HINTEN = re.compile(
+    r"^(?:bitte\s+)?(?:kannst du\s+|könntest du\s+|koenntest du\s+)?(?:mal\s+)?(?:im|in|in\s+dem|bei)\s+(?:fenster|programm|app|tab)?\s*(.+?)\s+auf\s+(.+?)\s+(doppel|rechts|links)?\s*(?:klicken|klicke|drücken|druecken|tippen)[.!?]*$",
+    re.IGNORECASE,
+)
+FENSTER_ANHANG = re.compile(r"^(.+?)\s+(?:im|in|in\s+dem|bei)\s+(?:fenster|programm|app|tab)\s+(.+)$", re.IGNORECASE)
 BEFEHL_KLICK_HINTEN = re.compile(
     r"^(?:bitte\s+)?(?:kannst du\s+|könntest du\s+|koenntest du\s+)?(?:mal\s+)?(?:auf\s+)(.+?)\s+(doppel|rechts|links)?\s*(?:klicken|klicke|drücken|druecken|tippen)[.!?]*$",
     re.IGNORECASE,
@@ -817,20 +877,41 @@ BEFEHL_EINGABE = re.compile(
 )
 
 
+def _saeubern(text: str) -> str:
+    return text.strip(" \"'„“”")
+
+
+def _mit_fenster(befehl: dict) -> dict:
+    anhang = FENSTER_ANHANG.match(befehl["ziel"])
+    if anhang and not befehl.get("fenster"):
+        befehl["ziel"], befehl["fenster"] = _saeubern(anhang.group(1)), _saeubern(anhang.group(2))
+    return befehl
+
+
 def befehl_erkennen(text: str) -> dict | None:
     roh = (text or "").strip()
+    treffer = BEFEHL_KLICK_FENSTER.match(roh)
+    if treffer:
+        ziel, fenster = _saeubern(treffer.group(3)), _saeubern(treffer.group(2))
+        if ziel and fenster and len(ziel) <= 80:
+            return {"aktion": "klicken", "ziel": ziel, "art": (treffer.group(1) or "links").lower(), "fenster": fenster}
+    treffer = BEFEHL_KLICK_FENSTER_HINTEN.match(roh)
+    if treffer:
+        ziel, fenster = _saeubern(treffer.group(2)), _saeubern(treffer.group(1))
+        if ziel and fenster and len(ziel) <= 80:
+            return {"aktion": "klicken", "ziel": ziel, "art": (treffer.group(3) or "links").lower(), "fenster": fenster}
     treffer = BEFEHL_KLICK.match(roh)
     if treffer:
         art = (treffer.group(1) or "links").lower()
-        ziel = treffer.group(2).strip(" \"'„“")
+        ziel = _saeubern(treffer.group(2))
         if ziel and len(ziel) <= 80:
-            return {"aktion": "klicken", "ziel": ziel, "art": art}
+            return _mit_fenster({"aktion": "klicken", "ziel": ziel, "art": art})
     treffer = BEFEHL_KLICK_HINTEN.match(roh)
     if treffer:
         ziel = treffer.group(1).strip(" \"'„“")
         art = (treffer.group(2) or "links").lower()
         if ziel and len(ziel) <= 80:
-            return {"aktion": "klicken", "ziel": ziel, "art": art}
+            return _mit_fenster({"aktion": "klicken", "ziel": ziel, "art": art})
     treffer = BEFEHL_EINGABE.match(roh)
     if treffer and len(treffer.group(2)) <= 60:
         ziel = treffer.group(2).strip(" \"'„“")

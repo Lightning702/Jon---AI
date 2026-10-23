@@ -49,6 +49,16 @@ DIREKT_ANFAENGE = (
     "drauf",
 )
 BILDSCHIRM_WAHL = ("alle", "maus")
+BLIND_FUELL = {"mal", "hier", "jetzt", "drauf", "bitte", "da", "dort", "einmal", "nochmal", "noch", "kurz", "schnell"}
+
+
+def blind_klick(text: str, verben: tuple[str, ...]) -> bool:
+    for verb in verben:
+        if text == verb:
+            return True
+        if text.startswith(verb + " ") and all(w in BLIND_FUELL for w in re.findall(r"\w+", text[len(verb):])):
+            return True
+    return False
 MORNING_STATE_FILE = DATA_DIR / "telegram_morning.json"
 
 
@@ -1409,6 +1419,39 @@ class TelegramService:
             answer = f"{answer}\n\n✅ Ausgeführte Befehle:\n{report}"
         return answer, cards
 
+    def aufwaermen(self) -> bool:
+        if not self._token():
+            return False
+        try:
+            from app.services import automation_service
+            from app.services.chat_service import ChatService
+
+            if self._chat_service is None:
+                self._chat_service = ChatService()
+            self._chat_service._system_prompt()
+            self._chat_service._denkaufwand("Hallo Jon", True)
+            return automation_service is not None
+        except Exception as fehler:
+            leise(fehler, "services/telegram_service")
+            return False
+
+    async def verbindung_aufwaermen(self) -> bool:
+        if not self._token():
+            return False
+        from app.providers.base import ChatMessage, ChatRequest
+        from app.providers.registry import get_registry
+
+        try:
+            anbieter, modell = self.modellwahl()
+            await asyncio.wait_for(
+                get_registry().get(anbieter).complete(ChatRequest(messages=[ChatMessage(role="user", content="Hi")], model=modell, max_tokens=1, slot="emil", denken=False)),
+                30,
+            )
+            return True
+        except Exception as fehler:
+            leise(fehler, "services/telegram_service")
+            return False
+
     def _direct_control(self, text: str) -> str | None:
         raw = text.strip()
         low = raw.lower().strip(" .!?")
@@ -1466,25 +1509,24 @@ class TelegramService:
                 "doppelt klicken",
                 "doppelklicken",
             ):
-                auto.mouse_click(None, None, "left", 2)
+                geklickt = auto.mouse_click(None, None, "left", 2)
+                if geklickt.get("error"):
+                    return geklickt["error"]
                 log("mouse_click", {"clicks": 2}, "ok")
                 return "🖱️ Doppelklick"
-            if any(
-                low == v or low.startswith(v + " ")
-                for v in (
+            if blind_klick(low, (
                     "rechtsklick",
                     "rechts klick",
                     "rechtsklicke",
                     "rechtsklicken",
                     "rechte maustaste",
-                )
-            ):
-                auto.mouse_click(None, None, "right", 1)
+                )):
+                geklickt = auto.mouse_click(None, None, "right", 1)
+                if geklickt.get("error"):
+                    return geklickt["error"]
                 log("mouse_click", {"button": "right"}, "ok")
                 return "🖱️ Rechtsklick"
-            if any(
-                low == v or low.startswith(v + " ")
-                for v in (
+            if blind_klick(low, (
                     "klick",
                     "klicke",
                     "klick mal",
@@ -1497,9 +1539,10 @@ class TelegramService:
                     "click",
                     "drauf klicken",
                     "drauf klick",
-                )
-            ):
-                auto.mouse_click(None, None, "left", 1)
+                )):
+                geklickt = auto.mouse_click(None, None, "left", 1)
+                if geklickt.get("error"):
+                    return geklickt["error"]
                 log("mouse_click", {"button": "left"}, "ok")
                 return "🖱️ Linksklick (an aktueller Mausposition)"
             if any(
@@ -1529,8 +1572,10 @@ class TelegramService:
         if begleiter is not None:
             await begleiter.werkzeug("mouse_click")
         if befehl["aktion"] == "klicken":
-            ergebnis = await bildschirm_agent.klicken(befehl["ziel"], befehl.get("art", "links"))
+            ergebnis = await bildschirm_agent.klicken(befehl["ziel"], befehl.get("art", "links"), befehl.get("fenster", ""))
             self._direkt_loggen("bildschirm_klicken", befehl, ergebnis)
+            if ergebnis.get("sicherheit"):
+                return ergebnis["error"]
             if ergebnis.get("error"):
                 return None
             art = {"doppel": "Doppelklick auf", "rechts": "Rechtsklick auf"}.get(befehl.get("art", ""), "Geklickt:")
