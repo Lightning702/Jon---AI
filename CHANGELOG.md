@@ -2,6 +2,28 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.2] — 2026-10-23
+
+### `jon` ist Jon, `jonh` ist der Harness
+
+- **Klare Befehle:** `jon` startet im Terminal wieder immer den normalen Jon. Der Coding- und Arbeits-Agent heißt jetzt `jonh` (Jon Harness). Vorher konnte `jon` je nach Installation zwei verschiedene Programme öffnen.
+- **Auch ohne Einzeiler da:** Jon legt `jonh` beim Start selbst an, wenn es fehlt. Ist der eigenständige Harness installiert, startet `jonh` ihn, sonst den in Jon eingebauten. Ein vom Installer angelegtes `jonh` lässt Jon unangetastet.
+- **Alte Installationen werden repariert:** Der Einzeiler `irm https://getjon.info/install.ps1 | iex` entfernt die alte Umleitung aus `jon`, legt `jonh` an und trägt ihn in den PATH ein. Unter macOS und Linux erledigt `install.sh` dasselbe.
+
+### Jons Gedanken überall sichtbar
+
+- **Standardmäßig an:** Jon denkt vor jeder Antwort sichtbar nach – im Chat, in Jon Code, im Harness, im Terminal (`jonh`) und auf Telegram. Die alte Einstellung, die das Denken heimlich abgeschaltet hatte, ist ersetzt.
+- **Blitzschnell, wenn du willst:** Unter Einstellungen schaltet „Blitzschnell“ das Nachdenken ab, dann antwortet Jon sofort. Im Terminal schaltet `/denken` um.
+- **Telegram:** Während Jon nachdenkt, zeigt die Nachricht „Jon denkt nach …“ mit seinen aktuellen Gedanken, danach erscheint die Antwort an derselben Stelle. /btw-Antworten kommen ohne Markdown-Sternchen.
+- **Harness:** Jede Überlegung steht als aufklappbarer Eintrag „Jon denkt“ im Verlauf, der neueste ist offen.
+
+### Harness zuverlässiger
+
+- **Dateien am richtigen Ort:** Relative Pfade landen im Arbeitsordner des Auftrags statt im Programmordner. `datei_erstellen` legt Dateien ohne Ortsangabe im Arbeitsordner an und versteht auch englische Felder wie `path` und `content`.
+- **Absolute Pfade bleiben, wie sie sind:** Enthält ein Pfad Wörter wie „JonOrdner“ oder „Jon-Ordner“, legt Jon die Datei trotzdem genau dort ab, statt den Pfad noch einmal in seinen eigenen Ordner zu verschachteln.
+- **Keine Endlosschleife:** Schreibt das Modell dieselbe Datei immer wieder mit `write_file`, greift jetzt derselbe Wächter wie bei PowerPoint und Word und schließt mit der letzten Fassung ab.
+- **Schneller:** Eine einfache Dateiaufgabe ist in 15 bis 30 Sekunden fertig statt in mehreren Minuten.
+
 ## [4.65.1] — 2026-10-22
 
 ### Jon Harness im Terminal

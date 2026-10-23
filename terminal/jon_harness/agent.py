@@ -45,7 +45,7 @@ class Agent:
         self.modell = modell
         self.modus = modus
         self.erlaubt_immer: set[str] = set()
-        self.denken: bool | None = None
+        self.denken: bool | None = True
         self.letzte_antwort = ""
         self.pause = nullcontext
 
@@ -139,7 +139,30 @@ class Agent:
         darstellung = ui.Markdown()
         begonnen = False
         denken_zeichen = 0
+        gedanken_zeile = ""
+        gedanken_kopf = False
         grund = ""
+
+        def gedanken_ausgeben(text: str, ende: bool = False) -> None:
+            nonlocal gedanken_zeile, gedanken_kopf
+            if still or self._text_modus():
+                return
+            gedanken_zeile += text
+            if not gedanken_kopf and gedanken_zeile.strip():
+                kreisel.stopp()
+                sag(f("  ∴ Jon denkt nach", GRAU, MATT))
+                gedanken_kopf = True
+            while "\n" in gedanken_zeile or len(gedanken_zeile) > 110 or (ende and gedanken_zeile):
+                if "\n" in gedanken_zeile and gedanken_zeile.index("\n") <= 110:
+                    zeile, gedanken_zeile = gedanken_zeile.split("\n", 1)
+                elif len(gedanken_zeile) > 110:
+                    schnitt = gedanken_zeile.rfind(" ", 0, 110)
+                    schnitt = schnitt if schnitt > 40 else 110
+                    zeile, gedanken_zeile = gedanken_zeile[:schnitt], gedanken_zeile[schnitt:].lstrip()
+                else:
+                    zeile, gedanken_zeile = gedanken_zeile, ""
+                if zeile.strip():
+                    sag(f("    " + zeile.rstrip(), GRAU, MATT))
         try:
             for ereignis in netz.strom_ereignisse(antwort):
                 nutzung = ereignis.get("usage")
@@ -153,12 +176,16 @@ class Agent:
                     if gedanke:
                         denken_zeichen += len(gedanke)
                         kreisel.zusatz = f"denkt nach ({denken_zeichen} Zeichen)"
+                        gedanken_ausgeben(gedanke)
                     stueck = delta.get("content")
                     if stueck:
                         inhalt.append(stueck)
                         if not still and not self._text_modus():
                             if not begonnen and "".join(inhalt).strip():
                                 kreisel.stopp()
+                                if gedanken_kopf:
+                                    gedanken_ausgeben("", True)
+                                    sag()
                                 begonnen = True
                                 darstellung.vorsatz = f("● ", GOLD)
                                 stueck = "".join(inhalt).lstrip()

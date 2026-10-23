@@ -329,7 +329,7 @@ export interface UserSettings {
   kritiker_schwelle?: number;
   erwartung_enabled?: boolean;
   metakognition_enabled?: boolean;
-  schnell_antworten?: boolean;
+  blitzschnell?: boolean;
   neugier_enabled?: boolean;
   neugier_auto?: boolean;
   neugier_pro_lauf?: number;
@@ -419,7 +419,7 @@ const STANDARD_SETTINGS: UserSettings = {
     kritiker_schwelle: 0.5,
     erwartung_enabled: true,
     metakognition_enabled: true,
-    schnell_antworten: true,
+    blitzschnell: false,
     neugier_enabled: true,
     neugier_auto: false,
     neugier_pro_lauf: 3,

@@ -195,13 +195,29 @@ def wiederhol_signatur(name: str, args: dict) -> str:
     if name == "jon":
         innen = str(args.get("name") or args.get("tool") or "")
         innere = args.get("args") if isinstance(args.get("args"), dict) else {}
-        if innen not in ERSTELLER:
-            return ""
+    elif name in ERSTELLER:
+        innen, innere = name, args
+    else:
+        innen, innere = "", {}
+    if innen == "write_file":
+        return "create|" + str(innere.get("path", "")).replace("\\", "/").strip().casefold()
+    if innen in ERSTELLER:
         ziel = innere.get("title") or innere.get("titel") or innere.get("path") or innere.get("name") or innere.get("dateiname") or innere.get("prompt") or ""
         return f"{innen}|{_grundname(str(ziel))}"
     if name == "create":
         return "create|" + str(args.get("path", "")).replace("\\", "/").strip().casefold()
     return ""
+
+
+def im_arbeitsordner(args: dict, wurzel: Path) -> dict:
+    if any(args.get(k) for k in ("ort", "ordner", "folder")):
+        return args
+    if any(trenner in str(args.get(k) or "") for k in ("dateiname", "filename", "datei", "path", "pfad", "name") for trenner in ("/", "\\")):
+        return args
+    from app.services.dateiraum_service import get_dateiraum_service
+
+    erlaubt, _ = get_dateiraum_service().frei(wurzel)
+    return {**args, "ort": str(wurzel)} if erlaubt else args
 
 
 def wiederholung_pruefen(task: dict, name: str, args: dict) -> tuple[str, int]:
@@ -352,8 +368,8 @@ class HarnessService:
         task["sequence"] += 1
         event = {"id": task["sequence"], "type": kind, "task_id": task["id"], **values}
         self.events.setdefault(task["id"], deque(maxlen=200)).append(event)
-        if kind in {"action", "action_error", "approval_required", "finished", "running_command", "running_tool", "compacting", "compacted", "hinweis", "notiz"}:
-            eintrag = {"time": task["updated_at"], "type": kind, "tool": values.get("tool", ""), "message": str(values.get("message", values.get("command", "")))[:1000]}
+        if kind in {"action", "action_error", "approval_required", "finished", "running_command", "running_tool", "compacting", "compacted", "hinweis", "notiz", "gedanke"}:
+            eintrag = {"time": task["updated_at"], "type": kind, "tool": values.get("tool", ""), "message": str(values.get("message", values.get("command", "")))[:2400 if kind == "gedanke" else 1000]}
             eintrag.update({k: values[k] for k in ("pfad", "plus", "minus", "ok", "ausgabe") if k in values})
             task.setdefault("log", []).append(eintrag)
             task["log"] = task["log"][-400:]
@@ -613,6 +629,8 @@ class HarnessService:
             innen = args.get("args") if isinstance(args.get("args"), dict) else {k: v for k, v in args.items() if k not in {"name", "tool"}}
             if werkzeug in {"jon_tools", "tools", "liste"}:
                 return {"werkzeuge": jon_werkzeuge.katalog()}
+            if werkzeug == "datei_erstellen":
+                innen = im_arbeitsordner(innen, workspace.root)
             task["status"] = "waiting_for_tool"
             self.werkstatt(task, werkzeug, innen)
             self.emit(task, "running_tool", tool=werkzeug)
@@ -744,6 +762,8 @@ class HarnessService:
 
             return await asyncio.wait_for((self.complete or complete)(system, user, provider=task["provider"], model=task["model"], max_tokens=ausgabe or 8192, temperature=0.2, slot="jon"), 420)
         antwort = await anfragen(zugang, system, user)
+        if antwort.gedanken:
+            self.emit(task, "gedanke", message=antwort.gedanken[-2400:])
         for hinweis in antwort.hinweise:
             self.emit(task, "hinweis", message=hinweis)
         if antwort.model != task.get("aktives_modell"):

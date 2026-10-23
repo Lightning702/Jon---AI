@@ -310,7 +310,7 @@ export default function SettingsMenu({
       setKritiker(s.kritiker_enabled === true);
       setErwartung(s.erwartung_enabled !== false);
       setMetakognition(s.metakognition_enabled !== false);
-      setSchnell(s.schnell_antworten !== false);
+      setSchnell(s.blitzschnell === true);
       setNeugier(s.neugier_enabled !== false);
       setNeugierAuto(s.neugier_auto === true);
       setFertigkeitAuto(s.fertigkeit_auto === true);
@@ -434,7 +434,7 @@ export default function SettingsMenu({
   const toggleSchnell = () => {
     const next = !schnell;
     setSchnell(next);
-    void saveUserSettings({ schnell_antworten: next });
+    void saveUserSettings({ blitzschnell: next });
   };
   const toggleMetakognition = () => {
     const next = !metakognition;
@@ -990,7 +990,7 @@ export default function SettingsMenu({
               />
               <Toggle
                 label="Blitzschnell antworten"
-                hint="Jon antwortet sofort und denkt nur bei schweren Fragen, beim Programmieren oder wenn du „denk nach“ sagst vorher lange nach. Mit NVIDIA kommt die erste Antwort so in unter einer Sekunde statt nach mehreren Sekunden."
+                hint="Aus (Standard): Jon denkt vor jeder Antwort sichtbar nach – du siehst seine Gedanken live im Chat, im Harness, im Terminal und auf Telegram. An: Jon antwortet sofort und denkt nur bei schweren Fragen, beim Programmieren oder auf „denk nach“."
                 on={schnell}
                 onClick={toggleSchnell}
               />

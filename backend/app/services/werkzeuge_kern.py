@@ -577,17 +577,36 @@ async def _testumgebung(box: Any, args: dict, name: str = "") -> str:
         return antwort({"error": str(fehler)})
 
 
+def _erster(args: dict, *namen: str) -> Any:
+    for schluessel in namen:
+        wert = args.get(schluessel)
+        if wert not in (None, ""):
+            return wert
+    return ""
+
+
 @werkzeug("datei_erstellen")
 def _datei_erstellen(box: Any, args: dict, name: str = "") -> str:
     from app.services.dokument_service import get_dokument_service
+    from pathlib import PurePath
 
+    dateiname = str(_erster(args, "dateiname", "filename", "datei", "path", "pfad", "name")).strip()
+    ort = str(_erster(args, "ort", "ordner", "folder")).strip()
+    if dateiname and ("/" in dateiname or "\\" in dateiname):
+        teile = PurePath(dateiname)
+        ort = ort or str(teile.parent)
+        dateiname = teile.name
+    art = str(_erster(args, "art", "typ", "type", "endung", "format")).strip().lstrip(".")
+    if not art:
+        art = PurePath(dateiname).suffix.lstrip(".") or "txt"
+    inhalt = _erster(args, "inhalt", "content", "text", "body")
     return antwort(
         get_dokument_service().erstellen(
-            str(args.get("art", "txt")),
-            str(args.get("titel", "")),
-            args.get("inhalt", ""),
-            str(args.get("ort", "")),
-            str(args.get("dateiname", "")),
+            art,
+            str(_erster(args, "titel", "title", "ueberschrift")),
+            inhalt,
+            ort,
+            dateiname,
             str(args.get("projekt", "")),
             quelle=getattr(box, "_source", "app"),
             neue_datei=str(args.get("neue_datei", "")).lower() in ("true", "1", "ja"),

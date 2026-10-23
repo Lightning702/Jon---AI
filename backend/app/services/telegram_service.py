@@ -1336,6 +1336,24 @@ class TelegramService:
         entwurf.clear()
         entwurf.update(id=None, text="", zeit=0.0, ab=0)
 
+        gedanken: list[str] = []
+
+        async def gedanken_zeigen() -> None:
+            if "".join(parts).strip():
+                return
+            text = "".join(gedanken).strip()
+            jetzt = time.monotonic()
+            if len(text) < 40 or jetzt - entwurf["zeit"] < ENTWURF_TAKT:
+                return
+            entwurf["zeit"] = jetzt
+            ausschnitt = text if len(text) <= 700 else "…" + text[-700:]
+            anzeige = "Jon denkt nach …\n\n" + ausschnitt
+            if entwurf["id"] is None:
+                entwurf["id"] = await self._nachricht(chat_id, anzeige)
+            elif anzeige != entwurf["text"]:
+                await self._aendern(chat_id, entwurf["id"], anzeige)
+            entwurf["text"] = anzeige
+
         async def entwurf_zeigen() -> None:
             text = "".join(parts[entwurf["ab"]:]).strip()
             jetzt = time.monotonic()
@@ -1357,6 +1375,9 @@ class TelegramService:
             if kind == "content":
                 parts.append(event.get("delta") or "")
                 await entwurf_zeigen()
+            elif kind == "reasoning":
+                gedanken.append(event.get("delta") or "")
+                await gedanken_zeigen()
             elif kind == "tool" and event.get("status") == "running":
                 if begleiter is not None and event.get("name"):
                     await begleiter.werkzeug(str(event["name"]))

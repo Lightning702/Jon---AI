@@ -239,3 +239,20 @@ def test_zwischenfrage_kennt_den_verlauf_ohne_ihn_zu_aendern(tmp_path, monkeypat
     assert gesehen["werkzeuge"] is None and gesehen["denken"] is False
     inhalt = gesehen["nachrichten"][-1]["content"]
     assert "Baue eine Startseite" in inhalt and "datei_schreiben" in inhalt and "ZWISCHENFRAGE: woran arbeitest du?" in inhalt
+
+
+def test_terminal_zeigt_die_gedanken_live(tmp_path, monkeypatch, capsys):
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    gesehen = {}
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        gesehen["denken"] = denken
+        return _Antwort(_sse({"choices": [{"delta": {"reasoning_content": "Der Nutzer will wissen, was 2+2 ist. Das ist einfach.\n"}}]}, {"choices": [{"delta": {"content": "Das ergibt 4."}}]})), True
+
+    monkeypatch.setattr(verbindung, "strom", strom)
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "vorsichtig")
+    assert agent.runde("Was ist 2+2?") == "Das ergibt 4."
+    ausgabe = capsys.readouterr().out
+    assert gesehen["denken"] is True
+    assert "Jon denkt nach" in ausgabe and "Das ist einfach." in ausgabe
+    assert ausgabe.index("Das ist einfach.") < ausgabe.index("Das ergibt 4.")

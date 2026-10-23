@@ -110,8 +110,9 @@ async def vervollstaendigen(request: Request):
         raise HTTPException(400, "Ungültige Anfrage.")
     name, modell, anbieter = _ziel(str(koerper.get("model") or ""))
     koerper["model"] = modell
+    wunsch = koerper.pop("jon_denken", None)
     if "chat_template_kwargs" not in koerper:
-        koerper.update(denk_extra(modell, None))
+        koerper.update(denk_extra(modell, wunsch if isinstance(wunsch, bool) else None))
     basis = _basis(name, anbieter)
     if not basis:
         raise HTTPException(503, f"{name} ist gerade nicht erreichbar.")

@@ -32,6 +32,11 @@
 .hv-verlauf{position:relative;margin:0;padding:4px 0 0;list-style:none;display:flex;flex-direction:column;gap:6px}
 .hv-verlauf::before{content:"";position:absolute;left:15px;top:8px;bottom:8px;width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.08) 4%,rgba(255,255,255,.08) 96%,transparent)}
 .hv-jon{position:relative;display:flex;gap:12px;margin:8px 0 4px}
+.hv-gedanke{margin:4px 0 2px 40px;list-style:none}
+.hv-gedanke summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:rgba(229,200,137,.75);list-style:none}
+.hv-gedanke summary::-webkit-details-marker{display:none}
+.hv-gedanke summary time{color:rgba(255,255,255,.3);font-size:11px}
+.hv-gedanke p{margin:6px 0 0;padding-left:10px;border-left:2px solid rgba(229,200,137,.3);font-size:12px;line-height:1.55;color:rgba(255,255,255,.5);white-space:pre-wrap;overflow-wrap:anywhere;max-height:14rem;overflow:auto}
 .hv-avatar{position:relative;z-index:1;flex:none;width:31px;height:31px;border-radius:11px;display:grid;place-items:center;font-size:13px;font-weight:800;color:#1b160a;background:radial-gradient(circle at 34% 28%,#fff1c9,#e5c889 55%,#9a7b1f);box-shadow:0 0 0 4px #0d0d11,0 6px 16px -6px rgba(229,200,137,.5)}
 .hv-jon>div{min-width:0;padding-top:1px}
 .hv-name{display:flex;align-items:baseline;gap:8px;font-size:11.5px;font-weight:650;color:#e5c889}

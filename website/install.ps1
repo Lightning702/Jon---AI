@@ -58,24 +58,26 @@
         Zeile '  ✓ Installiert nach' 'Green'
         Zeile "    $exe" 'DarkGray'
 
-        $weiche = "if exist `"%LOCALAPPDATA%\Jon\Harness\jon-harness.exe`" (`r`n  `"%LOCALAPPDATA%\Jon\Harness\jon-harness.exe`" %*`r`n  exit /b`r`n)`r`n"
         foreach ($name in @('jon.cmd', 'jon-harness.cmd', 'jon-code.cmd')) {
             $shim = Join-Path $bin $name
-            $vorhanden = if (Test-Path $shim) { [IO.File]::ReadAllText($shim) } else { '' }
-            if ($vorhanden -match 'Harness\\jon-harness\.exe') { continue }
-            if ($vorhanden -match '(?i)cli') {
-                $inhalt = $vorhanden -replace '^@echo off\r?\n', ("@echo off`r`n" + $weiche)
+            if (-not (Test-Path $shim)) { continue }
+            $vorhanden = [IO.File]::ReadAllText($shim)
+            if ($vorhanden -notmatch 'Harness\\jon-harness\.exe') { continue }
+            $sauber = [regex]::Replace($vorhanden, '(?s)if exist "[^"]*Harness\\jon-harness\.exe" \(\r?\n.*?exit /b\r?\n\)\r?\n', '')
+            if ($sauber -match '(?i)\bcli\b') {
+                [IO.File]::WriteAllText($shim, $sauber, [Text.Encoding]::ASCII)
             } else {
-                $inhalt = "@echo off`r`n`"%LOCALAPPDATA%\Jon\Harness\jon-harness.exe`" %*`r`n"
+                Remove-Item $shim -Force -ErrorAction SilentlyContinue
             }
-            [IO.File]::WriteAllText($shim, $inhalt, [Text.Encoding]::ASCII)
         }
+        $start = if ($env:JON_HARNESS_ZIEL) { $exe } else { '%LOCALAPPDATA%\Jon\Harness\jon-harness.exe' }
+        [IO.File]::WriteAllText((Join-Path $bin 'jonh.cmd'), "@echo off`r`n`"$start`" %*`r`n", [Text.Encoding]::Default)
 
         $pfad = [Environment]::GetEnvironmentVariable('Path', 'User')
         $teile = @($pfad -split ';' | Where-Object { $_ })
         if (-not $env:JON_HARNESS_ZIEL -and -not ($teile | Where-Object { $_.TrimEnd('\') -ieq $bin.TrimEnd('\') })) {
             [Environment]::SetEnvironmentVariable('Path', (@($bin) + $teile) -join ';', 'User')
-            Zeile '  ✓ Befehl „jon“ zum PATH hinzugefügt' 'Green'
+            Zeile '  ✓ Befehl „jonh“ zum PATH hinzugefügt' 'Green'
         }
         if (-not (($env:Path -split ';') | Where-Object { $_.TrimEnd('\') -ieq $bin.TrimEnd('\') })) {
             $env:Path = "$bin;$env:Path"
@@ -98,7 +100,7 @@
         }
         Write-Host ''
         Write-Host '  Fertig! Starte jetzt mit:  ' -NoNewline -ForegroundColor Gray
-        Write-Host 'jon' -ForegroundColor Yellow
+        Write-Host 'jonh' -ForegroundColor Yellow
         Zeile '  (in einem neuen Fenster oder direkt hier)' 'DarkGray'
         Write-Host ''
     } catch {

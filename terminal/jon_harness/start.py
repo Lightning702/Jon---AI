@@ -32,7 +32,7 @@ BEFEHLE = [
     ("/spiel <Idee>", "komplettes, spielbares Spiel programmieren"),
     ("/praesentation <Thema>", "PowerPoint oder HTML-Folien erstellen"),
     ("/btw <Frage>", "nebenbei fragen – geht auch, während Jon arbeitet"),
-    ("/denken", "gründliches Nachdenken an/aus"),
+    ("/denken", "sichtbares Nachdenken an/aus (Standard: an)"),
     ("/aufgaben", "aktuelle Aufgabenliste"),
     ("/rueckgaengig", "letzte Dateiänderung zurücknehmen"),
     ("/kompakt", "Verlauf verdichten"),
@@ -293,7 +293,7 @@ class Terminal:
             ui.kasten("Nebenbei", [f(z, WEISS) for z in (antwort.strip() or "Dazu fällt mir gerade nichts ein.").replace("**", "").splitlines()], GOLD)
             return True
         if wort in ("/denken", "/think"):
-            self.agent.denken = None if self.agent.denken else True
+            self.agent.denken = not self.agent.denken
             sag(f("  Gründliches Nachdenken " + ("an – langsamer, aber gründlicher." if self.agent.denken else "aus – Jon antwortet sofort."), GRAU))
             return True
         if wort in ("/fortsetzen", "/resume", "/weiter"):
@@ -503,7 +503,7 @@ class Terminal:
             return
         sag(f("  Lade die neueste Version …", GRAU))
         subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", f"Start-Sleep -Seconds 1; irm {INSTALLER} | iex"], creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
-        sag(f("  Das Update läuft in einem neuen Fenster. Starte danach einfach wieder mit „jon“.", GRAU))
+        sag(f("  Das Update läuft in einem neuen Fenster. Starte danach einfach wieder mit „jonh“.", GRAU))
         self.ende()
         raise SystemExit(0)
 
@@ -519,7 +519,7 @@ def _version(text: str) -> tuple:
 
 
 def argumente(liste: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="jon", description="Jon Harness – Jon von FelWorks im Terminal")
+    parser = argparse.ArgumentParser(prog="jonh", description="Jon Harness – Jon von FelWorks im Terminal")
     parser.add_argument("frage", nargs="*", help="Erster Auftrag")
     parser.add_argument("-p", "--print", dest="einmal", action="store_true", help="Nur antworten und beenden")
     parser.add_argument("-c", "--weiter", action="store_true", help="Letztes Gespräch fortsetzen")
@@ -550,7 +550,7 @@ def main(liste: list[str] | None = None) -> None:
         terminal.fortsetzen()
     if werte.einmal:
         if not text:
-            print("Bitte einen Auftrag angeben, z. B. jon -p \"Erkläre dieses Projekt\"")
+            print("Bitte einen Auftrag angeben, z. B. jonh -p \"Erkläre dieses Projekt\"")
             return
         terminal.ausfuehren(text)
         terminal.speichern()

@@ -281,12 +281,12 @@ class DateiraumService:
         text = str(wunsch or "").strip()
         if not text:
             return None, ""
-        if JON_WORT.search(text):
-            rest = JON_WORT.sub("", text).strip(" /\\-")
-            return self.sicherstellen(), rest
         pfad = Path(text).expanduser()
         if pfad.is_absolute():
             return pfad, ""
+        if JON_WORT.search(text):
+            rest = JON_WORT.sub("", text).strip(" /\\-")
+            return self.sicherstellen(), rest
         teile = [t for t in re.split(r"[\\/]+", text) if t.strip()]
         if not teile:
             return None, ""
