@@ -1619,7 +1619,9 @@ class TelegramService:
             await self.send(chat_id, f"Notiert. Sobald ich fertig bin, mache ich: {auftrag}" if vorne else f"Gerade läuft nichts – ich mache es sofort: {auftrag}")
             return
         ergebnis = await btw_service.antworten(frage, self._histories.get(chat_id, [])[-12:], nebenbei=self._gerade.get(chat_id, ""))
-        await self.send(chat_id, "Nebenbei: " + str(ergebnis.get("antwort", "")))
+        from app.services.text_format import schlicht
+
+        await self.send(chat_id, "Nebenbei: " + schlicht(str(ergebnis.get("antwort", ""))))
 
     async def _der_reihe_nach(
         self,

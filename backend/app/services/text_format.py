@@ -75,3 +75,9 @@ def ohne_tabellen(text: str) -> str:
     for i in range(0, len(teile), 2):
         teile[i] = _wandle(teile[i])
     return "```".join(teile)
+
+
+def schlicht(text: str) -> str:
+    ohne = re.sub(r"\*\*(.+?)\*\*|__(.+?)__", lambda t: t.group(1) or t.group(2) or "", str(text or ""))
+    ohne = re.sub(r"`([^`]+)`", r"\1", ohne)
+    return re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", ohne)

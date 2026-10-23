@@ -146,3 +146,9 @@ def test_telegram_btw_antwortet_sofort_und_merkt_nachauftrag_vor(monkeypatch):
     assert any(t.startswith("Notiert.") and "schick mir eine Zusammenfassung" in t for t in gesendet)
     assert not any("vorige Nachricht" in t for t in gesendet)
     assert erledigt == ["Lange Aufgabe", "schick mir eine Zusammenfassung"]
+
+
+def test_telegram_text_ohne_markdown():
+    from app.services.text_format import schlicht
+
+    assert schlicht("Die Regel: **3 Kopien** und `abc`\n## Titel\nText __fett__") == "Die Regel: 3 Kopien und abc\nTitel\nText fett"
