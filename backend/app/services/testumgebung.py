@@ -21,8 +21,8 @@ STANDARD = "standard"
 ERLAUBT = re.compile(r"[^a-z0-9-]+")
 
 SPRACHEN = {
-    "python": ("main.py", "python3 main.py", [sys.executable, "main.py"]),
-    "py": ("main.py", "python3 main.py", [sys.executable, "main.py"]),
+    "python": ("main.py", "python3 main.py", ["python", "main.py"]),
+    "py": ("main.py", "python3 main.py", ["python", "main.py"]),
     "javascript": ("main.js", "node main.js", ["node", "main.js"]),
     "js": ("main.js", "node main.js", ["node", "main.js"]),
     "node": ("main.js", "node main.js", ["node", "main.js"]),
@@ -335,7 +335,7 @@ class Testumgebung:
                 raise Fehler("PowerShell gibt es in der Linux-Maschine nicht. Nimm eine Testumgebung ohne Maschine.")
             lauf = self.ausfuehren(kennung, befehl_maschine.replace(standard_name, name), 120)
         else:
-            programm = shutil.which(befehl_ordner[0]) or (befehl_ordner[0] if Path(befehl_ordner[0]).is_file() else None)
+            programm = _programm(befehl_ordner[0])
             if not programm:
                 hilfe = "Starte Docker und lege eine Testumgebung als Maschine an – dort ist es dabei." if self.docker()["installiert"] else "Installiere es oder nutze Docker für eine Maschine mit allem dabei."
                 raise Fehler(f"{befehl_ordner[0]} ist auf diesem PC nicht installiert. {hilfe}")
@@ -357,6 +357,18 @@ class Testumgebung:
         if not ziel.is_file():
             raise Fehler("Diese Datei gibt es nicht.")
         return ziel
+
+
+def _programm(name: str) -> str | None:
+    if name == "python":
+        if not getattr(sys, "frozen", False):
+            return sys.executable
+        for kandidat in ("python", "py", "python3"):
+            gefunden = shutil.which(kandidat)
+            if gefunden and "WindowsApps" not in gefunden:
+                return gefunden
+        return None
+    return shutil.which(name)
 
 
 def _ohne_fenster() -> int:

@@ -97,3 +97,24 @@ def test_vorschau_route_ist_abgeschottet(dienst):
         assert "sandbox" in antwort.headers["content-security-policy"]
         assert "Vorschau" in antwort.text
         assert client.get("/testumgebung-vorschau/standard/../../geheim.txt").status_code == 404
+
+
+def test_gepacktes_jon_startet_echtes_python(dienst, monkeypatch):
+    monkeypatch.setattr(modul.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(modul.shutil, "which", lambda name: {"python": None, "py": r"C:\Windows\py.exe"}.get(name))
+    assert modul._programm("python") == r"C:\Windows\py.exe"
+    monkeypatch.setattr(modul.shutil, "which", lambda name: None)
+    with pytest.raises(modul.Fehler) as fehler:
+        dienst.code(dienst.standard(), "python", "print(1)")
+    assert "python ist auf diesem PC nicht installiert" in str(fehler.value)
+
+
+def test_gepacktes_backend_startet_keinen_zweiten_server(monkeypatch):
+    import run_backend
+
+    monkeypatch.setattr(run_backend.sys, "frozen", True, raising=False)
+    for argumente in (["jon-backend.exe", "main.py"], ["jon-backend.exe", "-m", "playwright", "install"], ["jon-backend.exe", "-X", "utf8", "x.py"]):
+        monkeypatch.setattr(run_backend.sys, "argv", argumente)
+        with pytest.raises(SystemExit) as ende:
+            run_backend.main()
+        assert ende.value.code == 2
