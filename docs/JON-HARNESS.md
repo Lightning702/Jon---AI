@@ -8,6 +8,12 @@ Installation in PowerShell:
 irm https://getjon.info/install.ps1 | iex
 ```
 
+Direkt von GitHub, gleiches Ergebnis:
+
+```powershell
+irm https://raw.githubusercontent.com/Lightning702/Jon---AI/main/website/install.ps1 | iex
+```
+
 macOS und Linux:
 
 ```bash
