@@ -270,6 +270,16 @@ async def _telegram_senden(box: Any, args: dict, name: str = "") -> str:
             get_reminder_service().delete(g["id"])
         return antwort({"ok": bool(treffer), "geloescht": len(treffer)} if treffer else {"error": "Keine passende geplante Telegram-Nachricht gefunden."})
     text = str(args.get("text", "") or args.get("nachricht", "") or "").strip()
+    roh = args.get("dateien") or args.get("datei") or args.get("pfad") or args.get("path") or args.get("bild") or []
+    if isinstance(roh, str) and roh.strip().startswith("["):
+        try:
+            roh = json.loads(roh)
+        except ValueError:
+            roh = [t.strip(" \"'") for t in roh.strip("[] ").split(",")]
+    pfade = [str(p) for p in (roh if isinstance(roh, list) else [roh]) if str(p or "").strip()]
+    bildschirm = str(args.get("bildschirm", "")).strip().lower() in ("true", "1", "ja")
+    if pfade or bildschirm:
+        return antwort(await telegram_plan.zustellen(text, pfade, bildschirm))
     if not text:
         return antwort({"error": "text fehlt: Was soll in der Telegram-Nachricht stehen?"})
     zeit = str(args.get("zeit", "") or args.get("time", "") or "").strip()

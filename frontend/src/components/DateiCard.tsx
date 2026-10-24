@@ -1,7 +1,7 @@
 import Symbol from "./Symbol";
 import { Suspense, lazy, useState } from "react";
 import { motion } from "framer-motion";
-import { JonDatei, dateiInhaltUrl, dateiOeffnen } from "../lib/api";
+import { JonDatei, aufsHandy, dateiInhaltUrl, dateiOeffnen } from "../lib/api";
 
 const DateiAnsicht = lazy(() => import("./DateiAnsicht"));
 
@@ -35,6 +35,7 @@ function endung(name: string): string {
 export default function DateiCard({ dateien }: { dateien: JonDatei[] }) {
   const [meldung, setMeldung] = useState("");
   const [busy, setBusy] = useState("");
+  const [geschickt, setGeschickt] = useState("");
   const [ansicht, setAnsicht] = useState<JonDatei | null>(null);
 
   if (!dateien?.length) return null;
@@ -45,6 +46,15 @@ export default function DateiCard({ dateien }: { dateien: JonDatei[] }) {
     const ergebnis = await dateiOeffnen(datei.path, ordner);
     setBusy("");
     if (ergebnis?.error) setMeldung(ergebnis.error);
+  };
+
+  const schicken = async (datei: JonDatei) => {
+    setBusy(datei.path + "-h");
+    setMeldung("");
+    const ergebnis = await aufsHandy([datei.path]);
+    setBusy("");
+    if (ergebnis.error) setMeldung(ergebnis.error);
+    else setGeschickt(datei.path);
   };
 
   return (
@@ -109,6 +119,14 @@ export default function DateiCard({ dateien }: { dateien: JonDatei[] }) {
                   className="text-[11px] px-2.5 py-1 rounded-lg border border-gold/30 text-gold/85 hover:bg-gold/10 disabled:opacity-50"
                 >
                   {busy === datei.path + "-o" ? "öffnet …" : "Im Ordner öffnen"}
+                </button>
+                <button
+                  onClick={() => void schicken(datei)}
+                  disabled={busy === datei.path + "-h"}
+                  title="Über Telegram an dein Handy schicken"
+                  className="text-[11px] px-2.5 py-1 rounded-lg border border-white/15 text-white/70 hover:bg-white/5 disabled:opacity-50"
+                >
+                  {busy === datei.path + "-h" ? "schickt …" : geschickt === datei.path ? "Aufs Handy geschickt" : "Aufs Handy"}
                 </button>
               </div>
             )}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import re
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from app.core.fehler import leise
 
@@ -83,6 +84,57 @@ async def senden(text: str) -> dict:
     except Exception as fehler:
         return {"error": f"Telegram hat die Nachricht nicht angenommen: {fehler}"}
     return {"ok": True, "gesendet": True, "text": text}
+
+
+BILD_ENDUNGEN = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+MAX_DATEIEN = 10
+
+
+def _bildschirmfoto() -> Path:
+    from app.core.config import DATA_DIR
+    from app.services.system_service import SystemService
+
+    ziel = DATA_DIR / "browser" / f"screenshot-handy-{datetime.now():%Y%m%d-%H%M%S}.png"
+    return Path(SystemService().screenshot(str(ziel))["path"])
+
+
+async def zustellen(text: str = "", pfade: list[str] | None = None, bildschirm: bool = False) -> dict:
+    from app.services.dateiraum_service import get_dateiraum_service
+    from app.services.telegram_service import get_telegram_service
+
+    ok, grund = bereit()
+    if not ok:
+        return {"error": grund}
+    dateien: list[Path] = []
+    for roh in [p for p in (pfade or []) if str(p or "").strip()][:MAX_DATEIEN]:
+        pfad = Path(str(roh).strip().strip('"')).expanduser()
+        if not pfad.is_file():
+            return {"error": f"Diese Datei finde ich nicht: {roh}"}
+        erlaubt, warum = get_dateiraum_service().frei(pfad)
+        if not erlaubt:
+            return {"error": warum}
+        dateien.append(pfad)
+    if bildschirm:
+        try:
+            dateien.append(await asyncio.to_thread(_bildschirmfoto))
+        except Exception as fehler:
+            return {"error": f"Das Bildschirmfoto ging nicht: {fehler}"}
+    text = str(text or "").strip()
+    if not text and not dateien:
+        return {"error": "Sag mir, was ich schicken soll: text, datei oder bildschirm=true."}
+    dienst = get_telegram_service()
+    geschickt: list[str] = []
+    try:
+        if text:
+            await dienst.send(chat(), text)
+        for pfad in dateien:
+            art = "bild" if pfad.suffix.lower() in BILD_ENDUNGEN else "datei"
+            if not await dienst.send_datei(chat(), {"path": str(pfad), "title": pfad.stem, "kind": art}):
+                return {"error": f"Telegram hat {pfad.name} nicht angenommen.", "geschickt": geschickt}
+            geschickt.append(pfad.name)
+    except Exception as fehler:
+        return {"error": f"Telegram hat die Nachricht nicht angenommen: {fehler}", "geschickt": geschickt}
+    return {"ok": True, "gesendet": True, "text": text, "dateien": geschickt}
 
 
 def planen(text: str, zeit: str, datum: str = "", taeglich: bool = False) -> dict:

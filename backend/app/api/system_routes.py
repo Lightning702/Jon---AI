@@ -346,6 +346,22 @@ class Meldung(BaseModel):
     text: str
 
 
+class Zustellung(BaseModel):
+    text: str = ""
+    pfade: list[str] = []
+    bildschirm: bool = False
+
+
+@router.post("/telegram/senden")
+async def telegram_senden(daten: Zustellung) -> dict:
+    from app.services import telegram_plan
+
+    ergebnis = await telegram_plan.zustellen(daten.text[:3500], daten.pfade[:10], daten.bildschirm)
+    if ergebnis.get("error"):
+        raise HTTPException(status_code=400, detail=ergebnis["error"])
+    return ergebnis
+
+
 @router.post("/telegram/melden")
 async def telegram_melden(daten: Meldung) -> dict:
     from app.services.beobachten import _telegram

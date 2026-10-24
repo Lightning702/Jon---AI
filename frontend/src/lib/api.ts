@@ -1761,6 +1761,21 @@ export async function dateiOeffnen(
   }
 }
 
+export async function aufsHandy(pfade: string[], text = ""): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${BASE}/system/telegram/senden`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pfade, text }),
+    });
+    const daten = await res.json().catch(() => null);
+    if (!res.ok) return { error: daten?.detail ?? "Telegram hat es nicht angenommen." };
+    return daten ?? { ok: true };
+  } catch {
+    return { error: "Jon antwortet gerade nicht." };
+  }
+}
+
 export async function getDateiraum(): Promise<JonDateiraum | null> {
   try {
     const res = await fetch(`${BASE}/dateien/raum`);
