@@ -41,3 +41,13 @@ def test_bing_treffer_werden_gelesen():
     assert treffer[0]["title"] == "Datensicherung beim BSI"
     assert "3-2-1-Regel" in treffer[0]["snippet"]
     assert treffer[0]["engine"] == "bing"
+
+
+def test_zufallstreffer_von_bing_werden_aussortiert():
+    from app.services.websearch_service import passt_zur_frage
+
+    assert not passt_zur_frage("Hauptstadt von Australien", {"title": "Socks | Adult Forum", "snippet": "annoyed when watching", "url": "https://forum.example/socks"})
+    assert not passt_zur_frage("nemotron 3 ultra nvidia", {"title": "Grüner Leguan – Wikipedia", "snippet": "Der Grüne Leguan", "url": "https://de.wikipedia.org/wiki/Gruener_Leguan"})
+    assert passt_zur_frage("Hauptstadt von Australien", {"title": "Canberra", "snippet": "Canberra ist die Hauptstadt Australiens", "url": "https://de.wikipedia.org/wiki/Canberra"})
+    assert passt_zur_frage("Öffnungszeiten Schönbrunn", {"title": "Schloss Schönbrunn Öffnungszeiten", "snippet": "", "url": "https://oeffnungszeitenbuch.at"})
+    assert passt_zur_frage("wie ist das", {"title": "Irgendwas", "snippet": "", "url": "https://x.example"})

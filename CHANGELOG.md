@@ -27,7 +27,7 @@ Alle nennenswerten Änderungen an Jon.
 
 ### Recherche und Präsentationen
 
-- **Websuche funktioniert wieder richtig:** Yahoo antwortete nur noch mit Fehlern, DuckDuckGo zeigte eine Bot-Sperre – übrig blieb nur Wikipedia. Jon sucht jetzt zusätzlich über Bing und findet wieder echte Quellen mit Ausschnitt, in unter einer halben Sekunde.
+- **Websuche funktioniert wieder richtig:** Yahoo antwortete nur noch mit Fehlern, DuckDuckGo zeigte eine Bot-Sperre – übrig blieb nur Wikipedia. Jon sucht jetzt zusätzlich über Bing und findet wieder echte Quellen mit Ausschnitt, in unter einer halben Sekunde. Weil Bing automatischen Anfragen manchmal Zufallsseiten unterschiebt, zählt ein Bing-Treffer nur, wenn er mindestens die Hälfte der Suchwörter enthält.
 - **Bilder landen wirklich in den Folien:** `edit_pptx` und `edit_docx` verstehen jetzt auch andere Schreibweisen des Modells, etwa `slides` statt `aktionen`, `typ: bild_hinzufuegen` statt `aktion: bild` oder `slide_index` (ab 0) statt `folie` (ab 1). Vorher scheiterte das Nachrüsten von Bildern komplett.
 
 ### Harness zuverlässiger

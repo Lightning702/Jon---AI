@@ -61,6 +61,32 @@ def _tidy(text: str) -> str:
     return re.sub(r"\s+", " ", _clean(text)).strip()
 
 
+FUELLWOERTER = {
+    "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines", "und", "oder", "aber",
+    "wie", "was", "wer", "wem", "wen", "wo", "wann", "warum", "wieso", "welche", "welcher", "welches", "ist", "sind",
+    "war", "waren", "wird", "werden", "hat", "haben", "von", "vom", "zum", "zur", "fuer", "mit", "bei", "aus", "nach",
+    "ueber", "unter", "auf", "an", "am", "im", "in", "es", "ich", "du", "er", "sie", "wir", "ihr", "mir", "mich", "dir",
+    "dich", "mein", "dein", "sein", "kann", "man", "gibt", "bitte", "mal", "auch", "noch", "nicht", "the", "and", "for",
+    "what", "how", "why", "when", "where", "who", "with", "from", "are", "was", "does", "can",
+}
+
+
+def _normal(text: str) -> str:
+    klein = str(text or "").casefold()
+    for alt, neu in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        klein = klein.replace(alt, neu)
+    return re.sub(r"[^a-z0-9]+", " ", klein)
+
+
+def passt_zur_frage(frage: str, eintrag: dict) -> bool:
+    woerter = [w for w in _normal(frage).split() if len(w) > 2 and w not in FUELLWOERTER]
+    if not woerter:
+        return True
+    text = _normal(" ".join(str(eintrag.get(f, "")) for f in ("title", "snippet", "url")))
+    treffer = sum(1 for w in woerter if (w[:6] if len(w) > 6 else w) in text)
+    return treffer >= (len(woerter) + 1) // 2
+
+
 def _real_url(href: str) -> str:
     href = html.unescape(href)
     if href.startswith("//"):
@@ -224,7 +250,7 @@ class WebSearch:
             rest = block[link.end():]
             text = BING_SNIPPET.search(rest)
             eintrag = self._pack(link.group(2), link.group(1), text.group(1) if text else "", "bing")
-            if eintrag:
+            if eintrag and passt_zur_frage(query, eintrag):
                 treffer.append(eintrag)
             if len(treffer) >= limit:
                 break
