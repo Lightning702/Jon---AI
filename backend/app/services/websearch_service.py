@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import html
 import re
 import urllib.parse
@@ -25,6 +26,10 @@ AD_MARKERS = ("/y.js", "ad_domain=", "ad_provider=", "duckduckgo.com/y.js")
 
 JUNK_DOMAINS = ("duckduckgo.com", "lite.duckduckgo.com", "html.duckduckgo.com", "r.search.yahoo.com")
 
+BING_BLOCK = re.compile(r'<li class="b_algo"')
+BING_LINK = re.compile(r'<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', re.S)
+BING_SNIPPET = re.compile(r"<p[^>]*>(.*?)</p>", re.S)
+BING_BALLAST = re.compile(r"<link[^>]*>|<style.*?</style>|<script.*?</script>", re.S)
 YAHOO_BLOCK = re.compile(r'<div class="dd [^"]*algo[ "]')
 YAHOO_LINK = re.compile(r'href="(https?://r\.search\.yahoo\.com/[^"]+|https?://(?!r\.search)[^"]+)"[^>]*>.*?<h3[^>]*>(.*?)</h3>', re.S)
 YAHOO_SNIPPET = re.compile(r'<div class="compText[^"]*"[^>]*>\s*<p[^>]*>(.*?)</p>', re.S)
@@ -62,6 +67,14 @@ def _real_url(href: str) -> str:
         href = "https:" + href
     if "r.search.yahoo.com" in href and "/RU=" in href:
         href = urllib.parse.unquote(href.split("/RU=", 1)[1].split("/RK=", 1)[0])
+    if "bing.com/ck/a" in href:
+        wert = urllib.parse.parse_qs(urllib.parse.urlparse(href).query).get("u", [""])[0]
+        if not wert.startswith("a1"):
+            return ""
+        try:
+            return base64.urlsafe_b64decode(wert[2:] + "=" * (-len(wert[2:]) % 4)).decode("utf-8")
+        except (ValueError, UnicodeDecodeError):
+            return ""
     if "uddg=" in href:
         query = urllib.parse.urlparse(href).query
         found = urllib.parse.parse_qs(query).get("uddg")
@@ -97,6 +110,7 @@ class WebSearch:
             return {"frage": "", "treffer": [], "fehler": "Kein Suchbegriff."}
         limit = max(1, min(int(limit), 12))
         engines = (
+            self._bing,
             self._yahoo,
             self._duckduckgo_lite,
             self._duckduckgo_html,
@@ -192,6 +206,29 @@ class WebSearch:
             "snippet": _tidy(snippet)[:400],
             "engine": engine,
         }
+
+    async def _bing(
+        self, client: httpx.AsyncClient, query: str, limit: int
+    ) -> list[dict]:
+        response = await client.get(
+            "https://www.bing.com/search",
+            params={"q": query, "setlang": "de", "cc": "AT", **({"adlt": "strict"} if KINDER_ALTER.get() else {})},
+        )
+        response.raise_for_status()
+        treffer: list[dict] = []
+        for block in BING_BLOCK.split(response.text)[1:]:
+            block = BING_BALLAST.sub("", block[:12000])
+            link = BING_LINK.search(block)
+            if not link:
+                continue
+            rest = block[link.end():]
+            text = BING_SNIPPET.search(rest)
+            eintrag = self._pack(link.group(2), link.group(1), text.group(1) if text else "", "bing")
+            if eintrag:
+                treffer.append(eintrag)
+            if len(treffer) >= limit:
+                break
+        return treffer
 
     async def _yahoo(
         self, client: httpx.AsyncClient, query: str, limit: int

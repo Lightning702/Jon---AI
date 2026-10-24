@@ -16,6 +16,12 @@ STILE = {
     "absatz": "Normal",
 }
 BILDFELDER = ("image", "bild", "image_url", "bild_url", "bild_suche", "image_search", "bild_prompt", "image_prompt")
+AKTION_NAMEN = {
+    "bild_hinzufuegen": "bild", "bild_hinzufügen": "bild", "add_image": "bild", "image": "bild", "insert_image": "bild", "picture": "bild", "foto": "bild", "photo": "bild",
+    "replace_text": "ersetzen", "text_ersetzen": "ersetzen", "replace": "ersetzen", "set_text": "text",
+    "insert": "einfuegen", "einfügen": "einfuegen", "add_paragraph": "einfuegen", "absatz_einfuegen": "einfuegen",
+    "delete": "loeschen", "löschen": "loeschen", "remove": "loeschen", "table": "tabelle", "add_table": "tabelle", "cell": "zelle", "duplicate": "duplizieren",
+}
 
 
 def _stil(dokument, name: str):
@@ -54,6 +60,9 @@ async def bearbeiten(pfad: str, aktionen: list[dict]) -> dict:
         return {"error": f"Word-Datei nicht gefunden: {quelle}"}
     if not isinstance(aktionen, list) or not aktionen:
         return {"error": "aktionen fehlt. Gib eine Liste von Bearbeitungsschritten an."}
+    from app.services.aktionen_normal import normalisieren
+
+    aktionen = [normalisieren(a, AKTION_NAMEN, BILDFELDER) if isinstance(a, dict) else a for a in aktionen]
     for aktion in aktionen:
         if isinstance(aktion, dict) and str(aktion.get("aktion", "")).lower() == "bild" and any(str(aktion.get(f) or "").strip() for f in BILDFELDER):
             aktion["_bild"] = await besorgen(aktion, True)

@@ -6,7 +6,7 @@ from app.services.semantik import get_index
 
 TOP_K = 10
 SCHWELLE = 0.16
-GRUPPEN_SCHWELLE = 0.2
+GRUPPEN_SCHWELLE = 0.25
 
 _gebaut = False
 _lock = threading.Lock()

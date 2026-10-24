@@ -21,8 +21,14 @@ Alle nennenswerten Änderungen an Jon.
 
 - **Erste Antwort viel schneller:** Jon wärmt beim Start Verbindung, Chat und Bildschirmsteuerung vor. Die erste Nachricht nach dem Start zeigt Gedanken nach rund 3 Sekunden und die Antwort nach 5 bis 6 Sekunden statt nach 12 bis 23 Sekunden.
 - **„Klick im Fenster Chrome auf Start“:** Jon holt das genannte Fenster nach vorne und sucht den Knopf nur dort, auch wenn Windows einem Hintergrundprogramm den Fensterwechsel sonst verweigert. Live über Telegram geprüft: Klick nach 7 Sekunden.
+- **Schlankere Anfragen:** Bei Smalltalk wie „Hallo Jon“ schickt Jon rund ein Viertel weniger Werkzeuge an das Modell mit, weil schwache Zufallstreffer der Werkzeugsuche keine ganzen Werkzeuggruppen mehr nachziehen.
 - **Kein blinder Klick mehr:** Ein Satz wie „klick … auf …“ klickt nie mehr einfach an die aktuelle Mausposition, sondern sucht das genannte Ziel.
 - **Sicherheitsfenster bleiben deine Sache:** In Windows-Sicherheit, Firewall-Abfragen, Benutzerkontensteuerung oder Anmeldefenster klickt Jon nie selbst. Er sagt dir stattdessen, dass dort etwas auf dich wartet – auch wenn so ein Fenster den ganzen Bildschirm abdunkelt.
+
+### Recherche und Präsentationen
+
+- **Websuche funktioniert wieder richtig:** Yahoo antwortete nur noch mit Fehlern, DuckDuckGo zeigte eine Bot-Sperre – übrig blieb nur Wikipedia. Jon sucht jetzt zusätzlich über Bing und findet wieder echte Quellen mit Ausschnitt, in unter einer halben Sekunde.
+- **Bilder landen wirklich in den Folien:** `edit_pptx` und `edit_docx` verstehen jetzt auch andere Schreibweisen des Modells, etwa `slides` statt `aktionen`, `typ: bild_hinzufuegen` statt `aktion: bild` oder `slide_index` (ab 0) statt `folie` (ab 1). Vorher scheiterte das Nachrüsten von Bildern komplett.
 
 ### Harness zuverlässiger
 

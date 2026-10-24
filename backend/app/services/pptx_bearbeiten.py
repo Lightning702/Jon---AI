@@ -17,6 +17,16 @@ POSITIONEN = {
     "klein": (0.7, 0.68, 0.25, 0.25),
 }
 BILDFELDER = ("image", "bild", "image_url", "bild_url", "bild_suche", "image_search", "bild_prompt", "image_prompt", "pfad")
+AKTION_NAMEN = {
+    "bild_hinzufuegen": "bild", "bild_hinzufügen": "bild", "add_image": "bild", "image": "bild", "insert_image": "bild", "picture": "bild", "foto": "bild", "photo": "bild",
+    "bild_einfügen": "bild_einfuegen", "replace_image": "bild_ersetzen",
+    "replace_text": "ersetzen", "text_ersetzen": "ersetzen", "replace": "ersetzen", "set_text": "text",
+    "add_slide": "folie_neu", "neue_folie": "folie_neu", "new_slide": "folie_neu", "insert_slide": "folie_neu",
+    "delete_slide": "folie_loeschen", "folie_löschen": "folie_loeschen", "remove_slide": "folie_loeschen",
+    "move_slide": "folie_verschieben", "duplicate_slide": "folie_duplizieren",
+    "notes": "notizen", "speaker_notes": "notizen", "transition": "uebergang", "übergang": "uebergang",
+    "background": "hintergrund", "chart": "diagramm", "textbox": "textfeld", "add_text": "textfeld", "delete": "loeschen", "move": "verschieben", "font": "schrift",
+}
 
 
 def _zahl(wert, standard: float) -> float:
@@ -156,6 +166,9 @@ async def bearbeiten(pfad: str, aktionen: list[dict], theme: str = "") -> dict:
         return {"error": f"PowerPoint nicht gefunden: {quelle}"}
     if not isinstance(aktionen, list) or not aktionen:
         return {"error": "aktionen fehlt. Gib eine Liste von Bearbeitungsschritten an."}
+    from app.services.aktionen_normal import normalisieren
+
+    aktionen = [normalisieren(a, AKTION_NAMEN, BILDFELDER, True) if isinstance(a, dict) else a for a in aktionen]
     for aktion in aktionen:
         if isinstance(aktion, dict) and any(str(aktion.get(f) or "").strip() for f in BILDFELDER if f != "pfad"):
             art = str(aktion.get("aktion", "")).lower()

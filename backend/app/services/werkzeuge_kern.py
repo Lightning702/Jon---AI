@@ -950,7 +950,9 @@ def _mit_karte(box: Any, ergebnis: dict, beschreibung: str) -> dict:
 def _aktionen(args: dict) -> list:
     import json
 
-    roh = args.get("aktionen") or args.get("actions") or []
+    from app.services.aktionen_normal import liste
+
+    roh = liste(args)
     if isinstance(roh, str):
         try:
             roh = json.loads(roh)
