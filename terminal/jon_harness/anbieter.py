@@ -257,6 +257,8 @@ class Verbindung:
             koerper["tool_choice"] = "auto"
         if any(m in modell.lower() for m in DENK_SCHALTER) and f"{kennung}|{modell}" not in self.ohne_denkschalter:
             koerper["chat_template_kwargs"] = {"enable_thinking": bool(denken)}
+        elif kennung == "jon" and denken is not None:
+            koerper["jon_denken"] = bool(denken)
         for versuch in range(4):
             try:
                 return netz.anfrage("POST", f"{eintrag.basis}/chat/completions", koerper, kopf=self.kopf(kennung), zeit=240, strom=True), nutze_werkzeuge

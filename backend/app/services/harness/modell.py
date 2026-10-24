@@ -41,6 +41,7 @@ class Antwort:
     provider: str
     model: str
     hinweise: list[str] = field(default_factory=list)
+    gedanken: str = ""
 
 
 @dataclass
@@ -133,7 +134,7 @@ async def anfragen(zugang: Zugang, system: str, user: str) -> Antwort:
                         raise ValueError("leere Antwort vom Modell")
                     if (name, model) != (zugang.provider, zugang.model):
                         hinweise.append(f"Ausweichmodell {model} ({name}) verwendet, weil {zugang.model} nicht antwortete.")
-                    return Antwort(text, name, model, hinweise)
+                    return Antwort(text, name, model, hinweise, denken.strip() if inhalt.strip() else "")
                 except asyncio.CancelledError:
                     raise
                 except Exception as fehler:

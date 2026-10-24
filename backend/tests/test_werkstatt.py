@@ -18,9 +18,9 @@ from app.services.dokument_service import get_dokument_service
 def raum(tmp_path, monkeypatch):
     wurzel = tmp_path / "Jon"
     dienst = get_dateiraum_service()
-    monkeypatch.setattr(dienst, "wurzel", lambda: wurzel)
+    monkeypatch.setattr(type(dienst), "wurzel", lambda self: wurzel)
     monkeypatch.setattr(
-        dienst, "erlaubte_wurzeln", lambda: [wurzel.resolve(), tmp_path.resolve()]
+        type(dienst), "erlaubte_wurzeln", lambda self: [wurzel.resolve(), tmp_path.resolve()]
     )
     dienst.sicherstellen()
     return dienst
@@ -92,6 +92,12 @@ def test_ausbruch_aus_dem_freigegebenen_bereich_wird_gestoppt(raum, tmp_path):
 def test_pfadtricks_greifen_nicht(raum):
     ergebnis = raum.zielordner("../../../../Windows/System32")
     assert ergebnis.get("error")
+
+
+def test_absoluter_pfad_mit_jonordner_im_namen_bleibt_wie_er_ist(raum, tmp_path):
+    ziel = tmp_path / "JonOrdner" / "Workspace" / "Auftraege" / "eins"
+    ergebnis = raum.zielordner(str(ziel))
+    assert Path(ergebnis["pfad"]) == ziel.resolve()
 
 
 @pytest.mark.parametrize("art", ["pdf", "docx", "odt", "txt", "md", "html"])

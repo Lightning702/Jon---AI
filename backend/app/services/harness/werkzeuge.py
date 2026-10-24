@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 from typing import Awaitable, Callable
 
 VERBOTEN = {"harness_task", "oberflaeche", "set_mood", "journal", "write_skill"}
 SHELL = {"run_powershell", "run_cmd"}
 ZEITLIMIT = 900
 ERGEBNIS_MAX = 14000
+PFAD_FELDER = ("path", "pfad", "source", "destination")
+FREMDE_PFADE = {"testumgebung", "start_program", "android_files_send", "android_files_receive"}
 _namen: set[str] | None = None
 
 
@@ -34,6 +37,17 @@ def katalog(grenze: int = 400) -> str:
         if len(zeilen) >= grenze:
             break
     return "\n".join(zeilen)
+
+
+def im_ordner(name: str, args: dict, wurzel: str) -> dict:
+    if not wurzel or name in FREMDE_PFADE:
+        return args
+    neu = dict(args)
+    for schluessel in PFAD_FELDER:
+        wert = neu.get(schluessel)
+        if isinstance(wert, str) and wert.strip() and not wert.strip().startswith("~") and not Path(wert.strip()).is_absolute():
+            neu[schluessel] = str(Path(wurzel) / wert.strip())
+    return neu
 
 
 def standardisieren(roh: str) -> dict:
@@ -78,6 +92,8 @@ async def ausfuehren(
         befehl = str(args.get("command", "")) if shell else describe_tool(name, args)
         if not await freigabe(task, "jon:" + name, {"command": befehl, "werkzeug": name, "args": {k: str(v)[:300] for k, v in args.items()}}, stufe.risiko == HOCH and not shell):
             return {"ok": False, "error": "Freigabe abgelehnt oder abgelaufen. Nicht umgehen."}
+    if task.get("modus") != "code":
+        args = im_ordner(name, args, str(task.get("root") or ""))
     box = ToolBox(source=quelle, root=task.get("root") if task.get("modus") == "code" else None)
     from app.services.tools import runde_beginnen
 

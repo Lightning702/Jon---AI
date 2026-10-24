@@ -44,6 +44,20 @@ Terminal mit `/verbessern` bzw. `/ziel`.
 - Abgeschaltete Modelle oder Dienste in Standardeinstellungen.
 - Funktionen, die nur mit API-Schlüssel gehen, obwohl es einen freien Weg gäbe.
 - Persönliche Daten in Code, Tests oder Beispielen.
+- Kalter Start: Die erste Anfrage nach dem Start ist oft viel langsamer als die zweite
+  (Verbindung, Modelle laden, Prompt bauen). Miss beide getrennt und wärme beim Start vor.
+- Riesige Anfragen: Prüfe, wie viele Zeichen System-Prompt und Werkzeugliste bei einer
+  einfachen Frage wie „Hallo“ wirklich mitgehen.
+- Bildschirmsteuerung: Ein Hintergrundprozess darf unter Windows nicht einfach den Fokus
+  wechseln, und ein offenes Sicherheitsfenster dunkelt den Bildschirm ab und fängt jeden
+  Klick ab. In Sicherheitsfenster (Firewall, Benutzerkontensteuerung, Anmeldung) klickt
+  Jon nie selbst.
+- Abkürzungen, die zu viel fangen: Ein Schnellweg wie „klick …“ darf nicht greifen, wenn
+  im Satz ein Ziel steht.
+- Testattrappen müssen dieselben Felder liefern wie das Original, sonst bewertest du
+  Fehler, die es gar nicht gibt.
+- Tests, die heimlich echte Ordner beschreiben: Prüfe nach einem Testlauf, ob in Jons
+  echtem Ordner oder Datenordner neue Dateien entstanden sind.
 
 ## Bericht-Vorlage
 

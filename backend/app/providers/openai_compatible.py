@@ -52,11 +52,9 @@ def denk_extra(modell: str, denken: bool | None) -> dict:
         try:
             from app.services.settings_service import get_settings_service
 
-            if not get_settings_service().get().get("schnell_antworten", True):
-                return {}
+            denken = not get_settings_service().get().get("blitzschnell", False)
         except Exception:
-            return {}
-        denken = False
+            denken = True
     return {"chat_template_kwargs": {"enable_thinking": bool(denken)}}
 PATIENT_PROVIDERS = ("ollama", "lmstudio")
 LEAD_GATE = 40

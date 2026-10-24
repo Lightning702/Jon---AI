@@ -3211,9 +3211,11 @@ class ToolBox:
                 "ziel='Play'. Funktioniert in jedem Programm und auf jeder Website, auch auf "
                 "Zweitbildschirmen; Jon findet das Element per Bedienhilfe, Texterkennung "
                 "und notfalls per Bildverstehen. ziel darf auch eine Nummer aus "
-                "bildschirm_lesen sein. art: links (Standard), rechts, doppel. Rate nie "
-                "Koordinaten mit mouse_click, wenn du einen Namen hast.",
-                {"ziel": _STR, "art": {"type": "string", "enum": ["links", "rechts", "doppel"]}},
+                "bildschirm_lesen sein. art: links (Standard), rechts, doppel. fenster "
+                "(optional, Titel oder Programm wie 'Chrome' oder 'Jon Klicktest') holt dieses "
+                "Fenster vorher nach vorne. Rate nie Koordinaten mit mouse_click, wenn du einen "
+                "Namen hast.",
+                {"ziel": _STR, "art": {"type": "string", "enum": ["links", "rechts", "doppel"]}, "fenster": _STR},
                 ["ziel"],
             ),
             _tool(
@@ -4595,7 +4597,7 @@ class ToolBox:
                 if name == "bildschirm_lesen":
                     ergebnis = await bildschirm_agent.lesen(str(args.get("frage") or ""), bool(args.get("genau")))
                 elif name == "bildschirm_klicken":
-                    ergebnis = await bildschirm_agent.klicken(str(args.get("ziel") or ""), str(args.get("art") or "links"))
+                    ergebnis = await bildschirm_agent.klicken(str(args.get("ziel") or ""), str(args.get("art") or "links"), str(args.get("fenster") or ""))
                 else:
                     ergebnis = await bildschirm_agent.eingeben(str(args.get("ziel") or ""), str(args.get("text") or ""), bool(args.get("enter")))
             except Exception as exc:

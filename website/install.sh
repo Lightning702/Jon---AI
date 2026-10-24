@@ -17,12 +17,16 @@ else
   wget -qO "$ZIEL/jon-harness.pyz.neu" "$QUELLE"
 fi
 mv "$ZIEL/jon-harness.pyz.neu" "$ZIEL/jon-harness.pyz"
-cat > "$BIN/jon" <<'SKRIPT'
+for ALT in "$BIN/jon" "$BIN/jon-harness"; do
+  if [ -f "$ALT" ] && grep -q 'jon-harness.pyz' "$ALT" && ! grep -q 'app.cli' "$ALT"; then
+    rm -f "$ALT"
+  fi
+done
+cat > "$BIN/jonh" <<'SKRIPT'
 #!/bin/sh
 exec python3 "$HOME/.local/share/jon-harness/jon-harness.pyz" "$@"
 SKRIPT
-chmod +x "$BIN/jon"
-cp "$BIN/jon" "$BIN/jon-harness"
+chmod +x "$BIN/jonh"
 case ":$PATH:" in
   *":$BIN:"*) ;;
   *)
@@ -39,4 +43,4 @@ if curl -fs --max-time 2 http://127.0.0.1:8756/api/health >/dev/null 2>&1; then
 else
   printf '  ○ Jon ist hier nicht aktiv – das Terminal läuft eigenständig (FelWorks kostenlos, /api für eigene Schlüssel).\n'
 fi
-printf '\n  Fertig! Starte mit: \033[38;2;232;185;74mjon\033[0m (eventuell neues Terminal öffnen)\n\n'
+printf '\n  Fertig! Starte mit: \033[38;2;232;185;74mjonh\033[0m (eventuell neues Terminal öffnen)\n\n'

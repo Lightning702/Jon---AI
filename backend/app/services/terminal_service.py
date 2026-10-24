@@ -47,28 +47,6 @@ def starter() -> tuple[str, str]:
     return python, str(_backend_wurzel())
 
 
-HARNESS_WIN = r"%LOCALAPPDATA%\Jon\Harness\jon-harness.exe"
-HARNESS_UNIX = "$HOME/.local/share/jon-harness/jon-harness.pyz"
-
-
-def harness_installiert() -> Path | None:
-    if _windows():
-        kandidat = Path(os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")) / "Jon" / "Harness" / "jon-harness.exe"
-    else:
-        kandidat = Path.home() / ".local" / "share" / "jon-harness" / "jon-harness.pyz"
-    return kandidat if kandidat.is_file() else None
-
-
-def _vorschalten(inhalt: str) -> str:
-    if _windows():
-        kopf, _, rest = inhalt.partition("\r\n")
-        weiche = f'if exist "{HARNESS_WIN}" (\r\n  "{HARNESS_WIN}" %*\r\n  exit /b\r\n)\r\n'
-        return f"{kopf}\r\n{weiche}{rest}"
-    kopf, _, rest = inhalt.partition("\n")
-    weiche = f'if [ -f "{HARNESS_UNIX}" ]; then exec python3 "{HARNESS_UNIX}" "$@"; fi\n'
-    return f"{kopf}\n{weiche}{rest}"
-
-
 def _app_inhalt() -> str:
     ziel, zusatz = starter()
     if _gebuendelt() is not None:
@@ -93,11 +71,38 @@ def _app_inhalt() -> str:
 
 
 def _inhalt() -> str:
-    return _vorschalten(_app_inhalt())
+    return _app_inhalt()
 
 
 def _harness_inhalt() -> str:
-    return _vorschalten(_app_inhalt().replace("cli %*", "cli harness %*").replace('cli "$@"', 'cli harness "$@"'))
+    return _app_inhalt().replace("cli %*", "cli harness %*").replace('cli "$@"', 'cli harness "$@"')
+
+
+def jonh_pfad() -> Path:
+    return bin_ordner() / ("jonh.cmd" if _windows() else "jonh")
+
+
+def _jonh_inhalt() -> str:
+    if not _windows():
+        return _harness_inhalt()
+    exe = "%LOCALAPPDATA%\\Jon\\Harness\\jon-harness.exe"
+    return f'@echo off\r\nif exist "{exe}" (\r\n  "{exe}" %*\r\n  exit /b\r\n)\r\n' + _harness_inhalt().split("\r\n", 1)[1]
+
+
+def _von_jon(text: str) -> bool:
+    return "cli harness" in text
+
+
+def _jonh_lesen() -> str | None:
+    ziel = jonh_pfad()
+    if not ziel.exists():
+        return None
+    return ziel.read_text(encoding="utf-8", errors="replace")
+
+
+def _jonh_passt() -> bool:
+    text = _jonh_lesen()
+    return text is not None and (not _von_jon(text) or _gleich(text, _jonh_inhalt()))
 
 
 def harness_pfade() -> list[Path]:
@@ -204,6 +209,7 @@ def stand() -> dict:
         "system": "windows" if _windows() else sys.platform,
         "neustart_noetig": pfad.exists() and not gefunden,
         "harness_befehle": [str(p) for p in harness_pfade() if p.exists()],
+        "jonh": jonh_pfad().exists(),
     }
 
 
@@ -217,6 +223,11 @@ def einrichten() -> dict:
             atomic_write_text(command, _harness_inhalt())
             if not _windows():
                 command.chmod(0o755)
+        vorhanden = _jonh_lesen()
+        if vorhanden is None or _von_jon(vorhanden):
+            atomic_write_text(jonh_pfad(), _jonh_inhalt())
+            if not _windows():
+                jonh_pfad().chmod(0o755)
     except OSError as fehler:
         leise(fehler, "services/terminal")
         return {"error": f"Der Befehl liess sich nicht anlegen: {fehler}"}
@@ -263,7 +274,7 @@ def automatisch() -> dict:
     pfad = befehl_pfad()
     soll = _inhalt()
     try:
-        if pfad.exists() and _gleich(pfad.read_text(encoding="utf-8"), soll) and all(p.exists() and _gleich(p.read_text(encoding="utf-8"), _harness_inhalt()) for p in harness_pfade()):
+        if pfad.exists() and _gleich(pfad.read_text(encoding="utf-8"), soll) and all(p.exists() and _gleich(p.read_text(encoding="utf-8"), _harness_inhalt()) for p in harness_pfade()) and _jonh_passt():
             return {"gemacht": False, "grund": "schon eingerichtet"}
     except OSError as fehler:
         leise(fehler, "services/terminal")
@@ -278,6 +289,9 @@ def entfernen() -> dict:
         pfad.unlink(missing_ok=True)
         for command in harness_pfade():
             command.unlink(missing_ok=True)
+        vorhanden = _jonh_lesen()
+        if vorhanden is not None and _von_jon(vorhanden):
+            jonh_pfad().unlink(missing_ok=True)
     except OSError as fehler:
         leise(fehler, "services/terminal")
         return {"error": f"Der Befehl liess sich nicht entfernen: {fehler}"}

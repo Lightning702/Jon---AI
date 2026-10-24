@@ -1,6 +1,6 @@
 import {useMemo} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {AlertTriangle, Check, CheckCircle2, ChevronDown, Clock, Code2, Cpu, FileCode2, FilePlus2, FileSearch, FolderOpen, Info, Layers, ListChecks, Loader2, PenLine, Search, ShieldAlert, SquareTerminal, FlaskConical, Users, Wrench, XCircle} from "lucide-react";
+import {AlertTriangle, Brain, Check, CheckCircle2, ChevronDown, Clock, Code2, Cpu, FileCode2, FilePlus2, FileSearch, FolderOpen, Info, Layers, ListChecks, Loader2, PenLine, Search, ShieldAlert, SquareTerminal, FlaskConical, Users, Wrench, XCircle} from "lucide-react";
 import {HarnessTask} from "../lib/harness";
 import {ENDE, HARNESS_TEXT} from "./agenten/daten";
 import {useJetzt} from "./agenten/live";
@@ -122,6 +122,12 @@ export default function HarnessVerlauf({task, busy, onStopp, onEntscheiden}: {ta
 
     <ol className="hv-verlauf">
       {sichtbar.map((e, i) => {
+        if (e.type === "gedanke") return <motion.li key={i + "-" + e.time} className="hv-gedanke" initial={{opacity: 0, y: 4}} animate={{opacity: 1, y: 0}} transition={{duration: 0.2}}>
+          <details open={i === sichtbar.length - 1 && aktiv}>
+            <summary><Brain size={12}/>Jon denkt <time>{uhr(e.time)}</time></summary>
+            <p>{e.message}</p>
+          </details>
+        </motion.li>;
         if (e.type === "notiz") return <motion.li key={i + "-" + e.time} className="hv-jon" initial={{opacity: 0, y: 6}} animate={{opacity: 1, y: 0}} transition={{duration: 0.22}}>
           <span className="hv-avatar">J</span>
           <div><span className="hv-name">Jon <time>{uhr(e.time)}</time></span><p>{e.message}</p></div>

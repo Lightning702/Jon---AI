@@ -20,13 +20,13 @@ macOS und Linux:
 curl -fsSL https://getjon.info/install.sh | sh
 ```
 
-Danach startet `jon` in jedem Ordner den Harness. Er prüft beim Start, ob Jon auf diesem PC läuft. Wenn ja, nutzt er Jons Modell und alle Jon-Werkzeuge. Wenn nein, arbeitet er eigenständig mit FelWorks – ohne API-Schlüssel und ohne Premium. `/api` wählt zuerst den Anbieter und fragt den Schlüssel einmal ab, `/modell` wechselt das Modell, `/hilfe` zeigt alle Befehle.
+Danach startet `jonh` in jedem Ordner den Harness. `jon` bleibt der normale Jon im Terminal. Er prüft beim Start, ob Jon auf diesem PC läuft. Wenn ja, nutzt er Jons Modell und alle Jon-Werkzeuge. Wenn nein, arbeitet er eigenständig mit FelWorks – ohne API-Schlüssel und ohne Premium. `/api` wählt zuerst den Anbieter und fragt den Schlüssel einmal ab, `/modell` wechselt das Modell, `/hilfe` zeigt alle Befehle.
 
 ```text
-jon                                  Harness im aktuellen Ordner
-jon "Baue mir eine Portfolio-Website" mit erstem Auftrag
-jon --auto                           Dateien und Befehle ohne Rückfrage
-jon -c                               letztes Gespräch fortsetzen
+jonh                                  Harness im aktuellen Ordner
+jonh "Baue mir eine Portfolio-Website" mit erstem Auftrag
+jonh --auto                           Dateien und Befehle ohne Rückfrage
+jonh -c                               letztes Gespräch fortsetzen
 ```
 
 ### Nebenbei fragen mit /btw
@@ -48,12 +48,12 @@ Jon aus diesem Checkout neu starten, damit Backend und MiniJon die neuen Dateien
 Im Projektordner ein Terminal öffnen:
 
 ```text
-jon-code
-jon-code "Behebe den Fehler und prüfe die Änderung"
+jonh
+jonh "Behebe den Fehler und prüfe die Änderung"
 jon-harness -C "C:\Projekte\MeineApp" "Ergänze die Suchfunktion"
 ```
 
-Beide Befehle starten denselben Coding-Harness. Im bestehenden Jon-Terminal öffnet `agent <Auftrag>` ebenfalls den Harness. Die Befehle wurden über Jons vorhandenen Installer in den Benutzerpfad installiert. Sie verwenden den aktuellen Arbeitsordner und die vorhandene Modellkonfiguration. Mit `--provider`, `--model` und `--max-steps` lassen sich diese Werte pro Aufruf wählen.
+`jonh` startet den Terminal-Harness. Ist er über den Einzeiler installiert, läuft `jon-harness.exe`, sonst der in Jon eingebaute Harness. `jon-code` und `jon-harness` starten immer den eingebauten Harness, `jon` bleibt der normale Jon. Im bestehenden Jon-Terminal öffnet `agent <Auftrag>` ebenfalls den Harness. Die Befehle wurden über Jons vorhandenen Installer in den Benutzerpfad installiert. Sie verwenden den aktuellen Arbeitsordner und die vorhandene Modellkonfiguration. Mit `--provider`, `--model` und `--max-steps` lassen sich diese Werte pro Aufruf wählen.
 
 Der Terminal-Client nutzt ein erreichbares Jon-Backend. Wenn keine Verbindung aufgebaut werden kann, startet er den lokalen Harness. Authentifizierungsfehler führen nicht zu einem stillen Wechsel. Ein älteres laufendes Backend muss neu gestartet werden.
 

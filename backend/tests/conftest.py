@@ -62,3 +62,12 @@ def _agenten_ordner_im_testverzeichnis(monkeypatch):
     from app.services.agenten_service import AgentenService
 
     monkeypatch.setattr(AgentenService, "standard_ordner", staticmethod(lambda: _TEST_DATA_DIR / "Jon Agenten"))
+
+
+@pytest.fixture(autouse=True)
+def _jon_ordner_im_testverzeichnis(monkeypatch, tmp_path_factory):
+    from app.services import dateiraum_service
+
+    monkeypatch.setattr(dateiraum_service, "_service", None)
+    ordner = tmp_path_factory.mktemp("jon-ordner") / "Jon"
+    monkeypatch.setattr(dateiraum_service.DateiraumService, "wurzel", lambda self: ordner)

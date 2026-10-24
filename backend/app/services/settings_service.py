@@ -138,7 +138,7 @@ DEFAULTS = {
     "kritiker_schwelle": 0.5,
     "erwartung_enabled": True,
     "metakognition_enabled": True,
-    "schnell_antworten": True,
+    "blitzschnell": False,
     "felworks_gast": True,
     "neugier_enabled": True,
     "neugier_auto": False,

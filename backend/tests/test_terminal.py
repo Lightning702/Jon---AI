@@ -754,3 +754,41 @@ def test_premium_sucht_unbegrenzt(monkeypatch):
         return [json.loads(await box.execute("web_search", {"query": f"frei {i}"})) for i in range(MAX_SUCHEN + 4)]
 
     assert all(a.get("treffer") and not a.get("limit_erreicht") for a in asyncio.run(lauf()))
+
+
+def test_jon_bleibt_jon_und_leitet_nie_auf_den_harness_um(monkeypatch, tmp_path):
+    from app.services import terminal_service
+
+    monkeypatch.setattr(terminal_service, "bin_ordner", lambda: tmp_path / "bin")
+    monkeypatch.setattr(terminal_service, "im_pfad", lambda _o: True)
+    terminal_service.einrichten()
+    dateien = list((tmp_path / "bin").iterdir())
+    assert dateien
+    for datei in dateien:
+        if datei.stem == "jonh":
+            continue
+        inhalt = datei.read_text(encoding="utf-8")
+        assert "jon-harness.exe" not in inhalt and "jon-harness.pyz" not in inhalt
+    assert "cli harness" not in terminal_service.befehl_pfad().read_text(encoding="utf-8")
+    assert "cli harness" in terminal_service.jonh_pfad().read_text(encoding="utf-8")
+
+
+def test_jonh_startet_den_harness_und_bleibt_vom_installer(monkeypatch, tmp_path):
+    from app.services import terminal_service
+
+    monkeypatch.setattr(terminal_service, "bin_ordner", lambda: tmp_path / "bin")
+    monkeypatch.setattr(terminal_service, "im_pfad", lambda _o: True)
+    monkeypatch.setattr(terminal_service, "_windows", lambda: True)
+    monkeypatch.setattr(terminal_service, "_gebuendelt", lambda: Path("C:/Jon/jon-backend.exe"))
+    monkeypatch.setattr(terminal_service, "starter", lambda: ("C:/Jon/jon-backend.exe", "cli"))
+    terminal_service.einrichten()
+    jonh = terminal_service.jonh_pfad()
+    assert jonh.name == "jonh.cmd"
+    inhalt = jonh.read_text(encoding="utf-8")
+    assert "Harness\\jon-harness.exe" in inhalt and "cli harness %*" in inhalt
+    assert terminal_service._jonh_passt()
+    eigen = '@echo off\r\n"%LOCALAPPDATA%\\Jon\\Harness\\jon-harness.exe" %*\r\n'
+    jonh.write_text(eigen, encoding="utf-8", newline="")
+    terminal_service.einrichten()
+    assert jonh.read_bytes() == eigen.encode("utf-8")
+    assert terminal_service._jonh_passt()

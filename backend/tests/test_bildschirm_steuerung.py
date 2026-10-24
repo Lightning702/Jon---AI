@@ -185,7 +185,7 @@ def test_schnellweg_herunterfahren(monkeypatch):
 def test_schnellweg_klick(monkeypatch):
     dienst = _FakeTelegram()
 
-    async def klicken(ziel, art="links"):
+    async def klicken(ziel, art="links", fenster=""):
         return {"geklickt": "Start (Button)", "position": [10, 10], "erkannt_per": "bedienelement", "fenster": "Spiel", "fenster_gewechselt": True}
 
     monkeypatch.setattr(ba, "klicken", klicken)
@@ -196,7 +196,7 @@ def test_schnellweg_klick(monkeypatch):
 def test_schnellweg_klick_nicht_gefunden_geht_ans_modell(monkeypatch):
     dienst = _FakeTelegram()
 
-    async def klicken(ziel, art="links"):
+    async def klicken(ziel, art="links", fenster=""):
         return {"error": "nicht gefunden"}
 
     monkeypatch.setattr(ba, "klicken", klicken)
@@ -221,3 +221,68 @@ def test_screenshot_liefert_keine_base64(monkeypatch):
     monkeypatch.setattr(tools, "SystemService", lambda: _Svc(), raising=False)
     ergebnis = json.loads(asyncio.run(box.execute("screenshot", {})))
     assert "data_url" not in ergebnis
+
+
+def test_klick_im_genannten_fenster_wird_erkannt():
+    assert ba.befehl_erkennen('Klick im Fenster "Jon Klicktest" auf den Start-Knopf') == {"aktion": "klicken", "ziel": "den Start-Knopf", "art": "links", "fenster": "Jon Klicktest"}
+    assert ba.befehl_erkennen("klick auf Anmelden im Fenster Chrome") == {"aktion": "klicken", "ziel": "Anmelden", "art": "links", "fenster": "Chrome"}
+    assert ba.befehl_erkennen("Im Programm Steam auf Spielen klicken")["fenster"] == "Steam"
+
+
+def test_blinder_klick_nur_ohne_ziel():
+    verben = ("klick", "klick mal", "linksklick")
+    assert ts.blind_klick("klick", verben)
+    assert ts.blind_klick("klick mal hier", verben)
+    assert not ts.blind_klick("klick im fenster spiel auf start", verben)
+    assert not ts.blind_klick("klick auf start", verben)
+
+
+def test_schnellweg_gibt_fenster_weiter(monkeypatch):
+    dienst = _FakeTelegram()
+    erhalten = {}
+
+    async def klicken(ziel, art="links", fenster=""):
+        erhalten.update(ziel=ziel, fenster=fenster)
+        return {"geklickt": "Start (Button)", "position": [10, 10], "erkannt_per": "text", "fenster": "Spiel"}
+
+    monkeypatch.setattr(ba, "klicken", klicken)
+    antwort = asyncio.run(dienst._schnellweg("Klick im Fenster Spiel auf Start", None))
+    assert erhalten == {"ziel": "Start", "fenster": "Spiel"}
+    assert "Start (Button)" in antwort
+
+
+def test_kein_klick_in_sicherheitsfenster(monkeypatch):
+    geklickt = []
+    monkeypatch.setattr(ba, "finden", lambda ziel, nur_fenster=False: asyncio.sleep(0, (_el("Zulassen", x=500, y=400), "bedienelement", {})))
+    monkeypatch.setattr(ba, "fenster_an", lambda x, y: "Windows-Sicherheit")
+    from app.services import automation_service
+
+    monkeypatch.setattr(automation_service.AutomationService, "mouse_click", lambda self, *a, **k: geklickt.append(a) or {"clicked_at": [0, 0]})
+    ergebnis = asyncio.run(ba.klicken("Zulassen"))
+    assert ergebnis.get("sicherheit") and not geklickt
+    assert ba.sicherheitsfenster("Benutzerkontensteuerung") and not ba.sicherheitsfenster("Jon Klicktest")
+
+
+def test_sicherheitsfenster_meldet_sich_im_telegram(monkeypatch):
+    dienst = _FakeTelegram()
+
+    async def klicken(ziel, art="links", fenster=""):
+        return {"error": "An dieser Stelle liegt das Sicherheitsfenster \"Windows-Sicherheit\". Dort klicke ich nicht selbst, das entscheidest du.", "sicherheit": True}
+
+    monkeypatch.setattr(ba, "klicken", klicken)
+    antwort = asyncio.run(dienst._schnellweg("klick auf Zulassen", None))
+    assert "Sicherheitsfenster" in antwort
+
+
+def test_genanntes_fenster_faellt_nie_auf_die_taskleiste_zurueck(monkeypatch):
+    start = _el("Start", quelle="taskleiste", x=0, y=740)
+    monkeypatch.setattr(ba, "ui_elemente", lambda: {"titel": "Spiel", "fenster": {"x": 0, "y": 0, "w": 400, "h": 300}, "elemente": [_el("Spiel", art="Window"), start]})
+    monkeypatch.setattr(ba, "texte", lambda bereich: [])
+
+    async def nichts(*a, **k):
+        return None
+
+    monkeypatch.setattr(ba, "per_markierung", nichts)
+    monkeypatch.setattr(ba, "per_raster", nichts)
+    gefunden, _, _ = asyncio.run(ba.finden("Start", True))
+    assert gefunden is None

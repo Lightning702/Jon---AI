@@ -2,6 +2,41 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.2] — 2026-10-23
+
+### `jon` ist Jon, `jonh` ist der Harness
+
+- **Klare Befehle:** `jon` startet im Terminal wieder immer den normalen Jon. Der Coding- und Arbeits-Agent heißt jetzt `jonh` (Jon Harness). Vorher konnte `jon` je nach Installation zwei verschiedene Programme öffnen.
+- **Auch ohne Einzeiler da:** Jon legt `jonh` beim Start selbst an, wenn es fehlt. Ist der eigenständige Harness installiert, startet `jonh` ihn, sonst den in Jon eingebauten. Ein vom Installer angelegtes `jonh` lässt Jon unangetastet.
+- **Alte Installationen werden repariert:** Der Einzeiler `irm https://getjon.info/install.ps1 | iex` entfernt die alte Umleitung aus `jon`, legt `jonh` an und trägt ihn in den PATH ein. Unter macOS und Linux erledigt `install.sh` dasselbe.
+
+### Jons Gedanken überall sichtbar
+
+- **Standardmäßig an:** Jon denkt vor jeder Antwort sichtbar nach – im Chat, in Jon Code, im Harness, im Terminal (`jonh`) und auf Telegram. Die alte Einstellung, die das Denken heimlich abgeschaltet hatte, ist ersetzt.
+- **Blitzschnell, wenn du willst:** Unter Einstellungen schaltet „Blitzschnell“ das Nachdenken ab, dann antwortet Jon sofort. Im Terminal schaltet `/denken` um.
+- **Telegram:** Während Jon nachdenkt, zeigt die Nachricht „Jon denkt nach …“ mit seinen aktuellen Gedanken, danach erscheint die Antwort an derselben Stelle. /btw-Antworten kommen ohne Markdown-Sternchen.
+- **Harness:** Jede Überlegung steht als aufklappbarer Eintrag „Jon denkt“ im Verlauf, der neueste ist offen.
+
+### Telegram schneller, Klicks auf Zuruf zuverlässig
+
+- **Erste Antwort viel schneller:** Jon wärmt beim Start Verbindung, Chat und Bildschirmsteuerung vor. Die erste Nachricht nach dem Start zeigt Gedanken nach rund 3 Sekunden und die Antwort nach 5 bis 6 Sekunden statt nach 12 bis 23 Sekunden.
+- **„Klick im Fenster Chrome auf Start“:** Jon holt das genannte Fenster nach vorne und sucht den Knopf nur dort, auch wenn Windows einem Hintergrundprogramm den Fensterwechsel sonst verweigert. Live über Telegram geprüft: Klick nach 7 Sekunden.
+- **Schlankere Anfragen:** Bei Smalltalk wie „Hallo Jon“ schickt Jon rund ein Viertel weniger Werkzeuge an das Modell mit, weil schwache Zufallstreffer der Werkzeugsuche keine ganzen Werkzeuggruppen mehr nachziehen.
+- **Kein blinder Klick mehr:** Ein Satz wie „klick … auf …“ klickt nie mehr einfach an die aktuelle Mausposition, sondern sucht das genannte Ziel.
+- **Sicherheitsfenster bleiben deine Sache:** In Windows-Sicherheit, Firewall-Abfragen, Benutzerkontensteuerung oder Anmeldefenster klickt Jon nie selbst. Er sagt dir stattdessen, dass dort etwas auf dich wartet – auch wenn so ein Fenster den ganzen Bildschirm abdunkelt.
+
+### Recherche und Präsentationen
+
+- **Websuche funktioniert wieder richtig:** Yahoo antwortete nur noch mit Fehlern, DuckDuckGo zeigte eine Bot-Sperre – übrig blieb nur Wikipedia. Jon sucht jetzt zusätzlich über Bing und findet wieder echte Quellen mit Ausschnitt, in unter einer halben Sekunde. Weil Bing automatischen Anfragen manchmal Zufallsseiten unterschiebt, zählt ein Bing-Treffer nur, wenn er mindestens die Hälfte der Suchwörter enthält.
+- **Bilder landen wirklich in den Folien:** `edit_pptx` und `edit_docx` verstehen jetzt auch andere Schreibweisen des Modells, etwa `slides` statt `aktionen`, `typ: bild_hinzufuegen` statt `aktion: bild` oder `slide_index` (ab 0) statt `folie` (ab 1). Vorher scheiterte das Nachrüsten von Bildern komplett.
+
+### Harness zuverlässiger
+
+- **Dateien am richtigen Ort:** Relative Pfade landen im Arbeitsordner des Auftrags statt im Programmordner. `datei_erstellen` legt Dateien ohne Ortsangabe im Arbeitsordner an und versteht auch englische Felder wie `path` und `content`.
+- **Absolute Pfade bleiben, wie sie sind:** Enthält ein Pfad Wörter wie „JonOrdner“ oder „Jon-Ordner“, legt Jon die Datei trotzdem genau dort ab, statt den Pfad noch einmal in seinen eigenen Ordner zu verschachteln.
+- **Keine Endlosschleife:** Schreibt das Modell dieselbe Datei immer wieder mit `write_file`, greift jetzt derselbe Wächter wie bei PowerPoint und Word und schließt mit der letzten Fassung ab.
+- **Schneller:** Eine einfache Dateiaufgabe ist in 15 bis 30 Sekunden fertig statt in mehreren Minuten.
+
 ## [4.65.1] — 2026-10-22
 
 ### Jon Harness im Terminal

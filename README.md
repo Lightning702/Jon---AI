@@ -10,7 +10,7 @@ Neu in 4.58.1: [Jon Premium](docs/PREMIUM.md) mit Standard, Premium und Admin, [
 
 **Jon aktualisieren, ohne etwas zu verlieren:** Doppelklick auf `jon-aktualisieren.bat` im Jon-Ordner. Deine eigenen Dateien und Änderungen bleiben erhalten; ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas anzufassen.
 
-[![Version](https://img.shields.io/badge/Version-4.65.1-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.65.2-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
@@ -120,7 +120,7 @@ neuer und [Node.js](https://nodejs.org/) 20 oder neuer.
 [https://getjon.info/app](https://getjon.info/app/).
 
 **Jon Harness im Terminal:** In PowerShell `irm https://getjon.info/install.ps1 | iex`,
-danach startet `jon` in jedem Ordner einen Coding-Agenten. Er verbindet sich selbst mit
+danach startet `jonh` in jedem Ordner einen Coding-Agenten (`jon` bleibt der normale Jon). Er verbindet sich selbst mit
 Jon, wenn Jon läuft, und funktioniert mit FelWorks auch ohne API-Schlüssel. Mehr in
 [docs/JON-HARNESS.md](docs/JON-HARNESS.md). Direkt von GitHub geht es genauso:
 `irm https://raw.githubusercontent.com/Lightning702/Jon---AI/main/website/install.ps1 | iex`

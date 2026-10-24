@@ -252,3 +252,32 @@ def test_endloses_neu_erstellen_wird_gestoppt(tmp_path, jon_ordner, monkeypatch)
     assert "Datensicherung-5.pptx" in ergebnis["summary"]
     assert any("Erstelle sie NICHT noch einmal" in k for k in kontexte)
     assert aufrufe["n"] <= 9
+
+
+def test_endloses_write_file_wird_gestoppt(tmp_path, jon_ordner, monkeypatch):
+    from app.services import tools as tools_modul
+
+    geschrieben = []
+
+    async def ausfuehren(self, name, args, source=None):
+        geschrieben.append(name)
+        return json.dumps({"ok": True, "path": str(tmp_path / "hallo.txt")})
+
+    monkeypatch.setattr(tools_modul.ToolBox, "execute", ausfuehren)
+    monkeypatch.setattr(HarnessService, "alles_erlaubt", staticmethod(lambda: True))
+    aufrufe = {"n": 0}
+
+    async def modell(system, user, **kwargs):
+        aufrufe["n"] += 1
+        if aufrufe["n"] == 1:
+            return json.dumps({"tool": "plan", "args": {"steps": ["Datei schreiben"]}})
+        return json.dumps({"note": "Ich schreibe die Datei noch einmal.", "step": 1, "tool": "write_file", "args": {"path": str(tmp_path / "hallo.txt"), "content": "Hallo von Jon."}})
+
+    async def lauf():
+        service = HarnessService(tmp_path / "harness", modell)
+        return await _ende(service, service.start("Schreib eine Datei hallo.txt mit Hallo von Jon.", "", modus="allgemein"), 30)
+
+    ergebnis = asyncio.run(lauf())
+    assert ergebnis["status"] == "done"
+    assert len(geschrieben) <= 5
+    assert aufrufe["n"] <= 9
