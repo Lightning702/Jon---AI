@@ -1013,7 +1013,7 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
     "pdf": ({"read_pdf"}, ("pdf", "dokument", "seite", "lesen")),
     "telegram_senden": (
         {"telegram_senden", "set_reminder", "list_reminders"},
-        ("telegram", "schick mir", "schreib mir", "nachricht um", "erinnere mich", "erinner mich"),
+        ("telegram", "schick mir", "schreib mir", "nachricht um", "erinnere mich", "erinner mich", "aufs handy", "an mein handy", "auf mein handy", "aufs smartphone", "aufs telefon"),
     ),
     "stundenplan": (
         {"stundenplan", "morgen_nachricht"},
@@ -3320,8 +3320,11 @@ class ToolBox:
             ),
             _tool(
                 "telegram_senden",
-                "Schickt dem Nutzer eine Nachricht ueber SEINEN Telegram-Chat mit Jon - sofort "
-                "oder geplant. Nutze das IMMER, wenn er Telegram erwaehnt, z. B. 'schick mir um "
+                "Schickt dem Nutzer etwas aufs Handy ueber SEINEN Telegram-Chat mit Jon - Text sofort "
+                "oder geplant, dazu Dateien (dateien: Liste von Pfaden, z. B. die eben erstellte "
+                "Praesentation, ein PDF oder Bild) und mit bildschirm=true ein aktuelles Bildschirmfoto. "
+                "Nutze das IMMER, wenn er 'aufs Handy', 'an mein Handy' oder Telegram sagt, z. B. "
+                "'schick mir die Praesentation aufs Handy' -> dateien=['<Pfad>']. 'schick mir um "
                 "20 Uhr auf Telegram eine Erinnerung an den Muell' -> zeit='20:00', text='Erinnerung: "
                 "Muell rausbringen'. text ist die fertige Nachricht (freundlich, kurz). zeit: HH:MM, "
                 "'in 10 Minuten' oder 'morgen 8 Uhr'; ohne zeit sofort. datum optional YYYY-MM-DD. "
@@ -3329,6 +3332,8 @@ class ToolBox:
                 "text) entfernt eine. Jon verschickt geplante Nachrichten selbst, auch wenn die App zu ist.",
                 {
                     "text": _STR,
+                    "dateien": {"type": "array", "items": {"type": "string"}},
+                    "bildschirm": _BOOL,
                     "zeit": _STR,
                     "datum": _STR,
                     "taeglich": _BOOL,

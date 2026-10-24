@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.4] — 2026-10-24
+
+### Jon schickt dir Sachen aufs Handy
+
+- **Einfach sagen:** „Schick mir die Präsentation aufs Handy“, „Schick mir ein Bildschirmfoto an mein Handy“ oder „Schick mir die Einkaufsliste per Telegram“ – Jon schickt Dateien, Bilder, Dokumente und Bildschirmfotos über deinen Telegram-Chat mit Jon, auf Wunsch mit einer kurzen Nachricht dazu.
+- **Ein Knopf in der App:** Jede Datei-Karte im Chat hat jetzt „Aufs Handy“. Ein Klick, und die Datei liegt in Telegram auf deinem Handy.
+- **Sicher:** Jon schickt nur Dateien aus deinen freigegebenen Bereichen und nur an deinen eigenen Telegram-Chat.
+
+### Schneller
+
+- **Dateisuche mit Zeitgrenze:** Die Suche nach Dateien überspringt Ballast wie AppData, node_modules und versteckte Ordner und hört nach 20 Sekunden auf, statt bei ganzen Laufwerken minutenlang zu suchen.
+
 ## [4.65.3] — 2026-10-24
 
 ### /goal – Jon arbeitet, bis dein Ziel erreicht ist

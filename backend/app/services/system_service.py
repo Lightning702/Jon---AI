@@ -59,6 +59,10 @@ WEATHER_CODES = {
 }
 
 
+SUCHZEIT = 20.0
+SUCH_BALLAST = {"appdata", "node_modules", "__pycache__", "site-packages", "venv", "windows", "program files", "program files (x86)", "programdata", "temp", "tmp", "cache", "caches"}
+
+
 @dataclass
 class CommandResult:
     exit_code: int
@@ -237,13 +241,29 @@ class SystemService:
         return shutil.copy2(str(src), str(dst))
 
     def search_files(self, root: str, pattern: str, limit: int = 200) -> list[str]:
+        import fnmatch
+        import time
+
         base = Path(root).expanduser()
         if not base.is_dir():
             raise NotADirectoryError(str(base))
+        ende = time.monotonic() + SUCHZEIT
         matches: list[str] = []
-        for item in base.rglob(pattern):
-            matches.append(str(item))
-            if len(matches) >= limit:
+        if "/" in pattern or "\\" in pattern:
+            for item in base.rglob(pattern):
+                matches.append(str(item))
+                if len(matches) >= limit or time.monotonic() > ende:
+                    break
+            return matches
+        muster = pattern.casefold()
+        for ordner, unter, dateien in os.walk(base):
+            unter[:] = [u for u in unter if u.casefold() not in SUCH_BALLAST and not u.startswith((".", "$"))]
+            for name in unter + dateien:
+                if fnmatch.fnmatch(name.casefold(), muster):
+                    matches.append(str(Path(ordner) / name))
+                    if len(matches) >= limit:
+                        return matches
+            if time.monotonic() > ende:
                 break
         return matches
 
