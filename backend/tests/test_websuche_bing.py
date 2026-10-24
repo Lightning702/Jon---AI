@@ -51,3 +51,62 @@ def test_zufallstreffer_von_bing_werden_aussortiert():
     assert passt_zur_frage("Hauptstadt von Australien", {"title": "Canberra", "snippet": "Canberra ist die Hauptstadt Australiens", "url": "https://de.wikipedia.org/wiki/Canberra"})
     assert passt_zur_frage("Öffnungszeiten Schönbrunn", {"title": "Schloss Schönbrunn Öffnungszeiten", "snippet": "", "url": "https://oeffnungszeitenbuch.at"})
     assert passt_zur_frage("wie ist das", {"title": "Irgendwas", "snippet": "", "url": "https://x.example"})
+
+
+def test_suche_wiederholt_einmal_mit_kernwoertern(monkeypatch):
+    from app.services import websearch_service as ws
+
+    fragen = []
+
+    async def suchen(self, query, limit=6, read=False):
+        fragen.append(query)
+        if len(fragen) == 1:
+            return {"frage": query, "treffer": [], "fehler": "Keine Suchmaschine hat geantwortet."}
+        return {"frage": query, "treffer": [{"url": "https://de.wikipedia.org/wiki/Canberra", "engine": "wikipedia-de"}]}
+
+    monkeypatch.setattr(ws.WebSearch, "_suchen", suchen)
+    monkeypatch.setattr(ws, "WIEDERHOL_PAUSE", 0)
+    ergebnis = asyncio.run(ws.WebSearch().search("Was ist die Hauptstadt von Australien?"))
+    assert fragen == ["Was ist die Hauptstadt von Australien?", "Hauptstadt Australien?"]
+    assert ergebnis["treffer"] and ergebnis["wiederholt"] is True
+    assert ergebnis["frage"] == "Was ist die Hauptstadt von Australien?"
+
+
+def test_erfolgreiche_suche_wird_nicht_wiederholt(monkeypatch):
+    from app.services import websearch_service as ws
+
+    fragen = []
+
+    async def suchen(self, query, limit=6, read=False):
+        fragen.append(query)
+        return {"frage": query, "treffer": [{"url": "https://x.example", "engine": "bing"}]}
+
+    monkeypatch.setattr(ws.WebSearch, "_suchen", suchen)
+    assert asyncio.run(ws.WebSearch().search("Wetter Wien"))["treffer"]
+    assert fragen == ["Wetter Wien"]
+
+
+def test_kurzfassung_laesst_jahreszahlen_und_fuellwoerter_weg():
+    from app.services.websearch_service import kurzfassung
+
+    assert kurzfassung('"run LLM locally" guide hardware GPU 2024') == "run LLM locally guide"
+    assert kurzfassung("Was ist die Hauptstadt von Australien?", 3) == "Hauptstadt Australien?"
+
+
+def test_hackernews_liefert_nur_passende_geschichten():
+    def antwort(anfrage):
+        assert anfrage.url.host == "hn.algolia.com"
+        assert anfrage.url.params["query"] == "llama.cpp VRAM guide"
+        return httpx.Response(200, json={"hits": [
+            {"title": "A llama.cpp guide for VRAM", "url": "https://example.org/llama-guide"},
+            {"title": "Show HN: My cat", "url": "https://example.org/cat"},
+            {"title": "Ohne Adresse", "url": None},
+        ]})
+
+    async def lauf():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(antwort)) as client:
+            return await WebSearch()._hackernews(client, "llama.cpp VRAM guide 2025", 6)
+
+    treffer = asyncio.run(lauf())
+    assert [t["url"] for t in treffer] == ["https://example.org/llama-guide"]
+    assert treffer[0]["engine"] == "hackernews"

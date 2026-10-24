@@ -271,6 +271,7 @@ def hilfe(stift: Stift, schmal: bool) -> str:
             for b, t in (
                 ("chat", "in den normalen Chat wechseln"),
                 ("code", "Code-Modus für dieses Projekt"),
+                ("/goal <Ziel>", "arbeitet, bis das Ziel erreicht ist"),
                 ("tools", "alle verfügbaren Tools zeigen"),
                 ("memory", "Erinnerungen zeigen"),
                 ("projekte", "Projektstruktur anzeigen"),

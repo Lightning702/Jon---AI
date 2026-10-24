@@ -22,6 +22,8 @@ HISTORY_KEEP = 40
 HISTORY_SEND = 12
 ZEITLIMIT = 600
 ENTWURF_TAKT = 1.2
+ZIEL_TAKT = 3.0
+ZIEL_DATEIEN = (".pptx", ".docx", ".xlsx", ".pdf", ".html", ".zip", ".png", ".jpg", ".jpeg", ".csv", ".md", ".txt", ".py", ".js")
 OLLAMA_LISTE = 12
 LIVE_STUECK = 10
 LIVE_DAUER = 600
@@ -1675,6 +1677,79 @@ class TelegramService:
         self._running[chat_id] = laufend
         return len(laufend) - 1
 
+    async def _ziel(self, chat_id: str, rest: str) -> None:
+        from app.services.ziel_modus import STOPP, ende_text, get_ziel_modus
+
+        modus = get_ziel_modus()
+        quelle = f"telegram:{chat_id}"
+        laufend = modus.laufend(quelle)
+        wort = rest.strip().casefold()
+        if wort in STOPP or (not rest.strip() and laufend is None):
+            if laufend is not None:
+                await modus.stoppen(laufend["id"])
+                await self.send(chat_id, f"Angehalten: {laufend['ziel']}. Was schon fertig ist, bleibt erhalten.")
+            else:
+                await self.send(chat_id, "So geht's: /goal und dein Ziel, z. B. /goal Erstelle eine Präsentation über Datensicherung mit Bildern und Quellen. Ich arbeite dann selbstständig in Runden, prüfe mich nach jeder Runde und höre erst auf, wenn das Ziel erreicht ist. /goal stopp hält an, /btw fragt nebenbei.")
+            return
+        if wort == "weiter" and laufend is None:
+            frueher = next((z for z in modus.liste(quelle) if z["status"] in ("angehalten", "fehler", "abgebrochen")), None)
+            if frueher is not None:
+                rest = frueher["ziel"]
+        if laufend is None:
+            try:
+                laufend = modus.starten(rest, quelle)
+            except ValueError as fehler:
+                await self.send(chat_id, str(fehler))
+                return
+        self._gerade[chat_id] = laufend["ziel"]
+        kopf = f"Ziel: {laufend['ziel']}"
+        runde, schritte, gedanke = 0, [], ""
+        nummer = await self._nachricht(chat_id, kopf + "\n\nIch lege los und arbeite, bis das Ziel erreicht ist. /goal stopp hält an, /btw fragt nebenbei.")
+        zuletzt = 0.0
+
+        def stand() -> str:
+            teile = [kopf, f"Runde {runde}" if runde else "Ich plane …"]
+            if schritte:
+                teile.append("\n".join("• " + s for s in schritte[-5:]))
+            if gedanke:
+                teile.append("Jon denkt: " + gedanke[-300:])
+            return "\n\n".join(teile)[:3900]
+
+        ende: dict = {}
+        try:
+            async for ereignis in modus.verfolgen(laufend["id"]):
+                art = ereignis.get("art")
+                if art == "runde":
+                    runde = int(ereignis.get("runde") or 0)
+                elif art == "schritt":
+                    typ = ereignis.get("typ")
+                    text = str(ereignis.get("text") or "").strip()
+                    if typ == "gedanke" and text:
+                        gedanke = " ".join(text.split())
+                    elif typ == "notiz" and text:
+                        schritte.append(text[:160])
+                    elif typ == "action" and ereignis.get("pfad"):
+                        schritte.append("gespeichert: " + Path(str(ereignis["pfad"])).name)
+                    elif typ == "approval_required":
+                        schritte.append("wartet auf deine Freigabe")
+                elif art == "urteil" and ereignis.get("text"):
+                    schritte.append("Prüfung: " + str(ereignis["text"])[:200])
+                elif art == "ende":
+                    ende = ereignis
+                    break
+                if nummer and time.time() - zuletzt >= ZIEL_TAKT:
+                    zuletzt = time.time()
+                    await self._aendern(chat_id, nummer, stand())
+        finally:
+            self._gerade.pop(chat_id, None)
+        from app.services.text_format import schlicht
+
+        endstand = {**modus.get(laufend["id"]), **({"runden": ende.get("runden")} if ende else {})}
+        await self.send(chat_id, schlicht(ende_text(endstand)))
+        for pfad in [Path(p) for p in endstand.get("dateien", []) if str(p).lower().endswith(ZIEL_DATEIEN)][-5:]:
+            if pfad.is_file():
+                await self.send_datei(chat_id, {"path": str(pfad), "title": pfad.stem, "kind": "bild" if pfad.suffix.lower() in (".png", ".jpg", ".jpeg") else "datei"})
+
     async def _btw(self, chat_id: str, text: str) -> None:
         from app.services import btw_service
 
@@ -1866,6 +1941,7 @@ class TelegramService:
             ("schlafen", "Energiesparmodus"),
             ("sperren", "PC sperren"),
             ("abbrechen", "Herunterfahren stoppen"),
+            ("goal", "Ziel geben: Jon arbeitet, bis es erreicht ist"),
             ("btw", "Zwischenfrage, waehrend ich arbeite"),
             ("stopp", "Laufende Aktion abbrechen"),
             ("modell", "KI-Modell anzeigen oder wechseln"),
@@ -2037,6 +2113,8 @@ class TelegramService:
                     "PC: /aus = herunterfahren · /neustart · /schlafen · /sperren · "
                     "/abbrechen = Herunterfahren stoppen · /bildschirm = was gerade "
                     "offen ist.\n\n"
+                    "Grosse Aufgaben: /goal <Ziel> = ich arbeite selbststaendig in Runden, bis das Ziel erreicht ist, "
+                    "/goal stopp haelt an.\n"
                     "Waehrend ich arbeite: /btw <Frage> = schnelle Zwischenfrage, "
                     "/btw danach <Auftrag> = Auftrag fuer danach vormerken.\n\n"
                     "Befehle: /live = Live-Video von meinem Bildschirm (alle 10 "
@@ -2094,6 +2172,11 @@ class TelegramService:
                 continue
             if erstes in ("/ja", "/nein"):
                 await self.send(chat_id, await self._zeitanfrage_antwort(text, erstes == "/ja"))
+                continue
+            if erstes.split("@")[0] in ("/goal", "/ziel"):
+                ziel = asyncio.create_task(self._ziel(str(chat_id), text.split(maxsplit=1)[1] if len(text.split()) > 1 else ""))
+                self._nebenbei.add(ziel)
+                ziel.add_done_callback(self._nebenbei.discard)
                 continue
             if erstes in ("/btw", "/nebenbei"):
                 nebenbei = asyncio.create_task(self._btw(str(chat_id), "/btw " + (text.split(maxsplit=1)[1] if len(text.split()) > 1 else "")))
@@ -2154,6 +2237,12 @@ class TelegramService:
                 continue
             if text.startswith("/stopp") or text.startswith("/stop"):
                 stopped = await self._cancel_running(str(chat_id))
+                from app.services.ziel_modus import get_ziel_modus
+
+                ziel = get_ziel_modus().laufend(f"telegram:{chat_id}")
+                if ziel is not None:
+                    await get_ziel_modus().stoppen(ziel["id"])
+                    stopped = True
                 from app.services.harness import get_harness_service
                 from app.services.harness.service import TERMINAL
 

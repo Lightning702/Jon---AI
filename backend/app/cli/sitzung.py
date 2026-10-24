@@ -648,6 +648,10 @@ class JonTerminal:
             await self._anbieter_befehl(rest)
         elif wort in _SCHLUESSEL:
             self._schluessel_befehl(rest)
+        elif wort in ("goal", "ziel"):
+            from app.cli.ziel import ZielTerminal
+
+            await ZielTerminal(self.ordner if self.modus == "code" else None).run(rest)
         elif wort == "agent":
             from app.cli.harness import HarnessTerminal
 
@@ -768,6 +772,8 @@ _BEFEHLE = {
     "schlüssel",
     "key",
     "agent",
+    "goal",
+    "ziel",
     "ende",
     "exit",
     "quit",

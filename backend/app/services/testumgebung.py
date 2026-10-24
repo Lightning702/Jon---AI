@@ -88,7 +88,11 @@ class Testumgebung:
         kandidaten = [
             Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Docker" / "Docker" / "Docker Desktop.exe",
             Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Docker" / "Docker" / "Docker Desktop.exe",
+            Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "DockerDesktop" / "Docker Desktop.exe",
         ]
+        cli = shutil.which("docker")
+        if cli:
+            kandidaten.append(Path(cli).resolve().parents[2] / "Docker Desktop.exe")
         for pfad in kandidaten:
             if pfad.is_file():
                 try:

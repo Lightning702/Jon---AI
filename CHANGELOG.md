@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.3] — 2026-10-24
+
+### /goal – Jon arbeitet, bis dein Ziel erreicht ist
+
+- **Überall gleich:** `/goal <Ziel>` funktioniert im App-Chat, auf Telegram, in der Handy-App und auf der Uhr, im Terminal mit `jon` und wie bisher mit `jonh`. `/ziel` geht genauso.
+- **Volles Potenzial statt schneller Antwort:** Jon arbeitet selbstständig in Runden mit allen Werkzeugen – planen, recherchieren, erstellen, testen, Fehler beheben. Nach jeder Runde prüft er sich streng: Ist das Ziel wirklich erreicht? Wenn nicht, macht er genau mit dem weiter, was noch fehlt, bis zu zwölf Runden lang.
+- **Live dabei:** Im Chat siehst du Jons Gedanken, jeden Schritt, gespeicherte Dateien und das Prüfergebnis jeder Runde. Auf Telegram läuft eine Statusnachricht mit, am Ende kommen Zusammenfassung und die fertigen Dateien direkt in den Chat.
+- **Steuern:** `/goal stopp` oder `/stopp` hält an, `/goal weiter` setzt ein angehaltenes Ziel fort, `/btw` fragt nebenbei.
+
+### Zuverlässiger
+
+- **Websuche versucht es noch einmal:** Findet keine Suchmaschine etwas, wartet Jon kurz und sucht ein zweites Mal mit den Kernwörtern der Frage.
+- **Websuche findet mehr:** Neue Quelle Hacker News für Technik, Programmieren und KI, und Wikipedia sucht zusätzlich mit den Kernwörtern ohne Jahreszahlen. Englische Fachfragen wie „llama.cpp VRAM“ oder „LLM lokal betreiben“, die vorher komplett leer blieben, liefern jetzt passende Anleitungen.
+- **Docker wird gefunden:** Die Testumgebung startet Docker Desktop jetzt auch, wenn es nur für den eigenen Benutzer installiert ist.
+
 ## [4.65.2] — 2026-10-23
 
 ### `jon` ist Jon, `jonh` ist der Harness

@@ -300,6 +300,7 @@ BEFEHLE = [
     ("/lernstatus", "", "Stand der Recherche"),
     ("/lernstop", "", "Recherche abbrechen"),
     ("/lernweiter", "", "Recherche fortsetzen"),
+    ("/goal", "<Ziel>", "Jon arbeitet selbstständig, bis das Ziel erreicht ist"),
     ("/stopp", "", "Laufende Antwort abbrechen"),
     ("/reset", "", "Neuer Chat"),
     ("/bildschirme", "", "Bildschirme des PCs anzeigen"),
@@ -442,12 +443,38 @@ async def command(payload: dict) -> dict:
             return {"text": "Was soll ich dir schicken? Beispiel: /telegram Denk an den Einkauf"}
         ergebnis = await senden(rest)
         return {"text": "Auf Telegram geschickt." if ergebnis.get("ok") else ergebnis.get("error", "Das hat nicht geklappt.")}
+    if befehl in ("/goal", "/ziel"):
+        from app.services.ziel_modus import STOPP, get_ziel_modus
+
+        modus = get_ziel_modus()
+        rest = " ".join(teile)
+        laufend = modus.laufend(quelle)
+        if rest.casefold() in STOPP:
+            if laufend is None:
+                return {"text": "Gerade arbeite ich an keinem Ziel."}
+            await modus.stoppen(laufend["id"])
+            return {"text": f"Angehalten: {laufend['ziel']}. Was schon fertig ist, bleibt erhalten."}
+        if not rest:
+            if laufend is None:
+                return {"text": "So geht's: /goal und dein Ziel. Ich arbeite dann selbstständig in Runden, bis es erreicht ist. /goal stopp hält an."}
+            return {"text": f"Ich arbeite an: {laufend['ziel']}\nRunde {laufend['runde']}." + (f"\nLetzte Prüfung: {laufend['urteil']}" if laufend.get("urteil") else "")}
+        try:
+            neu = modus.starten(rest, quelle)
+        except ValueError as fehler:
+            return {"text": str(fehler)}
+        return {"text": f"Ziel gestartet: {neu['ziel']}\nIch arbeite jetzt selbstständig daran und prüfe mich nach jeder Runde. /goal zeigt den Stand, /goal stopp hält an.", "ziel": neu["id"]}
     if befehl in ("/stopp", "/stop"):
         from app.services.harness import get_harness_service
         from app.services.harness.service import TERMINAL
 
+        from app.services.ziel_modus import get_ziel_modus
+
         harness = get_harness_service()
         gestoppt = 0
+        ziel = get_ziel_modus().laufend(quelle)
+        if ziel is not None:
+            await get_ziel_modus().stoppen(ziel["id"])
+            gestoppt += 1
         for aufgabe in harness.list(quelle):
             if aufgabe["status"] not in TERMINAL:
                 await harness.cancel(aufgabe["id"])

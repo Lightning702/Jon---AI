@@ -78,6 +78,17 @@ def _normal(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", klein)
 
 
+def kurzfassung(frage: str, anzahl: int = 4) -> str:
+    woerter = [w.strip("\"„“”'()[]") for w in str(frage or "").split()]
+    kern = [w for w in woerter if w and _normal(w).strip() and _normal(w).strip() not in FUELLWOERTER and not re.fullmatch(r"(?:19|20)\d\d", w)]
+    return " ".join(kern[:anzahl])
+
+
+def vereinfacht(frage: str) -> str:
+    woerter = [w for w in str(frage or "").split() if _normal(w).strip() and _normal(w).strip() not in FUELLWOERTER]
+    return " ".join(woerter[:6])
+
+
 def passt_zur_frage(frage: str, eintrag: dict) -> bool:
     woerter = [w for w in _normal(frage).split() if len(w) > 2 and w not in FUELLWOERTER]
     if not woerter:
@@ -114,6 +125,9 @@ def _is_ad(href: str) -> bool:
     return any(marker in low for marker in AD_MARKERS)
 
 
+WIEDERHOL_PAUSE = 1.0
+
+
 class WebSearch:
     @staticmethod
     def _client() -> httpx.AsyncClient:
@@ -131,12 +145,28 @@ class WebSearch:
     async def search(
         self, query: str, limit: int = 6, read: bool = False
     ) -> dict:
+        ergebnis = await self._suchen(query, limit, read)
+        if ergebnis.get("treffer") or not str(query or "").strip():
+            return ergebnis
+        await asyncio.sleep(WIEDERHOL_PAUSE)
+        zweite = vereinfacht(query) or query.strip()
+        neu = await self._suchen(zweite, limit, read)
+        neu["wiederholt"] = True
+        if zweite != query.strip():
+            neu["frage"] = query.strip()
+            neu["vereinfacht"] = zweite
+        return neu
+
+    async def _suchen(
+        self, query: str, limit: int = 6, read: bool = False
+    ) -> dict:
         frage = query.strip()
         if not frage:
             return {"frage": "", "treffer": [], "fehler": "Kein Suchbegriff."}
         limit = max(1, min(int(limit), 12))
         engines = (
             self._bing,
+            self._hackernews,
             self._yahoo,
             self._duckduckgo_lite,
             self._duckduckgo_html,
@@ -256,6 +286,30 @@ class WebSearch:
                 break
         return treffer
 
+    async def _hackernews(
+        self, client: httpx.AsyncClient, query: str, limit: int
+    ) -> list[dict]:
+        kurz = kurzfassung(query, 3)
+        if not kurz or KINDER_ALTER.get():
+            return []
+        response = await client.get(
+            "https://hn.algolia.com/api/v1/search",
+            params={"query": kurz, "tags": "story", "hitsPerPage": min(limit * 2, 12)},
+        )
+        response.raise_for_status()
+        treffer: list[dict] = []
+        for item in response.json().get("hits") or []:
+            adresse = str(item.get("url") or "")
+            titel = str(item.get("title") or "")
+            if not adresse or not titel:
+                continue
+            eintrag = self._pack(titel, adresse, "", "hackernews")
+            if eintrag and passt_zur_frage(kurz, eintrag):
+                treffer.append(eintrag)
+            if len(treffer) >= limit:
+                break
+        return treffer
+
     async def _yahoo(
         self, client: httpx.AsyncClient, query: str, limit: int
     ) -> list[dict]:
@@ -331,13 +385,15 @@ class WebSearch:
         self, client: httpx.AsyncClient, query: str, limit: int
     ) -> list[dict]:
         treffer: list[dict] = []
-        for sprache in ("de", "en"):
+        kurz = kurzfassung(query)
+        versuche = [(sprache, frage) for frage in dict.fromkeys(f for f in (query, kurz) if f) for sprache in ("de", "en")]
+        for sprache, frage in versuche:
             response = await client.get(
                 f"https://{sprache}.wikipedia.org/w/api.php",
                 params={
                     "action": "query",
                     "list": "search",
-                    "srsearch": query,
+                    "srsearch": frage,
                     "format": "json",
                     "srlimit": min(limit, 5),
                 },
