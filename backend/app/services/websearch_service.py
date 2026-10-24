@@ -78,6 +78,11 @@ def _normal(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", klein)
 
 
+def vereinfacht(frage: str) -> str:
+    woerter = [w for w in str(frage or "").split() if _normal(w).strip() and _normal(w).strip() not in FUELLWOERTER]
+    return " ".join(woerter[:6])
+
+
 def passt_zur_frage(frage: str, eintrag: dict) -> bool:
     woerter = [w for w in _normal(frage).split() if len(w) > 2 and w not in FUELLWOERTER]
     if not woerter:
@@ -114,6 +119,9 @@ def _is_ad(href: str) -> bool:
     return any(marker in low for marker in AD_MARKERS)
 
 
+WIEDERHOL_PAUSE = 1.0
+
+
 class WebSearch:
     @staticmethod
     def _client() -> httpx.AsyncClient:
@@ -129,6 +137,21 @@ class WebSearch:
         )
 
     async def search(
+        self, query: str, limit: int = 6, read: bool = False
+    ) -> dict:
+        ergebnis = await self._suchen(query, limit, read)
+        if ergebnis.get("treffer") or not str(query or "").strip():
+            return ergebnis
+        await asyncio.sleep(WIEDERHOL_PAUSE)
+        zweite = vereinfacht(query) or query.strip()
+        neu = await self._suchen(zweite, limit, read)
+        neu["wiederholt"] = True
+        if zweite != query.strip():
+            neu["frage"] = query.strip()
+            neu["vereinfacht"] = zweite
+        return neu
+
+    async def _suchen(
         self, query: str, limit: int = 6, read: bool = False
     ) -> dict:
         frage = query.strip()

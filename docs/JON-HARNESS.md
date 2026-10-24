@@ -29,6 +29,10 @@ jonh --auto                           Dateien und Befehle ohne Rückfrage
 jonh -c                               letztes Gespräch fortsetzen
 ```
 
+### Ziel-Modus mit /goal
+
+`/goal <Ziel>` (oder `/ziel`) gibt es im App-Chat, auf Telegram, in der Handy-App, im Terminal mit `jon` und mit `jonh`. Jon arbeitet dann in Harness-Runden (`app/services/ziel_modus.py`): Nach jeder Runde prüft ein eigener Modellaufruf streng, ob das Ziel erreicht ist („ZIEL ERREICHT: …“ oder „WEITER: …“). Fehlt noch etwas, startet die nächste Runde in derselben Sitzung mit genau diesem Rest, höchstens zwölf Runden. Zweimal hintereinander gescheitert beendet den Lauf. `/goal stopp` und `/stopp` halten an, `/goal weiter` setzt ein angehaltenes Ziel fort. Schnittstelle: `POST /api/goal`, `GET /api/goal/{id}/ereignisse` (Server-Sent Events), `POST /api/goal/{id}/stopp`.
+
 ### Nebenbei fragen mit /btw
 
 Während Jon arbeitet, kannst du einfach tippen. Die Zeile erscheint hinter der Statusanzeige.

@@ -10,6 +10,7 @@ export interface SlashCommand {
 export const SLASH_COMMANDS: SlashCommand[] = [
   {cmd: "/test", aliases: ["/testumgebung", "/sandbox", "/vm"], icon: "🧪", title: "Jon Testumgebung – Code ausprobieren, Terminal, Vorschau, neu anlegen und löschen", gruppe: "Arbeiten"},
   {cmd: "/lehrer", aliases: ["/lernkurs", "/nachhilfe", "/tutor"], icon: "🎓", title: "Jon Lehrer – Lernkurs aus deinen Unterlagen", gruppe: "Arbeiten"},
+  {cmd: "/goal", aliases: ["/ziel"], icon: "🎯", title: "Ziel geben – Jon arbeitet selbstständig in Runden, prüft sich und hört erst auf, wenn es erreicht ist (/goal stopp hält an)", arg: "Ziel", gruppe: "Arbeiten"},
   {cmd: "/btw", aliases: ["/nebenbei"], icon: "💬", title: "Nebenbei fragen, während Jon arbeitet – „danach: …“ merkt einen Auftrag vor (Alt+B)", arg: "Frage", gruppe: "Arbeiten"},
   {cmd: "/transkript", aliases: ["/transcribe", "/stt"], icon: "🎙️", title: "Audiodatei vollständig in Text umwandeln", gruppe: "Medien"},
   {cmd: "/podcast", aliases: ["/tts", "/audio"], icon: "🎧", title: "Text als Audiodatei erstellen", gruppe: "Medien"},

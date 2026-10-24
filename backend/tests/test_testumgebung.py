@@ -118,3 +118,19 @@ def test_gepacktes_backend_startet_keinen_zweiten_server(monkeypatch):
         with pytest.raises(SystemExit) as ende:
             run_backend.main()
         assert ende.value.code == 2
+
+
+def test_docker_desktop_wird_auch_in_der_benutzerinstallation_gefunden(dienst, monkeypatch, tmp_path):
+    from app.services import testumgebung as modul
+
+    programm = tmp_path / "Programs" / "DockerDesktop" / "Docker Desktop.exe"
+    programm.parent.mkdir(parents=True)
+    programm.write_bytes(b"")
+    gestartet = []
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "keine"))
+    monkeypatch.setattr(modul.shutil, "which", lambda name: None)
+    monkeypatch.setattr(dienst, "docker", lambda frisch=False: {"installiert": True, "laeuft": False})
+    monkeypatch.setattr(modul.subprocess, "Popen", lambda befehl, **k: gestartet.append(befehl))
+    assert dienst.docker_starten()["ok"] is True
+    assert gestartet == [[str(programm)]]

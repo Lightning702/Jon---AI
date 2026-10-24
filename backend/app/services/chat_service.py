@@ -1095,6 +1095,76 @@ class ChatService:
             except ValueError:
                 pass
 
+    async def _ziel_stream(self, payload: ChatIn, ziel_text: str) -> AsyncIterator[dict]:
+        from app.services.ziel_modus import STOPP, ende_text, get_ziel_modus
+
+        modus = get_ziel_modus()
+        quelle = "app"
+        provider_name, model_name = self.resolve(payload)
+        conversation_id = payload.conversation_id
+        if payload.persist:
+            conversation_id = self._ensure_conversation(payload, provider_name, model_name)
+        yield {"type": "meta", "provider": provider_name, "model": model_name, "conversation_id": conversation_id}
+        laufend = modus.laufend(quelle)
+        wort = ziel_text.casefold()
+        if wort in STOPP or (not ziel_text and laufend is None):
+            if laufend is not None:
+                await modus.stoppen(laufend["id"])
+                text = f"Angehalten: {laufend['ziel']}. Was schon fertig ist, bleibt erhalten."
+            else:
+                text = "So geht's: /goal und dein Ziel, z. B. /goal Erstelle eine Präsentation über Datensicherung mit Bildern und Quellen. Jon arbeitet dann selbstständig in mehreren Runden, prüft sich nach jeder Runde streng und hört erst auf, wenn das Ziel erreicht ist. /goal stopp hält an."
+            if payload.persist and conversation_id:
+                self._store_answer(conversation_id, text, None)
+            yield {"type": "content", "delta": text}
+            yield {"type": "done", "conversation_id": conversation_id}
+            return
+        if wort == "weiter" and laufend is None:
+            frueher = next((z for z in modus.liste(quelle) if z["status"] in ("angehalten", "fehler", "abgebrochen")), None)
+            if frueher is not None:
+                ziel_text = frueher["ziel"]
+        if laufend is None:
+            try:
+                laufend = modus.starten(ziel_text, quelle, payload.workspace or "" if payload.mode == "coding" else "")
+            except ValueError as fehler:
+                yield {"type": "content", "delta": str(fehler)}
+                yield {"type": "done", "conversation_id": conversation_id}
+                return
+            yield {"type": "content", "delta": f"**Ziel:** {laufend['ziel']}\n\nIch arbeite jetzt selbstständig daran, so lange es nötig ist, und prüfe mich nach jeder Runde. Mit /btw kannst du nebenbei fragen, mit /goal stopp halte ich an.\n"}
+        else:
+            yield {"type": "content", "delta": f"**Ich arbeite gerade an:** {laufend['ziel']}\n"}
+        teile: list[str] = []
+        ende: dict = {}
+        async for ereignis in modus.verfolgen(laufend["id"]):
+            art = ereignis.get("art")
+            zeile = ""
+            if art == "runde":
+                zeile = f"\n**Runde {ereignis['runde']}**\n"
+            elif art == "schritt":
+                typ = ereignis.get("typ")
+                if typ == "gedanke" and ereignis.get("text"):
+                    yield {"type": "reasoning", "delta": ereignis["text"].strip() + "\n\n"}
+                elif typ == "notiz" and ereignis.get("text"):
+                    zeile = f"- {ereignis['text']}\n"
+                elif typ == "action" and ereignis.get("pfad"):
+                    zeile = f"  - gespeichert: `{ereignis['pfad']}`\n"
+                elif typ == "action_error" and ereignis.get("text"):
+                    zeile = f"  - Problem bei {ereignis.get('tool') or 'einem Schritt'}: {ereignis['text'][:200]} – ich versuche es anders.\n"
+                elif typ == "approval_required":
+                    zeile = "  - Ich warte auf deine Freigabe im Harness-Fenster.\n"
+            elif art == "urteil" and ereignis.get("text"):
+                zeile = f"\n*Prüfung: {ereignis['text']}*\n"
+            elif art == "ende":
+                ende = ereignis
+            if zeile:
+                teile.append(zeile)
+                yield {"type": "content", "delta": zeile}
+        schluss = "\n\n" + ende_text({**modus.get(laufend["id"]), **({"runden": ende.get("runden")} if ende else {})})
+        teile.append(schluss)
+        yield {"type": "content", "delta": schluss}
+        if payload.persist and conversation_id:
+            self._store_answer(conversation_id, "".join(teile).strip(), None)
+        yield {"type": "done", "conversation_id": conversation_id}
+
     async def _stream(self, payload: ChatIn) -> AsyncIterator[dict]:
         from app.core.kinderschutz import KINDER_ALTER, kinder_prompt, werkzeuge_fuer_kinder
 
@@ -1114,6 +1184,13 @@ class ChatService:
                 yield {"type": "content", "delta": answer}
                 yield {"type": "done"}
                 return
+        from app.services.ziel_modus import befehl as ziel_befehl
+
+        ziel_text = None if kinder else ziel_befehl(latest_command)
+        if ziel_text is not None:
+            async for ereignis in self._ziel_stream(payload, ziel_text):
+                yield ereignis
+            return
         if not kinder and latest_command.strip().startswith(("/hhelp", "/harness", "/hstatus", "/hstop", "/aufgaben", "/projekt", "/erlauben", "/ablehnen", "/diff")):
             from app.services.harness.messages import handle
 

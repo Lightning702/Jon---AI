@@ -51,3 +51,36 @@ def test_zufallstreffer_von_bing_werden_aussortiert():
     assert passt_zur_frage("Hauptstadt von Australien", {"title": "Canberra", "snippet": "Canberra ist die Hauptstadt Australiens", "url": "https://de.wikipedia.org/wiki/Canberra"})
     assert passt_zur_frage("Öffnungszeiten Schönbrunn", {"title": "Schloss Schönbrunn Öffnungszeiten", "snippet": "", "url": "https://oeffnungszeitenbuch.at"})
     assert passt_zur_frage("wie ist das", {"title": "Irgendwas", "snippet": "", "url": "https://x.example"})
+
+
+def test_suche_wiederholt_einmal_mit_kernwoertern(monkeypatch):
+    from app.services import websearch_service as ws
+
+    fragen = []
+
+    async def suchen(self, query, limit=6, read=False):
+        fragen.append(query)
+        if len(fragen) == 1:
+            return {"frage": query, "treffer": [], "fehler": "Keine Suchmaschine hat geantwortet."}
+        return {"frage": query, "treffer": [{"url": "https://de.wikipedia.org/wiki/Canberra", "engine": "wikipedia-de"}]}
+
+    monkeypatch.setattr(ws.WebSearch, "_suchen", suchen)
+    monkeypatch.setattr(ws, "WIEDERHOL_PAUSE", 0)
+    ergebnis = asyncio.run(ws.WebSearch().search("Was ist die Hauptstadt von Australien?"))
+    assert fragen == ["Was ist die Hauptstadt von Australien?", "Hauptstadt Australien?"]
+    assert ergebnis["treffer"] and ergebnis["wiederholt"] is True
+    assert ergebnis["frage"] == "Was ist die Hauptstadt von Australien?"
+
+
+def test_erfolgreiche_suche_wird_nicht_wiederholt(monkeypatch):
+    from app.services import websearch_service as ws
+
+    fragen = []
+
+    async def suchen(self, query, limit=6, read=False):
+        fragen.append(query)
+        return {"frage": query, "treffer": [{"url": "https://x.example", "engine": "bing"}]}
+
+    monkeypatch.setattr(ws.WebSearch, "_suchen", suchen)
+    assert asyncio.run(ws.WebSearch().search("Wetter Wien"))["treffer"]
+    assert fragen == ["Wetter Wien"]
