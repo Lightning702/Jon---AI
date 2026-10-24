@@ -14,6 +14,7 @@ Alle nennenswerten Änderungen an Jon.
 ### Zuverlässiger
 
 - **Websuche versucht es noch einmal:** Findet keine Suchmaschine etwas, wartet Jon kurz und sucht ein zweites Mal mit den Kernwörtern der Frage.
+- **Websuche findet mehr:** Neue Quelle Hacker News für Technik, Programmieren und KI, und Wikipedia sucht zusätzlich mit den Kernwörtern ohne Jahreszahlen. Englische Fachfragen wie „llama.cpp VRAM“ oder „LLM lokal betreiben“, die vorher komplett leer blieben, liefern jetzt passende Anleitungen.
 - **Docker wird gefunden:** Die Testumgebung startet Docker Desktop jetzt auch, wenn es nur für den eigenen Benutzer installiert ist.
 
 ## [4.65.2] — 2026-10-23

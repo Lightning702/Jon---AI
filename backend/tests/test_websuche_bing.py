@@ -84,3 +84,29 @@ def test_erfolgreiche_suche_wird_nicht_wiederholt(monkeypatch):
     monkeypatch.setattr(ws.WebSearch, "_suchen", suchen)
     assert asyncio.run(ws.WebSearch().search("Wetter Wien"))["treffer"]
     assert fragen == ["Wetter Wien"]
+
+
+def test_kurzfassung_laesst_jahreszahlen_und_fuellwoerter_weg():
+    from app.services.websearch_service import kurzfassung
+
+    assert kurzfassung('"run LLM locally" guide hardware GPU 2024') == "run LLM locally guide"
+    assert kurzfassung("Was ist die Hauptstadt von Australien?", 3) == "Hauptstadt Australien?"
+
+
+def test_hackernews_liefert_nur_passende_geschichten():
+    def antwort(anfrage):
+        assert anfrage.url.host == "hn.algolia.com"
+        assert anfrage.url.params["query"] == "llama.cpp VRAM guide"
+        return httpx.Response(200, json={"hits": [
+            {"title": "A llama.cpp guide for VRAM", "url": "https://example.org/llama-guide"},
+            {"title": "Show HN: My cat", "url": "https://example.org/cat"},
+            {"title": "Ohne Adresse", "url": None},
+        ]})
+
+    async def lauf():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(antwort)) as client:
+            return await WebSearch()._hackernews(client, "llama.cpp VRAM guide 2025", 6)
+
+    treffer = asyncio.run(lauf())
+    assert [t["url"] for t in treffer] == ["https://example.org/llama-guide"]
+    assert treffer[0]["engine"] == "hackernews"
