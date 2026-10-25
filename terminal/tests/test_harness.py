@@ -167,6 +167,7 @@ def test_abgelehnte_aktion_wird_gemeldet(tmp_path, monkeypatch):
 def test_strom_faellt_ohne_denkschalter_und_werkzeuge_zurueck(monkeypatch):
     verbindung = Verbindung(speicher.Einstellungen(), Jon())
     monkeypatch.setattr(verbindung.felworks, "token", lambda neu=False: "t")
+    monkeypatch.setattr(verbindung.felworks, "erreichbar", lambda: True)
     gesendet = []
 
     def anfrage(methode, url, daten=None, kopf=None, zeit=60, strom=False, **k):
@@ -325,3 +326,62 @@ def test_updater_ersetzt_eine_laufende_exe_ueber_umbenennen(tmp_path, monkeypatc
     monkeypatch.setattr(aktualisieren, "eigene_datei", lambda: (exe, "jon-harness.exe"))
     aktualisieren.aufraeumen()
     assert not (tmp_path / "jon-harness.exe.alt").exists()
+
+
+class _Json:
+    def __init__(self, daten):
+        self._daten = daten
+
+    def json(self):
+        return self._daten
+
+
+def test_felworks_weg_dann_weicht_jonh_auf_ollama_aus(tmp_path, monkeypatch, capsys):
+    import argparse
+
+    from jon_harness import start
+
+    aufrufe = []
+
+    def anfrage(methode, url, daten=None, kopf=None, zeit=60, **rest):
+        aufrufe.append((url, zeit))
+        if "ts.net" in url:
+            raise netz.NetzFehler("Keine Verbindung zu felworks: timed out")
+        if url.endswith("11434/v1/models"):
+            return _Json({"data": [{"id": "nomic-embed-text"}, {"id": "qwen3:8b"}]})
+        raise netz.NetzFehler("Keine Verbindung", 0)
+
+    monkeypatch.setattr(netz, "anfrage", anfrage)
+    werte = argparse.Namespace(frage=[], einmal=True, weiter=False, anbieter="felworks", modell=None, ordner=str(tmp_path), auto=False, alles=False, ohne_jon=True, version=False)
+    terminal = start.Terminal(werte)
+    assert terminal.agent.anbieter == "felworks"
+    gesehen = []
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        gesehen.append((kennung, modell))
+        if kennung == "felworks":
+            return Verbindung.strom(terminal.verbindung, kennung, modell, nachrichten, werkzeuge, denken)
+        return _Antwort(_sse({"choices": [{"delta": {"content": "Hallo aus Ollama."}}]})), True
+
+    monkeypatch.setattr(terminal.verbindung, "strom", strom)
+    assert terminal.ausfuehren("Sag hallo") == "Hallo aus Ollama."
+    assert gesehen == [("felworks", terminal.einstellungen.modell("felworks") or "nvidia/nemotron-3-ultra-550b-a55b"), ("ollama", "qwen3:8b")]
+    assert all(zeit <= 8 for url, zeit in aufrufe if "ts.net" in url)
+    assert "Ollama" in capsys.readouterr().out
+    assert [n["role"] for n in terminal.agent.sitzung.nachrichten].count("user") == 1
+
+
+def test_ohne_ausweg_sagt_jonh_klar_was_zu_tun_ist(tmp_path, monkeypatch, capsys):
+    import argparse
+
+    from jon_harness import start
+
+    def anfrage(methode, url, daten=None, kopf=None, zeit=60, **rest):
+        raise netz.NetzFehler("Keine Verbindung", 0)
+
+    monkeypatch.setattr(netz, "anfrage", anfrage)
+    werte = argparse.Namespace(frage=[], einmal=True, weiter=False, anbieter="felworks", modell=None, ordner=str(tmp_path), auto=False, alles=False, ohne_jon=True, version=False)
+    terminal = start.Terminal(werte)
+    assert terminal.ausfuehren("Sag hallo") == ""
+    ausgabe = capsys.readouterr().out
+    assert "FelWorks ist gerade nicht erreichbar" in ausgabe and "Ollama" in ausgabe and "/api" in ausgabe

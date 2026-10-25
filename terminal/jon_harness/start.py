@@ -192,21 +192,33 @@ class Terminal:
 
     def ausfuehren(self, text: str) -> str:
         sag()
-        try:
-            with self.nebenbei.lauschen():
-                antwort = self.agent.runde(text)
-        except Abbruch:
-            sag(f("  ⎿ abgebrochen – sag einfach, wie es weitergehen soll.", GOLD))
-            antwort = ""
-        except netz.NetzFehler as fehler:
-            self._fehler(fehler)
-            antwort = ""
-        except KeyboardInterrupt:
-            sag(f("  ⎿ abgebrochen", GOLD))
-            antwort = ""
+        antwort = ""
+        for versuch in range(2):
+            try:
+                with self.nebenbei.lauschen():
+                    antwort = self.agent.runde(text) if versuch == 0 else self.agent.weiter()
+            except Abbruch:
+                sag(f("  ⎿ abgebrochen – sag einfach, wie es weitergehen soll.", GOLD))
+            except netz.NetzFehler as fehler:
+                if versuch == 0 and self._ausweichen(fehler):
+                    continue
+                self._fehler(fehler)
+            except KeyboardInterrupt:
+                sag(f("  ⎿ abgebrochen", GOLD))
+            break
         sag()
         self.speichern()
         return antwort
+
+    def _ausweichen(self, fehler: netz.NetzFehler) -> bool:
+        if self.agent.anbieter != "felworks" or fehler.status not in (0, 500, 502, 503, 504):
+            return False
+        ziel = self.verbindung.ausweichen(mit_jon=not self.argumente.ohne_jon)
+        if ziel is None:
+            return False
+        self.agent.anbieter, self.agent.modell = ziel
+        sag(f(f"  FelWorks ist gerade nicht erreichbar – ich arbeite mit {KATALOG[ziel[0]].name} weiter.", GOLD))
+        return True
 
     def _fehler(self, fehler: netz.NetzFehler) -> None:
         text = str(fehler)
@@ -214,9 +226,9 @@ class Terminal:
             text = "Der freie FelWorks-Zugang hat diese Anfrage nicht angenommen."
         sag(f("  ✕ " + text, ROT))
         if self.agent.anbieter == "felworks":
-            if self.verbindung.felworks.fehler:
+            if self.verbindung.felworks.fehler and self.verbindung.felworks.fehler not in text:
                 sag(f("  " + self.verbindung.felworks.fehler, GRAU))
-            sag(f("  Tipp: Mit /api nimmst du einen eigenen Anbieter (z. B. NVIDIA, kostenlos auf build.nvidia.com).", GRAU))
+            sag(f("  Starte Jon auf diesem PC, öffne Ollama oder LM Studio, oder nimm mit /api einen eigenen Anbieter (NVIDIA ist kostenlos auf build.nvidia.com).", GRAU))
         elif fehler.status in (401, 403):
             sag(f("  Gib mit /api einen neuen Schlüssel ein.", GRAU))
         elif fehler.status in (404,):

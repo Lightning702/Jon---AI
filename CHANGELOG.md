@@ -19,6 +19,7 @@ Alle nennenswerten Änderungen an Jon.
 
 - **Bilder, Videos und Dateien hineinziehen:** Im Harness ziehst du Dateien per Drag and Drop in das Eingabefeld, fügst sie mit Strg+V ein oder wählst sie über die Büroklammer. Jon bekommt sie mit Pfad und Art und arbeitet direkt damit.
 - **Updater:** `/update` (oder `jonh update`) lädt die neue Version direkt aus dem GitHub-Release, prüft die SHA-256-Prüfsumme und tauscht die Datei aus. Geht etwas schief, bleibt die alte Version. `/update auto` installiert neue Versionen künftig beim Start von selbst.
+- **Ausweichen, wenn FelWorks fehlt:** Ist der freie FelWorks-Zugang nicht erreichbar, merkt `jonh` das nach wenigen Sekunden statt nach über einer halben Minute und arbeitet von selbst mit Jon, Ollama, LM Studio oder einem gespeicherten eigenen Schlüssel weiter. Gibt es keinen Ausweg, sagt er klar, was zu tun ist.
 - **`jonh` fehlte:** Startete Jon aus dem Quellcode, legte er `jonh` nie an, weil das nur die fertige App tat. Jetzt entsteht `jonh` bei jedem Start, wenn er fehlt. Ein eigenes `jonh` bleibt unangetastet.
 
 ### Behoben

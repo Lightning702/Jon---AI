@@ -100,6 +100,9 @@ class Agent:
         self.sitzung.nachrichten.append({"role": "user", "content": text})
         return self._schleife(still)
 
+    def weiter(self, still: bool = False) -> str:
+        return self._schleife(still)
+
     def _schleife(self, still: bool = False) -> str:
         antwort_gesamt = ""
         for schritt in range(MAX_SCHRITTE):
