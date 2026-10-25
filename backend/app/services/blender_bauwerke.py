@@ -1454,7 +1454,7 @@ def jon_kueche(ort=(0.0, 2.2, 0.0), drehung=0.0, breite=3.0, farbe=(0.92, 0.92, 
 JON_ROEMISCH = ("XII", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI")
 
 
-def jon_uhr(durchmesser=0.6, uhrzeit=(10, 10, 32), ziffern="roemisch", stil="wand", gehaeusefarbe=(0.78, 0.6, 0.3), zifferblattfarbe=(0.95, 0.92, 0.85), zeigerfarbe=(0.04, 0.04, 0.05), ort=(0.0, 0.0, 1.6), drehung=0.0, kamera=True, umgebung=True, name="Uhr"):
+def jon_uhr(durchmesser=0.6, uhrzeit=(10, 10, 32), ziffern="roemisch", stil="wand", gehaeusefarbe=(0.78, 0.6, 0.3), zifferblattfarbe=(0.95, 0.92, 0.85), zeigerfarbe=(0.012, 0.012, 0.015), ort=(0.0, 0.0, 1.6), drehung=0.0, kamera=True, umgebung=True, glas=False, name="Uhr"):
     r = float(durchmesser) / 2
     stunde, minute, sekunde = (list(uhrzeit) + [0, 0, 0])[:3]
     uhr = _jon_leer(name, _jon_ort(ort), drehung)
@@ -1473,7 +1473,7 @@ def jon_uhr(durchmesser=0.6, uhrzeit=(10, 10, 32), ziffern="roemisch", stil="wan
     bsdf.inputs["Roughness"].default_value = 0.45
     zeiger = jon_metall(f"{name}Zeiger", zeigerfarbe, 0.3) if sum(zeigerfarbe) > 0.6 else jon_material(f"{name}Zeiger", zeigerfarbe, rau=0.5)
     rot = jon_material(f"{name}Sekunde", (0.7, 0.05, 0.04), rau=0.35)
-    glas = jon_glas(f"{name}Glas", deckkraft=0.03, glanz=0.45)
+    scheibe = jon_glas(f"{name}Glas", deckkraft=0.03, glanz=0.45)
     bau = JonBau(f"{name}Koerper")
     tiefe = r * 0.16
     bau.zylinder((0.0, 0.0, -tiefe / 2), r * 1.06, tiefe, gehaeuse, segmente=96)
@@ -1496,7 +1496,8 @@ def jon_uhr(durchmesser=0.6, uhrzeit=(10, 10, 32), ziffern="roemisch", stil="wan
     zeigerform(r * 0.78, r * 0.042, r * 0.12, 0.008 + r * 0.012, minutenwinkel, zeiger)
     zeigerform(r * 0.86, r * 0.012, r * 0.22, 0.008 + r * 0.026, sekunde * 6.0, rot)
     bau.zylinder((0.0, 0.0, 0.01 + r * 0.03), r * 0.035, r * 0.02, zeiger, segmente=24)
-    bau.zylinder((0.0, 0.0, 0.012 + r * 0.045), r * 0.96, 0.003, glas, segmente=96)
+    if glas:
+        bau.zylinder((0.0, 0.0, 0.012 + r * 0.045), r * 0.96, 0.003, scheibe, segmente=96)
     bau.fertig(eltern=uhr)
     ring = r * 0.08
     bpy.ops.mesh.primitive_torus_add(major_radius=r * 1.02, minor_radius=ring, major_segments=96, minor_segments=24, location=(0.0, 0.0, 0.0))

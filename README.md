@@ -186,7 +186,7 @@ echte Größen, saubere Materialien und eine passende Kamera mitbringen:
   leuchten, Bäume, Laternen und Autos, aus der Vogelperspektive oder von der Straße.
 - **Innenräume:** Raum mit Fenster und Deckenlicht, Sofa, Sessel, Tisch, Stühle, Bett, Schrank,
   Regal mit Büchern, Küche, Fernseher, Teppich, Pflanzen, Lampen und Bilder.
-- **Uhren, Autos, Produkte:** Wanduhr und Wecker mit Ziffern, Zeigern und Glas, Autos und ein
+- **Uhren, Autos, Produkte:** Wanduhr und Wecker mit Ziffern, Zeigern und auf Wunsch Glas, Autos und ein
   Fotostudio mit Hohlkehle und drei Lichtern für einzelne Objekte.
 - **Weltraum:** Schwarzes Loch mit Akkretionsscheibe, Photonenring und gelinster Scheibe,
   Planeten mit Ringen und Atmosphäre, Sonnen, Galaxien und Sternenhimmel.
