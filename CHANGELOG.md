@@ -39,6 +39,8 @@ Alle nennenswerten Änderungen an Jon.
 - **Blender „nicht installiert“:** Ein später installiertes Blender wird ohne Neustart erkannt.
 - **Gefundene Fotos wurden nicht gezeigt:** `bild_suche` zeigt das Foto jetzt direkt im Chat.
 - **Reinklicken ging manchmal nicht:** Fenster, Menüs und Eingabefelder liegen nicht mehr in Bereichen, die das Fenster verschieben, und Mini-Jon lässt Klicks wieder durch.
+- **Dienste fielen nach Portkonflikten aus:** War beim Start ein Port belegt (etwa noch von einer alten Jon-Instanz), beendeten sich Chat-Server, Mehrspieler, Koop-Web und Freigabe-Suche für immer. Jetzt startet Jon sie nach 1, 2 und dann alle 5 Minuten selbst neu.
+- **Telegram gemessen:** Zustellung einer Nachricht 0,2 s, Antwort des eingestellten Modells 6 s. Wer es schneller will, stellt mit `/modell` auf `nemotron-3.5-lightning` (3 s). In Gruppen braucht der Bot ausgeschalteten Privatsphäre-Modus und muss danach neu hinzugefügt werden.
 - **`jonh` verschwand:** Fehlt `jon-harness.exe` (etwa weil der Virenschutz sie entfernt hat), sagt `jonh` das jetzt mit dem Befehl zur Neuinstallation. Unerwartete Fehler beenden den Harness nicht mehr, sie landen im Protokoll und die Sitzung läuft weiter.
 
 ## [4.65.5] — 2026-10-25
