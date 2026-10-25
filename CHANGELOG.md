@@ -21,6 +21,10 @@ Alle nennenswerten Änderungen an Jon.
 - **Updater:** `/update` (oder `jonh update`) lädt die neue Version direkt aus dem GitHub-Release, prüft die SHA-256-Prüfsumme und tauscht die Datei aus. Geht etwas schief, bleibt die alte Version. `/update auto` installiert neue Versionen künftig beim Start von selbst.
 - **`jonh` fehlte:** Startete Jon aus dem Quellcode, legte er `jonh` nie an, weil das nur die fertige App tat. Jetzt entsteht `jonh` bei jedem Start, wenn er fehlt. Ein eigenes `jonh` bleibt unangetastet.
 
+### Behoben
+
+- **Anrufe in der doppelten Stunde:** Plante man in der Nacht der Zeitumstellung zwischen 2 und 3 Uhr einen Anruf „in 1 Minute“, lag er eine Stunde in der Vergangenheit und klingelte sofort. Relative Zeiten rechnet Jon jetzt über UTC.
+
 ### GitHub-Seite
 
 - Neue Übersicht „Neu in Jon 4.59 bis 4.65“ mit allen Funktionen seit 4.58, deutlich weniger Emojis, und die englische Fassung ist wieder aktuell.
