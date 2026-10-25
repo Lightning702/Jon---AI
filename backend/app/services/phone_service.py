@@ -10,7 +10,7 @@ import sys
 import threading
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.services.nutzer import anrede, gruss
 from app.core.config import DATA_DIR
@@ -94,11 +94,17 @@ def parse_when(value: str, base: datetime | None = None) -> datetime:
     )
 
 
+def _spaeter(base: datetime, dauer: timedelta) -> datetime:
+    if base.tzinfo is None:
+        return base + dauer
+    return (base.astimezone(timezone.utc) + dauer).astimezone(base.tzinfo)
+
+
 def _parse_relative(text: str, base: datetime) -> datetime | None:
     import re
 
     if text in ("jetzt", "sofort", "gleich"):
-        return base + timedelta(seconds=5)
+        return _spaeter(base, timedelta(seconds=5))
     words = {
         "einer": 1,
         "einem": 1,
@@ -129,11 +135,11 @@ def _parse_relative(text: str, base: datetime) -> datetime | None:
         amount = 1
     unit = match.group(3)
     if unit.startswith("sekunde"):
-        return base + timedelta(seconds=amount)
+        return _spaeter(base, timedelta(seconds=amount))
     if unit.startswith(("minute", "min")):
-        return base + timedelta(minutes=amount)
+        return _spaeter(base, timedelta(minutes=amount))
     if unit.startswith(("stunde", "std")):
-        return base + timedelta(hours=amount)
+        return _spaeter(base, timedelta(hours=amount))
     return base + timedelta(days=amount)
 
 

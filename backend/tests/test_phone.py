@@ -212,6 +212,16 @@ def test_planen_lehnt_vergangenheit_ab(service):
         service.schedule("2020-01-01T10:00:00+01:00")
 
 
+def test_relative_zeit_ueberlebt_die_zeitumstellung():
+    from app.services.phone_service import parse_when
+
+    zweite_runde = datetime(2026, 10, 25, 2, 30, fold=1, tzinfo=VIENNA)
+    ziel = parse_when("in 1 minute", zweite_runde)
+    gespeichert = datetime.fromisoformat(ziel.isoformat())
+    assert gespeichert.timestamp() - zweite_runde.timestamp() == 60
+    assert parse_when("in 2 stunden", zweite_runde).hour == 4
+
+
 def test_faellige_anrufe_werden_erkannt(service):
     faellig = service.schedule("in 1 minute", message="jetzt")
     service.schedule((datetime.now(VIENNA) + timedelta(hours=5)).isoformat(), message="spaeter")
