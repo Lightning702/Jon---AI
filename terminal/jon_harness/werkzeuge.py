@@ -33,6 +33,7 @@ def _w(name: str, beschreibung: str, felder: dict, pflicht: list[str]) -> dict:
 SCHEMA = [
     _w("datei_lesen", "Liest eine Textdatei mit Zeilennummern. Lies jede Datei, bevor du sie änderst. Bei grossen Dateien mit von/bis einen Ausschnitt lesen.", {"pfad": _s("Pfad, relativ zum Arbeitsordner oder absolut"), "von": {"type": "integer"}, "bis": {"type": "integer"}}, ["pfad"]),
     _w("datei_schreiben", "Legt eine Datei neu an oder ersetzt sie komplett. Für Änderungen an bestehenden Dateien nimm datei_bearbeiten.", {"pfad": _s("Pfad"), "inhalt": _s("Vollständiger neuer Inhalt")}, ["pfad", "inhalt"]),
+    _w("datei_anhaengen", "Hängt Text an eine Datei an, die du gerade angelegt hast. Grosse Dateien schreibst du in Teilen: erst datei_schreiben mit dem ersten Teil, dann datei_anhaengen mit den weiteren Teilen.", {"pfad": _s("Pfad"), "inhalt": _s("Nächster Teil des Inhalts")}, ["pfad", "inhalt"]),
     _w("datei_bearbeiten", "Ersetzt in einer Datei genau den Text alt durch neu. alt muss exakt (inklusive Einrückung) und eindeutig vorkommen, sonst mehr Kontext angeben oder alle=true.", {"pfad": _s("Pfad"), "alt": _s("Exakter vorhandener Text"), "neu": _s("Neuer Text"), "alle": {"type": "boolean"}}, ["pfad", "alt", "neu"]),
     _w("ordner_zeigen", "Zeigt Dateien und Unterordner eines Ordners (ohne node_modules, .git usw.).", {"pfad": _s("Ordner, Standard ist der Arbeitsordner"), "tiefe": {"type": "integer"}}, []),
     _w("dateien_finden", "Findet Dateien per Glob-Muster, z. B. **/*.py oder src/**/*.tsx.", {"muster": _s("Glob-Muster")}, ["muster"]),
@@ -133,6 +134,20 @@ class Werkzeugkasten:
         self.gelesen[str(ziel)] = ziel.stat().st_mtime
         zeilen = inhalt.count("\n") + (1 if inhalt and not inhalt.endswith("\n") else 0)
         return Ergebnis(f"{'Angelegt' if neu else 'Ersetzt'}: {self.anzeigen(ziel)} ({zeilen} Zeilen)", True, f"{zeilen} Zeilen")
+
+    def datei_anhaengen(self, pfad: str, inhalt: str) -> Ergebnis:
+        ziel = self.pfad(pfad)
+        if not ziel.exists():
+            return Ergebnis(f"{self.anzeigen(ziel)} gibt es noch nicht. Lege die Datei zuerst mit datei_schreiben an.", False)
+        alt = ziel.read_text(encoding="utf-8", errors="replace")
+        inhalt = naht_bereinigen(alt, inhalt)
+        trenner = "" if not alt or alt.endswith("\n") or inhalt.startswith("\n") else "\n"
+        with ziel.open("a", encoding="utf-8", newline="") as datei:
+            datei.write(trenner + inhalt)
+        self.gelesen[str(ziel)] = ziel.stat().st_mtime
+        gesamt = (alt + trenner + inhalt).splitlines()
+        ende = "\n".join(gesamt[-25:])
+        return Ergebnis(f"Angehängt: {self.anzeigen(ziel)} hat jetzt {len(gesamt)} Zeilen. So endet die Datei:\n{ende}", True, f"{len(gesamt)} Zeilen")
 
     def vorschau_bearbeiten(self, pfad: str, alt: str, neu: str, alle: bool = False) -> tuple[str, str, str]:
         ziel = self.pfad(pfad)
@@ -451,6 +466,8 @@ def ausfuehren(kasten: Werkzeugkasten, name: str, args: dict) -> Ergebnis:
             return kasten.datei_lesen(str(args.get("pfad") or ""), args.get("von"), args.get("bis"))
         if name == "datei_schreiben":
             return kasten.datei_schreiben(str(args.get("pfad") or ""), str(args.get("inhalt") or ""))
+        if name == "datei_anhaengen":
+            return kasten.datei_anhaengen(str(args.get("pfad") or ""), str(args.get("inhalt") or ""))
         if name == "datei_bearbeiten":
             return kasten.datei_bearbeiten(str(args.get("pfad") or ""), str(args.get("alt") or ""), str(args.get("neu") or ""), bool(args.get("alle")))
         if name == "ordner_zeigen":
@@ -472,6 +489,68 @@ def ausfuehren(kasten: Werkzeugkasten, name: str, args: dict) -> Ergebnis:
     return Ergebnis(f"Das Werkzeug {name} gibt es nicht.", False)
 
 
+FLUCHT = {"n": "\n", "t": "\t", "r": "\r", '"': '"', "\\": "\\", "/": "/", "b": "\b", "f": "\f"}
+ABGESCHNITTEN = ("Deine Antwort war zu lang und wurde abgeschnitten. Gespeichert ist der Inhalt bis zur letzten vollständigen Zeile. "
+                 "Schreibe den Rest mit datei_anhaengen in Teilen von höchstens etwa 200 Zeilen. Der nächste Teil beginnt mit genau der Zeile, "
+                 "die nach dem folgenden Dateiende kommt, und führt die Datei von oben nach unten weiter. Wiederhole nichts davon. So endet die Datei jetzt:\n")
+
+
+def _zeichenkette(roh: str, start: int = 0) -> tuple[str, bool]:
+    teile: list[str] = []
+    stelle = start
+    fertig = False
+    while stelle < len(roh):
+        zeichen = roh[stelle]
+        if zeichen == '"':
+            fertig = True
+            break
+        if zeichen == "\\":
+            if stelle + 1 >= len(roh):
+                break
+            weiter = roh[stelle + 1]
+            if weiter == "u":
+                kode = roh[stelle + 2:stelle + 6]
+                if len(kode) < 4:
+                    break
+                try:
+                    teile.append(chr(int(kode, 16)))
+                    stelle += 6
+                    continue
+                except ValueError:
+                    teile.append("\\u")
+                    stelle += 2
+                    continue
+            teile.append(FLUCHT.get(weiter, "\\" + weiter))
+            stelle += 2
+            continue
+        teile.append(zeichen)
+        stelle += 1
+    return "".join(teile).encode("utf-16", "surrogatepass").decode("utf-16", "replace"), fertig
+
+
+def naht_bereinigen(alt: str, neu: str, fenster: int = 40) -> str:
+    vorher = [z.strip() for z in alt.splitlines()]
+    zeilen = neu.splitlines(True)
+    nachher = [z.strip() for z in zeilen]
+    for anzahl in range(min(fenster, len(vorher), len(nachher)), 0, -1):
+        if vorher[-anzahl:] == nachher[:anzahl] and sum(len(z) for z in nachher[:anzahl]) >= 30:
+            return "".join(zeilen[anzahl:])
+    return neu
+
+
+def teil_args(roh: str) -> dict:
+    inhalt = re.search(r'"(?:inhalt|content)"\s*:\s*"', roh)
+    pfad = re.search(r'"(?:pfad|path)"\s*:\s*"((?:[^"\\]|\\.)*)"', roh)
+    if not inhalt or not pfad:
+        return {}
+    text, vollstaendig = _zeichenkette(roh, inhalt.end())
+    if not vollstaendig:
+        if "\n" not in text:
+            return {}
+        text = text[: text.rfind("\n") + 1]
+    return {"pfad": _zeichenkette(pfad.group(1) + '"')[0], "inhalt": text, "_repariert": True, "_abgeschnitten": not vollstaendig}
+
+
 def args_lesen(roh: str) -> dict:
     roh = (roh or "").strip() or "{}"
     try:
@@ -481,4 +560,4 @@ def args_lesen(roh: str) -> dict:
         try:
             return json.loads(roh.replace("\n", "\\n"))
         except ValueError:
-            return {}
+            return teil_args(roh)

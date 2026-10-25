@@ -397,6 +397,64 @@ def test_blender_gibt_nach_drei_versuchen_ehrlich_auf(blender, monkeypatch):
     assert len(ergebnis["protokoll"]) == 3
 
 
+def test_blender_schreibt_abgeschnittenes_skript_kuerzer_neu(blender, monkeypatch):
+    auftraege = []
+
+    async def _complete(system, user, *args, **kwargs):
+        auftraege.append(user)
+        if len(auftraege) == 1:
+            return "import bpy\nfor i in range(3):\n    bpy.ops.mesh.primitive_cube_add(location=(i, 0"
+        return "import bpy\njon_haus()\n"
+
+    monkeypatch.setattr("app.services.llm.complete", _complete)
+    ergebnis = asyncio.run(blender.szene("ein Haus", rendern=False))
+    assert ergebnis.get("ok") is True, ergebnis
+    assert ergebnis["versuche"] == 2
+    assert "abgeschnitten" in ergebnis["protokoll"][0]["fehler"]
+    assert "kuerzer" in auftraege[1]
+
+
+def test_blender_passt_alte_namen_an_blender_4_an(blender):
+    blender._version = "Blender 4.5.15"
+    skript = (
+        "import bpy\n"
+        "b = bpy.data.materials['x'].node_tree.nodes['Principled BSDF']\n"
+        "b.inputs['Specular'].default_value = 0.5\n"
+        "b.inputs[\"Emission\"].default_value = (1, 1, 1, 1)\n"
+        "bpy.context.scene.eevee.use_bloom = True\n"
+        "bpy.context.scene.render.engine = (\n    'BLENDER_EEVEE')\n"
+    )
+    neu = blender._anpassen(skript)
+    assert "inputs['Specular IOR Level']" in neu
+    assert 'inputs["Emission Color"]' in neu
+    assert "try: bpy.context.scene.eevee.use_bloom = True\nexcept Exception: pass" in neu
+    assert "render.engine = (\n" in neu
+    compile(neu, "skript", "exec")
+
+
+def test_blender_bausteine_sind_vollstaendig_und_gueltig():
+    import re
+
+    from app.services.blender_bausteine import BAUSTEINE, GLANZ, PRUEFUNG
+    from app.services.blender_bauwerke import BAUWERKE
+    from app.services.blender_service import SKRIPT_SYSTEM, _fehlerzeilen
+
+    quelle = BAUSTEINE + BAUWERKE + PRUEFUNG + GLANZ
+    compile(quelle, "bausteine", "exec")
+    definiert = set(re.findall(r"^def (jon_\w+)", quelle, re.MULTILINE))
+    versprochen = set(re.findall(r"\b(jon_\w+)\(", SKRIPT_SYSTEM))
+    assert versprochen <= definiert, versprochen - definiert
+    assert "class JonBau" in BAUWERKE and "#" not in BAUWERKE
+    meldung = _fehlerzeilen(
+        'Traceback (most recent call last):\n  File "C:/J/Temp/jon-blender-1.py", line 2012, '
+        'in <module>\n    jon_haus(x=1)\n  File "C:/J/Temp/jon-blender-1.py", line 40, '
+        "in jon_haus\nTypeError: unerwartet",
+        versatz=2000,
+    )
+    assert "Skript, Zeile 12" in meldung and "Jons Bausteine, in jon_haus" in meldung
+    assert "C:/J/Temp" not in meldung
+
+
 def test_blender_laesst_kein_systemzugriff_skript_durch(blender, monkeypatch):
     async def _complete(system, user, *args, **kwargs):
         return "import bpy\nimport os\nos.system('echo weg')\n"

@@ -79,6 +79,93 @@ def test_harness_reads_wrapped_json_and_stops_after_repeated_format_errors(tmp_p
     asyncio.run(run())
 
 
+def test_abgeschnittene_html_datei_wird_gerettet_und_mit_append_fertig(tmp_path):
+    erster = json.dumps({"note": "Ich schreibe die Website.", "step": 1, "tool": "create", "args": {"path": "index.html", "content": "<!DOCTYPE html>\n<html lang=\"de\">\n<head><title>Jon für dich</title></head>\n<body>\n<h1>Jon</h1>\n<p>Alles, was Jon kann</p>\n"}}, ensure_ascii=False)
+    antworten = [
+        json.dumps({"tool": "plan", "args": {"steps": ["Website schreiben"]}}),
+        erster[: erster.index("<p>Alles")],
+        json.dumps({"tool": "append", "args": {"path": "index.html", "content": "<p>Alles, was Jon kann</p>\n</body>\n</html>\n"}}),
+        json.dumps({"tool": "finish", "args": {"summary": "Website fertig.", "incomplete": True}}),
+    ]
+    gesehen = []
+
+    async def model(system, user, **kwargs):
+        gesehen.append(user)
+        return antworten[len(gesehen) - 1]
+
+    async def run():
+        service = HarnessService(tmp_path / "tasks", model)
+        return await finish(service, service.start("Code mir eine Website nur mit HTML", str(tmp_path)))
+
+    result = asyncio.run(run())
+    assert result["status"] == "needs_review", result["summary"]
+    inhalt = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert inhalt.startswith("<!DOCTYPE html>") and inhalt.endswith("</html>\n")
+    assert inhalt.count("<h1>Jon</h1>") == 1 and "Jon für dich" in inhalt
+    assert "abgeschnitten" in gesehen[2] and "append" in gesehen[2]
+    assert not result["errors"]
+
+
+def test_harness_entfernt_kommentare_wenn_der_auftrag_es_will(tmp_path):
+    seite = "<!DOCTYPE html>\n<html>\n<head>\n<!-- Kopf -->\n<style>\n/* Farben */\nbody { color: red; }\n</style>\n</head>\n<body>\n<section id=\"hero\"><h1>Jon</h1></section>\n"
+    rest = "<script>\n// Start\nconst url = 'https://getjon.info';\n</script>\n</body>\n</html>\n"
+    antworten = iter([
+        json.dumps({"tool": "plan", "args": {"steps": ["Website schreiben"]}}),
+        json.dumps({"tool": "create", "args": {"path": "index.html", "content": seite}}),
+        json.dumps({"tool": "append", "args": {"path": "index.html", "content": rest}}),
+        json.dumps({"tool": "finish", "args": {"summary": "fertig", "incomplete": True}}),
+    ])
+    kontexte = []
+
+    async def model(system, user, **kwargs):
+        kontexte.append(user)
+        return next(antworten)
+
+    async def run():
+        service = HarnessService(tmp_path / "tasks", model)
+        return await finish(service, service.start("Code mir eine Website ALLES OHNE KOMMENTAREN", str(tmp_path)))
+
+    result = asyncio.run(run())
+    inhalt = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert result["status"] == "needs_review"
+    assert "<!--" not in inhalt and "/*" not in inhalt and "// Start" not in inhalt
+    assert "https://getjon.info" in inhalt and inhalt.endswith("</html>\n")
+    assert "hero" in kontexte[-1] and "geschlossen" in kontexte[-1]
+
+
+def test_harness_laesst_kommentare_ohne_wunsch_stehen(tmp_path):
+    antworten = iter([
+        json.dumps({"tool": "create", "args": {"path": "a.js", "content": "// Hinweis\nconst a = 1;\n"}}),
+        json.dumps({"tool": "finish", "args": {"summary": "fertig", "incomplete": True}}),
+    ])
+
+    async def model(*args, **kwargs):
+        return next(antworten)
+
+    async def run():
+        service = HarnessService(tmp_path / "tasks", model)
+        return await finish(service, service.start("Leg a.js an", str(tmp_path)))
+
+    asyncio.run(run())
+    assert (tmp_path / "a.js").read_text(encoding="utf-8") == "// Hinweis\nconst a = 1;\n"
+
+
+def test_harness_wiederholt_dieselbe_auflistung_nicht_endlos(tmp_path):
+    (tmp_path / "a.txt").write_text("x", encoding="utf-8")
+    antworten = iter([json.dumps({"tool": "list", "args": {"path": "."}})] * 3 + [json.dumps({"tool": "finish", "args": {"summary": "fertig"}})])
+
+    async def model(*args, **kwargs):
+        return next(antworten)
+
+    async def run():
+        service = HarnessService(tmp_path / "tasks", model)
+        return await finish(service, service.start("Ordner ansehen", str(tmp_path)))
+
+    result = asyncio.run(run())
+    assert result["status"] == "done"
+    assert any("schon 2-mal ausgeführt" in fehler["meldung"] for fehler in result["errors"])
+
+
 def test_workspace_requires_read_and_rejects_concurrent_edit(tmp_path):
     file = tmp_path / "app.py"
     file.write_text("a = 1\n", encoding="utf-8")

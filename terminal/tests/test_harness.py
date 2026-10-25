@@ -167,6 +167,7 @@ def test_abgelehnte_aktion_wird_gemeldet(tmp_path, monkeypatch):
 def test_strom_faellt_ohne_denkschalter_und_werkzeuge_zurueck(monkeypatch):
     verbindung = Verbindung(speicher.Einstellungen(), Jon())
     monkeypatch.setattr(verbindung.felworks, "token", lambda neu=False: "t")
+    monkeypatch.setattr(verbindung.felworks, "erreichbar", lambda: True)
     gesendet = []
 
     def anfrage(methode, url, daten=None, kopf=None, zeit=60, strom=False, **k):
@@ -256,3 +257,173 @@ def test_terminal_zeigt_die_gedanken_live(tmp_path, monkeypatch, capsys):
     assert gesehen["denken"] is True
     assert "Jon denkt nach" in ausgabe and "Das ist einfach." in ausgabe
     assert ausgabe.index("Das ist einfach.") < ausgabe.index("Das ergibt 4.")
+
+
+def test_updater_ersetzt_den_harness_nur_mit_passender_pruefsumme(tmp_path, monkeypatch):
+    import hashlib
+
+    from jon_harness import aktualisieren, netz
+
+    alt = tmp_path / "jon-harness.pyz"
+    alt.write_bytes(b"alte Version")
+    neu_inhalt = b"neue Version"
+    summe = hashlib.sha256(neu_inhalt).hexdigest()
+
+    class Antwort:
+        def __init__(self, daten):
+            self.daten = daten
+
+        def text(self):
+            return self.daten.decode()
+
+        def inhalt(self):
+            return self.daten
+
+    liste = {"text": f"{summe}  jon-harness.pyz\nabc  jon-harness.exe\n"}
+
+    def anfrage(methode, url, *a, **k):
+        return Antwort(liste["text"].encode() if url.endswith("SHA256SUMS.txt") else neu_inhalt)
+
+    monkeypatch.setattr(netz, "anfrage", anfrage)
+    assert aktualisieren.pruefsumme("jon-harness.pyz") == summe
+    assert aktualisieren.aktualisieren((alt, "jon-harness.pyz")) == alt
+    assert alt.read_bytes() == neu_inhalt
+    liste["text"] = "0000  jon-harness.pyz\n"
+    alt.write_bytes(b"bleibt")
+    try:
+        aktualisieren.aktualisieren((alt, "jon-harness.pyz"))
+        raise AssertionError("falsche Pruefsumme muss abbrechen")
+    except aktualisieren.UpdateFehler as fehler:
+        assert "Prüfsumme" in str(fehler)
+    assert alt.read_bytes() == b"bleibt"
+    assert not (tmp_path / "jon-harness.pyz.neu").exists()
+
+
+def test_updater_ersetzt_eine_laufende_exe_ueber_umbenennen(tmp_path, monkeypatch):
+    import hashlib
+
+    from jon_harness import aktualisieren, netz
+
+    exe = tmp_path / "jon-harness.exe"
+    exe.write_bytes(b"MZ" + b"a" * 1_100_000)
+    neu_inhalt = b"MZ" + b"b" * 1_100_000
+
+    class Antwort:
+        def __init__(self, daten):
+            self.daten = daten
+
+        def text(self):
+            return self.daten.decode()
+
+        def inhalt(self):
+            return self.daten
+
+    summen = f"{hashlib.sha256(neu_inhalt).hexdigest()}  jon-harness.exe\n".encode()
+    monkeypatch.setattr(netz, "anfrage", lambda methode, url, *a, **k: Antwort(summen if url.endswith("SHA256SUMS.txt") else neu_inhalt))
+    aktualisieren.aktualisieren((exe, "jon-harness.exe"))
+    assert exe.read_bytes() == neu_inhalt
+    assert (tmp_path / "jon-harness.exe.alt").read_bytes()[:3] == b"MZa"
+    monkeypatch.setattr(aktualisieren, "eigene_datei", lambda: (exe, "jon-harness.exe"))
+    aktualisieren.aufraeumen()
+    assert not (tmp_path / "jon-harness.exe.alt").exists()
+
+
+class _Json:
+    def __init__(self, daten):
+        self._daten = daten
+
+    def json(self):
+        return self._daten
+
+
+def test_felworks_weg_dann_weicht_jonh_auf_ollama_aus(tmp_path, monkeypatch, capsys):
+    import argparse
+
+    from jon_harness import start
+
+    aufrufe = []
+
+    def anfrage(methode, url, daten=None, kopf=None, zeit=60, **rest):
+        aufrufe.append((url, zeit))
+        if "ts.net" in url:
+            raise netz.NetzFehler("Keine Verbindung zu felworks: timed out")
+        if url.endswith("11434/v1/models"):
+            return _Json({"data": [{"id": "nomic-embed-text"}, {"id": "qwen3:8b"}]})
+        raise netz.NetzFehler("Keine Verbindung", 0)
+
+    monkeypatch.setattr(netz, "anfrage", anfrage)
+    werte = argparse.Namespace(frage=[], einmal=True, weiter=False, anbieter="felworks", modell=None, ordner=str(tmp_path), auto=False, alles=False, ohne_jon=True, version=False)
+    terminal = start.Terminal(werte)
+    assert terminal.agent.anbieter == "felworks"
+    gesehen = []
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        gesehen.append((kennung, modell))
+        if kennung == "felworks":
+            return Verbindung.strom(terminal.verbindung, kennung, modell, nachrichten, werkzeuge, denken)
+        return _Antwort(_sse({"choices": [{"delta": {"content": "Hallo aus Ollama."}}]})), True
+
+    monkeypatch.setattr(terminal.verbindung, "strom", strom)
+    assert terminal.ausfuehren("Sag hallo") == "Hallo aus Ollama."
+    assert gesehen == [("felworks", terminal.einstellungen.modell("felworks") or "nvidia/nemotron-3-ultra-550b-a55b"), ("ollama", "qwen3:8b")]
+    assert all(zeit <= 8 for url, zeit in aufrufe if "ts.net" in url)
+    assert "Ollama" in capsys.readouterr().out
+    assert [n["role"] for n in terminal.agent.sitzung.nachrichten].count("user") == 1
+
+
+def test_ohne_ausweg_sagt_jonh_klar_was_zu_tun_ist(tmp_path, monkeypatch, capsys):
+    import argparse
+
+    from jon_harness import start
+
+    def anfrage(methode, url, daten=None, kopf=None, zeit=60, **rest):
+        raise netz.NetzFehler("Keine Verbindung", 0)
+
+    monkeypatch.setattr(netz, "anfrage", anfrage)
+    werte = argparse.Namespace(frage=[], einmal=True, weiter=False, anbieter="felworks", modell=None, ordner=str(tmp_path), auto=False, alles=False, ohne_jon=True, version=False)
+    terminal = start.Terminal(werte)
+    assert terminal.ausfuehren("Sag hallo") == ""
+    ausgabe = capsys.readouterr().out
+    assert "FelWorks ist gerade nicht erreichbar" in ausgabe and "Ollama" in ausgabe and "/api" in ausgabe
+
+
+def test_abgeschnittene_datei_wird_gerettet_und_angehaengt(tmp_path, monkeypatch):
+    voll = json.dumps({"pfad": "index.html", "inhalt": "<!DOCTYPE html>\n<html>\n<body>\n<h1>Jon für dich</h1>\n<p>Teil</p>\n"}, ensure_ascii=False)
+    abgeschnitten = voll[: voll.index("<p>Teil")]
+    antworten = [
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "a1", "function": {"name": "datei_schreiben", "arguments": abgeschnitten}}]}}]}),
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "a2", "function": {"name": "datei_anhaengen", "arguments": json.dumps({"pfad": "index.html", "inhalt": "<p>Teil</p>\n</body>\n</html>\n"})}}]}}]}),
+        _sse({"choices": [{"delta": {"content": "Die Website ist fertig."}}]}),
+    ]
+    gesehen = []
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        gesehen.append(json.loads(json.dumps(nachrichten)))
+        return _Antwort(antworten.pop(0)), True
+
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    monkeypatch.setattr(verbindung, "strom", strom)
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "alles")
+    assert agent.runde("Bau mir eine Website") == "Die Website ist fertig."
+    inhalt = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert inhalt.startswith("<!DOCTYPE html>") and inhalt.endswith("</html>\n") and inhalt.count("<h1>") == 1
+    werkzeug_antwort = next(n for n in gesehen[1] if n["role"] == "tool")
+    assert "abgeschnitten" in werkzeug_antwort["content"] and "datei_anhaengen" in werkzeug_antwort["content"]
+    aufruf = next(n for n in gesehen[1] if n.get("tool_calls"))
+    assert json.loads(aufruf["tool_calls"][0]["function"]["arguments"])["pfad"] == "index.html"
+
+
+def test_jonh_entfernt_kommentare_auf_wunsch(tmp_path, monkeypatch):
+    antworten = [
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "a1", "function": {"name": "datei_schreiben", "arguments": json.dumps({"pfad": "spiel.js", "inhalt": "// Start\nconst ziel = 'https://getjon.info';\n"})}}]}}]}),
+        _sse({"choices": [{"delta": {"content": "Fertig."}}]}),
+    ]
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        return _Antwort(antworten.pop(0)), True
+
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    monkeypatch.setattr(verbindung, "strom", strom)
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "alles")
+    assert agent.runde("Programmier mir ein Spiel ohne Kommentare") == "Fertig."
+    assert (tmp_path / "spiel.js").read_text(encoding="utf-8") == "const ziel = 'https://getjon.info';\n"

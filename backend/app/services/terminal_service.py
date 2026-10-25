@@ -237,28 +237,50 @@ def einrichten() -> dict:
             pfad.chmod(0o755)
         except OSError as fehler:
             leise(fehler, "services/terminal")
-    if not im_pfad(ordner):
-        if _windows():
-            alt = _nutzerpfad_windows()
-            teile = [e for e in alt.split(os.pathsep) if e.strip()]
-            if not any(e.rstrip("\\/").lower() == str(ordner).lower() for e in teile):
-                teile.append(str(ordner))
-                if _pfad_setzen_windows(os.pathsep.join(teile)):
-                    hinweise.append("Zum PATH hinzugefuegt.")
-                else:
-                    hinweise.append(
-                        "Der PATH liess sich nicht aendern - trag "
-                        f"{ordner} von Hand ein."
-                    )
-        else:
-            geaendert = _profil_ergaenzen(ordner)
-            if geaendert:
-                hinweise.append("In " + ", ".join(geaendert) + " eingetragen.")
-        os.environ["PATH"] = os.environ.get("PATH", "") + os.pathsep + str(ordner)
+    hinweise += _pfad_sichern(ordner)
     ergebnis = stand()
     ergebnis["hinweise"] = hinweise
     ergebnis["installiert"] = True
     return ergebnis
+
+
+def _pfad_sichern(ordner: Path) -> list[str]:
+    hinweise: list[str] = []
+    if im_pfad(ordner):
+        return hinweise
+    if _windows():
+        alt = _nutzerpfad_windows()
+        teile = [e for e in alt.split(os.pathsep) if e.strip()]
+        if not any(e.rstrip("\\/").lower() == str(ordner).lower() for e in teile):
+            teile.append(str(ordner))
+            if _pfad_setzen_windows(os.pathsep.join(teile)):
+                hinweise.append("Zum PATH hinzugefuegt.")
+            else:
+                hinweise.append(
+                    "Der PATH liess sich nicht aendern - trag "
+                    f"{ordner} von Hand ein."
+                )
+    else:
+        geaendert = _profil_ergaenzen(ordner)
+        if geaendert:
+            hinweise.append("In " + ", ".join(geaendert) + " eingetragen.")
+    os.environ["PATH"] = os.environ.get("PATH", "") + os.pathsep + str(ordner)
+    return hinweise
+
+
+def jonh_sichern() -> dict:
+    if _jonh_lesen() is not None:
+        return {"gemacht": False, "grund": "jonh ist schon da"}
+    ordner = bin_ordner()
+    try:
+        ordner.mkdir(parents=True, exist_ok=True)
+        atomic_write_text(jonh_pfad(), _jonh_inhalt())
+        if not _windows():
+            jonh_pfad().chmod(0o755)
+    except OSError as fehler:
+        leise(fehler, "services/terminal")
+        return {"gemacht": False, "grund": f"jonh liess sich nicht anlegen: {fehler}"}
+    return {"gemacht": True, "jonh": str(jonh_pfad()), "hinweise": _pfad_sichern(ordner)}
 
 
 def _gleich(einer: str, anderer: str) -> bool:
@@ -267,10 +289,10 @@ def _gleich(einer: str, anderer: str) -> bool:
 
 
 def automatisch() -> dict:
-    if _gebuendelt() is None:
-        return {"gemacht": False, "grund": "nur in der fertigen App"}
     if os.environ.get("JON_KEIN_TERMINAL_BEFEHL"):
         return {"gemacht": False, "grund": "abgeschaltet"}
+    if _gebuendelt() is None:
+        return jonh_sichern()
     pfad = befehl_pfad()
     soll = _inhalt()
     try:

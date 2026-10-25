@@ -7,10 +7,10 @@ import uuid
 from contextlib import nullcontext
 from pathlib import Path
 
-from . import netz, oberflaeche as ui, prompt
+from . import kommentare, netz, oberflaeche as ui, prompt
 from .anbieter import Verbindung, protokoll
 from .oberflaeche import BLAU, FETT, GOLD, GRAU, GRUEN, MATT, ROT, TUERKIS, WEISS, f, sag
-from .werkzeuge import JON_WERKZEUG, SCHEMA, Ergebnis, Werkzeugkasten, args_lesen, ausfuehren, befehl_gefaehrlich, befehl_sicher
+from .werkzeuge import ABGESCHNITTEN, JON_WERKZEUG, SCHEMA, Ergebnis, Werkzeugkasten, args_lesen, ausfuehren, befehl_gefaehrlich, befehl_sicher
 
 MAX_SCHRITTE = 400
 KONTEXT_ZEICHEN = 340_000
@@ -100,6 +100,9 @@ class Agent:
         self.sitzung.nachrichten.append({"role": "user", "content": text})
         return self._schleife(still)
 
+    def weiter(self, still: bool = False) -> str:
+        return self._schleife(still)
+
     def _schleife(self, still: bool = False) -> str:
         antwort_gesamt = ""
         for schritt in range(MAX_SCHRITTE):
@@ -112,6 +115,10 @@ class Agent:
                 return inhalt
             for aufruf in aufrufe:
                 ergebnis = self._werkzeug(aufruf["name"], aufruf["args"])
+                if aufruf["name"] in ("datei_schreiben", "datei_anhaengen") and ergebnis.ok and self._ohne_kommentare():
+                    self._kommentare_entfernen(str(aufruf["args"].get("pfad") or ""), ergebnis)
+                if aufruf["args"].get("_abgeschnitten") and ergebnis.ok:
+                    ergebnis.text += "\n" + ABGESCHNITTEN + "\n".join(str(aufruf["args"].get("inhalt", "")).splitlines()[-30:])
                 if self._text_modus() or aufruf.get("text"):
                     self.sitzung.nachrichten.append({"role": "user", "content": f"Ergebnis von {aufruf['name']}:\n{ergebnis.text[:20000]}"})
                 else:
@@ -218,7 +225,9 @@ class Agent:
         for index, platz in sorted(aufrufe.items()):
             if not platz["name"]:
                 continue
-            liste.append({"id": platz["id"] or f"aufruf_{index}_{uuid.uuid4().hex[:6]}", "name": platz["name"], "args": args_lesen(platz["args"]), "roh": platz["args"] or "{}"})
+            gelesen = args_lesen(platz["args"])
+            roh = json.dumps({k: v for k, v in gelesen.items() if not k.startswith("_")}, ensure_ascii=False) if gelesen.get("_repariert") else platz["args"] or "{}"
+            liste.append({"id": platz["id"] or f"aufruf_{index}_{uuid.uuid4().hex[:6]}", "name": platz["name"], "args": gelesen, "roh": roh})
         nachricht: dict = {"role": "assistant", "content": text or None}
         if liste:
             nachricht["tool_calls"] = [{"id": a["id"], "type": "function", "function": {"name": a["name"], "arguments": a["roh"]}} for a in liste]
@@ -228,6 +237,21 @@ class Agent:
         if not text and not liste:
             sag(f("  Das Modell hat nichts geantwortet. Versuch es noch einmal oder wechsle mit /modell.", GRAU))
         return text, liste, grund
+
+    def _ohne_kommentare(self) -> bool:
+        return kommentare.gewuenscht(*[str(n.get("content") or "") for n in self.sitzung.nachrichten if n.get("role") == "user"])
+
+    def _kommentare_entfernen(self, pfad: str, ergebnis: Ergebnis) -> None:
+        try:
+            ziel = self.kasten.pfad(pfad)
+            text = ziel.read_text(encoding="utf-8")
+            sauber = kommentare.entfernen(str(ziel), text)
+            if sauber != text:
+                ziel.write_text(sauber, encoding="utf-8", newline="")
+                self.kasten.gelesen[str(ziel)] = ziel.stat().st_mtime
+                ergebnis.text += "\nKommentare wurden entfernt, wie gewünscht."
+        except (OSError, ValueError):
+            pass
 
     def _text_auswerten(self, text: str, still: bool) -> tuple[str, list[dict], str]:
         treffer = TEXT_BLOCK.search(text)
@@ -251,7 +275,7 @@ class Agent:
         if name == "jon":
             if "jon" in self.erlaubt_immer or self.modus == "auto":
                 return True
-        elif name in ("datei_schreiben", "datei_bearbeiten"):
+        elif name in ("datei_schreiben", "datei_bearbeiten", "datei_anhaengen"):
             ziel = self.kasten.pfad(str(args.get("pfad") or ""))
             if self.modus == "auto" and self.kasten.im_arbeitsordner(ziel):
                 return True
@@ -274,7 +298,7 @@ class Agent:
             if antwort in ("", "j", "y", "ja"):
                 return True
             if antwort in ("i", "immer"):
-                if name in ("datei_schreiben", "datei_bearbeiten"):
+                if name in ("datei_schreiben", "datei_bearbeiten", "datei_anhaengen"):
                     self.erlaubt_immer.add("dateien")
                 elif name == "befehl":
                     kopf = str(args.get("befehl") or "").strip().split()
@@ -330,6 +354,7 @@ class Agent:
         texte = {
             "datei_lesen": ("Liest", pfad),
             "datei_schreiben": ("Schreibt", pfad),
+            "datei_anhaengen": ("Schreibt weiter an", pfad),
             "datei_bearbeiten": ("Bearbeitet", pfad),
             "ordner_zeigen": ("Schaut in", pfad or "."),
             "dateien_finden": ("Sucht Dateien", str(args.get("muster") or "")),

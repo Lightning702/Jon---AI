@@ -27,6 +27,8 @@ class Anbieter:
     lokal: bool = False
 
 
+NICHT_CHAT = ("embed", "rerank", "whisper", "tts", "dall-e", "moderation", "guard", "safety", "parse", "reward", "image", "audio", "transcribe", "vl-1b")
+
 KATALOG: dict[str, Anbieter] = {
     a.kennung: a
     for a in [
@@ -143,13 +145,31 @@ class FelWorks:
     def __init__(self, einstellungen: Einstellungen) -> None:
         self.einstellungen = einstellungen
         self.fehler = ""
+        self._geprueft = 0.0
+        self._erreichbar = True
+
+    def erreichbar(self) -> bool:
+        jetzt = time.time()
+        if jetzt - self._geprueft < 60:
+            return self._erreichbar
+        try:
+            netz.anfrage("GET", f"{CODES}/", zeit=4)
+            ok = True
+        except netz.NetzFehler as fehler:
+            ok = fehler.status != 0
+        except Exception:
+            ok = False
+        self._geprueft, self._erreichbar = jetzt, ok
+        if not ok:
+            self.fehler = "FelWorks ist gerade nicht erreichbar."
+        return ok
 
     def token(self, neu: bool = False) -> str:
         gespeichert = self.einstellungen.get("felworks_token")
         if gespeichert and not neu:
             return str(gespeichert)
         try:
-            antwort = netz.anfrage("POST", f"{CODES}/gast", {"geraet": self.einstellungen.get("geraet"), "art": "terminal"}, zeit=15).json()
+            antwort = netz.anfrage("POST", f"{CODES}/gast", {"geraet": self.einstellungen.get("geraet"), "art": "terminal"}, zeit=8).json()
         except netz.NetzFehler as fehler:
             if fehler.status == 404:
                 self.fehler = "Der freie FelWorks-Zugang wird gerade eingerichtet. Mit /api kannst du so lange einen eigenen Schlüssel nutzen."
@@ -217,7 +237,7 @@ class Verbindung:
             antwort = netz.anfrage("GET", f"{eintrag.basis}/models", kopf=self.kopf(kennung), zeit=8).json()
             for modell in antwort.get("data", []) or antwort.get("models", []) or []:
                 name = modell.get("id") if isinstance(modell, dict) else str(modell)
-                if name and not any(w in name.lower() for w in ("embed", "rerank", "whisper", "tts", "dall-e", "moderation", "guard", "safety", "parse", "reward", "image", "audio", "transcribe", "vl-1b")):
+                if name and not any(w in name.lower() for w in NICHT_CHAT):
                     liste.append(str(name).removeprefix("models/"))
         except Exception:
             liste = []
@@ -228,6 +248,23 @@ class Verbindung:
             liste = bevorzugt + sorted(m for m in liste if m not in bevorzugt)
         self._modelle[kennung] = (time.time(), liste)
         return liste
+
+    def ausweichen(self, mit_jon: bool = True) -> tuple[str, str] | None:
+        if mit_jon and (self.jon.verbunden or self.jon.verbinden(zeit=1.5)):
+            return "jon", "jon"
+        for kennung in ("ollama", "lmstudio"):
+            try:
+                antwort = netz.anfrage("GET", f"{KATALOG[kennung].basis}/models", zeit=1.5).json()
+            except Exception:
+                continue
+            namen = [str(m.get("id")) for m in antwort.get("data", []) or [] if isinstance(m, dict) and m.get("id") and not any(w in str(m.get("id")).lower() for w in NICHT_CHAT)]
+            if namen:
+                gemerkt = self.einstellungen.modell(kennung)
+                return kennung, gemerkt if gemerkt in namen else namen[0]
+        for kennung, eintrag in KATALOG.items():
+            if eintrag.braucht_schluessel and self.einstellungen.schluessel(kennung):
+                return kennung, self.einstellungen.modell(kennung) or eintrag.modelle[0]
+        return None
 
     def pruefen(self, kennung: str, schluessel: str) -> str:
         eintrag = KATALOG[kennung]
@@ -248,6 +285,8 @@ class Verbindung:
 
     def strom(self, kennung: str, modell: str, nachrichten: list[dict], werkzeuge: list[dict] | None, denken: bool | None = None, max_tokens: int = 8192, temperatur: float = 0.4):
         eintrag = KATALOG[kennung]
+        if kennung == "felworks" and not self.felworks.erreichbar():
+            raise netz.NetzFehler(self.felworks.fehler or "FelWorks ist gerade nicht erreichbar.")
         koerper: dict = {"model": modell, "messages": nachrichten, "stream": True, "max_tokens": max_tokens, "temperature": temperatur}
         if kennung not in ("anthropic",):
             koerper["stream_options"] = {"include_usage": True}

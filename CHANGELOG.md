@@ -2,6 +2,38 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.5] — 2026-10-25
+
+### Jon kann Blender
+
+- **Häuser wie echte Häuser:** Eingelassene Fenster mit Rahmen, Sprossen und Fensterbank, Haustür mit Stufe und Vordach, Ziegeldach mit First, Regenrinne und Kamin, auf Wunsch Fensterläden, zwei Stockwerke oder Flachdach. Abends leuchten die Fenster.
+- **Ganze Städte:** Straßenraster mit Mittellinien und Zebrastreifen, Hochhäuser mit Fensterfassaden, Ladenzeilen und Dachtechnik, Bäume, Laternen und Autos. Aus der Vogelperspektive oder von der Straße, nachts mit leuchtenden Fenstern und Laternen.
+- **Innenräume:** Raum mit Decke, Fenster nach draußen, Fußleisten und Deckenlicht. Dazu Sofa, Sessel, Tisch, Couchtisch, Stühle, Bett, Schrank, Regal mit Büchern, Küche, Fernseher, Teppich, Pflanzen, Steh-, Tisch- und Deckenlampen und Bilder. Die Kamera steht schon richtig im Raum.
+- **Uhren, Autos, Produkte:** Wanduhr und Wecker mit Minutenstrichen, römischen oder arabischen Ziffern, Zeigern zur gewünschten Uhrzeit und auf Wunsch Glas. Steht die Uhr allein, hängt Jon sie an eine Wand, den Wecker stellt er auf einen Tisch. Autos mit Radkästen, Scheinwerfern und Kennzeichen. Ein Fotostudio mit Hohlkehle und drei Lichtern für einzelne Objekte.
+- **Himmel und Boden:** Tag, Morgen, Abend, Nacht mit Sternen oder Wolken, jeweils mit passender Sonne. Böden von Gras über Asphalt und Pflaster bis Wasser und Schnee, Wälder mit Laub- und Nadelbäumen.
+- **Weniger Fehlschläge:** Abgeschnittene Skripte erkennt Jon vor dem Blender-Start und lässt sie kürzer neu schreiben. Fehlermeldungen nennen die Zeile im Skript statt einer internen Zeilennummer, und die Reparatur sieht das ganze Skript. Alte Blender-3-Namen wie `Specular`, `Emission` oder `use_bloom` übersetzt oder entschärft Jon automatisch.
+- **Die Kamera sitzt:** Gruppen wie ein ganzes Haus oder eine Uhr werden richtig eingerahmt, eine frisch angelegte Kamera schaut nie mehr von unten auf das Motiv, und weit entfernte Böden werden nicht mehr abgeschnitten.
+- **Schöneres Bild:** AgX mit mehr Kontrast, Raytracing in Eevee und Glühen nur noch bei echten Lichtquellen.
+
+### Jon Harness
+
+- **Bilder, Videos und Dateien hineinziehen:** Im Harness ziehst du Dateien per Drag and Drop in das Eingabefeld, fügst sie mit Strg+V ein oder wählst sie über die Büroklammer. Jon bekommt sie mit Pfad und Art und arbeitet direkt damit.
+- **Updater:** `/update` (oder `jonh update`) lädt die neue Version direkt aus dem GitHub-Release, prüft die SHA-256-Prüfsumme und tauscht die Datei aus. Geht etwas schief, bleibt die alte Version. `/update auto` installiert neue Versionen künftig beim Start von selbst.
+- **Ausweichen, wenn FelWorks fehlt:** Ist der freie FelWorks-Zugang nicht erreichbar, merkt `jonh` das nach wenigen Sekunden statt nach über einer halben Minute und arbeitet von selbst mit Jon, Ollama, LM Studio oder einem gespeicherten eigenen Schlüssel weiter. Gibt es keinen Ausweg, sagt er klar, was zu tun ist.
+- **`jonh` fehlte:** Startete Jon aus dem Quellcode, legte er `jonh` nie an, weil das nur die fertige App tat. Jetzt entsteht `jonh` bei jedem Start, wenn er fehlt. Ein eigenes `jonh` bleibt unangetastet.
+
+### Behoben
+
+- **Harness brach bei großen Dateien ab:** Eine ganze Website in einem Schritt war länger, als das Modell auf einmal ausgeben darf. Die Antwort wurde abgeschnitten, das Werkzeug-JSON war kaputt, und nach fünf Versuchen gab der Harness auf („liefert keine gültigen Harness-Schritte“). Jetzt rettet Jon den abgeschnittenen Teil bis zur letzten vollständigen Zeile, zeigt dem Modell das Dateiende und lässt es mit dem neuen Werkzeug `append` (im Terminal `datei_anhaengen`) in Teilen weiterschreiben. Doppelte Zeilen an den Nahtstellen entfernt Jon selbst. Live geprüft mit „Code mir nur mit HTML eine perfekte Website, wo alles von dir vorgestellt wird“: fertig in einem Durchgang ohne Fehler.
+- **„Ohne Kommentare“ gilt wirklich:** Steht im Auftrag „ohne Kommentare“, entfernt der Harness in der App und im Terminal nach jedem Schreiben alle Kommentare aus HTML-, CSS- und JavaScript-Dateien. Das geschieht zustandsbasiert: URLs, Texte, Vorlagen und reguläre Ausdrücke bleiben unangetastet.
+- **Saubere Nahtstellen:** Beim Weiterschreiben bekommt das Modell die Liste der schon vorhandenen Abschnitte und den Stand von `<style>` und `<script>` mit, damit nichts doppelt oder an der falschen Stelle landet.
+- **Endlos dieselbe Ordnerauflistung:** Ruft das Modell `list` mit denselben Angaben immer wieder auf, sagt Jon ihm nach dem zweiten Mal, dass es jetzt umsetzen soll.
+- **Anrufe in der doppelten Stunde:** Plante man in der Nacht der Zeitumstellung zwischen 2 und 3 Uhr einen Anruf „in 1 Minute“, lag er eine Stunde in der Vergangenheit und klingelte sofort. Relative Zeiten rechnet Jon jetzt über UTC.
+
+### GitHub-Seite
+
+- Neue Übersicht „Neu in Jon 4.59 bis 4.65“ mit allen Funktionen seit 4.58, deutlich weniger Emojis, und die englische Fassung ist wieder aktuell.
+
 ## [4.65.4] — 2026-10-24
 
 ### Jon schickt dir Sachen aufs Handy

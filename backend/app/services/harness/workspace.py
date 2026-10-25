@@ -12,6 +12,16 @@ EXCLUDED = set(IGNORE_DIRS) | {".git", ".svn", ".hg", ".ssh", ".aws", ".azure", 
 MAX_BYTES = 300_000
 
 
+def naht_bereinigen(alt: str, neu: str, fenster: int = 40) -> str:
+    vorher = [z.strip() for z in alt.splitlines()]
+    zeilen = neu.splitlines(True)
+    nachher = [z.strip() for z in zeilen]
+    for anzahl in range(min(fenster, len(vorher), len(nachher)), 0, -1):
+        if vorher[-anzahl:] == nachher[:anzahl] and sum(len(z) for z in nachher[:anzahl]) >= 30:
+            return "".join(zeilen[anzahl:])
+    return neu
+
+
 class Workspace:
     def __init__(self, root: str) -> None:
         self.root = Path(root).expanduser().resolve(strict=True)
@@ -113,6 +123,36 @@ class Workspace:
             raise FileExistsError("Datei existiert bereits. Zum vollständigen Neuschreiben erst lesen, dann create mit overwrite=true; für kleine Änderungen edit.") from None
         self.seen[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
         return {"path": value, "created": True, "diff": "".join(difflib.unified_diff([], content.splitlines(True), fromfile="/dev/null", tofile=value))[:20000]}
+
+    def append(self, value: str, content: str) -> dict:
+        path = self.path(value)
+        if not path.is_file():
+            raise ValueError("Diese Datei gibt es noch nicht. Lege sie zuerst mit create an, danach geht append.")
+        raw = path.read_bytes()
+        alt = raw.decode("utf-8-sig", errors="replace")
+        content = naht_bereinigen(alt, content)
+        trenner = "" if not alt or alt.endswith("\n") or content.startswith("\n") else "\n"
+        neu = alt + trenner + content
+        if len(neu.encode("utf-8")) > MAX_BYTES:
+            raise ValueError("Datei überschreitet 300 KB.")
+        self.system.write_file(str(path), neu)
+        self.seen[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        return {"path": value, "appended": True, "total_lines": len(neu.splitlines()), "ende": "\n".join(neu.splitlines()[-25:]), "diff": "".join(difflib.unified_diff(alt.splitlines(True), neu.splitlines(True), fromfile=value, tofile=value))[:20000]}
+
+    def kommentare_entfernen(self, value: str) -> bool:
+        from app.services.harness import kommentare
+
+        path = self.path(value)
+        raw = path.read_bytes()
+        text = raw.decode("utf-8-sig", errors="replace")
+        sauber = kommentare.entfernen(value, text)
+        if sauber == text:
+            return False
+        if raw.startswith(b"\xef\xbb\xbf"):
+            sauber = "\ufeff" + sauber
+        self.system.write_file(str(path), sauber)
+        self.seen[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        return True
 
     def search(self, text: str) -> dict:
         if not text:

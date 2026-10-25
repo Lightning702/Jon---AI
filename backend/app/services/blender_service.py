@@ -11,6 +11,8 @@ import time
 from pathlib import Path
 
 from app.core.fehler import leise
+from app.services.blender_bausteine import BAUSTEINE, GLANZ, PRUEFUNG
+from app.services.blender_bauwerke import BAUWERKE
 from app.services.dateiindex_service import get_dateiindex_service, karte
 from app.services.dateiraum_service import get_dateiraum_service, saeubern
 
@@ -40,14 +42,76 @@ SKRIPT_SYSTEM = (
     "Skript, ohne Erklaerung und ohne Code-Zaun.\n"
     "Regeln:\n"
     "- Beginne mit 'import bpy' und, wenn noetig, 'import math' oder 'import random'.\n"
-    "- Die Szene ist bereits leer. Baue nur auf, was verlangt ist.\n"
-    "- Setze immer eine Kamera und mindestens eine Lichtquelle, sodass ein Render "
-    "etwas zeigt. Richte die Kamera so aus, dass das Motiv formatfuellend im Bild ist.\n"
-    "- Benutze nur stabile bpy-Operatoren aus Blender 3.x/4.x.\n"
-    "- Materialien setzt du ueber bpy.data.materials.new und use_nodes mit dem "
-    "Principled BSDF; Eingaenge sprichst du ueber ihren Namen an "
-    "(z.B. inputs['Base Color'], inputs['Metallic'], inputs['Roughness']).\n"
-    "- Kein bpy.ops.wm.save_as_mainfile, kein Render, kein Export - das macht Jon.\n"
+    "- Die Szene ist leer. Einheiten sind Meter, z zeigt nach oben, der Boden liegt bei "
+    "z=0. Stelle alles auf den Boden (nichts schwebt, nichts steckt im Boden) und halte "
+    "echte Groessen ein: Tuer 2.1 m, Stockwerk 2.8 m, Tisch 0.75 m, Stuhlsitz 0.45 m, "
+    "Auto 4.3 m. Baue mit Liebe zum Detail: Materialien, Proportionen, eine stimmige "
+    "Umgebung.\n"
+    "- Halte das Skript kurz (hoechstens etwa 150 Zeilen): Schleifen, Hilfsfunktionen und "
+    "vor allem Jons fertige Bausteine. Ein abgeschnittenes Skript ist wertlos.\n"
+    "- Fertige Bausteine, schon definiert, einfach aufrufen:\n"
+    "  Umgebung: jon_himmel(zeit='tag'|'morgen'|'abend'|'nacht'|'bewoelkt') setzt Himmel "
+    "und Sonne. jon_boden(art='gras'|'asphalt'|'pflaster'|'sand'|'schnee'|'wasser'|'erde'|"
+    "'beton'|'holz'|'fliesen', groesse=160). jon_studio(farbe=(r, g, b)) baut NACH dem "
+    "Motiv eine Fotostudio-Hohlkehle mit drei Lichtern, ideal fuer einzelne Objekte.\n"
+    "  Gebaeude und Landschaft: jon_haus(breite=9, tiefe=7, stockwerke=1, dach='sattel'|"
+    "'flach', wandfarbe, dachfarbe, ort=(x, y, 0), drehung=0, kamin=True, "
+    "fensterlaeden=False) mit eingelassenen Fenstern, Haustuer, Stufe, Vordach, "
+    "Ziegeldach und Regenrinne, Vorderseite zeigt nach -y. jon_baum(ort, hoehe=6, "
+    "art='laub'|'nadel'). jon_wald(anzahl=30, flaeche=(40, 40), mitte=(x, y, 0), "
+    "frei=[(x, y, radius)]). jon_stadt(bloecke=4, hoehe=(9, 60), blick='schraeg'|"
+    "'strasse') baut eine ganze Stadt mit Strassen, Zebrastreifen, Hochhaeusern, "
+    "Baeumen, Laternen, Autos und Kamera. jon_auto(ort, drehung, farbe). "
+    "jon_laterne(ort, drehung).\n"
+    "  Innenraeume: jon_raum(breite=6, tiefe=5, hoehe=2.7, wandfarbe, boden='holz'|"
+    "'fliesen'|'teppich'|'beton', fenster='hinten'|'links'|'rechts'|None) baut Boden, drei "
+    "Waende mit Fenster, Deckenlicht und stellt die Kamera schon richtig an die offene "
+    "Vorderseite. Der Raum reicht von x=-breite/2 bis breite/2 und von y=-tiefe/2 (offen, "
+    "Kamera) bis y=tiefe/2 (Rueckwand). Moebel stehen mit ort=(x, y, 0) auf dem Boden, "
+    "drehung in Grad: 0 heisst Vorderseite zur Kamera (-y), 90 nach +x, -90 nach -x, 180 "
+    "nach +y. Moebel an der Rueckwand brauchen KEINE Drehung: jon_sofa(ort=(0, tiefe/2 - "
+    "0.55, 0)), jon_kueche(ort=(0, tiefe/2 - 0.32, 0)); an der linken Wand drehung=90, an "
+    "der rechten drehung=-90. Moebel an einer Wand dreht Jon zur Sicherheit zum Raum, Bilder "
+    "haengt er an die naechste Wand. Die Kueche kommt an eine Wand ohne Fenster. Moebel: "
+    "jon_sofa(farbe, breite=2.2), jon_sessel, jon_tisch(breite, tiefe, hoehe), "
+    "jon_couchtisch, jon_stuhl, jon_bett, jon_schrank, jon_regal(buecher=True), "
+    "jon_kueche(breite=3), jon_fernseher(zoll=55), jon_teppich(groesse=(2.4, 1.7)), "
+    "jon_pflanze(groesse=1), jon_lampe(art='steh'|'tisch'|'decke'; Tischlampe mit "
+    "ort=(x, y, tischhoehe), Haengelampe mit ort=(x, y, raumhoehe)), jon_bild(ort=(x, y, z)) "
+    "fuer ein Bild an der Wand.\n"
+    "  Uhren: jon_uhr(durchmesser=0.6, uhrzeit=(10, 10, 32), ziffern='roemisch'|"
+    "'arabisch'|'striche', stil='wand'|'wecker', gehaeusefarbe, zifferblattfarbe, ort, glas=False) "
+    "mit Gehaeuse, Minutenstrichen, Ziffern, Zeigern und Kamera. Steht die Uhr allein "
+    "in der Szene, haengt Jon sie an eine Wand (den Wecker auf einen Tisch) und setzt Licht.\n"
+    "  Weltraum: jon_sternenhimmel(), jon_schwarzes_loch(groesse=1, neigung=9, "
+    "scheibenfarbe, leuchten=6) mit Akkretionsscheibe, Photonenring, gelinster Scheibe "
+    "und Kamera, jon_planet(radius, farbe, ort, ringe=False, atmosphaere=True), "
+    "jon_sonne(radius, ort), jon_galaxie(arme=2, sterne=5000, radius=6).\n"
+    "  Materialien: jon_material(name, farbe, metall=0, rau=0.5, leuchten=0), "
+    "jon_leuchtmaterial(name, farbe, staerke), jon_holz(name, farbe, dielen=False), "
+    "jon_putz(name, farbe), jon_ziegel(name, farbe), jon_dachziegel(name, farbe), "
+    "jon_stoff(name, farbe), jon_glas(name, farbe, deckkraft=0.12), jon_metall(name, "
+    "farbe, rau), jon_fliesen(name, farbe), jon_fassade(name, wandfarbe, glasfarbe).\n"
+    "  Eigene Formen: bau = JonBau('Name'); bau.quader(mitte, (breite, tiefe, hoehe), "
+    "material, drehung=(rx, ry, rz)); bau.zylinder(mitte, radius, hoehe, material, "
+    "oben=None, drehung=(rx, ry, rz)); bau.kugel(mitte, radius, material, streckung=(sx, "
+    "sy, sz)); objekt = bau.fertig(ort=(x, y, z), drehung=0, fase=0.01). Alle Teile werden "
+    "ein Objekt mit sauberen Kanten; Winkel in Grad.\n"
+    "- Kamera: jon_kamera(richtung=(x, y, z), brennweite=50, objekte=None) setzt sie aus "
+    "der Richtung (vom Motiv zur Kamera) formatfuellend. Fuer Gebaeude passt "
+    "richtung=(1, -1.3, 0.45) mit brennweite=35. Stelle Baeume und Deko seitlich oder "
+    "hinter das Motiv, nie zwischen Kamera und Motiv. jon_raum, jon_stadt, jon_uhr und "
+    "jon_schwarzes_loch setzen die Kamera selbst, danach kein jon_kamera mehr. Ohne Aufruf "
+    "prueft Jon am Ende, ob alles im Bild ist. jon_kamera_fest() verhindert jede Korrektur.\n"
+    "- Licht: jon_himmel setzt Sonne und Himmel; fehlt Licht ganz, setzt Jon eines.\n"
+    "- Eigene Materialien: bpy.data.materials.new, use_nodes, Principled BSDF mit den "
+    "Blender-4-Namen inputs['Base Color'], inputs['Metallic'], inputs['Roughness'], "
+    "inputs['Alpha'], inputs['Emission Color'], inputs['Emission Strength'].\n"
+    "- Beispiel: import bpy / jon_himmel('abend') / jon_boden('gras') / "
+    "jon_haus(stockwerke=2) / jon_baum((-9, 5, 0)) / jon_kamera(richtung=(1, -1.3, 0.42), "
+    "brennweite=35)\n"
+    "- Kein bpy.ops.wm.save_as_mainfile, kein Render, kein Export und keine Einstellungen "
+    "an Render-Engine oder Farbmanagement - das macht Jon.\n"
     "- Keine Addons, die nicht standardmaessig aktiv sind.\n"
     "- Kein Zugriff auf Dateien, kein Netzwerk, kein os/subprocess/sys."
 )
@@ -56,7 +120,40 @@ REPARATUR_SYSTEM = (
     "Du reparierst ein fehlgeschlagenes Blender-Python-Skript. Du bekommst das Skript "
     "und die Fehlermeldung. Antworte AUSSCHLIESSLICH mit dem korrigierten vollstaendigen "
     "Skript, ohne Erklaerung und ohne Code-Zaun. Aendere genau das, was den Fehler "
-    "ausloest, und behalte die Absicht bei."
+    "ausloest, und behalte die Absicht bei. Zeilennummern beziehen sich auf das Skript. "
+    "Jons Bausteine (alle Funktionen jon_..., die Klasse JonBau) sind bereits definiert, "
+    "lass ihre Aufrufe stehen. Blender 4: Principled-Eingaenge heissen 'Specular IOR "
+    "Level', 'Emission Color', 'Transmission Weight', 'Coat Weight', 'Subsurface Weight', "
+    "'Sheen Weight'; scene.eevee.use_bloom, use_ssr, use_gtao und mesh.use_auto_smooth gibt "
+    "es nicht mehr."
+)
+
+KUERZER = (
+    "\n\nWICHTIG: Dein letztes Skript war zu lang und wurde mitten im Code abgeschnitten. "
+    "Schreibe es neu und deutlich kuerzer, hoechstens 120 Zeilen, mit Schleifen und Jons "
+    "Bausteinen."
+)
+
+ALTE_EINGAENGE = {
+    "Specular": "Specular IOR Level",
+    "Subsurface": "Subsurface Weight",
+    "Transmission": "Transmission Weight",
+    "Clearcoat": "Coat Weight",
+    "Clearcoat Roughness": "Coat Roughness",
+    "Clearcoat Normal": "Coat Normal",
+    "Sheen": "Sheen Weight",
+    "Emission": "Emission Color",
+}
+
+ALTE_NAMEN = re.compile(
+    r"inputs\[(['\"])(" + "|".join(sorted(map(re.escape, ALTE_EINGAENGE), key=len, reverse=True)) + r")\1\]"
+)
+
+WACKELIG = re.compile(
+    r"^(?P<einzug>[ \t]*)(?P<befehl>[A-Za-z_][\w.\[\]'\"]*\.(?:eevee\.\w+|shadow_method|"
+    r"blend_method|show_transparent_back|use_screen_refraction|use_auto_smooth|"
+    r"auto_smooth_angle|render\.engine|view_transform|look|use_ssr\w*)\s*=[^=].*)$",
+    re.MULTILINE,
 )
 
 VERBOTEN = re.compile(
@@ -72,38 +169,38 @@ for _block in list(bpy.data.objects):
 for _sammlung in (bpy.data.meshes, bpy.data.materials, bpy.data.cameras, bpy.data.lights):
     for _eintrag in list(_sammlung):
         _sammlung.remove(_eintrag)
+""" + BAUSTEINE + BAUWERKE
+
+FUSS = "\nimport bpy\n" + PRUEFUNG + """
+bpy.ops.wm.save_as_mainfile(filepath=__JON_BLEND__)
+print("JON_OK objekte=%d" % len(bpy.data.objects))
 """
 
-FUSS = """
-import bpy as _bpy
-
-if _bpy.context.scene.camera is None:
-    _kamera_daten = _bpy.data.cameras.new("JonKamera")
-    _kamera = _bpy.data.objects.new("JonKamera", _kamera_daten)
-    _bpy.context.collection.objects.link(_kamera)
-    _kamera.location = (7.0, -7.0, 5.0)
-    _kamera.rotation_euler = (1.1, 0.0, 0.785)
-    _bpy.context.scene.camera = _kamera
-
-if not [o for o in _bpy.data.objects if o.type == "LIGHT"]:
-    _licht_daten = _bpy.data.lights.new("JonLicht", type="AREA")
-    _licht_daten.energy = 900.0
-    _licht_daten.size = 6.0
-    _licht = _bpy.data.objects.new("JonLicht", _licht_daten)
-    _bpy.context.collection.objects.link(_licht)
-    _licht.location = (5.0, -5.0, 8.0)
-
-_bpy.ops.wm.save_as_mainfile(filepath=__JON_BLEND__)
-print("JON_OK objekte=%d" % len(_bpy.data.objects))
-"""
-
-RENDER_SKRIPT = """
-import bpy as _bpy
-
-_szene = _bpy.context.scene
-_szene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in [
-    e.bl_idname for e in _bpy.types.RenderEngine.__subclasses__()
-] else _szene.render.engine
+RENDER_SKRIPT = "import bpy\nimport math\n" + GLANZ + """
+_szene = bpy.context.scene
+for _maschine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
+    try:
+        _szene.render.engine = _maschine
+        break
+    except TypeError:
+        continue
+for _ansicht in ("AgX", "Filmic"):
+    try:
+        _szene.view_settings.view_transform = _ansicht
+        break
+    except TypeError:
+        continue
+for _blick in ("AgX - Medium High Contrast", "Medium High Contrast"):
+    try:
+        _szene.view_settings.look = _blick
+        break
+    except TypeError:
+        continue
+for _schalter in ("use_raytracing", "use_gtao", "use_ssr", "use_ssr_refraction", "use_soft_shadows"):
+    if hasattr(_szene.eevee, _schalter):
+        setattr(_szene.eevee, _schalter, True)
+print("JON_GLANZ=%s" % _jon_glanz(_szene))
+_bpy = bpy
 _szene.render.image_settings.file_format = "PNG"
 _szene.render.filepath = __JON_BILD__
 _szene.render.resolution_x = __JON_BREITE__
@@ -114,14 +211,21 @@ print("JON_RENDER_OK")
 """
 
 
-def _fehlerzeilen(text: str, grenze: int = 700) -> str:
-    zeilen = [z for z in str(text or "").splitlines() if z.strip()]
+def _fehlerzeilen(text: str, grenze: int = 700, versatz: int = 0) -> str:
+    def umrechnen(treffer: re.Match) -> str:
+        nummer = int(treffer.group(1))
+        if versatz and nummer > versatz:
+            return f"Skript, Zeile {nummer - versatz}"
+        return "Jons Bausteine" if versatz else f"Zeile {nummer}"
+
+    text = re.sub(r'File "[^"]*jon-blender-[^"]*", line (\d+)', umrechnen, str(text or ""))
+    zeilen = [z for z in text.splitlines() if z.strip()]
     wichtig = [
         z
         for z in zeilen
         if "Error" in z or "error" in z or "Traceback" in z or z.startswith("  ")
     ]
-    return "\n".join(wichtig or zeilen[-12:])[:grenze]
+    return "\n".join(wichtig or zeilen[-12:])[-grenze:]
 
 
 class BlenderService:
@@ -201,7 +305,9 @@ class BlenderService:
         ziel.mkdir(parents=True, exist_ok=True)
         return {"pfad": str(ziel)}
 
-    def _ausfuehren(self, skript: str, blend: Path | None, grenze: int) -> dict:
+    def _ausfuehren(
+        self, skript: str, blend: Path | None, grenze: int, versatz: int = 0
+    ) -> dict:
         stand = self.gefunden()
         if not stand["da"]:
             return {"ok": False, "fehler": stand["hinweis"], "fehlt": True}
@@ -242,7 +348,7 @@ class BlenderService:
             "ok": erfolg,
             "code": lauf.returncode,
             "ausgabe": ausgabe[-4000:],
-            "fehler": "" if erfolg else _fehlerzeilen(ausgabe),
+            "fehler": "" if erfolg else _fehlerzeilen(ausgabe, versatz=versatz),
         }
 
     @staticmethod
@@ -256,6 +362,38 @@ class BlenderService:
             return "Das erzeugte Skript benutzt bpy gar nicht."
         return ""
 
+    def _anpassen(self, skript: str) -> str:
+        treffer = re.search(r"(\d+)\.(\d+)", self._version or "")
+        if treffer is None or int(treffer.group(1)) >= 4:
+            skript = ALTE_NAMEN.sub(
+                lambda t: f"inputs[{t.group(1)}{ALTE_EINGAENGE[t.group(2)]}{t.group(1)}]", skript
+            )
+        def absichern(treffer: re.Match) -> str:
+            befehl = treffer.group("befehl").rstrip()
+            offen = sum(befehl.count(z) for z in "([{") - sum(befehl.count(z) for z in ")]}")
+            if offen or befehl.endswith(("\\", ":")):
+                return treffer.group(0)
+            einzug = treffer.group("einzug")
+            return f"{einzug}try: {befehl}\n{einzug}except Exception: pass"
+
+        return WACKELIG.sub(absichern, skript)
+
+    @staticmethod
+    def _syntax(skript: str) -> tuple[str, bool]:
+        try:
+            compile(skript, "skript", "exec")
+        except SyntaxError as fehler:
+            zeilen = skript.splitlines()
+            nummer = int(fehler.lineno or 0)
+            meldung = str(fehler.msg or "")
+            abgeschnitten = nummer >= len(zeilen) - 3 and any(
+                wort in meldung
+                for wort in ("never closed", "EOF", "unterminated", "expected an indented block", "was not closed")
+            )
+            zeile = zeilen[nummer - 1].strip() if 0 < nummer <= len(zeilen) else ""
+            return f"SyntaxError: {meldung} (Skript, Zeile {nummer})" + (f"\n    {zeile}" if zeile else ""), abgeschnitten
+        return "", False
+
     @staticmethod
     def _saeubern(roh: str) -> str:
         text = str(roh or "").strip()
@@ -264,16 +402,23 @@ class BlenderService:
             text = re.sub(r"```\s*$", "", text).strip()
         return text
 
-    async def _skript_bauen(self, auftrag: str, fehler: str = "", vorher: str = "") -> str:
+    async def _skript_bauen(
+        self, auftrag: str, fehler: str = "", vorher: str = "", kuerzer: bool = False
+    ) -> str:
         from app.services.llm import complete
 
-        if fehler and vorher:
-            eingabe = f"Skript:\n{vorher[:4000]}\n\nFehler:\n{fehler[:800]}"
+        if fehler and vorher and not kuerzer:
+            eingabe = f"Skript:\n{vorher[:24000]}\n\nFehler:\n{fehler[-1200:]}"
             return self._saeubern(
-                await complete(REPARATUR_SYSTEM, eingabe, max_tokens=1800, temperature=0.2)
+                await complete(REPARATUR_SYSTEM, eingabe, max_tokens=9000, temperature=0.2)
             )
         return self._saeubern(
-            await complete(SKRIPT_SYSTEM, auftrag, max_tokens=1800, temperature=0.4)
+            await complete(
+                SKRIPT_SYSTEM,
+                auftrag + (KUERZER if kuerzer else ""),
+                max_tokens=9000,
+                temperature=0.4,
+            )
         )
 
     async def szene(
@@ -285,7 +430,7 @@ class BlenderService:
         export: str = "",
         quelle: str = "app",
     ) -> dict:
-        sauber = " ".join(str(auftrag or "").split())[:400]
+        sauber = " ".join(str(auftrag or "").split())[:1500]
         if len(sauber) < 3:
             return {"error": "Was soll in der Szene entstehen?"}
         stand = self.gefunden()
@@ -300,15 +445,28 @@ class BlenderService:
         protokoll: list[dict] = []
         skript = ""
         fehlertext = ""
+        kuerzer = False
+        versatz = KOPF.count("\n") + 1
         for versuch in range(1, MAX_VERSUCHE + 1):
             try:
-                skript = await self._skript_bauen(sauber, fehlertext, skript)
+                skript = await self._skript_bauen(sauber, fehlertext, skript, kuerzer)
             except Exception as exc:
                 return {"error": f"Das Skript liess sich nicht erzeugen: {exc}"}
             einwand = self._pruefen(skript)
             if einwand:
                 protokoll.append({"versuch": versuch, "ok": False, "fehler": einwand})
                 fehlertext = einwand
+                continue
+            skript = self._anpassen(skript)
+            fehlertext, kuerzer = self._syntax(skript)
+            if fehlertext:
+                protokoll.append(
+                    {
+                        "versuch": versuch,
+                        "ok": False,
+                        "fehler": ("Skript abgeschnitten. " if kuerzer else "") + fehlertext[:400],
+                    }
+                )
                 continue
             ganz = (
                 KOPF
@@ -317,7 +475,7 @@ class BlenderService:
                 + "\n"
                 + FUSS.replace("__JON_BLEND__", json.dumps(str(blend)))
             )
-            ergebnis = self._ausfuehren(ganz, None, ZEITGRENZE)
+            ergebnis = self._ausfuehren(ganz, None, ZEITGRENZE, versatz)
             protokoll.append(
                 {
                     "versuch": versuch,
@@ -449,7 +607,7 @@ class BlenderService:
             return {"error": einwand}
         datei = Path(blend)
         ergebnis = self._ausfuehren(
-            skript + f"\nimport bpy as _b\n_b.ops.wm.save_mainfile()\n",
+            "import bpy\n" + BAUSTEINE + BAUWERKE + "\n" + skript + "\nimport bpy as _b\n_b.ops.wm.save_mainfile()\n",
             datei if datei.exists() else None,
             ZEITGRENZE,
         )
