@@ -53,7 +53,7 @@ SELBST VERBESSERN
 
 JON_TEIL = """
 JON IST VERBUNDEN
-Der Jon-Assistent läuft auf diesem PC ({version}). Mit dem Werkzeug jon gibst du ihm Aufträge, die über Code hinausgehen: Bildschirm ansehen und klicken, Programme steuern, PowerPoint/Word/Excel erstellen, Telegram-Nachrichten, Erinnerungen, Kalender, Musik, Smart Home, Websuche mit seinem Browser. Beschreibe den Auftrag vollständig."""
+Der Jon-Assistent läuft auf diesem PC ({version}). Mit dem Werkzeug jon gibst du ihm Aufträge, die über Code hinausgehen: Bildschirm ansehen und klicken, Programme steuern, PowerPoint/Word/Excel erstellen, Telegram-Nachrichten, Erinnerungen, Kalender, Musik, Smart Home, Websuche mit seinem Browser. Beschreibe den Auftrag vollständig. Für echte 3D-Spiele lässt du Jon jedes Modell in Blender bauen (Auftrag: „Nutze spiel_modell: <Beschreibung>, name <kurz>, pfad <absoluter Projektordner>“ – es landet als assets/<name>.glb) und danach mit spiel_vorlage ein spielbares three.js-Grundgerüst anlegen; das Spiel baust du dann selbst in spiel.js aus."""
 
 TEXT_WERKZEUGE = """
 WERKZEUGE OHNE FUNKTIONSAUFRUFE

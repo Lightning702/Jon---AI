@@ -78,6 +78,16 @@ GAMES: dict[str, GameProfile] = {
         interact_range=14.0,
         edits_per_second=8.0,
     ),
+    "blitzbahn": GameProfile(
+        max_speed=175.0,
+        max_fall=320.0,
+        world_radius=40000.0,
+        height_min=-400.0,
+        height_max=2000.0,
+        edit_range=6.0,
+        interact_range=12.0,
+        edits_per_second=4.0,
+    ),
     "echo": GameProfile(
         max_speed=11.0,
         world_radius=2000.0,

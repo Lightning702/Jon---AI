@@ -61,6 +61,17 @@
         "!bin/*.log",
         "vorschau/**/*"
       ]
+    },
+    {
+      "from": "../spiele/BLITZBAHN",
+      "to": "BLITZBAHN",
+      "filter": [
+        "jon-spiele.json",
+        "README.md",
+        "bin/**/*",
+        "!bin/*.log",
+        "vorschau/**/*"
+      ]
     }
   ],
   "directories": {

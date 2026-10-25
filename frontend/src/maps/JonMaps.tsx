@@ -50,6 +50,8 @@ export interface JonMapsIntent {
   route?: [number, number][];
   street?: boolean;
   explorer?: boolean;
+  explorerModus?: "fuss" | "auto" | "flugzeug";
+  jahr?: number;
   from?: MapsPlace;
   to?: MapsPlace;
   via?: MapsPlace[];
@@ -121,6 +123,8 @@ export default function JonMaps({
   const [street, setStreet] = useState<{ lat: number; lon: number } | null>(null);
   const [explorer, setExplorer] = useState(false);
   const [explorerStart, setExplorerStart] = useState({ lat: 0, lon: 0 });
+  const [explorerModus, setExplorerModus] = useState<"fuss" | "auto" | "flugzeug">("flugzeug");
+  const [explorerJahr, setExplorerJahr] = useState<number | undefined>(undefined);
   const [toast, setToast] = useState("");
   const [homeName, setHomeName] = useState("");
   const [friends, setFriends] = useState<FriendsResult | null>(null);
@@ -387,6 +391,11 @@ export default function JonMaps({
     }
     if (intent.explorer && intent.center) {
       setExplorerStart({ lat: intent.center.lat, lon: intent.center.lon });
+      setExplorerModus(intent.explorerModus ?? "fuss");
+      setExplorerJahr(intent.jahr);
+      setLayers((current) => ({ ...current, gebaeude3d: true }));
+      setTerrain(true);
+      setProjection("mercator");
       setExplorer(true);
     }
   }, [intent, flyTo]);
@@ -777,7 +786,9 @@ export default function JonMaps({
     });
   };
 
-  const openExplorer = (lat?: number, lon?: number) => {
+  const openExplorer = (lat?: number, lon?: number, modus: "fuss" | "auto" | "flugzeug" = "flugzeug") => {
+    setExplorerModus(modus);
+    setExplorerJahr(undefined);
     setExplorerStart({
       lat: lat ?? selected?.lat ?? view.lat,
       lon: lon ?? selected?.lon ?? view.lon,
@@ -1223,6 +1234,8 @@ export default function JonMaps({
           map={mapRef.current}
           start={explorerStart}
           route={activeGeometry}
+          modus={explorerModus}
+          jahr={explorerJahr}
           onClose={() => {
             setExplorer(false);
             setProjection("auto");

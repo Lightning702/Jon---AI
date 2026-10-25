@@ -91,6 +91,22 @@ def test_bild_zeigen_baut_bildkarte(monkeypatch):
     assert "url" not in karte["data"]["bilder"][0] and karte["data"]["bilder"][0]["pfad"].endswith("ton618.jpg")
 
 
+def test_bild_suche_zeigt_das_foto_im_chat(monkeypatch):
+    from app.services import bildquelle
+
+    async def suchen(begriff):
+        return "C:/Jon/Images/Praesentationen/schwarzes-loch.jpg"
+
+    monkeypatch.setattr(bildquelle, "suchen", suchen)
+    ergebnis = _rufen("bild_suche", {"query": "black hole accretion disk gravitational lensing"})
+    assert ergebnis["ok"] and ergebnis["pfad"].endswith("schwarzes-loch.jpg")
+    karte = card_payload("bild_suche", json.dumps(ergebnis))
+    assert karte["kind"] == "webbild"
+    assert karte["data"]["bilder"][0]["pfad"].endswith("schwarzes-loch.jpg")
+    assert "black hole" in karte["data"]["bilder"][0]["titel"]
+    assert card_payload("bild_suche", json.dumps({"error": "Kein passendes freies Foto"})) is None
+
+
 def test_bild_zeigen_ohne_treffer_und_ohne_begriff(monkeypatch):
     from app.services import bildquelle
 

@@ -294,6 +294,7 @@ CARD_TOOLS = {
     "geraet_verbinden": "kopplung",
     "karteikarten": "karteikarten",
     "bild_zeigen": "webbild",
+    "bild_suche": "webbild",
     "deep_learning": "deep_learning",
     "create_image": "bild",
     "browser_task": "browser",

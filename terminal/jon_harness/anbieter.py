@@ -43,6 +43,13 @@ KATALOG: dict[str, Anbieter] = {
         Anbieter("groq", "Groq", "https://api.groq.com/openai/v1", ["llama-3.3-70b-versatile"], True, "https://console.groq.com/keys", "sehr schnell"),
         Anbieter("mistral", "Mistral", "https://api.mistral.ai/v1", ["mistral-large-latest", "codestral-latest"], True, "https://console.mistral.ai/api-keys"),
         Anbieter("xai", "xAI (Grok)", "https://api.x.ai/v1", ["grok-4"], True, "https://console.x.ai"),
+        Anbieter("nous", "Nous Research (Hermes)", "https://inference-api.nousresearch.com/v1", ["Hermes-4-405B", "Hermes-4-70B"], True, "https://portal.nousresearch.com", "Hermes-Modelle"),
+        Anbieter("meta", "Meta Llama API", "https://api.llama.com/compat/v1", ["Llama-4-Maverick-17B-128E-Instruct-FP8", "Llama-3.3-70B-Instruct"], True, "https://llama.developer.meta.com", "Llama von Meta"),
+        Anbieter("together", "Together AI", "https://api.together.xyz/v1", ["moonshotai/Kimi-K2-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo"], True, "https://api.together.ai/settings/api-keys", "offene Modelle"),
+        Anbieter("fireworks", "Fireworks AI", "https://api.fireworks.ai/inference/v1", ["accounts/fireworks/models/llama-v3p3-70b-instruct"], True, "https://fireworks.ai/account/api-keys", "offene Modelle"),
+        Anbieter("cerebras", "Cerebras", "https://api.cerebras.ai/v1", ["llama-3.3-70b"], True, "https://cloud.cerebras.ai", "extrem schnell"),
+        Anbieter("moonshot", "Moonshot (Kimi)", "https://api.moonshot.ai/v1", ["kimi-latest"], True, "https://platform.moonshot.ai/console/api-keys"),
+        Anbieter("qwen", "Alibaba Qwen", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", ["qwen-plus", "qwen-max"], True, "https://modelstudio.console.alibabacloud.com"),
         Anbieter("ollama", "Ollama (lokal)", os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/") + "/v1", [], False, "https://ollama.com/download", "läuft offline auf deinem PC", True),
         Anbieter("lmstudio", "LM Studio (lokal)", "http://127.0.0.1:1234/v1", [], False, "https://lmstudio.ai", "läuft offline auf deinem PC", True),
     ]

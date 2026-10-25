@@ -1,13 +1,14 @@
-import { useMemo, useState } from "react";
-import { Box, Check, Copy, Eye, EyeOff, Loader2, Maximize2, Play, RotateCw, Save } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Box, Check, Code2, Copy, EyeOff, Loader2, Maximize2, Pencil, Play, RotateCw, Save, Undo2 } from "lucide-react";
 import { AUSFUEHRBAR, dateinameFuer, Lauf, testumgebung, testumgebungOeffnen, vorschauAdresse, VORSCHAUBAR } from "../lib/testumgebung";
+import { useVerzoegert } from "../lib/htmlLauf";
+import HtmlLauf from "./HtmlLauf";
 import "./code-block.css";
 
 const NAMEN: Record<string, string> = { html: "HTML", htm: "HTML", svg: "SVG", python: "Python", py: "Python", javascript: "JavaScript", js: "JavaScript", node: "Node.js", php: "PHP", bash: "Bash", sh: "Shell", shell: "Shell", powershell: "PowerShell", ps1: "PowerShell", css: "CSS", json: "JSON", typescript: "TypeScript", ts: "TypeScript", tsx: "TSX", jsx: "JSX", sql: "SQL", java: "Java", cpp: "C++", c: "C", csharp: "C#", cs: "C#", go: "Go", rust: "Rust", yaml: "YAML", xml: "XML", markdown: "Markdown", md: "Markdown" };
 
-function seite(sprache: string, code: string): string {
-  if (sprache === "svg") return `<!doctype html><html><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff">${code}</body></html>`;
-  return code;
+export function jonCodeOeffnen(pfad: string): void {
+  window.dispatchEvent(new CustomEvent("jon-code-oeffnen", { detail: pfad }));
 }
 
 export function TestVorschau({ pfad, titel }: { pfad: string; titel?: string }) {
@@ -36,6 +37,8 @@ export default function CodeBlock({ sprache, code, fertig = true }: { sprache: s
   const art = sprache.toLowerCase();
   const kannVorschau = VORSCHAUBAR.has(art);
   const kannAusfuehren = AUSFUEHRBAR.has(art);
+  const [eigen, setEigen] = useState<string | null>(null);
+  const [bearbeiten, setBearbeiten] = useState(false);
   const [kopiert, setKopiert] = useState(false);
   const [vorschau, setVorschau] = useState(false);
   const [takt, setTakt] = useState(0);
@@ -43,13 +46,32 @@ export default function CodeBlock({ sprache, code, fertig = true }: { sprache: s
   const [lauf, setLauf] = useState<Lauf | null>(null);
   const [fehler, setFehler] = useState("");
   const [gespeichert, setGespeichert] = useState("");
-  const zeilen = useMemo(() => code.split("\n").length, [code]);
+  const feld = useRef<HTMLTextAreaElement>(null);
+  const aktuell = eigen ?? code;
+  const geaendert = eigen !== null && eigen !== code;
+  const vorschauCode = useVerzoegert(aktuell, bearbeiten ? 350 : 0);
+  const zeilen = useMemo(() => aktuell.split("\n").length, [aktuell]);
   const name = NAMEN[art] || (art ? art.toUpperCase() : "Code");
-  const dateiname = useMemo(() => dateinameFuer(art, code), [art, code]);
+  const dateiname = useMemo(() => dateinameFuer(art, aktuell), [art, aktuell]);
+
+  useLayoutEffect(() => {
+    const el = feld.current;
+    if (!el || !bearbeiten) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight + 2, 416) + "px";
+  }, [aktuell, bearbeiten]);
+
+  useEffect(() => {
+    if (bearbeiten) feld.current?.focus({ preventScroll: true });
+  }, [bearbeiten]);
+
+  useEffect(() => {
+    setGespeichert("");
+  }, [aktuell]);
 
   const kopieren = async () => {
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(aktuell);
       setKopiert(true);
       setTimeout(() => setKopiert(false), 1600);
     } catch {
@@ -62,7 +84,7 @@ export default function CodeBlock({ sprache, code, fertig = true }: { sprache: s
     setFehler("");
     setLauf(null);
     try {
-      setLauf(await testumgebung.code("standard", art, code, dateiname));
+      setLauf(await testumgebung.code("standard", art, aktuell, dateiname));
     } catch (e) {
       setFehler(e instanceof Error ? e.message : String(e));
     } finally {
@@ -70,10 +92,17 @@ export default function CodeBlock({ sprache, code, fertig = true }: { sprache: s
     }
   };
 
+  const starten = () => {
+    if (kannVorschau) {
+      setVorschau(true);
+      setTakt((t) => t + 1);
+    } else if (kannAusfuehren) void ausfuehren();
+  };
+
   const speichern = async () => {
     setFehler("");
     try {
-      const ergebnis = await testumgebung.schreiben("standard", dateiname, code);
+      const ergebnis = await testumgebung.schreiben("standard", dateiname, aktuell);
       setGespeichert(ergebnis.pfad);
     } catch (e) {
       setFehler(e instanceof Error ? e.message : String(e));
@@ -82,10 +111,50 @@ export default function CodeBlock({ sprache, code, fertig = true }: { sprache: s
 
   const groesser = async () => {
     try {
-      await testumgebung.schreiben("standard", dateiname, code);
+      await testumgebung.schreiben("standard", dateiname, aktuell);
       testumgebungOeffnen("standard", dateiname);
     } catch (e) {
       setFehler(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const inJonCode = async () => {
+    setFehler("");
+    try {
+      const ergebnis = await testumgebung.schreiben("standard", dateiname, aktuell);
+      const umgebung = await testumgebung.beschreiben("standard");
+      const trenner = umgebung.pfad.includes("\\") ? "\\" : "/";
+      jonCodeOeffnen(umgebung.pfad.replace(/[\\/]+$/, "") + trenner + ergebnis.pfad.replace(/[\\/]/g, trenner));
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const tasten = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      starten();
+      return;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setBearbeiten(false);
+      return;
+    }
+    if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      const { selectionStart: a, selectionEnd: b, value } = el;
+      if (e.shiftKey) {
+        const zeile = value.lastIndexOf("\n", a - 1) + 1;
+        const weg = value.slice(zeile, zeile + 2).match(/^ {1,2}/)?.[0].length || 0;
+        if (!weg) return;
+        setEigen(value.slice(0, zeile) + value.slice(zeile + weg));
+        requestAnimationFrame(() => el.setSelectionRange(Math.max(zeile, a - weg), Math.max(zeile, b - weg)));
+        return;
+      }
+      setEigen(value.slice(0, a) + "  " + value.slice(b));
+      requestAnimationFrame(() => el.setSelectionRange(a + 2, a + 2));
     }
   };
 
@@ -94,12 +163,13 @@ export default function CodeBlock({ sprache, code, fertig = true }: { sprache: s
       <div className="cb-kopf">
         <span className="cb-sprache">{name}</span>
         <span className="cb-zeilen">{zeilen} {zeilen === 1 ? "Zeile" : "Zeilen"}</span>
+        {geaendert && <span className="cb-geaendert">bearbeitet</span>}
         {!fertig && <span className="cb-schreibt"><Loader2 size={11} className="cb-dreh" />Jon schreibt …</span>}
         <div className="cb-knoepfe">
           {kannVorschau && (
-            <button type="button" disabled={!fertig} onClick={() => setVorschau((v) => !v)} title="Direkt hier ansehen und ausprobieren">
-              {vorschau ? <EyeOff size={13} /> : <Eye size={13} />}
-              {vorschau ? "Ausblenden" : "Vorschau"}
+            <button type="button" disabled={!fertig} onClick={() => (vorschau ? setVorschau(false) : starten())} title="Direkt hier in Jon ausführen">
+              {vorschau ? <EyeOff size={13} /> : <Play size={13} />}
+              {vorschau ? "Ausblenden" : "Ausführen"}
             </button>
           )}
           {kannAusfuehren && (
@@ -108,6 +178,20 @@ export default function CodeBlock({ sprache, code, fertig = true }: { sprache: s
               Ausführen
             </button>
           )}
+          <button type="button" disabled={!fertig} onClick={() => setBearbeiten((b) => !b)} title={bearbeiten ? "Bearbeiten beenden (Esc)" : "Code direkt hier bearbeiten"}>
+            {bearbeiten ? <Check size={13} /> : <Pencil size={13} />}
+            {bearbeiten ? "Fertig" : "Bearbeiten"}
+          </button>
+          {geaendert && (
+            <button type="button" onClick={() => setEigen(null)} title="Jons ursprünglichen Code wiederherstellen">
+              <Undo2 size={13} />
+              Zurücksetzen
+            </button>
+          )}
+          <button type="button" disabled={!fertig} onClick={() => void inJonCode()} title="Als Datei in Jon Code öffnen – mit Editor und Live-Vorschau">
+            <Code2 size={13} />
+            Jon Code
+          </button>
           <button type="button" disabled={!fertig} onClick={() => void speichern()} title={`In der Testumgebung als ${dateiname} speichern`}>
             {gespeichert ? <Check size={13} /> : <Save size={13} />}
             {gespeichert ? "Gespeichert" : "Speichern"}
@@ -122,17 +206,37 @@ export default function CodeBlock({ sprache, code, fertig = true }: { sprache: s
           </button>
         </div>
       </div>
-      <pre className="cb-code">
-        <code>{code}</code>
-      </pre>
+      {bearbeiten ? (
+        <>
+          <textarea
+            ref={feld}
+            value={aktuell}
+            onChange={(e) => setEigen(e.target.value)}
+            onKeyDown={tasten}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            aria-label={`${name}-Code bearbeiten`}
+            className="cb-code cb-edit"
+          />
+          <div className="cb-tipp">
+            {kannVorschau ? "Die Vorschau läuft live mit. " : ""}
+            <kbd>Strg</kbd>+<kbd>Enter</kbd> {kannVorschau || kannAusfuehren ? "führt aus" : "–"} · <kbd>Tab</kbd> rückt ein · <kbd>Esc</kbd> beendet
+          </div>
+        </>
+      ) : (
+        <pre className="cb-code" onDoubleClick={() => fertig && setBearbeiten(true)}>
+          <code>{aktuell}</code>
+        </pre>
+      )}
       {vorschau && kannVorschau && fertig && (
         <div className="cb-vorschau">
           <div className="cb-vorschau-leiste">
-            <span>Live-Vorschau · läuft abgeschottet</span>
-            <button type="button" onClick={() => setTakt((t) => t + 1)} title="Neu laden"><RotateCw size={12} /></button>
+            <span>Läuft direkt in Jon · abgeschottet{bearbeiten ? " · aktualisiert beim Tippen" : ""}</span>
+            <button type="button" onClick={() => setTakt((t) => t + 1)} title="Neu starten"><RotateCw size={12} /></button>
             <button type="button" onClick={() => void groesser()} title="Groß in der Testumgebung"><Maximize2 size={12} /></button>
           </div>
-          <iframe key={takt} title={`Vorschau ${dateiname}`} sandbox="allow-scripts allow-modals allow-pointer-lock allow-forms allow-popups" srcDoc={seite(art, code)} />
+          <HtmlLauf code={vorschauCode} sprache={art} takt={takt} />
         </div>
       )}
       {(lauf || fehler || gespeichert) && (

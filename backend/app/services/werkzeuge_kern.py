@@ -724,6 +724,37 @@ async def _blender_szene(box: Any, args: dict, name: str = "") -> str:
     )
 
 
+@werkzeug_async("spiel_modell")
+async def _spiel_modell(box: Any, args: dict, name: str = "") -> str:
+    from app.services import spielbau_service
+
+    return antwort(
+        await spielbau_service.modell(
+            str(args.get("auftrag", "")),
+            str(args.get("name", "")),
+            str(args.get("pfad", "")),
+            quelle=getattr(box, "_source", "harness"),
+        )
+    )
+
+
+@werkzeug("spiel_vorlage")
+def _spiel_vorlage(box: Any, args: dict, name: str = "") -> str:
+    from app.services import spielbau_service
+
+    modelle = args.get("modelle") or []
+    if isinstance(modelle, str):
+        modelle = [m.strip() for m in modelle.split(",") if m.strip()]
+    return antwort(
+        spielbau_service.vorlage(
+            str(args.get("pfad", "")),
+            str(args.get("titel", "")),
+            str(args.get("art", "laufen")).lower(),
+            list(modelle),
+        )
+    )
+
+
 @werkzeug("blender_render")
 def _blender_render(box: Any, args: dict, name: str = "") -> str:
     from app.services.blender_service import get_blender_service
@@ -980,7 +1011,16 @@ async def _bild_suche(box: Any, args: dict, name: str = "") -> str:
         return antwort({"error": "query (englischer Suchbegriff) oder url fehlt."})
     if not pfad:
         return antwort({"error": f"Kein passendes freies Foto zu '{begriff}' gefunden. Versuche einen anderen englischen Begriff oder bild_prompt."})
-    return antwort({"ok": True, "pfad": pfad, "hinweis": "Diesen Pfad kannst du als image in create_pptx, edit_pptx oder edit_docx verwenden."})
+    from app.services.bildquelle import name_aus_url
+
+    titel = begriff or name_aus_url(adresse)
+    return antwort({
+        "ok": True,
+        "pfad": pfad,
+        "titel": titel[:80],
+        "bilder": [{"pfad": pfad, "titel": titel[:120], "seite": adresse}],
+        "hinweis": "Das Foto erscheint unter deiner Antwort. Den Pfad kannst du als image in create_pptx, edit_pptx oder edit_docx verwenden.",
+    })
 
 
 @werkzeug_async("edit_pptx")

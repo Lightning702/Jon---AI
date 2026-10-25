@@ -14,6 +14,7 @@ public:
     void ereignis(Klang klang, float staerke = 1.0f);
     void stimmung(float wind, float wellen);
     void lautstaerke(float wert);
+    void motor(float drehzahl, float last, float laut);
     bool laeuft() const { return aktiv; }
 
 private:
@@ -41,6 +42,13 @@ private:
     float wellenPhase = 0.0f;
     float windPhase = 0.0f;
     float rauschZustand = 0.0f;
+    float motorDrehzahl = 0.0f;
+    float motorLast = 0.0f;
+    float motorLaut = 0.0f;
+    float motorPhase = 0.0f;
+    float motorPhaseZwei = 0.0f;
+    float motorFilter = 0.0f;
+    float motorGlatt = 0.0f;
     Stimme stimmen[12];
 };
 

@@ -638,9 +638,42 @@ async def _share_beacon() -> None:
 
 
 _tasks: dict[str, asyncio.Task] = {}
+_neustarts: dict[str, asyncio.TimerHandle] = {}
+_versuche: dict[str, int] = {}
+_dienste_aktiv = False
 
 
 EINMALIG = {"warmup", "parent_watchdog"}
+NEUSTART_PAUSEN = (60.0, 120.0, 300.0)
+
+
+def _neu_startbar() -> dict:
+    return {
+        "chat_server": _chat_server,
+        "multiplayer_server": _multiplayer_server,
+        "coop_web_server": _coop_web_server,
+        "share_beacon": _share_beacon,
+    }
+
+
+def _neustart_planen(name: str) -> None:
+    fabrik = _neu_startbar().get(name)
+    if fabrik is None or not _dienste_aktiv or name in _neustarts:
+        return
+    versuch = _versuche.get(name, 0)
+    pause = NEUSTART_PAUSEN[min(versuch, len(NEUSTART_PAUSEN) - 1)]
+    _versuche[name] = versuch + 1
+
+    def starten() -> None:
+        _neustarts.pop(name, None)
+        if _dienste_aktiv:
+            _log.info("Hintergrunddienst %s startet erneut (Versuch %d)", name, versuch + 2)
+            _spawn(name, fabrik())
+
+    try:
+        _neustarts[name] = asyncio.get_running_loop().call_later(pause, starten)
+    except RuntimeError:
+        return
 
 
 def _spawn(name: str, coro) -> asyncio.Task:
@@ -659,9 +692,16 @@ def _finished(name: str, task: asyncio.Task) -> None:
         note_error(name, error)
     elif name not in EINMALIG:
         _log.warning("Hintergrunddienst %s hat sich beendet", name)
+    _neustart_planen(name)
 
 
 def _stop_all() -> None:
+    global _dienste_aktiv
+    _dienste_aktiv = False
+    for griff in _neustarts.values():
+        griff.cancel()
+    _neustarts.clear()
+    _versuche.clear()
     for task in _tasks.values():
         task.cancel()
     _tasks.clear()
@@ -734,6 +774,8 @@ async def lifespan(app: FastAPI):
     _spawn("file_watcher", _file_watcher())
     _spawn("autofile_watcher", _autofile_watcher())
     _spawn("appusage_watcher", _appusage_watcher())
+    global _dienste_aktiv
+    _dienste_aktiv = True
     _spawn("chat_server", _chat_server())
     _spawn("multiplayer_server", _multiplayer_server())
     _spawn("coop_web_server", _coop_web_server())

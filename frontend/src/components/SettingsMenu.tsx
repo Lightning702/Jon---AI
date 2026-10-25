@@ -28,6 +28,7 @@ import {
   mikrofonMoeglich,
 } from "../lib/umgebung";
 import { Theme, applyTheme, readTheme } from "../lib/theme";
+import { useWeicheSchreibmarke, weicheSchreibmarkeSetzen } from "../lib/schreibmarke";
 import { useT } from "../hooks/useT";
 import AnmeldungAendern from "./AnmeldungAendern";
 import ConnectionsModal from "./ConnectionsModal";
@@ -166,6 +167,7 @@ export default function SettingsMenu({
   const [handyOpen, setHandyOpen] = useState(false);
   const [verbundOpen, setVerbundOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(readTheme);
+  const weicheMarke = useWeicheSchreibmarke();
   const [personality, setPersonality] = useState(true);
   const [failover, setFailover] = useState(true);
   const [offline, setOffline] = useState(false);
@@ -677,6 +679,14 @@ export default function SettingsMenu({
               items={themes}
               onPick={(v) => changeTheme(v as Theme)}
             />
+            <div className="space-y-1 mt-1">
+              <Toggle
+                label="Weiche Schreibmarke"
+                hint="Der Strich im Eingabefeld gleitet beim Tippen hinter dem letzten Buchstaben her, wie in Office."
+                on={weicheMarke}
+                onClick={() => weicheSchreibmarkeSetzen(!weicheMarke)}
+              />
+            </div>
             <Section title="Jon" />
             <div className="space-y-1">
               <Toggle

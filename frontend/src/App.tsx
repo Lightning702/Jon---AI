@@ -290,8 +290,19 @@ export default function App() {
       const ziel = (e as CustomEvent<{ id?: string; datei?: string }>).detail || {};
       setTestOffen({ id: ziel.id || "standard", datei: ziel.datei || "" });
     };
+    const code = (e: Event) => {
+      const pfad = (e as CustomEvent<string>).detail;
+      if (!pfad) return;
+      setCodePath("");
+      setCodeOpen(true);
+      requestAnimationFrame(() => setCodePath(pfad));
+    };
     window.addEventListener("jon:testumgebung", oeffnen);
-    return () => window.removeEventListener("jon:testumgebung", oeffnen);
+    window.addEventListener("jon-code-oeffnen", code);
+    return () => {
+      window.removeEventListener("jon:testumgebung", oeffnen);
+      window.removeEventListener("jon-code-oeffnen", code);
+    };
   }, []);
   const [denkenOpen, setDenkenOpen] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
@@ -2452,6 +2463,9 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                     mode: data.modus,
                     routes: data.routen,
                     street: data.aktion === "erkunden",
+                    explorer: data.aktion === "welt",
+                    explorerModus: data.fortbewegung,
+                    jahr: data.jahr ?? undefined,
                   });
                   setMapsOpen(true);
                 }}

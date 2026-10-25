@@ -4,6 +4,7 @@ import { MotionConfig } from "framer-motion";
 import App from "./App";
 import Anmeldung from "./components/Anmeldung";
 import ErrorBoundary from "./components/ErrorBoundary";
+import WeicheSchreibmarke from "./components/WeicheSchreibmarke";
 import "./index.css";
 import { applyTheme, readTheme } from "./lib/theme";
 import { installTokenFetch, resolveToken } from "./lib/token";
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         <Anmeldung>
           <App />
         </Anmeldung>
+        <WeicheSchreibmarke />
       </ErrorBoundary>
     </MotionConfig>
   </React.StrictMode>

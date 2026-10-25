@@ -7,11 +7,12 @@ import os
 import subprocess
 import sys
 import time
+import traceback
 from pathlib import Path
 
 from . import NAME, VERSION, aktualisieren, netz, oberflaeche as ui, prompt
 from .agent import Abbruch, Agent, Sitzung
-from .anbieter import KATALOG, Jon, Verbindung, letzte_wahl_speichern
+from .anbieter import KATALOG, Jon, Verbindung, letzte_wahl_speichern, protokoll
 from .nebenbei import Nebenbei, frage_aus
 from .oberflaeche import BLAU, FETT, GOLD, GRAU, GRUEN, MATT, ROT, TUERKIS, WEISS, f, sag
 from .speicher import Einstellungen, ordner, schreiben
@@ -205,6 +206,9 @@ class Terminal:
                 self._fehler(fehler)
             except KeyboardInterrupt:
                 sag(f("  ⎿ abgebrochen", GOLD))
+            except Exception as fehler:
+                protokoll({"art": "absturz", "fehler": f"{type(fehler).__name__}: {fehler}"[:500], "spur": traceback.format_exc()[-3000:]})
+                sag(f(f"  ✕ Da ist etwas schiefgelaufen ({type(fehler).__name__}: {str(fehler)[:160]}). Die Sitzung läuft weiter – sag „weiter“, dann mache ich dort weiter.", ROT))
             break
         sag()
         self.speichern()

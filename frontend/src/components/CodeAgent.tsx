@@ -3,7 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import MessageBubble, { ChatEntry } from "./MessageBubble";
 import { schrittAnwenden } from "../lib/werkstatt";
 import { btwKontextAnmelden, btwOeffnen, btwRest, istBtw } from "../lib/btw";
-import { ListPlus, MessageCircle, X } from "lucide-react";
+import { ListPlus, Loader2, Maximize2, MessageCircle, Play, X } from "lucide-react";
+import HtmlLauf from "./HtmlLauf";
+import { sprachePfad, useVerzoegert } from "../lib/htmlLauf";
+import { AUSFUEHRBAR, Lauf, testumgebung, VORSCHAUBAR } from "../lib/testumgebung";
 import ProjectPanel from "./ProjectPanel";
 import {
   FileEntry,
@@ -224,6 +227,14 @@ export default function CodeAgent({
   const [previewUrl, setPreviewUrl] = useState("http://localhost:3000");
   const [previewSrc, setPreviewSrc] = useState("");
   const [previewMode, setPreviewMode] = useState<"url" | "file">("url");
+  const [nebenbei, setNebenbei] = useState(false);
+  const [dateiLauf, setDateiLauf] = useState<Lauf | null>(null);
+  const [dateiLaeuft, setDateiLaeuft] = useState(false);
+  const [laufTakt, setLaufTakt] = useState(0);
+  const laufCode = useVerzoegert(fileContent, 350);
+  const dateiSprache = filePath ? sprachePfad(filePath) : "";
+  const dateiLive = fileKind === "text" && VORSCHAUBAR.has(dateiSprache);
+  const dateiStartbar = fileKind === "text" && AUSFUEHRBAR.has(dateiSprache);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -1054,6 +1065,26 @@ export default function CodeAgent({
     setView("preview");
   };
 
+  const dateiAusfuehren = async () => {
+    if (!filePath) return;
+    if (dateiLive) {
+      setView("editor");
+      if (nebenbei) setLaufTakt((n) => n + 1);
+      setNebenbei(true);
+      return;
+    }
+    setDateiLaeuft(true);
+    setDateiLauf(null);
+    try {
+      const name = filePath.split(/[\\/]/).pop() || "main";
+      setDateiLauf(await testumgebung.code("standard", dateiSprache, fileContent, name));
+    } catch (e) {
+      setDateiLauf({ exit: 1, ausgabe: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setDateiLaeuft(false);
+    }
+  };
+
   const sendRef = useRef(send);
   sendRef.current = send;
   const schlangeLaeuft = useRef(false);
@@ -1328,13 +1359,17 @@ export default function CodeAgent({
                   Vorschau
                 </button>
               </div>
-              {filePath && isHtmlPath(filePath) && (
+              {filePath && (dateiLive || dateiStartbar) && (
                 <button
-                  onClick={showFilePreview}
-                  className="text-[11px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/60 hover:bg-white/10"
-                  title="Diese HTML-Datei rendern"
+                  onClick={() => (dateiLive && nebenbei && view === "editor" ? setNebenbei(false) : void dateiAusfuehren())}
+                  disabled={dateiLaeuft}
+                  className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border disabled:opacity-50 ${
+                    dateiLive && nebenbei && view === "editor" ? "bg-gold/20 border-gold/40 text-gold" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                  }`}
+                  title={dateiLive ? "Direkt neben dem Editor ausführen – läuft beim Tippen live mit" : "In Jons Testumgebung ausführen"}
                 >
-                  <Symbol zeichen="▶" /> Datei
+                  {dateiLaeuft ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                  {dateiLive && nebenbei && view === "editor" ? "Läuft live" : "Ausführen"}
                 </button>
               )}
               {view === "editor" && fileKind === "text" && filePath && (
@@ -1365,18 +1400,62 @@ export default function CodeAgent({
                 )}
               </div>
             ) : (
-              <textarea
-                value={fileContent}
-                onChange={(e) => {
-                  pushUndo(fileContent);
-                  setFileContent(e.target.value);
-                  setDirty(true);
-                }}
-                onKeyDown={editorKeyDown}
-                spellCheck={false}
-                placeholder="Wähle links eine Datei, leg eine neue an oder lass Jon rechts eine erstellen."
-                className="flex-1 bg-ink-900 text-white/85 font-mono text-[12.5px] leading-relaxed p-3 outline-none resize-none"
-              />
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex-1 flex min-h-0">
+                  <textarea
+                    value={fileContent}
+                    onChange={(e) => {
+                      pushUndo(fileContent);
+                      setFileContent(e.target.value);
+                      setDirty(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && (dateiLive || dateiStartbar)) {
+                        e.preventDefault();
+                        void dateiAusfuehren();
+                        return;
+                      }
+                      editorKeyDown(e);
+                    }}
+                    spellCheck={false}
+                    placeholder="Wähle links eine Datei, leg eine neue an oder lass Jon rechts eine erstellen."
+                    className="flex-1 min-w-0 bg-ink-900 text-white/85 font-mono text-[12.5px] leading-relaxed p-3 outline-none resize-none"
+                  />
+                  {dateiLive && nebenbei && (
+                    <div className="w-1/2 min-w-[240px] flex flex-col border-l border-white/10">
+                      <div className="flex items-center gap-1 h-7 px-2 bg-black/30 border-b border-white/10 text-[11px] text-white/50">
+                        <span className="flex-1 truncate">Live · aktualisiert beim Tippen</span>
+                        <button onClick={() => setLaufTakt((n) => n + 1)} className="px-1.5 py-0.5 rounded hover:bg-white/10" title="Neu starten">
+                          <Symbol zeichen="↻" />
+                        </button>
+                        <button onClick={showFilePreview} className="px-1.5 py-0.5 rounded hover:bg-white/10" title="Groß anzeigen">
+                          <Maximize2 size={12} />
+                        </button>
+                        <button onClick={() => setNebenbei(false)} className="px-1.5 py-0.5 rounded hover:bg-white/10" title="Schließen">
+                          <X size={12} />
+                        </button>
+                      </div>
+                      <HtmlLauf code={laufCode} sprache={dateiSprache} takt={laufTakt} className="hl-voll flex-1 min-h-0" />
+                    </div>
+                  )}
+                </div>
+                {dateiLauf && !dateiLive && (
+                  <div className="max-h-56 flex flex-col border-t border-white/10 bg-black/40">
+                    <div className="flex items-center gap-2 h-7 px-3 text-[11px] text-white/50">
+                      <span className={dateiLauf.exit === 0 ? "text-emerald-300" : "text-red-300"}>
+                        {dateiLauf.abgebrochen ? "Abgebrochen (Zeitlimit)" : dateiLauf.exit === 0 ? "Erfolgreich" : `Exit-Code ${dateiLauf.exit}`}
+                      </span>
+                      {typeof dateiLauf.dauer === "number" && <span>{dateiLauf.dauer.toFixed(1)} s</span>}
+                      <button onClick={() => setDateiLauf(null)} className="ml-auto px-1.5 py-0.5 rounded hover:bg-white/10" title="Ausgabe schließen">
+                        <X size={12} />
+                      </button>
+                    </div>
+                    <pre className="flex-1 overflow-auto px-3 pb-2 m-0 font-mono text-[12px] text-white/80 whitespace-pre-wrap">
+                      {dateiLauf.ausgabe?.trim() || "Keine Ausgabe."}
+                    </pre>
+                  </div>
+                )}
+              </div>
             )
           ) : (
             <div className="flex-1 flex flex-col min-h-0 bg-white">
@@ -1410,12 +1489,7 @@ export default function CodeAgent({
                 </button>
               </div>
               {previewMode === "file" && filePath && isHtmlPath(filePath) ? (
-                <iframe
-                  title="Datei-Vorschau"
-                  srcDoc={fileContent}
-                  className="flex-1 w-full bg-white"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-                />
+                <HtmlLauf code={fileContent} sprache={sprachePfad(filePath)} takt={laufTakt} className="hl-voll flex-1 min-h-0" />
               ) : previewSrc ? (
                 <iframe
                   ref={iframeRef}

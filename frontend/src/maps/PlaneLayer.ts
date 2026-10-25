@@ -11,9 +11,16 @@ export interface PlanePose {
   scale: number;
 }
 
-type Vec3 = [number, number, number];
+export type Vec3 = [number, number, number];
 
-class Mesh {
+export interface Modell {
+  positions: Float32Array;
+  normals: Float32Array;
+  colors: Float32Array;
+  count: number;
+}
+
+export class Mesh {
   positions: number[] = [];
   normals: number[] = [];
   colors: number[] = [];
@@ -66,6 +73,15 @@ class Mesh {
       this.quad(back[index], front[index], front[next], back[next], edge);
     }
   }
+
+  modell(): Modell {
+    return {
+      positions: new Float32Array(this.positions),
+      normals: new Float32Array(this.normals),
+      colors: new Float32Array(this.colors),
+      count: this.positions.length / 3,
+    };
+  }
 }
 
 const WHITE: Vec3 = [0.93, 0.94, 0.96];
@@ -101,12 +117,12 @@ function ringPoints(y: number, radius: number, lift: number): Vec3[] {
   return points;
 }
 
-function bodyColor(index: number): Vec3 {
+function bodyColor(index: number, akzent: Vec3): Vec3 {
   const angle = (index / RING) * Math.PI * 2;
   const up = Math.cos(angle);
   if (up > 0.45) return WHITE;
   if (up < -0.55) return SHADE;
-  return GOLD;
+  return akzent;
 }
 
 function mirrored(corners: Vec3[]): Vec3[] {
@@ -140,12 +156,7 @@ function tube(
   }
 }
 
-export function buildPlane(): {
-  positions: Float32Array;
-  normals: Float32Array;
-  colors: Float32Array;
-  count: number;
-} {
+export function buildPlane(akzent: Vec3 = GOLD): Modell {
   const mesh = new Mesh();
   const rings = SECTIONS.map(([y, radius, lift]) => ringPoints(y, radius, lift));
   for (let section = 0; section < rings.length - 1; section += 1) {
@@ -158,7 +169,7 @@ export function buildPlane(): {
         back[next],
         front[next],
         front[index],
-        bodyColor(index)
+        bodyColor(index, akzent)
       );
     }
   }
@@ -195,8 +206,8 @@ export function buildPlane(): {
     [17.75, -5.6, 4.4],
     [17.75, -6.0, 1.6],
   ];
-  mesh.slab(winglet, 0, 0.3, GOLD, GOLD);
-  mesh.slab(mirrored(winglet), 0, 0.3, GOLD, GOLD);
+  mesh.slab(winglet, 0, 0.3, akzent, akzent);
+  mesh.slab(mirrored(winglet), 0, 0.3, akzent, akzent);
 
   const stab: Vec3[] = [
     [0.9, -10.6, 1.15],
@@ -213,17 +224,12 @@ export function buildPlane(): {
     [0, -15.2, 7.2],
     [0, -14.4, 1.2],
   ];
-  mesh.slab(fin, 0, 0.44, GOLD, GOLD);
+  mesh.slab(fin, 0, 0.44, akzent, akzent);
 
   tube(mesh, 8.6, -2.5, -1.6, 4.6, 1.65);
   tube(mesh, -8.6, -2.5, -1.6, 4.6, 1.65);
 
-  return {
-    positions: new Float32Array(mesh.positions),
-    normals: new Float32Array(mesh.normals),
-    colors: new Float32Array(mesh.colors),
-    count: mesh.positions.length / 3,
-  };
+  return mesh.modell();
 }
 
 const EARTH_RADIUS = 6371008.8;
@@ -385,7 +391,7 @@ export function planeMatrix(pose: PlanePose): {
 }
 
 export class PlaneLayer implements maplibregl.CustomLayerInterface {
-  id = "jon-flugzeug";
+  id: string;
   type = "custom" as const;
   renderingMode = "3d" as const;
 
@@ -408,9 +414,38 @@ export class PlaneLayer implements maplibregl.CustomLayerInterface {
   private locations: Record<string, number> = {};
   private uniforms: Record<string, WebGLUniformLocation | null> = {};
   private count = 0;
+  private modellDaten: Modell;
+  private neuesModell = false;
+
+  constructor(modell?: Modell, id = "jon-flugzeug") {
+    this.modellDaten = modell ?? buildPlane();
+    this.id = id;
+  }
 
   set(pose: PlanePose): void {
     this.pose = pose;
+  }
+
+  setModell(modell: Modell): void {
+    this.modellDaten = modell;
+    this.neuesModell = true;
+  }
+
+  private hochladen(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
+    const modell = this.modellDaten;
+    const fuellen = (buffer: WebGLBuffer | null, data: Float32Array): WebGLBuffer | null => {
+      const ziel = buffer ?? gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, ziel);
+      gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+      return ziel;
+    };
+    this.buffers = {
+      position: fuellen(this.buffers.position, modell.positions),
+      normal: fuellen(this.buffers.normal, modell.normals),
+      color: fuellen(this.buffers.color, modell.colors),
+    };
+    this.count = modell.count;
+    this.neuesModell = false;
   }
 
   onAdd(_map: maplibregl.Map, gl: WebGLRenderingContext | WebGL2RenderingContext): void {
@@ -437,19 +472,7 @@ export class PlaneLayer implements maplibregl.CustomLayerInterface {
       light: gl.getUniformLocation(program, "u_light"),
       opacity: gl.getUniformLocation(program, "u_opacity"),
     };
-    const model = buildPlane();
-    this.count = model.count;
-    const upload = (data: Float32Array): WebGLBuffer | null => {
-      const buffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-      return buffer;
-    };
-    this.buffers = {
-      position: upload(model.positions),
-      normal: upload(model.normals),
-      color: upload(model.colors),
-    };
+    this.hochladen(gl);
   }
 
   onRemove(_map: maplibregl.Map, gl: WebGLRenderingContext | WebGL2RenderingContext): void {
@@ -458,6 +481,7 @@ export class PlaneLayer implements maplibregl.CustomLayerInterface {
     });
     if (this.program) gl.deleteProgram(this.program);
     this.program = null;
+    this.buffers = { position: null, normal: null, color: null };
   }
 
   render(
@@ -465,9 +489,11 @@ export class PlaneLayer implements maplibregl.CustomLayerInterface {
     options: maplibregl.CustomRenderMethodInput
   ): void {
     const pose = this.pose;
+    if (this.program && this.neuesModell) this.hochladen(gl);
     if (!this.program || !pose.visible || this.count === 0) return;
     const { model, rotation } = planeMatrix(pose);
-    const view = new Float64Array(options.modelViewProjectionMatrix as ArrayLike<number>);
+    const haupt = (options as unknown as { defaultProjectionData?: { mainMatrix?: ArrayLike<number> } }).defaultProjectionData?.mainMatrix;
+    const view = new Float64Array((haupt ?? options.modelViewProjectionMatrix) as ArrayLike<number>);
     const matrix = multiply(view, model);
 
     gl.useProgram(this.program);

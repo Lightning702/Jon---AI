@@ -2,6 +2,47 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.6] — 2026-10-25
+
+### Neues Spiel: BLITZBAHN
+
+- **Eigenes Stuntrennspiel als echtes Programm:** BLITZBAHN läuft wie ECHO als Windows-Spiel in C++ und steht im Spiele-Tab. Acht Strecken mit Schanzen, Turbofeldern, Steil- und Wellenrampen, Hochbahnen auf Pfeilern, Kontrollpunkten und Ziel, dazu Zufallsstrecken.
+- **Fahrgefühl:** Lenkung, die mit dem Tempo feiner wird – kurzes Antippen dreht nur ein paar Grad, nicht das ganze Auto. Leertaste mit Lenkung driftet, das Auto rutscht quer, behält Schwung und hinterlässt Reifenspuren und Rauch. Sprünge, Landungen und Wandabpraller sind spürbar.
+- **Editor, Garage, Geist:** Strecken Teil für Teil bauen, drehen, Ebenen stapeln, sofort testen und speichern. In der Garage lackierst du Grundfarbe, Akzent, Felgen und Rahmen. Deine Bestzeit fährt als Geist mit.
+- **Mehrspieler über Jon:** Rennen eröffnen, Code teilen, gegeneinander fahren, Zeiten vergleichen, neue Runde für alle. Eigene Strecken schickt der Gastgeber mit.
+- **Grafik:** Echte Sonnenschatten, Himmel mit Sonnenschein, Asphalt mit Körnung, Wiesen mit Struktur, glänzender Autolack mit Spiegelung, Seen mit Wellen, Turbo-Flammen, Funken und Staub.
+
+### Jon baut Spiele aus seinen Blender-Modellen
+
+- **`spiel_modell`:** Jon baut Figuren, Autos, Gegner oder Häuser in Blender und legt sie als .glb mit Vorschaubild unter assets/ im Spielordner ab – nur das Modell, ohne Boden, Kamera und Licht.
+- **`spiel_vorlage`:** schreibt ein sofort spielbares three.js-Spiel mit Schatten, Kamera, Steuerung (laufen, fahren, fliegen), Sternen zum Sammeln und Ziel. Das erste Modell ist die Spielfigur. Der Harness kennt den Ablauf und baut das Spiel danach selbst aus.
+
+### Jon Maps: durch die Welt bewegen
+
+- **Zu Fuß, mit dem Auto oder im Flugzeug:** überall auf der Welt, mit Ich- oder Verfolgersicht, Kollision mit Gebäuden, Sprung beim Gehen und einer Suche, die dich sofort an jeden Ort versetzt. Eigene Modelle in zehn Farben vom Oldtimer bis zum Verkehrsjet.
+- **Jahr wählen:** Gebäude mit bekanntem Baujahr verschwinden, wenn sie neuer sind, abgerissene Bauten aus OpenHistoricalMap tauchen wieder auf, Luftbilder kommen ab 2014 aus dem passenden Jahr, ältere Jahre bekommen einen alten Farbton.
+- **Tageslicht beim Erkunden:** Satellitenboden, blauer Himmel und echte Gebäudefarben statt der dunklen Karte.
+- **Modelle waren unsichtbar:** Flugzeug und Figur wurden seit dem MapLibre-Update im falschen Koordinatenraum gezeichnet und landeten neben dem Bild. Jetzt stehen sie richtig in der Welt.
+
+### Terminal-Harness
+
+- **Mehr Anbieter bei `/api`:** Neben FelWorks, Jon, NVIDIA, OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Groq, Mistral und xAI jetzt auch Nous Research (Hermes), Meta Llama API, Together AI, Fireworks, Cerebras, Moonshot (Kimi) und Alibaba Qwen – zuerst Anbieter wählen, dann einmal den Schlüssel eingeben.
+
+### Schreiben und Code
+
+- **Weiche Schreibmarke:** Der Strich gleitet beim Tippen weich hinter dem letzten Buchstaben her – in jedem Eingabefeld der App. In den Einstellungen unter Design ein- und ausschaltbar.
+- **HTML direkt in Jon ausführen und bearbeiten:** Codeblöcke im Chat lassen sich bearbeiten und laufen live mit Konsole. Selbst eingefügtes HTML wird zum ausführbaren Block. In Jon Code läuft eine HTML-Datei neben dem Editor live mit, Python- und JavaScript-Dateien führt „Ausführen“ (Strg+Enter) aus.
+
+### Behoben
+
+- **Bilderzeugung schlug immer fehl:** War der eingestellte Bildanbieter nicht erreichbar, gab Jon auf. Jetzt weicht er der Reihe nach auf funktionierende Anbieter aus und sagt, welchen er genommen hat.
+- **Blender „nicht installiert“:** Ein später installiertes Blender wird ohne Neustart erkannt.
+- **Gefundene Fotos wurden nicht gezeigt:** `bild_suche` zeigt das Foto jetzt direkt im Chat.
+- **Reinklicken ging manchmal nicht:** Fenster, Menüs und Eingabefelder liegen nicht mehr in Bereichen, die das Fenster verschieben, und Mini-Jon lässt Klicks wieder durch.
+- **Dienste fielen nach Portkonflikten aus:** War beim Start ein Port belegt (etwa noch von einer alten Jon-Instanz), beendeten sich Chat-Server, Mehrspieler, Koop-Web und Freigabe-Suche für immer. Jetzt startet Jon sie nach 1, 2 und dann alle 5 Minuten selbst neu.
+- **Telegram gemessen:** Zustellung einer Nachricht 0,2 s, Antwort des eingestellten Modells 6 s. Wer es schneller will, stellt mit `/modell` auf `nemotron-3.5-lightning` (3 s). In Gruppen braucht der Bot ausgeschalteten Privatsphäre-Modus und muss danach neu hinzugefügt werden.
+- **`jonh` verschwand:** Fehlt `jon-harness.exe` (etwa weil der Virenschutz sie entfernt hat), sagt `jonh` das jetzt mit dem Befehl zur Neuinstallation. Unerwartete Fehler beenden den Harness nicht mehr, sie landen im Protokoll und die Sitzung läuft weiter.
+
 ## [4.65.5] — 2026-10-25
 
 ### Jon kann Blender

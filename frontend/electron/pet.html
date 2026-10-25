@@ -3041,6 +3041,12 @@
         ignoring = next;
         window.jonpet && window.jonpet.setIgnore(next);
       }
+      document.documentElement.addEventListener("mouseleave", () => {
+        if (!dragging) applyIgnore(true);
+      });
+      setInterval(() => {
+        if (!dragging && ignoring === false && !document.querySelector("#jon:hover, #mic:hover, #close:hover, #stopBtn:hover, #bubble.show:hover, #inputRow.show:hover, #petPal.show:hover, #inputRow.show :focus")) applyIgnore(true);
+      }, 1500);
 
       field.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {

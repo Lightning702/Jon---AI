@@ -71,7 +71,8 @@
             }
         }
         $start = if ($env:JON_HARNESS_ZIEL) { $exe } else { '%LOCALAPPDATA%\Jon\Harness\jon-harness.exe' }
-        [IO.File]::WriteAllText((Join-Path $bin 'jonh.cmd'), "@echo off`r`n`"$start`" %*`r`n", [Text.Encoding]::Default)
+        $hinweis = "@echo off`r`nif exist `"$start`" (`r`n  `"$start`" %*`r`n  exit /b`r`n)`r`necho.`r`necho   jon-harness.exe fehlt - vermutlich hat der Virenschutz sie entfernt oder ein Update wurde unterbrochen.`r`necho   Neu installieren: irm https://raw.githubusercontent.com/Lightning702/Jon---AI/main/website/install.ps1 ^| iex`r`nexit /b 1`r`n"
+        [IO.File]::WriteAllText((Join-Path $bin 'jonh.cmd'), $hinweis, [Text.Encoding]::Default)
 
         $pfad = [Environment]::GetEnvironmentVariable('Path', 'User')
         $teile = @($pfad -split ';' | Where-Object { $_ })

@@ -2,7 +2,7 @@ import { BASE } from "./api";
 
 export type MapsTheme = "dark" | "light";
 export type TravelMode = "fuss" | "auto" | "fahrrad" | "oepnv";
-export type MapsAction = "suche" | "umgebung" | "route" | "erkunden";
+export type MapsAction = "suche" | "umgebung" | "route" | "erkunden" | "welt";
 
 export interface MapsPlace {
   id: string;
@@ -124,6 +124,8 @@ export interface TripLeg {
 
 export interface MapsCardData {
   aktion: MapsAction;
+  fortbewegung?: "fuss" | "auto" | "flugzeug";
+  jahr?: number | null;
   anfrage?: string;
   kategorie?: string;
   filter?: string;
