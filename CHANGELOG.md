@@ -24,6 +24,10 @@ Alle nennenswerten Änderungen an Jon.
 - **Tageslicht beim Erkunden:** Satellitenboden, blauer Himmel und echte Gebäudefarben statt der dunklen Karte.
 - **Modelle waren unsichtbar:** Flugzeug und Figur wurden seit dem MapLibre-Update im falschen Koordinatenraum gezeichnet und landeten neben dem Bild. Jetzt stehen sie richtig in der Welt.
 
+### Terminal-Harness
+
+- **Mehr Anbieter bei `/api`:** Neben FelWorks, Jon, NVIDIA, OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Groq, Mistral und xAI jetzt auch Nous Research (Hermes), Meta Llama API, Together AI, Fireworks, Cerebras, Moonshot (Kimi) und Alibaba Qwen – zuerst Anbieter wählen, dann einmal den Schlüssel eingeben.
+
 ### Schreiben und Code
 
 - **Weiche Schreibmarke:** Der Strich gleitet beim Tippen weich hinter dem letzten Buchstaben her – in jedem Eingabefeld der App. In den Einstellungen unter Design ein- und ausschaltbar.
