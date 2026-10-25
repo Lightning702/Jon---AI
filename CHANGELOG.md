@@ -24,6 +24,10 @@ Alle nennenswerten Änderungen an Jon.
 
 ### Behoben
 
+- **Harness brach bei großen Dateien ab:** Eine ganze Website in einem Schritt war länger, als das Modell auf einmal ausgeben darf. Die Antwort wurde abgeschnitten, das Werkzeug-JSON war kaputt, und nach fünf Versuchen gab der Harness auf („liefert keine gültigen Harness-Schritte“). Jetzt rettet Jon den abgeschnittenen Teil bis zur letzten vollständigen Zeile, zeigt dem Modell das Dateiende und lässt es mit dem neuen Werkzeug `append` (im Terminal `datei_anhaengen`) in Teilen weiterschreiben. Doppelte Zeilen an den Nahtstellen entfernt Jon selbst. Live geprüft mit „Code mir nur mit HTML eine perfekte Website, wo alles von dir vorgestellt wird“: fertig in einem Durchgang ohne Fehler.
+- **„Ohne Kommentare“ gilt wirklich:** Steht im Auftrag „ohne Kommentare“, entfernt der Harness in der App und im Terminal nach jedem Schreiben alle Kommentare aus HTML-, CSS- und JavaScript-Dateien. Das geschieht zustandsbasiert: URLs, Texte, Vorlagen und reguläre Ausdrücke bleiben unangetastet.
+- **Saubere Nahtstellen:** Beim Weiterschreiben bekommt das Modell die Liste der schon vorhandenen Abschnitte und den Stand von `<style>` und `<script>` mit, damit nichts doppelt oder an der falschen Stelle landet.
+- **Endlos dieselbe Ordnerauflistung:** Ruft das Modell `list` mit denselben Angaben immer wieder auf, sagt Jon ihm nach dem zweiten Mal, dass es jetzt umsetzen soll.
 - **Anrufe in der doppelten Stunde:** Plante man in der Nacht der Zeitumstellung zwischen 2 und 3 Uhr einen Anruf „in 1 Minute“, lag er eine Stunde in der Vergangenheit und klingelte sofort. Relative Zeiten rechnet Jon jetzt über UTC.
 
 ### GitHub-Seite

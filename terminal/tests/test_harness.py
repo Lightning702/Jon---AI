@@ -385,3 +385,45 @@ def test_ohne_ausweg_sagt_jonh_klar_was_zu_tun_ist(tmp_path, monkeypatch, capsys
     assert terminal.ausfuehren("Sag hallo") == ""
     ausgabe = capsys.readouterr().out
     assert "FelWorks ist gerade nicht erreichbar" in ausgabe and "Ollama" in ausgabe and "/api" in ausgabe
+
+
+def test_abgeschnittene_datei_wird_gerettet_und_angehaengt(tmp_path, monkeypatch):
+    voll = json.dumps({"pfad": "index.html", "inhalt": "<!DOCTYPE html>\n<html>\n<body>\n<h1>Jon für dich</h1>\n<p>Teil</p>\n"}, ensure_ascii=False)
+    abgeschnitten = voll[: voll.index("<p>Teil")]
+    antworten = [
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "a1", "function": {"name": "datei_schreiben", "arguments": abgeschnitten}}]}}]}),
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "a2", "function": {"name": "datei_anhaengen", "arguments": json.dumps({"pfad": "index.html", "inhalt": "<p>Teil</p>\n</body>\n</html>\n"})}}]}}]}),
+        _sse({"choices": [{"delta": {"content": "Die Website ist fertig."}}]}),
+    ]
+    gesehen = []
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        gesehen.append(json.loads(json.dumps(nachrichten)))
+        return _Antwort(antworten.pop(0)), True
+
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    monkeypatch.setattr(verbindung, "strom", strom)
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "alles")
+    assert agent.runde("Bau mir eine Website") == "Die Website ist fertig."
+    inhalt = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert inhalt.startswith("<!DOCTYPE html>") and inhalt.endswith("</html>\n") and inhalt.count("<h1>") == 1
+    werkzeug_antwort = next(n for n in gesehen[1] if n["role"] == "tool")
+    assert "abgeschnitten" in werkzeug_antwort["content"] and "datei_anhaengen" in werkzeug_antwort["content"]
+    aufruf = next(n for n in gesehen[1] if n.get("tool_calls"))
+    assert json.loads(aufruf["tool_calls"][0]["function"]["arguments"])["pfad"] == "index.html"
+
+
+def test_jonh_entfernt_kommentare_auf_wunsch(tmp_path, monkeypatch):
+    antworten = [
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "a1", "function": {"name": "datei_schreiben", "arguments": json.dumps({"pfad": "spiel.js", "inhalt": "// Start\nconst ziel = 'https://getjon.info';\n"})}}]}}]}),
+        _sse({"choices": [{"delta": {"content": "Fertig."}}]}),
+    ]
+
+    def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
+        return _Antwort(antworten.pop(0)), True
+
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    monkeypatch.setattr(verbindung, "strom", strom)
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "alles")
+    assert agent.runde("Programmier mir ein Spiel ohne Kommentare") == "Fertig."
+    assert (tmp_path / "spiel.js").read_text(encoding="utf-8") == "const ziel = 'https://getjon.info';\n"
