@@ -2,6 +2,29 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.5] — 2026-10-25
+
+### Jon kann Blender
+
+- **Häuser wie echte Häuser:** Eingelassene Fenster mit Rahmen, Sprossen und Fensterbank, Haustür mit Stufe und Vordach, Ziegeldach mit First, Regenrinne und Kamin, auf Wunsch Fensterläden, zwei Stockwerke oder Flachdach. Abends leuchten die Fenster.
+- **Ganze Städte:** Straßenraster mit Mittellinien und Zebrastreifen, Hochhäuser mit Fensterfassaden, Ladenzeilen und Dachtechnik, Bäume, Laternen und Autos. Aus der Vogelperspektive oder von der Straße, nachts mit leuchtenden Fenstern und Laternen.
+- **Innenräume:** Raum mit Decke, Fenster nach draußen, Fußleisten und Deckenlicht. Dazu Sofa, Sessel, Tisch, Couchtisch, Stühle, Bett, Schrank, Regal mit Büchern, Küche, Fernseher, Teppich, Pflanzen, Steh-, Tisch- und Deckenlampen und Bilder. Die Kamera steht schon richtig im Raum.
+- **Uhren, Autos, Produkte:** Wanduhr und Wecker mit Minutenstrichen, römischen oder arabischen Ziffern, Zeigern zur gewünschten Uhrzeit und Glas. Autos mit Radkästen, Scheinwerfern und Kennzeichen. Ein Fotostudio mit Hohlkehle und drei Lichtern für einzelne Objekte.
+- **Himmel und Boden:** Tag, Morgen, Abend, Nacht mit Sternen oder Wolken, jeweils mit passender Sonne. Böden von Gras über Asphalt und Pflaster bis Wasser und Schnee, Wälder mit Laub- und Nadelbäumen.
+- **Weniger Fehlschläge:** Abgeschnittene Skripte erkennt Jon vor dem Blender-Start und lässt sie kürzer neu schreiben. Fehlermeldungen nennen die Zeile im Skript statt einer internen Zeilennummer, und die Reparatur sieht das ganze Skript. Alte Blender-3-Namen wie `Specular`, `Emission` oder `use_bloom` übersetzt oder entschärft Jon automatisch.
+- **Die Kamera sitzt:** Gruppen wie ein ganzes Haus oder eine Uhr werden richtig eingerahmt, eine frisch angelegte Kamera schaut nie mehr von unten auf das Motiv, und weit entfernte Böden werden nicht mehr abgeschnitten.
+- **Schöneres Bild:** AgX mit mehr Kontrast, Raytracing in Eevee und Glühen nur noch bei echten Lichtquellen.
+
+### Jon Harness
+
+- **Bilder, Videos und Dateien hineinziehen:** Im Harness ziehst du Dateien per Drag and Drop in das Eingabefeld, fügst sie mit Strg+V ein oder wählst sie über die Büroklammer. Jon bekommt sie mit Pfad und Art und arbeitet direkt damit.
+- **Updater:** `/update` (oder `jonh update`) lädt die neue Version direkt aus dem GitHub-Release, prüft die SHA-256-Prüfsumme und tauscht die Datei aus. Geht etwas schief, bleibt die alte Version. `/update auto` installiert neue Versionen künftig beim Start von selbst.
+- **`jonh` fehlte:** Startete Jon aus dem Quellcode, legte er `jonh` nie an, weil das nur die fertige App tat. Jetzt entsteht `jonh` bei jedem Start, wenn er fehlt. Ein eigenes `jonh` bleibt unangetastet.
+
+### GitHub-Seite
+
+- Neue Übersicht „Neu in Jon 4.59 bis 4.65“ mit allen Funktionen seit 4.58, deutlich weniger Emojis, und die englische Fassung ist wieder aktuell.
+
 ## [4.65.4] — 2026-10-24
 
 ### Jon schickt dir Sachen aufs Handy

@@ -29,6 +29,16 @@ jonh --auto                           Dateien und Befehle ohne Rückfrage
 jonh -c                               letztes Gespräch fortsetzen
 ```
 
+### Aktualisieren
+
+`/update` im Harness oder `jonh update` von außen lädt die neueste Fassung direkt aus dem GitHub-Release (`jon-harness.exe` unter Windows, sonst `jon-harness.pyz`), vergleicht sie mit `SHA256SUMS.txt` und tauscht die Datei erst aus, wenn die Prüfsumme stimmt. Die laufende EXE wird dabei zu `jon-harness.exe.alt` umbenannt und beim nächsten Start aufgeräumt; schlägt das Einsetzen fehl, bleibt die alte Fassung unverändert. `/update auto` (oder `jonh update auto`) installiert neue Versionen künftig beim Start von selbst, `/update auto aus` schaltet das wieder ab. Läuft der Harness aus dem Quellcode, startet `/update` stattdessen den Installer.
+
+Startest du Jon aus dem Quellcode (`start-jon.bat`), legt Jon `jonh` ab 4.65.5 beim Start ebenfalls an, wenn der Befehl fehlt. Ein vom Installer angelegtes `jonh` bleibt unangetastet.
+
+### Dateien anhängen
+
+Im Harness-Panel der App ziehst du Bilder, Videos, PDFs und andere Dateien per Drag and Drop in das Eingabefeld, fügst sie mit `Strg+V` ein oder wählst sie über die Büroklammer. Sie landen in Jons Upload-Ordner und gehen mit Name, Art und Pfad an den Auftrag, auch bei Nachaufträgen während der Arbeit.
+
 ### Ziel-Modus mit /goal
 
 `/goal <Ziel>` (oder `/ziel`) gibt es im App-Chat, auf Telegram, in der Handy-App, im Terminal mit `jon` und mit `jonh`. Jon arbeitet dann in Harness-Runden (`app/services/ziel_modus.py`): Nach jeder Runde prüft ein eigener Modellaufruf streng, ob das Ziel erreicht ist („ZIEL ERREICHT: …“ oder „WEITER: …“). Fehlt noch etwas, startet die nächste Runde in derselben Sitzung mit genau diesem Rest, höchstens zwölf Runden. Zweimal hintereinander gescheitert beendet den Lauf. `/goal stopp` und `/stopp` halten an, `/goal weiter` setzt ein angehaltenes Ziel fort. Schnittstelle: `POST /api/goal`, `GET /api/goal/{id}/ereignisse` (Server-Sent Events), `POST /api/goal/{id}/stopp`.

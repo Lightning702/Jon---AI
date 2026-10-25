@@ -1,8 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, Compass, FileCode2, Folder, FolderPlus, GitBranch, ListPlus, Loader2, MessageCircle, MessagesSquare, Monitor, PanelLeft, Plus, RotateCcw, Search, Settings2, ShieldCheck, ShieldOff, Sparkles, Square, X} from "lucide-react";
+import {ArrowLeft, ArrowUp, CheckCircle2, ChevronDown, ChevronRight, Code2, Compass, FileCode2, FileText, Film, Folder, FolderPlus, GitBranch, Image as BildSymbol, ListPlus, Loader2, MessageCircle, MessagesSquare, Monitor, PanelLeft, Paperclip, Plus, RotateCcw, Search, Settings2, ShieldCheck, ShieldOff, Sparkles, Square, X} from "lucide-react";
 import {btwKontextAnmelden, btwOeffnen, btwRest, istBtw} from "../lib/btw";
-import {addProject, getUserSettings, JonProject, pickFolderDialog} from "../lib/api";
+import {addProject, getUserSettings, JonProject, pickFolderDialog, uploadAttachment} from "../lib/api";
 import {finished, HarnessSitzung, HarnessTask, harnessRequest, taskLabels} from "../lib/harness";
 import AgentenBuehne from "./agenten/AgentenBuehne";
 import HarnessVerlauf from "./HarnessVerlauf";
@@ -68,6 +68,28 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
   const [neuLaden, setNeuLaden] = useState(0);
   const [bereit, setBereit] = useState(!initialTask);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const dateiwahl = useRef<HTMLInputElement>(null);
+  const [anhaenge, setAnhaenge] = useState<{name: string; pfad: string; art: string}[]>([]);
+  const [laedtAnhang, setLaedtAnhang] = useState(0);
+  const [ziehen, setZiehen] = useState(false);
+  const anhaengen = async (dateien: FileList | File[]) => {
+    const liste = Array.from(dateien);
+    setLaedtAnhang(n => n + liste.length);
+    for (const datei of liste) {
+      try {
+        const ergebnis = await uploadAttachment(datei, datei.type || "application/octet-stream");
+        const pfad = ergebnis.pfad || ergebnis.datei?.path || "";
+        const typ = datei.type.split("/")[0];
+        const art = typ === "image" ? "Bild" : typ === "video" ? "Video" : typ === "audio" ? "Audio" : ergebnis.kind === "pdf" || /\.(pdf|docx?|pptx?|xlsx?|odt|txt|md)$/i.test(datei.name) ? "Dokument" : "Datei";
+        if (pfad) setAnhaenge(bisher => [...bisher, {name: ergebnis.name || datei.name, pfad, art}]);
+      } catch (fehler) {
+        setError(`${datei.name} ließ sich nicht anhängen: ${fehler instanceof Error ? fehler.message : String(fehler)}`);
+      } finally {
+        setLaedtAnhang(n => n - 1);
+      }
+    }
+  };
+  const mitAnhaengen = (text: string) => anhaenge.length ? `${text}\n\nAngehängte Dateien (direkt über ihren Pfad lesbar, nutze sie für den Auftrag):\n${anhaenge.map(a => `- ${a.name}${a.art ? ` (${a.art})` : ""}: ${a.pfad}`).join("\n")}` : text;
   const feed = useRef<HTMLElement>(null);
   const vorher = useRef<Record<string, string>>({});
   const sitzungsStand = useRef("");
@@ -161,20 +183,20 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
       return;
     }
     if (working && letzte && imThread) {
-      const daten = await harnessRequest<{nachauftraege: string[]}>(`/harness/tasks/${letzte.id}/nachauftrag`, {text: text.trim()});
+      const daten = await harnessRequest<{nachauftraege: string[]}>(`/harness/tasks/${letzte.id}/nachauftrag`, {text: mitAnhaengen(text.trim())});
       setTasks(items => items.map(t => t.id === letzte.id ? {...t, nachauftraege: daten.nachauftraege} : t));
-      setGoal("");
+      setGoal(""); setAnhaenge([]);
       return;
     }
     if (allgemein) {
       if (!text.trim()) return;
       const fortsetzen = selected && !drafting && sitzungen.find(s => s.id === selected)?.modus === "allgemein" ? selected : "";
-      const created = await harnessRequest<HarnessTask>("/harness/tasks", {root: "", modus: "allgemein", goal: text.trim(), source: "app", companion: mini, thread: fortsetzen});
+      const created = await harnessRequest<HarnessTask>("/harness/tasks", {root: "", modus: "allgemein", goal: mitAnhaengen(text.trim()), source: "app", companion: mini, thread: fortsetzen});
       vorher.current[created.id] = created.status;
       const id = created.thread || created.id;
       if (id === selected) setTasks(items => [...items, created]);
       else {setTasks([created]); setSelected(id);}
-      setDrafting(false); setGoal("");
+      setDrafting(false); setGoal(""); setAnhaenge([]);
       if (mini) await window.jon?.showPet?.().catch(() => setError("Auftrag läuft. MiniJons Fenster konnte nicht geöffnet werden."));
       return;
     }
@@ -183,13 +205,13 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
     const thread = selected && !drafting && tasks[0]?.root === project.root ? selected : "";
     await harnessRequest("/harness/project", {root: project.root, source: "app"});
     if (mini) await harnessRequest("/harness/project", {root: project.root, source: "minijon"});
-    const created = await harnessRequest<HarnessTask>("/harness/tasks", {root: project.root, goal: text.trim(), source: "app", companion: mini, thread});
+    const created = await harnessRequest<HarnessTask>("/harness/tasks", {root: project.root, goal: mitAnhaengen(text.trim()), source: "app", companion: mini, thread});
     setProjects(items => items.some(p => p.id === project.id) ? items : [...items, project]);
     vorher.current[created.id] = created.status;
     const id = created.thread || created.id;
     if (id === selected) setTasks(items => [...items, created]);
     else {setTasks([created]); setSelected(id);}
-    setDrafting(false); setGoal("");
+    setDrafting(false); setGoal(""); setAnhaenge([]);
     if (mini) await window.jon?.showPet?.().catch(() => setError("Auftrag läuft. MiniJons Fenster konnte nicht geöffnet werden."));
   });
   const decide = (task: HarnessTask, allow: boolean) => action(async () => {
@@ -285,12 +307,15 @@ export default function HarnessPanel({standalone = false, onClose, initialTask}:
       </main>
       <div className="harness-composer-wrap">
         <AnimatePresence>{setupOpen && <motion.div className="harness-project-setup" initial={{opacity: 0, y: 8}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: 8}}><label>Projektordner<input aria-label="Arbeitsordner" value={root} onChange={e => {setRoot(e.target.value); if (imThread) setDrafting(true);}} placeholder="C:\Projekte\MeineApp"/></label><button disabled={busy} onClick={() => void pick()}><FolderPlus size={16}/>Ordner wählen</button><button aria-label="Projektauswahl schließen" onClick={() => setSetupOpen(false)}><X size={15}/></button></motion.div>}</AnimatePresence>
-        <form className={"harness-composer " + (working ? "arbeitet" : "")} onSubmit={e => {e.preventDefault(); if (sendbar) void start();}}>
+        <form className={"harness-composer " + (working ? "arbeitet " : "") + (ziehen ? "zieht" : "")} onSubmit={e => {e.preventDefault(); if (sendbar && !laedtAnhang) void start();}} onDragOver={e => {if (e.dataTransfer.types.includes("Files")) {e.preventDefault(); setZiehen(true);}}} onDragLeave={e => {if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setZiehen(false);}} onDrop={e => {if (e.dataTransfer.files.length) {e.preventDefault(); setZiehen(false); void anhaengen(e.dataTransfer.files);}}}>
           {imThread && <div className="harness-sitzung-hinweis"><MessagesSquare size={12}/><span>{working ? "Jon arbeitet gerade. Was du jetzt schickst, erledigt er direkt danach. Mit /btw fragst du nebenbei." : "Folgeauftrag in dieser Sitzung · Jon kennt alles, was bisher passiert ist"}</span>{working && <button type="button" onClick={() => btwOeffnen()} title="Zwischenfrage stellen, ohne Jon zu unterbrechen (Alt+B)"><MessageCircle size={12}/> /btw</button>}<button type="button" onClick={() => newTask(root)}>Neue Sitzung</button></div>}
           {working && !!letzte?.nachauftraege?.length && <div className="btw-schlange">{letzte.nachauftraege.map((eintrag, index) => <span key={index + eintrag} className="btw-chip" title={eintrag}><ListPlus size={12}/><em>Danach: {eintrag}</em></span>)}</div>}
-          <textarea ref={composer} aria-label="Dein Auftrag" placeholder={working && imThread ? "Was soll Jon danach tun? · /btw fragt nebenbei" : imThread ? "Was soll Jon als Nächstes tun?" : "Beschreibe, was Jon für dich bauen soll …"} rows={2} value={goal} maxLength={12000} onChange={e => setGoal(e.target.value)} onKeyDown={e => {if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {e.preventDefault(); if (sendbar) void start();}}}/>
+          {(!!anhaenge.length || laedtAnhang > 0) && <div className="harness-anhaenge">{anhaenge.map((anhang, index) => <span key={anhang.pfad + index} className="harness-anhang" title={anhang.pfad}>{anhang.art === "Bild" ? <BildSymbol size={12}/> : anhang.art === "Video" ? <Film size={12}/> : <FileText size={12}/>}<em>{anhang.name}</em><button type="button" aria-label={`${anhang.name} entfernen`} onClick={() => setAnhaenge(liste => liste.filter((_, stelle) => stelle !== index))}><X size={11}/></button></span>)}{laedtAnhang > 0 && <span className="harness-anhang"><Loader2 size={12} className="harness-spin"/><em>wird angehängt …</em></span>}</div>}
+          <textarea ref={composer} aria-label="Dein Auftrag" placeholder={ziehen ? "Loslassen, um die Dateien anzuhängen" : working && imThread ? "Was soll Jon danach tun? · /btw fragt nebenbei" : imThread ? "Was soll Jon als Nächstes tun?" : "Beschreibe, was Jon für dich bauen soll … Bilder, Videos und Dateien kannst du hineinziehen"} rows={2} value={goal} maxLength={12000} onChange={e => setGoal(e.target.value)} onPaste={e => {if (e.clipboardData.files.length) {e.preventDefault(); void anhaengen(e.clipboardData.files);}}} onKeyDown={e => {if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {e.preventDefault(); if (sendbar && !laedtAnhang) void start();}}}/>
           <div className="harness-composer-bar">
             <button type="button" aria-label="Projekt wählen" title="Projekt wählen" onClick={() => setSetupOpen(v => !v)}><Plus size={19}/></button>
+            <button type="button" aria-label="Dateien anhängen" title="Bilder, Videos oder Dokumente anhängen – oder einfach hineinziehen" onClick={() => dateiwahl.current?.click()}><Paperclip size={17}/></button>
+            <input ref={dateiwahl} type="file" multiple hidden onChange={e => {if (e.target.files?.length) void anhaengen(e.target.files); e.target.value = "";}}/>
             {!allgemein && <button type="button" className="harness-project-badge" title={root || "Projektordner wählen"} onClick={() => setSetupOpen(v => !v)}><Folder size={14}/><span>{projectName}</span><ChevronDown size={12}/></button>}
             <button type="button" className={"harness-project-badge " + (allgemein ? "an" : "")} aria-pressed={allgemein} title="Allgemeiner Auftrag ohne Projekt: Recherche, Dokumente, Präsentationen, Organisation – Jon nutzt dafür alle seine Werkzeuge" onClick={() => {setAllgemein(v => !v); if (imThread) setDrafting(true);}}><Compass size={14}/><span>{allgemein ? "Allgemeiner Auftrag" : "Ohne Projekt"}</span></button>
             <button type="button" className={"harness-access " + (allesErlaubt ? "frei" : "")} aria-pressed={!!allesErlaubt} disabled={allesErlaubt === null} onClick={() => void freigabeUmschalten()} title={allesErlaubt ? "Jon führt Befehle ohne Nachfrage aus. Klicken, um wieder jeden Befehl freizugeben." : "Jon fragt vor jedem Befehl. Klicken, um alle Befehle zu erlauben."}>{allesErlaubt ? <ShieldOff size={13}/> : <ShieldCheck size={13}/>}{allesErlaubt ? "Alle Befehle erlaubt" : "Befehle mit Freigabe"}</button>

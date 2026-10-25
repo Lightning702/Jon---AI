@@ -6,20 +6,20 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-Neu in 4.58.1: [Jon Premium](docs/PREMIUM.md) mit Standard, Premium und Admin, [Beobachten](docs/BEOBACHTEN.md), Support in den Werkzeugen, [Jon im Browser ausprobieren](docs/DEMO-PI.md), und der [Jon Harness](docs/JON-HARNESS.md) arbeitet in Sitzungen weiter, zeigt eine Live-Vorschau und läuft mit NVIDIA und Ollama deutlich zuverlässiger. Seit 4.58.0: [Jons Fachteam live im Chat](docs/FACHTEAM.md) und [Funke, dein Begleiter auf dem Handy](docs/FUNKE-HANDY.md).
+**Neu in 4.65.5:** Jon baut in Blender ganze Häuser, Städte, Innenräume, Uhren und Schwarze Löcher, der Jon Harness nimmt Bilder und Videos per Drag and Drop an und aktualisiert sich im Terminal selbst. Davor: `/goal`, `jonh`, sichtbares Denken, `/btw`, Telegram-Steuerung und Sachen aufs Handy schicken. Alles im Überblick unter [Neu in Jon 4.59 bis 4.65](#neu-in-jon-459-bis-465).
 
 **Jon aktualisieren, ohne etwas zu verlieren:** Doppelklick auf `jon-aktualisieren.bat` im Jon-Ordner. Deine eigenen Dateien und Änderungen bleiben erhalten; ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas anzufassen.
 
-[![Version](https://img.shields.io/badge/Version-4.65.4-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.65.5-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
 
-[![Jon-Setup.exe herunterladen](https://img.shields.io/badge/⬇%20Jon--Setup.exe-Installer-d4af37?style=for-the-badge&labelColor=0b0b0f)](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe)
-[![Portable ZIP](https://img.shields.io/badge/📦%20Jon--Windows.zip-portabel-9a7b1f?style=for-the-badge&labelColor=0b0b0f)](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Windows.zip)
-[![Website](https://img.shields.io/badge/🌐%20getjon.info-Website-3a2f8f?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
+[![Jon-Setup.exe herunterladen](https://img.shields.io/badge/Jon--Setup.exe-Installer-d4af37?style=for-the-badge&labelColor=0b0b0f)](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe)
+[![Portable ZIP](https://img.shields.io/badge/Jon--Windows.zip-portabel-9a7b1f?style=for-the-badge&labelColor=0b0b0f)](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Windows.zip)
+[![Website](https://img.shields.io/badge/getjon.info-Website-3a2f8f?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
 
-🇬🇧 [English version](README.en.md) · 📖 [Changelog](CHANGELOG.md) · 🕹️ [Spiele](#spiele--online-koop) · 🛠️ [Setup](#setup)
+[English version](README.en.md) · [Changelog](CHANGELOG.md) · [Spiele](#spiele--online-koop) · [Setup](#setup)
 
 </div>
 
@@ -34,7 +34,7 @@ wie das geht. Er hat auch bisschen geholfen.)
 
 <div align="center">
 
-### 🎬 Jon in zwei Minuten installieren
+### Jon in zwei Minuten installieren
 
 [![Jon installieren — Video ansehen](https://img.youtube.com/vi/tjVsXAmi750/sddefault.jpg)](https://www.youtube.com/watch?v=tjVsXAmi750)
 
@@ -44,7 +44,7 @@ wie das geht. Er hat auch bisschen geholfen.)
 
 ---
 
-## 🕹️ Fünf Spiele. Zwei Spieler. Ein Freundschaftscode.
+## Fünf Spiele. Zwei Spieler. Ein Freundschaftscode.
 
 Die **FelWorks Game Collection** steckt direkt in Jon — und seit v3.34 spielt ihr alles
 zu zweit über einen 6-stelligen Code.
@@ -78,13 +78,159 @@ zu zweit über einen 6-stelligen Code.
 
 | Loslegen | Können | Technik |
 | --- | --- | --- |
-| [⬇ Jon herunterladen](#jon-herunterladen) | [✨ Funktionen](#funktionen) | [🛠️ Setup](#setup) |
-| [🚀 Installation mit der .exe](#weg-a--installation-mit-jon-setupexe) | [🔧 Tools](#was-jon-steuern-kann-tools) | [💻 Aus dem Quellcode](#weg-b--aus-dem-quellcode) |
-| [🔑 Konten & Modelle](#konten--modelle) | [🧩 Skills](#skills) | [📚 Dokumentation](#dokumentation) |
-| [📱 Handy-App](#handy-app) | [🕹️ Spiele & Online-Koop](#spiele--online-koop) | [🔒 Sicherheit](#sicherheit) |
-| [🧩 Browser-Erweiterung](#-jon-im-browser-erweiterung) | [🌐 Browser-Agent](#funktionen) | [📖 Changelog](CHANGELOG.md) |
-| [🔗 Verbindungen](#verbindungen-einrichten) | [💬 Freunde-Chat](#freunde-chat-) | [💾 Backup & Updates](#backup--updates) |
-| [🗺️ Jon Maps](#-jon-maps) | [🧠 Deep Learning](#-jon-deep-learning) | |
+| [Neu in 4.59 bis 4.65](#neu-in-jon-459-bis-465) | [Jon Harness `jonh`](#jon-harness-im-terminal-jonh) | [Blender](#blender-häuser-städte-räume-uhren-und-weltraum) |
+| [Jon herunterladen](#jon-herunterladen) | [Funktionen](#funktionen) | [Setup](#setup) |
+| [Installation mit der .exe](#weg-a--installation-mit-jon-setupexe) | [Tools](#was-jon-steuern-kann-tools) | [Aus dem Quellcode](#weg-b--aus-dem-quellcode) |
+| [Konten & Modelle](#konten--modelle) | [Skills](#skills) | [Dokumentation](#dokumentation) |
+| [Handy-App](#handy-app) | [Spiele & Online-Koop](#spiele--online-koop) | [Sicherheit](#sicherheit) |
+| [Browser-Erweiterung](#jon-im-browser-erweiterung) | [Browser-Agent](#funktionen) | [Changelog](CHANGELOG.md) |
+| [Verbindungen](#verbindungen-einrichten) | [Freunde-Chat](#freunde-chat) | [Backup & Updates](#backup--updates) |
+| [Jon Maps](#jon-maps) | [Deep Learning](#jon-deep-learning) | |
+
+---
+
+## Neu in Jon 4.59 bis 4.65
+
+Alles, was seit Version 4.58 dazugekommen ist, kurz erklärt. Die vollständige Liste steht im
+[Changelog](CHANGELOG.md).
+
+### Jon Harness im Terminal: `jonh`
+
+- **Installieren mit einer Zeile.** In PowerShell
+  `irm https://getjon.info/install.ps1 | iex` oder direkt von GitHub
+  `irm https://raw.githubusercontent.com/Lightning702/Jon---AI/main/website/install.ps1 | iex`,
+  unter macOS und Linux `curl -fsSL https://getjon.info/install.sh | sh`. Danach startet
+  `jonh` in jedem Ordner, `jon` bleibt der normale Jon.
+- **Ein Coding- und Arbeits-Agent wie Claude Code oder Codex.** Dateien lesen, schreiben und
+  gezielt ändern, Befehle ausführen, im Web suchen, Aufgabenliste, Diffs, Rückgängig und ein
+  Projektgedächtnis in `JON.md`.
+- **Verbindet sich selbst mit Jon.** Läuft Jon auf dem PC, nutzt `jonh` dessen Modell und alle
+  Jon-Werkzeuge (PowerPoint, Word, Bilder, Bildschirm). Ohne Jon arbeitet er eigenständig.
+- **FelWorks ohne Schlüssel.** Im Terminal geht FelWorks immer, ohne API-Schlüssel und ohne
+  Premium. `/api` fragt zuerst nach dem Anbieter (NVIDIA, OpenAI, Anthropic, Gemini, DeepSeek,
+  OpenRouter, Groq, Mistral, xAI, Ollama, LM Studio) und dann einmal nach dem Schlüssel, der
+  verschlüsselt gespeichert wird.
+- **Aktualisiert sich selbst.** `/update` (oder `jonh update` von außen) lädt die neue Version
+  direkt aus dem GitHub-Release, prüft ihre SHA-256-Prüfsumme und tauscht die Datei aus.
+  `/update auto` installiert neue Versionen künftig beim Start von selbst.
+- **Befehle:** `/goal`, `/btw`, `/verbessern`, `/design`, `/spiel`, `/praesentation`, `/init`,
+  `/modus`, `/denken`, `/rueckgaengig`, `/kompakt`, `/fortsetzen`, `/update` und mehr, `/hilfe`
+  zeigt alle. Details in [docs/JON-HARNESS.md](docs/JON-HARNESS.md).
+
+### `/goal`: Jon arbeitet, bis dein Ziel erreicht ist
+
+- `/goal <Ziel>` (oder `/ziel`) geht im App-Chat, auf Telegram, in der Handy-App, auf der Uhr,
+  im Terminal mit `jon` und mit `jonh`.
+- Jon arbeitet in Runden mit allen Werkzeugen: planen, recherchieren, erstellen, testen,
+  Fehler beheben. Nach jeder Runde prüft er streng, ob das Ziel wirklich erreicht ist, und
+  macht sonst genau mit dem weiter, was noch fehlt, bis zu zwölf Runden lang.
+- Du siehst Gedanken, Schritte, gespeicherte Dateien und das Prüfergebnis jeder Runde.
+  `/goal stopp` hält an, `/goal weiter` setzt fort.
+
+### Jons Gedanken, `/btw` und Blitzschnell
+
+- **Sichtbares Denken überall:** im Chat, in Jon Code, im Harness, im Terminal und auf
+  Telegram, live mit Sekundenzähler, danach eingeklappt. Die Einstellung „Blitzschnell“ schaltet
+  das Nachdenken ab, im Terminal `/denken`.
+- **`/btw` fragt nebenbei**, ohne Jons Arbeit zu unterbrechen, in App, Jon Code, Harness,
+  Terminal und Telegram (`Alt+B` in der App). Mit `/btw danach: …` oder einfach Weiterschreiben
+  merkt sich Jon einen Nachauftrag und erledigt ihn, sobald er fertig ist.
+
+### Telegram
+
+- **Schnell:** Jon wärmt beim Start Verbindung, Chat und Bildschirmsteuerung vor. Die erste
+  Antwort kommt nach wenigen Sekunden und wird live in die Nachricht geschrieben, Freigaben
+  kommen als Knöpfe.
+- **PC steuern:** `/aus`, `/neustart`, `/schlafen`, `/sperren`, `/abbrechen`, `/bildschirm`,
+  `/video` (auch `/video 2 30s` für Bildschirm 2), `/live`, `/bildschirme`, `/modell`,
+  `/anbieter` oder einfach „fahr den PC in 10 Minuten herunter“.
+- **Sachen aufs Handy:** „Schick mir die Präsentation aufs Handy“ oder „Schick mir ein
+  Bildschirmfoto“. Jede Datei-Karte in der App hat dafür den Knopf „Aufs Handy“. Jon schickt nur
+  Dateien aus freigegebenen Bereichen und nur an deinen eigenen Chat.
+- **Zur Uhrzeit:** „Schick mir um 20 Uhr eine Erinnerung an …“, „in 10 Minuten“ oder täglich.
+  Die Morgen-Nachricht bringt auf Wunsch deinen Stundenplan und das Wetter mit.
+
+### Jon versteht deinen Bildschirm
+
+- „Klick auf Start“, „Klick im Fenster Chrome auf Anmelden“: Jon liest Fenster, Knöpfe und
+  Felder über die Windows-Bedienhilfen und Texterkennung, holt das richtige Fenster nach vorne
+  und klickt oder tippt dort. Reicht das nicht, lässt er das Seh-Modell auf einem markierten
+  Bildschirmfoto wählen. Das geht auch über Telegram.
+- „Wie heißt das Lied?“, „Wechsle zu Claude“: Jon liest die Medienwiedergabe von Windows und
+  wechselt zu Fenstern oder Browser-Tabs.
+- In Sicherheitsfenstern, Firewall-Abfragen, Benutzerkontensteuerung und Anmeldefenstern klickt
+  Jon nie selbst, sondern sagt dir, dass dort etwas auf dich wartet.
+
+### Recherche, Präsentationen und Dokumente
+
+- **Websuche, die findet:** Bing, Wikipedia, Hacker News und weitere Quellen, ohne sichtbares
+  Browserfenster. Findet keine Quelle etwas, sucht Jon ein zweites Mal mit den Kernwörtern.
+  Der Browser öffnet sich nur, wenn du es sagst („öffne“, „im Browser“, „spiel … ab“).
+- **Präsentationen wie von Hand gestaltet:** neues helles Standard-Design mit großen Fotos,
+  echten frei nutzbaren Bildern mit Quelle, Diagrammen und Tabellen. Vorhandene PowerPoints und
+  Word-Dokumente bearbeitet Jon gezielt, statt Kopien anzulegen.
+- **Live-Werkstatt:** Folien, Word-Seiten, Excel-Zellen, Code und Terminalbefehle entstehen
+  sichtbar im Chat, im Harness und in der Handy-App.
+- **Jede Datei in Jon ansehen:** Folie für Folie oder Seite für Seite, mit Kommentaren an
+  einzelnen Elementen, die Jon liest und nach dem Umsetzen abhakt.
+
+### Blender: Häuser, Städte, Räume, Uhren und Weltraum
+
+Jon schreibt Blender-Skripte nicht mehr von null, sondern baut mit fertigen Bausteinen, die
+echte Größen, saubere Materialien und eine passende Kamera mitbringen:
+
+- **Gebäude und Landschaft:** Häuser mit eingelassenen Fenstern, Haustür, Vordach, Ziegeldach,
+  Regenrinne und Kamin, Laub- und Nadelbäume, Wälder, Böden von Gras bis Wasser und ein Himmel
+  für Tag, Morgen, Abend, Nacht oder Wolken mit passender Sonne.
+- **Ganze Städte:** Straßenraster mit Zebrastreifen, Hochhäuser mit Fensterfassaden, die nachts
+  leuchten, Bäume, Laternen und Autos, aus der Vogelperspektive oder von der Straße.
+- **Innenräume:** Raum mit Fenster und Deckenlicht, Sofa, Sessel, Tisch, Stühle, Bett, Schrank,
+  Regal mit Büchern, Küche, Fernseher, Teppich, Pflanzen, Lampen und Bilder.
+- **Uhren, Autos, Produkte:** Wanduhr und Wecker mit Ziffern, Zeigern und Glas, Autos und ein
+  Fotostudio mit Hohlkehle und drei Lichtern für einzelne Objekte.
+- **Weltraum:** Schwarzes Loch mit Akkretionsscheibe, Photonenring und gelinster Scheibe,
+  Planeten mit Ringen und Atmosphäre, Sonnen, Galaxien und Sternenhimmel.
+- **Kamera und Fehler:** Jon prüft am Ende, ob alles im Bild ist, und richtet die Kamera sonst
+  neu aus. Abgeschnittene Skripte schreibt er kürzer neu, Fehlermeldungen zeigen die richtige
+  Zeile, alte Blender-3-Namen werden automatisch übersetzt.
+
+### Code ansehen und testen
+
+- **Code im Chat:** HTML, Python, PHP und JavaScript erscheinen als Block mit Vorschau,
+  Ausführen, Speichern und Kopieren. Websites und Spiele laufen direkt im Chat.
+- **Jon Testumgebung (`/test`):** ein wegwerfbarer Platz mit Dateien, Editor, Terminal und
+  großer Vorschau, mit Docker als echte Linux-Maschine, sonst als abgeschotteter Ordner.
+- **Harness in der App:** Bilder, Videos und andere Dateien zieht du per Drag and Drop in das
+  Eingabefeld, fügst sie mit `Strg+V` ein oder wählst sie über die Büroklammer. „Alle Befehle
+  erlaubt“ spart Rückfragen, ein Fortschrittswächter verhindert Endlosschleifen, abgebrochene
+  Aufträge gehen mit „fahre fort“ weiter.
+
+### Jon Lehrer
+
+Fach, Ziel und Termin angeben, Unterlagen hineinziehen: Jon baut einen Kurs mit Lektionen,
+Beispielen, Begriffen und Übungen, wiederholt nach Lernkurve und schreibt mit dir einen
+Probetest.
+
+### Modelle, Offline-Modus und Geräte
+
+- **Modelle je Aufgabe:** eigene Modelle für Antworten, Code, Bilder und Sehen. „Modelle
+  erkennen“ ordnet Modelle lokaler Server selbst zu. Jeder OpenAI-kompatible Server (llama.cpp,
+  vLLM, LocalAI) ist ein eigener Anbieter.
+- **Offline-Modus:** ein Schalter, und Jon nutzt nur noch lokale Modelle, ohne Websuche und
+  Cloud.
+- **Ein Jon für alle Geräte:** Handys, Tablets, PCs und Smartwatches mit Besitzernamen,
+  „Wo ist Lena?“, Jon Uhr für Wear OS und PCs im Heimnetz, die sich mit „Verbinde meinen PC“
+  selbst finden.
+- **Sprechen statt tippen:** Das Mikrofon neben dem Eingabefeld wandelt Gesprochenes lokal in
+  Text um.
+
+### Aussehen und Team
+
+- **Hell und Cozy** gelten jetzt für jedes Fenster, als sanftes Hellgrau und warmes Creme.
+- **Team-Zentrale** für Admin und Entwickler mit Codes, Team-Chat, Fehlerberichten,
+  Beta-Schaltern, Modellzugang über FelWorks und dem Jon-Inspektor.
+- **Jon Fachteam** bekommt dein Material mit und legt jedes Ergebnis im Ordner „Jon Agenten“
+  ab.
 
 ---
 
@@ -129,15 +275,15 @@ Jon, wenn Jon läuft, und funktioniert mit FelWorks auch ohne API-Schlüssel. Me
 
 ## Funktionen
 
-- **🙂 Mini Jon (Jon Jr)** — Jons kleiner Sohn lebt als niedlicher, minimalistischer Kreis
+- **Mini Jon (Jon Jr)** — Jons kleiner Sohn lebt als niedlicher, minimalistischer Kreis
   direkt auf deinem Desktop: immer im Vordergrund, verschiebbar, beim Windows-Start schon da.
   Er begrüßt dich mit Updates, **hört durchgehend zu** (sag einmal „Jon", dann redest du
   einfach weiter), **spricht mit lippensynchronem Mund**, und **kann alles, was der große Jon
   kann** (Web-Suche, Dateien, PC-Steuerung …). Sein Gesicht, seine Farben, Augen, Größe und
-  sein Haustier sind frei anpassbar (🎨-Knopf); im hellen Modus wird auch er weiß, im
+  sein Haustier sind frei anpassbar (Pinsel-Knopf); im hellen Modus wird auch er weiß, im
   Cozy-Modus rosa. Er hat — wie der große Jon — seine eigene Persönlichkeit und
   Familiengeschichte. Ein-/Ausblenden mit `Strg+Alt+K`
-- **🕹️ Spiele (FelWorks Game Collection)** — **ECHO** (First-Person-Psychological-Horror,
+- **Spiele (FelWorks Game Collection)** — **ECHO** (First-Person-Psychological-Horror,
   4 Etagen, 464 Räume, fünf Enden), **AETHERIA** (Fantasy-Open-World-RPG mit Dörfern,
   Aufträgen und Weltkarte), **STARFALL** (Echtzeit-Simulation eines rotierenden Schwarzen
   Lochs), die **Harmonischen Inseln** (ruhiges Aufbauspiel auf einem schwebenden Archipel)
@@ -150,47 +296,47 @@ Jon, wenn Jon läuft, und funktioniert mit FelWorks auch ohne API-Schlüssel. Me
   Stimmungen, Lebensgeschichte und eine eigene `MEMORY.md`, in die er selbst schreibt
 - **KI-Team, Simulationen, Zeitreise & Dream Mode** — `/team`, `/simulate`, `/snapshot(s)`,
   `/dream(s)` (siehe Befehle-Tab im Nutzer-Menü)
-- **📚 Wissensbasis (RAG)** — „Jon, lern dieses PDF/diesen Ordner": lokale, durchsuchbare
+- **Wissensbasis (RAG)** — „Jon, lern dieses PDF/diesen Ordner": lokale, durchsuchbare
   Wissensbasis (komplett offline), aus der Jon beim Antworten zitiert
-- **🌅 Tagesbriefing** — täglich beim ersten Start und per `/briefing`: Wetter (Stadt im
+- **Tagesbriefing** — täglich beim ersten Start und per `/briefing`: Wetter (Stadt im
   Zahnrad-Menü), Erinnerungen, Wecker und geplante Automationen
-- **⌨️ Jon im Terminal** — `jon` in CMD, PowerShell, macOS, Linux und VS Code: der volle Jon mit Logo, Menue und `jon>`; in VS Code startet er im Code-Modus. Aus dem Download ist nichts einzurichten: Jon legt den Befehl beim ersten Start selbst an
-- **▶️ Player & Mediathek** — alles aus dem Downloader bleibt gespeichert und laeuft offline im Player, mit Vorschaubild, Suche und Playlist
-- **⏱️ Timer, Wecker & Stoppuhr** — eine Uhr im Chat mit drei Reitern; „erhöh um 7 Minuten“, „pausier“, „nochmal von vorn“ oder „Ton aus“ genügen, der Weckton kommt aus dem PC
-- **⚡ Schnellfrage-Overlay** — `Strg+Alt+Leertaste` öffnet überall ein kleines
+- **Jon im Terminal** — `jon` in CMD, PowerShell, macOS, Linux und VS Code: der volle Jon mit Logo, Menue und `jon>`; in VS Code startet er im Code-Modus. Aus dem Download ist nichts einzurichten: Jon legt den Befehl beim ersten Start selbst an
+- **▶ Player & Mediathek** — alles aus dem Downloader bleibt gespeichert und laeuft offline im Player, mit Vorschaubild, Suche und Playlist
+- **Timer, Wecker & Stoppuhr** — eine Uhr im Chat mit drei Reitern; „erhöh um 7 Minuten“, „pausier“, „nochmal von vorn“ oder „Ton aus“ genügen, der Weckton kommt aus dem PC
+- **Schnellfrage-Overlay** — `Strg+Alt+Leertaste` öffnet überall ein kleines
   Spotlight-Fenster: Frage tippen, Antwort erscheint sofort, `Esc` schließt
-- **📋 Clipboard-Historie** — die letzten 50 kopierten Einträge, lokal gespeichert,
-  durchsuchbar über den 📋-Knopf oder `/clipboard`, mit einem Klick wieder kopiert
-- **🤖 Echte Automationen** — „Räum jeden Tag um 18 Uhr meinen Downloads-Ordner auf":
+- **Clipboard-Historie** — die letzten 50 kopierten Einträge, lokal gespeichert,
+  durchsuchbar über den Zwischenablage-Knopf oder `/clipboard`, mit einem Klick wieder kopiert
+- **Echte Automationen** — „Räum jeden Tag um 18 Uhr meinen Downloads-Ordner auf":
   Jon führt geplante Aufgaben zur Uhrzeit wirklich aus und berichtet (`/tasks`)
-- **📎 Datei-Anhänge im Chat** — PDFs, Bilder und Textdateien per Drag & Drop oder
+- **Datei-Anhänge im Chat** — PDFs, Bilder und Textdateien per Drag & Drop oder
   Büroklammer: PDFs werden gelesen, Bilder vom Vision-Modell beschrieben
-- **🎁 Zeitkapseln** — Nachrichten an dein zukünftiges Ich: Jon versiegelt sie mit seiner
+- **Zeitkapseln** — Nachrichten an dein zukünftiges Ich: Jon versiegelt sie mit seiner
   aktuellen Stimmung und übergibt sie feierlich am Zieltag
-- **📷 Webcam-Blick** — „Jon, was siehst du über meine Webcam?": Jon macht ein Webcam-Foto
+- **Webcam-Blick** — „Jon, was siehst du über meine Webcam?": Jon macht ein Webcam-Foto
   und antwortet garantiert mit einer Beschreibung — ausschließlich auf deine Bitte und nur,
   wenn du im Zahnrad-Menü „Webcam erlauben" aktiviert hast (Standard: aus)
-- **💬 Immer im Gespräch** — Jon und Mini Jon beenden jede Antwort mit einer kurzen
+- **Immer im Gespräch** — Jon und Mini Jon beenden jede Antwort mit einer kurzen
   Rückfrage oder einem nächsten Vorschlag (abschaltbar: einfach sagen)
-- **📧 E-Mail & Kalender** — IMAP-Postfach und ICS-Kalender: ungelesene Mails im
+- **E-Mail & Kalender** — IMAP-Postfach und ICS-Kalender: ungelesene Mails im
   Tagesbriefing, Mails vorlesen und beantworten, Termine abfragen
-- **📲 Telegram-Fernbedienung** — Schreib Jon von unterwegs: Er steuert deinen PC und
+- **Telegram-Fernbedienung** — Schreib Jon von unterwegs: Er steuert deinen PC und
   antwortet aufs Handy — weltweit, ohne VPN, gratis
-- **👀 Datei-Wächter** — „Sortiere neue Downloads automatisch": Jon reagiert, sobald neue
+- **Datei-Wächter** — „Sortiere neue Downloads automatisch": Jon reagiert, sobald neue
   Dateien in einem Ordner auftauchen
-- **🎵 Medien-Steuerung** — „leiser", „nächster Song", „Pause" über die Windows-Medientasten
+- **Medien-Steuerung** — „leiser", „nächster Song", „Pause" über die Windows-Medientasten
   (funktioniert mit Spotify, YouTube, allem)
-- **🗣️ Natürliche Stimme** — echte Neural-Stimme statt Roboterstimme (gratis), optional
+- **Natürliche Stimme** — echte Neural-Stimme statt Roboterstimme (gratis), optional
   Offline-Spracherkennung mit Whisper
-- **📊 Wochenrückblick** — jeden Sonntag ein persönlicher Rückblick von Jon (`/woche`)
-- **🩺 PC-Gesundheitscheck** — `/check`: Speicherplatz, RAM-Fresser, Autostart, Temp-Müll —
+- **Wochenrückblick** — jeden Sonntag ein persönlicher Rückblick von Jon (`/woche`)
+- **PC-Gesundheitscheck** — `/check`: Speicherplatz, RAM-Fresser, Autostart, Temp-Müll —
   mit Aufräum-Vorschlägen, die Jon direkt umsetzt
-- **🏠 Smart Home** — Home Assistant: „Jon, mach das Licht aus"
-- **🌐 Netzwerk & Drucker** — Geräte im WLAN finden, per Wake-on-LAN aufwecken, Dateien
+- **Smart Home** — Home Assistant: „Jon, mach das Licht aus"
+- **Netzwerk & Drucker** — Geräte im WLAN finden, per Wake-on-LAN aufwecken, Dateien
   ausdrucken („Druck mir das aus")
-- **👤 Profil** — beim ersten Start fragt Jon nach deinem Namen und spricht dich fortan
+- **Profil** — beim ersten Start fragt Jon nach deinem Namen und spricht dich fortan
   damit an; jederzeit änderbar
-- **💬 Freunde-Chat (Peer-to-Peer)** — Nachrichten, Bilder, Videos, **Sprachnachrichten**
+- **Freunde-Chat (Peer-to-Peer)** — Nachrichten, Bilder, Videos, **Sprachnachrichten**
   (auf Wunsch als Text statt zum Anhören) und **Gruppen**. Direkt von PC zu PC, **Ende-zu-Ende
   verschlüsselt**, ohne Cloud und ohne Kosten. Unbekannte müssen erst eine
   **Freundschaftsanfrage** stellen. Über das Relay erreichst du auch Freunde im Internet —
@@ -203,22 +349,22 @@ Jon, wenn Jon läuft, und funktioniert mit FelWorks auch ohne API-Schlüssel. Me
   ein Login-Formular"), landet der Code direkt dort; ohne Dateinamen gilt die geöffnete
   Datei. Oberflächen baut Jon von selbst modern (Liquid Glass) statt grau
   (siehe [docs/CLI.md](docs/CLI.md))
-- **📊 Präsentationen** — „Mach mir eine Präsentation über den Klimawandel": Jon baut eine
+- **Präsentationen** — „Mach mir eine Präsentation über den Klimawandel": Jon baut eine
   fertige **.pptx** mit Titelfolie, Karten, Kennzahlen, Zeitstrahl, Zitaten und
   Sprechernotizen in elf Farbwelten und öffnet sie
 - **Multi-Provider-Chat** mit einheitlicher Schnittstelle: NVIDIA, OpenAI, Anthropic,
   Gemini, **Ollama & LM Studio (lokal, gratis)**, OpenRouter, Groq, Together AI, xAI,
   DeepSeek, GLM, Qwen, Mistral
-- **🦙 Ollama komplett eingebaut** — eigener Einstellungsbereich mit Serverstatus,
+- **Ollama komplett eingebaut** — eigener Einstellungsbereich mit Serverstatus,
   Verbindungstest, Modellverwaltung und allen Reglern (Temperatur, Top P, Top K, Max
   Tokens, Context Length, Keep Alive, Seed, System Prompt, Streaming, Timeout). Der Server
   darf auf deinem PC, auf einem zweiten Rechner im Heimnetz oder über Tailscale laufen —
   ganz ohne API-Schlüssel (siehe [docs/OLLAMA.md](docs/OLLAMA.md))
-- **🧊 Echte 3D-Modelle für Mini Jon** — ein Schalter in **Mini Jon anpassen**, und Mini
+- **Echte 3D-Modelle für Mini Jon** — ein Schalter in **Mini Jon anpassen**, und Mini
   Jon, Katze und Hund werden zu richtigen 3D-Modellen: eigener WebGL-Renderer ohne
   Fremdbibliothek, echte Geometrie mit Licht, Glanzlicht und Tiefe, sprechender Mund,
   Blinzeln und sichtbares Einschlafen — inklusive Live-Vorschau im Dialog
-- **🤝 Ollama-Server freigeben** — gib deinen Server per Freigabecode oder Einladungslink
+- **Ollama-Server freigeben** — gib deinen Server per Freigabecode oder Einladungslink
   für andere Jon-Nutzer frei (privat, nur Eingeladene oder öffentlich). Bei ihnen taucht er
   automatisch in der KI-Auswahl auf; du siehst jederzeit, wer verbunden ist, welches Modell
   läuft und wann er zuletzt aktiv war — und entziehst den Zugriff mit einem Klick
@@ -277,10 +423,6 @@ auf Klick aufklappbar (Befehl + Erklärung + Ergebnis).
 | 3D & Blender | `blender_szene`, `blender_render`, `blender_export` |
 | Präsentationen | `create_pptx` (Übergänge, Animationen, Diagramme, Tabellen, Bilder), `read_pptx` |
 | Einrichtung | `desktop_verknuepfung` (Desktop-Symbol anlegen, entfernen, prüfen) |
-
-Die portable ZIP-Fassung bringt **„Jon einrichten.exe"** mit — Doppelklick legt
-Desktop-Symbol und Startmenü-Eintrag an und startet Jon. Wer stattdessen einfach
-`Jon.exe` startet, bekommt das Angebot beim ersten Mal von Jon selbst.
 | Erwarten & Lernen | `selbsteinschaetzung` (wie sicher klappt das?), `ueberraschungen` (was lief anders als gedacht), `frage_merken`, `offene_fragen`, `frage_klaeren` |
 | Fertigkeiten & Pläne | `fertigkeiten` (zeigen, entdecken, lernen, löschen), `fertigkeit_nutzen`, `plan_machen`, `plan_ausfuehren` |
 | Gedächtnis & Zeit | `was_war`, `verlauf_heute`, `remember`, `recall`, `forget` |
@@ -288,12 +430,18 @@ Desktop-Symbol und Startmenü-Eintrag an und startet Jon. Wer stattdessen einfac
 | Browser-Agent | `browser_task` (kompletter Auftrag), `browser_goto`, `browser_search`, `browser_read`, `browser_click`, `browser_fill`, `browser_press`, `browser_scroll`, `browser_select`, `browser_back`, `browser_forward`, `browser_reload`, `browser_tab_new`, `browser_tab_switch`, `browser_tab_close`, `browser_wait`, `browser_screenshot`, `browser_status`, `browser_confirm`, `browser_close` |
 | Karten & Navigation | `maps` (Suche, Umgebung, Route, Erkunden) |
 | Eigenständiges Lernen | `deep_learning` (Start, Status, Pause, Weiter, Stop) |
+| Bildschirm verstehen | `bildschirm_lesen`, `bildschirm_klicken`, `bildschirm_eingeben`, `pc_strom` |
+| Telegram | `telegram_senden` (Dateien, Bilder und Bildschirmfotos aufs Handy) |
+
+Die portable ZIP-Fassung bringt **„Jon einrichten.exe"** mit — Doppelklick legt
+Desktop-Symbol und Startmenü-Eintrag an und startet Jon. Wer stattdessen einfach
+`Jon.exe` startet, bekommt das Angebot beim ersten Mal von Jon selbst.
 
 Standardmäßig fragt Jon vor jeder Aktion um Erlaubnis. Reine Abfragen (Systeminfo, Fenster
 auflisten, Skill lesen, Erinnerung abrufen) laufen ohne Rückfrage. Der Modus ist im
 Zahnrad-Menü umstellbar. Alle Tools sind in [docs/API.md](docs/API.md) dokumentiert.
 
-### 🛠️ Dateien, Dokumente und 3D
+### Dateien, Dokumente und 3D
 
 Jon erzeugt echte Dateien auf deiner Festplatte und zeigt sie dir im Chat als Karte mit
 **Öffnen**, **Herunterladen** und **Im Ordner öffnen**.
@@ -310,10 +458,12 @@ Jon erzeugt echte Dateien auf deiner Festplatte und zeigt sie dir im Chat als Ka
   Sagst du nichts, sortiert Jon selbst nach Dateityp ein.
 - **Wiederfinden:** Jede Datei landet in einem Index. „Zeig mir die PDF über Essen von
   letzter Woche" reicht — Jon sucht nach Bedeutung und Zeitraum.
-- **Blender:** Beschreib die Szene, und Jon schreibt das bpy-Skript selbst, lässt
-  Blender im Hintergrund laufen, repariert eigene Fehler, speichert die .blend-Datei,
-  rendert ein Vorschaubild und exportiert nach fbx, obj, glb, gltf oder stl. Blender
-  muss installiert sein — ist es das nicht, sagt Jon genau das.
+- **Blender:** Beschreib die Szene, und Jon schreibt das bpy-Skript selbst, mit fertigen
+  Bausteinen für Häuser, Städte, Innenräume, Möbel, Uhren, Autos, Bäume, Himmel und
+  Weltraum. Er lässt Blender im Hintergrund laufen, repariert eigene Fehler, prüft die
+  Kamera, speichert die .blend-Datei, rendert ein Vorschaubild und exportiert nach fbx,
+  obj, glb, gltf oder stl. Blender muss installiert sein — ist es das nicht, sagt Jon
+  genau das.
 - **Telegram:** Erzeugte Dateien schickt Jon dir direkt in den Chat.
 - **Grenzen:** Jon arbeitet in seinem Ordner, deinem Benutzerordner und Ordnern, die du
   freigibst. Systemverzeichnisse sind gesperrt, nichts wird versehentlich überschrieben.
@@ -321,7 +471,7 @@ Jon erzeugt echte Dateien auf deiner Festplatte und zeigt sie dir im Chat als Ka
 Mit `umgebung` sagt dir Jon, was auf dem Rechner wirklich installiert ist — Python,
 Node, npm, Git, FFmpeg, Blender — und welcher Befehl fehlt.
 
-### 🧠 Jons Denken
+### Jons Denken
 
 Jon vergisst nicht mehr, was war, und wartet nicht mehr nur auf Zuruf. Öffne es mit
 `/denken` oder über Werkzeuge → Jons Denken.
@@ -367,7 +517,7 @@ offene Fragen, Fertigkeiten, Datenschutzregel und Budget.
 Frag ihn ruhig direkt: „wie sicher bist du dir?", „was hast du zuletzt gelernt?",
 „was weißt du nicht?" — dafür gibt es eigene Werkzeuge.
 
-### 🛡️ Was Jon schützt
+### Was Jon schützt
 
 - **Risikowächter für alle Werkzeuge.** Niedrig läuft durch, mittel fragt im
   Nachfragemodus, hoch fragt **immer** — auch bei „alles erlauben". Kaufen, senden,
@@ -380,7 +530,7 @@ Frag ihn ruhig direkt: „wie sicher bist du dir?", „was hast du zuletzt geler
 - **Budget.** Tokens je Tag und Euro je Monat, mit Warnung und Stopp.
 - **Aufträge überleben Abstürze** und melden sich nach dem Neustart als unterbrochen.
 
-### 🌐 Browser-Agent
+### Browser-Agent
 
 Jon bedient einen echten Chromium-Browser. Ein Satz genügt — „Such mir das Buch und leg es
 in den Warenkorb" — und Jon plant, öffnet die Seite, liest sie, klickt, füllt aus und
@@ -415,7 +565,7 @@ Mehr dazu in [docs/SKILLS.md](docs/SKILLS.md).
 
 ---
 
-## 🦙 Ollama — Jon ganz ohne Cloud
+## Ollama — Jon ganz ohne Cloud
 
 Mit [Ollama](https://ollama.com) antwortet Jon komplett auf deiner eigenen Hardware:
 kostenlos, privat, ohne API-Schlüssel und ohne Internet. Der Ollama-Server darf dabei auf
@@ -456,7 +606,7 @@ Verbindung zu Ollama unter …", „Das Modell X ist auf dem Server nicht instal
 **Verbindung testen**. Kann ein Modell keine Werkzeuge, wiederholt Jon die Anfrage
 automatisch ohne Werkzeuge, statt abzubrechen.
 
-### 🤝 Deinen Server für Freunde freigeben
+### Deinen Server für Freunde freigeben
 
 Hast du die stärkere Grafikkarte, können andere Jon-Nutzer über deinen Ollama-Server
 chatten — ohne selbst etwas zu installieren.
@@ -465,7 +615,7 @@ chatten — ohne selbst etwas zu installieren.
   Beschreibung eintragen, Sichtbarkeit wählen (**Privat**, **Nur Eingeladene** oder
   **Öffentlich**) und den **Freigabecode** oder **Einladungslink** weitergeben.
 - **Verbinden:** Der andere trägt Code oder Link unter **Freigegebene Server nutzen** ein —
-  am schnellsten über den Knopf **🤝 Ollama teilen** oben im Chat. Danach steht bei ihm in
+  am schnellsten über den Knopf **Ollama teilen** oben im Chat. Danach steht bei ihm in
   der Anbieterauswahl zusätzlich **„Ollama von <dein Name>"**; wählt er sie, ist dein
   geteiltes Modell fest eingestellt und nicht änderbar. Chat, Verlauf, Streaming und alle
   Ollama-Einstellungen funktionieren ganz normal.
@@ -486,16 +636,16 @@ Sicherheitshinweisen, Fehlerbehebung und FAQ steht in
 ## Verbindungen einrichten
 
 Alle Verbindungen sind **kostenlos** — du zahlst nur für deine LLM-API (oder gar nichts,
-wenn du Ollama nutzt). Öffne dazu **Zahnrad-Menü → 🔌 Verbindungen**. Alles wird nur lokal
+wenn du Ollama nutzt). Öffne dazu **Zahnrad-Menü → Verbindungen**. Alles wird nur lokal
 auf deinem PC gespeichert.
 
 | Verbindung | Was du brauchst | Wo du es herbekommst |
 |---|---|---|
-| 📧 **E-Mail** | IMAP-Server, Adresse, App-Passwort | Gmail: `imap.gmail.com` + [App-Passwort](https://myaccount.google.com/apppasswords) (nicht dein normales Passwort!). GMX/Web.de: IMAP zuerst in den Konto-Einstellungen freischalten |
-| 📅 **Kalender** | ICS-URL | Google Kalender → Einstellungen → *Geheime Adresse im iCal-Format*. Geht auch mit Outlook, Apple, Nextcloud |
-| 📲 **Telegram** | Bot-Token | In Telegram `@BotFather` anschreiben → `/newbot` → Namen wählen → Token kopieren. Danach **deinem eigenen Bot** `/start` schreiben — der erste Chat wird automatisch mit deinem PC verknüpft, alle anderen werden abgewiesen. Telegram kann einen eigenen Anbieter nutzen — auch Ollama, wenn Jon in der App eine API wie NVIDIA benutzt (Verbindungen → Telegram, oder direkt im Chat mit `/anbieter ollama` und `/modell`). Antwortet ein Modell nicht, springt Jon auf ein Ersatzmodell und zuletzt auf Ollama |
-| 🎧 **Spotify** | Client-ID + Secret | [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → *Create app* → beliebiger Name, Redirect-URI `http://localhost` → ID und Secret kopieren. **Kein Premium nötig** |
-| 🏠 **Smart Home** | Home-Assistant-URL + Token | Home Assistant → Profil (unten links) → Sicherheit → *Langlebiges Zugriffstoken* |
+| **E-Mail** | IMAP-Server, Adresse, App-Passwort | Gmail: `imap.gmail.com` + [App-Passwort](https://myaccount.google.com/apppasswords) (nicht dein normales Passwort!). GMX/Web.de: IMAP zuerst in den Konto-Einstellungen freischalten |
+| **Kalender** | ICS-URL | Google Kalender → Einstellungen → *Geheime Adresse im iCal-Format*. Geht auch mit Outlook, Apple, Nextcloud |
+| **Telegram** | Bot-Token | In Telegram `@BotFather` anschreiben → `/newbot` → Namen wählen → Token kopieren. Danach **deinem eigenen Bot** `/start` schreiben — der erste Chat wird automatisch mit deinem PC verknüpft, alle anderen werden abgewiesen. Telegram kann einen eigenen Anbieter nutzen — auch Ollama, wenn Jon in der App eine API wie NVIDIA benutzt (Verbindungen → Telegram, oder direkt im Chat mit `/anbieter ollama` und `/modell`). Antwortet ein Modell nicht, springt Jon auf ein Ersatzmodell und zuletzt auf Ollama |
+| **Spotify** | Client-ID + Secret | [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → *Create app* → beliebiger Name, Redirect-URI `http://localhost` → ID und Secret kopieren. **Kein Premium nötig** |
+| **Smart Home** | Home-Assistant-URL + Token | Home Assistant → Profil (unten links) → Sicherheit → *Langlebiges Zugriffstoken* |
 
 **So benutzt du sie:**
 
@@ -505,7 +655,7 @@ auf deinem PC gespeichert.
 - **Telegram:** Schreib deinem Bot von unterwegs „Öffne YouTube auf meinem PC", „Fahr den
   PC in 10 Minuten runter" oder „Was steht heute an?" — Jon führt es aus und antwortet dir.
   Er darf dabei alle Tools ohne Rückfrage nutzen (du bist ja nicht am PC), zeigt jede
-  Aktion sofort als ⚙️-Meldung an und tippt sichtbar, während er arbeitet. `/reset` löscht
+  Aktion sofort als Statusmeldung an und tippt sichtbar, während er arbeitet. `/reset` löscht
   den Gesprächsverlauf
 - **Datei-Wächter:** „Überwach meinen Downloads-Ordner und sortiere neue Dateien nach Typ
   in Unterordner" — Jon prüft alle 12 Sekunden und meldet sich im Chat, wenn er was getan hat
@@ -530,38 +680,38 @@ auf deinem PC gespeichert.
 
 ---
 
-## Freunde-Chat (💬)
+## Freunde-Chat
 
 Jon-Nutzer können sich **direkt gegenseitig schreiben** — Text, Bilder, Videos und Dateien
 (bis 60 MB). Ohne Server, ohne Konto, ohne Kosten.
 
 **So funktioniert es:**
 
-1. Beim ersten Start legst du deinen **Namen** fest (später über 💬 → Profil änderbar).
+1. Beim ersten Start legst du deinen **Namen** fest (später über Freunde-Chat → Profil änderbar).
    Jeden Namen gibt es im Netzwerk **nur einmal**
-2. Klick auf **💬** in der Kopfzeile
+2. Klick in der Kopfzeile auf **Freunde-Chat** (Sprechblase)
 3. Freund hinzufügen:
    - **Im selben WLAN:** einfach seinen **Namen** eintippen — Jon findet ihn
    - **Woanders (Internet):** er trägt deinen **Jon-Code** ein (steht oben links im Chat).
-     Dafür muss das **Relay** an sein (Zahnrad → 🔌 Verbindungen), kostenlos
+     Dafür muss das **Relay** an sein (Zahnrad → Verbindungen), kostenlos
 4. Dein Freund bekommt eine **Freundschaftsanfrage** und muss sie annehmen. Erst danach
    könnt ihr schreiben
-5. Mit 📎 sendest du Bilder, Videos und Dateien, mit 🎙 eine **Sprachnachricht**. Wer nicht
-   zuhören will, klickt **„📝 Text anzeigen"** und liest sie stattdessen
-6. Über **👥 Gruppe erstellen** chattest du mit mehreren Freunden. Die Eingeladenen müssen
+5. Mit der Büroklammer sendest du Bilder, Videos und Dateien, mit dem Mikrofon eine **Sprachnachricht**. Wer nicht
+   zuhören will, klickt **„Text anzeigen"** und liest sie stattdessen
+6. Über **Gruppe erstellen** chattest du mit mehreren Freunden. Die Eingeladenen müssen
    **beitreten** — und das geht nur, wenn sie mit mindestens einer Person aus der Gruppe
    befreundet sind. Verlassen kann die Gruppe jeder jederzeit
 
 **Was der Chat sonst noch kann:**
 
-- **⏳ Offline-Zustellung** — ist dein Freund gerade aus, wartet die Nachricht und wird
+- **Offline-Zustellung** — ist dein Freund gerade aus, wartet die Nachricht und wird
   zugestellt, sobald er wieder online ist
-- **✓✓ Zustell- und Lesebestätigung** — 🕑 wartet · ✓✓ zugestellt · blaues ✓✓ gelesen
-- **🗑 Löschen & Zurückrufen** — bei dir oder **für alle** (dann verschwindet sie auch beim
+- **✓✓ Zustell- und Lesebestätigung** — Uhr-Symbol: wartet · ✓✓ zugestellt · blaues ✓✓ gelesen
+- **Löschen & Zurückrufen** — bei dir oder **für alle** (dann verschwindet sie auch beim
   Freund), und der ganze **Verlauf** auf einen Klick
-- **↩ Antworten & @Erwähnungen** — auf eine bestimmte Nachricht antworten, in Gruppen mit
+- **Antworten & @Erwähnungen** — auf eine bestimmte Nachricht antworten, in Gruppen mit
   `@Name` jemanden direkt ansprechen
-- **❤️ Reaktionen** und **🔍 Suche** über alle Chats (auch in Sprachnachrichten)
+- **Reaktionen** und **Suche** über alle Chats (auch in Sprachnachrichten)
 
 Wie bei WhatsApp siehst du eine **Tipp-Animation**, während dein Freund schreibt, und
 bekommst eine **Windows-Benachrichtigung** mit Ton, wenn dir jemand schreibt.
@@ -585,10 +735,10 @@ Datenbank, Medien im Ordner `p2p_media`. Löschst du einen Kontakt, verschwindet
 
 ---
 
-## 🗺️ Jon Maps
+## Jon Maps
 
 Eine eigene Karten- und Navigationsplattform, die zu Jon gehört — kein eingebettetes
-fremdes Kartenfenster. **🧰 Werkzeuge → Jon Maps** oder `/maps`.
+fremdes Kartenfenster. **Werkzeuge → Jon Maps** oder `/maps`.
 
 Die Karte nimmt den ganzen Bildschirm ein, die Bedienung schwebt als Liquid-Glass-Panels
 darüber: echte Hintergrundunschärfe, wandernde Lichtreflexe, Rahmen aus Farbverlauf,
@@ -601,14 +751,14 @@ gestaltet und jederzeit umschaltbar — oben rechts oder in den Ebenen.
 |-----|-----|
 | Suche | Städte, Länder, Straßen, Adressen, Restaurants, Hotels, Geschäfte, Sehenswürdigkeiten, Bahnhöfe, Flughäfen, Tankstellen, Parks |
 | Umgebung | Schnellfilter über der Suche — Restaurants, Cafés, Hotels, Supermärkte, Tankstellen, Bahnhöfe, Apotheken, Sehenswürdigkeiten, Parkplätze |
-| Routen | 🚶 Fuß · 🚗 Auto · 🚲 Fahrrad · 🚌 Bus & Bahn — mit Dauer, Entfernung, Alternativen, Zwischenstopps und Abbiegeanweisungen |
+| Routen | Fuß · Auto · Fahrrad · Bus & Bahn — mit Dauer, Entfernung, Alternativen, Zwischenstopps und Abbiegeanweisungen |
 | 2D / 3D | Umschalter im rechten Bedienfeld; in 3D neigen, drehen und 3D-Gebäude mit echten Höhen |
 | Ebenen | Satellit, 3D-Gebäude, Gelände-Schattierung, echtes 3D-Gelände, ÖPNV-Netz, Fahrradnetz, Fußwege |
 | Globus | Weit herauszoomen macht die Karte zur Kugel und beim Hineinzoomen wieder flach — fließend |
-| Street Exploration | Auf einen Punkt klicken, 👁️ drücken: echte Straßenfotos, umsehen per Ziehen, mit `W`/`S` die Straße entlang |
-| Erde | 🌎 schaltet Satellit, echtes 3D-Gelände und 3D-Gebäude zusammen ein und neigt die Kamera — die Google-Earth-Ansicht |
-| Mein Standort | ◎ holt den echten Windows-Standortdienst (~150 m genau, ohne Schlüssel) und merkt ihn sich dauerhaft — auch für Fragen im Chat. Geht das nicht, setzt du ihn unter ▦ Ebenen auf die Kartenmitte; erst danach schätzt Jon grob über die IP |
-| World Explorer | 🕹️ öffnet die freie Erkundung als 🚶 Mensch (Augenhöhe), 🚗 Auto (Fahrzeughöhe) oder ✈️ Flugzeug (freie Flughöhe). `W A S D` bewegen, Maus ziehen zum Umsehen, `Shift` schneller, `R`/`F` steigen und sinken. Eine berechnete Route lässt sich abfahren |
+| Street Exploration | Auf einen Punkt klicken, das Augen-Symbol drücken: echte Straßenfotos, umsehen per Ziehen, mit `W`/`S` die Straße entlang |
+| Erde | Der Erdkugel-Knopf schaltet Satellit, echtes 3D-Gelände und 3D-Gebäude zusammen ein und neigt die Kamera — die Google-Earth-Ansicht |
+| Mein Standort | Der Standort-Knopf holt den echten Windows-Standortdienst (~150 m genau, ohne Schlüssel) und merkt ihn sich dauerhaft — auch für Fragen im Chat. Geht das nicht, setzt du ihn unter Ebenen auf die Kartenmitte; erst danach schätzt Jon grob über die IP |
+| World Explorer | Der Joystick-Knopf öffnet die freie Erkundung als Mensch (Augenhöhe), Auto (Fahrzeughöhe) oder Flugzeug (freie Flughöhe). `W A S D` bewegen, Maus ziehen zum Umsehen, `Shift` schneller, `R`/`F` steigen und sinken. Eine berechnete Route lässt sich abfahren |
 
 **Im Chat.** Fragen wie „Wie lange brauche ich zu Fuß zum Bahnhof?", „Finde mir ein
 Restaurant in der Nähe" oder „Plane mir eine Reise nach Salzburg" beantwortet Jon mit dem
@@ -625,9 +775,9 @@ wer eine hat, trägt sie unter `MAPS_TRAFFIC_TILES` ein.
 
 ---
 
-## 🧠 Jon Deep Learning
+## Jon Deep Learning
 
-Jon arbeitet sich selbst in ein Thema ein. **🧰 Werkzeuge → Deep Learning** oder `/lerne` —
+Jon arbeitet sich selbst in ein Thema ein. **Werkzeuge → Deep Learning** oder `/lerne` —
 oder einfach im Chat: „Jon, lerne alles über Quantenmechanik. Du hast zwei Stunden."
 
 Er zerlegt das Thema in Unterthemen, stellt einen Rechercheplan auf, sucht Quellen im Web,
@@ -716,7 +866,7 @@ Felder werden nicht erfunden.
 
 ---
 
-## 🔐 Anmeldung
+## Anmeldung
 
 Jon fragt bei **jedem Öffnen** nach Benutzername und Passwort — in der App und im Web
 (`http://<jon>:8756/app`). Beim ersten Start legst du beides fest.
@@ -734,7 +884,7 @@ Jon fragt bei **jedem Öffnen** nach Benutzername und Passwort — in der App un
 - Telegram, die Browser-Erweiterung, die Handy-App und `jon` im Terminal verbinden sich
   weiter über den Geräte-Schlüssel und brauchen keine Anmeldung.
 
-## 📺 Bildschirm live zeigen
+## Bildschirm live zeigen
 
 Jon kann dir **zusehen lassen**, was auf seinen Bildschirmen passiert — ohne
 Fremdsoftware, ohne Konto irgendwo.
@@ -761,7 +911,7 @@ Fremdsoftware, ohne Konto irgendwo.
 Auf einem Gerät ohne Monitor sagt Jon das klar, statt ein leeres Bild zu
 schicken.
 
-## 🔗 Geräte im Verbund
+## Geräte im Verbund
 
 Läuft Jon auf mehreren Geräten — am PC und auf dem Raspberry Pi —, verbindest du
 sie zu einem Verbund:
@@ -809,7 +959,7 @@ Die Adresse enthält deinen **Geräte-Schlüssel**. Das Handy merkt sich ihn und
 aus der Adresszeile. Ohne diesen Schlüssel antwortet Jon auf keine Anfrage — ein fremdes
 Gerät im selben WLAN kommt also nicht an deinen PC, selbst wenn es die IP kennt.
 
-> ⚠️ Gib die Adresse an niemanden weiter, sie ist der Schlüssel selbst. Verloren gegangen?
+> **Achtung:** Gib die Adresse an niemanden weiter, sie ist der Schlüssel selbst. Verloren gegangen?
 > **Neues Token** in derselben Ansicht meldet alle gekoppelten Geräte auf einmal ab.
 
 ### Immer an: Jon auf dem Raspberry Pi
@@ -847,7 +997,7 @@ dem Pi fehlen nur die PC-Steuerungs-Tools (Fenster, Maus/Tastatur, Screenshots,
 Zwischenablage) — alles andere (Chat, Web-Suche, Erinnerungen, Telegram, Freunde-Chat,
 Wissensbasis …) läuft dort genauso.
 
-### 📱 Jon Gerät (Android-App)
+### Jon Gerät (Android-App)
 
 Die App „Jon Gerät“ macht ein Android-Handy komplett zu Jon. Beim ersten Start fragt sie,
 wie Jon laufen soll – das lässt sich später jederzeit in den Einstellungen ändern:
@@ -889,7 +1039,7 @@ MP3s schreibt er ab – ebenfalls wahlweise auf dem Handy oder auf dem Pi gespei
   SafeSearch, nur sichere Werkzeuge – für Jon am PC oder Pi, den eigenen Zugang und die
   Offline-KI
 - **Wochenbericht** jeden Sonntag um 18 Uhr per Telegram und in Jon, mit Balkendiagramm am PC
-  (Geräte → 📊 Woche) und am Handy (Bildschirmzeit)
+  (Geräte → Woche) und am Handy (Bildschirmzeit)
 - **Eltern-Übersicht** am PC unter Einstellungen → Geräte: Bildschirmzeit, Limits,
   Schlafenszeit, Pause, Durchsagen, Klingeln, Extra-Zeit-Anfragen und SOS-Meldungen
 - **Admin-PIN** schützt Kiosk und Einstellungen – auf Wunsch auch per Fingerabdruck
@@ -921,7 +1071,7 @@ den Kiosk danach doch einmal fest, zeigt Jon oben „Jetzt neu starten“.
 
 ---
 
-## 🧩 Jon im Browser (Erweiterung)
+## Jon im Browser (Erweiterung)
 
 Die **Jon-Erweiterung** für Chrome, Edge und Brave (Manifest V3) bringt Jon in jeden Tab.
 Sie enthält keinen zweiten Jon — sie spricht über `127.0.0.1` mit dem Jon, der auf deinem
@@ -944,7 +1094,7 @@ Als Notiz speichern.
 2. `chrome://extensions` öffnen → **Entwicklermodus** einschalten →
    **Entpackte Erweiterung laden** → den Ordner auswählen.
 3. In Jon: **Einstellungen → Diagnose → Kopplung**, Geräte-Schlüssel kopieren.
-   In der Erweiterung: Jon-Symbol → ⚙ → Adresse (Standard `http://127.0.0.1:8756`) und
+   In der Erweiterung: Jon-Symbol → Zahnrad → Adresse (Standard `http://127.0.0.1:8756`) und
    Schlüssel eintragen → **Speichern** → **Verbindung testen**.
 
 **Datenschutz**
@@ -1065,7 +1215,7 @@ noch eine `.env`.
 
 **1. Herunterladen**
 
-[⬇ Jon-Setup.exe](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe)
+[Jon-Setup.exe](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Setup.exe)
 (~280 MB) oder über [getjon.info](https://getjon.info). Wer nichts installieren will,
 nimmt [Jon-Windows.zip](https://github.com/Lightning702/Jon---AI/releases/latest/download/Jon-Windows.zip):
 entpacken, `Jon.exe` starten, fertig — Schritt 2 und 3 entfallen dann.

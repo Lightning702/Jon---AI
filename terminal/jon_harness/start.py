@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import NAME, VERSION, netz, oberflaeche as ui, prompt
+from . import NAME, VERSION, aktualisieren, netz, oberflaeche as ui, prompt
 from .agent import Abbruch, Agent, Sitzung
 from .anbieter import KATALOG, Jon, Verbindung, letzte_wahl_speichern
 from .nebenbei import Nebenbei, frage_aus
@@ -18,7 +18,7 @@ from .speicher import Einstellungen, ordner, schreiben
 from .werkzeuge import Werkzeugkasten
 
 GITHUB = "https://api.github.com/repos/Lightning702/Jon---AI/releases/latest"
-INSTALLER = "https://getjon.info/install.ps1"
+INSTALLER = aktualisieren.INSTALLER_WINDOWS
 
 BEFEHLE = [
     ("/api", "Anbieter wählen und API-Schlüssel einmal eingeben"),
@@ -39,7 +39,7 @@ BEFEHLE = [
     ("/neu", "neues Gespräch"),
     ("/fortsetzen", "letztes Gespräch in diesem Ordner fortsetzen"),
     ("/kosten", "Tokens und Dauer dieser Sitzung"),
-    ("/update", "auf die neueste Version aktualisieren"),
+    ("/update", "auf die neueste Version aktualisieren (/update auto: automatisch)"),
     ("/hilfe", "diese Übersicht"),
     ("/exit", "beenden"),
 ]
@@ -119,7 +119,11 @@ class Terminal:
             return
         neu = str(self.einstellungen.get("neue_version") or "")
         if neu and _version(neu) > _version(VERSION):
-            sag(f(f"  Neue Version {neu} verfügbar – ", GOLD) + f("/update", WEISS, FETT) + f(" installiert sie.", GOLD))
+            if self.einstellungen.get("auto_update") and aktualisieren.eigene_datei() is not None:
+                sag(f(f"  Neue Version {neu} – ich aktualisiere automatisch …", GOLD))
+                self.update(neustart=False)
+                return
+            sag(f(f"  Neue Version {neu} verfügbar – ", GOLD) + f("/update", WEISS, FETT) + f(" installiert sie, ", GOLD) + f("/update auto", WEISS, FETT) + f(" macht das künftig von selbst.", GOLD))
             sag()
 
     def eingabe(self) -> str | None:
@@ -298,6 +302,9 @@ class Terminal:
             return True
         if wort in ("/fortsetzen", "/resume", "/weiter"):
             self.fortsetzen()
+            return True
+        if wort in ("/update", "/aktualisieren") and rest:
+            self.update(rest)
             return True
         if wort in ("/update", "/aktualisieren"):
             self.update()
@@ -497,15 +504,36 @@ class Terminal:
         self.sitzung.zusammenfassung = daten.get("zusammenfassung", "")
         sag(f(f"  Fortgesetzt ({len(self.sitzung.nachrichten)} Nachrichten).", GRAU))
 
-    def update(self) -> None:
-        if sys.platform != "win32":
-            sag(f("  Aktualisieren: curl -fsSL https://getjon.info/install.sh | bash", GRAU))
+    def update(self, rest: str = "", neustart: bool = True) -> None:
+        wort = rest.strip().lower()
+        if wort.startswith("auto"):
+            an = not wort.endswith("aus")
+            self.einstellungen.setzen(auto_update=an)
+            sag(f("  Automatische Updates sind " + ("an – neue Versionen installiere ich beim Start selbst." if an else "aus."), GRAU))
             return
-        sag(f("  Lade die neueste Version …", GRAU))
-        subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", f"Start-Sleep -Seconds 1; irm {INSTALLER} | iex"], creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
-        sag(f("  Das Update läuft in einem neuen Fenster. Starte danach einfach wieder mit „jonh“.", GRAU))
-        self.ende()
-        raise SystemExit(0)
+        if aktualisieren.eigene_datei() is None:
+            if sys.platform != "win32":
+                sag(f(f"  Aktualisieren: curl -fsSL {aktualisieren.INSTALLER_UNIX} | sh", GRAU))
+                return
+            sag(f("  Lade die neueste Version …", GRAU))
+            subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", f"Start-Sleep -Seconds 1; irm {INSTALLER} | iex"], creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
+            sag(f("  Das Update läuft in einem neuen Fenster. Starte danach einfach wieder mit „jonh“.", GRAU))
+            self.ende()
+            raise SystemExit(0)
+        sag(f("  Lade die neueste Version von GitHub und prüfe sie …", GRAU))
+        try:
+            pfad = aktualisieren.aktualisieren()
+        except aktualisieren.UpdateFehler as fehler:
+            sag(f("  " + str(fehler), GOLD))
+            return
+        except netz.NetzFehler as fehler:
+            sag(f(f"  Das Update kam nicht durch: {fehler}", GOLD))
+            return
+        self.einstellungen.setzen(neue_version="", versionspruefung=0)
+        sag(f(f"  ✓ Aktualisiert: {pfad.name}. Starte „jonh“ neu, dann läuft die neue Version.", GRUEN))
+        if neustart:
+            self.ende()
+            raise SystemExit(0)
 
 
 def _version(text: str) -> tuple:
@@ -539,8 +567,9 @@ def main(liste: list[str] | None = None) -> None:
     if werte.version:
         print(f"{NAME} {VERSION}")
         return
+    aktualisieren.aufraeumen()
     if werte.frage[:1] == ["update"]:
-        Terminal(werte).update()
+        Terminal(werte).update(" ".join(werte.frage[1:]))
         return
     terminal = Terminal(werte)
     text = " ".join(werte.frage).strip()

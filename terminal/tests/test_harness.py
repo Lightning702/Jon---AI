@@ -256,3 +256,72 @@ def test_terminal_zeigt_die_gedanken_live(tmp_path, monkeypatch, capsys):
     assert gesehen["denken"] is True
     assert "Jon denkt nach" in ausgabe and "Das ist einfach." in ausgabe
     assert ausgabe.index("Das ist einfach.") < ausgabe.index("Das ergibt 4.")
+
+
+def test_updater_ersetzt_den_harness_nur_mit_passender_pruefsumme(tmp_path, monkeypatch):
+    import hashlib
+
+    from jon_harness import aktualisieren, netz
+
+    alt = tmp_path / "jon-harness.pyz"
+    alt.write_bytes(b"alte Version")
+    neu_inhalt = b"neue Version"
+    summe = hashlib.sha256(neu_inhalt).hexdigest()
+
+    class Antwort:
+        def __init__(self, daten):
+            self.daten = daten
+
+        def text(self):
+            return self.daten.decode()
+
+        def inhalt(self):
+            return self.daten
+
+    liste = {"text": f"{summe}  jon-harness.pyz\nabc  jon-harness.exe\n"}
+
+    def anfrage(methode, url, *a, **k):
+        return Antwort(liste["text"].encode() if url.endswith("SHA256SUMS.txt") else neu_inhalt)
+
+    monkeypatch.setattr(netz, "anfrage", anfrage)
+    assert aktualisieren.pruefsumme("jon-harness.pyz") == summe
+    assert aktualisieren.aktualisieren((alt, "jon-harness.pyz")) == alt
+    assert alt.read_bytes() == neu_inhalt
+    liste["text"] = "0000  jon-harness.pyz\n"
+    alt.write_bytes(b"bleibt")
+    try:
+        aktualisieren.aktualisieren((alt, "jon-harness.pyz"))
+        raise AssertionError("falsche Pruefsumme muss abbrechen")
+    except aktualisieren.UpdateFehler as fehler:
+        assert "Prüfsumme" in str(fehler)
+    assert alt.read_bytes() == b"bleibt"
+    assert not (tmp_path / "jon-harness.pyz.neu").exists()
+
+
+def test_updater_ersetzt_eine_laufende_exe_ueber_umbenennen(tmp_path, monkeypatch):
+    import hashlib
+
+    from jon_harness import aktualisieren, netz
+
+    exe = tmp_path / "jon-harness.exe"
+    exe.write_bytes(b"MZ" + b"a" * 1_100_000)
+    neu_inhalt = b"MZ" + b"b" * 1_100_000
+
+    class Antwort:
+        def __init__(self, daten):
+            self.daten = daten
+
+        def text(self):
+            return self.daten.decode()
+
+        def inhalt(self):
+            return self.daten
+
+    summen = f"{hashlib.sha256(neu_inhalt).hexdigest()}  jon-harness.exe\n".encode()
+    monkeypatch.setattr(netz, "anfrage", lambda methode, url, *a, **k: Antwort(summen if url.endswith("SHA256SUMS.txt") else neu_inhalt))
+    aktualisieren.aktualisieren((exe, "jon-harness.exe"))
+    assert exe.read_bytes() == neu_inhalt
+    assert (tmp_path / "jon-harness.exe.alt").read_bytes()[:3] == b"MZa"
+    monkeypatch.setattr(aktualisieren, "eigene_datei", lambda: (exe, "jon-harness.exe"))
+    aktualisieren.aufraeumen()
+    assert not (tmp_path / "jon-harness.exe.alt").exists()

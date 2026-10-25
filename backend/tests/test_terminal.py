@@ -309,6 +309,25 @@ def test_terminalbefehl_wird_angelegt_und_entfernt(monkeypatch, tmp_path):
     assert pfad.exists() is False
 
 
+def test_jonh_entsteht_auch_beim_start_aus_dem_quellcode(monkeypatch, tmp_path):
+    from app.services import terminal_service
+
+    monkeypatch.setattr(terminal_service, "bin_ordner", lambda: tmp_path / "bin")
+    monkeypatch.setattr(terminal_service, "im_pfad", lambda _o: True)
+    monkeypatch.delenv("JON_KEIN_TERMINAL_BEFEHL", raising=False)
+    ergebnis = terminal_service.automatisch()
+    assert ergebnis["gemacht"] is True
+    jonh = terminal_service.jonh_pfad()
+    assert jonh.exists() and "cli harness" in jonh.read_text(encoding="utf-8")
+    assert not terminal_service.befehl_pfad().exists()
+    eigenes = b"@echo off\r\necho mein eigenes jonh\r\n"
+    jonh.write_bytes(eigenes)
+    assert terminal_service.automatisch()["gemacht"] is False
+    assert jonh.read_bytes() == eigenes
+    monkeypatch.setenv("JON_KEIN_TERMINAL_BEFEHL", "1")
+    assert terminal_service.automatisch()["grund"] == "abgeschaltet"
+
+
 def test_terminalstand_nennt_pfad_und_system():
     from app.services.terminal_service import bin_ordner, befehl_pfad, stand
 
@@ -706,6 +725,7 @@ def test_terminalbefehl_legt_sich_beim_start_selbst_an(monkeypatch, tmp_path):
     monkeypatch.setattr(terminal_service, "bin_ordner", lambda: ordner)
     monkeypatch.setattr(terminal_service, "befehl_pfad", lambda: ordner / "jon.cmd")
     monkeypatch.setattr(terminal_service, "im_pfad", lambda _o: True)
+    monkeypatch.delenv("JON_KEIN_TERMINAL_BEFEHL", raising=False)
     ergebnis = terminal_service.automatisch()
     assert ergebnis["gemacht"] is True
     inhalt = (ordner / "jon.cmd").read_text(encoding="utf-8")
