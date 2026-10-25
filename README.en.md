@@ -6,9 +6,9 @@
 
 **An assistant that doesn't just talk — it actually operates your PC.**
 
-**New in 4.65.5:** Jon builds whole houses, cities, furnished rooms, clocks and black holes in Blender, the Jon Harness accepts images and videos by drag and drop and updates itself in the terminal. See [What's new in Jon 4.59 to 4.65](#whats-new-in-jon-459-to-465).
+**New in 4.65.6:** BLITZBAHN, Jon's own stunt racing game as a real desktop game with track editor, garage, ghost and multiplayer. In Jon Maps you walk, drive or fly through the whole world – even in past years. Jon builds 3D games from his own Blender models, runs HTML code right in the chat and lets the caret glide smoothly.
 
-[![Version](https://img.shields.io/badge/Version-4.65.5-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.65.6-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![License](https://img.shields.io/badge/License-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Publisher](https://img.shields.io/badge/Publisher-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

@@ -267,7 +267,7 @@ class BlenderService:
 
     def gefunden(self, neu: bool = False) -> dict:
         with self._lock:
-            if self._pfad is None or neu:
+            if self._pfad is None or neu or not self._pfad or not Path(self._pfad).exists():
                 self._pfad = self._suchen()
                 self._version = ""
             pfad = self._pfad

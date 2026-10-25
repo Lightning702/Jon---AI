@@ -573,6 +573,8 @@ TOOL_GROUPS: dict[str, tuple[set[str], tuple[str, ...]]] = {
             "blender_szene",
             "blender_render",
             "blender_export",
+            "spiel_modell",
+            "spiel_vorlage",
         },
         (
             "erstell",
@@ -1418,6 +1420,10 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
             return f"Filtert die Karte nach {was}{f' rund um {wo}' if wo else ' in der Nähe'}."
         if action == "erkunden":
             return f"Öffnet {_shorten(args.get('query', ''), 50)} zum Erkunden."
+        if action == "welt":
+            wie = {"fuss": "zu Fuß", "auto": "mit dem Auto", "flugzeug": "im Flugzeug"}.get(str(args.get("fortbewegung", "fuss")), "")
+            wann = f" im Jahr {args.get('jahr')}" if args.get("jahr") else ""
+            return f"Öffnet {_shorten(args.get('query', ''), 50)} {wie}{wann}."
         return f"Sucht auf der Karte nach: {_shorten(args.get('query', ''))}"
     if name == "deep_learning":
         action = str(args.get("action", "start"))
@@ -1782,6 +1788,10 @@ def describe_tool(name: str, args: dict[str, Any]) -> str:
         return "Legt eine Jon-Verknuepfung auf dem Desktop an."
     if name == "blender_szene":
         return f"Baut in Blender: {_shorten(args.get('auftrag', ''))}"
+    if name == "spiel_modell":
+        return f"Baut das Spielmodell {_shorten(args.get('name', '') or args.get('auftrag', ''))} in Blender."
+    if name == "spiel_vorlage":
+        return f"Legt ein spielbares Grundgeruest an: {_shorten(args.get('titel', '') or args.get('pfad', ''))}"
     if name == "blender_render":
         return f"Rendert {_shorten(args.get('datei', ''))}."
     if name == "blender_export":
@@ -1957,6 +1967,8 @@ _DATEI_JON_TOOLS = {
     "blender_szene",
     "blender_render",
     "blender_export",
+    "spiel_modell",
+    "spiel_vorlage",
 }
 
 _DENK_TOOLS = {
@@ -2933,6 +2945,26 @@ class ToolBox:
                     "export": _STR,
                 },
                 ["auftrag"],
+            ),
+            _tool(
+                "spiel_modell",
+                "Baut mit Blender ein 3D-Modell fuer ein echtes Spiel (Figur, Auto, Raumschiff, "
+                "Haus, Baum, Gegner ...) und legt es als .glb unter assets/ im Spielordner ab, "
+                "dazu ein Vorschaubild. pfad ist der Projektordner des Spiels. Nutze das fuer "
+                "jedes Modell, das im Spiel vorkommen soll, und lade die Datei danach im Code "
+                "mit GLTFLoader (three.js). Ist Blender nicht installiert, sagt das Werkzeug es.",
+                {"auftrag": _STR, "name": _STR, "pfad": _STR},
+                ["auftrag", "name"],
+            ),
+            _tool(
+                "spiel_vorlage",
+                "Schreibt ein sofort spielbares 3D-Spiel (index.html und spiel.js, three.js mit "
+                "Schatten, Kamera, Steuerung, Punkten und Ziel) in den Projektordner pfad. Das "
+                "erste Modell aus modelle (z. B. assets/held.glb) ist die Spielfigur, die anderen "
+                "stehen in der Welt. art ist laufen, fahren oder fliegen. Danach baust du das "
+                "Spiel in spiel.js weiter aus: Level, Gegner, Ziele, Sound.",
+                {"pfad": _STR, "titel": _STR, "art": {"type": "string", "enum": ["laufen", "fahren", "fliegen"]}, "modelle": {"type": "array", "items": {"type": "string"}}},
+                ["pfad"],
             ),
             _tool(
                 "blender_render",
@@ -4163,6 +4195,14 @@ class ToolBox:
                 "eine Reise mit mehreren Zielen nie in mehrere Aufrufe auf, sondern "
                 "immer in einen einzigen Aufruf mit stops. action='erkunden' "
                 "oeffnet einen Ort zum Erkunden — auf Strassenebene oder im Flug. "
+                "action='welt' setzt den Nutzer mitten in die 3D-Welt: er geht "
+                "dort spazieren (fortbewegung='fuss'), faehrt Auto ('auto') oder "
+                "fliegt ein Flugzeug ('flugzeug') — ueberall auf der Welt, mit "
+                "echten Gebaeuden und Farben. Mit jahr zeigt Jon die Welt so, wie "
+                "sie in diesem Jahr aussah: neuere Gebaeude verschwinden, abgerissene "
+                "historische tauchen wieder auf, Luftbilder kommen aus dem passenden "
+                "Jahr. 'Ich will durch Rom im Jahr 1900 spazieren' ist "
+                "action='welt', query='Rom', fortbewegung='fuss', jahr=1900. "
                 "Start, Ziel und Zwischenstopps einer Route duerfen auch Filter oder "
                 "Ladennamen sein: to='supermarkt' faehrt zum naechstgelegenen "
                 "Supermarkt vom Start aus, to='Interspar' zum naechsten Interspar. "
@@ -4173,8 +4213,17 @@ class ToolBox:
                 {
                     "action": {
                         "type": "string",
-                        "enum": ["suche", "umgebung", "route", "erkunden"],
+                        "enum": ["suche", "umgebung", "route", "erkunden", "welt"],
                         "description": "Was Jon auf der Karte tun soll",
+                    },
+                    "fortbewegung": {
+                        "type": "string",
+                        "enum": ["fuss", "auto", "flugzeug"],
+                        "description": "Bei action='welt': spazieren gehen, Auto fahren oder fliegen",
+                    },
+                    "jahr": {
+                        "type": "integer",
+                        "description": "Bei action='welt': Jahr, in dem die Welt gezeigt wird (leer = heute)",
                     },
                     "query": {
                         "type": "string",

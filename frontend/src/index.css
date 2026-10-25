@@ -101,6 +101,17 @@ body {
   .drag {
     -webkit-app-region: drag;
   }
+  .fixed[class*="z-"]:not(.pointer-events-none),
+  [role="dialog"],
+  [role="menu"],
+  [role="listbox"],
+  input,
+  textarea,
+  select,
+  button,
+  a {
+    -webkit-app-region: no-drag;
+  }
 }
 
 html.light {
@@ -291,5 +302,42 @@ html.light.cozy :is(img, video, iframe, canvas, picture, .lw-folie, .lw-papier, 
   .jon-schimmer,
   .jon-chip-spinner {
     animation: none;
+  }
+}
+
+.weiche-marke {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: rgb(var(--gold-rgb));
+  box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.45);
+  pointer-events: none;
+  z-index: 2147483000;
+  transition: transform 95ms cubic-bezier(0.2, 0.8, 0.2, 1), height 95ms ease-out;
+  animation: weiche-marke-blinken 1.06s steps(1, end) infinite;
+  will-change: transform;
+}
+
+.weiche-marke.tippt {
+  animation: none;
+  opacity: 1;
+}
+
+@keyframes weiche-marke-blinken {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weiche-marke {
+    transition: none;
   }
 }

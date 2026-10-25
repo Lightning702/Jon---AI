@@ -1,0 +1,21 @@
+{
+  "sammlung": "FelWorks Game Collection",
+  "herausgeber": "FelWorks",
+  "version": "1.0.1",
+  "bauen": "build.bat",
+  "spiele": [
+    {
+      "id": "blitzbahn",
+      "titel": "BLITZBAHN",
+      "genre": "Rennspiel",
+      "icon": "🏎️",
+      "kurz": "Stuntrennen mit Streckeneditor und Mehrspieler.",
+      "beschreibung": "Eigenes Stuntrennspiel von FelWorks als echtes Programm, kein Browser. Acht Strecken mit Schanzen, Turbofeldern, Steilrampen, Wellen und Hochbahnen, jede mit Kontrollpunkten und Ziel. Deine Bestzeit faehrt als Geist neben dir mit. Im Editor baust du eigene Strecken Teil fuer Teil, drehst, stapelst Ebenen, testest sofort und speicherst sie. In der Garage lackierst du dein Auto. Mehrspieler ueber Jon: Rennen eroeffnen, Code teilen, gegeneinander fahren und die Zeiten vergleichen. In C++ ohne Engine geschrieben.",
+      "steuerung": "W Gas · S Bremse und Rueckwaerts · A/D Lenken · Leertaste Driften · R Neustart · Q Zum Kontrollpunkt · C Kamera · G Geist · Esc Pause · F11 Vollbild",
+      "vorschau": "vorschau/blitzbahn.jpg",
+      "exe": "bin/BLITZBAHN.exe",
+      "args": [],
+      "version": "1.0.1"
+    }
+  ]
+}

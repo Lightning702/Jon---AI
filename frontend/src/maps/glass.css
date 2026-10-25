@@ -1132,3 +1132,25 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+.jm-welt-oben{z-index:8;max-width:calc(100% - 32px)}
+.jm-welt-leiste{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;padding:6px;border-radius:22px}
+.jm-welt-gruppe{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.jm-welt-trenner{width:1px;align-self:stretch;margin:4px 4px;background:var(--jm-hairline)}
+.jm-chip[data-epoche="fremd"]{opacity:.62}
+.jm-welt-farben{display:flex;gap:4px;padding:0 4px}
+.jm-welt-farben button{width:16px;height:16px;border-radius:999px;border:1.5px solid rgb(255 255 255/.35);cursor:pointer}
+.jm-welt-farben button[data-active="true"]{outline:2px solid rgb(var(--jm-gold));outline-offset:1px}
+.jm-welt-suche{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;background:var(--jm-field);color:var(--jm-text-soft)}
+.jm-welt-suche input{width:170px;background:transparent;border:0;outline:none;color:var(--jm-text);font-size:12px}
+.jm-welt-meldung{margin:8px auto 0;width:max-content;max-width:100%;padding:5px 12px;border-radius:999px;font-size:12px;color:var(--jm-text);background:rgb(var(--jm-ink)/.7)}
+.jm-welt-zeit{z-index:8;width:250px;max-width:calc(100% - 32px)}
+.jm-welt-zeitkarte{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:20px}
+.jm-welt-zeitkopf{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--jm-text-soft)}
+.jm-welt-zeitkopf input{width:84px;padding:3px 8px;border-radius:10px;border:0;background:var(--jm-field);color:var(--jm-text);font-size:18px;font-weight:700;text-align:right}
+.jm-welt-zeitkarte input[type=range]{width:100%;accent-color:rgb(var(--jm-gold))}
+.jm-welt-schnell{display:flex;flex-wrap:wrap;gap:4px}
+.jm-welt-schnell .jm-chip{padding:3px 8px;font-size:11px}
+.jm-welt-epoche{font-size:13px;font-weight:600;color:rgb(var(--jm-gold))}
+.jm-welt-info{font-size:11px;line-height:1.45;color:var(--jm-text-faint)}
+@media (max-width:760px){.jm-welt-zeit{top:auto!important;bottom:150px}.jm-welt-suche input{width:120px}}

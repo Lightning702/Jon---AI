@@ -31,3 +31,21 @@
 .cb-dreh{animation:cb-dreh 1s linear infinite}
 @keyframes cb-dreh{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.cb-dreh{animation:none}}
+.cb-edit{display:block;width:100%;min-height:6rem;resize:vertical;outline:none;tab-size:2;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:rgba(255,255,255,.9);caret-color:#e5c889;background:rgba(229,200,137,.035)!important;box-shadow:inset 3px 0 0 rgba(229,200,137,.55)}
+.cb-edit:focus-visible{outline:none!important}
+.cb-geaendert{font-size:10.5px;padding:.08rem .4rem;border-radius:999px;color:#e5c889;background:rgba(229,200,137,.12);border:1px solid rgba(229,200,137,.3)}
+.cb-tipp{padding:.3rem .9rem .45rem;font-size:11px;color:rgba(255,255,255,.4);border-top:1px solid rgba(255,255,255,.06)}
+.cb-tipp kbd{font-family:inherit;padding:0 .3rem;border-radius:4px;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65)}
+.hl{display:flex;flex-direction:column;min-height:0}
+.hl iframe{display:block;width:100%;height:min(440px,60vh);border:0;background:#fff;flex:1 1 auto}
+.hl-voll iframe{height:auto;min-height:0}
+.hl-leiste{display:flex;align-items:center;gap:.3rem;padding:.25rem .5rem;background:rgba(0,0,0,.45);border-top:1px solid rgba(255,255,255,.08)}
+.hl-leiste button{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .5rem;border-radius:6px;font-size:11px;color:rgba(255,255,255,.6)}
+.hl-leiste button:hover{background:rgba(255,255,255,.08);color:#fff}
+.hl-zahl{margin-left:.2rem;padding:0 .35rem;border-radius:999px;font-size:10.5px;color:#fff;background:rgba(239,68,68,.75)}
+.hl-konsole{max-height:11rem;overflow:auto;background:rgba(0,0,0,.6);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11.5px;line-height:1.45}
+.hl-z{padding:.2rem .7rem;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.8);white-space:pre-wrap;overflow-wrap:anywhere}
+.hl-error{color:#f6b8b1;background:rgba(239,68,68,.08)}
+.hl-warn{color:#f3d58a;background:rgba(234,179,8,.07)}
+.hl-info,.hl-debug{color:rgba(186,214,255,.85)}
+.hl-leer{color:rgba(255,255,255,.4)}

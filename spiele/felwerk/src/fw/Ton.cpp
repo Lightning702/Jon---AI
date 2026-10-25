@@ -110,6 +110,12 @@ void Ton::stoppen() {
 
 void Ton::lautstaerke(float wert) { meister = klemme(wert, 0.0f, 1.0f); }
 
+void Ton::motor(float drehzahl, float last, float laut) {
+    motorDrehzahl = klemme(drehzahl, 0.0f, 1.2f);
+    motorLast = klemme(last, 0.0f, 1.0f);
+    motorLaut = klemme(laut, 0.0f, 1.0f);
+}
+
 void Ton::stimmung(float wind, float wellen) {
     windStaerke = klemme(wind, 0.0f, 1.0f);
     wellenStaerke = klemme(wellen, 0.0f, 1.0f);
@@ -141,6 +147,20 @@ void Ton::mischen(short* ziel, int anzahl) {
         float brandung = rauschZustand * (0.45f + 0.55f * std::sin(wellenPhase * TAU)) * wellenStaerke;
         float wind = rauschZustand * (0.35f + 0.3f * std::sin(windPhase * TAU * 0.6f)) * windStaerke * 0.6f;
         float summe = brandung * 0.5f + wind * 0.4f;
+
+        if (motorLaut > 0.001f || motorGlatt > 0.001f) {
+            motorGlatt += (motorDrehzahl - motorGlatt) * 0.0006f;
+            float frequenz = 38.0f + motorGlatt * 150.0f;
+            motorPhase += frequenz * schritt;
+            motorPhaseZwei += frequenz * 0.5f * schritt;
+            if (motorPhase > 1.0f) motorPhase -= std::floor(motorPhase);
+            if (motorPhaseZwei > 1.0f) motorPhaseZwei -= std::floor(motorPhaseZwei);
+            float saege = motorPhase * 2.0f - 1.0f;
+            float puls = motorPhaseZwei < 0.32f ? 1.0f : -0.45f;
+            float roh = saege * 0.55f + puls * 0.35f + rauschen * 0.1f * motorLast;
+            motorFilter += (roh - motorFilter) * (0.08f + motorLast * 0.14f);
+            summe += motorFilter * motorLaut * (0.22f + motorLast * 0.3f);
+        }
 
         for (Stimme& stimme : stimmen) {
             if (stimme.frei) continue;

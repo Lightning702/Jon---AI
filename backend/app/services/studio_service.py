@@ -185,6 +185,8 @@ INHERITED = {"nvidia": "nvidia", "openai": "openai", "gemini": "gemini", "togeth
 
 FREE_PROVIDER = "pollinations"
 
+AUSWEICHEN = ("nvidia", "openai", "gemini", "fal", "together", "replicate", "stability", "lokalserver", "lokal", "pollinations")
+
 PNG_MAGIC = bytes([0x89, 0x50, 0x4E, 0x47])
 
 NVIDIA_SIDES = (768, 832, 896, 960, 1024, 1088, 1152, 1216, 1280, 1344)
@@ -563,33 +565,69 @@ class StudioService:
         if offline() and provider and provider not in LOKALE_STUDIO:
             raise StudioError("Der Offline-Modus ist an - Bilder entstehen nur auf lokalen Bilder-Servern.")
         name = (provider or self.pick(kind)).strip().lower()
-        meta = PROVIDERS.get(name)
-        if meta is None:
-            raise StudioError("Richte zuerst einen Anbieter ein.")
-        if kind == "video" and not meta["video_modelle"]:
-            raise StudioError(f"{meta['label']} erzeugt nur Bilder, keine Videos.")
-        if not self.ready(name):
-            raise StudioError(f"Für {meta['label']} fehlt noch der Zugang.")
+        if name not in PROVIDERS:
+            name = self.pick(kind)
         vorlage = self._vorlage(image)
-        if vorlage and not meta["bearbeiten"]:
-            raise StudioError(
-                f"{meta['label']} kann keine Vorlage bearbeiten — wähle einen "
-                "Anbieter, der Bilder bearbeitet."
-            )
         if vorlage and kind == "video":
             raise StudioError("Eine Vorlage gibt es nur für Bilder.")
-        chosen = model.strip() or self.model(name, kind)
         width, height = self._dimensions(size or self.size())
-        started = time.time()
-        handler = getattr(self, f"_{name}")
-        data, mime, source = await handler(
-            prompt, kind, chosen, width, height, negative.strip(), self.key(name), vorlage
-        )
-        if not data:
-            raise StudioError("Der Anbieter hat keine Datei zurückgegeben.")
-        return self._store(
-            data, mime, prompt, name, chosen, kind, time.time() - started, source
-        )
+        fehler: list[str] = []
+        for anbieter, gewaehlt in self._versuche(name, kind, model, bool(vorlage)):
+            meta = PROVIDERS[anbieter]
+            if kind == "video" and not meta["video_modelle"]:
+                fehler.append(f"{meta['label']} erzeugt nur Bilder, keine Videos.")
+                continue
+            if vorlage and not meta["bearbeiten"]:
+                fehler.append(f"{meta['label']} kann keine Vorlage bearbeiten.")
+                continue
+            if not self.ready(anbieter):
+                fehler.append(f"Für {meta['label']} fehlt noch der Zugang.")
+                continue
+            started = time.time()
+            try:
+                data, mime, source = await getattr(self, f"_{anbieter}")(
+                    prompt, kind, gewaehlt, width, height, negative.strip(), self.key(anbieter), vorlage
+                )
+                if not data:
+                    raise StudioError("Der Anbieter hat keine Datei zurückgegeben.")
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                fehler.append(f"{meta['label']}: {str(exc)[:220]}")
+                continue
+            werk = self._store(
+                data, mime, prompt, anbieter, gewaehlt, kind, time.time() - started, source
+            )
+            if fehler:
+                erstes = self._versuche(name, kind, model, bool(vorlage))[0][1] if anbieter == name else ""
+                werk = {**werk, "ausweichen": f"{erstes or PROVIDERS[name]['label']} ging gerade nicht, deshalb hat Jon {gewaehlt if anbieter == name else meta['label']} genommen."}
+            return werk
+        if len(fehler) == 1:
+            raise StudioError(fehler[0])
+        raise StudioError("Kein Bildanbieter hat geliefert. " + " | ".join(fehler))
+
+    def _versuche(self, name: str, kind: str, model: str, vorlage: bool) -> list[tuple[str, str]]:
+        from app.services.offline import LOKALE_STUDIO, aktiv as offline
+
+        versuche = [(name, model.strip() or self.model(name, kind))]
+        standard = str(PROVIDERS[name]["standard_video" if kind == "video" else "standard_bild"])
+        if standard and versuche[0][1] != standard and name not in LOKALE_STUDIO:
+            versuche.append((name, standard))
+        basen = self._config.get("basis") if isinstance(self._config.get("basis"), dict) else {}
+        for anbieter in AUSWEICHEN:
+            meta = PROVIDERS[anbieter]
+            if anbieter == name or (offline() and anbieter not in LOKALE_STUDIO):
+                continue
+            if kind == "video" and not meta["video_modelle"]:
+                continue
+            if vorlage and not meta["bearbeiten"]:
+                continue
+            if anbieter in LOKALE_STUDIO and not (basen.get(anbieter) or (anbieter == "lokalserver" and self.base(anbieter))):
+                continue
+            if meta["auth"] == "api_key" and not self.key(anbieter):
+                continue
+            versuche.append((anbieter, self.model(anbieter, kind)))
+        return versuche
 
     def _vorlage(self, image: str) -> tuple[bytes, str] | None:
         raw = (image or "").strip()
@@ -686,6 +724,9 @@ class StudioService:
         url = f"https://image.pollinations.ai/prompt/{quote(prompt[:900], safe='')}"
         async with self._client(240.0) as client:
             response = await client.get(url, params=params)
+            if response.status_code in (429, 503):
+                await asyncio.sleep(10.0)
+                response = await client.get(url, params=params)
             if response.status_code >= 400:
                 self._fail(response, "Pollinations")
             mime = response.headers.get("content-type", "image/jpeg")

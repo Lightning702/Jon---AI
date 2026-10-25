@@ -1,6 +1,6 @@
 {
   "name": "jon-desktop",
-  "version": "4.65.5",
+  "version": "4.65.6",
   "description": "Jon - Der moderne KI-Desktop-Assistent",
   "author": "FelWorks",
   "license": "MIT",
@@ -102,6 +102,17 @@
       {
         "from": "../spiele/BLOCKWELT",
         "to": "BLOCKWELT",
+        "filter": [
+          "jon-spiele.json",
+          "README.md",
+          "bin/**/*",
+          "!bin/*.log",
+          "vorschau/**/*"
+        ]
+      },
+      {
+        "from": "../spiele/BLITZBAHN",
+        "to": "BLITZBAHN",
         "filter": [
           "jon-spiele.json",
           "README.md",

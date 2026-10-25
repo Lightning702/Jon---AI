@@ -1,6 +1,6 @@
 import { FileSpreadsheet, FileText, Image as ImageIcon, Paperclip, Presentation } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import { toolDetail, toolLabel } from "../lib/toolInfo";
 import ChatText from "./ChatText";
 import JonGedanken, { useSekunden } from "./JonGedanken";
@@ -13,6 +13,8 @@ import type { WebBildDaten } from "./WebBildKarte";
 import { harnessRequest } from "../lib/harness";
 import type { WerkzeugSchritt } from "../lib/werkstatt";
 import { desktopRender } from "./werkstatt/desktopRender";
+import { nutzerCode } from "../lib/htmlLauf";
+import CodeBlock from "./CodeBlock";
 
 const MapsCard = lazy(() => import("./MapsCard"));
 const DeepLearningCard = lazy(() => import("./DeepLearningCard"));
@@ -95,6 +97,7 @@ export default function MessageBubble({
 }: BubbleProps) {
   const isUser = entry.role === "user";
   const [openTool, setOpenTool] = useState<number | null>(null);
+  const nutzerTeile = useMemo(() => (isUser ? nutzerCode(entry.content || "") : null), [isUser, entry.content]);
 
   const expanded = openTool !== null ? entry.tools?.[openTool] : undefined;
   const detail = expanded ? toolDetail(expanded.name, expanded.args) : "";
@@ -109,8 +112,9 @@ export default function MessageBubble({
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        className="flex justify-end"
+        className="flex flex-col items-end gap-2"
       >
+        {(!!nutzerTeile?.text || !nutzerTeile?.bloecke.length || !!entry.attachments?.length) && (
         <div className="max-w-[92%] md:max-w-[76%] min-w-0 px-4 py-3 rounded-2xl rounded-br-md leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] bg-gradient-to-br from-gold-light/90 to-gold-dark/90 text-black shadow-[0_10px_30px_rgba(154,123,31,0.18)]">
           {entry.attachments && entry.attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
@@ -129,8 +133,14 @@ export default function MessageBubble({
               ))}
             </div>
           )}
-          {entry.content}
+          {nutzerTeile ? nutzerTeile.text : entry.content}
         </div>
+        )}
+        {nutzerTeile?.bloecke.map((b, i) => (
+          <div key={i} className="w-full max-w-[96%] md:max-w-[76%] min-w-0">
+            <CodeBlock sprache={b.sprache} code={b.code} />
+          </div>
+        ))}
       </motion.div>
     );
   }

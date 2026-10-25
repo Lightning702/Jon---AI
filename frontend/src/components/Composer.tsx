@@ -355,6 +355,7 @@ export default function Composer({ disabled, onSend, onStop, streaming, wartesch
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>
             </button>
+            <div className="relative flex-1 min-w-0 flex">
             <textarea
               ref={ref}
               value={text}
@@ -367,8 +368,9 @@ export default function Composer({ disabled, onSend, onStop, streaming, wartesch
               onPaste={onPaste}
               rows={1}
               placeholder={dragging ? t("drop_file") : diktat === "hoert" ? "Ich höre zu …" : diktat === "wandelt" ? "Wird in Text umgewandelt …" : streaming ? "Schreib weiter – kommt danach dran · /btw fragt nebenbei" : t("chat_placeholder")}
-              className="flex-1 min-w-0 bg-transparent resize-none outline-none px-2 md:px-3 py-2.5 md:py-2 text-[16px] md:text-[15px] text-white/90 placeholder-white/30 max-h-44"
+              className="block w-full min-w-0 bg-transparent resize-none outline-none px-2 md:px-3 py-2.5 md:py-2 text-[16px] md:text-[15px] text-white/90 placeholder-white/30 max-h-44"
             />
+            </div>
             <DiktatKnopf disabled={disabled} onText={diktiert} onZustand={setDiktat} onFehler={setDiktatFehler} />
             {streaming && onQueue && !!text.trim() && !istBtw(text) && (
               <button

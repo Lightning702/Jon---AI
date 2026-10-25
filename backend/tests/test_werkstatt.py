@@ -353,6 +353,20 @@ def test_fehlendes_blender_wird_ehrlich_gemeldet(raum, monkeypatch):
     assert ergebnis["error"] == stand["hinweis"]
 
 
+def test_spaeter_installiertes_blender_wird_ohne_neustart_gefunden(raum, tmp_path, monkeypatch):
+    from app.services.blender_service import get_blender_service
+
+    dienst = get_blender_service()
+    gefunden = {"pfad": ""}
+    monkeypatch.setattr(dienst, "_suchen", lambda: gefunden["pfad"])
+    dienst._pfad = None
+    dienst._version = ""
+    assert dienst.gefunden()["da"] is False
+    gefunden["pfad"] = str(_stub_blender(tmp_path))
+    stand = dienst.gefunden()
+    assert stand["da"] is True and "4.2.0" in stand["version"]
+
+
 def test_blender_szene_entsteht_rendert_und_exportiert(blender, monkeypatch):
     async def _complete(system, user, *args, **kwargs):
         return "```python\nimport bpy\nbpy.ops.mesh.primitive_cube_add()\n```"

@@ -128,7 +128,7 @@ export default function MapsCard({ data, onOpen }: Props) {
   }, [data.aktion, data.karte, stations]);
 
   const zoom = useMemo(() => {
-    if (data.aktion === "erkunden") return 16;
+    if (data.aktion === "erkunden" || data.aktion === "welt") return 16;
     if (data.aktion !== "route") return data.karte?.zoom ?? 13;
     if (stations.length < 2) return 6;
     const lats = stations.map((place) => place.lat);
@@ -152,7 +152,7 @@ export default function MapsCard({ data, onOpen }: Props) {
         )
       : data.aktion === "umgebung"
         ? `${data.kategorie || "In der Nähe"}`
-        : data.aktion === "erkunden"
+        : data.aktion === "erkunden" || data.aktion === "welt"
           ? (data.ort?.name ?? "Erkunden")
           : (data.anfrage ?? "Karte");
 
@@ -292,7 +292,7 @@ export default function MapsCard({ data, onOpen }: Props) {
             zoom={zoom}
             markers={markers}
             routes={routeLines}
-            layers={{ gebaeude3d: data.aktion === "erkunden" }}
+            layers={{ gebaeude3d: data.aktion === "erkunden" || data.aktion === "welt" }}
             projection="mercator"
           />
         </div>
@@ -462,6 +462,17 @@ export default function MapsCard({ data, onOpen }: Props) {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {data.aktion === "welt" && (
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+              <span className="jm-chip" style={{ cursor: "default" }}>
+                {data.jahr ? `Jahr ${data.jahr}` : "Heute"}
+              </span>
+              <button className="jm-chip" onClick={() => onOpen(data)}>
+                {data.fortbewegung === "auto" ? "Losfahren" : data.fortbewegung === "flugzeug" ? "Abheben" : "Losgehen"}
+              </button>
             </div>
           )}
 

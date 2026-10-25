@@ -592,6 +592,37 @@ class MapsService:
                     "fliegen."
                 ),
             }
+        if action == "welt":
+            target = await self.resolve_point(args.get("query") or "hier", near)
+            art = str(args.get("fortbewegung") or "fuss").lower()
+            art = {"zu fuss": "fuss", "laufen": "fuss", "gehen": "fuss", "spazieren": "fuss", "fahren": "auto", "flug": "flugzeug", "fliegen": "flugzeug"}.get(art, art)
+            if art not in {"fuss", "auto", "flugzeug"}:
+                art = "fuss"
+            jahr: int | None = None
+            try:
+                if args.get("jahr") not in (None, ""):
+                    jahr = max(1000, min(2100, int(str(args.get("jahr")).strip()[:5])))
+            except ValueError:
+                jahr = None
+            wie = {"fuss": "zu Fuß", "auto": "mit dem Auto", "flugzeug": "im Flugzeug"}[art]
+            wann = f" im Jahr {jahr}" if jahr else ""
+            return {
+                "aktion": "welt",
+                "ort": target.to_dict(),
+                "fortbewegung": art,
+                "jahr": jahr,
+                "karte": {
+                    "center": {"lat": target.lat, "lon": target.lon},
+                    "zoom": 17,
+                    "marker": [target.to_dict()],
+                    "modus": "welt",
+                },
+                "text": (
+                    f"Ich habe {target.name} geöffnet — du bist dort {wie}{wann} "
+                    "unterwegs. Mit W A S D bewegst du dich, oben wählst du "
+                    "Fortbewegung, Modell, Farbe und das Jahr."
+                ),
+            }
         raise MapsError(f"Unbekannte Maps-Aktion: {action}")
 
     @staticmethod

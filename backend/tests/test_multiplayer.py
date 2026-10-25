@@ -831,7 +831,8 @@ def test_koop_ports_sind_alle_verschieden():
 
 
 def test_spielprofile_grenzen_sich_ab():
-    assert set(mp.GAMES) == {"blockwelt", "harmonie", "aetheria", "echo"}
+    assert set(mp.GAMES) == {"blockwelt", "harmonie", "aetheria", "echo", "blitzbahn"}
+    assert mp.GAMES["blitzbahn"].max_speed > 150.0 and mp.GAMES["blitzbahn"].max_fall > mp.GAMES["blockwelt"].max_fall
     assert mp.GAMES["blockwelt"].edit_range >= 8.0
     assert mp.GAMES["echo"].max_speed < mp.GAMES["aetheria"].max_speed
     assert 0 in mp.GAMES["blockwelt"].block_ids

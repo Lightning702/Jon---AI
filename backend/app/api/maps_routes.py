@@ -182,6 +182,20 @@ async def maps_route(payload: MapsRouteIn) -> dict:
     return {"routen": [option.to_dict() for option in options]}
 
 
+@router.get("/zeitreise/luftbilder")
+async def maps_zeitreise_luftbilder() -> dict:
+    from app.services.maps.zeitreise import luftbilder
+
+    return {"luftbilder": await luftbilder()}
+
+
+@router.get("/zeitreise/baujahre")
+async def maps_zeitreise_baujahre(sued: float, west: float, nord: float, ost: float) -> dict:
+    from app.services.maps.zeitreise import baujahre
+
+    return await baujahre(sued, west, nord, ost)
+
+
 @router.get("/street")
 async def maps_street(
     lat: float, lon: float, radius: int = 150, limit: int = 24
