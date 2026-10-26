@@ -60,6 +60,10 @@ FEHLT = {
 
 TABELLENZEILE = re.compile(r"^\s*\|.*\|\s*$")
 TRENNZEILE = re.compile(r"^\s*(?:-{3,}|\*{3,}|_{3,})\s*$")
+SEITENUMBRUCH = re.compile(
+    r"^\s*(?:\[\s*(?:seitenumbruch|neue\s+seite|page\s*break)\s*\]|\\newpage|\\pagebreak|<!--\s*(?:pagebreak|seitenumbruch)\s*-->)\s*$",
+    re.IGNORECASE,
+)
 TRENNZELLE = re.compile(r"^:?-{2,}:?$")
 
 
@@ -89,6 +93,9 @@ def _bloecke(text: str, titel: str = "") -> list[tuple[str, str]]:
             else:
                 bloecke.append(("tabelle", roh.strip()))
             continue
+        if SEITENUMBRUCH.match(roh):
+            bloecke.append(("seite", ""))
+            continue
         if TRENNZEILE.match(roh):
             bloecke.append(("trenner", ""))
             continue
@@ -109,7 +116,20 @@ def _bloecke(text: str, titel: str = "") -> list[tuple[str, str]]:
             bloecke.append(("nummer", treffer.group(2).strip()))
             continue
         bloecke.append(("absatz", roh.strip()))
-    return bloecke
+    return _seiten_aufraeumen(bloecke)
+
+
+def _seiten_aufraeumen(bloecke: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    ergebnis: list[tuple[str, str]] = []
+    for art, text in bloecke:
+        if art == "seite":
+            inhalt = [a for a, _ in ergebnis if a not in ("leer", "trenner")]
+            if not inhalt or inhalt[-1] == "seite":
+                continue
+        ergebnis.append((art, text))
+    while ergebnis and ergebnis[-1][0] in ("leer", "seite", "trenner"):
+        ergebnis.pop()
+    return ergebnis
 
 
 def _vergleichbar(text: str) -> str:
@@ -131,6 +151,19 @@ def _fett_xml(text: str) -> str:
         f"<b>{escape(_ohne_auszeichnung(teil))}</b>" if index % 2 else escape(_ohne_auszeichnung(teil))
         for index, teil in enumerate(teile)
     )
+
+
+def _linie(absatz) -> None:
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    eigenschaften = absatz._p.get_or_add_pPr()
+    rahmen = OxmlElement("w:pBdr")
+    unten = OxmlElement("w:bottom")
+    for schluessel, wert in (("w:val", "single"), ("w:sz", "6"), ("w:space", "1"), ("w:color", "C9C9C9")):
+        unten.set(qn(schluessel), wert)
+    rahmen.append(unten)
+    eigenschaften.append(rahmen)
 
 
 def _laeufe(absatz, text: str) -> None:
@@ -373,8 +406,14 @@ class DokumentService:
                     fluss.append(Spacer(1, 6))
                 fluss.append(Paragraph(_fett_xml(text), stil_h.get(stufe, stil_h[2])))
                 continue
-            if art == "trenner" or text == "---":
+            if art == "seite":
                 fluss.append(PageBreak())
+                continue
+            if art == "trenner":
+                from reportlab.lib import colors
+                from reportlab.platypus.flowables import HRFlowable
+
+                fluss.append(HRFlowable(width="100%", thickness=0.6, color=colors.HexColor("#c9c9c9"), spaceBefore=4, spaceAfter=8))
                 continue
             if art == "tabelle":
                 zeilen = _tabelle(text)
@@ -408,14 +447,15 @@ class DokumentService:
         stil.font.size = Pt(11)
         if titel:
             dokument.add_heading(_ohne_auszeichnung(titel), level=0)
-        bloecke = _bloecke(inhalt, titel)
-        for index, (art, text) in enumerate(bloecke):
+        for art, text in _bloecke(inhalt, titel):
             sauber = _ohne_auszeichnung(text)
             if art == "leer":
                 continue
+            if art == "seite":
+                dokument.add_page_break()
+                continue
             if art == "trenner":
-                if any(a not in ("leer", "trenner") for a, _ in bloecke[index + 1:]):
-                    dokument.add_page_break()
+                _linie(dokument.add_paragraph())
                 continue
             if art == "tabelle":
                 zeilen = _tabelle(text)
@@ -451,6 +491,12 @@ class DokumentService:
         stil.addElement(ParagraphProperties(marginbottom="0.15cm"))
         stil.addElement(TextProperties(fontsize="11pt"))
         dokument.automaticstyles.addElement(stil)
+        umbruch = Style(name="JonSeite", family="paragraph")
+        umbruch.addElement(ParagraphProperties(breakbefore="page"))
+        dokument.automaticstyles.addElement(umbruch)
+        linie = Style(name="JonLinie", family="paragraph")
+        linie.addElement(ParagraphProperties(borderbottom="0.5pt solid #c9c9c9", paddingbottom="0.1cm", marginbottom="0.25cm"))
+        dokument.automaticstyles.addElement(linie)
         if titel:
             dokument.text.addElement(H(outlinelevel=1, text=_ohne_auszeichnung(titel)))
         liste = None
@@ -465,7 +511,13 @@ class DokumentService:
                 liste.addElement(eintrag)
                 continue
             liste = None
-            if art in ("leer", "trenner"):
+            if art == "leer":
+                continue
+            if art == "seite":
+                dokument.text.addElement(P(stylename=umbruch, text=""))
+                continue
+            if art == "trenner":
+                dokument.text.addElement(P(stylename=linie, text=""))
                 continue
             if art == "tabelle":
                 from odf.table import Table, TableCell, TableColumn, TableRow

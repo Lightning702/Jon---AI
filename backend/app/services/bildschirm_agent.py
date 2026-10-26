@@ -185,7 +185,30 @@ ART_HINWEISE = {
     "Button": ("button", "knopf", "schaltflaeche", "taste"),
 }
 
-_letzte: dict = {"zeit": 0.0, "elemente": [], "titel": ""}
+ORDNUNG = {
+    "erste": 1, "ersten": 1, "erster": 1, "erstes": 1, "first": 1,
+    "zweite": 2, "zweiten": 2, "zweiter": 2, "zweites": 2, "second": 2,
+    "dritte": 3, "dritten": 3, "dritter": 3, "drittes": 3, "third": 3,
+    "vierte": 4, "vierten": 4, "vierter": 4, "viertes": 4,
+    "fuenfte": 5, "fuenften": 5, "fuenfter": 5, "fuenftes": 5,
+    "letzte": -1, "letzten": -1, "letzter": -1, "letztes": -1, "last": -1,
+}
+SENKRECHT = {w: "oben" for w in ("oben", "obere", "oberen", "oberer", "oberes", "top")} | {w: "unten" for w in ("unten", "untere", "unteren", "unterer", "unteres", "bottom")}
+WAAGRECHT = (
+    {w: "links" for w in ("links", "linke", "linken", "linker", "linkes", "left")}
+    | {w: "rechts" for w in ("rechts", "rechte", "rechten", "rechter", "rechtes", "right")}
+    | {w: "mitte" for w in ("mitte", "mittig", "mittlere", "mittleren", "mittlerer", "mittleres", "center")}
+)
+LAGE_FUELL = {"in", "im", "am", "an", "der", "ganz", "von", "vom", "bildschirm", "seite", "ecke", "ganzen"}
+AUSWAHL_ZEIT = 180.0
+GLEICHSTAND = 9.0
+ART_NAMEN = {
+    "Button": "Knopf", "Hyperlink": "Link", "Text": "Text", "MenuItem": "Menüpunkt", "TabItem": "Reiter", "Edit": "Feld",
+    "ListItem": "Eintrag", "TreeItem": "Eintrag", "CheckBox": "Häkchen", "RadioButton": "Auswahl", "ComboBox": "Auswahlliste",
+    "SplitButton": "Knopf", "Image": "Bild", "DataItem": "Zelle",
+}
+
+_letzte: dict = {"zeit": 0.0, "elemente": [], "titel": "", "auswahl_zeit": 0.0}
 
 
 @dataclass
@@ -292,6 +315,11 @@ def bewerten(element: Element, ziel: str) -> float:
         beste -= 6
     if element.quelle == "text":
         beste -= 3
+        mehr = int(element.extra.get("mehr_woerter") or 0)
+        if mehr >= 3:
+            beste -= 14
+        elif mehr > 0:
+            beste -= 3
     if not element.aktiv:
         beste -= 25
     if element.w * element.h > 900_000:
@@ -510,13 +538,22 @@ def _woerter_als_elemente(zeilen: list[Element], ziel: str) -> list[Element]:
                 y1 = min(w["y"] for w in teil)
                 x2 = max(w["x"] + w["w"] for w in teil)
                 y2 = max(w["y"] + w["h"] for w in teil)
-                zusatz.append(Element(name=name, art="Text", x=x1, y=y1, w=x2 - x1, h=y2 - y1, quelle="text"))
+                zusatz.append(Element(name=name, art="Text", x=x1, y=y1, w=x2 - x1, h=y2 - y1, quelle="text", extra={"mehr_woerter": len(woerter) - len(teil)}))
     return zusatz
+
+
+BEFEHLSWOERTER = {"klick", "klicke", "klicken", "click", "doppelklick", "rechtsklick", "tippe", "druecke", "drueck"}
+
+
+def _befehlszeile(zeile: Element, ziel: str) -> bool:
+    woerter = set(normal(zeile.name).split())
+    return bool(woerter & BEFEHLSWOERTER) and not (set(normal(ziel).split()) & BEFEHLSWOERTER)
 
 
 def kandidaten(ziel: str, elemente: list[Element], ocr: list[Element] | None = None) -> list[Element]:
     alle = list(elemente)
     if ocr:
+        ocr = [z for z in ocr if not _befehlszeile(z, ziel)]
         alle.extend(ocr)
         alle.extend(_woerter_als_elemente(ocr, ziel))
     bewertet = []
@@ -557,6 +594,146 @@ def eindeutig(liste: list[Element]) -> Element | None:
 def ziel_nummer(text: str) -> int | None:
     treffer = re.fullmatch(r"\s*(?:nr\.?|nummer|#)?\s*(\d{1,3})\s*", text or "", re.IGNORECASE)
     return int(treffer.group(1)) if treffer else None
+
+
+def lage_lesen(ziel: str) -> tuple[str, dict]:
+    woerter = normal(ziel).split()
+    lage: dict = {}
+    rest: list[str] = []
+    for wort in woerter:
+        if wort in ORDNUNG and "nr" not in lage:
+            lage["nr"] = ORDNUNG[wort]
+        elif wort in SENKRECHT and "senkrecht" not in lage:
+            lage["senkrecht"] = SENKRECHT[wort]
+        elif wort in WAAGRECHT and "waagrecht" not in lage:
+            lage["waagrecht"] = WAAGRECHT[wort]
+        else:
+            rest.append(wort)
+    if not lage:
+        return ziel, {}
+    rest = [w for w in rest if w not in LAGE_FUELL]
+    if not rest:
+        return ziel, {}
+    return " ".join(rest), lage
+
+
+def _verschieden(liste: list[Element]) -> list[Element]:
+    eigene: list[Element] = []
+    for element in sorted(liste, key=lambda e: -e.punkte):
+        mx, my = element.mitte
+        if any(a.x - 6 <= mx <= a.x + a.w + 6 and a.y - 6 <= my <= a.y + a.h + 6 for a in eigene):
+            continue
+        eigene.append(element)
+    return eigene
+
+
+def gleichauf(liste: list[Element]) -> list[Element]:
+    if not liste or liste[0].punkte < 78:
+        return []
+    grenze = liste[0].punkte - GLEICHSTAND
+    gleich = _verschieden([e for e in liste if e.punkte > grenze])
+    return gleich if len(gleich) > 1 else []
+
+
+def _lesereihe(liste: list[Element]) -> list[Element]:
+    return sorted(liste, key=lambda e: (e.mitte[1] // 24, e.mitte[0]))
+
+
+def _lagewert(element: Element, lage: dict, bereich: tuple[int, int, int, int]) -> float:
+    x, y = element.mitte
+    bx, by, bw, bh = bereich
+    nx = (x - bx) / max(1, bw)
+    ny = (y - by) / max(1, bh)
+    wert = 0.0
+    senkrecht = lage.get("senkrecht")
+    waagrecht = lage.get("waagrecht")
+    if senkrecht == "oben":
+        wert += ny
+    elif senkrecht == "unten":
+        wert += 1 - ny
+    if waagrecht == "links":
+        wert += nx
+    elif waagrecht == "rechts":
+        wert += 1 - nx
+    elif waagrecht == "mitte":
+        wert += abs(nx - 0.5) + (0.0 if senkrecht else abs(ny - 0.5))
+    return wert
+
+
+def nach_lage(liste: list[Element], lage: dict) -> Element | None:
+    if not liste or not lage:
+        return None
+    grenze = max(60.0, liste[0].punkte - 22)
+    passend = _verschieden([e for e in liste if e.punkte >= grenze])
+    if not passend:
+        return None
+    nummer = int(lage.get("nr") or 1)
+    if lage.get("senkrecht") or lage.get("waagrecht"):
+        x1 = min(e.mitte[0] for e in passend)
+        y1 = min(e.mitte[1] for e in passend)
+        x2 = max(e.mitte[0] for e in passend)
+        y2 = max(e.mitte[1] for e in passend)
+        bereich = (x1, y1, max(1, x2 - x1), max(1, y2 - y1))
+        reihe = sorted(passend, key=lambda e: (round(_lagewert(e, lage, bereich), 2), -e.punkte))
+    else:
+        reihe = _lesereihe(passend)
+    if nummer == -1:
+        return reihe[-1]
+    if 1 <= nummer <= len(reihe):
+        return reihe[nummer - 1]
+    return None
+
+
+def nach_art(ziel: str, elemente: list[Element]) -> list[Element]:
+    if kernwoerter(ziel):
+        return []
+    arten = gewuenschte_art(ziel)
+    if not arten:
+        return []
+    passend = [e for e in elemente if e.art in arten and e.aktiv and (e.name or e.wert) and e.w * e.h < 900_000]
+    for element in passend:
+        element.punkte = 80.0
+    return _lesereihe(passend)
+
+
+def lage_text(element: Element, bereich: tuple[int, int, int, int] | None = None) -> str:
+    bx, by, bw, bh = bereich or virtueller_bereich()
+    x, y = element.mitte
+    nx = (x - bx) / max(1, bw)
+    ny = (y - by) / max(1, bh)
+    senkrecht = "oben" if ny < 0.34 else "unten" if ny > 0.66 else ""
+    waagrecht = "links" if nx < 0.34 else "rechts" if nx > 0.66 else ""
+    teile = [t for t in (senkrecht, waagrecht) if t]
+    return " ".join(teile) if teile else "Mitte"
+
+
+def auswahl_merken(titel: str, liste: list[Element]) -> None:
+    for nummer, element in enumerate(liste, 1):
+        element.nummer = nummer
+    _merken(titel, liste)
+    _letzte["auswahl_zeit"] = time.time()
+
+
+def auswahl_offen() -> bool:
+    return time.time() - float(_letzte.get("auswahl_zeit") or 0) <= AUSWAHL_ZEIT
+
+
+def auswahl_antwort(text: str) -> int | None:
+    if not auswahl_offen():
+        return None
+    nummer = ziel_nummer(re.sub(r"^\s*(?:die|den|das|der|nimm|nummer)\s+", "", text or "", flags=re.IGNORECASE).strip(" .!"))
+    if nummer is not None:
+        return nummer
+    woerter = [w for w in normal(text).split() if w not in {"die", "den", "das", "der", "nimm", "bitte", "klick", "klicke", "auf", "nummer", "nr"}]
+    if len(woerter) != 1:
+        return None
+    zahlwort = {"eins": 1, "zwei": 2, "drei": 3, "vier": 4, "fuenf": 5}.get(woerter[0])
+    if zahlwort:
+        return zahlwort
+    if woerter[0] in ORDNUNG:
+        wert = ORDNUNG[woerter[0]]
+        return len(_letzte.get("elemente") or []) if wert == -1 else wert
+    return None
 
 
 def _sicht_ziel() -> tuple[object, str] | None:
@@ -817,9 +994,88 @@ def fenster_an(x: int, y: int) -> str:
         return ""
 
 
+def fenster_rechteck(x: int, y: int) -> tuple[int, int, int, int] | None:
+    if os.name != "nt":
+        return None
+    try:
+        import win32gui
+
+        hwnd = win32gui.WindowFromPoint((int(x), int(y)))
+        wurzel = win32gui.GetAncestor(hwnd, 2) or hwnd
+        links, oben, rechts, unten = win32gui.GetWindowRect(wurzel)
+        if rechts - links < 50 or unten - oben < 50:
+            return None
+        return links, oben, rechts - links, unten - oben
+    except Exception as fehler:
+        leise(fehler, "bildschirm_agent")
+        return None
+
+
+def _ort(element: Element) -> str:
+    x, y = element.mitte
+    titel = fenster_an(x, y).strip()
+    lage = lage_text(element, fenster_rechteck(x, y))
+    return f"{lage} im Fenster „{titel}“" if titel else lage
+
+
 def sicherheitsfenster(titel: str) -> bool:
     klein = (titel or "").casefold()
     return any(wort in klein for wort in SICHERHEITSFENSTER)
+
+
+def _im_fenster(liste: list[Element], fenster: dict | None) -> list[Element]:
+    if not fenster or fenster.get("w", 0) <= 50:
+        return list(liste)
+    fx, fy, fw, fh = int(fenster["x"]), int(fenster["y"]), int(fenster["w"]), int(fenster["h"])
+    return [e for e in liste if fx <= e.mitte[0] <= fx + fw and fy <= e.mitte[1] <= fy + fh]
+
+
+def _taskleiste_gemeint(ziel: str) -> bool:
+    return bool(set(normal(ziel).split()) & {"taskleiste", "windows", "startmenue", "startmenu", "taskbar"})
+
+
+async def _ui_ergebnis(aufgabe) -> dict:
+    try:
+        return await aufgabe
+    except Exception as fehler:
+        leise(fehler, "bildschirm_agent")
+        return {"titel": "", "fenster": None, "elemente": []}
+
+
+async def _ocr_ergebnis(aufgabe) -> list[Element]:
+    try:
+        return await aufgabe
+    except Exception as fehler:
+        leise(fehler, "bildschirm_agent")
+        return []
+
+
+async def _nach_lage_finden(suche: str, lage: dict, ocr_aufgabe, ui_aufgabe, nur_fenster: bool = False) -> tuple[Element | None, str, dict]:
+    if kernwoerter(suche) and not _taskleiste_gemeint(suche):
+        fertig, _ = await asyncio.wait({ocr_aufgabe, ui_aufgabe}, return_when=asyncio.FIRST_COMPLETED)
+        if ocr_aufgabe in fertig and ui_aufgabe not in fertig:
+            frueh = kandidaten(suche, [], await _ocr_ergebnis(ocr_aufgabe))
+            if frueh and frueh[0].punkte >= FRUEH_PUNKTE:
+                gewaehlt = nach_lage(frueh, lage)
+                if gewaehlt is not None:
+                    return gewaehlt, "lage", {"titel": "", "fenster": None, "elemente": []}
+    ui = await _ui_ergebnis(ui_aufgabe)
+    vorne = [e for e in ui["elemente"] if e.quelle != "taskleiste"]
+    nach_arten = nach_art(suche, _im_fenster(vorne, ui.get("fenster")) or vorne)
+    if nach_arten:
+        ocr_aufgabe.cancel()
+        gewaehlt = nach_lage(nach_arten, lage)
+        return (gewaehlt, "lage", ui) if gewaehlt is not None else (None, "", ui)
+    ocr = await _ocr_ergebnis(ocr_aufgabe)
+    liste = kandidaten(suche, ui["elemente"] if _taskleiste_gemeint(suche) else vorne, ocr)
+    if not liste and not nur_fenster:
+        liste = kandidaten(suche, vorne, await _alle_bildschirme())
+    gewaehlt = nach_lage(liste, lage)
+    return (gewaehlt, "lage", ui) if gewaehlt is not None else (None, "", ui)
+
+
+async def _alle_bildschirme() -> list[Element]:
+    return await _ocr_ergebnis(asyncio.ensure_future(asyncio.to_thread(texte, None)))
 
 
 async def finden(ziel: str, nur_fenster: bool = False) -> tuple[Element | tuple[int, int] | None, str, dict]:
@@ -831,6 +1087,9 @@ async def finden(ziel: str, nur_fenster: bool = False) -> tuple[Element | tuple[
     ocr_aufgabe = asyncio.ensure_future(asyncio.to_thread(texte, _fensterbereich(None)))
     ui_aufgabe = asyncio.ensure_future(asyncio.to_thread(ui_elemente))
     ui_aufgabe.add_done_callback(lambda f: f.cancelled() or f.exception())
+    suche, lage = lage_lesen(ziel)
+    if lage:
+        return await _nach_lage_finden(suche, lage, ocr_aufgabe, ui_aufgabe, nur_fenster)
     fertig, _ = await asyncio.wait({ocr_aufgabe, ui_aufgabe}, return_when=asyncio.FIRST_COMPLETED)
     if ocr_aufgabe in fertig and ui_aufgabe not in fertig:
         try:
@@ -847,9 +1106,8 @@ async def finden(ziel: str, nur_fenster: bool = False) -> tuple[Element | tuple[
         leise(fehler, "bildschirm_agent")
         ui = {"titel": "", "fenster": None, "elemente": []}
     fenster = ui.get("fenster")
-    taskleiste_gemeint = bool(set(normal(ziel).split()) & {"taskleiste", "windows", "startmenue", "startmenu", "taskbar"})
     vorne = [e for e in ui["elemente"] if e.quelle != "taskleiste"]
-    liste = kandidaten(ziel, ui["elemente"] if taskleiste_gemeint else vorne)
+    liste = kandidaten(ziel, ui["elemente"] if _taskleiste_gemeint(ziel) else vorne)
     treffer = eindeutig(liste)
     if treffer is not None:
         ocr_aufgabe.cancel()
@@ -864,17 +1122,31 @@ async def finden(ziel: str, nur_fenster: bool = False) -> tuple[Element | tuple[
     if treffer is not None:
         return treffer, "text", ui
     if not nur_fenster:
-        liste = kandidaten(ziel, ui["elemente"], ocr)
+        sichtbar = ocr + await _alle_bildschirme()
+        liste = kandidaten(ziel, ui["elemente"] if _taskleiste_gemeint(ziel) else vorne, sichtbar)
         treffer = eindeutig(liste)
         if treffer is not None:
-            return treffer, "taskleiste" if treffer.quelle == "taskleiste" else "text", ui
+            return treffer, "taskleiste" if treffer.quelle == "taskleiste" else "text" if _im_fenster([treffer], fenster) else "bildschirm", ui
+        if not liste or liste[0].punkte < 62:
+            liste = kandidaten(ziel, ui["elemente"], sichtbar)
+            treffer = eindeutig(liste)
+            if treffer is not None:
+                return treffer, "taskleiste" if treffer.quelle == "taskleiste" else "bildschirm", ui
     if liste:
+        gleich = gleichauf(liste)
+        if gleich:
+            innen = _im_fenster(gleich, fenster)
+            if len(innen) == 1:
+                return innen[0], "fenster", ui
+            auswahl = _lesereihe(innen if len(innen) > 1 else gleich)[:6]
+            auswahl_merken(ui.get("titel", ""), auswahl)
+            return None, "mehrdeutig", dict(ui, auswahl=auswahl)
         gewaehlt = await per_markierung(ziel, liste, fenster)
         if gewaehlt is not None:
             return gewaehlt, "sehen", ui
         if liste[0].punkte >= 62:
             return liste[0], "beste_vermutung", ui
-    punkt = await per_raster(ziel, fenster)
+    punkt = await per_raster(ziel, fenster if nur_fenster else None)
     if punkt is not None:
         return punkt, "raster", ui
     return None, "", ui
@@ -913,7 +1185,16 @@ async def klicken(ziel: str, art: str = "links", fenster: str = "") -> dict:
         vorne = await fenster_nach_vorne(fenster.strip())
         if vorne.get("error"):
             return {"error": f"Das Fenster \"{fenster.strip()}\" finde ich gerade nicht.", "tipp": "Mit bildschirm_lesen oder was_laeuft siehst du, welche Fenster offen sind."}
-    gefunden, weg, _ui = await finden(ziel, bool((fenster or "").strip()))
+    gefunden, weg, ui = await finden(ziel, bool((fenster or "").strip()))
+    if gefunden is None and weg == "mehrdeutig":
+        auswahl = ui.get("auswahl") or []
+        _letzte["auswahl_art"] = art
+        zeilen = [f"{e.nummer}. {e.name or e.wert} ({ART_NAMEN.get(e.art, e.art)}, {_ort(e)})" for e in auswahl]
+        return {
+            "error": f"\"{ziel}\" sehe ich {len(auswahl)}-mal. Welches meinst du?\n" + "\n".join(zeilen) + f"\nAntworte mit der Nummer oder zum Beispiel \"klick auf {ziel} oben\".",
+            "mehrdeutig": True,
+            "auswahl": [e.kurz() for e in auswahl],
+        }
     if gefunden is None:
         return {
             "error": f"Ich finde \"{ziel}\" gerade nicht" + (f" im Fenster \"{fenster.strip()}\"." if (fenster or "").strip() else " auf dem Bildschirm."),
@@ -937,6 +1218,7 @@ async def klicken(ziel: str, art: str = "links", fenster: str = "") -> dict:
     geklickt = await asyncio.to_thread(AutomationService().mouse_click, x, y, knopf, anzahl)
     if geklickt.get("error"):
         return geklickt
+    _letzte["auswahl_zeit"] = 0.0
     await asyncio.sleep(0.7)
     nachher = _vordergrund_titel()
     ergebnis = {"geklickt": beschreibung, "position": [x, y], "erkannt_per": weg, "fenster": nachher}
@@ -997,6 +1279,9 @@ def _mit_fenster(befehl: dict) -> dict:
 
 def befehl_erkennen(text: str) -> dict | None:
     roh = (text or "").strip()
+    antwort = auswahl_antwort(roh)
+    if antwort is not None:
+        return {"aktion": "klicken", "ziel": str(antwort), "art": str(_letzte.get("auswahl_art") or "links")}
     treffer = BEFEHL_KLICK_FENSTER.match(roh)
     if treffer:
         ziel, fenster = _saeubern(treffer.group(3)), _saeubern(treffer.group(2))
@@ -1017,6 +1302,9 @@ def befehl_erkennen(text: str) -> dict | None:
     if treffer:
         ziel = treffer.group(1).strip(" \"'„“")
         art = (treffer.group(2) or "links").lower()
+        letztes = (normal(ziel).split() or [""])[-1]
+        if art in ("rechts", "links") and treffer.group(2) and letztes in SENKRECHT:
+            ziel, art = f"{ziel} {treffer.group(2)}", "links"
         if ziel and len(ziel) <= 80:
             return _mit_fenster({"aktion": "klicken", "ziel": ziel, "art": art})
     treffer = BEFEHL_EINGABE.match(roh)

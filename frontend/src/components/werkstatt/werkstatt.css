@@ -1218,8 +1218,26 @@
 
 .lw-d-trenner {
   border: 0;
+  border-top: 1px solid #cbd5e1;
+  margin: 12px 0;
+}
+
+.lw-d-seite {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  color: #94a3b8;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lw-d-seite::before,
+.lw-d-seite::after {
+  content: "";
+  flex: 1;
   border-top: 1px dashed #cbd5e1;
-  margin: 14px 0;
 }
 
 .lw-d-tabelle {

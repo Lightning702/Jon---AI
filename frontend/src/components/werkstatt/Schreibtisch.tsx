@@ -46,6 +46,12 @@ function Block({ block, wert, nummer }: { block: DokumentBlock; wert: number; nu
       return <div className="lw-d-leer" />;
     case "trenner":
       return <hr className="lw-d-trenner" />;
+    case "seite":
+      return (
+        <div className="lw-d-seite">
+          <span>Neue Seite</span>
+        </div>
+      );
     case "tabelle": {
       const zeilen = text
         .split("\n")

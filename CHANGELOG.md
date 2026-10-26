@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.66.3] — 2026-10-26
+
+### Klicken auf allen Bildschirmen, schnelles Sehen, Videos mit Ton, saubere Word-Seiten
+
+- **Klick auf Zuruf auf jedem Bildschirm:** Jon suchte Knöpfe nur im Fenster, das gerade vorne war – meist Jon selbst. Ein „Klick auf den Start Button“ per Telegram fand den Knopf auf dem anderen Bildschirm darum nie. Jetzt liest Jon bei Bedarf alle Bildschirme. Die eigene Befehlszeile im Chat zählt dabei nicht als Ziel, und der Windows-Startknopf kommt erst dran, wenn sonst nichts passt.
+- **Fensterfunktionen gingen kaputt:** Die Prüfung des Vordergrundfensters hat eine Windows-Funktion für das ganze Programm umgestellt. Danach scheiterten Fensterliste, „Fenster nach vorne“ und „Was läuft gerade“ mit tausenden Fehlermeldungen im Protokoll. Behoben.
+- **Gleicher Name mehrfach:** Steht „Start“ dreimal da, fragt Jon „Welches meinst du?“ mit einer nummerierten Liste samt Fenstername. Eine Antwort wie „2“ oder „die zweite“ klickt den richtigen. Lagewörter gehen sofort: „Klick auf Start oben rechts“, „den zweiten Anmelden-Knopf“, „den ersten Link“. Wörter mitten in langen Textzeilen zählen weniger als echte Knopfbeschriftungen.
+- **Bilder ansehen in 10 bis 15 Sekunden statt bis zu 2,5 Minuten:** Hing Muse Glimmer bei NVIDIA, wartete Jon 50 Sekunden, dann wieder 50 Sekunden auf das nächste Modell. Jetzt bekommt Glimmer 8 Sekunden Vorsprung, danach laufen die Ersatzmodelle gestaffelt mit, und die erste Antwort gewinnt. Nach 40 Sekunden ist in jedem Fall Schluss.
+- **Videos mit Ton:** Beim Ansehen eines Videos schreibt Jon jetzt auch mit, was gesprochen wird (lokal mit Whisper), und bezieht das in die Beschreibung ein.
+- **Word, PDF und ODT ohne leere Seiten:** Eine Markdown-Zeile `---` war bisher ein Seitenumbruch. Modelle nutzen sie aber als Trennlinie – eine Bewerbung hatte so 6 statt 2 Seiten, der Briefkopf stand allein auf Seite 1. Jetzt ist `---` eine Linie, eine neue Seite gibt es nur mit `[Seitenumbruch]`, und doppelte oder überflüssige Umbrüche fallen weg.
+
 ## [4.66.2] — 2026-10-26
 
 ### Jon bleibt erreichbar

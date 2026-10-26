@@ -1627,7 +1627,7 @@ class TelegramService:
         if befehl["aktion"] == "klicken":
             ergebnis = await bildschirm_agent.klicken(befehl["ziel"], befehl.get("art", "links"), befehl.get("fenster", ""))
             self._direkt_loggen("bildschirm_klicken", befehl, ergebnis)
-            if ergebnis.get("sicherheit"):
+            if ergebnis.get("sicherheit") or ergebnis.get("mehrdeutig"):
                 return ergebnis["error"]
             if ergebnis.get("error"):
                 return None

@@ -31,10 +31,19 @@ SUGGESTIONS = {
 }
 
 
+_EIGENE_DLLS: dict[str, object] = {}
+
+
+def _eigene_dll(name: str):
+    if name not in _EIGENE_DLLS:
+        _EIGENE_DLLS[name] = ctypes.WinDLL(name, use_last_error=True)
+    return _EIGENE_DLLS[name]
+
+
 def foreground() -> dict:
     if os.name != "nt":
         return {"supported": False}
-    user = ctypes.windll.user32
+    user = _eigene_dll("user32")
     user.GetForegroundWindow.restype = wintypes.HWND
     user.GetWindowTextLengthW.argtypes = [wintypes.HWND]
     user.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
@@ -48,7 +57,7 @@ def foreground() -> dict:
     pid = wintypes.DWORD()
     user.GetWindowThreadProcessId(handle, ctypes.byref(pid))
     process = ""
-    kernel = ctypes.windll.kernel32
+    kernel = _eigene_dll("kernel32")
     kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
     kernel.OpenProcess.restype = wintypes.HANDLE
     kernel.CloseHandle.argtypes = [wintypes.HANDLE]
