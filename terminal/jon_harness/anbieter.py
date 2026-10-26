@@ -32,7 +32,7 @@ NICHT_CHAT = ("embed", "rerank", "whisper", "tts", "dall-e", "moderation", "guar
 KATALOG: dict[str, Anbieter] = {
     a.kennung: a
     for a in [
-        Anbieter("felworks", "FelWorks", f"{CODES}/llm/v1", ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3.5-lightning-30b-a3b", "nvidia/nemotron-3-super-120b-a12b"], False, "", "kostenlos, ohne Schlüssel"),
+        Anbieter("felworks", "FelWorks", f"{CODES}/llm/v1", ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3.5-lightning-30b-a3b", "nvidia/nemotron-3.5-super-vl-120b-a12b"], False, "", "kostenlos, ohne Schlüssel"),
         Anbieter("jon", "Jon (dein Jon am PC)", f"{JON_ADRESSE}/api/llm/v1", ["jon"], False, "", "nutzt Jons Schlüssel und Modelle", True),
         Anbieter("nvidia", "NVIDIA NIM", "https://integrate.api.nvidia.com/v1", ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3.5-lightning-30b-a3b", "deepseek-ai/deepseek-v4.1-flash", "moonshotai/kimi-k2.6", "z-ai/glm-5.3"], True, "https://build.nvidia.com/settings/api-keys", "viele Modelle gratis"),
         Anbieter("openai", "OpenAI", "https://api.openai.com/v1", ["gpt-5.1", "gpt-5-mini", "gpt-4.1"], True, "https://platform.openai.com/api-keys"),

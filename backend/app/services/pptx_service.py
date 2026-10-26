@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import DATA_DIR
+from app.core.fehler import leise
 
 SLIDE_W = 13.333
 SLIDE_H = 7.5
@@ -819,10 +820,14 @@ class PptxService:
         prs.save(str(target))
         jon_dateien.merken(target, Path(str(path)).name if path else f"{title}.pptx")
         qualitaet = pruefen(prs, slides)
+        mit_bild = [n for n, folie in enumerate(prs.slides, start=1) if any(f.shape_type == 13 for f in folie.shapes)]
         return {
             "qualitaet": qualitaet,
             "ok": True,
             "path": str(target),
+            "folien_mit_bild": mit_bild,
+            "folien_ohne_bild": [n for n in range(1, len(prs.slides) + 1) if n not in mit_bild],
+            "bilder_ehrlich": "Nenne dem Nutzer nur die Folien aus folien_mit_bild als bebildert.",
             **({"aktualisiert": True, "hinweis_datei": "Deine bisherige Fassung wurde aktualisiert, es gibt keine zweite Kopie."} if aktualisiert else {}),
             "slides": len(made),
             "layouts": made,
@@ -869,8 +874,9 @@ class PptxService:
 
         felder = ("image", "image_url", "bild_url", "bild_suche", "image_search", "bild_prompt", "image_prompt")
         mit_bild = sum(1 for s in slides if isinstance(s, dict) and any(s.get(f) for f in felder))
-        inhalt = [(i, s) for i, s in enumerate(slides) if isinstance(s, dict) and str(s.get("layout")) in ("bullets", "image", "title") and not any(s.get(f) for f in felder)]
-        if len(slides) < 4 or mit_bild * 4 >= len(slides) or not inhalt:
+        inhalt = [(i, s) for i, s in enumerate(slides) if isinstance(s, dict) and str(s.get("layout") or "bullets") in ("bullets", "text", "image", "title") and not any(s.get(f) for f in felder)]
+        bildfaehig = sum(1 for s in slides if isinstance(s, dict) and str(s.get("layout") or "bullets") in ("bullets", "text", "image", "title", "closing", "agenda"))
+        if len(slides) < 4 or not inhalt or mit_bild * 2 >= bildfaehig:
             return 0
         liste = [{"nr": i, "titel": str(s.get("title", ""))[:120], "inhalt": " | ".join(str(b) for b in (s.get("bullets") or [])[:3])[:300]} for i, s in inhalt[:24]]
         aufgabe = (
@@ -910,19 +916,33 @@ class PptxService:
                     data.pop("bild_prompt", None)
                     data.pop("image_prompt", None)
 
+        import asyncio as _asyncio
+
         felder = ("image", "bild", "image_url", "bild_url", "bild_suche", "image_search", "bild_prompt", "image_prompt")
         erzeugt = 0
         benutzt: set[str] = set()
-        for data in slides:
-            if not isinstance(data, dict) or not any(str(data.get(f) or "").strip() for f in felder):
-                continue
-            vorher = str(data.get("image") or "").strip()
+        mit_wunsch = [d for d in slides if isinstance(d, dict) and any(str(d.get(f) or "").strip() for f in felder)]
+        sperre = _asyncio.Semaphore(3)
+
+        async def holen(data: dict) -> str:
             breit = str(data.get("layout", "")).lower() not in ("image", "bild")
-            pfad = await besorgen(data, breit)
+            async with sperre:
+                try:
+                    return await _asyncio.wait_for(besorgen(data, breit), 75)
+                except Exception as fehler:
+                    leise(fehler, "services/pptx_service")
+                    return ""
+
+        geholt = await _asyncio.gather(*(holen(d) for d in mit_wunsch))
+        for data, pfad in zip(mit_wunsch, geholt):
+            vorher = str(data.get("image") or "").strip()
             if pfad and pfad in benutzt and pfad != vorher:
                 pfad = ""
             if pfad:
                 benutzt.add(pfad)
+                data.pop("_bild_fehlt", None)
+            else:
+                data["_bild_fehlt"] = str(data.get("bild_suche") or data.get("image_search") or data.get("bild_prompt") or data.get("image_prompt") or "")[:80]
             data["image"] = pfad
             if pfad and pfad != vorher:
                 erzeugt += 1
@@ -987,6 +1007,9 @@ def pruefen(prs, slides: list) -> list[str]:
         art = str((slides[nummer - 1] if nummer - 1 < len(slides) and isinstance(slides[nummer - 1], dict) else {}).get("layout", "")).lower()
         if nummer > 1 and art not in ("closing", "title", "quote") and len(texte) <= 1 and not hat_bild and not hat_mehr:
             hinweise.append(f"Folie {nummer} hat keinen Inhalt ausser der Überschrift.")
+        fehlt = str((slides[nummer - 1] if nummer - 1 < len(slides) and isinstance(slides[nummer - 1], dict) else {}).get("_bild_fehlt") or "")
+        if fehlt and not hat_bild:
+            hinweise.append(f"Folie {nummer}: Zu \"{fehlt}\" gab es kein passendes freies Bild. Versuche es einmal mit edit_pptx und einem kürzeren englischen Suchbegriff (2-3 Wörter), sonst sag dem Nutzer, dass diese Folie ohne Bild ist.")
         if zeichen > 900:
             hinweise.append(f"Folie {nummer} hat sehr viel Text ({zeichen} Zeichen) – kürzen oder auf zwei Folien teilen.")
         for form in formen:

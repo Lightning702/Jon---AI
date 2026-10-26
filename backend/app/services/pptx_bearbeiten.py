@@ -276,7 +276,10 @@ def _anwenden(quelle: Path, aktionen: list[dict], theme: str) -> dict:
                 elif str(aktion.get("position", "")).lower() == "hintergrund":
                     folie.shapes._spTree.remove(form._element)
                     folie.shapes._spTree.insert(2, form._element)
-                erledigt.append(f"Folie {nummer}: Bild {'ersetzt' if alt is not None else 'eingefügt'}")
+                platz = 0
+                if alt is None and str(aktion.get("position", "")).lower() not in ("hintergrund", "vollbild"):
+                    platz = _platz_machen(folie, form, breite)
+                erledigt.append(f"Folie {nummer}: Bild {'ersetzt' if alt is not None else 'eingefügt'}" + (f", {platz} Textfeld(er) schmaler gesetzt" if platz else ""))
             elif art == "textfeld":
                 nummer, folie = folie_von(aktion)
                 x, y, b, h = _rechteck(aktion, breite, hoehe, "unten")
@@ -376,6 +379,46 @@ def _anwenden(quelle: Path, aktionen: list[dict], theme: str) -> dict:
     if fehler:
         ergebnis["probleme"] = fehler
     return ergebnis
+
+
+def _platz_machen(folie, bild, breite: int) -> int:
+    from pptx.util import Pt
+
+    zoll = 914400
+    rand = int(zoll * 0.3)
+    bx, by, bb, bh = bild.left, bild.top, bild.width, bild.height
+    angepasst = 0
+    for form in list(folie.shapes):
+        if form._element is bild._element or not getattr(form, "has_text_frame", False) or not form.has_text_frame:
+            continue
+        if not form.text_frame.text.strip() or None in (form.left, form.top, form.width, form.height):
+            continue
+        senkrecht = min(form.top + form.height, by + bh) - max(form.top, by)
+        waagrecht = min(form.left + form.width, bx + bb) - max(form.left, bx)
+        if senkrecht <= 0 or waagrecht <= 0:
+            continue
+        vorher = form.width
+        if bx + bb / 2 >= breite / 2:
+            neu = bx - rand - form.left
+            if neu < zoll * 2:
+                continue
+            form.width = neu
+        else:
+            links = bx + bb + rand
+            neu = form.left + form.width - links
+            if neu < zoll * 2:
+                continue
+            form.left = links
+            form.width = neu
+        faktor = max(0.72, (form.width / vorher) ** 0.5)
+        if faktor < 0.98:
+            for absatz in form.text_frame.paragraphs:
+                for lauf in absatz.runs:
+                    if lauf.font.size is not None:
+                        lauf.font.size = Pt(max(12, round(lauf.font.size.pt * faktor)))
+        form.text_frame.word_wrap = True
+        angepasst += 1
+    return angepasst
 
 
 def _bild_sichern(quelle: Path, folie: int, index: int, form) -> str:

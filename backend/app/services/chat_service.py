@@ -89,6 +89,12 @@ def denken_noetig(text: str, urteil: dict | None, coding: bool) -> bool | None:
     return None
 
 
+def schnell_denken(denken: bool | None, slot: str) -> bool | None:
+    if denken is None and slot == "emil":
+        return False
+    return denken
+
+
 def heute_block() -> str:
     from datetime import datetime
 
@@ -1407,7 +1413,7 @@ class ChatService:
             tools=tools,
             slot=slot,
             first_token_timeout=GEDULD_QUELLEN.get(payload.source, 0.0),
-            denken=denken_noetig(latest_user, urteil, coding_mode),
+            denken=schnell_denken(denken_noetig(latest_user, urteil, coding_mode), slot),
         )
 
         budget = get_budget_service()

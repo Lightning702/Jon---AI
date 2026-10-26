@@ -2,6 +2,28 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.8] — 2026-10-26
+
+### Telegram antwortet sofort
+
+- **Befehle ohne Wartezeit:** Jon schrieb jeden Direktbefehl (Herunterfahren, Klicken, Tippen) vor der Bestätigung ins Aktionsprotokoll. Das lud beim ersten Mal das ganze Werkzeugmodul und blockierte bis zu 8 Sekunden. Das Protokoll schreibt jetzt nebenher, die Bestätigung „Der PC fährt in 30 Sekunden herunter“ kommt in 0,2 s.
+- **Kein unnötiges Nachdenken:** Lightning dachte bei jeder Telegram-Nachricht nach und lieferte bei einfachen Fragen nach 5 bis 9 Sekunden noch kein Wort. Für Telegram, Mini Jon und Telefon ist das Denken jetzt nur noch bei Mathe, Code, Erklärungen und „denk gründlich“ an. Gemessen: Antwort in 0,5 s statt 9 s.
+- **Klick auf Zuruf auch auf Webseiten:** „Klick auf den Start Button“ fand Jon auf einer Webseite erst nach 36 s oder gar nicht, weil der Browser seine Knöpfe der Windows-Bedienhilfe nicht zeigt. Texterkennung und Bedienelemente laufen jetzt gleichzeitig, der erste eindeutige Treffer gewinnt, und die Texterkennung läuft als dauerhafter Dienst statt jedes Mal eine neue PowerShell zu starten (0,65 s statt 3,4 s). Gemessen auf einer echten Seite: 1,95 s bis zum Klick.
+
+### Präsentationen
+
+- **Geprüfte Fotos:** Jedes Kandidatenbild wird vom schnellen Bildmodell kurz angesehen (höchstens 8 s, vier Prüfungen je Bild), bevor es auf eine Folie kommt. Mess- und Gerätefotos wie „Photosynthesis System analysing a maize leaf“ landen ganz hinten.
+- **Mehr Folien mit Bild:** Jon schlägt jetzt auch Bilder vor, wenn nur Titel und Abschluss eines hatten. Bleibt ein Bildwunsch leer, meldet das Werkzeug das als Qualitätshinweis, und Jon bessert mit einem kürzeren Suchbegriff nach.
+- **Ehrliche Antwort:** Das Ergebnis nennt die Folien mit und ohne Bild, damit Jon keine Bilder verspricht, die es nicht gibt.
+- **Text passt auf die Folie:** Die Schätzung für die Schriftgröße rechnet mit echter Zeilenhöhe und Aufzählungseinzug, Text lief vorher bei Folien mit Bild unten über den Rand.
+- **Nachträgliche Bilder verdecken nichts:** Fügt `edit_pptx` ein Bild ein, werden überlappende Textfelder schmaler gesetzt und die Schrift passend verkleinert.
+- **Kaputtes Folien-JSON:** Kommt die Folienliste als Text mit kleinen Fehlern (fehlendes oder überzähliges Komma), repariert Jon sie selbst.
+
+### Terminal-Harness und FelWorks
+
+- **FelWorks ohne Schlüssel durchgetestet:** Der veröffentlichte `jon-harness.exe` holt sich beim FelWorks-Server einen freien Gastzugang ohne Schlüssel und ohne Premium, antwortet und legt mit Werkzeugen Dateien an.
+- **Modellliste bereinigt:** Das abgeschaltete `nemotron-3-super-120b` stand noch bei FelWorks im `jonh`, jetzt sind es die Modelle, die der Server anbietet.
+
 ## [4.65.7] — 2026-10-26
 
 ### Bilder und Videos verstehen

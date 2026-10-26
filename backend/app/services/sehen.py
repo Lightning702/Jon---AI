@@ -24,6 +24,12 @@ VIDEO_KETTE = {
     "xai": ("grok-2-vision-latest",),
     "gemini": ("gemini-2.0-flash",),
 }
+PRUEF_KETTE = {
+    "nvidia": (NVIDIA_VIDEO_MODELL,),
+    "openai": ("gpt-4o-mini",),
+    "openrouter": ("openai/gpt-4o-mini",),
+    "gemini": ("gemini-2.0-flash",),
+}
 MEHRBILD = {NVIDIA_VIDEO_MODELL, "gpt-4o-mini", "openai/gpt-4o-mini", "gemini-2.0-flash"}
 RESERVE_ANBIETER = ("nvidia", "felworks", "openai", "openrouter", "gemini", "xai")
 WARTEZEIT = 50.0
@@ -53,16 +59,16 @@ def kette(art: str, anbieter: str | None = None) -> list[tuple[str, str]]:
     name = anbieter or gewaehlt or get_settings().default_provider
     werte = _einstellungen()
     liste: list[tuple[str, str]] = []
-    eigenes = str(werte.get("video_model" if art == "video" else "vision_model") or "").strip()
+    eigenes = "" if art == "pruefen" else str(werte.get("video_model" if art == "video" else "vision_model") or "").strip()
     if eigenes:
         liste.append((name, eigenes))
     aufgabe = fuer("sehen")
-    if aufgabe and aufgabe[1]:
+    if aufgabe and aufgabe[1] and art != "pruefen":
         liste.append(aufgabe)
-    tabelle = VIDEO_KETTE if art == "video" else BILD_KETTE
+    tabelle = PRUEF_KETTE if art == "pruefen" else VIDEO_KETTE if art == "video" else BILD_KETTE
     for eintrag in tabelle.get(name, ()):
         liste.append((name, eintrag))
-    if not offline():
+    if not offline() and art != "pruefen":
         for reserve in RESERVE_ANBIETER:
             if reserve == name:
                 continue
@@ -225,7 +231,7 @@ def video_aufgabe(zeiten: list[float], dauer: float, frage: str = "", raster_bil
     return text
 
 
-async def _fragen(name: str, modell: str, urls: list[str], aufgabe: str, max_tokens: int) -> str:
+async def _fragen(name: str, modell: str, urls: list[str], aufgabe: str, max_tokens: int, wartezeit: float = WARTEZEIT) -> str:
     from app.providers.openai_compatible import OpenAICompatibleProvider
     from app.services import unzensiert
 
@@ -235,7 +241,7 @@ async def _fragen(name: str, modell: str, urls: list[str], aufgabe: str, max_tok
     system = unzensiert.anweisung(name, modell, "sehen")
     return await asyncio.wait_for(
         anbieter.describe_images(modell, urls, aufgabe, max_tokens=max_tokens, system=system),
-        WARTEZEIT,
+        wartezeit,
     )
 
 
@@ -248,6 +254,7 @@ async def beschreiben(
     zeiten: list[float] | None = None,
     dauer: float = 0.0,
     frage: str = "",
+    wartezeit: float = WARTEZEIT,
 ) -> dict:
     fehler: list[str] = []
     mehrere = len(bilder) > 1
@@ -266,7 +273,7 @@ async def beschreiben(
             urls = [jpeg_url(b) for b in bilder]
             text_aufgabe = aufgabe
         try:
-            text = await _fragen(name, modell, urls, text_aufgabe, max_tokens)
+            text = await _fragen(name, modell, urls, text_aufgabe, max_tokens, wartezeit)
         except LookupError:
             continue
         except Exception as exc:

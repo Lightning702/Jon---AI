@@ -6,9 +6,9 @@
 
 **An assistant that doesn't just talk — it actually operates your PC.**
 
-**New in 4.65.7:** Jon looks at images with Muse Glimmer 30B and understands videos from several frames with DiffusionGemma 26B, also via Telegram. The model picker has search, filters and an info card with capabilities, parameters and measured response times for every NVIDIA model. Chats get real names, you change your own name in the settings, and local models get an uncensored mode.
+**New in 4.65.8:** Telegram answers right away: Jon confirms a shutdown in 0.2 s, simple questions come back in under a second, and "click Start" on a web page works in 2 s. Presentations get checked, fitting photos, text no longer runs off the slide, and images added later no longer cover text. The terminal harness `jonh` is fully tested with FelWorks without a key and without Premium.
 
-[![Version](https://img.shields.io/badge/Version-4.65.7-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.65.8-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![License](https://img.shields.io/badge/License-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Publisher](https://img.shields.io/badge/Publisher-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

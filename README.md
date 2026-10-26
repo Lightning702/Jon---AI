@@ -6,11 +6,11 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-**Neu in 4.65.7:** Jon sieht Bilder mit Muse Glimmer 30B und versteht Videos aus mehreren Standbildern mit DiffusionGemma 26B, auch per Telegram. Die Modellauswahl hat eine Suche, Filter und eine Infokarte mit Fähigkeiten, Parametern und gemessenen Antwortzeiten aller NVIDIA-Modelle. Chats bekommen echte Namen, den eigenen Namen änderst du in den Einstellungen, und für lokale Modelle gibt es einen Unzensiert-Modus.
+**Neu in 4.65.8:** Telegram antwortet sofort: Herunterfahren bestätigt Jon in 0,2 s, einfache Fragen kommen in unter einer Sekunde, und „Klick auf Start“ auf einer Webseite klappt in 2 s. Präsentationen bekommen geprüfte, passende Fotos, Text läuft nicht mehr über den Rand, und nachträglich eingefügte Bilder verdecken keinen Text. Der Terminal-Harness `jonh` ist mit FelWorks ohne Schlüssel und ohne Premium durchgetestet.
 
 **Jon aktualisieren, ohne etwas zu verlieren:** Doppelklick auf `jon-aktualisieren.bat` im Jon-Ordner. Deine eigenen Dateien und Änderungen bleiben erhalten; ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas anzufassen.
 
-[![Version](https://img.shields.io/badge/Version-4.65.7-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.65.8-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

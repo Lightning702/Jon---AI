@@ -286,3 +286,28 @@ def test_genanntes_fenster_faellt_nie_auf_die_taskleiste_zurueck(monkeypatch):
     monkeypatch.setattr(ba, "per_raster", nichts)
     gefunden, _, _ = asyncio.run(ba.finden("Start", True))
     assert gefunden is None
+
+
+def test_texterkennung_gewinnt_wenn_bedienelemente_langsam_sind(monkeypatch):
+    import threading
+    import time
+
+    frei = threading.Event()
+
+    def langsam():
+        frei.wait(5)
+        return {"titel": "", "fenster": None, "elemente": []}
+
+    monkeypatch.setattr(ba, "ui_elemente", langsam)
+    monkeypatch.setattr(ba, "texte", lambda bereich: [_el("Start", art="Text", quelle="text", x=500, y=300)])
+
+    async def ablauf():
+        beginn = time.perf_counter()
+        ergebnis = await ba.finden("den Start Button")
+        dauer = time.perf_counter() - beginn
+        frei.set()
+        return ergebnis, dauer
+
+    (gefunden, weg, _), dauer = asyncio.run(ablauf())
+    assert weg == "text" and gefunden.name == "Start"
+    assert dauer < 2.0

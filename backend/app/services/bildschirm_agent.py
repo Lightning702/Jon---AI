@@ -8,9 +8,11 @@ import hashlib
 import io
 import json
 import os
+import queue
 import re
 import subprocess
 import tempfile
+import threading
 import time
 import unicodedata
 from dataclasses import asdict, dataclass, field
@@ -84,6 +86,46 @@ try {
 [ordered]@{ titel = $titel; fenster = $fenster; ms = $uhr.ElapsedMilliseconds; elemente = @($vorne) + @($leiste) } | ConvertTo-Json -Depth 4 -Compress
 """
 
+OCR_KOPF = r"""
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+[Console]::InputEncoding = [Text.Encoding]::UTF8
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$null = [Windows.Storage.StorageFile, Windows.Storage, ContentType = WindowsRuntime]
+$null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]
+$null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics, ContentType = WindowsRuntime]
+$warte = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+function Warte($op, [Type]$typ) { $t = $warte.MakeGenericMethod($typ).Invoke($null, @($op)); $t.Wait(-1) | Out-Null; $t.Result }
+$engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
+function Erkennen([string]$Bild) {
+  $datei = Warte ([Windows.Storage.StorageFile]::GetFileFromPathAsync($Bild)) ([Windows.Storage.StorageFile])
+  $strom = Warte ($datei.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream])
+  try {
+    $dec = Warte ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($strom)) ([Windows.Graphics.Imaging.BitmapDecoder])
+    $bmp = Warte ($dec.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
+    $res = Warte ($engine.RecognizeAsync($bmp)) ([Windows.Media.Ocr.OcrResult])
+  } finally { $strom.Dispose() }
+  $zeilen = New-Object System.Collections.ArrayList
+  foreach ($z in $res.Lines) {
+    $woerter = New-Object System.Collections.ArrayList
+    foreach ($w in $z.Words) { $b = $w.BoundingRect; [void]$woerter.Add([ordered]@{ n = $w.Text; x = [int]$b.X; y = [int]$b.Y; w = [int]$b.Width; h = [int]$b.Height }) }
+    [void]$zeilen.Add([ordered]@{ n = $z.Text; w = $woerter })
+  }
+  [ordered]@{ sprache = $engine.RecognizerLanguage.LanguageTag; zeilen = $zeilen }
+}
+"""
+
+OCR_DIENST_SKRIPT = OCR_KOPF + r"""
+while ($true) {
+  $pfad = [Console]::In.ReadLine()
+  if ($null -eq $pfad) { break }
+  try { $antwort = (Erkennen $pfad.Trim()) | ConvertTo-Json -Depth 5 -Compress }
+  catch { $antwort = [ordered]@{ fehler = $_.Exception.Message } | ConvertTo-Json -Compress }
+  [Console]::Out.WriteLine($antwort)
+  [Console]::Out.Flush()
+}
+"""
+
 OCR_SKRIPT = r"""
 param([string]$Bild)
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
@@ -127,6 +169,7 @@ KLICKBAR = {
     "Slider",
     "Spinner",
 }
+FRUEH_PUNKTE = 95
 UNSCHARF = {"Window", "Pane", "Group", "Document", "Custom", "ToolBar", "Tab", "List", "Tree", "Table", "TitleBar", "StatusBar", "ScrollBar", "Thumb"}
 FUELLWOERTER = {
     "auf", "den", "die", "das", "der", "dem", "des", "ein", "eine", "einen", "einem", "bitte", "mal", "jetzt",
@@ -287,6 +330,58 @@ def _powershell(name: str, inhalt: str, argumente: list[str], zeit: float) -> di
     return json.loads(ausgabe[anfang:] if anfang >= 0 else ausgabe)
 
 
+_ocr_sperre = threading.Lock()
+_ocr_dienst: dict = {}
+
+
+def _ocr_ueber_dienst(pfad: Path, zeit: float = 20) -> dict | None:
+    if os.name != "nt":
+        return None
+    with _ocr_sperre:
+        prozess = _ocr_dienst.get("prozess")
+        try:
+            if prozess is None or prozess.poll() is not None:
+                skript = _skriptpfad("jon-ocr-dienst", OCR_DIENST_SKRIPT)
+                prozess = subprocess.Popen(
+                    ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(skript)],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+                zeilen: queue.Queue = queue.Queue()
+
+                def lesen(quelle=prozess.stdout, ziel=zeilen) -> None:
+                    for zeile in quelle:
+                        ziel.put(zeile)
+                    ziel.put(None)
+
+                threading.Thread(target=lesen, name="jon-ocr-leser", daemon=True).start()
+                _ocr_dienst.update(prozess=prozess, zeilen=zeilen)
+            zeilen = _ocr_dienst["zeilen"]
+            prozess.stdin.write((str(pfad) + "\n").encode("utf-8"))
+            prozess.stdin.flush()
+            while True:
+                zeile = zeilen.get(timeout=zeit)
+                if zeile is None:
+                    raise RuntimeError("Der OCR-Dienst hat sich beendet.")
+                text = zeile.decode("utf-8", errors="replace").strip().lstrip("﻿")
+                if text.startswith("{"):
+                    daten = json.loads(text)
+                    if daten.get("fehler"):
+                        raise RuntimeError(str(daten["fehler"])[:300])
+                    return daten
+        except Exception as fehler:
+            leise(fehler, "bildschirm_agent")
+            try:
+                if prozess is not None:
+                    prozess.kill()
+            except Exception as weiter:
+                leise(weiter, "bildschirm_agent")
+            _ocr_dienst.clear()
+            return None
+
+
 def _dpi() -> None:
     if os.name == "nt":
         try:
@@ -360,7 +455,7 @@ def texte(bereich: tuple[int, int, int, int] | None = None) -> list[Element]:
         pfad = Path(datei.name)
     try:
         bild.convert("RGB").save(pfad)
-        daten = _powershell("jon-ocr", OCR_SKRIPT, ["-Bild", str(pfad)], 20)
+        daten = _ocr_ueber_dienst(pfad) or _powershell("jon-ocr", OCR_SKRIPT, ["-Bild", str(pfad)], 20)
     finally:
         try:
             pfad.unlink()
@@ -734,8 +829,20 @@ async def finden(ziel: str, nur_fenster: bool = False) -> tuple[Element | tuple[
         if element is not None:
             return element, "liste", {}
     ocr_aufgabe = asyncio.ensure_future(asyncio.to_thread(texte, _fensterbereich(None)))
+    ui_aufgabe = asyncio.ensure_future(asyncio.to_thread(ui_elemente))
+    ui_aufgabe.add_done_callback(lambda f: f.cancelled() or f.exception())
+    fertig, _ = await asyncio.wait({ocr_aufgabe, ui_aufgabe}, return_when=asyncio.FIRST_COMPLETED)
+    if ocr_aufgabe in fertig and ui_aufgabe not in fertig:
+        try:
+            frueh = ocr_aufgabe.result()
+        except Exception as fehler:
+            leise(fehler, "bildschirm_agent")
+            frueh = []
+        treffer = eindeutig(kandidaten(ziel, [], frueh))
+        if treffer is not None and treffer.punkte >= FRUEH_PUNKTE:
+            return treffer, "text", {"titel": "", "fenster": None, "elemente": []}
     try:
-        ui = await asyncio.to_thread(ui_elemente)
+        ui = await ui_aufgabe
     except Exception as fehler:
         leise(fehler, "bildschirm_agent")
         ui = {"titel": "", "fenster": None, "elemente": []}
