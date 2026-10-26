@@ -159,6 +159,13 @@ def _zustand(messung: dict | None) -> str:
     return "bereit"
 
 
+def unzuverlaessig(anbieter: str, modell: str) -> bool:
+    from app.services.modell_messungen import MESSUNGEN
+
+    messung = (MESSUNGEN.get(anbieter) or {}).get(modell)
+    return _zustand(messung) in ("haengt", "gesperrt", "fehler", "kein_chat")
+
+
 def _sekunden(eintrag: dict | None) -> float | None:
     if not eintrag or eintrag.get("fehler"):
         return None

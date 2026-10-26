@@ -307,3 +307,13 @@ def test_ohne_tonspur_keine_mitschrift(tmp_path):
     schreiber.release()
     assert sehen.hat_ton(pfad) is False
     assert sehen.ton_mitschrift(pfad) == ""
+
+
+def test_haengendes_eigenes_bildmodell_kommt_nach_hinten(einstellungen):
+    einstellungen.update({"provider": "nvidia", "vision_model": "meta/llama-3.2-90b-vision-instruct", "offline_modus": False, "modell_je_aufgabe": False})
+    liste = [m for _, m in sehen.kette("bild", "nvidia")]
+    assert liste[0] == NVIDIA_SEHEN_MODELL
+    assert liste.index("meta/llama-3.2-90b-vision-instruct") > liste.index(NVIDIA_SEHEN_RESERVE)
+    einstellungen.update({"vision_model": NVIDIA_VIDEO_MODELL})
+    assert sehen.kette("bild", "nvidia")[0] == ("nvidia", NVIDIA_VIDEO_MODELL)
+    einstellungen.update({"vision_model": ""})

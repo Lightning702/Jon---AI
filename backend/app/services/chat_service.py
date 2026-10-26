@@ -8,6 +8,7 @@ import uuid
 from typing import AsyncIterator
 
 from app.core.config import (
+    ALTE_KONTOSTANDARDS,
     DATA_DIR,
     NVIDIA_EMIL_MODELL,
     NVIDIA_JON_MODELL,
@@ -95,6 +96,43 @@ def schnell_denken(denken: bool | None, slot: str) -> bool | None:
     return denken
 
 
+WELTZEIT = (
+    ("New York", "America/New_York"),
+    ("Los Angeles", "America/Los_Angeles"),
+    ("London", "Europe/London"),
+    ("Moskau", "Europe/Moscow"),
+    ("Dubai", "Asia/Dubai"),
+    ("Neu-Delhi", "Asia/Kolkata"),
+    ("Peking", "Asia/Shanghai"),
+    ("Tokio", "Asia/Tokyo"),
+    ("Sydney", "Australia/Sydney"),
+)
+
+
+def weltzeit(utc=None) -> str:
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+
+    utc = utc or datetime.now(timezone.utc)
+    lokal = utc.astimezone()
+    teile = []
+    for stadt, zone in WELTZEIT:
+        try:
+            dort = utc.astimezone(ZoneInfo(zone))
+        except Exception:
+            continue
+        tag = "" if dort.date() == lokal.date() else f" am {dort.strftime('%d.%m.')}"
+        teile.append(f"{stadt} {dort.strftime('%H:%M')}{tag}")
+    versatz = lokal.utcoffset()
+    stunden = versatz.total_seconds() / 3600 if versatz else 0.0
+    if not teile:
+        return ""
+    return (
+        f"Hier gilt UTC{stunden:+g}. Weltzeit jetzt: {', '.join(teile)}; Uhrzeiten an "
+        "anderen Orten rechnest du aus UTC selbst aus - dafuer brauchst du keine Suche. "
+    )
+
+
 def heute_block() -> str:
     from datetime import datetime
 
@@ -102,7 +140,7 @@ def heute_block() -> str:
     tag = WOCHENTAGE[jetzt.weekday()]
     return (
         f"HEUTE IST {tag}, der {jetzt.strftime('%d.%m.%Y')}, {jetzt.strftime('%H:%M')} "
-        "Uhr. Dein antrainiertes Wissen endet lange davor und ist bei allem veraltet, "
+        f"Uhr. {weltzeit()}Dein antrainiertes Wissen endet lange davor und ist bei allem veraltet, "
         "was sich aendert. Bei Preisen, Produkten, Modell- und Versionsnamen, Personen "
         "im Amt, News, Terminen, Ergebnissen und Kursen antwortest du NIEMALS aus dem "
         "Gedaechtnis, sondern rufst zuerst web_search auf - auch wenn du glaubst, die "
@@ -213,8 +251,8 @@ ZWEITER_ERSATZ = {
 WECHSEL_RUNDEN = 8
 
 GEDULD_QUELLEN = {
-    "telegram": 45.0,
-    "telegram-gruppe": 45.0,
+    "telegram": 30.0,
+    "telegram-gruppe": 30.0,
 }
 
 OLLAMA_UNGEEIGNET = ("embed", "image", ":cloud", "whisper", "tts")
@@ -580,6 +618,8 @@ def grundmodell(provider: str, slot: str = "emil") -> str:
     except Exception:
         eigenes = None
     if eigenes:
+        if provider == "nvidia":
+            eigenes = ALTE_KONTOSTANDARDS.get(eigenes, eigenes)
         return standard_modell(eigenes, provider)
     settings = get_settings()
     if provider == settings.default_provider:
@@ -853,6 +893,7 @@ class ChatService:
                 nonlocal executed
                 executed = True
                 return await executor(*args, **kwargs)
+            inhalt = False
             try:
                 async for chunk in provider.stream(request, tracked_executor if executor else None):
                     if not started:
@@ -860,10 +901,13 @@ class ChatService:
                         state["provider"] = name
                         state["echt"] = True
                         mark_fast(name, model)
+                    if chunk.kind not in ("reasoning", "usage"):
+                        inhalt = True
                     yield chunk
                 return
             except Exception as fehler:
-                if started or executed:
+                leise(fehler, "services/chat_service/strom")
+                if inhalt or executed:
                     state["echt"] = True
                     raise
                 if hasattr(provider, "ausfall_merken"):

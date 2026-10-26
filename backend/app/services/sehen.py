@@ -65,16 +65,21 @@ def kette(art: str, anbieter: str | None = None) -> list[tuple[str, str]]:
     gewaehlt, modell = get_settings_service().selection()
     name = anbieter or gewaehlt or get_settings().default_provider
     werte = _einstellungen()
+    from app.services.modell_info import unzuverlaessig
+
     liste: list[tuple[str, str]] = []
+    hinten: list[tuple[str, str]] = []
     eigenes = "" if art == "pruefen" else str(werte.get("video_model" if art == "video" else "vision_model") or "").strip()
-    if eigenes:
-        liste.append((name, eigenes))
+    wuensche = [(name, eigenes)] if eigenes else []
     aufgabe = fuer("sehen")
     if aufgabe and aufgabe[1] and art != "pruefen":
-        liste.append(aufgabe)
+        wuensche.append(aufgabe)
+    for eintrag in wuensche:
+        (hinten if unzuverlaessig(*eintrag) else liste).append(eintrag)
     tabelle = PRUEF_KETTE if art == "pruefen" else VIDEO_KETTE if art == "video" else BILD_KETTE
     for eintrag in tabelle.get(name, ()):
         liste.append((name, eintrag))
+    liste.extend(hinten)
     if not offline() and art != "pruefen":
         for reserve in RESERVE_ANBIETER:
             if reserve == name:

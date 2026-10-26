@@ -1611,8 +1611,11 @@ class TelegramService:
         return None
 
     async def _schnellweg(self, text: str, begleiter) -> str | None:
-        from app.services import bildschirm_agent, pc_strom
+        from app.services import bildschirm_agent, pc_strom, weltzeit
 
+        uhrzeit = weltzeit.antwort(text)
+        if uhrzeit:
+            return uhrzeit
         aktion = pc_strom.erkennen(text)
         if aktion:
             sekunden = pc_strom.vorlauf(text, 30 if aktion in ("herunterfahren", "neustarten") else 0)
