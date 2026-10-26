@@ -17,7 +17,7 @@ let stripe;
 let server;
 
 function zustand() {
-  return {anfragen: [], produkte: [], preise: [], sitzung: {id: "cs_test_1", url: "https://checkout.stripe.com/c/pay/cs_test_1", status: "open", metadata: {}, customer_details: {name: "Felix"}}, abo: {id: "sub_1", customer: "cus_1", status: "active", metadata: {jon: "premium", geraete: ""}, items: {data: [{current_period_end: Math.floor(Date.now() / 1000) + 30 * 86400}]}}};
+  return {anfragen: [], produkte: [], preise: [], sitzung: {id: "cs_test_1", url: "https://checkout.stripe.com/c/pay/cs_test_1", status: "open", metadata: {}, customer_details: {name: "Max"}}, abo: {id: "sub_1", customer: "cus_1", status: "active", metadata: {jon: "premium", geraete: ""}, items: {data: [{current_period_end: Math.floor(Date.now() / 1000) + 30 * 86400}]}}};
 }
 
 before(async () => {
