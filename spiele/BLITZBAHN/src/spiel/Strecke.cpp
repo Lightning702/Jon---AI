@@ -198,7 +198,7 @@ Boden Strecke::boden(Vec3 ort, float spielraum) const {
     return bester;
 }
 
-float Strecke::wand(Vec3 vorher, Vec3& ort, Vec3& fahrt, float radius) const {
+float Strecke::wand(Vec3 vorher, Vec3& ort, Vec3& fahrt, float radius, Vec3* normale) const {
     indizieren();
     float wucht = 0.0f;
     auto treffer = raster.find(schluessel(zelleVon(ort.x), zelleVon(ort.z)));
@@ -261,9 +261,10 @@ float Strecke::wand(Vec3 vorher, Vec3& ort, Vec3& fahrt, float radius) const {
         Vec3 wn = normiert(richtungWelt(s.dreh, wandNormale));
         float vn = punkt(fahrt, wn);
         if (vn < 0.0f) {
-            fahrt -= wn * (vn * 1.3f);
+            fahrt -= wn * (vn * 1.06f);
             Vec3 tangential = fahrt - wn * punkt(fahrt, wn);
-            fahrt = fahrt - tangential * 0.04f;
+            fahrt = fahrt - tangential * std::min(0.25f, 0.012f * -vn);
+            if (-vn > wucht && normale) *normale = wn;
             wucht = std::max(wucht, -vn);
         }
     }

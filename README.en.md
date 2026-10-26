@@ -6,6 +6,8 @@
 
 **An assistant that doesn't just talk — it actually operates your PC.**
 
+**New in 4.66.5:** BLITZBAHN drives much better: corners work at about 100 km/h, the car slides along the guard rail instead of bouncing off, and an optional driving assist gently straightens it before it hits a wall. Skewed take-offs from jumps still land on the track.
+
 **New in 4.66.4:** Telegram no longer hangs: if a model doesn't answer at all, Jon switches to another one after at most 30 seconds instead of waiting up to five minutes. “What time is it in Tokyo?” is answered instantly, and a hanging vision model in the settings no longer slows down looking at images.
 
 **New in 4.66.3:** Click-on-command now works on every screen, not just the one where Jon is open. If a button appears more than once, Jon asks back or understands “top right” and “the second one”. Looking at an image takes 10 to 15 seconds instead of up to two minutes, videos are understood with their audio, and Word documents no longer get empty pages.
@@ -16,7 +18,7 @@
 
 **New in 4.65.9:** The terminal harness `jonh` now always works without a key: if FelWorks is unreachable, it switches to a free fallback on its own. Word documents get real tables, page breaks and bold text, and Jon no longer invents details in job applications but uses placeholders. Also: Telegram answers right away, "click Start" works in 2 s, and presentations get checked photos.
 
-[![Version](https://img.shields.io/badge/Version-4.66.4-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.66.5-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![License](https://img.shields.io/badge/License-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Publisher](https://img.shields.io/badge/Publisher-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

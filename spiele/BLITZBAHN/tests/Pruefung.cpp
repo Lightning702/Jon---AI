@@ -103,24 +103,29 @@ void fahrPruefen() {
     pruefe(f.amBoden && std::fabs(f.ort.y) < 0.05f, "Das Auto bleibt auf der Geraden am Boden");
     pruefe(std::fabs(f.ort.x) < 0.5f, "Geradeaus bleibt geradeaus");
 
+    Strecke offen;
+    streckeBauen("PPPPPPPPPPPPPPPPPPPPPPPPPPPPPP", offen);
+    Vec3 offenOrt;
+    float offenGier = 0.0f;
+    offen.startpunkt(offenOrt, offenGier);
     Fahrzeug tipp;
-    tipp.setzen(ort, gier);
+    tipp.setzen(offenOrt, offenGier);
     Eingabe vollgas;
     vollgas.gas = 1.0f;
-    for (int i = 0; i < 120 * 3; ++i) tipp.schritt(s, vollgas, 1.0f / 120.0f);
+    for (int i = 0; i < 120 * 3; ++i) tipp.schritt(offen, vollgas, 1.0f / 120.0f);
     float vorTipp = tipp.gier;
     Eingabe kurz = vollgas;
     kurz.lenkung = 1.0f;
-    for (int i = 0; i < 30; ++i) tipp.schritt(s, kurz, 1.0f / 120.0f);
-    for (int i = 0; i < 60; ++i) tipp.schritt(s, vollgas, 1.0f / 120.0f);
+    for (int i = 0; i < 30; ++i) tipp.schritt(offen, kurz, 1.0f / 120.0f);
+    for (int i = 0; i < 60; ++i) tipp.schritt(offen, vollgas, 1.0f / 120.0f);
     float gedreht = std::fabs(winkelDifferenz(vorTipp, tipp.gier)) * 180.0f / PI;
     pruefe(gedreht > 1.0f && gedreht < 20.0f, "Kurzes Antippen von A dreht nur ein wenig (" + std::to_string(static_cast<int>(gedreht)) + " Grad)");
 
     Fahrzeug dauer;
-    dauer.setzen(ort, gier);
-    for (int i = 0; i < 120 * 3; ++i) dauer.schritt(s, vollgas, 1.0f / 120.0f);
+    dauer.setzen(offenOrt, offenGier);
+    for (int i = 0; i < 120 * 3; ++i) dauer.schritt(offen, vollgas, 1.0f / 120.0f);
     float start = dauer.gier;
-    for (int i = 0; i < 120; ++i) dauer.schritt(s, kurz, 1.0f / 120.0f);
+    for (int i = 0; i < 120; ++i) dauer.schritt(offen, kurz, 1.0f / 120.0f);
     float eineSekunde = std::fabs(winkelDifferenz(start, dauer.gier)) * 180.0f / PI;
     pruefe(eineSekunde < 80.0f, "Eine Sekunde Vollgas mit Lenkung dreht unter 80 Grad (" + std::to_string(static_cast<int>(eineSekunde)) + ")");
 
@@ -146,6 +151,54 @@ void fahrPruefen() {
     for (int i = 0; i < 120 * 4; ++i) w.schritt(s, e, 1.0f / 120.0f);
     pruefe(std::fabs(w.ort.x) <= HALBE_BREITE - AUTO_RADIUS + 0.05f, "Die Wand haelt das Auto auf der Bahn");
 
+    Fahrzeug kreis;
+    platz.startpunkt(ort, gier);
+    kreis.setzen(ort, gier);
+    Eingabe halten;
+    for (int i = 0; i < 120 * 6 && kreis.tempo() < 28.0f; ++i) kreis.schritt(platz, vollgas, 1.0f / 120.0f);
+    halten.lenkung = 1.0f;
+    for (int i = 0; i < 24; ++i) {
+        halten.gas = kreis.tempo() < 28.0f ? 1.0f : 0.0f;
+        kreis.schritt(platz, halten, 1.0f / 120.0f);
+    }
+    float kreisStart = kreis.gier;
+    float kreisTempo = 0.0f;
+    bool kreisAmBoden = true;
+    for (int i = 0; i < 24; ++i) {
+        halten.gas = kreis.tempo() < 28.0f ? 1.0f : 0.0f;
+        kreis.schritt(platz, halten, 1.0f / 120.0f);
+        kreisTempo += kreis.tempo() / 24.0f;
+        kreisAmBoden = kreisAmBoden && kreis.amBoden;
+    }
+    float kreisRate = std::fabs(winkelDifferenz(kreisStart, kreis.gier)) / 0.2f;
+    float kurvenRadius = kreisTempo / std::max(kreisRate, 1e-3f);
+    pruefe(kreisAmBoden && kreisTempo > 25.0f && kurvenRadius < 11.0f, "Mit 100 km/h passt das Auto durch eine Kurve mit 10 m Radius (" + std::to_string(static_cast<int>(kurvenRadius)) + " m)");
+
+    Fahrzeug schraeg;
+    schraeg.setzen(ort, gier);
+    for (int i = 0; i < 120 * 2; ++i) schraeg.schritt(s, vollgas, 1.0f / 120.0f);
+    schraeg.ort.x = 3.2f;
+    schraeg.gier = gier + 0.12f;
+    schraeg.fahrt = schraeg.vorne() * 34.0f;
+    float schraegStoss = 0.0f;
+    for (int i = 0; i < 120 * 2; ++i) {
+        schraeg.schritt(s, vollgas, 1.0f / 120.0f);
+        schraegStoss = std::max(schraegStoss, schraeg.wandstoss);
+    }
+    pruefe(schraegStoss < 0.12f && std::fabs(winkelDifferenz(schraeg.gier, gier)) < 0.06f,
+           "Fahrhilfe richtet das Auto vor der Leitplanke aus (Stoss " + std::to_string(static_cast<int>(schraegStoss * 100.0f)) + " %)");
+
+    Fahrzeug anprall;
+    anprall.setzen(ort, gier);
+    for (int i = 0; i < 120 * 2; ++i) anprall.schritt(s, vollgas, 1.0f / 120.0f);
+    anprall.ort.x = HALBE_BREITE - AUTO_RADIUS - 0.4f;
+    anprall.gier = gier + 0.3f;
+    anprall.fahrt = anprall.vorne() * 40.0f;
+    for (int i = 0; i < 120; ++i) anprall.schritt(s, vollgas, 1.0f / 120.0f);
+    float nachAnprall = anprall.vorwaerts();
+    pruefe(nachAnprall > 34.0f, "Streifen der Wand kostet kaum Tempo (" + std::to_string(static_cast<int>(nachAnprall * 3.6f)) + " km/h)");
+    pruefe(std::fabs(winkelDifferenz(anprall.gier, gier)) < 0.08f, "Nach dem Streifen zeigt das Auto die Bahn entlang");
+
     Strecke sprung;
     streckeBauen("SSSJ___GGGGGZ", sprung);
     Fahrzeug j;
@@ -164,6 +217,93 @@ void fahrPruefen() {
     }
     pruefe(flog && hoechst > SCHANZE_HOEHE + 1.0f, "Die Schanze laesst das Auto fliegen (bis " + std::to_string(static_cast<int>(hoechst)) + " m)");
     pruefe(gelandet, "Nach dem Sprung landet das Auto wieder auf der Bahn");
+
+    Strecke weit;
+    streckeBauen("SSSJ____GGGGGZ", weit);
+    Fahrzeug schief;
+    weit.startpunkt(ort, gier);
+    schief.setzen(ort, gier);
+    for (int i = 0; i < 120 * 8; ++i) {
+        schief.schritt(weit, g, 1.0f / 120.0f);
+        if (schief.bodenTeil == SCHANZE && schief.bodenLz > 7.0f) break;
+    }
+    schief.gier = gier + 0.3f;
+    float schiefC = std::cos(0.3f);
+    float schiefS = std::sin(0.3f);
+    schief.fahrt = Vec3(schief.fahrt.x * schiefC + schief.fahrt.z * schiefS, schief.fahrt.y, -schief.fahrt.x * schiefS + schief.fahrt.z * schiefC);
+    bool schiefGelandet = false;
+    for (int i = 0; i < 120 * 8 && !schiefGelandet; ++i) {
+        schief.schritt(weit, g, 1.0f / 120.0f);
+        if (schief.luftzeit == 0.0f && schief.bodenTeil == GERADE) schiefGelandet = true;
+        if (schief.ort.y < weit.tiefstes() - 20.0f) break;
+    }
+    pruefe(schiefGelandet, "Wer schraeg ueber die Schanze faehrt, landet trotzdem auf der Bahn");
+}
+
+struct Fahrt {
+    bool ziel = false;
+    float zeit = 0.0f;
+    int stuerze = 0;
+    int wandkontakte = 0;
+};
+
+template <typename Fahrer>
+Fahrt fahren(const Strecke& s, Fahrer fahrer) {
+    Fahrt fahrt;
+    Fahrzeug f;
+    Vec3 ort;
+    float gier = 0.0f;
+    s.startpunkt(ort, gier);
+    f.setzen(ort, gier);
+    std::vector<int> erreicht;
+    Vec3 kontrollOrt = ort;
+    float kontrollGier = gier;
+    bool anWand = false;
+    while (fahrt.zeit < 240.0f && !fahrt.ziel) {
+        f.schritt(s, fahrer(f), 1.0f / 120.0f);
+        fahrt.zeit += 1.0f / 120.0f;
+        if (f.wandstoss > 0.25f && !anWand) {
+            ++fahrt.wandkontakte;
+            anWand = true;
+        }
+        if (f.wandstoss < 0.05f) anWand = false;
+        if (f.bodenStueck >= 0 && std::fabs(f.bodenLz) < 3.5f && f.ort.y - f.bodenHoehe < 9.0f) {
+            if (f.bodenTeil == KONTROLLE && std::find(erreicht.begin(), erreicht.end(), f.bodenStueck) == erreicht.end()) {
+                erreicht.push_back(f.bodenStueck);
+                const Stueck& st = s.stuecke[f.bodenStueck];
+                kontrollOrt = lokalZuWelt(st, Vec3(0, 0, 0));
+                Vec3 v = richtungWelt(st.dreh, Vec3(0, 0, 1));
+                kontrollGier = std::atan2(v.x, v.z);
+            }
+            if (f.bodenTeil == ZIEL && static_cast<int>(erreicht.size()) >= s.kontrollZahl()) fahrt.ziel = true;
+        }
+        if (f.ort.y < s.tiefstes() - 40.0f) {
+            ++fahrt.stuerze;
+            f.setzen(kontrollOrt, kontrollGier);
+        }
+    }
+    return fahrt;
+}
+
+void tastaturPruefen() {
+    int kontakte = 0;
+    int geschafft = 0;
+    for (const Strecke& s : offizielleStrecken()) {
+        Pilot p;
+        Fahrt fahrt = fahren(s, [&](const Fahrzeug& f) {
+            Eingabe e = p.lenken(s, f);
+            e.lenkung = std::fabs(e.lenkung) > 0.3f ? (e.lenkung > 0.0f ? 1.0f : -1.0f) : 0.0f;
+            bool bremsen = e.bremse > 0.0f && f.vorwaerts() > 30.0f;
+            e.bremse = bremsen ? 1.0f : 0.0f;
+            e.gas = bremsen ? 0.0f : 1.0f;
+            return e;
+        });
+        kontakte += fahrt.wandkontakte;
+        geschafft += fahrt.ziel ? 1 : 0;
+        std::printf("    Tastatur-Fahrer auf %s: %s in %.1f s, %d Wandkontakte, %d Stuerze\n", s.name.c_str(), fahrt.ziel ? "Ziel" : "kein Ziel", fahrt.zeit, fahrt.wandkontakte, fahrt.stuerze);
+    }
+    pruefe(geschafft == 8, "Tastatur-Fahrer mit spaetem Bremsen kommt auf allen Strecken ins Ziel (" + std::to_string(geschafft) + " von 8)");
+    pruefe(kontakte <= 8, "Tastatur-Fahrer eckt selten an (" + std::to_string(kontakte) + " Wandkontakte auf 8 Strecken)");
 }
 
 void pilotPruefen() {
@@ -229,6 +369,7 @@ int pruefungenLaufen() {
     fahrPruefen();
     geistPruefen();
     pilotPruefen();
+    tastaturPruefen();
     std::printf("%d von %d Pruefungen bestanden\n", pruefZahl - fehlerZahl, pruefZahl);
     return fehlerZahl;
 }
