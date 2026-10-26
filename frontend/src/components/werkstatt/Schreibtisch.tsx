@@ -44,6 +44,25 @@ function Block({ block, wert, nummer }: { block: DokumentBlock; wert: number; nu
       );
     case "leer":
       return <div className="lw-d-leer" />;
+    case "trenner":
+      return <hr className="lw-d-trenner" />;
+    case "tabelle": {
+      const zeilen = text
+        .split("\n")
+        .map((z) => z.trim().replace(/^\||\|$/g, "").split("|").map((s) => s.trim()))
+        .filter((z) => z.some((s) => s) && !z.every((s) => !s || /^:?-{2,}:?$/.test(s.replace(/\s/g, ""))));
+      return (
+        <table className="lw-d-tabelle">
+          <tbody>
+            {zeilen.map((z, r) => (
+              <tr key={r}>
+                {z.map((s, c) => (r === 0 ? <th key={c}>{inline(s)}</th> : <td key={c}>{inline(s)}</td>))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    }
     default:
       return <p>{inhalt}</p>;
   }

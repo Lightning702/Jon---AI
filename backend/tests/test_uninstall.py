@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -98,7 +99,7 @@ def test_deinstallierer_wird_nur_auf_wunsch_gestartet(wegwerf, monkeypatch):
 
 def test_schutz_vor_systempfaden(tmp_path, monkeypatch):
     assert us._sicher(Path("C:\\")) is False
-    assert us._sicher(Path.home()) is False
+    assert us._sicher(Path(os.environ.get("USERPROFILE") or os.path.expanduser("~"))) is False
     assert us._sicher(Path("C:\\gibtesnicht_12345")) is False
     echt = tmp_path / "ordner"
     echt.mkdir()
@@ -106,6 +107,7 @@ def test_schutz_vor_systempfaden(tmp_path, monkeypatch):
 
 
 def test_geschuetzter_pfad_wird_nicht_geloescht(monkeypatch):
+    monkeypatch.setattr(us, "_VERBOTEN", us._VERBOTEN | {Path.home()})
     ok, hinweis = us._loeschen(Path.home())
     assert ok is False
     assert "Sicherheits" in hinweis

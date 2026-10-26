@@ -18,6 +18,7 @@ from jon_harness.werkzeuge import Werkzeugkasten, ausfuehren, befehl_gefaehrlich
 def eigener_ordner(tmp_path, monkeypatch):
     monkeypatch.setenv("JON_HARNESS_DIR", str(tmp_path / "harness"))
     monkeypatch.setenv("JON_HARNESS_OHNE_JON", "1")
+    monkeypatch.setenv("JON_HARNESS_OHNE_FREI", "1")
     for name in list(__import__("os").environ):
         if name.endswith("_API_KEY") or (name.startswith("JON_") and name.endswith("_KEY")):
             monkeypatch.delenv(name, raising=False)
@@ -354,18 +355,17 @@ def test_felworks_weg_dann_weicht_jonh_auf_ollama_aus(tmp_path, monkeypatch, cap
     monkeypatch.setattr(netz, "anfrage", anfrage)
     werte = argparse.Namespace(frage=[], einmal=True, weiter=False, anbieter="felworks", modell=None, ordner=str(tmp_path), auto=False, alles=False, ohne_jon=True, version=False)
     terminal = start.Terminal(werte)
-    assert terminal.agent.anbieter == "felworks"
+    assert (terminal.agent.anbieter, terminal.agent.modell) == ("ollama", "qwen3:8b")
+    assert "FelWorks ist gerade nicht erreichbar" in terminal._ersatz_hinweis
     gesehen = []
 
     def strom(kennung, modell, nachrichten, werkzeuge, denken=None, max_tokens=8192, temperatur=0.4):
         gesehen.append((kennung, modell))
-        if kennung == "felworks":
-            return Verbindung.strom(terminal.verbindung, kennung, modell, nachrichten, werkzeuge, denken)
         return _Antwort(_sse({"choices": [{"delta": {"content": "Hallo aus Ollama."}}]})), True
 
     monkeypatch.setattr(terminal.verbindung, "strom", strom)
     assert terminal.ausfuehren("Sag hallo") == "Hallo aus Ollama."
-    assert gesehen == [("felworks", terminal.einstellungen.modell("felworks") or "nvidia/nemotron-3-ultra-550b-a55b"), ("ollama", "qwen3:8b")]
+    assert gesehen == [("ollama", "qwen3:8b")]
     assert all(zeit <= 8 for url, zeit in aufrufe if "ts.net" in url)
     assert "Ollama" in capsys.readouterr().out
     assert [n["role"] for n in terminal.agent.sitzung.nachrichten].count("user") == 1
@@ -440,3 +440,36 @@ def test_unzensiert_nur_mit_lokalem_modell(tmp_path):
     assert "UNZENSIERT-MODUS" in lokal._system()["content"]
     assert "UNZENSIERT-MODUS" not in wolke._system()["content"]
     assert prompt.lokal("jon", "ollama/llama3") and not prompt.lokal("ollama", "gpt-oss:120b-cloud")
+
+
+def test_ohne_felworks_und_ohne_schluessel_nimmt_jonh_den_freien_dienst(tmp_path, monkeypatch):
+    import argparse
+
+    from jon_harness import start
+    from jon_harness.anbieter import KATALOG
+
+    monkeypatch.delenv("JON_HARNESS_OHNE_FREI", raising=False)
+
+    def anfrage(methode, url, daten=None, kopf=None, zeit=60, **rest):
+        raise netz.NetzFehler("Keine Verbindung", 0)
+
+    monkeypatch.setattr(netz, "anfrage", anfrage)
+    werte = argparse.Namespace(frage=[], einmal=True, weiter=False, anbieter=None, modell=None, ordner=str(tmp_path), auto=False, alles=False, ohne_jon=True, version=False)
+    terminal = start.Terminal(werte)
+    assert terminal.agent.anbieter == "frei"
+    assert KATALOG["frei"].braucht_schluessel is False
+    assert terminal.verbindung.bereit("frei")
+
+
+def test_werkzeugname_mit_steuerzeichen_wird_bereinigt(tmp_path, monkeypatch):
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    antworten = [
+        _sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "c1", "function": {"name": "datei_lesen<|channel|>commentary", "arguments": "{\"pfad\": \"a.txt\"}"}}]}}]}),
+        _sse({"choices": [{"delta": {"content": "Gelesen."}}]}),
+    ]
+    (tmp_path / "a.txt").write_text("Inhalt", encoding="utf-8")
+    monkeypatch.setattr(verbindung, "strom", lambda *a, **k: (_Antwort(antworten.pop(0)), True))
+    agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "frei", "openai-fast", "auto")
+    assert agent.runde("lies a.txt", still=True) == "Gelesen."
+    aufruf = next(n for n in agent.sitzung.nachrichten if n.get("tool_calls"))
+    assert aufruf["tool_calls"][0]["function"]["name"] == "datei_lesen"

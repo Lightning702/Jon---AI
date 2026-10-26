@@ -12,6 +12,7 @@ from .speicher import Einstellungen, ordner, schreiben
 
 CODES = os.environ.get("JON_CODES_URL", "https://felworks.tail661828.ts.net/codes").rstrip("/")
 JON_ADRESSE = os.environ.get("JON_ADRESSE", "http://127.0.0.1:8756").rstrip("/")
+FREI_ADRESSE = os.environ.get("JON_FREI_URL", "https://text.pollinations.ai/openai").rstrip("/")
 DENK_SCHALTER = ("nemotron-3", "nemotron-nano-3", "nemotron-3.5")
 
 
@@ -33,6 +34,7 @@ KATALOG: dict[str, Anbieter] = {
     a.kennung: a
     for a in [
         Anbieter("felworks", "FelWorks", f"{CODES}/llm/v1", ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3.5-lightning-30b-a3b", "nvidia/nemotron-3.5-super-vl-120b-a12b"], False, "", "kostenlos, ohne Schlüssel"),
+        Anbieter("frei", "Frei ohne Schlüssel (Pollinations)", FREI_ADRESSE, ["openai-fast"], False, "https://pollinations.ai", "kostenlos, ohne Schlüssel, Ersatz wenn FelWorks nicht erreichbar ist"),
         Anbieter("jon", "Jon (dein Jon am PC)", f"{JON_ADRESSE}/api/llm/v1", ["jon"], False, "", "nutzt Jons Schlüssel und Modelle", True),
         Anbieter("nvidia", "NVIDIA NIM", "https://integrate.api.nvidia.com/v1", ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3.5-lightning-30b-a3b", "deepseek-ai/deepseek-v4.1-flash", "moonshotai/kimi-k2.6", "z-ai/glm-5.3"], True, "https://build.nvidia.com/settings/api-keys", "viele Modelle gratis"),
         Anbieter("openai", "OpenAI", "https://api.openai.com/v1", ["gpt-5.1", "gpt-5-mini", "gpt-4.1"], True, "https://platform.openai.com/api-keys"),
@@ -271,6 +273,8 @@ class Verbindung:
         for kennung, eintrag in KATALOG.items():
             if eintrag.braucht_schluessel and self.einstellungen.schluessel(kennung):
                 return kennung, self.einstellungen.modell(kennung) or eintrag.modelle[0]
+        if os.environ.get("JON_HARNESS_OHNE_FREI") != "1":
+            return "frei", KATALOG["frei"].modelle[0]
         return None
 
     def pruefen(self, kennung: str, schluessel: str) -> str:
