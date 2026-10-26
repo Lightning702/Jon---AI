@@ -594,13 +594,30 @@ void Spiel::teilchenZeichnen() {
         Vec3 rechts(sichtMatrix.m[0], sichtMatrix.m[4], sichtMatrix.m[8]);
         Vec3 hoch(sichtMatrix.m[1], sichtMatrix.m[5], sichtMatrix.m[9]);
         Bauer b;
+        Vec3 blick = normiert(kreuz(rechts, hoch));
         for (const Teilchen& t : teilchen) {
             float u = t.alter / t.dauer;
             float g = std::max(0.05f, t.groesse * (1.0f + t.wachsen * u));
             float a = t.deck * (1.0f - u) * std::min(1.0f, t.alter * 12.0f);
-            Vec3 r = rechts * g;
-            Vec3 o = hoch * g;
-            b.viereck(t.ort - r - o, t.ort + r - o, t.ort + r + o, t.ort - r + o, t.farbe, a);
+            float abstand = laenge(t.ort - kameraOrt);
+            a *= std::clamp((abstand - g * 0.6f) / (g * 1.8f + 1.0f), 0.0f, 1.0f);
+            if (a < 0.004f) continue;
+            if (g < 0.2f) {
+                Vec3 r = rechts * g;
+                Vec3 o = hoch * g;
+                b.viereck(t.ort - r - o, t.ort + r - o, t.ort + r + o, t.ort - r + o, t.farbe, a);
+                continue;
+            }
+            const int teile = 10;
+            for (int i = 0; i < teile; ++i) {
+                float w0 = TAU * static_cast<float>(i) / teile;
+                float w1 = TAU * static_cast<float>(i + 1) / teile;
+                Vec3 p0 = t.ort + (rechts * std::cos(w0) + hoch * std::sin(w0)) * g;
+                Vec3 p1 = t.ort + (rechts * std::cos(w1) + hoch * std::sin(w1)) * g;
+                b.ecke(t.ort, blick, t.farbe, a);
+                b.ecke(p0, blick, t.farbe, 0.0f);
+                b.ecke(p1, blick, t.farbe, 0.0f);
+            }
         }
         teilchenNetz.hochladen(b, true);
         grafik.zeichnen(teilchenNetz);
