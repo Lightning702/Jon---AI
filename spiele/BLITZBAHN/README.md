@@ -16,6 +16,11 @@ Engine `spiele/felwerk`.
 Steuerung: W Gas, S Bremse, A/D lenken, Leertaste driften, R Neustart, Q zum letzten
 Kontrollpunkt, C Kamera, G Geist, Esc Pause, F11 Vollbild.
 
+Fahrgefühl: Kurven gehen mit rund 100 km/h, an der Leitplanke rutscht das Auto entlang statt
+abzuprallen. Die **Fahrhilfe** (Einstellungen, standardmäßig an) richtet das Auto sanft aus,
+wenn es ohne Lenken auf die Leitplanke zufährt, und gleicht schräge Absprünge an Schanzen aus.
+Wer selbst gegen die Wand lenkt oder driftet, wird nicht korrigiert.
+
 ## Bauen und Pruefen
 
 ```

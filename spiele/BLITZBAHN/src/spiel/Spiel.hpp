@@ -40,6 +40,7 @@ struct Profil {
     float lautstaerke = 0.55f;
     bool geist = true;
     bool schatten = true;
+    bool fahrhilfe = true;
     int kamera = 0;
 };
 

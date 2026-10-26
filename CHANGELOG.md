@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.66.5] — 2026-10-26
+
+### BLITZBAHN fährt sich viel besser
+
+- **Kurven mit 100 km/h:** Die Kurven der Strecken haben nur rund 10 m Radius, das Auto schaffte sie aber nur bis etwa 85 km/h – bei 266 km/h Spitze musste man vor jeder Kurve voll bremsen oder landete in der Wand. Im Kurventempo hat das Auto jetzt deutlich mehr Griff, bei Höchsttempo lenkt es so ruhig wie bisher.
+- **Entlangrutschen statt Abprallen:** Bisher prallte das Auto 30 % von der Leitplanke ab und zeigte danach weiter in die Wand – das nächste Anecken war vorprogrammiert, und ein Streifschuss bremste von 144 auf 19 km/h. Jetzt dreht es sich parallel zur Wand und behält fast sein ganzes Tempo (147 km/h nach dem gleichen Streifschuss).
+- **Fahrhilfe (abschaltbar):** Fährt das Auto ohne Lenken auf die Leitplanke zu, richtet Jon es sanft entlang der Bahn aus. Wer selbst Richtung Wand lenkt oder driftet, wird nicht korrigiert. Schalter unter Einstellungen → Fahrhilfe.
+- **Schräge Absprünge:** Wer schief über eine Schanze fährt, fliegt trotzdem auf die Landebahn.
+- **Gemessen mit einem Tastatur-Fahrer** (digitales A/D, spätes Bremsen) auf allen 8 Strecken: vorher 6 von 8 im Ziel, zweimal vier Minuten festgefahren; jetzt 8 von 8, 0 Stürze, 7 Wandberührungen insgesamt. 58 Prüfungen bestanden.
+
 ## [4.66.4] — 2026-10-26
 
 ### Telegram hängt nicht mehr, Uhrzeiten sofort

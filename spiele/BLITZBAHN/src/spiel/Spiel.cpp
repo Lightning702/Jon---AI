@@ -325,6 +325,7 @@ void Spiel::profilLaden() {
         else if (k == "lautstaerke") profil.lautstaerke = klemme(static_cast<float>(std::atof(v.c_str())), 0.0f, 1.0f);
         else if (k == "geist") profil.geist = v == "1";
         else if (k == "schatten") profil.schatten = v == "1";
+        else if (k == "fahrhilfe") profil.fahrhilfe = v == "1";
         else if (k == "kamera") profil.kamera = std::atoi(v.c_str()) % 2;
     }
 }
@@ -339,6 +340,7 @@ void Spiel::profilSpeichern() {
     aus << "lautstaerke=" << profil.lautstaerke << "\n";
     aus << "geist=" << (profil.geist ? 1 : 0) << "\n";
     aus << "schatten=" << (profil.schatten ? 1 : 0) << "\n";
+    aus << "fahrhilfe=" << (profil.fahrhilfe ? 1 : 0) << "\n";
     aus << "kamera=" << profil.kamera << "\n";
     schreibeText(ordnerNeben("saves/profil.txt"), aus.str());
 }
@@ -795,6 +797,7 @@ void Spiel::zielErreicht() {
 }
 
 void Spiel::physikTick(float dt) {
+    wagen.fahrhilfe = profil.fahrhilfe;
     Eingabe e = eingabe;
     if (!rennenLaeuft) {
         e.gas = 0.0f;
@@ -1509,7 +1512,7 @@ void Spiel::einstellungenAnzeige() {
     float pb = 520.0f;
     float px = (w - pb) * 0.5f;
     float py = h * 0.16f;
-    schrift.flaeche(px, py, pb, 534.0f, Farbe(0.05f, 0.07f, 0.14f, 0.95f));
+    schrift.flaeche(px, py, pb, 598.0f, Farbe(0.05f, 0.07f, 0.14f, 0.95f));
     mittig(w * 0.5f, py + 18.0f, "Einstellungen", GOLD, 2);
     float y = py + 96.0f;
     schreiben(px + 30.0f, y + 10.0f, "Lautstärke", HELL);
@@ -1524,6 +1527,9 @@ void Spiel::einstellungenAnzeige() {
     y += 64.0f;
     schreiben(px + 30.0f, y + 10.0f, "Kamera", HELL);
     if (knopf(px + 250.0f, y, 232.0f, 42.0f, profil.kamera == 0 ? "Hinter dem Auto" : "Cockpit")) profil.kamera = 1 - profil.kamera;
+    y += 64.0f;
+    schreiben(px + 30.0f, y + 10.0f, "Fahrhilfe", HELL);
+    if (knopf(px + 250.0f, y, 232.0f, 42.0f, profil.fahrhilfe ? "An" : "Aus", profil.fahrhilfe)) profil.fahrhilfe = !profil.fahrhilfe;
     y += 64.0f;
     schreiben(px + 30.0f, y + 10.0f, "Echte Schatten", HELL);
     if (knopf(px + 250.0f, y, 232.0f, 42.0f, !grafik.schattenMoeglich() ? "Nicht verfügbar" : (profil.schatten ? "An" : "Aus"), profil.schatten && grafik.schattenMoeglich(), !grafik.schattenMoeglich())) profil.schatten = !profil.schatten;

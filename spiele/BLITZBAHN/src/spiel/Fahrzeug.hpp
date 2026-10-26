@@ -51,9 +51,11 @@ public:
     float schub = 0.0f;
     bool amBoden = false;
     bool driftet = false;
+    bool fahrhilfe = true;
     float drift = 0.0f;
     int bodenTeil = LEER;
     int bodenStueck = -1;
+    int kontaktStueck = -1;
     float bodenLz = 0.0f;
     float bodenHoehe = 0.0f;
 

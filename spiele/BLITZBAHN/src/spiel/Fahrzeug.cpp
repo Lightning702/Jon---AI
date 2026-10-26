@@ -7,6 +7,51 @@ namespace blitzbahn {
 
 using namespace fw;
 
+namespace {
+
+constexpr float HILFE_ABSTAND = 3.2f;
+constexpr float HILFE_STAERKE = 3.4f;
+constexpr float SPRUNG_HILFE = 0.45f;
+
+struct Bahnlage {
+    float gier = 0.0f;
+    float abstand = 99.0f;
+    Vec3 nachAussen;
+};
+
+bool bahnlage(const Strecke& strecke, int stueck, Vec3 ort, float gier, Bahnlage& lage) {
+    if (stueck < 0 || stueck >= static_cast<int>(strecke.stuecke.size())) return false;
+    const Stueck& s = strecke.stuecke[stueck];
+    if (!teilHatWand(s.teil)) return false;
+    Vec3 lokal = weltZuLokal(s, ort);
+    Vec3 vorneLokal(0.0f, 0.0f, 1.0f);
+    Vec3 aussenLokal(lokal.x >= 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f);
+    if (s.teil == KURVE) {
+        float dx = lokal.x - ZELLE * 0.5f;
+        float dz = lokal.z + ZELLE * 0.5f;
+        float d = std::sqrt(dx * dx + dz * dz);
+        if (d < 1e-3f) return false;
+        Vec3 radial(dx / d, 0.0f, dz / d);
+        vorneLokal = Vec3(-radial.z, 0.0f, radial.x);
+        float innen = d - KURVE_INNEN;
+        float aussen = KURVE_AUSSEN - d;
+        lage.abstand = std::min(innen, aussen) - AUTO_RADIUS;
+        aussenLokal = aussen < innen ? radial : -radial;
+    } else {
+        if (std::fabs(lokal.z) > ZELLE * 0.5f) return false;
+        lage.abstand = HALBE_BREITE - std::fabs(lokal.x) - AUTO_RADIUS;
+    }
+    Vec3 vorne = richtungWelt(s.dreh, vorneLokal);
+    float bahn = std::atan2(vorne.x, vorne.z);
+    if (std::fabs(winkelDifferenz(gier, bahn)) > PI * 0.5f) bahn += PI;
+    if (bahn > PI) bahn -= TAU;
+    lage.gier = bahn;
+    lage.nachAussen = richtungWelt(s.dreh, aussenLokal);
+    return true;
+}
+
+}
+
 Mat4 lageMatrix(const Lage& lage) {
     Vec3 f = normiert(lage.vorne);
     Vec3 u = normiert(lage.oben - f * punkt(lage.oben, f));
@@ -41,6 +86,7 @@ void Fahrzeug::setzen(Vec3 neuerOrt, float neueGier) {
     amBoden = true;
     driftet = false;
     drift = 0.0f;
+    kontaktStueck = -1;
     oben = Vec3(0.0f, 1.0f, 0.0f);
 }
 
@@ -97,6 +143,7 @@ void Fahrzeug::schritt(const Strecke& strecke, const Eingabe& e, float dt) {
         }
         amBoden = true;
         luftzeit = 0.0f;
+        kontaktStueck = b.stueck;
         ort.y = b.hoehe;
         Vec3 n = b.normale;
         oben = normiert(mische(oben, n, std::min(1.0f, dt * 16.0f)));
@@ -137,7 +184,7 @@ void Fahrzeug::schritt(const Strecke& strecke, const Eingabe& e, float dt) {
         vf = klemme(vf, -18.0f, 150.0f);
 
         float tempoBetrag = std::fabs(vf);
-        float maxLenk = 0.5f / (1.0f + tempoBetrag / 18.0f);
+        float maxLenk = 0.5f / (1.0f + tempoBetrag / 30.0f);
         float lenkZiel = e.lenkung * maxLenk;
         bool zurueck = std::fabs(lenkZiel) < std::fabs(lenkwinkel) || lenkZiel * lenkwinkel < 0.0f;
         lenkwinkel = naehern(lenkwinkel, lenkZiel, dt * (zurueck ? 3.2f : 1.7f));
@@ -146,12 +193,25 @@ void Fahrzeug::schritt(const Strecke& strecke, const Eingabe& e, float dt) {
         drift = naehern(drift, willDriften ? 1.0f : 0.0f, dt * (willDriften ? 5.0f : 1.8f));
         if (tempoBetrag < 6.0f) drift = naehern(drift, 0.0f, dt * 4.0f);
 
-        float querGrenze = mische(55.0f, 85.0f, drift);
+        float griff = mische(92.0f, 55.0f, klemme((tempoBetrag - 26.0f) / 20.0f, 0.0f, 1.0f));
+        float querGrenze = mische(griff, griff + 30.0f, drift);
         float gierRate = vf / RADSTAND * std::tan(lenkwinkel) * (1.0f + drift * 0.9f);
         float deckel = querGrenze / std::max(tempoBetrag, 4.0f);
         gierRate = klemme(gierRate, -deckel, deckel);
         Vec3 welt = f * vf + r * vs;
         gier += gierRate * dt;
+        Bahnlage bahn;
+        if (fahrhilfe && drift < 0.3f && tempoBetrag > 4.0f && bahnlage(strecke, b.stueck, ort, gier, bahn) && bahn.abstand < HILFE_ABSTAND) {
+            float naehe = klemme(1.0f - bahn.abstand / HILFE_ABSTAND, 0.0f, 1.0f);
+            float zurWand = punkt(welt, bahn.nachAussen);
+            float abw = winkelDifferenz(gier, bahn.gier);
+            Vec3 lenkRichtung(std::sin(gier + abw), 0.0f, std::cos(gier + abw));
+            Vec3 jetzt(std::sin(gier), 0.0f, std::cos(gier));
+            bool weg = punkt(lenkRichtung - jetzt, bahn.nachAussen) < 0.0f;
+            Vec3 rechtsJetzt = kreuz(n, jetzt);
+            float spielerZurWand = e.lenkung * punkt(rechtsJetzt, bahn.nachAussen);
+            if (zurWand > 0.5f && weg && spielerZurWand < 0.1f) gier += abw * std::min(1.0f, naehe * naehe * HILFE_STAERKE * dt);
+        }
         if (gier > PI) gier -= TAU;
         if (gier < -PI) gier += TAU;
         Vec3 neuVorne = normiert(Vec3(std::sin(gier), 0.0f, std::cos(gier)) - n * punkt(Vec3(std::sin(gier), 0.0f, std::cos(gier)), n));
@@ -174,6 +234,21 @@ void Fahrzeug::schritt(const Strecke& strecke, const Eingabe& e, float dt) {
         rollen = mische(rollen, klemme(-vs * 0.012f + gierRate * vf * 0.0009f, -0.18f, 0.18f), std::min(1.0f, dt * 6.0f));
         radDrehung += vf / RADRADIUS * dt;
     } else {
+        if (fahrhilfe && amBoden && kontaktStueck >= 0 && kontaktStueck < static_cast<int>(strecke.stuecke.size()) &&
+            strecke.stuecke[kontaktStueck].teil == SCHANZE) {
+            Vec3 sprungRichtung = richtungWelt(strecke.stuecke[kontaktStueck].dreh, Vec3(0.0f, 0.0f, 1.0f));
+            float flug = std::atan2(fahrt.x, fahrt.z);
+            float bahn = std::atan2(sprungRichtung.x, sprungRichtung.z);
+            if (std::fabs(winkelDifferenz(flug, bahn)) > PI * 0.5f) bahn += PI;
+            float abw = winkelDifferenz(flug, bahn);
+            if (std::fabs(abw) < SPRUNG_HILFE) {
+                float drehen = abw * 0.9f;
+                float c = std::cos(drehen);
+                float s = std::sin(drehen);
+                fahrt = Vec3(fahrt.x * c + fahrt.z * s, fahrt.y, -fahrt.x * s + fahrt.z * c);
+                gier += drehen;
+            }
+        }
         amBoden = false;
         luftzeit += dt;
         fahrt += schwere * dt;
@@ -205,8 +280,19 @@ void Fahrzeug::schritt(const Strecke& strecke, const Eingabe& e, float dt) {
         }
     }
 
-    float stoss = strecke.wand(vorher, ort, fahrt, AUTO_RADIUS);
-    if (stoss > 0.5f) wandstoss = std::max(wandstoss, std::min(1.0f, stoss / 20.0f));
+    Vec3 wandNormale;
+    float stoss = strecke.wand(vorher, ort, fahrt, AUTO_RADIUS, &wandNormale);
+    if (stoss > 0.5f) {
+        wandstoss = std::max(wandstoss, std::min(1.0f, stoss / 20.0f));
+        float flach = std::sqrt(fahrt.x * fahrt.x + fahrt.z * fahrt.z);
+        if (amBoden && flach > 2.0f) {
+            float entlang = std::atan2(fahrt.x, fahrt.z);
+            float abw = winkelDifferenz(gier, entlang);
+            if (std::fabs(abw) < PI * 0.6f) gier += abw * std::min(1.0f, 0.35f + stoss / 25.0f);
+            if (gier > PI) gier -= TAU;
+            if (gier < -PI) gier += TAU;
+        }
+    }
 }
 
 }

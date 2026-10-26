@@ -76,7 +76,7 @@ public:
     void geaendert() { indexAlt = true; }
 
     Boden boden(fw::Vec3 ort, float spielraum) const;
-    float wand(fw::Vec3 vorher, fw::Vec3& ort, fw::Vec3& fahrt, float radius) const;
+    float wand(fw::Vec3 vorher, fw::Vec3& ort, fw::Vec3& fahrt, float radius, fw::Vec3* normale = nullptr) const;
     bool startpunkt(fw::Vec3& ort, float& gier) const;
     int kontrollZahl() const;
     bool hatStart() const;
