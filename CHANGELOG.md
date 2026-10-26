@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.66.2] — 2026-10-26
+
+### Jon bleibt erreichbar
+
+- **Der Hauptport geht nicht mehr verloren:** Bricht ein Programm eine Verbindung genau beim Aufbau ab (Windows-Fehler 64, „Der angegebene Netzwerkname ist nicht mehr verfügbar“), schloss Pythons Windows-Ereignisschleife den lauschenden Port 8756 für immer. Das Backend lief weiter, war aber für die App, das Handy und alle Werkzeuge nicht mehr erreichbar – im Protokoll stand nur „Accept failed on a socket“. Jon nimmt bei solchen kurzen Abbrüchen jetzt einfach weiter Verbindungen an. Gilt auch für Koop-, Chat- und Freigabe-Port.
+- **Nachgewiesen:** Ein Test wirft beim Annehmen absichtlich diesen Fehler. Ohne Korrektur wird die nächste Verbindung verweigert, mit Korrektur kommen alle an.
+
 ## [4.66.1] — 2026-10-26
 
 ### Telegram wieder schnell, live gemessen
