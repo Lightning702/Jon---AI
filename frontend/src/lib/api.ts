@@ -106,6 +106,65 @@ export async function getProviders(): Promise<ProviderStatus[]> {
   return res.json();
 }
 
+export interface ModellInfo {
+  id: string;
+  anbieter: string;
+  hersteller: string;
+  parameter: { gesamt_mrd: number | null; aktiv_mrd: number | null; moe: boolean };
+  faehigkeiten: string[];
+  faehigkeit_namen: string[];
+  zustand: "bereit" | "gesperrt" | "haengt" | "fehler" | "kein_chat" | "ungetestet";
+  kurz_s: number | null;
+  erstes_wort_s: number | null;
+  lang_s: number | null;
+  bild_s: number | null;
+  video_s: number | null;
+  fehler: string;
+  getestet: number | null;
+  familie: string;
+  quantisierung: string;
+  lokal: boolean;
+}
+
+export interface ModellTestLauf {
+  laeuft: boolean;
+  fertig: number;
+  gesamt: number;
+  aktuell: string;
+  anbieter: string;
+}
+
+export async function getModellInfo(anbieter: string): Promise<{ anbieter: string; modelle: Record<string, ModellInfo>; lauf: ModellTestLauf }> {
+  const res = await fetch(`${BASE}/modelle/info?anbieter=${encodeURIComponent(anbieter)}`);
+  if (!res.ok) throw new Error("modelle failed");
+  return res.json();
+}
+
+export async function modelleTesten(anbieter: string, modelle: string[] = []): Promise<ModellTestLauf> {
+  const res = await fetch(`${BASE}/modelle/testen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ anbieter, modelle }),
+  });
+  if (!res.ok) throw new Error("test failed");
+  return res.json();
+}
+
+export async function modellTestStand(): Promise<ModellTestLauf> {
+  const res = await fetch(`${BASE}/modelle/testen`);
+  if (!res.ok) throw new Error("test failed");
+  return res.json();
+}
+
+export async function unterhaltungBenennen(id: string): Promise<{ id: string; title: string; geaendert: boolean } | null> {
+  try {
+    const res = await fetch(`${BASE}/conversations/${encodeURIComponent(id)}/titel`, { method: "POST" });
+    return res.ok ? res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getConversations(): Promise<ConversationSummary[]> {
   const res = await fetch(`${BASE}/conversations`);
   if (!res.ok) return [];
@@ -291,6 +350,8 @@ export interface UserSettings {
   telegram_morgen_stundenplan?: boolean;
   telegram_morgen_zusaetze?: string[];
   offline_modus?: boolean;
+  unzensiert_modus?: boolean;
+  video_model?: string;
   modell_je_aufgabe?: boolean;
   lokaler_server_url?: string;
   lokaler_server_key?: string;

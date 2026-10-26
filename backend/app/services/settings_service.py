@@ -43,6 +43,8 @@ DEFAULTS = {
     "dream_auto": True,
     "dream_idle_minutes": 5,
     "vision_model": "",
+    "video_model": "",
+    "unzensiert_modus": False,
     "briefing_city": "",
     "maps_home_lat": 0.0,
     "maps_home_lon": 0.0,

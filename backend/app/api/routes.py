@@ -142,6 +142,39 @@ async def _models_for(provider, timeout: float) -> list[str]:
         return []
 
 
+async def _modelle_von(anbieter: str) -> list[str]:
+    dienst = get_registry().all().get(anbieter)
+    if dienst is None:
+        raise HTTPException(404, f"Den Anbieter {anbieter} kennt Jon nicht.")
+    return await _models_for(dienst, max(get_settings().models_timeout, 8))
+
+
+@router.get("/modelle/info")
+async def modelle_info(anbieter: str) -> dict:
+    from app.services.modell_info import get_modell_info
+
+    return await get_modell_info().liste(anbieter, await _modelle_von(anbieter))
+
+
+@router.get("/modelle/testen")
+async def modelle_test_stand() -> dict:
+    from app.services.modell_info import get_modell_info
+
+    return get_modell_info().lauf()
+
+
+@router.post("/modelle/testen")
+async def modelle_testen(payload: dict) -> dict:
+    from app.services.modell_info import get_modell_info
+
+    anbieter = str(payload.get("anbieter") or "").strip()
+    if not anbieter:
+        raise HTTPException(400, "Welcher Anbieter soll getestet werden?")
+    gewuenscht = [str(m) for m in (payload.get("modelle") or []) if str(m).strip()]
+    modelle = gewuenscht or await _modelle_von(anbieter)
+    return get_modell_info().starten(anbieter, modelle)
+
+
 @router.get("/providers", response_model=list[ProviderStatus])
 async def providers() -> list[ProviderStatus]:
     registry = get_registry()
@@ -262,6 +295,13 @@ async def get_conversation(conversation_id: str) -> ConversationDetail:
         if conv is None:
             raise HTTPException(status_code=404, detail="Not found")
         return ConversationDetail.model_validate(conv)
+
+
+@router.post("/conversations/{conversation_id}/titel")
+async def conversation_benennen(conversation_id: str) -> dict:
+    from app.services.chat_titel import benennen
+
+    return await benennen(conversation_id)
 
 
 @router.delete("/conversations/{conversation_id}")

@@ -5,12 +5,8 @@ import base64
 import io
 from pathlib import Path
 
-from app.core.config import DATA_DIR, get_settings
+from app.core.config import DATA_DIR
 from app.core.fehler import leise
-from app.providers.openai_compatible import OpenAICompatibleProvider
-from app.providers.registry import get_registry
-from app.services.screen_service import VISION_DEFAULTS
-from app.services.settings_service import get_settings_service
 
 MAX_BYTES = 300_000_000
 MAX_TEXT = 20_000
@@ -19,6 +15,7 @@ BILD_KANTE = 1568
 
 OFFICE = {"pptx", "docx", "xlsx", "xlsm", "odt", "ods", "odp", "rtf"}
 BILDER = {"png", "jpg", "jpeg", "webp", "gif", "bmp", "heic", "tif", "tiff"}
+VIDEOS = {"mp4", "mov", "mkv", "avi", "webm", "m4v", "3gp"}
 
 IMAGE_PROMPT = (
     "Der Nutzer hat dieses Bild in den Chat gezogen. Beschreibe praezise und "
@@ -71,6 +68,8 @@ def _art(name: str, mime: str) -> str:
     endung = _endung(name)
     if mime.startswith("image/") or endung in BILDER:
         return "image"
+    if mime.startswith("video/") or endung in VIDEOS:
+        return "video"
     if mime == "application/pdf" or endung == "pdf":
         return "pdf"
     if endung in ("pptx", "odp"):
@@ -124,6 +123,8 @@ class AttachmentService:
         art = _art(name, mime)
         if art == "image":
             ergebnis = await self._describe_image(name, mime, pfad, provider_name) if beschreiben else _bildhinweis(name, pfad)
+        elif art == "video":
+            ergebnis = await self._describe_video(name, pfad, provider_name) if beschreiben else _videohinweis(name, pfad)
         else:
             ergebnis = await asyncio.to_thread(self._lesen, art, name, pfad)
         ergebnis["pfad"] = str(pfad)
@@ -246,35 +247,36 @@ class AttachmentService:
     async def _describe_image(
         self, name: str, mime: str, pfad: Path, provider_name: str | None
     ) -> dict:
-        settings = get_settings()
-        user = get_settings_service()
-        saved_provider, saved_model = user.selection()
-        provider_name = provider_name or saved_provider or settings.default_provider
-        vision_model = (
-            user.get().get("vision_model")
-            or VISION_DEFAULTS.get(provider_name)
-            or saved_model
-            or settings.jon_model
-        )
-        from app.services.aufgaben_modelle import sehen_wahl
+        from app.services import sehen
 
-        provider_name, vision_model = sehen_wahl(provider_name, vision_model)
-        provider = get_registry().all().get(provider_name)
         hinweis = _bildhinweis(name, pfad)
-        if not isinstance(provider, OpenAICompatibleProvider) or not provider.available():
-            return hinweis
         try:
             daten, art = await asyncio.to_thread(_verkleinern, pfad, mime)
         except Exception as fehler:
             leise(fehler, "services/attachment_service")
             return hinweis
-        data_url = f"data:{art};base64,{base64.b64encode(daten).decode('ascii')}"
-        try:
-            text = await asyncio.wait_for(provider.describe_image(vision_model, data_url, IMAGE_PROMPT, max_tokens=700), 60)
-        except Exception as exc:
-            leise(exc, "services/attachment_service")
+        if art != "image/jpeg":
+            try:
+                daten = await asyncio.to_thread(sehen._verkleinert, daten, BILD_KANTE)
+            except Exception as fehler:
+                leise(fehler, "services/attachment_service")
+        ergebnis = await sehen.beschreiben([daten], IMAGE_PROMPT, "bild", provider_name, 700)
+        if not ergebnis.get("text"):
             return hinweis
-        return {"kind": "image", "name": name, "content": text.strip()[:MAX_TEXT]}
+        return {"kind": "image", "name": name, "content": ergebnis["text"][:MAX_TEXT]}
+
+
+    async def _describe_video(self, name: str, pfad: Path, provider_name: str | None) -> dict:
+        from app.services import sehen
+
+        ergebnis = await sehen.video_beschreiben(pfad, "", provider_name)
+        if not ergebnis.get("text"):
+            return _videohinweis(name, pfad)
+        return {"kind": "video", "name": name, "content": f"Videoanalyse ({ergebnis.get('bilder', 0)} Standbilder, etwa {ergebnis.get('dauer', 0)} s): {ergebnis['text']}"[:MAX_TEXT]}
+
+
+def _videohinweis(name: str, pfad: Path) -> dict:
+    return {"kind": "video", "name": name, "content": f"Video „{name}“ wurde hochgeladen. Mit look_at_image (Pfad {pfad}) siehst du dir mehrere Standbilder daraus an."}
 
 
 def _bildhinweis(name: str, pfad: Path) -> dict:

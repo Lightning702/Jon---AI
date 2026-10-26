@@ -180,22 +180,27 @@ class OpenAICompatibleProvider(LLMProvider):
     async def describe_image(
         self, model: str, data_url: str, prompt: str, max_tokens: int = 300, slot: str = "jon"
     ) -> str:
+        return await self.describe_images(model, [data_url], prompt, max_tokens, slot)
+
+    async def describe_images(
+        self, model: str, data_urls: list[str], prompt: str, max_tokens: int = 300, slot: str = "jon", system: str = ""
+    ) -> str:
         client = self._client(slot)
         zusatz = denk_extra(model, False)
+        nachrichten: list[dict] = [{"role": "system", "content": system}] if system else []
+        nachrichten.append(
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": prompt}]
+                + [{"type": "image_url", "image_url": {"url": url}} for url in data_urls],
+            }
+        )
         completion = await client.with_options(
             timeout=45.0, max_retries=0
         ).chat.completions.create(
             **({"extra_body": zusatz} if zusatz else {}),
             model=model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": data_url}},
-                    ],
-                }
-            ],
+            messages=nachrichten,
             max_tokens=max_tokens,
             temperature=0.2,
         )

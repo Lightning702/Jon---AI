@@ -29,6 +29,25 @@ PROFIL_DIR = BROWSER_DIR / "profil"
 AKTION_TIMEOUT_MS = 20000
 AUFRUF_TIMEOUT_S = 70
 LADE_TIMEOUT_MS = 25000
+FUELL_TIMEOUT_MS = 6000
+DIREKT_FUELLEN_JS = """(el, wert) => {
+  el.focus();
+  const setzer = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), "value");
+  if (setzer && setzer.set) setzer.set.call(el, wert); else el.value = wert;
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+}"""
+ABSENDEN_JS = """(el) => {
+  const formular = el.form || el.closest("form");
+  if (formular) {
+    if (formular.requestSubmit) formular.requestSubmit(); else formular.submit();
+    return true;
+  }
+  for (const art of ["keydown", "keypress", "keyup"]) {
+    el.dispatchEvent(new KeyboardEvent(art, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true }));
+  }
+  return false;
+}"""
 KENNUNG = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -412,9 +431,26 @@ class BrowserManager:
                 elif op == "fill":
                     p = seite()
                     loc = ziel(p, str(args.get("element", "")))
-                    loc.fill(str(args.get("text", "")))
+                    text = str(args.get("text", ""))
+                    try:
+                        loc.scroll_into_view_if_needed(timeout=3000)
+                    except Exception as _fehler:
+                        leise(_fehler, "services/browser/manager")
+                    direkt = False
+                    try:
+                        loc.fill(text, timeout=FUELL_TIMEOUT_MS)
+                    except Exception as _fehler:
+                        leise(_fehler, "services/browser/manager")
+                        loc.evaluate(DIREKT_FUELLEN_JS, text)
+                        direkt = True
                     if args.get("enter"):
-                        loc.press("Enter")
+                        try:
+                            if direkt:
+                                raise RuntimeError("verdecktes Feld")
+                            loc.press("Enter", timeout=AKTION_TIMEOUT_MS)
+                        except Exception as _fehler:
+                            leise(_fehler, "services/browser/manager")
+                            loc.evaluate(ABSENDEN_JS)
                         geladen(p)
                     p = seite()
                     daten = schnappschuss(p, mit_text=bool(args.get("enter")))

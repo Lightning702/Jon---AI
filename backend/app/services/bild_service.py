@@ -1,14 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 from pathlib import Path
 
-from app.core.config import get_settings
-from app.providers.openai_compatible import OpenAICompatibleProvider
-from app.providers.registry import get_registry
-from app.services.screen_service import VISION_DEFAULTS
-from app.services.settings_service import get_settings_service
 
 BILD_ARTEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
 VIDEO_ARTEN = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".3gp"}
@@ -57,53 +51,35 @@ def _als_jpeg(pfad: Path) -> tuple[bytes, str]:
 
 
 async def ansehen(pfad: str, frage: str = "") -> dict:
+    from app.services import sehen
+
     ziel = Path(pfad).expanduser()
     if not ziel.is_file():
         return {"error": f"Die Datei {pfad} gibt es nicht."}
     endung = ziel.suffix.lower()
     if endung not in BILD_ARTEN and endung not in VIDEO_ARTEN:
         return {"error": "Das ist weder ein Bild noch ein Video."}
-
-    settings = get_settings()
-    nutzer = get_settings_service()
-    gewaehlt, modell = nutzer.selection()
-    anbieter_name = gewaehlt or settings.default_provider
-    sicht = (
-        nutzer.get().get("vision_model")
-        or VISION_DEFAULTS.get(anbieter_name)
-        or modell
-        or settings.jon_model
-    )
-    from app.services.aufgaben_modelle import sehen_wahl
-
-    anbieter_name, sicht = sehen_wahl(anbieter_name, sicht)
-    anbieter = get_registry().all().get(anbieter_name)
-    if not isinstance(anbieter, OpenAICompatibleProvider):
-        return {
-            "error": "Zum Ansehen brauche ich einen OpenAI-kompatiblen Anbieter "
-            "mit Vision-Modell (z.B. NVIDIA, OpenAI, OpenRouter)."
-        }
-    if not anbieter.available():
-        return {"error": f"Kein API-Key fuer {anbieter_name}."}
-
-    try:
-        jpeg, quelle = await asyncio.to_thread(_als_jpeg, ziel)
-    except Exception as exc:
-        return {"error": str(exc)}
-
-    daten_url = "data:image/jpeg;base64," + base64.b64encode(jpeg).decode("ascii")
-    aufgabe = PROMPT
-    if quelle == "video":
-        aufgabe += "\nDas ist ein Standbild aus der Mitte eines Videos."
-    if frage.strip():
-        aufgabe += f"\nDie Person moechte besonders wissen: {frage.strip()}"
-    try:
-        text = await anbieter.describe_image(sicht, daten_url, aufgabe, max_tokens=600)
-    except Exception as exc:
-        return {"error": f"Ansehen fehlgeschlagen: {exc}"}
-    return {
-        "beschreibung": text.strip(),
+    if endung in VIDEO_ARTEN:
+        ergebnis = await sehen.video_beschreiben(ziel, frage)
+        quelle = "video"
+    else:
+        try:
+            jpeg, quelle = await asyncio.to_thread(_als_jpeg, ziel)
+        except Exception as exc:
+            return {"error": str(exc)}
+        aufgabe = PROMPT
+        if frage.strip():
+            aufgabe += f"\nDie Person moechte besonders wissen: {frage.strip()}"
+        ergebnis = await sehen.beschreiben([jpeg], aufgabe, "bild", max_tokens=600)
+    if not ergebnis.get("text"):
+        return {"error": "Ansehen fehlgeschlagen: " + str(ergebnis.get("fehler") or "kein Bildmodell erreichbar")}
+    antwort = {
+        "beschreibung": ergebnis["text"],
         "quelle": quelle,
         "datei": str(ziel),
         "groesse": ziel.stat().st_size,
+        "modell": ergebnis.get("modell", ""),
     }
+    if quelle == "video":
+        antwort.update({"standbilder": ergebnis.get("bilder", 0), "dauer_s": ergebnis.get("dauer", 0)})
+    return antwort

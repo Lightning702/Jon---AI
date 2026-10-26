@@ -4053,8 +4053,10 @@ class ToolBox:
                 "look_at_image",
                 "Schaut sich ein Bild oder Video auf dem PC an und beschreibt "
                 "es ('Was ist auf dem Foto?'). path = Pfad der Datei, question "
-                "= worauf du besonders achten sollst. Bei Videos wird ein "
-                "Standbild aus der Mitte betrachtet.",
+                "= worauf du besonders achten sollst. Bei Videos werden sechs "
+                "Standbilder ueber die ganze Laenge betrachtet und der Ablauf "
+                "beschrieben. Ein eigenes Bildmodell uebernimmt das Sehen, "
+                "dein Chatmodell bleibt.",
                 {"path": _STR, "question": _STR},
                 ["path"],
             ),

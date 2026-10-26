@@ -70,6 +70,8 @@ class SettingsIn(BaseModel):
     dream_auto: bool | None = None
     dream_idle_minutes: int | None = None
     vision_model: str | None = None
+    video_model: str | None = None
+    unzensiert_modus: bool | None = None
     briefing_city: str | None = None
     clipboard_history: bool | None = None
     handy_ordner: str | None = None

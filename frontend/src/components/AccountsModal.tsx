@@ -308,12 +308,22 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
 }
 
 const VISION_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "Standard (automatisch je Anbieter)" },
+  { value: "", label: "Standard (NVIDIA: Muse Glimmer 30B, sonst je Anbieter)" },
+  { value: "meta/muse-glimmer-30b", label: "NVIDIA · Muse Glimmer 30B" },
+  { value: "google/diffusiongemma-26b-a4b-it", label: "NVIDIA · DiffusionGemma 26B" },
   { value: "meta/llama-3.2-11b-vision-instruct", label: "NVIDIA · Llama 3.2 Vision 11B" },
   { value: "meta/llama-3.2-90b-vision-instruct", label: "NVIDIA · Llama 3.2 Vision 90B" },
   { value: "gpt-4o-mini", label: "OpenAI · GPT-4o mini" },
   { value: "gpt-4o", label: "OpenAI · GPT-4o" },
   { value: "openai/gpt-4o-mini", label: "OpenRouter · GPT-4o mini" },
+];
+
+const VIDEO_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Standard (NVIDIA: DiffusionGemma 26B, sonst je Anbieter)" },
+  { value: "google/diffusiongemma-26b-a4b-it", label: "NVIDIA · DiffusionGemma 26B" },
+  { value: "meta/muse-glimmer-30b", label: "NVIDIA · Muse Glimmer 30B" },
+  { value: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", label: "NVIDIA · Nemotron 3 Nano Omni 30B" },
+  { value: "gpt-4o-mini", label: "OpenAI · GPT-4o mini" },
 ];
 
 function AutomationTab() {
@@ -389,7 +399,7 @@ function AutomationTab() {
         <h3 className="text-[13px] font-semibold text-gold mb-2"><Symbol zeichen="👁️" /> Live Screen</h3>
         <div className="space-y-2">
           <div className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
-            <div className="text-[13px] text-white/90 mb-1">Modell zum Mitschauen</div>
+            <div className="text-[13px] text-white/90 mb-1">Modell für Bilder und Bildschirm</div>
             <select
               value={knownVision ? s.vision_model : "__custom"}
               onChange={(e) => {
@@ -415,6 +425,30 @@ function AutomationTab() {
               placeholder="oder eigenes Modell eintragen …"
               className="w-full mt-2 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[12.5px] text-white/80 placeholder-white/30 outline-none focus:border-gold/40"
             />
+          </div>
+          <div className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5">
+            <div className="text-[13px] text-white/90 mb-1">Modell für Videos</div>
+            <select
+              value={VIDEO_OPTIONS.some((o) => o.value === (s.video_model ?? "")) ? s.video_model ?? "" : "__custom"}
+              onChange={(e) => {
+                if (e.target.value !== "__custom") update({ video_model: e.target.value });
+              }}
+              className="w-full px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/10 text-[13px] text-white/90 outline-none focus:border-gold/40"
+            >
+              {VIDEO_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value} className="bg-ink-800">
+                  {o.label}
+                </option>
+              ))}
+              {!VIDEO_OPTIONS.some((o) => o.value === (s.video_model ?? "")) && (
+                <option value="__custom" className="bg-ink-800">
+                  Eigenes: {s.video_model}
+                </option>
+              )}
+            </select>
+            <p className="text-[11.5px] text-white/40 mt-1.5">
+              Jon nimmt für Videos sechs Standbilder über die ganze Länge und lässt sie von diesem Modell beschreiben. Dein Chatmodell bleibt dabei.
+            </p>
           </div>
           <p className="text-[11.5px] text-white/40 px-1">
             Ein-/Ausschalten über den Augen-Knopf <Symbol zeichen="👁️" /> oben. Jon schaut alle ~30 Sekunden

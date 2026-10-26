@@ -46,6 +46,7 @@ class Agent:
         self.modus = modus
         self.erlaubt_immer: set[str] = set()
         self.denken: bool | None = True
+        self.unzensiert = False
         self.letzte_antwort = ""
         self.pause = nullcontext
 
@@ -89,6 +90,8 @@ class Agent:
         inhalt = prompt.bauen(self.sitzung.arbeitsordner, info, self.werkzeuge() if self._text_modus() else None)
         if self.sitzung.zusammenfassung:
             inhalt += "\n\nBISHERIGER VERLAUF (verdichtet):\n" + self.sitzung.zusammenfassung
+        if self.unzensiert and prompt.lokal(self.anbieter, self.modell):
+            inhalt += "\n\n" + prompt.UNZENSIERT
         if self.kasten.aufgabenliste:
             inhalt += "\n\nAKTUELLE AUFGABENLISTE:\n" + "\n".join(f"- [{e['status']}] {e['text']}" for e in self.kasten.aufgabenliste)
         return {"role": "system", "content": inhalt}

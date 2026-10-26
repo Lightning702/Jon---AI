@@ -1,5 +1,8 @@
 import Symbol from "./Symbol";
+import ModellWahl from "./ModellWahl";
 import type { ProviderStatus } from "../lib/api";
+
+const NAMEN: Record<string, string> = { nvidia: "NVIDIA", ollama: "Ollama", openrouter: "OpenRouter", lmstudio: "LM Studio", xai: "xAI", anthropic: "Anthropic", gemini: "Google Gemini", openai: "OpenAI", felworks: "FelWorks", deepseek: "DeepSeek", mistral: "Mistral", groq: "Groq", together: "Together AI", lokalserver: "Lokaler Server" };
 
 interface Props {
   providers: ProviderStatus[];
@@ -19,12 +22,6 @@ export default function ModelPicker({
   const locked = active?.locked === true;
   const own = models.filter((m) => !m.startsWith("share:"));
   const shared = models.filter((m) => m.startsWith("share:"));
-  const groups = shared.reduce<Record<string, string[]>>((acc, entry) => {
-    const rest = entry.slice("share:".length);
-    const code = rest.slice(0, rest.indexOf("/"));
-    (acc[code] ||= []).push(entry);
-    return acc;
-  }, {});
 
   return (
     <div className="no-drag flex items-center gap-2 min-w-0">
@@ -57,40 +54,13 @@ export default function ModelPicker({
           <span className="truncate">{model || models[0] || "—"}</span>
         </div>
       ) : (
-        <select
-          value={model}
-          onChange={(e) => onChange(provider, e.target.value)}
-          className="glass rounded-lg px-2 md:px-3 py-1.5 text-sm text-white/90 outline-none cursor-pointer min-w-0 max-w-[38vw] md:max-w-[240px]"
-        >
-          {shared.length === 0
-            ? models.map((m) => (
-                <option key={m} value={m} className="bg-ink-800">
-                  {m}
-                </option>
-              ))
-            : [
-                <optgroup key="lokal" label="Auf diesem PC" className="bg-ink-800">
-                  {own.map((m) => (
-                    <option key={m} value={m} className="bg-ink-800">
-                      {m}
-                    </option>
-                  ))}
-                </optgroup>,
-                ...Object.entries(groups).map(([code, entries]) => (
-                  <optgroup
-                    key={code}
-                    label={`Freigabe ${code}`}
-                    className="bg-ink-800"
-                  >
-                    {entries.map((m) => (
-                      <option key={m} value={m} className="bg-ink-800">
-                        {m.slice(m.indexOf("/") + 1)}
-                      </option>
-                    ))}
-                  </optgroup>
-                )),
-              ]}
-        </select>
+        <ModellWahl
+          provider={provider}
+          providerLabel={active?.label || NAMEN[provider] || provider}
+          models={[...own, ...shared]}
+          model={model}
+          onChange={(m) => onChange(provider, m)}
+        />
       )}
     </div>
   );

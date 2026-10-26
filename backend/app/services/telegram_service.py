@@ -1051,6 +1051,37 @@ class TelegramService:
                 return None
             return dst.read_bytes()
 
+    async def _analyze_video(self, file_id: str, name: str, groesse: int = 0) -> str:
+        import tempfile
+
+        from app.services import sehen
+
+        if groesse > 20_000_000:
+            return "!Das Video ist größer als 20 MB. So große Dateien gibt Telegram an Bots nicht heraus. Schick es kürzer oder als Link."
+        token = self._token()
+        if not token:
+            return "!Telegram ist nicht eingerichtet."
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                info = await client.get(
+                    f"https://api.telegram.org/bot{token}/getFile",
+                    params={"file_id": file_id},
+                )
+                file_path = info.json()["result"]["file_path"]
+                antwort = await client.get(f"https://api.telegram.org/file/bot{token}/{file_path}")
+                roh = antwort.content
+        except Exception as fehler:
+            leise(fehler, "telegram_service")
+            return "!Das Video konnte ich nicht von Telegram laden."
+        endung = Path(file_path).suffix or Path(name).suffix or ".mp4"
+        with tempfile.TemporaryDirectory(prefix="jon-telegram-video-") as ordner:
+            ziel = Path(ordner) / f"video{endung}"
+            ziel.write_bytes(roh)
+            ergebnis = await sehen.video_beschreiben(ziel)
+        if not ergebnis.get("text"):
+            return "!Ich konnte das Video leider nicht analysieren: " + str(ergebnis.get("fehler") or "kein Bildmodell erreichbar")
+        return ergebnis["text"]
+
     async def _analyze_photo(self, file_id: str, name: str, mime: str) -> str:
         import base64
 
@@ -1973,7 +2004,7 @@ class TelegramService:
                 )
                 data = response.json()
         except Exception as fehler:
-            self._fehler_merken(f"Abruf fehlgeschlagen: {fehler}")
+            self._fehler_merken(f"Abruf fehlgeschlagen: {type(fehler).__name__} {fehler}".strip())
             await asyncio.sleep(10)
             return
         if not data.get("ok"):
@@ -2055,6 +2086,25 @@ class TelegramService:
                 image_file = doc["file_id"]
                 image_mime = str(doc["mime_type"])
                 image_name = str(doc.get("file_name") or "bild.png")
+            video = message.get("video") or message.get("video_note") or message.get("animation") or {}
+            if not video and str(doc.get("mime_type", "")).startswith("video/"):
+                video = doc
+            if not text and not image_file and video.get("file_id"):
+                await self._api(
+                    "sendChatAction", {"chat_id": chat_id, "action": "typing"}
+                )
+                beschreibung = await self._analyze_video(
+                    str(video["file_id"]), str(video.get("file_name") or "video.mp4"), int(video.get("file_size") or 0)
+                )
+                if beschreibung.startswith("!"):
+                    await self.send(chat_id, beschreibung[1:])
+                    continue
+                caption = (message.get("caption") or "").strip()
+                text = (
+                    "Ich habe dir ein Video geschickt. Das passiert darin "
+                    f"(automatische Videoanalyse aus mehreren Standbildern): {beschreibung}"
+                )
+                text += f"\n\nMeine Frage dazu: {caption}" if caption else "\n\nSag mir kurz, was im Video passiert."
             if not text and image_file:
                 await self._api(
                     "sendChatAction", {"chat_id": chat_id, "action": "typing"}

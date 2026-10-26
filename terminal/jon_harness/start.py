@@ -34,6 +34,7 @@ BEFEHLE = [
     ("/praesentation <Thema>", "PowerPoint oder HTML-Folien erstellen"),
     ("/btw <Frage>", "nebenbei fragen – geht auch, während Jon arbeitet"),
     ("/denken", "sichtbares Nachdenken an/aus (Standard: an)"),
+    ("/unzensiert", "ohne Belehrungen und Ablehnungen, nur mit lokalen Modellen"),
     ("/aufgaben", "aktuelle Aufgabenliste"),
     ("/rueckgaengig", "letzte Dateiänderung zurücknehmen"),
     ("/kompakt", "Verlauf verdichten"),
@@ -58,6 +59,7 @@ class Terminal:
         anbieter, modell = self._startwahl()
         modus = "alles" if argumente.alles else ("auto" if argumente.auto else self.einstellungen.get("modus", "vorsichtig"))
         self.agent = Agent(self.verbindung, self.kasten, self.sitzung, anbieter, modell, modus)
+        self.agent.unzensiert = bool(self.einstellungen.get("unzensiert", False))
         self.nebenbei = Nebenbei(lambda frage: self.agent.zwischenfrage(frage))
         self.agent.pause = self.nebenbei.pause
         self._strg_c = 0.0
@@ -315,6 +317,16 @@ class Terminal:
         if wort in ("/denken", "/think"):
             self.agent.denken = not self.agent.denken
             sag(f("  Gründliches Nachdenken " + ("an – langsamer, aber gründlicher." if self.agent.denken else "aus – Jon antwortet sofort."), GRAU))
+            return True
+        if wort in ("/unzensiert", "/uncensored"):
+            self.agent.unzensiert = not self.agent.unzensiert
+            self.einstellungen.setzen(unzensiert=self.agent.unzensiert)
+            if not self.agent.unzensiert:
+                sag(f("  Unzensiert-Modus aus.", GRAU))
+            elif prompt.lokal(self.agent.anbieter, self.agent.modell):
+                sag(f("  Unzensiert-Modus an: Jon arbeitet ohne Belehrungen und Ablehnungen. Freigaben bleiben wie im gewählten Modus.", GRAU))
+            else:
+                sag(f("  Unzensiert-Modus an, wirkt aber erst mit einem lokalen Modell (Ollama oder LM Studio). Wechsle mit /modell oder /api.", GRAU))
             return True
         if wort in ("/fortsetzen", "/resume", "/weiter"):
             self.fortsetzen()

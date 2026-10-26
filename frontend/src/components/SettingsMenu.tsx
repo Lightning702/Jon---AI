@@ -31,6 +31,7 @@ import { Theme, applyTheme, readTheme } from "../lib/theme";
 import { useWeicheSchreibmarke, weicheSchreibmarkeSetzen } from "../lib/schreibmarke";
 import { useT } from "../hooks/useT";
 import AnmeldungAendern from "./AnmeldungAendern";
+import NutzernameFeld from "./NutzernameFeld";
 import ConnectionsModal from "./ConnectionsModal";
 import DiagnosticsModal from "./DiagnosticsModal";
 import HandyModal from "./HandyModal";
@@ -171,6 +172,7 @@ export default function SettingsMenu({
   const [personality, setPersonality] = useState(true);
   const [failover, setFailover] = useState(true);
   const [offline, setOffline] = useState(false);
+  const [unzensiert, setUnzensiert] = useState(false);
   const [aufgabenOpen, setAufgabenOpen] = useState(false);
   const [startup, setStartup] = useState(false);
   const [city, setCity] = useState("");
@@ -291,6 +293,7 @@ export default function SettingsMenu({
       setPersonality(s.personality !== false);
       setFailover(s.auto_failover !== false);
       setOffline(s.offline_modus === true);
+      setUnzensiert(s.unzensiert_modus === true);
       setCity(s.briefing_city ?? "");
       setClipboard(s.clipboard_history !== false);
       setWebcam(s.webcam_enabled === true);
@@ -358,6 +361,12 @@ export default function SettingsMenu({
     const next = !offline;
     setOffline(next);
     void saveUserSettings({ offline_modus: next });
+  };
+
+  const toggleUnzensiert = () => {
+    const next = !unzensiert;
+    setUnzensiert(next);
+    void saveUserSettings({ unzensiert_modus: next });
   };
 
   const toggleStartup = async () => {
@@ -689,6 +698,7 @@ export default function SettingsMenu({
             </div>
             <Section title="Jon" />
             <div className="space-y-1">
+              <NutzernameFeld />
               <Toggle
                 label="Persönlichkeit"
                 hint="Jon mit Charakter, Gefühlen und Gedächtnis."
@@ -706,6 +716,12 @@ export default function SettingsMenu({
                 hint="Nur lokale Modelle, kein Internet - keine Websuche, kein Browser, keine Cloud."
                 on={offline}
                 onClick={toggleOffline}
+              />
+              <Toggle
+                label="Unzensiert-Modus"
+                hint="Nur mit lokalen Modellen (Ollama, LM Studio, eigener Server): Jon antwortet ohne Belehrungen und Ablehnungen, im Chat, beim Coden, im Fachteam, im Harness und beim Ansehen von Bildern und Videos. Cloud-Modelle und Kindermodus bleiben unberührt, Freigaben für Aktionen am PC bleiben aktiv."
+                on={unzensiert}
+                onClick={toggleUnzensiert}
               />
               <button
                 onClick={() => {

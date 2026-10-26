@@ -92,6 +92,7 @@ import {
   getBriefing,
   getConversation,
   getConversations,
+  unterhaltungBenennen,
   getDreamReports,
   getDueCapsules,
   getDueReminders,
@@ -320,6 +321,14 @@ export default function App() {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [clipboardOpen, setClipboardOpen] = useState(false);
   const [identity, setIdentity] = useState<P2PIdentity | null>(null);
+  useEffect(() => {
+    const neu = (e: Event) => {
+      const daten = (e as CustomEvent<P2PIdentity>).detail;
+      if (daten) setIdentity(daten);
+    };
+    window.addEventListener("jon-identitaet", neu);
+    return () => window.removeEventListener("jon-identitaet", neu);
+  }, []);
   const [profileOpen, setProfileOpen] = useState(false);
   const [firstRun, setFirstRun] = useState(false);
   const [zugangFehlt, setZugangFehlt] = useState(false);
@@ -2125,8 +2134,13 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
             )
           );
           setStreaming(false);
-          if (convId && convId !== activeId) setActiveId(convId);
+          const neu = !!convId && convId !== activeId;
+          if (neu) setActiveId(convId);
           await refreshConversations();
+          if (neu && convId)
+            void unterhaltungBenennen(convId).then((r) => {
+              if (r?.geaendert) void refreshConversations();
+            });
         },
       },
       controller.signal
