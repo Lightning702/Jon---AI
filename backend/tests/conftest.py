@@ -77,3 +77,33 @@ def _jon_ordner_im_testverzeichnis(monkeypatch, tmp_path_factory):
         (heim / name).mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(dateiraum_service, "_heim", lambda: heim)
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: heim))
+
+
+ECHTER_JON = ("127.0.0.1:8756", "localhost:8756")
+
+
+@pytest.fixture(autouse=True)
+def _nie_den_echten_jon_anfunken(monkeypatch):
+    import httpx
+
+    echt_post = httpx.post
+    echt_senden = httpx.Client.send
+
+    def gesperrt(url) -> bool:
+        return any(adresse in str(url) for adresse in ECHTER_JON)
+
+    def post(url, *args, **kwargs):
+        if gesperrt(url):
+            raise httpx.ConnectError(f"Tests duerfen den laufenden Jon nicht ansprechen: {url}")
+        return echt_post(url, *args, **kwargs)
+
+    def senden(self, request, *args, **kwargs):
+        if gesperrt(request.url):
+            raise httpx.ConnectError(f"Tests duerfen den laufenden Jon nicht ansprechen: {request.url}")
+        return echt_senden(self, request, *args, **kwargs)
+
+    monkeypatch.setattr(httpx, "post", post)
+    monkeypatch.setattr(httpx.Client, "send", senden)
+    from app.codeserver import Codeserver
+
+    monkeypatch.setattr(Codeserver, "_jon_aufruf", lambda self, pfad, daten: False)

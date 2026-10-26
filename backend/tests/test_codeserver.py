@@ -611,3 +611,14 @@ def test_felworks_gast_wird_pro_adresse_gebremst(server, client):
         assert client.post("/codes/gast", json={"geraet": f"{nummer:020x}"}).status_code == 200
     assert client.post("/codes/gast", json={"geraet": "f" * 20}).status_code == 429
     assert client.post("/codes/gast", json={"geraet": f"{3:020x}"}).status_code == 200
+
+
+def test_tests_funken_nie_den_laufenden_jon_an(server):
+    import httpx
+    import pytest as _pytest
+
+    assert server.melden("Testmeldung") is False
+    with _pytest.raises(httpx.ConnectError):
+        httpx.post("http://127.0.0.1:8756/api/system/telegram/melden", json={"text": "x"})
+    with _pytest.raises(httpx.ConnectError):
+        httpx.Client().get("http://localhost:8756/api/health")
