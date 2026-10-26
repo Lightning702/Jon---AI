@@ -225,3 +225,85 @@ def test_registry_listet_glimmer_und_gemma():
     standard = get_registry().all()["nvidia"]._default_models
     assert "meta/muse-glimmer-30b" in standard
     assert "google/diffusiongemma-26b-a4b-it" in standard
+
+
+class Langsam(Sicht):
+    def __init__(self, name, antworten, dauer):
+        super().__init__(name, antworten)
+        self.dauer = dauer
+
+    async def describe_images(self, model, data_urls, prompt, max_tokens=300, slot="jon", system=""):
+        self.aufrufe.append((model, len(data_urls), system))
+        await asyncio.sleep(self.dauer.get(model, 0))
+        return self.antworten.get(model, "")
+
+
+def test_haengendes_bildmodell_bremst_nicht_minutenlang(einstellungen, monkeypatch):
+    import time
+
+    einstellungen.update({"provider": "nvidia", "vision_model": "", "offline_modus": False, "modell_je_aufgabe": False})
+    monkeypatch.setitem(sehen.VORSPRUNG, "bild", 0.3)
+    monkeypatch.setattr(sehen, "STAFFEL", 0.3)
+    nvidia = Langsam("nvidia", {NVIDIA_SEHEN_MODELL: "spaet", NVIDIA_VIDEO_MODELL: "schnell", NVIDIA_SEHEN_RESERVE: "reserve"}, {NVIDIA_SEHEN_MODELL: 30, NVIDIA_VIDEO_MODELL: 0.1, NVIDIA_SEHEN_RESERVE: 30})
+    _registry(monkeypatch, nvidia=nvidia)
+    beginn = time.perf_counter()
+    ergebnis = asyncio.run(sehen.beschreiben([_jpeg()], "Was ist das?", "bild", "nvidia"))
+    assert ergebnis["text"] == "schnell" and ergebnis["modell"] == NVIDIA_VIDEO_MODELL
+    assert time.perf_counter() - beginn < 2
+    assert [a[0] for a in nvidia.aufrufe] == [NVIDIA_SEHEN_MODELL, NVIDIA_VIDEO_MODELL]
+
+
+def test_glimmer_gewinnt_wenn_es_rechtzeitig_antwortet(einstellungen, monkeypatch):
+    einstellungen.update({"provider": "nvidia", "vision_model": "", "offline_modus": False, "modell_je_aufgabe": False})
+    monkeypatch.setitem(sehen.VORSPRUNG, "bild", 1.0)
+    nvidia = Langsam("nvidia", {NVIDIA_SEHEN_MODELL: "glimmer", NVIDIA_VIDEO_MODELL: "gemma"}, {NVIDIA_SEHEN_MODELL: 0.1})
+    _registry(monkeypatch, nvidia=nvidia)
+    ergebnis = asyncio.run(sehen.beschreiben([_jpeg()], "Was ist das?", "bild", "nvidia"))
+    assert ergebnis["modell"] == NVIDIA_SEHEN_MODELL
+    assert len(nvidia.aufrufe) == 1
+
+
+def test_gesamtzeit_ist_begrenzt(einstellungen, monkeypatch):
+    import time
+
+    einstellungen.update({"provider": "nvidia", "vision_model": "", "offline_modus": False, "modell_je_aufgabe": False})
+    monkeypatch.setitem(sehen.VORSPRUNG, "bild", 0.2)
+    monkeypatch.setattr(sehen, "STAFFEL", 0.2)
+    monkeypatch.setitem(sehen.GESAMTZEIT, "bild", 1.0)
+    nvidia = Langsam("nvidia", {}, {NVIDIA_SEHEN_MODELL: 30, NVIDIA_VIDEO_MODELL: 30, NVIDIA_SEHEN_RESERVE: 30})
+    _registry(monkeypatch, nvidia=nvidia)
+    beginn = time.perf_counter()
+    ergebnis = asyncio.run(sehen.beschreiben([_jpeg()], "Was ist das?", "bild", "nvidia"))
+    assert ergebnis["text"] == "" and time.perf_counter() - beginn < 2.5
+
+
+def test_video_bekommt_die_tonspur(einstellungen, monkeypatch, tmp_path):
+    einstellungen.update({"provider": "nvidia", "video_model": "", "offline_modus": False, "modell_je_aufgabe": False})
+    nvidia = Sicht("nvidia", {NVIDIA_VIDEO_MODELL: "Ein Lego-Raumschiff fliegt zum Mond."})
+    _registry(monkeypatch, nvidia=nvidia)
+    gesehen: list[str] = []
+    echt = sehen._fragen
+
+    async def fragen(name, modell, urls, aufgabe, max_tokens, wartezeit=sehen.WARTEZEIT):
+        gesehen.append(aufgabe)
+        return await echt(name, modell, urls, aufgabe, max_tokens, wartezeit)
+
+    monkeypatch.setattr(sehen, "_fragen", fragen)
+    monkeypatch.setattr(sehen, "video_bilder", lambda pfad, anzahl=6: ([_jpeg("red"), _jpeg("blue")], [1.0, 3.0], 4.0))
+    monkeypatch.setattr(sehen, "ton_mitschrift", lambda pfad: "[0 s] Heute bauen wir ein Raumschiff")
+    ergebnis = asyncio.run(sehen.video_beschreiben(tmp_path / "x.mp4"))
+    assert ergebnis["ton"] == "[0 s] Heute bauen wir ein Raumschiff"
+    assert "Tonspur" in gesehen[0] and "Heute bauen wir ein Raumschiff" in gesehen[0]
+
+
+def test_ohne_tonspur_keine_mitschrift(tmp_path):
+    cv2 = pytest.importorskip("cv2")
+    import numpy as np
+
+    pfad = tmp_path / "stumm.avi"
+    schreiber = cv2.VideoWriter(str(pfad), cv2.VideoWriter_fourcc(*"MJPG"), 10, (64, 48))
+    for _ in range(10):
+        schreiber.write(np.zeros((48, 64, 3), dtype=np.uint8))
+    schreiber.release()
+    assert sehen.hat_ton(pfad) is False
+    assert sehen.ton_mitschrift(pfad) == ""

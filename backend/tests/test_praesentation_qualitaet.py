@@ -97,17 +97,61 @@ def test_word_mit_tabelle_seitenumbruch_und_fett(tmp_path):
 
     from app.services.dokument_service import DokumentService
 
-    inhalt = "# Bewerbung\n\nIch bin **sehr motiviert**.\n\n---\n\n## Lebenslauf\n\n| Feld | Angabe |\n|---|---|\n| Name | [Dein Name] |\n| Schule | Polytechnische Schule |\n"
+    inhalt = "# Bewerbung\n\nIch bin **sehr motiviert**.\n\n[Seitenumbruch]\n\n## Lebenslauf\n\n| Feld | Angabe |\n|---|---|\n| Name | [Dein Name] |\n| Schule | Polytechnische Schule |\n"
     pfad = tmp_path / "test.docx"
     DokumentService._docx(pfad, "Bewerbung", inhalt)
     dokument = Document(str(pfad))
     assert len(dokument.tables) == 1
     tabelle = dokument.tables[0]
     assert tabelle.cell(1, 0).text == "Name" and tabelle.cell(2, 1).text == "Polytechnische Schule"
-    assert not any("|" in a.text for a in dokument.paragraphs)
+    assert not any("|" in a.text or "Seitenumbruch" in a.text for a in dokument.paragraphs)
     fett = [l.text for a in dokument.paragraphs for l in a.runs if l.bold]
     assert "sehr motiviert" in fett
-    assert any('w:br w:type="page"' in a._p.xml or "w:type=\"page\"" in a._p.xml for a in dokument.paragraphs)
+    assert sum('w:type="page"' in a._p.xml for a in dokument.paragraphs) == 1
+
+
+def _seitenumbrueche(pfad) -> int:
+    from docx import Document
+
+    return sum('w:type="page"' in a._p.xml for a in Document(str(pfad)).paragraphs)
+
+
+def test_trennlinie_ist_keine_neue_seite(tmp_path):
+    from docx import Document
+
+    from app.services.dokument_service import DokumentService
+
+    pfad = tmp_path / "brief.docx"
+    DokumentService._docx(pfad, "Brief", "[Dein Name]\n[Deine Strasse]\n\n---\n\n[Firma]\n\nSehr geehrte Damen und Herren,\n\n---\n\nMit freundlichen Gruessen")
+    assert _seitenumbrueche(pfad) == 0
+    linien = [a for a in Document(str(pfad)).paragraphs if "w:pBdr" in a._p.xml]
+    assert len(linien) == 2
+
+
+def test_doppelte_und_ueberfluessige_seitenumbrueche_fallen_weg(tmp_path):
+    from app.services.dokument_service import DokumentService, _bloecke
+
+    inhalt = "[Seitenumbruch]\n\nAnschreiben\n\n[Seitenumbruch]\n\n[Seitenumbruch]\n---\n[Seitenumbruch]\n\n## Lebenslauf\n\nText\n\n[Seitenumbruch]\n\n"
+    assert [a for a, _ in _bloecke(inhalt)].count("seite") == 1
+    pfad = tmp_path / "zwei.docx"
+    DokumentService._docx(pfad, "Test", inhalt)
+    assert _seitenumbrueche(pfad) == 1
+    for zeile in ("\\newpage", "<!-- pagebreak -->", "[Neue Seite]", "[page break]"):
+        assert [a for a, _ in _bloecke(f"A\n{zeile}\nB")] == ["absatz", "seite", "absatz"]
+
+
+def test_odt_und_pdf_mit_linie_und_seite(tmp_path):
+    pytest.importorskip("odf")
+    pytest.importorskip("reportlab")
+    from app.services.dokument_service import DokumentService
+
+    inhalt = "A\n\n---\n\nB\n\n[Seitenumbruch]\n\nC"
+    DokumentService._odt(tmp_path / "t.odt", "T", inhalt)
+    DokumentService._pdf(tmp_path / "t.pdf", "T", inhalt)
+    from pypdf import PdfReader
+
+    assert len(PdfReader(str(tmp_path / "t.pdf")).pages) == 2
+    assert (tmp_path / "t.odt").stat().st_size > 1000
 
 
 def test_pdf_mit_tabelle(tmp_path):
