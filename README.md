@@ -6,11 +6,13 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
+**Neu in 4.66.1:** Telegram antwortet wieder in 2 bis 5 Sekunden: Für Text nimmt Jon das schnelle Modell, Muse Glimmer nur noch für Bilder, und ein ausgeschalteter FelWorks-Server bremst das Ausweichen nicht mehr aus.
+
 **Neu in 4.65.9:** Der Terminal-Harness `jonh` funktioniert jetzt immer ohne Schlüssel: Ist FelWorks nicht erreichbar, nimmt er von selbst einen freien Ersatz. Word-Dokumente bekommen echte Tabellen, Seitenumbrüche und Fettdruck, und bei Bewerbungen erfindet Jon keine Angaben mehr, sondern setzt Platzhalter. Dazu: Telegram antwortet sofort, „Klick auf Start“ klappt in 2 s, und Präsentationen bekommen geprüfte Fotos.
 
 **Jon aktualisieren, ohne etwas zu verlieren:** Doppelklick auf `jon-aktualisieren.bat` im Jon-Ordner. Deine eigenen Dateien und Änderungen bleiben erhalten; ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas anzufassen.
 
-[![Version](https://img.shields.io/badge/Version-4.65.9-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.66.1-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.66.1] — 2026-10-26
+
+### Telegram wieder schnell, live gemessen
+
+- **Glimmer nur für Bilder:** Telegram und Mini Jon hatten noch Muse Glimmer 30B als gespeichertes Modell (Standard aus 4.54.0). Seit Glimmer in 4.65.7 nicht mehr still durch Lightning ersetzt wurde, beantwortete Telegram Text damit – im laufenden Jon gemessen 9 bis 10,6 Sekunden. Für Text gilt jetzt wieder das schnelle Modell, Bilder sieht weiterhin Glimmer an. Gemessen nach dem Fix: 1,8 bis 5 Sekunden.
+- **Ausgeschalteter Server bremst nicht mehr:** War NVIDIA überlastet, wich Jon zuerst auf FelWorks aus und wartete bei ausgeschaltetem Pi bis zum Verbindungs-Zeitlimit (26 Sekunden bis zur Antwort). Nicht erreichbare Anbieter merkt sich Jon jetzt zwei Minuten lang und lässt sie beim Ausweichen aus.
+- **Zustellung:** Eine Nachricht von Jon ans Handy kam in 0,5 Sekunden an.
+
 ## [4.65.9] — 2026-10-26
 
 ### Terminal-Harness immer ohne Schlüssel
