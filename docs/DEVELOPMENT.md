@@ -122,4 +122,6 @@ ignoriert. Jeder `git push` löst dann automatisch einen neuen Deploy aus.
 Manuell per Drag&Drop geht nur der **`website/`-Ordner** (nicht der ganze Jon-Ordner):
 auf `app.netlify.com/drop` ziehen. Der ganze Jon-Ordner ist über 1 GB groß und läuft
 beim Upload in „Access Denied". `netlify.toml` enthält den NVIDIA-Proxy und die
-PWA-Header. Nach Codeänderungen `website/jon.zip` neu bauen.
+PWA-Header. Nach Codeänderungen `website/jon.zip` mit `python scripts/package-source.py` neu bauen. Das
+Paket enthält den Ordner `website/` absichtlich nicht: Impressum, AGB und Datenschutz mit persönlichen
+Angaben gehören auf die Website, aber nicht in den Download.
