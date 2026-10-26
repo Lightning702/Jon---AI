@@ -67,6 +67,15 @@ STOP_SEQUENCES = ["<|eot_id|>", "<|start_header_id|>", "<|end_header_id|>"]
 STREAM_PAUSE_S = 180.0
 
 
+def _stumm(modell: str, sekunden: float) -> str:
+    return (
+        f"Das Modell {modell} antwortet nicht "
+        f"(keine Reaktion nach {sekunden:.0f} Sekunden). "
+        "Der Anbieter ist wahrscheinlich ueberlastet - waehle "
+        "oben ein anderes Modell."
+    )
+
+
 def fehlertext(exc: BaseException) -> str:
     text = str(exc).strip()
     if isinstance(exc, httpx.ReadTimeout):
@@ -355,7 +364,15 @@ class OpenAICompatibleProvider(LLMProvider):
                 payload["seed"] = request.seed
             payload["stop"] = list(request.stop) + STOP_SEQUENCES
 
-            completion = await self._create_with_retry(caller, payload)
+            begonnen = time.monotonic()
+            if watchdog > 0:
+                try:
+                    completion = await asyncio.wait_for(self._create_with_retry(caller, payload), timeout=watchdog)
+                except asyncio.TimeoutError as exc:
+                    raise ProviderError(_stumm(request.model, watchdog)) from exc
+            else:
+                completion = await self._create_with_retry(caller, payload)
+            erste_frist = max(watchdog * 0.25, watchdog - (time.monotonic() - begonnen)) if watchdog > 0 else 0.0
             max_tokens = payload["max_tokens"]
             if extra_body and "extra_body" not in payload:
                 extra_body = None
@@ -375,19 +392,14 @@ class OpenAICompatibleProvider(LLMProvider):
                     try:
                         if first_chunk and watchdog > 0:
                             chunk = await asyncio.wait_for(
-                                iterator.__anext__(), timeout=watchdog
+                                iterator.__anext__(), timeout=erste_frist
                             )
                         else:
                             chunk = await iterator.__anext__()
                     except StopAsyncIteration:
                         break
                     except asyncio.TimeoutError as exc:
-                        raise ProviderError(
-                            f"Das Modell {request.model} antwortet nicht "
-                            f"(keine Reaktion nach {watchdog:.0f} Sekunden). "
-                            "Der Anbieter ist wahrscheinlich ueberlastet - waehle "
-                            "oben ein anderes Modell."
-                        ) from exc
+                        raise ProviderError(_stumm(request.model, watchdog)) from exc
                     first_chunk = False
                     usage = getattr(chunk, "usage", None)
                     if usage is not None:

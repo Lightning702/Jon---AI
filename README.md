@@ -6,6 +6,8 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
+**Neu in 4.66.4:** Telegram hängt nicht mehr: Antwortet ein Modell gar nicht, nimmt Jon nach spätestens 30 Sekunden ein anderes, statt bis zu fünf Minuten zu warten. „Wie spät ist es in Tokio?“ beantwortet er sofort, und ein hängendes Bildmodell in den Einstellungen bremst das Ansehen von Bildern nicht mehr aus.
+
 **Neu in 4.66.3:** Jon klickt auf Zuruf jetzt auf allen Bildschirmen, nicht nur dort, wo Jon offen ist. Steht ein Knopf mehrfach da, fragt er nach oder versteht „oben rechts“ und „den zweiten“. Bilder ansehen dauert 10 bis 15 Sekunden statt bis zu zwei Minuten, Videos versteht er mit Ton, und Word-Dokumente bekommen keine leeren Seiten mehr.
 
 **Neu in 4.66.2:** Jon bleibt erreichbar: Ein kurzer Netzwerkabbruch beim Verbindungsaufbau hat bisher den Hauptport dauerhaft geschlossen, die App verlor dann die Verbindung zum Backend. Jetzt nimmt Jon einfach weiter Verbindungen an.
@@ -16,7 +18,7 @@
 
 **Jon aktualisieren, ohne etwas zu verlieren:** Doppelklick auf `jon-aktualisieren.bat` im Jon-Ordner. Deine eigenen Dateien und Änderungen bleiben erhalten; ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas anzufassen.
 
-[![Version](https://img.shields.io/badge/Version-4.66.3-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.66.4-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

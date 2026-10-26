@@ -4755,7 +4755,7 @@ class ToolBox:
             from app.services.browserwahl import wahl
             from app.services.websearch_service import search_web
 
-            frage = str(args.get("query", "")).strip()
+            frage = str(args.get("query") or args.get("frage") or args.get("suche") or args.get("q") or "").strip()
             anzahl = int(args.get("max_results", 6))
             if not frage:
                 return json.dumps(

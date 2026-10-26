@@ -25,6 +25,9 @@ NVIDIA_SEHEN_RESERVE = "nvidia/nemotron-3.5-super-vl-120b-a12b"
 STANDARD_ERSATZ = {
     "meta/muse-glimmer-30b": NVIDIA_EMIL_MODELL,
 }
+ALTE_KONTOSTANDARDS = {
+    "openai/gpt-oss-20b": NVIDIA_EMIL_MODELL,
+}
 ABGESCHALTETE_MODELLE = {
     "openai/gpt-oss-120b": NVIDIA_JON_MODELL,
     "meta/llama-3.1-8b-instruct": NVIDIA_EMIL_MODELL,
@@ -130,7 +133,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.66.3"
+    app_version: str = "4.66.4"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = ""

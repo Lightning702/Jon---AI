@@ -319,3 +319,74 @@ def test_anbieter_befehl_zeigt_und_wechselt_den_anbieter(monkeypatch):
 
     asyncio.run(dienst._anbieter_befehl("/anbieter auto"))
     assert ts.TelegramService.modellwahl()[0] == "nvidia"
+
+
+def test_haengender_verbindungsaufbau_loest_den_waechter_aus():
+    import time
+
+    async def create(**_payload):
+        await asyncio.sleep(30)
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    client.with_options = lambda **_kwargs: client
+    anbieter = OpenAICompatibleProvider(name="nvidia", base_url="http://x", api_key="k")
+    anbieter._client = lambda slot="jon": client
+    anfrage = ChatRequest(messages=[ChatMessage(role="user", content="Hallo")], model="m", first_token_timeout=0.3)
+    beginn = time.perf_counter()
+    with pytest.raises(ProviderError) as fehler:
+        asyncio.run(_sammeln(anbieter, anfrage))
+    assert time.perf_counter() - beginn < 2
+    assert "antwortet nicht" in str(fehler.value)
+
+
+def test_alter_kontostandard_wird_fuer_telegram_ersetzt(monkeypatch):
+    from app.core.config import NVIDIA_EMIL_MODELL
+    from app.services import account_service
+
+    konto = SimpleNamespace(default_model=lambda anbieter: "openai/gpt-oss-20b")
+    monkeypatch.setattr(account_service, "get_account_service", lambda: konto)
+    assert cs.grundmodell("nvidia") == NVIDIA_EMIL_MODELL
+    assert cs.grundmodell("openrouter") == "openai/gpt-oss-20b"
+    assert cs.GEDULD_QUELLEN["telegram"] <= 30
+
+
+def test_abbruch_nach_reinem_nachdenken_weicht_auf_naechstes_modell_aus():
+    from app.providers.base import StreamChunk
+
+    class Kaputt:
+        async def stream(self, request, executor=None):
+            yield StreamChunk(delta="Ich denke nach", kind="reasoning")
+            raise ProviderError("nvidia: list index out of range")
+
+    class Gut:
+        async def stream(self, request, executor=None):
+            yield StreamChunk(delta="Canberra.", kind="content")
+
+    dienst = cs.ChatService.__new__(cs.ChatService)
+    dienst._registry = SimpleNamespace(get=lambda name: {"a": Kaputt(), "b": Gut()}[name])
+    anfrage = ChatRequest(messages=[ChatMessage(role="user", content="Hauptstadt?")], model="m")
+
+    async def sammeln():
+        return [c async for c in dienst._stream_einmal([("a", "m1"), ("b", "m2")], anfrage, None, {})]
+
+    teile = asyncio.run(sammeln())
+    assert any(c.kind == "content" and c.delta == "Canberra." for c in teile)
+
+
+def test_abbruch_nach_text_bleibt_ein_fehler():
+    from app.providers.base import StreamChunk
+
+    class Halb:
+        async def stream(self, request, executor=None):
+            yield StreamChunk(delta="Die Haupt", kind="content")
+            raise ProviderError("weg")
+
+    dienst = cs.ChatService.__new__(cs.ChatService)
+    dienst._registry = SimpleNamespace(get=lambda name: Halb())
+    anfrage = ChatRequest(messages=[ChatMessage(role="user", content="Hauptstadt?")], model="m")
+
+    async def sammeln():
+        return [c async for c in dienst._stream_einmal([("a", "m1"), ("b", "m2")], anfrage, None, {})]
+
+    with pytest.raises(ProviderError):
+        asyncio.run(sammeln())

@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.66.4] — 2026-10-26
+
+### Telegram hängt nicht mehr, Uhrzeiten sofort
+
+- **Kein minutenlanges Warten mehr:** Nahm NVIDIA eine Anfrage an, schickte aber keine Antwort (so gerade bei `openai/gpt-oss-20b`), wartete Jon bis zu fünf Minuten. Der Wächter für das erste Wort griff erst, nachdem die Verbindung stand. Jetzt zählt die Frist ab dem Absenden, und nach spätestens 30 Sekunden (Telegram) nimmt Jon ein anderes Modell.
+- **Abbruch beim Nachdenken:** Bricht ein Denkmodell ab, bevor es ein Wort Antwort geschrieben hat, weicht Jon auf das nächste Modell aus, statt „list index out of range“ zu melden.
+- **Alte, langsame Standardmodelle:** Steht in einem Konto noch `openai/gpt-oss-20b` als Standard, nimmt Jon für Telegram und das Haustier das schnelle Lightning-Modell.
+- **Uhrzeiten sofort:** „Wie spät ist es in Tokio?“ beantwortet Jon per Telegram in einem Augenblick aus der Zeitzone, mit Datum und Zeitunterschied, ohne Modell und ohne Websuche. Im Chat kennt Jon die aktuelle Weltzeit der großen Städte.
+- **Websuche mit deutschem Parameter:** Schickt ein Modell `frage` statt `query`, sucht Jon trotzdem, statt beim ersten Versuch leer auszugehen.
+- **Hängende Bildmodelle nach hinten:** Ist in den Einstellungen ein Bildmodell eingetragen, das in Jons Messung hängt (zum Beispiel `meta/llama-3.2-90b-vision-instruct`), fragt Jon zuerst Muse Glimmer und die anderen und das eingetragene erst danach.
+- **Geprüft über den echten Telegram-Ablauf:** Klick auf Zuruf in ein Fenster, das nicht vorne ist, in 4,4 Sekunden; „Fahr den PC herunter“ in 0,4 Sekunden bestätigt (Windows-Befehl abgefangen); Wissensfragen in 1 bis 2 Sekunden.
+
 ## [4.66.3] — 2026-10-26
 
 ### Klicken auf allen Bildschirmen, schnelles Sehen, Videos mit Ton, saubere Word-Seiten
