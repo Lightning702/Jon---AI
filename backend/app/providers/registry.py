@@ -44,6 +44,8 @@ class ProviderRegistry:
             default_models=[
                 "nvidia/nemotron-3-ultra-550b-a55b",
                 "nvidia/nemotron-3.5-lightning-30b-a3b",
+                "meta/muse-glimmer-30b",
+                "google/diffusiongemma-26b-a4b-it",
                 "nvidia/nemotron-3.5-super-vl-120b-a12b",
                 "openai/gpt-oss-20b",
             ],

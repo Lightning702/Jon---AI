@@ -13,6 +13,7 @@ from app.core.config import (
     NVIDIA_JON_MODELL,
     get_settings,
     lebendes_modell,
+    standard_modell,
 )
 from app.core.store import atomic_write_json, read_json
 from app.core.logbook import logger as logbook_logger
@@ -571,7 +572,7 @@ def grundmodell(provider: str, slot: str = "emil") -> str:
     except Exception:
         eigenes = None
     if eigenes:
-        return lebendes_modell(eigenes, provider)
+        return standard_modell(eigenes, provider)
     settings = get_settings()
     if provider == settings.default_provider:
         return settings.model_for(slot)
@@ -976,7 +977,9 @@ class ChatService:
                 first_user = next(
                     (m.content for m in payload.messages if m.role == "user"), ""
                 )
-                title = (first_user.strip()[:60] or "Neue Unterhaltung")
+                from app.services.chat_titel import vorlaeufig
+
+                title = vorlaeufig(first_user)
                 conv = Conversation(title=title, provider=provider, model=model)
                 session.add(conv)
                 session.flush()
@@ -1240,6 +1243,10 @@ class ChatService:
         attempts = await ModelRouter(self._registry).plan(
             chosen, model, anbieter=self.route, planen=self.attempt_plan
         )
+        if not kinder:
+            from app.services.unzensiert import nur_lokal
+
+            attempts = nur_lokal(attempts)
         provider_name = attempts[0][0]
         state = {"provider": provider_name}
 
@@ -1284,6 +1291,12 @@ class ChatService:
             )
         if kinder:
             request_messages.insert(1, ChatMessage(role="system", content=kinder_prompt(kinder)))
+        else:
+            from app.services.unzensiert import fuer_versuche
+
+            frei = fuer_versuche(attempts, model, "code" if payload.mode == "coding" else "chat")
+            if frei:
+                request_messages.insert(1, ChatMessage(role="system", content=frei))
         if payload.sprache == "en" and get_settings_service().get().get("language", "de") != "en":
             request_messages.insert(1, ChatMessage(role="system", content=ENGLISCH))
 

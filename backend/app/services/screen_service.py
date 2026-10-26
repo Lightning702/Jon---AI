@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import asyncio
 
-from app.core.config import get_settings
-from app.providers.openai_compatible import OpenAICompatibleProvider
-from app.providers.registry import get_registry
-from app.services.settings_service import get_settings_service
+from app.core.config import NVIDIA_SEHEN_MODELL
 from app.services.system_service import SystemService
 
 VISION_DEFAULTS = {
-    "nvidia": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+    "nvidia": NVIDIA_SEHEN_MODELL,
     "openai": "gpt-4o-mini",
     "openrouter": "openai/gpt-4o-mini",
     "xai": "grok-2-vision-latest",
@@ -41,32 +38,16 @@ class ScreenService:
     async def observe(
         self, provider_name: str | None = None, model: str | None = None
     ) -> dict:
-        settings = get_settings()
-        user = get_settings_service()
-        saved_provider, saved_model = user.selection()
-        provider_name = provider_name or saved_provider or settings.default_provider
-        vision_model = (
-            user.get().get("vision_model")
-            or VISION_DEFAULTS.get(provider_name)
-            or model
-            or saved_model
-            or settings.jon_model
-        )
-        provider = get_registry().all().get(provider_name)
-        if not isinstance(provider, OpenAICompatibleProvider):
-            return {
-                "observation": "",
-                "error": "Live Screen braucht einen OpenAI-kompatiblen Anbieter mit "
-                "Vision-Modell (z.B. NVIDIA, OpenAI, OpenRouter).",
-            }
-        if not provider.available():
-            return {"observation": "", "error": f"Kein API-Key fuer {provider_name}."}
+        from app.services import sehen
+
         try:
             data_url = await asyncio.to_thread(_system.screenshot_data_url)
-            text = await provider.describe_image(vision_model, data_url, WATCH_PROMPT)
         except Exception as exc:
             return {"observation": "", "error": str(exc)}
-        clean = text.strip()
+        ergebnis = await sehen.bild_url_beschreiben(data_url, WATCH_PROMPT, provider_name, 300)
+        if not ergebnis.get("text"):
+            return {"observation": "", "error": str(ergebnis.get("fehler") or "Kein Bildmodell erreichbar.")}
+        clean = ergebnis["text"].strip()
         if clean.lower().strip(" .!\"'") in ("nichts", "nothing", ""):
             return {"observation": ""}
         return {"observation": clean}
@@ -76,30 +57,19 @@ class ScreenService:
 
         get_premium().pruefen("bildschirm")
 
-        settings = get_settings()
-        user = get_settings_service()
-        saved_provider, saved_model = user.selection()
-        provider_name = saved_provider or settings.default_provider
-        vision_model = (
-            user.get().get("vision_model")
-            or VISION_DEFAULTS.get(provider_name)
-            or saved_model
-            or settings.jon_model
-        )
-        provider = get_registry().all().get(provider_name)
-        if not isinstance(provider, OpenAICompatibleProvider) or not provider.available():
-            return {
-                "error": "Dafür braucht Jon einen Anbieter mit Vision-Modell "
-                "(z. B. NVIDIA, OpenAI oder OpenRouter mit hinterlegtem Key)."
-            }
+        from app.services import sehen
+
         try:
             data_url = await asyncio.to_thread(_system.screenshot_data_url)
-            text = await provider.describe_image(
-                vision_model, data_url, EXPLAIN_PROMPT, max_tokens=600
-            )
         except Exception as exc:
             return {"error": str(exc)}
-        clean = text.strip()
+        ergebnis = await sehen.bild_url_beschreiben(data_url, EXPLAIN_PROMPT, None, 600)
+        if ergebnis.get("fehler") and not ergebnis.get("text"):
+            return {
+                "error": "Dafür braucht Jon einen Anbieter mit Bildmodell "
+                "(z. B. NVIDIA, OpenAI oder OpenRouter mit hinterlegtem Key)."
+            }
+        clean = ergebnis.get("text", "").strip()
         if not clean:
             return {"error": "Ich konnte auf dem Bildschirm nichts erkennen."}
         return {"explanation": clean}

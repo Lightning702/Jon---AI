@@ -187,6 +187,13 @@ class AgentenService:
 
         if KINDER_ALTER.get():
             system += "\n" + kinder_prompt(KINDER_ALTER.get())
+        else:
+            from app.core.config import get_settings
+            from app.services.unzensiert import anweisung
+
+            frei = anweisung(selection.get("provider") or get_settings().default_provider, str(selection.get("model") or ""), "team")
+            if frei:
+                system += "\n\n" + frei
 
         if self.complete is None:
             from app.services.harness.modell import ERSTES_TOKEN_S, WARTEN, denken_entfernen, voruebergehend

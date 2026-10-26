@@ -427,3 +427,16 @@ def test_jonh_entfernt_kommentare_auf_wunsch(tmp_path, monkeypatch):
     agent = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "felworks", "x", "alles")
     assert agent.runde("Programmier mir ein Spiel ohne Kommentare") == "Fertig."
     assert (tmp_path / "spiel.js").read_text(encoding="utf-8") == "const ziel = 'https://getjon.info';\n"
+
+
+def test_unzensiert_nur_mit_lokalem_modell(tmp_path):
+    from jon_harness import prompt
+
+    verbindung = Verbindung(speicher.Einstellungen(), Jon())
+    lokal = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "ollama", "dolphin-mistral")
+    wolke = Agent(verbindung, Werkzeugkasten(tmp_path), Sitzung(tmp_path), "nvidia", "meta/muse-glimmer-30b")
+    assert "UNZENSIERT-MODUS" not in lokal._system()["content"]
+    lokal.unzensiert = wolke.unzensiert = True
+    assert "UNZENSIERT-MODUS" in lokal._system()["content"]
+    assert "UNZENSIERT-MODUS" not in wolke._system()["content"]
+    assert prompt.lokal("jon", "ollama/llama3") and not prompt.lokal("ollama", "gpt-oss:120b-cloud")

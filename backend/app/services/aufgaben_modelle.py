@@ -5,7 +5,7 @@ import re
 
 AUFGABEN = ("text", "code", "bild", "sehen")
 BILD = re.compile(r"(image|flux|sdxl|stable[-_ ]?diffusion|z[-_ ]?image|kolors|hidream|qwen[-_]?image|playground|dall|imagen|sana|omnigen)", re.I)
-SEHEN = re.compile(r"(vl\b|-vl|vision|llava|minicpm-?v|gemma-?3|pixtral|moondream|qwen2\.5-?vl|qwen3-?vl|internvl)", re.I)
+SEHEN = re.compile(r"(vl\b|-vl|vision|llava|minicpm-?v|gemma-?[34]|diffusiongemma|glimmer|pixtral|moondream|qwen2\.5-?vl|qwen3-?vl|internvl|omni)", re.I)
 CODE = re.compile(r"(coder|code|devstral|starcoder|codestral|deepseek-coder)", re.I)
 NICHT_TEXT = re.compile(r"(embed|rerank|whisper|tts|bge|nomic)", re.I)
 GROESSE = re.compile(r"(\d+(?:\.\d+)?)\s*b\b", re.I)

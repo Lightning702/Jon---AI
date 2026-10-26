@@ -930,6 +930,11 @@ class HarnessService:
                     budget = zugang.zeichenbudget() if self.complete is None else 90000
                     grund = ALLGEMEIN if task.get("modus") == "allgemein" else PROMPT
                     system = CONSCIENCE + "\n" + grund if budget > 24000 else (grund if task.get("modus") == "allgemein" else PROMPT_KURZ)
+                    from app.services.unzensiert import anweisung as frei_anweisung
+
+                    frei = frei_anweisung(provider, str(model), "harness")
+                    if frei:
+                        system += "\n\n" + frei
                     try:
                         kontext_text = kontext_bauen(task, files, frueher, history, budget - len(system))
                         kontext_verwaltung.messen(task, kontext_text, budget)

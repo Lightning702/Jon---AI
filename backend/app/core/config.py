@@ -19,7 +19,12 @@ ENV_FILE = ROOT_DIR / ".env"
 
 NVIDIA_JON_MODELL = "nvidia/nemotron-3-ultra-550b-a55b"
 NVIDIA_EMIL_MODELL = "nvidia/nemotron-3.5-lightning-30b-a3b"
-NVIDIA_SEHEN_MODELL = "nvidia/nemotron-3.5-super-vl-120b-a12b"
+NVIDIA_SEHEN_MODELL = "meta/muse-glimmer-30b"
+NVIDIA_VIDEO_MODELL = "google/diffusiongemma-26b-a4b-it"
+NVIDIA_SEHEN_RESERVE = "nvidia/nemotron-3.5-super-vl-120b-a12b"
+STANDARD_ERSATZ = {
+    "meta/muse-glimmer-30b": NVIDIA_EMIL_MODELL,
+}
 ABGESCHALTETE_MODELLE = {
     "openai/gpt-oss-120b": NVIDIA_JON_MODELL,
     "meta/llama-3.1-8b-instruct": NVIDIA_EMIL_MODELL,
@@ -27,7 +32,6 @@ ABGESCHALTETE_MODELLE = {
     "mistralai/mistral-nemotron": NVIDIA_JON_MODELL,
     "nvidia/nemotron-3-super-120b-a12b": NVIDIA_JON_MODELL,
     "nvidia/nemotron-nano-3-30b-a3b": NVIDIA_EMIL_MODELL,
-    "meta/muse-glimmer-30b": NVIDIA_EMIL_MODELL,
     "meta/llama-4-maverick-17b-128e-instruct": NVIDIA_JON_MODELL,
     "qwen/qwen3-next-80b-a3b-instruct": NVIDIA_JON_MODELL,
     "moonshotai/kimi-k2-instruct-0905": NVIDIA_JON_MODELL,
@@ -39,6 +43,13 @@ def lebendes_modell(model: str, provider: str = "nvidia") -> str:
     if provider != "nvidia":
         return model
     return ABGESCHALTETE_MODELLE.get((model or "").strip(), model)
+
+
+def standard_modell(model: str, provider: str = "nvidia") -> str:
+    model = lebendes_modell(model, provider)
+    if provider != "nvidia":
+        return model
+    return STANDARD_ERSATZ.get((model or "").strip(), model)
 
 
 def _writable(path: Path) -> bool:
@@ -119,7 +130,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Jon"
-    app_version: str = "4.65.6"
+    app_version: str = "4.65.7"
     host: str = "127.0.0.1"
     port: int = 8756
     cors_origins: str = ""
@@ -210,7 +221,7 @@ class Settings(BaseSettings):
 
     @property
     def jon_model(self) -> str:
-        return lebendes_modell(
+        return standard_modell(
             self.default_jon_model.strip()
             or self.default_model.strip()
             or NVIDIA_JON_MODELL,
@@ -220,7 +231,7 @@ class Settings(BaseSettings):
     @property
     def emil_model(self) -> str:
         return (
-            lebendes_modell(self.default_emil_model.strip(), self.default_provider)
+            standard_modell(self.default_emil_model.strip(), self.default_provider)
             or self.jon_model
         )
 

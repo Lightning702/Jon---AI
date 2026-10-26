@@ -6,11 +6,11 @@
 
 **Ein Assistent, der nicht nur redet, sondern deinen PC wirklich bedient.**
 
-**Neu in 4.65.6:** Mit BLITZBAHN gibt es ein eigenes Stuntrennspiel als echtes Desktopspiel mit Streckeneditor, Garage, Geist und Mehrspieler. In Jon Maps gehst du zu Fuß, fährst Auto oder fliegst durch die ganze Welt – auch in vergangenen Jahren. Jon baut 3D-Spiele aus seinen eigenen Blender-Modellen, führt HTML-Code direkt im Chat aus und lässt die Schreibmarke weich gleiten.
+**Neu in 4.65.7:** Jon sieht Bilder mit Muse Glimmer 30B und versteht Videos aus mehreren Standbildern mit DiffusionGemma 26B, auch per Telegram. Die Modellauswahl hat eine Suche, Filter und eine Infokarte mit Fähigkeiten, Parametern und gemessenen Antwortzeiten aller NVIDIA-Modelle. Chats bekommen echte Namen, den eigenen Namen änderst du in den Einstellungen, und für lokale Modelle gibt es einen Unzensiert-Modus.
 
 **Jon aktualisieren, ohne etwas zu verlieren:** Doppelklick auf `jon-aktualisieren.bat` im Jon-Ordner. Deine eigenen Dateien und Änderungen bleiben erhalten; ändert die neue Version eine Datei, die du selbst bearbeitet hast, bricht das Update ab, ohne etwas anzufassen.
 
-[![Version](https://img.shields.io/badge/Version-4.65.6-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.65.7-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Herausgeber](https://img.shields.io/badge/Herausgeber-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

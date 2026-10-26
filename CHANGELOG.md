@@ -2,6 +2,33 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.7] — 2026-10-26
+
+### Bilder und Videos verstehen
+
+- **Eigenes Bildmodell nur fürs Sehen:** Muss Jon ein Bild ansehen, wechselt er dafür auf Muse Glimmer 30B, dein Chatmodell bleibt. Liefert ein Modell nichts, springt Jon weiter zu DiffusionGemma 26B und Nemotron Super-VL. Gilt im Chat, für Anhänge, Telegram-Fotos, das Bildschirm-Erklären und `look_at_image`.
+- **Videos aus mehreren Standbildern:** Statt eines einzigen Bildes aus der Mitte schaut Jon sich sechs Standbilder über die ganze Länge an und beschreibt den Ablauf. Dafür nimmt er DiffusionGemma 26B, das mehrere Bilder auf einmal versteht (im Test 1,3 s). Modelle, die nur ein Bild können, bekommen ein nummeriertes Raster.
+- **Videos per Telegram und im Chat:** Schickst du Jon ein Video (bis 20 MB), analysiert er es und antwortet darauf. Videos lassen sich auch im Chat anhängen.
+- **Einstellbar:** Unter Automatik wählst du das Modell für Bilder und Bildschirm sowie ein eigenes Modell für Videos.
+- **Muse Glimmer ist zurück:** Das Modell war fälschlich als abgeschaltet markiert und wurde still durch Lightning ersetzt. Es antwortet, sieht Bilder und steht wieder in der Liste.
+
+### Modellauswahl mit Suche und Infokarte
+
+- **Suche und Filter:** Die Modellauswahl hat ein Suchfeld und Filter für Bild, Video, Code und schnelle Modelle. Nutzbare Modelle stehen oben, für dein Konto gesperrte unten.
+- **Infokarte beim Darüberfahren:** Hersteller, Anbieter, Parameter gesamt und aktiv, was das Modell kann (Text zu Text, Bild zu Text, Video zu Text, Code, Denken und mehr) und die geschätzte Antwortzeit für „Hallo“ und „Code mir …“, für Bilder und Videos.
+- **Alle 85 NVIDIA-Modelle gemessen:** Jeder Test schickt „Hallo“, einen Code-Auftrag, ein Testbild und drei Standbilder. Die Ergebnisse liegen Jon bei. Mit „Jetzt testen“ oder „Alle testen“ misst du mit deinem eigenen Schlüssel neu.
+
+### Chats und Einstellungen
+
+- **Echte Chatnamen:** Nach der ersten Antwort gibt Jon dem Chat einen kurzen Namen, der das Thema trifft, statt die erste Nachricht abzuschneiden. Schon vorher fallen Begrüßungen und Höflichkeiten weg.
+- **Eigenen Namen ändern:** In den Einstellungen unter Jon stellst du ein, wie Jon dich nennt und wie dich Freunde im Chat sehen.
+- **Unzensiert-Modus für lokale Modelle:** Mit Ollama, LM Studio oder einem eigenen Server antwortet Jon ohne Belehrungen und Ablehnungen, im Chat, beim Coden, im Fachteam, im Harness und beim Ansehen von Bildern und Videos. Im Terminal-Harness schaltet `/unzensiert` ihn um. Cloud-Modelle und der Kindermodus bleiben unberührt, Freigaben für Aktionen am PC bleiben aktiv, und Jon weicht dann nicht auf Cloud-Modelle aus.
+
+### Behoben
+
+- **Verdeckte Suchfelder im Browser-Agenten:** Auf Seiten wie Wikipedia war das Suchfeld unsichtbar, das Ausfüllen lief in eine Zeitüberschreitung. Jetzt setzt Jon den Text direkt und schickt das Formular ab.
+- **Telegram-Protokoll:** Abruffehler nennen jetzt ihren Grund.
+
 ## [4.65.6] — 2026-10-25
 
 ### Neues Spiel: BLITZBAHN

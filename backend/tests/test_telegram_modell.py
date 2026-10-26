@@ -9,6 +9,7 @@ from app.core.config import (
     Settings,
     get_settings,
     lebendes_modell,
+    standard_modell,
 )
 from app.providers.base import ChatMessage, ChatRequest, ProviderError
 from app.providers.openai_compatible import OpenAICompatibleProvider
@@ -31,7 +32,9 @@ def test_abgeschaltete_nvidia_modelle_werden_ersetzt():
     assert lebendes_modell("openai/gpt-oss-120b") == NVIDIA_JON_MODELL
     assert lebendes_modell("openai/gpt-oss-20b") == "openai/gpt-oss-20b"
     assert lebendes_modell("openai/gpt-oss-120b", "openrouter") == "openai/gpt-oss-120b"
-    assert lebendes_modell("meta/muse-glimmer-30b") == NVIDIA_EMIL_MODELL
+    assert lebendes_modell("meta/muse-glimmer-30b") == "meta/muse-glimmer-30b"
+    assert standard_modell("meta/muse-glimmer-30b") == NVIDIA_EMIL_MODELL
+    assert standard_modell("meta/muse-glimmer-30b", "openrouter") == "meta/muse-glimmer-30b"
     assert lebendes_modell("mistralai/mistral-nemotron") == NVIDIA_JON_MODELL
     alt = Settings(
         default_jon_model="openai/gpt-oss-120b",
