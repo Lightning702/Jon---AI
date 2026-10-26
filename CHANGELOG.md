@@ -10,6 +10,14 @@ Alle nennenswerten Änderungen an Jon.
 - **Ausgeschalteter Server bremst nicht mehr:** War NVIDIA überlastet, wich Jon zuerst auf FelWorks aus und wartete bei ausgeschaltetem Pi bis zum Verbindungs-Zeitlimit (26 Sekunden bis zur Antwort). Nicht erreichbare Anbieter merkt sich Jon jetzt zwei Minuten lang und lässt sie beim Ausweichen aus.
 - **Zustellung:** Eine Nachricht von Jon ans Handy kam in 0,5 Sekunden an.
 
+### BLITZBAHN
+
+- **Weicher Rauch statt weißer Flächen:** Drift- und Landestaub wurden als harte Quadrate bis 6 m Größe gezeichnet und füllten nahe der Kamera das Bild. Jetzt sind es runde, zum Rand weich auslaufende Wolken, die vor der Kamera ausblenden. Alle 51 Selbsttests bestanden, neues Vorschaubild.
+
+### Website
+
+- **Neuer Abschnitt „Neu“** mit den Funktionen von 4.65.6 bis 4.66.1, BLITZBAHN und Katzenhof bei den Spielen, aktualisierte Texte zu Terminal und Telegram. Die Harmonischen Inseln sind nicht mehr als enthalten aufgeführt, weil sie im Installer abgeschaltet sind.
+
 ## [4.65.9] — 2026-10-26
 
 ### Terminal-Harness immer ohne Schlüssel
