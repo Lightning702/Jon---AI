@@ -17,7 +17,8 @@ TITEL = "Aptos Display"
 TEXT = "Aptos"
 TEXT_GROSS = 24
 TEXT_KLEIN = 14
-BREITE_FAKTOR = 0.47
+BREITE_FAKTOR = 0.49
+ZEILEN_FAKTOR = 1.3
 
 
 def _passt(zeilen: list[str], breite: float, groesse: int, hoehe: float) -> bool:
@@ -25,7 +26,7 @@ def _passt(zeilen: list[str], breite: float, groesse: int, hoehe: float) -> bool
     gesamt = 0.0
     for zeile in zeilen:
         anzahl = max(1, -(-len(str(zeile)) // pro_zeile))
-        gesamt += anzahl * groesse * 1.12 / 72 + 9 / 72
+        gesamt += anzahl * groesse * ZEILEN_FAKTOR / 72 + 9 / 72
     return gesamt <= hoehe
 
 
@@ -145,7 +146,7 @@ def _inhalt(slide, data: dict, links: float, oben: float, breite: float, hoehe: 
         return
     zeilen = ([text] if text else []) + punkte
     groesse = TEXT_GROSS
-    while groesse > TEXT_KLEIN and not _passt(zeilen, breite - 0.3, groesse, hoehe):
+    while groesse > TEXT_KLEIN and not _passt(zeilen, breite - (0.6 if punkte else 0.3), groesse, hoehe):
         groesse -= 1
     box = slide.shapes.add_textbox(_zoll(links), _zoll(oben), _zoll(breite), _zoll(hoehe))
     rahmen = box.text_frame

@@ -1150,6 +1150,19 @@ def select_tools(context: str) -> set[str] | None:
     return allowed
 
 
+def json_retten(text: str):
+    try:
+        return json.loads(text)
+    except ValueError:
+        pass
+    repariert = re.sub(r"}\s*{", "},{", text)
+    repariert = re.sub(r"]\s*\[", "],[", repariert)
+    repariert = re.sub(r"\"\s*\n\s*\"", "\",\n\"", repariert)
+    repariert = re.sub(r"(\"|\d|true|false|null|}|])(\s*\n\s*)(\"[^\"\n]+\"\s*:)", r"\1,\2\3", repariert)
+    repariert = re.sub(r",\s*([}\]])", r"\1", repariert)
+    return json.loads(repariert)
+
+
 def _pfad_reparieren(roh: str) -> str:
     import os
 
@@ -4892,7 +4905,7 @@ class ToolBox:
         try:
             slides = args.get("slides")
             if isinstance(slides, str):
-                slides = json.loads(slides)
+                slides = json_retten(slides)
             from app.services.pptx_normalisieren import folien as folien_normalisieren
 
             folien = folien_normalisieren([f for f in (slides or []) if isinstance(f, (dict, str))], str(args.get("title", "")))

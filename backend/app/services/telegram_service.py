@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import subprocess
 import tempfile
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -1463,10 +1465,28 @@ class TelegramService:
                 self._chat_service = ChatService()
             self._chat_service._system_prompt()
             self._chat_service._denkaufwand("Hallo Jon", True)
-            return automation_service is not None
+            from app.services import action_log_service, ereignis_service, tools
+
+            self._ocr_vorwaermen()
+            return automation_service is not None and tools is not None and action_log_service is not None and ereignis_service is not None
         except Exception as fehler:
             leise(fehler, "services/telegram_service")
             return False
+
+    def _ocr_vorwaermen(self) -> None:
+        if os.name != "nt" or not get_settings_service().get().get("telegram_ocr_vorwaermen", True):
+            return
+        try:
+            from PIL import Image
+
+            from app.services import bildschirm_agent
+
+            with tempfile.TemporaryDirectory(prefix="jon-ocr-") as ordner:
+                pfad = Path(ordner) / "leer.png"
+                Image.new("RGB", (64, 32), "white").save(pfad)
+                bildschirm_agent._ocr_ueber_dienst(pfad, 30)
+        except Exception as fehler:
+            leise(fehler, "services/telegram_service")
 
     async def verbindung_aufwaermen(self) -> bool:
         if not self._token():
@@ -1623,12 +1643,15 @@ class TelegramService:
         return f"⌨️ „{befehl['text']}“ in {ergebnis.get('geklickt') or befehl['ziel']} geschrieben."
 
     def _direkt_loggen(self, werkzeug: str, args: dict, ergebnis: dict) -> None:
-        try:
-            from app.services.action_log_service import log_action
+        def schreiben() -> None:
+            try:
+                from app.services.action_log_service import log_action
 
-            log_action("telegram", werkzeug, args, json.dumps(ergebnis, ensure_ascii=False)[:500], ok=not ergebnis.get("error"))
-        except Exception as fehler:
-            leise(fehler, "services/telegram_service")
+                log_action("telegram", werkzeug, args, json.dumps(ergebnis, ensure_ascii=False)[:500], ok=not ergebnis.get("error"))
+            except Exception as fehler:
+                leise(fehler, "services/telegram_service")
+
+        threading.Thread(target=schreiben, name="telegram-protokoll", daemon=True).start()
 
     async def _handle(self, chat_id: str, text: str, voice: bool = False) -> None:
         begleiter = self._aktionsvideo()

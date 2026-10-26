@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import io
 import re
@@ -129,6 +130,14 @@ def varianten(suche: str) -> list[str]:
     return list(dict.fromkeys(v for v in ergebnis if v.strip()))
 
 
+NEBENSACHE = re.compile(r"\b(system|analy[sz]\w*|measur\w*|messung\w*|device|apparat\w*|sensor\w*|logger|tripod|stativ|chamber|experiment\w*|setup|equipment|instrument\w*|sign|schild|plaque|label\w*|screenshot|poster|stamp|briefmarke|map|karte|logo|museum|exhibit\w*)\b", re.I)
+
+
+def nebensache(titel: str, suche: str) -> bool:
+    gesucht = {w.lower() for w in re.findall(r"\w+", suche or "")}
+    return any(t.group(0).lower() not in gesucht for t in NEBENSACHE.finditer(str(titel or "")))
+
+
 def passt(titel: str, suche: str) -> bool:
     if UNBRAUCHBAR.search(str(titel or "")):
         return False
@@ -140,25 +149,93 @@ def passt(titel: str, suche: str) -> bool:
     return treffer >= min(3, len(woerter))
 
 
+PRUEF_MAX = 3
+PRUEF_ZEIT = 8.0
+PRUEF_BUDGET = 4
+PRUEF_FRAGE = (
+    "Passt dieses Foto als Bild auf eine Praesentationsfolie zum Thema \"{suche}\"? Es muss das Thema klar und "
+    "erkennbar zeigen, ohne stoerende Dinge im Vordergrund (Stative, Stuehle, Werkzeug, Schilder), keine Collage, "
+    "kein Screenshot, keine Textseite. Antworte nur mit JA oder NEIN."
+)
+
+
+def _klein(pfad: str) -> bytes:
+    from PIL import Image
+
+    with Image.open(pfad) as bild:
+        bild = bild.convert("RGB")
+        bild.thumbnail((512, 512))
+        puffer = io.BytesIO()
+        bild.save(puffer, "JPEG", quality=80)
+        return puffer.getvalue()
+
+
+async def bild_passt(pfad: str, suche: str) -> bool | None:
+    from app.services import sehen
+
+    try:
+        daten = await asyncio.to_thread(_klein, pfad)
+    except Exception as fehler:
+        leise(fehler, "services/bildquelle")
+        return None
+    try:
+        ergebnis = await asyncio.wait_for(sehen.beschreiben([daten], PRUEF_FRAGE.format(suche=suche), "pruefen", max_tokens=300, wartezeit=PRUEF_ZEIT), PRUEF_ZEIT + 2)
+    except asyncio.TimeoutError:
+        return None
+    text = str(ergebnis.get("text") or "").upper()
+    if re.search(r"\b(NEIN|NO)\b", text):
+        return False
+    if re.search(r"\b(JA|YES)\b", text):
+        return True
+    return None
+
+
+async def _geladen(adresse: str) -> str:
+    try:
+        return await herunterladen(adresse)
+    except Exception as fehler:
+        leise(fehler, "services/bildquelle")
+        return ""
+
+
+async def bestes(adressen: list[str], suche: str, budget: list[int] | None = None) -> str:
+    budget = budget if budget is not None else [PRUEF_BUDGET]
+    pfade = [p for p in await asyncio.gather(*(_geladen(a) for a in adressen)) if p]
+    for pfad in pfade:
+        if budget[0] <= 0:
+            return pfad
+        budget[0] -= 1
+        if await bild_passt(pfad, suche) is not False:
+            return pfad
+    return ""
+
+
 async def suchen(suche: str) -> str:
     begriff = str(suche or "").strip()[:200]
     from app.services.offline import aktiv
 
     if not begriff or aktiv():
         return ""
+    budget = [PRUEF_BUDGET]
     for variante in varianten(begriff):
+        kandidaten: list[tuple[bool, str]] = []
         for quelle in (_commons, _openverse):
+            if sum(1 for neben, _ in kandidaten if not neben) >= PRUEF_MAX:
+                break
             try:
                 ergebnisse = await quelle(variante)
             except Exception as fehler:
                 leise(fehler, "services/bildquelle")
                 continue
-            adressen = [adresse for adresse, titel in ergebnisse if passt(titel, variante)]
-            for adresse in adressen[:5]:
-                try:
-                    return await herunterladen(adresse)
-                except Exception as fehler:
-                    leise(fehler, "services/bildquelle")
+            for adresse, titel in ergebnisse:
+                if all(adresse != a for _, a in kandidaten) and passt(titel, variante):
+                    kandidaten.append((nebensache(titel, begriff), adresse))
+        if not kandidaten:
+            continue
+        geordnet = [a for _, a in sorted(kandidaten, key=lambda k: k[0])]
+        pfad = await bestes(geordnet[:PRUEF_MAX], begriff, budget)
+        if pfad:
+            return pfad
     return ""
 
 
@@ -228,28 +305,40 @@ async def finden(suche: str, anzahl: int = 1) -> list[dict]:
     if not begriff or aktiv():
         return []
     ziel = max(1, min(4, int(anzahl or 1)))
+    budget = [PRUEF_BUDGET + ziel]
     gefunden: list[dict] = []
     gesehen: set[str] = set()
     for variante in varianten(begriff):
+        sammlung: list[dict] = []
         for quelle in (_commons_mit_herkunft, _openverse_mit_herkunft):
+            if len(sammlung) >= ziel + 2:
+                break
             try:
                 ergebnisse = await quelle(variante)
             except Exception as fehler:
                 leise(fehler, "services/bildquelle")
                 continue
             for eintrag in ergebnisse:
-                if len(gefunden) >= ziel:
-                    return gefunden
+                if len(sammlung) >= ziel + 2:
+                    break
                 adresse = str(eintrag.get("adresse") or "")
                 if not adresse or adresse in gesehen or not passt(eintrag.get("titel", ""), variante):
                     continue
                 gesehen.add(adresse)
-                try:
-                    pfad = await herunterladen(adresse)
-                except Exception as fehler:
-                    leise(fehler, "services/bildquelle")
-                    continue
-                gefunden.append({**{k: v for k, v in eintrag.items() if k != "adresse"}, "pfad": pfad, "url": adresse})
+                pfad = await _geladen(adresse)
+                if pfad:
+                    sammlung.append({**{k: v for k, v in eintrag.items() if k != "adresse"}, "pfad": pfad, "url": adresse})
+        if not sammlung:
+            continue
+        for eintrag in sammlung:
+            if len(gefunden) >= ziel:
+                break
+            if budget[0] <= 0:
+                gefunden.append(eintrag)
+                continue
+            budget[0] -= 1
+            if await bild_passt(eintrag["pfad"], begriff) is not False:
+                gefunden.append(eintrag)
         if gefunden:
             return gefunden
     return gefunden
