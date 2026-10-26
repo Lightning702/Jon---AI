@@ -2,6 +2,24 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.65.9] — 2026-10-26
+
+### Terminal-Harness immer ohne Schlüssel
+
+- **Freier Ersatz, wenn FelWorks weg ist:** Ist der FelWorks-Server nicht erreichbar und gibt es weder Jon noch Ollama, LM Studio oder einen eigenen Schlüssel, nimmt `jonh` von selbst den freien Dienst Pollinations (GPT-OSS 20B, ohne Schlüssel, mit Werkzeugen) und sagt das beim Start an. Getestet bei abgeschaltetem Pi: Datei angelegt, ausgeführt, Ergebnis gemeldet.
+- **Ersatz schon beim Start:** `jonh` prüft FelWorks gleich am Anfang und wechselt vorher, statt erst nach dem ersten Fehler.
+- **Werkzeugnamen bereinigt:** Manche Modelle hängen Steuerzeichen an (`befehl<|channel|>commentary`), das wird jetzt abgeschnitten.
+
+### Word, PDF und ODT
+
+- **Echte Tabellen:** Markdown-Tabellen werden zu Word-, PDF- und ODT-Tabellen statt als Strichsalat im Text zu stehen. Die Live-Vorschau zeigt sie auch als Tabelle.
+- **Seitenumbruch und Fettdruck:** Eine Zeile `---` beginnt eine neue Seite, `**fett**` bleibt fett.
+- **Keine erfundenen Angaben:** Bei Bewerbung, Lebenslauf, Brief, Formular und Antrag erfindet Jon keine Noten, Praktika, Adressen oder Daten mehr, sondern setzt [Platzhalter] und sagt, was noch einzutragen ist.
+
+### Tests
+
+- **Tests schreiben nie mehr auf den echten Desktop:** Die Testumgebung biegt Desktop, Dokumente und Downloads auf Wegwerf-Ordner um. Vorher konnte ein Test über die bekannten Ordner im echten Benutzerverzeichnis landen.
+
 ## [4.65.8] — 2026-10-26
 
 ### Telegram antwortet sofort

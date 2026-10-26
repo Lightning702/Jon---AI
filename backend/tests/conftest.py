@@ -72,3 +72,8 @@ def _jon_ordner_im_testverzeichnis(monkeypatch, tmp_path_factory):
     monkeypatch.setattr(dateiraum_service, "_service", None)
     ordner = tmp_path_factory.mktemp("jon-ordner") / "Jon"
     monkeypatch.setattr(dateiraum_service.DateiraumService, "wurzel", lambda self: ordner)
+    heim = ordner.parent / "heim"
+    for name in ("Desktop", "Documents", "Downloads", "Pictures", "Videos", "Music"):
+        (heim / name).mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(dateiraum_service, "_heim", lambda: heim)
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: heim))

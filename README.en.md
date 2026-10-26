@@ -6,9 +6,9 @@
 
 **An assistant that doesn't just talk — it actually operates your PC.**
 
-**New in 4.65.8:** Telegram answers right away: Jon confirms a shutdown in 0.2 s, simple questions come back in under a second, and "click Start" on a web page works in 2 s. Presentations get checked, fitting photos, text no longer runs off the slide, and images added later no longer cover text. The terminal harness `jonh` is fully tested with FelWorks without a key and without Premium.
+**New in 4.65.9:** The terminal harness `jonh` now always works without a key: if FelWorks is unreachable, it switches to a free fallback on its own. Word documents get real tables, page breaks and bold text, and Jon no longer invents details in job applications but uses placeholders. Also: Telegram answers right away, "click Start" works in 2 s, and presentations get checked photos.
 
-[![Version](https://img.shields.io/badge/Version-4.65.8-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.65.9-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![License](https://img.shields.io/badge/License-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Publisher](https://img.shields.io/badge/Publisher-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

@@ -58,6 +58,23 @@ FEHLT = {
 }
 
 
+TABELLENZEILE = re.compile(r"^\s*\|.*\|\s*$")
+TRENNZEILE = re.compile(r"^\s*(?:-{3,}|\*{3,}|_{3,})\s*$")
+TRENNZELLE = re.compile(r"^:?-{2,}:?$")
+
+
+def _tabelle(text: str) -> list[list[str]]:
+    zeilen = []
+    for zeile in str(text or "").split("\n"):
+        zellen = [_ohne_auszeichnung(z.strip()) for z in zeile.strip().strip("|").split("|")]
+        if zellen and all(TRENNZELLE.match(z.replace(" ", "")) for z in zellen if z):
+            continue
+        if any(zellen):
+            zeilen.append(zellen)
+    breite = max((len(z) for z in zeilen), default=0)
+    return [z + [""] * (breite - len(z)) for z in zeilen]
+
+
 def _bloecke(text: str, titel: str = "") -> list[tuple[str, str]]:
     bloecke: list[tuple[str, str]] = []
     kopf = _vergleichbar(titel)
@@ -65,6 +82,15 @@ def _bloecke(text: str, titel: str = "") -> list[tuple[str, str]]:
         roh = zeile.rstrip()
         if not roh.strip():
             bloecke.append(("leer", ""))
+            continue
+        if TABELLENZEILE.match(roh):
+            if bloecke and bloecke[-1][0] == "tabelle":
+                bloecke[-1] = ("tabelle", bloecke[-1][1] + "\n" + roh.strip())
+            else:
+                bloecke.append(("tabelle", roh.strip()))
+            continue
+        if TRENNZEILE.match(roh):
+            bloecke.append(("trenner", ""))
             continue
         treffer = UEBERSCHRIFT.match(roh)
         if treffer:
@@ -100,8 +126,20 @@ def _ohne_auszeichnung(text: str) -> str:
 def _fett_xml(text: str) -> str:
     from xml.sax.saxutils import escape
 
-    sicher = escape(_ohne_auszeichnung(text))
-    return sicher
+    teile = re.split(r"\*\*(.+?)\*\*", str(text or ""))
+    return "".join(
+        f"<b>{escape(_ohne_auszeichnung(teil))}</b>" if index % 2 else escape(_ohne_auszeichnung(teil))
+        for index, teil in enumerate(teile)
+    )
+
+
+def _laeufe(absatz, text: str) -> None:
+    for index, teil in enumerate(re.split(r"\*\*(.+?)\*\*", str(text or ""))):
+        if not teil:
+            continue
+        lauf = absatz.add_run(_ohne_auszeichnung(teil))
+        if index % 2:
+            lauf.bold = True
 
 
 def _zeilen_aus(inhalt) -> list[list[str]]:
@@ -335,8 +373,23 @@ class DokumentService:
                     fluss.append(Spacer(1, 6))
                 fluss.append(Paragraph(_fett_xml(text), stil_h.get(stufe, stil_h[2])))
                 continue
-            if text == "---":
+            if art == "trenner" or text == "---":
                 fluss.append(PageBreak())
+                continue
+            if art == "tabelle":
+                zeilen = _tabelle(text)
+                if zeilen:
+                    from reportlab.lib import colors
+                    from reportlab.platypus import Table, TableStyle
+
+                    tabelle = Table([[Paragraph(_fett_xml(z), stil_text) for z in zeile] for zeile in zeilen], repeatRows=1)
+                    tabelle.setStyle(TableStyle([
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#c9c9c9")),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f3ead0")),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ]))
+                    fluss.append(tabelle)
+                    fluss.append(Spacer(1, 6))
                 continue
             fluss.append(Paragraph(_fett_xml(text), stil_text))
         punkte_leeren()
@@ -355,18 +408,36 @@ class DokumentService:
         stil.font.size = Pt(11)
         if titel:
             dokument.add_heading(_ohne_auszeichnung(titel), level=0)
-        for art, text in _bloecke(inhalt, titel):
+        bloecke = _bloecke(inhalt, titel)
+        for index, (art, text) in enumerate(bloecke):
             sauber = _ohne_auszeichnung(text)
             if art == "leer":
                 continue
+            if art == "trenner":
+                if any(a not in ("leer", "trenner") for a, _ in bloecke[index + 1:]):
+                    dokument.add_page_break()
+                continue
+            if art == "tabelle":
+                zeilen = _tabelle(text)
+                if not zeilen:
+                    continue
+                tabelle = dokument.add_table(rows=len(zeilen), cols=len(zeilen[0]))
+                tabelle.style = "Table Grid"
+                for r, zeile in enumerate(zeilen):
+                    for s, wert in enumerate(zeile):
+                        zelle = tabelle.cell(r, s)
+                        zelle.text = wert
+                        if r == 0 and len(zeilen) > 1:
+                            for lauf in zelle.paragraphs[0].runs:
+                                lauf.bold = True
+                dokument.add_paragraph()
+                continue
             if art.startswith("h"):
                 dokument.add_heading(sauber, level=min(4, int(art[1])))
-            elif art == "punkt":
-                dokument.add_paragraph(sauber, style="List Bullet")
-            elif art == "nummer":
-                dokument.add_paragraph(sauber, style="List Number")
-            else:
-                dokument.add_paragraph(sauber)
+                continue
+            stil = {"punkt": "List Bullet", "nummer": "List Number"}.get(art)
+            absatz = dokument.add_paragraph(style=stil) if stil else dokument.add_paragraph()
+            _laeufe(absatz, text)
         dokument.save(str(pfad))
 
     @staticmethod
@@ -394,7 +465,23 @@ class DokumentService:
                 liste.addElement(eintrag)
                 continue
             liste = None
-            if art == "leer":
+            if art in ("leer", "trenner"):
+                continue
+            if art == "tabelle":
+                from odf.table import Table, TableCell, TableColumn, TableRow
+
+                zeilen = _tabelle(text)
+                if zeilen:
+                    tabelle = Table()
+                    tabelle.addElement(TableColumn(numbercolumnsrepeated=len(zeilen[0])))
+                    for zeile in zeilen:
+                        reihe = TableRow()
+                        for wert in zeile:
+                            zelle = TableCell()
+                            zelle.addElement(P(stylename=stil, text=wert))
+                            reihe.addElement(zelle)
+                        tabelle.addElement(reihe)
+                    dokument.text.addElement(tabelle)
                 continue
             if art.startswith("h"):
                 dokument.text.addElement(

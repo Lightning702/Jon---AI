@@ -74,6 +74,11 @@ class Terminal:
             anbieter = "jon"
         else:
             anbieter = "felworks"
+        if anbieter == "felworks" and not self.verbindung.felworks.erreichbar():
+            ziel = self.verbindung.ausweichen(mit_jon=not self.argumente.ohne_jon)
+            if ziel is not None:
+                self._ersatz_hinweis = f"FelWorks ist gerade nicht erreichbar – ich arbeite mit {KATALOG[ziel[0]].name} weiter."
+                return ziel
         modell = self.argumente.modell or self.einstellungen.modell(anbieter) or (KATALOG[anbieter].modelle[0] if KATALOG[anbieter].modelle else "")
         if anbieter in ("ollama", "lmstudio") and not modell:
             liste = self.verbindung.modelle(anbieter)
@@ -101,8 +106,12 @@ class Terminal:
             ("Ordner", f(str(self.ordner), TUERKIS)),
             ("Modus", f(self.agent.modus, WEISS) + f(f"  {modus}", GRAU)),
         ])
+        if getattr(self, "_ersatz_hinweis", ""):
+            sag(f("  " + self._ersatz_hinweis, GOLD))
         if self.agent.anbieter == "felworks":
             sag(f("  FelWorks ist kostenlos und braucht keinen Schlüssel. Eigene Schlüssel: /api", GRAU))
+        elif self.agent.anbieter == "frei":
+            sag(f("  Pollinations ist kostenlos und braucht keinen Schlüssel, ist aber langsamer. Eigene Schlüssel: /api", GRAU))
         tipp = "Sag einfach, was ich tun soll – z. B. „Bau mir eine moderne Portfolio-Website“ oder „Programmier mir Snake in 3D“."
         sag(f("  " + tipp, GRAU))
         sag(f("  /hilfe zeigt alle Befehle · Strg+C bricht ab", GRAU, MATT))

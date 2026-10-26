@@ -90,3 +90,30 @@ def test_nachtraegliches_bild_verdeckt_keinen_text(tmp_path):
     text = next(f for f in formen if f.has_text_frame and f.text_frame.text.strip())
     assert text.left + text.width <= foto.left
     assert text.text_frame.paragraphs[0].runs[0].font.size.pt < 24
+
+
+def test_word_mit_tabelle_seitenumbruch_und_fett(tmp_path):
+    from docx import Document
+
+    from app.services.dokument_service import DokumentService
+
+    inhalt = "# Bewerbung\n\nIch bin **sehr motiviert**.\n\n---\n\n## Lebenslauf\n\n| Feld | Angabe |\n|---|---|\n| Name | [Dein Name] |\n| Schule | Polytechnische Schule |\n"
+    pfad = tmp_path / "test.docx"
+    DokumentService._docx(pfad, "Bewerbung", inhalt)
+    dokument = Document(str(pfad))
+    assert len(dokument.tables) == 1
+    tabelle = dokument.tables[0]
+    assert tabelle.cell(1, 0).text == "Name" and tabelle.cell(2, 1).text == "Polytechnische Schule"
+    assert not any("|" in a.text for a in dokument.paragraphs)
+    fett = [l.text for a in dokument.paragraphs for l in a.runs if l.bold]
+    assert "sehr motiviert" in fett
+    assert any('w:br w:type="page"' in a._p.xml or "w:type=\"page\"" in a._p.xml for a in dokument.paragraphs)
+
+
+def test_pdf_mit_tabelle(tmp_path):
+    pytest.importorskip("reportlab")
+    from app.services.dokument_service import DokumentService
+
+    pfad = tmp_path / "test.pdf"
+    DokumentService._pdf(pfad, "Test", "## Daten\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n---\n\nSeite zwei")
+    assert pfad.stat().st_size > 1000

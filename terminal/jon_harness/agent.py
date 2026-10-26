@@ -226,6 +226,7 @@ class Agent:
             return self._text_auswerten(text, still)
         liste = []
         for index, platz in sorted(aufrufe.items()):
+            platz["name"] = re.split(r"<\||\s", platz["name"].strip(), maxsplit=1)[0] if platz["name"] else ""
             if not platz["name"]:
                 continue
             gelesen = args_lesen(platz["args"])
