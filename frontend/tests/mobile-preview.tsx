@@ -41,5 +41,5 @@ window.JonNative = {post: raw => {
   }
   else {if (request.op === "minijon-enable") enabled = request.enabled; emit({result: {enabled, permission: true, running: enabled}});}
 }};
-const shell: any = {conn: {connected: params.get("offline") ? false : true, paired: true, name: "Deinem Pi", server_id: "preview"}, notify: () => {}, name: "Felix", freigabe: "ask", voice: null};
+const shell: any = {conn: {connected: params.get("offline") ? false : true, paired: true, name: "Deinem Pi", server_id: "preview"}, notify: () => {}, name: "Max", freigabe: "ask", voice: null};
 createRoot(document.getElementById("root")!).render(<MotionConfig reducedMotion="never"><div className="app" style={{position: "relative", height: "100vh", display: "flex", flexDirection: "column"}}><FunkePage shell={shell} back={() => {}}/></div></MotionConfig>);
