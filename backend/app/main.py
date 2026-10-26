@@ -55,7 +55,9 @@ from app.core.config import ROOT_DIR, get_settings, web_app_dir
 from app.core.logbook import logger as logbook_logger
 from app.core.logbook import note_error, note_ok, setup_logging
 from app.db.database import init_db
+from app.core.proactor_fix import anwenden as annahme_festigen
 
+annahme_festigen()
 _log = logbook_logger("main")
 
 

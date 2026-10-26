@@ -6,11 +6,13 @@
 
 **An assistant that doesn't just talk — it actually operates your PC.**
 
+**New in 4.66.2:** Jon stays reachable: a brief network drop while accepting a connection used to close the main port for good, so the app lost its backend. Now Jon simply keeps accepting connections.
+
 **New in 4.66.1:** Telegram answers in 2 to 5 seconds again: Jon uses the fast model for text and Muse Glimmer only for images, and an offline FelWorks server no longer slows down failover.
 
 **New in 4.65.9:** The terminal harness `jonh` now always works without a key: if FelWorks is unreachable, it switches to a free fallback on its own. Word documents get real tables, page breaks and bold text, and Jon no longer invents details in job applications but uses placeholders. Also: Telegram answers right away, "click Start" works in 2 s, and presentations get checked photos.
 
-[![Version](https://img.shields.io/badge/Version-4.66.1-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.66.2-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![License](https://img.shields.io/badge/License-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Publisher](https://img.shields.io/badge/Publisher-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)
