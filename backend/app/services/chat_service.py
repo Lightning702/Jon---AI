@@ -528,6 +528,8 @@ async def route_providers(registry, primary: str, model: str) -> list[str]:
             models = await provider.list_models()
         except Exception:
             continue
+        if getattr(provider, "unerreichbar", None) and provider.unerreichbar():
+            continue
         if name == "openrouter":
             if (
                 (model.endswith(":free") and model in models)
@@ -860,10 +862,12 @@ class ChatService:
                         mark_fast(name, model)
                     yield chunk
                 return
-            except Exception:
+            except Exception as fehler:
                 if started or executed:
                     state["echt"] = True
                     raise
+                if hasattr(provider, "ausfall_merken"):
+                    provider.ausfall_merken(fehler)
                 mark_slow(name, model)
                 if index + 1 < len(attempts):
                     next_name, next_model = attempts[index + 1]

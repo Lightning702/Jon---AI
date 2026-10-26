@@ -40,6 +40,7 @@ DEFAULT_MAX_TOKENS = 32768
 MIN_MAX_TOKENS = 4096
 MODELS_CACHE_TTL = 300.0
 MODELS_FAIL_TTL = 30.0
+AUSFALL_MERKEN = 120.0
 REASONING_MODELS = ("gpt-oss",)
 DENK_SCHALTER = ("nemotron-3", "nemotron-nano-3", "nemotron-3.5")
 
@@ -114,6 +115,21 @@ class OpenAICompatibleProvider(LLMProvider):
         self._models_cache: list[str] | None = None
         self._models_cached_at = 0.0
         self._models_cache_ttl = 0.0
+        self.unerreichbar_seit = 0.0
+
+    def unerreichbar(self, sekunden: float = AUSFALL_MERKEN) -> bool:
+        return bool(self.unerreichbar_seit) and time.monotonic() - self.unerreichbar_seit < sekunden
+
+    def ausfall_merken(self, fehler: BaseException | None) -> None:
+        verbindung = (httpx.ConnectError, httpx.ConnectTimeout)
+        glied = fehler
+        for _ in range(5):
+            if glied is None:
+                return
+            if isinstance(glied, verbindung) or (isinstance(glied, APIConnectionError) and not isinstance(glied, APITimeoutError)):
+                self.unerreichbar_seit = time.monotonic()
+                return
+            glied = getattr(glied, "__cause__", None) or getattr(glied, "__context__", None)
 
     def _key(self, slot: str = "jon") -> str | None:
         if self._key_resolver is not None:
@@ -169,7 +185,9 @@ class OpenAICompatibleProvider(LLMProvider):
                 ]
                 result = curated + rest
                 ttl = MODELS_CACHE_TTL
-        except Exception:
+            self.unerreichbar_seit = 0.0
+        except Exception as fehler:
+            self.ausfall_merken(fehler)
             result = self._default_models
             ttl = MODELS_FAIL_TTL
         self._models_cache = result

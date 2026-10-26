@@ -130,3 +130,64 @@ def test_telegram_denkt_nur_wenn_noetig():
     assert schnell_denken(denken_noetig("Wie spät ist es in Tokio?", None, False), "emil") is False
     assert schnell_denken(denken_noetig("Code mir ein Snake-Spiel in Python", None, False), "emil") is True
     assert schnell_denken(denken_noetig("Wie spät ist es in Tokio?", None, False), "jon") is None
+
+
+def test_telegram_nimmt_fuer_text_nicht_das_langsame_bildmodell():
+    from app.core.config import NVIDIA_EMIL_MODELL, NVIDIA_SEHEN_MODELL
+
+    einstellungen = get_settings_service()
+    alt = {k: einstellungen.get().get(k) for k in ("telegram_provider", "telegram_model", "pet_provider", "pet_model")}
+    try:
+        einstellungen.update({"telegram_provider": "nvidia", "telegram_model": NVIDIA_SEHEN_MODELL, "pet_provider": "nvidia", "pet_model": NVIDIA_SEHEN_MODELL})
+        assert ts.TelegramService.modellwahl() == ("nvidia", NVIDIA_EMIL_MODELL)
+        assert einstellungen.pet_selection() == ("nvidia", NVIDIA_EMIL_MODELL)
+        einstellungen.update({"telegram_model": "nvidia/nemotron-3-ultra-550b-a55b"})
+        assert ts.TelegramService.modellwahl() == ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
+    finally:
+        einstellungen.update({k: v if v is not None else "" for k, v in alt.items()})
+
+
+def test_unerreichbarer_anbieter_wird_beim_ausweichen_ausgelassen():
+    import httpx
+
+    from app.providers.openai_compatible import OpenAICompatibleProvider
+
+    anbieter = OpenAICompatibleProvider(name="felworks", base_url="http://127.0.0.1:9/v1", api_key="x")
+    assert not anbieter.unerreichbar()
+    try:
+        try:
+            raise httpx.ConnectTimeout("weg")
+        except httpx.ConnectTimeout as ursache:
+            raise RuntimeError("felworks antwortet nicht") from ursache
+    except RuntimeError as fehler:
+        anbieter.ausfall_merken(fehler)
+    assert anbieter.unerreichbar()
+    anbieter.unerreichbar_seit = 0.0
+    anbieter.ausfall_merken(RuntimeError("nur langsam"))
+    assert not anbieter.unerreichbar()
+
+
+def test_ausweichen_ueberspringt_ausgefallenen_anbieter(monkeypatch):
+    import time as zeit
+    from types import SimpleNamespace
+
+    from app.services import chat_service as cs
+
+    class Anbieter:
+        def __init__(self, weg):
+            self.unerreichbar_seit = zeit.monotonic() if weg else 0.0
+
+        def available(self):
+            return True
+
+        async def list_models(self):
+            return ["m"]
+
+        def unerreichbar(self, sekunden=120.0):
+            return bool(self.unerreichbar_seit)
+
+    alle = {"nvidia": Anbieter(False), "felworks": Anbieter(True), "openai": Anbieter(False)}
+    monkeypatch.setattr(cs, "ALTERNATIVE_PROVIDERS", ("felworks", "openai"))
+    registry = SimpleNamespace(get=lambda name: alle[name])
+    namen = asyncio.run(cs.route_providers(registry, "nvidia", "m"))
+    assert "felworks" not in namen and "openai" in namen

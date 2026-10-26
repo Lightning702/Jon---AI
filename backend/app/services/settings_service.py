@@ -251,13 +251,15 @@ class SettingsService:
     def _companion_selection(
         self, provider_key: str, model_key: str
     ) -> tuple[str, str]:
+        from app.core.config import standard_modell
+
         provider = self._data.get(provider_key, "")
         if provider:
-            return provider, self._data.get(model_key, "")
+            return provider, standard_modell(self._data.get(model_key, ""), provider)
         main_provider = self._data.get("provider", "")
         if main_provider and main_provider != "nvidia":
             return main_provider, self._data.get("model", "")
-        return main_provider, self._data.get(model_key, "")
+        return main_provider, standard_modell(self._data.get(model_key, ""), main_provider or "nvidia")
 
     def pet_selection(self) -> tuple[str, str]:
         with self._lock:
