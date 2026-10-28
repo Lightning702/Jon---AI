@@ -1723,7 +1723,7 @@ export default function CodeAgent({
                 }}
                 rows={1}
                 placeholder={streaming || goalRunning ? "Schreib weiter – kommt danach dran · /btw fragt nebenbei" : "Jon beauftragen … (/goal Ziel, /help, /btw)"}
-                className="flex-1 bg-transparent resize-none outline-none px-2 py-1.5 text-[13px] text-white/90 placeholder-white/30 max-h-32"
+                className="flex-1 bg-transparent resize-none [field-sizing:content] outline-none px-2 py-1.5 text-[13px] text-white/90 placeholder-white/30 max-h-32"
               />
               <button
                 onClick={() => void send()}

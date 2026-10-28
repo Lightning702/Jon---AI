@@ -24,7 +24,7 @@
 .btw-wartet{display:inline-flex;align-items:center;gap:.4rem;color:rgba(255,255,255,.45)}
 .btw-dreht{animation:btw-dreh 1s linear infinite}
 .btw-eingabe{display:flex;align-items:flex-end;gap:.45rem;padding:.55rem .6rem .45rem;border-top:1px solid rgba(255,255,255,.08)}
-.btw-eingabe textarea{flex:1;min-width:0;resize:none;max-height:110px;padding:.45rem .6rem;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);outline:none;font-size:13px;line-height:1.4;color:rgba(255,255,255,.9)}
+.btw-eingabe textarea{flex:1;min-width:0;resize:none;field-sizing:content;max-height:110px;padding:.45rem .6rem;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);outline:none;font-size:13px;line-height:1.4;color:rgba(255,255,255,.9)}
 .btw-eingabe textarea:focus{border-color:rgba(229,200,137,.5)}
 .btw-eingabe textarea::placeholder{color:rgba(255,255,255,.3)}
 .btw-eingabe button{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:10px;color:#111;background:linear-gradient(135deg,#f0d9a0,#c9a24a);transition:filter .15s,opacity .15s}

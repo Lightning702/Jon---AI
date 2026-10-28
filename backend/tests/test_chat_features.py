@@ -382,7 +382,7 @@ def test_slot_aus_persona_und_telegram():
     assert service.slot_for(ChatIn(messages=msgs, slot="emil")) == "emil"
 
 
-def test_lahmer_anbieter_rutscht_ans_ende():
+def test_gewaehlter_anbieter_bleibt_nach_ueberlastung_vorne():
     import asyncio
 
     from app.services import chat_service as cs
@@ -393,11 +393,12 @@ def test_lahmer_anbieter_rutscht_ans_ende():
     frisch = asyncio.run(service.route("nvidia", model))
     assert frisch[0] == "nvidia"
     cs.mark_slow("nvidia", model)
-    spaeter = asyncio.run(service.route("nvidia", model))
-    assert spaeter[-1] == "nvidia"
-    if len(frisch) > 1:
-        assert spaeter[0] != "nvidia"
-    cs.mark_fast("nvidia", model)
+    try:
+        spaeter = asyncio.run(service.route("nvidia", model))
+        assert spaeter[0] == "nvidia"
+        assert sorted(spaeter) == sorted(frisch)
+    finally:
+        cs.mark_fast("nvidia", model)
 
 
 def test_nvidia_faellt_zuerst_auf_schnelles_nvidia_modell_zurueck():
@@ -414,10 +415,115 @@ def test_nvidia_faellt_zuerst_auf_schnelles_nvidia_modell_zurueck():
     assert plan[0] == ("nvidia", model)
     assert plan[1] == ("nvidia", schnell)
     cs.mark_slow("nvidia", model)
-    plan = asyncio.run(service.attempt_plan("nvidia", ["nvidia"], model))
-    assert plan[0] == ("nvidia", schnell)
-    assert plan[-1] == ("nvidia", model)
-    cs.mark_fast("nvidia", model)
+    try:
+        plan = asyncio.run(service.attempt_plan("nvidia", ["nvidia"], model))
+        assert plan[0] == ("nvidia", model)
+        assert plan[1] == ("nvidia", schnell)
+    finally:
+        cs.mark_fast("nvidia", model)
+
+
+def test_lahmes_ersatzmodell_rutscht_ans_ende_das_gewaehlte_nicht():
+    import asyncio
+
+    from app.services import chat_service as cs
+
+    service = cs.ChatService()
+    model = "openai/gpt-oss-120b"
+    schnell = cs.FALLBACK_MODELS["nvidia"]
+    cs.mark_slow("nvidia", model)
+    cs.mark_slow("nvidia", schnell)
+    try:
+        plan = asyncio.run(service.attempt_plan("nvidia", ["nvidia"], model))
+        assert plan[0] == ("nvidia", model)
+        assert plan[-1] == ("nvidia", schnell)
+    finally:
+        cs.mark_fast("nvidia", model)
+        cs.mark_fast("nvidia", schnell)
+
+
+def test_router_beginnt_nach_ueberlastung_wieder_mit_der_modellwahl():
+    import asyncio
+
+    from app.services import chat_service as cs
+    from app.services.modell_router import ModelRouter
+
+    gewaehlt = ("nvidia", "gewaehltes/modell")
+    ersatz = ("nvidia", "ersatz/modell")
+
+    async def anbieter(provider, model):
+        return [provider]
+
+    async def planen(provider, namen, model):
+        return [ersatz, gewaehlt]
+
+    cs.mark_slow(*gewaehlt)
+    try:
+        route = asyncio.run(ModelRouter().plan(*gewaehlt, anbieter=anbieter, planen=planen, ollama=False))
+        assert route == [gewaehlt, ersatz]
+    finally:
+        cs.mark_fast(*gewaehlt)
+
+
+def test_naechste_nachricht_nimmt_nach_ueberlastung_wieder_das_gewaehlte_modell():
+    import asyncio
+    from types import SimpleNamespace
+
+    from app.providers.base import ChatMessage, ChatRequest, ProviderError, StreamChunk
+    from app.services import chat_service as cs
+    from app.services.modell_router import ModelRouter
+
+    gewaehlt = "gewaehltes/modell"
+
+    class Anbieter:
+        ueberlastet = True
+        aufrufe: list[str] = []
+
+        def available(self):
+            return True
+
+        async def list_models(self):
+            return [gewaehlt]
+
+        async def stream(self, request, executor=None):
+            self.aufrufe.append(request.model)
+            if request.model == gewaehlt and self.ueberlastet:
+                raise ProviderError("503 Service Unavailable: overloaded")
+            yield StreamChunk(delta=f"Antwort von {request.model}", kind="content")
+
+    nvidia = Anbieter()
+
+    def holen(name):
+        if name == "nvidia":
+            return nvidia
+        raise KeyError(name)
+
+    dienst = cs.ChatService.__new__(cs.ChatService)
+    dienst._registry = SimpleNamespace(get=holen)
+
+    async def nachricht():
+        plan = await ModelRouter(dienst._registry).plan("nvidia", gewaehlt, anbieter=dienst.route, planen=dienst.attempt_plan)
+        anfrage = ChatRequest(messages=[ChatMessage(role="user", content="Hallo")], model=gewaehlt)
+        teile = [c async for c in dienst._stream_einmal(plan, anfrage, None, {})]
+        return plan, "".join(c.delta for c in teile if c.kind == "content")
+
+    cs.mark_fast("nvidia", gewaehlt)
+    try:
+        plan, text = asyncio.run(nachricht())
+        assert plan[0] == ("nvidia", gewaehlt)
+        assert "überlastet" in text
+        assert f"Antwort von {gewaehlt}" not in text
+        assert cs.is_slow("nvidia", gewaehlt)
+
+        nvidia.ueberlastet = False
+        nvidia.aufrufe.clear()
+        plan, text = asyncio.run(nachricht())
+        assert plan[0] == ("nvidia", gewaehlt)
+        assert nvidia.aufrufe == [gewaehlt]
+        assert text == f"Antwort von {gewaehlt}"
+        assert not cs.is_slow("nvidia", gewaehlt)
+    finally:
+        cs.mark_fast("nvidia", gewaehlt)
 
 
 def test_openrouter_fallback_nur_gratis_modelle():

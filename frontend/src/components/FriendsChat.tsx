@@ -1079,7 +1079,7 @@ export default function FriendsChat({
                       ? "Nimmt auf … zum Senden auf drücken"
                       : `Nachricht an ${activeName} …`
                   }
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[13.5px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50 resize-none max-h-32"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[13.5px] text-white/90 placeholder-white/30 outline-none focus:border-gold/50 resize-none [field-sizing:content] max-h-32"
                 />
                 <button
                   onClick={() => void submit()}

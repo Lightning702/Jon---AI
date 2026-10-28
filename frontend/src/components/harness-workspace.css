@@ -109,7 +109,7 @@
 .harness-composer.arbeitet::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:conic-gradient(from var(--h-winkel,0deg),transparent 0 65%,#e5c889 80%,transparent 92%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:harness-rahmen 3s linear infinite;pointer-events:none;z-index:-1}
 @property --h-winkel{syntax:"<angle>";inherits:false;initial-value:0deg}
 @keyframes harness-rahmen{to{--h-winkel:360deg}}
-.harness-composer textarea{display:block;width:100%;padding:1px 2px 8px;background:transparent;outline:none;border:0;resize:none;min-height:56px;max-height:220px;font-size:13.5px;line-height:1.7;color:#f1eee7}
+.harness-composer textarea{display:block;width:100%;field-sizing:content;padding:1px 2px 8px;background:transparent;outline:none;border:0;resize:none;min-height:56px;max-height:220px;font-size:13.5px;line-height:1.7;color:#f1eee7}
 .harness-composer textarea::placeholder{color:#8f8c84}
 .harness-composer textarea:focus-visible{outline:none}
 .harness-composer-bar{display:flex;align-items:center;gap:8px;min-width:0}
