@@ -6,28 +6,37 @@ type Feld = HTMLInputElement | HTMLTextAreaElement;
 const TEXTARTEN = new Set(["text", "search", "email", "url", "tel", "password", ""]);
 
 const UEBERNOMMEN = [
-  "boxSizing",
-  "width",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  "borderTopWidth",
-  "borderRightWidth",
-  "borderBottomWidth",
-  "borderLeftWidth",
-  "borderStyle",
-  "fontFamily",
-  "fontSize",
-  "fontWeight",
-  "fontStyle",
-  "letterSpacing",
-  "lineHeight",
-  "textTransform",
-  "wordSpacing",
-  "textIndent",
-  "tabSize",
+  "padding-top",
+  "padding-right",
+  "padding-bottom",
+  "padding-left",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "font-style",
+  "font-stretch",
+  "font-kerning",
+  "font-feature-settings",
+  "font-variation-settings",
+  "font-optical-sizing",
+  "font-size-adjust",
+  "font-variant-ligatures",
+  "font-variant-caps",
+  "font-variant-numeric",
+  "font-variant-east-asian",
+  "letter-spacing",
+  "word-spacing",
+  "line-height",
+  "text-transform",
+  "text-indent",
+  "text-align",
+  "text-rendering",
+  "tab-size",
+  "direction",
+  "hyphens",
 ] as const;
+
+const NULLBREITE = "​";
 
 function passt(el: Element | null): el is Feld {
   if (!el) return false;
@@ -93,43 +102,69 @@ export default function WeicheSchreibmarke() {
       bild.current = 0;
       if (!el.isConnected) return;
       const stil = getComputedStyle(el);
-      const s = spiegel.style as unknown as Record<string, string>;
-      for (const name of UEBERNOMMEN) s[name] = stil[name] as string;
+      for (const name of UEBERNOMMEN) spiegel.style.setProperty(name, stil.getPropertyValue(name));
+      const zahl = (name: string) => parseFloat(stil.getPropertyValue(name)) || 0;
+      const randLinks = zahl("border-left-width");
+      const randOben = zahl("border-top-width");
+      const raender = randLinks + zahl("border-right-width");
+      const polster = zahl("padding-left") + zahl("padding-right");
+      const leiste = Math.max(0, el.offsetWidth - el.clientWidth - raender);
+      const breite = Math.max(0, (parseFloat(stil.width) || el.clientWidth) - leiste - (stil.boxSizing === "border-box" ? polster + raender : 0));
       Object.assign(spiegel.style, {
-        position: "absolute",
+        position: "fixed",
         visibility: "hidden",
+        pointerEvents: "none",
         top: "0",
         left: "-99999px",
-        whiteSpace: einzeilig ? "pre" : "pre-wrap",
-        overflowWrap: einzeilig ? "normal" : "break-word",
-        wordBreak: einzeilig ? "normal" : "break-word",
+        margin: "0",
+        border: "0",
+        boxSizing: "content-box",
         overflow: "hidden",
         height: "auto",
-        width: einzeilig ? "auto" : stil.width,
+        width: `${breite}px`,
+        whiteSpace: einzeilig ? "pre" : stil.whiteSpace,
+        wordBreak: einzeilig ? "normal" : stil.wordBreak,
+        overflowWrap: einzeilig ? "normal" : stil.overflowWrap,
       });
       const wert = el instanceof HTMLInputElement && el.type === "password" ? "•".repeat(el.value.length) : el.value;
       const stelle = el.selectionEnd ?? wert.length;
-      spiegel.textContent = wert.slice(0, stelle);
       const marke = document.createElement("span");
-      marke.textContent = wert.slice(stelle, stelle + 1) || "​";
-      spiegel.appendChild(marke);
+      marke.textContent = wert.slice(stelle, stelle + 1) || NULLBREITE;
+      spiegel.replaceChildren(wert.slice(0, stelle), marke, wert.slice(stelle + 1) + NULLBREITE);
       const rahmen = el.getBoundingClientRect();
+      const spiegelRahmen = spiegel.getBoundingClientRect();
+      const teil = marke.getClientRects()[0] ?? marke.getBoundingClientRect();
       const schrift = parseFloat(stil.fontSize) || 15;
-      const zeile = parseFloat(stil.lineHeight) || schrift * 1.3;
-      const hoehe = Math.min(einzeilig ? schrift * 1.3 : zeile, rahmen.height);
-      const rand = parseFloat(stil.borderLeftWidth) || 0;
-      const oben = parseFloat(stil.borderTopWidth) || 0;
+      const hoehe = Math.min(teil.height || schrift * 1.3, rahmen.height);
+      const x = rahmen.left + randLinks + (teil.left - spiegelRahmen.left) - el.scrollLeft;
+      let y: number;
+      let verlaesslich = true;
+      if (einzeilig) {
+        const innenOben = rahmen.top + randOben + zahl("padding-top");
+        const innenHoehe = el.clientHeight - zahl("padding-top") - zahl("padding-bottom");
+        y = innenOben + (innenHoehe - hoehe) / 2;
+      } else {
+        y = rahmen.top + randOben + (teil.top - spiegelRahmen.top) - el.scrollTop;
+        const inhalt = spiegelRahmen.height;
+        verlaesslich =
+          el.scrollHeight > el.clientHeight + 1
+            ? Math.abs(inhalt - el.scrollHeight) <= 3
+            : inhalt <= el.clientHeight + 3;
+      }
+      const farbe = verlaesslich ? "transparent" : alteFarbe;
+      if (el.style.caretColor !== farbe) el.style.caretColor = farbe;
       const sichtbar =
+        verlaesslich &&
         document.activeElement === el &&
         el.selectionStart === el.selectionEnd &&
         rahmen.width > 0 &&
         rahmen.height > 0;
-      const x = rahmen.left + rand + marke.offsetLeft - el.scrollLeft;
-      const y = einzeilig
-        ? rahmen.top + (rahmen.height - hoehe) / 2
-        : rahmen.top + oben + marke.offsetTop - el.scrollTop + Math.max(0, (marke.offsetHeight - zeile) / 2);
-      const innerhalb = x >= rahmen.left - 1 && x <= rahmen.right + 1 && y >= rahmen.top - hoehe && y <= rahmen.bottom;
-      const schluessel = `${Math.round(x)}|${Math.round(y)}|${Math.round(hoehe)}|${sichtbar && innerhalb}`;
+      const innerhalb =
+        x >= rahmen.left - 1 &&
+        x <= rahmen.right + 1 &&
+        y >= rahmen.top - hoehe / 2 &&
+        y + hoehe <= rahmen.bottom + hoehe / 2;
+      const schluessel = `${x.toFixed(1)}|${y.toFixed(1)}|${hoehe.toFixed(1)}|${sichtbar && innerhalb}`;
       if (schluessel === letzte) return;
       letzte = schluessel;
       setLage({ x, y, hoehe, sichtbar: sichtbar && innerhalb });

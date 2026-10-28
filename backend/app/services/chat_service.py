@@ -577,9 +577,10 @@ async def route_providers(registry, primary: str, model: str) -> list[str]:
                 usable.append(name)
         elif model in models:
             usable.append(name)
-    healthy = [name for name in usable if not is_slow(name, model)]
-    stalled = [name for name in usable if is_slow(name, model)]
-    return healthy + stalled
+    rest = usable[1:]
+    healthy = [name for name in rest if not is_slow(name, model)]
+    stalled = [name for name in rest if is_slow(name, model)]
+    return [primary, *healthy, *stalled]
 
 
 async def attempt_plan_for(
@@ -601,9 +602,11 @@ async def attempt_plan_for(
     zweiter = ZWEITER_ERSATZ.get(primary, "")
     if zweiter and unbegrenzt() and (primary, zweiter) not in attempts and zweiter != model:
         attempts.append((primary, zweiter))
-    healthy = [a for a in attempts if not is_slow(a[0], a[1])]
-    stalled = [a for a in attempts if is_slow(a[0], a[1])]
-    return healthy + stalled
+    gewaehlt = [a for a in attempts if a == (primary, model)][:1]
+    rest = [a for a in attempts if a != (primary, model)]
+    healthy = [a for a in rest if not is_slow(a[0], a[1])]
+    stalled = [a for a in rest if is_slow(a[0], a[1])]
+    return gewaehlt + healthy + stalled
 
 
 def grundmodell(provider: str, slot: str = "emil") -> str:
@@ -671,7 +674,7 @@ def mit_ollama_ersatz(
     if is_slow(*ersatz):
         return [*attempts, ersatz]
     stelle = next(
-        (i for i, (name, model) in enumerate(attempts) if is_slow(name, model)),
+        (i for i, (name, model) in enumerate(attempts) if i and is_slow(name, model)),
         len(attempts),
     )
     return [*attempts[:stelle], ersatz, *attempts[stelle:]]

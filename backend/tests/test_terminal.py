@@ -466,8 +466,7 @@ def test_terminal_weicht_auf_ein_anderes_modell_aus(monkeypatch, tmp_path):
 
     chat_service.mark_slow("nvidia", "modell-a")
     wege = asyncio.run(terminal._wege())
-    assert wege[0] != ("nvidia", "modell-a")
-    assert ("nvidia", "modell-a") in wege
+    assert wege[0] == ("nvidia", "modell-a")
 
 
 async def _fertig(wert):

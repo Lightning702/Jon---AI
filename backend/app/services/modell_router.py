@@ -60,8 +60,7 @@ class ModelRouter:
             route = []
         if not route:
             route = [(provider, model)]
-        if (provider, model) not in route:
-            route.insert(0, (provider, model))
+        route = [(provider, model), *[r for r in route if r != (provider, model)]]
         from app.services.offline import aktiv as offline, lokal, lokales_modell
 
         if offline():

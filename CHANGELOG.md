@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.66.6] — 2026-10-28
+
+### Schreiben ohne verrutschten Cursor, Modellwahl bleibt
+
+- **Cursor an der richtigen Stelle:** Der goldene Cursor (weiche Schreibmarke) stand in längeren Eingaben mitten im Wort, etwa bei „Optimir|ung“, im Harness genauso wie in allen anderen Eingabefeldern. Er hat die Scrollleiste des Felds nicht mitgerechnet und nur den Text bis zum Cursor ausgemessen, dadurch brach er die Zeilen anders um als das echte Feld. Jetzt misst er mit der echten Breite und dem ganzen Text. Passt die Messung einmal nicht, zeigt das Feld automatisch den normalen Cursor. Geprüft an jeder einzelnen Stelle: mit Scrollleiste vorher 1155 von 1276 Stellen falsch, jetzt keine.
+- **Eingabefelder wachsen mit:** Im Harness, in Jon Code, im /btw-Fenster und im Freunde-Chat sah man beim Schreiben nur ein oder zwei Zeilen. Die Felder wachsen jetzt mit dem Text bis zu ihrer Höchsthöhe.
+- **Deine Modellwahl bleibt:** War das gewählte Modell überlastet, merkte sich Jon es 15 Minuten lang als langsam und nahm auch bei den nächsten Nachrichten das Ersatzmodell, etwa Nemotron Lightning statt Ultra. Jetzt weicht Jon nur für die eine Antwort aus und versucht bei jeder neuen Nachricht zuerst wieder dein ausgewähltes Modell. Gilt im Chat, im Harness, im Terminal und für Jons interne Anfragen.
+
 ## [4.66.5] — 2026-10-26
 
 ### BLITZBAHN fährt sich viel besser
