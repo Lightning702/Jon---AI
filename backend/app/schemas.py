@@ -172,6 +172,8 @@ class SettingsIn(BaseModel):
     budget_euro_monat: float | None = None
     budget_warnung: float | None = None
     semantik_modell: str | None = None
+    design: dict | None = None
+    design_liste: list[dict] | None = None
 
 
 class BrowserConfirmIn(BaseModel):

@@ -2,8 +2,8 @@
   --lw-rand: rgba(255, 255, 255, 0.09);
   --lw-text: rgba(255, 255, 255, 0.9);
   --lw-leise: rgba(255, 255, 255, 0.52);
-  --lw-gold: #d4af37;
-  --lw-gold-hell: #f3d77a;
+  --lw-gold: rgb(var(--gold-rgb));
+  --lw-gold-hell: rgb(var(--gold-light-rgb));
   --lw-gruen: #34d399;
   --lw-rot: #f87171;
   --lw-flaeche: rgba(255, 255, 255, 0.04);
@@ -21,8 +21,8 @@
 }
 
 .lw.lw-laeuft {
-  border-color: rgba(212, 175, 55, 0.35);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.08), 0 14px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgb(var(--gold-rgb) / 0.35);
+  box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.08), 0 14px 40px rgba(0, 0, 0, 0.3);
 }
 
 .lw *,
@@ -59,7 +59,7 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: rgba(212, 175, 55, 0.14);
+  background: rgb(var(--gold-rgb) / 0.14);
   color: var(--lw-gold-hell);
   flex-shrink: 0;
 }
@@ -107,7 +107,7 @@
 }
 
 .lw-pille.laeuft {
-  background: rgba(212, 175, 55, 0.16);
+  background: rgb(var(--gold-rgb) / 0.16);
   color: var(--lw-gold-hell);
 }
 
@@ -226,7 +226,7 @@
 }
 
 .lw-schalter button.an {
-  background: rgba(212, 175, 55, 0.2);
+  background: rgb(var(--gold-rgb) / 0.2);
   color: var(--lw-gold-hell);
 }
 
@@ -274,7 +274,7 @@
   margin: 0;
   font-size: 11.5px;
   color: var(--lw-leise);
-  border-left: 2px solid rgba(212, 175, 55, 0.35);
+  border-left: 2px solid rgb(var(--gold-rgb) / 0.35);
   padding-left: 8px;
 }
 
@@ -282,7 +282,7 @@
   margin: 0;
   padding: 8px 10px 8px 26px;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.07);
+  background: rgb(var(--gold-rgb) / 0.07);
   font-size: 11.5px;
   color: var(--lw-leise);
 }
@@ -1095,13 +1095,13 @@
 }
 
 .lw-schritte li.dran {
-  border-color: rgba(212, 175, 55, 0.35);
-  background: rgba(212, 175, 55, 0.08);
+  border-color: rgb(var(--gold-rgb) / 0.35);
+  background: rgb(var(--gold-rgb) / 0.08);
   color: var(--lw-text);
 }
 
 .lw-schritte li.dran i {
-  background: rgba(212, 175, 55, 0.2);
+  background: rgb(var(--gold-rgb) / 0.2);
   color: var(--lw-gold-hell);
 }
 
@@ -1445,7 +1445,7 @@
 }
 
 .lw-c-zeile.aktiv {
-  background: rgba(212, 175, 55, 0.07);
+  background: rgb(var(--gold-rgb) / 0.07);
 }
 
 .lw-c-nr {

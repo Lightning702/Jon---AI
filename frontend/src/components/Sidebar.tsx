@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import type { ConversationSummary } from "../lib/api";
 import { useT } from "../hooks/useT";
+import { useDesign } from "../lib/design";
 
 interface Props {
   conversations: ConversationSummary[];
@@ -25,6 +26,7 @@ export default function Sidebar({
   onClose,
 }: Props) {
   const { t } = useT();
+  const design = useDesign();
   const [query, setQuery] = useState("");
   const filtered = query.trim()
     ? conversations.filter((c) =>
@@ -40,7 +42,7 @@ export default function Sidebar({
         />
       )}
       <aside
-        className={`glass-strong flex flex-col border-r border-white/10 fixed inset-y-0 left-0 z-50 w-[84vw] max-w-xs transition-transform duration-300 md:static md:z-auto md:w-72 md:max-w-none md:h-full md:translate-x-0 ${
+        className={`glass-strong flex flex-col fixed inset-y-0 left-0 z-50 w-[84vw] max-w-xs transition-transform duration-300 md:static md:z-auto md:w-72 md:max-w-none md:h-full md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -106,8 +108,13 @@ export default function Sidebar({
           </p>
         )}
       </div>
-      <div className="px-4 min-h-[3.25rem] flex items-center safe-bottom text-[11px] text-white/30 border-t border-white/10">
-        {version ? `Jon Desktop v${version}` : "Jon Desktop"}
+      <div className="px-4 py-2 min-h-[3.25rem] flex flex-wrap items-center gap-x-2 gap-y-0.5 safe-bottom text-[11px] text-white/30 border-t border-white/10">
+        <span className="shrink-0">{version ? `Jon Desktop v${version}` : "Jon Desktop"}</span>
+        {design.widmung && design.widmungText.trim() && (
+          <span className="jon-widmung" title={design.widmungText}>
+            {design.widmungText}
+          </span>
+        )}
       </div>
       </aside>
     </>

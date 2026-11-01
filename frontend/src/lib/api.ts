@@ -296,6 +296,8 @@ export async function deleteSkill(name: string): Promise<void> {
 }
 
 export interface UserSettings {
+  design?: Record<string, unknown>;
+  design_liste?: Record<string, unknown>[];
   custom_prompt: string;
   prompt_mode: string;
   tool_mode: string;

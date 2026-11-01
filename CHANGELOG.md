@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.66.7] — 2026-11-01
+
+### Design-Studio: Jon sieht aus, wie du willst
+
+- **Eine Farbe für alles:** Unter Einstellungen → Design → „Design-Studio …“ wählst du die Akzentfarbe, und alles, was bisher gold war, zieht mit: Knöpfe, Schalter, Markierungen, Harness, Werkstatt und die Kugel auf der Startseite. Dazu Textfarbe, Flächen, Ränder und Seitenleiste, jeweils mit eigener Deckkraft.
+- **Chat nach Wunsch:** Eigene Farben für deine Nachrichten, Jons Antworten, das Eingabefeld und den Senden-Knopf. Was du nicht änderst, folgt automatisch der Akzentfarbe.
+- **Eigene Hintergründe:** Ein Bild oder Video hochladen (bis 300 MB, auch per Hineinziehen) oder einen Link einfügen, mit Helligkeit, Unschärfe, Abdunkeln und Tempo. Oder einer von fünf Live-Hintergründen: Aurora, Sterne, Wellen, Netz und Nebel.
+- **Die ganze App:** Helligkeit, Kontrast, Sättigung und Farbton für alles, Rundung der Ecken, Glas-Unschärfe, sechs Schriftarten und in der Desktop-App die Größe der Oberfläche.
+- **Vorlagen und eigene Designs:** Elf fertige Vorlagen und „Überrasch mich“. Dein aktuelles Design speicherst du unter einem Namen, es erscheint mit echter Vorschau und bleibt dauerhaft erhalten, auch in der Web-App und am Handy.
+- **Eigener Text:** Neben der Versionsnummer unten links kann ein eigener Text stehen, bei jedem Hintergrund ein- und ausschaltbar.
+- **App-Symbol:** Das Jon-Symbol in Fenster, Taskleiste und Verknüpfungen nimmt die Farbe deines Designs an.
+- **Immer zurück zum Standard:** Jede Einstellung, jeder Bereich und das ganze Design lassen sich mit einem Klick auf Jons Standard zurücksetzen, „Rückgängig“ inklusive.
+
 ## [4.66.6] — 2026-10-28
 
 ### Schreiben ohne verrutschten Cursor, Modellwahl bleibt

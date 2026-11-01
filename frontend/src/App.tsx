@@ -54,6 +54,7 @@ const DateiAnsicht = lazy(() => import("./components/DateiAnsicht"));
 import { VoiceListener } from "./lib/voice";
 import { MIKROFON_FEHLT, mikrofonMoeglich } from "./lib/umgebung";
 import { applyTheme, istTheme } from "./lib/theme";
+import { vomServer } from "./lib/design";
 import { initTts, setNaturalVoice, speak, stopSpeaking } from "./lib/tts";
 import MediaPanel from "./components/MediaPanel";
 import AgentenDock from "./components/agenten/AgentenDock";
@@ -456,6 +457,7 @@ export default function App() {
         localStorage.setItem("jon_theme", saved.theme);
         applyTheme(saved.theme);
       }
+      vomServer(saved.design, saved.design_liste);
       const savedProv = provs.find(
         (p) =>
           p.provider === saved.provider &&
@@ -2398,7 +2400,7 @@ Diese Datei liegt auf dem PC unter: ${a.pfad}` : "")
                 }
                 className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
                   voiceOn
-                    ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
+                    ? "border-gold/40 bg-gold/10 text-gold-light"
                     : "border-white/10 bg-white/5 text-white/30"
                 } ${mikrofonDa ? "" : "opacity-40"}`}
               >

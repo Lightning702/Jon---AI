@@ -270,7 +270,7 @@ export default function Composer({ disabled, onSend, onStop, streaming, wartesch
           </div>
         )}
         <div
-          className={`glass rounded-2xl p-2 transition-colors ${
+          className={`glass jon-eingabe rounded-2xl p-2 transition-colors ${
             dragging ? "border border-gold/60 bg-gold/10" : ""
           }`}
         >
@@ -393,7 +393,7 @@ export default function Composer({ disabled, onSend, onStop, streaming, wartesch
               <button
                 onClick={submit}
                 disabled={disabled || loading || (!text.trim() && ready.length === 0)}
-                className="px-4 md:px-5 py-2.5 md:py-2 shrink-0 rounded-xl bg-gradient-to-r from-gold-light to-gold-dark text-black font-semibold shadow-gold disabled:opacity-40 hover:brightness-110 transition"
+                className="px-4 md:px-5 py-2.5 md:py-2 shrink-0 rounded-xl jon-senden font-semibold disabled:opacity-40 hover:brightness-110 transition"
               >
                 {loading ? "Lese …" : "Senden"}
               </button>

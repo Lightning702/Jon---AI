@@ -7,9 +7,36 @@
   --gold-rgb: 212 175 55;
   --gold-light-rgb: 245 214 123;
   --gold-dark-rgb: 154 123 31;
+  --gold-sanft-rgb: 229 200 137;
+  --gold-hauch-rgb: 255 241 201;
   --ink-rgb: 15 15 20;
   --tint-rgb: 0 0 0;
   --sheet-rgb: 240 238 230;
+  --weiss-rgb: 255 255 255;
+  --hg-basis-rgb: 5 5 6;
+  --hg-leuchten-rgb: 20 20 28;
+  --hg-tiefe-rgb: 0 0 0;
+  --flaeche-rgb: 255 255 255;
+  --flaeche-a: 0.05;
+  --rand-rgb: 255 255 255;
+  --rand-a: 0.1;
+  --leiste-rgb: 0 0 0;
+  --leiste-a: 0.4;
+  --nb1-rgb: var(--gold-light-rgb);
+  --nb2-rgb: var(--gold-dark-rgb);
+  --nb-text-rgb: 0 0 0;
+  --jb-rgb: var(--flaeche-rgb);
+  --jb-a: 0.05;
+  --jb-text-rgb: var(--weiss-rgb);
+  --eingabe-rgb: var(--flaeche-rgb);
+  --eingabe-a: 0.05;
+  --senden1-rgb: var(--gold-light-rgb);
+  --senden2-rgb: var(--gold-dark-rgb);
+  --senden-text-rgb: 0 0 0;
+  --jd-rund: 1;
+  --jd-glas: 1;
+  --jd-schrift: Inter, "Segoe UI";
+  --jd-filter: brightness(1);
 }
 
 html,
@@ -28,9 +55,9 @@ body,
 }
 
 body {
-  background: radial-gradient(circle at 20% 0%, #14141c 0%, #050506 55%, #000 100%);
-  color: #f5f5f7;
-  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  background: radial-gradient(circle at 20% 0%, rgb(var(--hg-leuchten-rgb)) 0%, rgb(var(--hg-basis-rgb)) 55%, rgb(var(--hg-tiefe-rgb)) 100%);
+  color: rgb(var(--weiss-rgb) / 0.96);
+  font-family: var(--jd-schrift), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
   overscroll-behavior: none;
@@ -79,10 +106,34 @@ body {
 
 @layer components {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-glass;
+    @apply shadow-glass;
+    background-color: rgb(var(--flaeche-rgb) / var(--flaeche-a));
+    -webkit-backdrop-filter: blur(calc(24px * var(--jd-glas)));
+    backdrop-filter: blur(calc(24px * var(--jd-glas)));
+    border: 1px solid rgb(var(--rand-rgb) / var(--rand-a));
   }
   .glass-strong {
-    @apply bg-black/40 backdrop-blur-2xl border border-white/10;
+    background-color: rgb(var(--leiste-rgb) / var(--leiste-a));
+    -webkit-backdrop-filter: blur(calc(40px * var(--jd-glas)));
+    backdrop-filter: blur(calc(40px * var(--jd-glas)));
+    border: 1px solid rgb(var(--rand-rgb) / var(--rand-a));
+  }
+  .jon-nutzerblase {
+    background-image: linear-gradient(to bottom right, rgb(var(--nb1-rgb) / 0.9), rgb(var(--nb2-rgb) / 0.9));
+    color: rgb(var(--nb-text-rgb));
+    box-shadow: 0 10px 30px rgb(var(--nb2-rgb) / 0.18);
+  }
+  .jon-jonblase {
+    background-color: rgb(var(--jb-rgb) / var(--jb-a));
+    color: rgb(var(--jb-text-rgb) / 0.9);
+  }
+  .jon-eingabe {
+    background-color: rgb(var(--eingabe-rgb) / var(--eingabe-a));
+  }
+  .jon-senden {
+    background-image: linear-gradient(to right, rgb(var(--senden1-rgb)), rgb(var(--senden2-rgb)));
+    color: rgb(var(--senden-text-rgb));
+    box-shadow: 0 0 24px rgb(var(--senden1-rgb) / 0.25);
   }
   .gold-text {
     background: linear-gradient(
@@ -114,12 +165,132 @@ body {
   }
 }
 
+html.jd-filter {
+  filter: var(--jd-filter);
+}
+
 html.light {
-  filter: invert(1) hue-rotate(180deg) brightness(0.9);
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) var(--jd-filter);
 }
 
 html.light.cozy {
-  filter: invert(1) hue-rotate(180deg) brightness(0.88) sepia(0.42) saturate(1.3);
+  filter: invert(1) hue-rotate(180deg) brightness(0.88) sepia(0.42) saturate(1.3) var(--jd-filter);
+}
+
+.jd-hintergrund {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgb(var(--hg-basis-rgb));
+}
+
+.jd-hintergrund > .jd-medien {
+  position: absolute;
+  inset: 0;
+}
+
+.jd-medien > img,
+.jd-medien > video,
+.jd-medien > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.jd-herzflug-ebene {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482000;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.jd-herzflug {
+  position: absolute;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: jd-herzflug 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes jd-herzflug {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--dreh)) scale(0.9);
+  }
+}
+
+html.jd-herzen .rounded-full.bg-gold:has(+ .gold-text) {
+  border-radius: 0;
+  box-shadow: none;
+  background: linear-gradient(135deg, #ff8fb8, #e0164f);
+  clip-path: path("M6 11.2C2.3 8.4 0 6.3 0 3.6 0 1.6 1.5 0 3.4 0 4.5 0 5.4.5 6 1.4 6.6.5 7.5 0 8.6 0 10.5 0 12 1.6 12 3.6 12 6.3 9.7 8.4 6 11.2Z");
+  animation: jd-herzschlag 1.4s ease-in-out infinite;
+}
+
+@keyframes jd-herzschlag {
+  0%,
+  40%,
+  100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.22);
+  }
+  28% {
+    transform: scale(1.08);
+  }
+}
+
+.jon-widmung {
+  min-width: 0;
+  color: rgb(var(--gold-light-rgb) / 0.95);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.45);
+  overflow-wrap: anywhere;
+}
+
+html.jd-herzen .jon-widmung {
+  font-family: "Segoe Print", "Segoe UI", sans-serif;
+  animation: jd-widmung 3.2s ease-in-out infinite;
+}
+
+@keyframes jd-widmung {
+  0%,
+  100% {
+    text-shadow: 0 0 10px rgb(var(--gold-rgb) / 0.35);
+  }
+  50% {
+    text-shadow: 0 0 18px rgb(var(--gold-rgb) / 0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.jd-herzen .rounded-full.bg-gold:has(+ .gold-text),
+  html.jd-herzen .jon-widmung {
+    animation: none;
+  }
+}
+
+.jd-hintergrund > .jd-abdunkeln {
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--hg-basis-rgb));
 }
 
 html.light :is(img, video, iframe, canvas, picture, .lw-folie, .lw-papier, .lw-blatt, .da-seite, .da-tabelle, .jm-root, [data-jm-theme], .jt-echt):not(:is(.lw-folie, .lw-papier, .lw-blatt, .da-seite, .da-tabelle, .jm-root, [data-jm-theme], .jt-echt) *) {
@@ -248,7 +419,7 @@ html.light.cozy :is(img, video, iframe, canvas, picture, .lw-folie, .lw-papier, 
   position: absolute;
   inset: 4px;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 28%, #fff1c9, rgb(var(--gold-rgb)) 55%, rgb(var(--gold-dark-rgb)));
+  background: radial-gradient(circle at 34% 28%, rgb(var(--gold-hauch-rgb)), rgb(var(--gold-rgb)) 55%, rgb(var(--gold-dark-rgb)));
   box-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.55);
   animation: jon-atmen 1.6s ease-in-out infinite;
 }

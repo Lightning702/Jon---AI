@@ -1,9 +1,14 @@
-const { contextBridge, ipcRenderer, webUtils } = require("electron");
+const { contextBridge, ipcRenderer, webUtils, webFrame } = require("electron");
 
 const jonToken = (process.argv.find((a) => a.startsWith("--jon-token=")) || "").slice(12);
 
 contextBridge.exposeInMainWorld("jon", {
   token: jonToken,
+  setZoom: (faktor) => {
+    const wert = Number(faktor);
+    if (Number.isFinite(wert) && wert >= 0.5 && wert <= 2) webFrame.setZoomFactor(wert);
+  },
+  setAppIcon: (png) => ipcRenderer.invoke("design:icon", typeof png === "string" ? png : ""),
   getToken: () => ipcRenderer.invoke("auth:token"),
   onToken: (cb) => ipcRenderer.on("jon:token", (_e, value) => cb(value)),
   angemeldet: () => ipcRenderer.invoke("anmeldung:ok"),

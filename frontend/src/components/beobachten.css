@@ -1,6 +1,6 @@
 .bo{display:flex;flex-direction:column;gap:12px;color:#ece9e1}
 .bo-kopf{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:16px;border:1px solid rgba(229,200,137,.22);background:linear-gradient(160deg,rgba(229,200,137,.09),rgba(255,255,255,.015))}
-.bo-icon{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#1b160a;background:radial-gradient(circle at 34% 28%,#fff1c9,#e5c889 55%,#9a7b1f);box-shadow:0 0 18px rgba(229,200,137,.3);position:relative}
+.bo-icon{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#1b160a;background:radial-gradient(circle at 34% 28%,rgb(var(--gold-hauch-rgb)),rgb(var(--gold-sanft-rgb)) 55%,rgb(var(--gold-dark-rgb)));box-shadow:0 0 18px rgba(229,200,137,.3);position:relative}
 .bo-icon::after{content:"";position:absolute;inset:-4px;border-radius:15px;border:1.5px solid transparent;border-top-color:rgba(229,200,137,.8);animation:bo-dreh 3s linear infinite}
 .bo-kopf strong{font-size:14px;color:#f3e2b5}
 .bo-kopf p{margin:3px 0 0;font-size:12px;line-height:1.6;color:#a9a497}
@@ -26,10 +26,10 @@
 .bo-gestoppt{opacity:.62}
 .bo-eintrag-kopf{display:flex;align-items:center;gap:9px}
 .bo-eintrag-kopf strong{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bo-punkt{flex:none;width:8px;height:8px;border-radius:50%;background:#e5c889;box-shadow:0 0 10px rgba(229,200,137,.7);animation:bo-puls 2s ease-in-out infinite}
+.bo-punkt{flex:none;width:8px;height:8px;border-radius:50%;background:rgb(var(--gold-sanft-rgb));box-shadow:0 0 10px rgba(229,200,137,.7);animation:bo-puls 2s ease-in-out infinite}
 .bo-erfuellt .bo-punkt{background:#7fe0a4;box-shadow:0 0 10px rgba(127,224,164,.7)}
 .bo-gestoppt .bo-punkt{background:#666;box-shadow:none;animation:none}
-.bo-status{display:inline-flex;align-items:center;gap:5px;flex:none;font-size:10.5px;font-weight:650;padding:3px 9px;border-radius:999px;color:#e5c889;background:rgba(229,200,137,.1)}
+.bo-status{display:inline-flex;align-items:center;gap:5px;flex:none;font-size:10.5px;font-weight:650;padding:3px 9px;border-radius:999px;color:rgb(var(--gold-sanft-rgb));background:rgba(229,200,137,.1)}
 .bo-erfuellt .bo-status{color:#7fe0a4;background:rgba(127,224,164,.12)}
 .bo-gestoppt .bo-status{color:#999;background:rgba(255,255,255,.06)}
 .bo-meta{display:block;margin:5px 0 0 17px;font-size:11px;color:#8f8a7c}
@@ -53,11 +53,11 @@
 .sp-arten{display:flex;flex-wrap:wrap;gap:6px}
 .sp-arten button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.1);font-size:11.5px;color:#bdb7a8;transition:border-color .2s,background .2s,color .2s}
 .sp-arten button:hover{border-color:rgba(229,200,137,.4)}
-.sp-arten button.an{color:#1b160a;border-color:transparent;background:linear-gradient(135deg,#fff1c9,#e5c889)}
+.sp-arten button.an{color:#1b160a;border-color:transparent;background:linear-gradient(135deg,rgb(var(--gold-hauch-rgb)),rgb(var(--gold-sanft-rgb)))}
 .sp-text{width:100%;min-height:140px;padding:10px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#eee;font-size:12.5px;line-height:1.6;outline:none;resize:vertical}
 .sp-text:focus{border-color:rgba(229,200,137,.55)}
 .sp-infos{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#8f8a7c}
-.sp-infos input{accent-color:#e5c889}
+.sp-infos input{accent-color:rgb(var(--gold-sanft-rgb))}
 .sp-knoepfe{flex-wrap:wrap;justify-content:flex-end}
 .sp-mail,.sp-kopieren{display:inline-flex!important;align-items:center;gap:6px;height:36px!important;padding:0 13px!important;border-radius:11px!important;border:1px solid rgba(255,255,255,.12)!important;background:transparent!important;box-shadow:none!important;color:#cfc6ae!important;font-weight:500!important;font-size:12px!important;text-decoration:none}
 .sp-mail.aus{opacity:.4;pointer-events:none}
@@ -80,11 +80,11 @@
 .bo-karte .sp-text{background:#0b0b0e;border-radius:12px;min-height:150px}
 .bo-karte .bo-zeile button{height:40px;border-radius:12px}
 .bo-hinweis{display:flex;align-items:center;gap:7px}
-.bo-hinweis svg{flex:none;color:#e5c889}
+.bo-hinweis svg{flex:none;color:rgb(var(--gold-sanft-rgb))}
 .bo-abschnitt{display:flex;align-items:center;gap:8px;padding:2px 4px;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8f8a7c}
-.bo-abschnitt em{font-style:normal;letter-spacing:0;text-transform:none;font-size:10.5px;padding:1px 8px;border-radius:999px;color:#e5c889;background:rgba(229,200,137,.1)}
+.bo-abschnitt em{font-style:normal;letter-spacing:0;text-transform:none;font-size:10.5px;padding:1px 8px;border-radius:999px;color:rgb(var(--gold-sanft-rgb));background:rgba(229,200,137,.1)}
 .bo-leer-karte{display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px 16px;border-radius:17px;border:1px dashed rgba(229,200,137,.2);text-align:center}
-.bo-leer-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#e5c889;background:rgba(229,200,137,.08);margin-bottom:4px}
+.bo-leer-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:rgb(var(--gold-sanft-rgb));background:rgba(229,200,137,.08);margin-bottom:4px}
 .bo-leer-karte strong{font-size:13px;color:#e9e2cf}
 .bo-leer-karte p{margin:0;font-size:11.5px;color:#8f8a7c}
 .bo-beispiele{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:4px}
@@ -93,7 +93,7 @@
 .sp-info{display:flex;flex-direction:column;gap:8px;min-width:0}
 .sp-info-karte{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:13px 14px;border-radius:15px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
 .sp-info-titel{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:650;color:#e9dfc4}
-.sp-info-titel svg{color:#e5c889}
+.sp-info-titel svg{color:rgb(var(--gold-sanft-rgb))}
 .sp-info-karte code{font-size:12px;color:#f3e2b5;overflow-wrap:anywhere}
 .sp-info-karte p{margin:0;font-size:11.5px;line-height:1.6;color:#a29d90}
 .sp-info-karte button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.1);font-size:11px;color:#cfc6ae;transition:border-color .2s}

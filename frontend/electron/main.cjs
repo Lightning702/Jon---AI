@@ -9,6 +9,7 @@ const {
   Menu,
   screen,
   session,
+  nativeImage,
 } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -563,6 +564,128 @@ app.on("web-contents-created", (_event, contents) => {
   });
 });
 
+function designSymbolOrdner() {
+  return path.join(app.getPath("userData"), "design-symbol");
+}
+
+function designSymbolAktuell() {
+  try {
+    const name = fs.readFileSync(path.join(designSymbolOrdner(), "aktuell.txt"), "utf8").trim();
+    if (!/^jon-[0-9a-f]{12}$/.test(name)) return "";
+    const basis = path.join(designSymbolOrdner(), name);
+    return fs.existsSync(basis + ".png") && fs.existsSync(basis + ".ico") ? basis : "";
+  } catch {
+    return "";
+  }
+}
+
+function fensterSymbol() {
+  const basis = designSymbolAktuell();
+  return basis ? basis + ".png" : path.join(__dirname, "icon.png");
+}
+
+function alsIco(bild) {
+  const groessen = [16, 24, 32, 48, 64, 128, 256];
+  const teile = groessen.map((g) => bild.resize({ width: g, height: g, quality: "best" }).toPNG());
+  const kopf = Buffer.alloc(6 + 16 * teile.length);
+  kopf.writeUInt16LE(0, 0);
+  kopf.writeUInt16LE(1, 2);
+  kopf.writeUInt16LE(teile.length, 4);
+  let versatz = kopf.length;
+  teile.forEach((daten, i) => {
+    const g = groessen[i] >= 256 ? 0 : groessen[i];
+    const stelle = 6 + i * 16;
+    kopf.writeUInt8(g, stelle);
+    kopf.writeUInt8(g, stelle + 1);
+    kopf.writeUInt16LE(1, stelle + 4);
+    kopf.writeUInt16LE(32, stelle + 6);
+    kopf.writeUInt32LE(daten.length, stelle + 8);
+    kopf.writeUInt32LE(versatz, stelle + 12);
+    versatz += daten.length;
+  });
+  return Buffer.concat([kopf, ...teile]);
+}
+
+function jonVerknuepfungen() {
+  if (process.platform !== "win32" || !app.isPackaged) return [];
+  const exe = path.resolve(app.getPath("exe")).toLowerCase();
+  const appData = app.getPath("appData");
+  const ordner = [
+    app.getPath("desktop"),
+    path.join(appData, "Microsoft", "Windows", "Start Menu", "Programs"),
+    path.join(appData, "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar"),
+  ];
+  const gefunden = [];
+  for (const verzeichnis of ordner) {
+    let namen = [];
+    try {
+      namen = fs.readdirSync(verzeichnis);
+    } catch {
+      continue;
+    }
+    for (const name of namen) {
+      if (!name.toLowerCase().endsWith(".lnk")) continue;
+      const datei = path.join(verzeichnis, name);
+      try {
+        const info = shell.readShortcutLink(datei);
+        if (info.target && path.resolve(info.target).toLowerCase() === exe) gefunden.push({ datei, icon: info.icon || "" });
+      } catch {}
+    }
+  }
+  return gefunden;
+}
+
+function verknuepfungenSymbol(symbol) {
+  const eigenerOrdner = path.resolve(designSymbolOrdner()).toLowerCase();
+  for (const { datei, icon } of jonVerknuepfungen()) {
+    const bisher = icon ? path.resolve(icon).toLowerCase() : "";
+    if (symbol) {
+      if (bisher === path.resolve(symbol).toLowerCase()) continue;
+    } else if (!bisher.startsWith(eigenerOrdner)) {
+      continue;
+    }
+    try {
+      shell.writeShortcutLink(datei, "update", { icon: symbol || app.getPath("exe"), iconIndex: 0 });
+    } catch {}
+  }
+}
+
+function designSymbolAufraeumen(ordner, behalten) {
+  try {
+    const dateien = fs
+      .readdirSync(ordner)
+      .filter((name) => /^jon-[0-9a-f]{12}\.(png|ico)$/.test(name) && !name.startsWith(behalten))
+      .map((name) => ({ name, zeit: fs.statSync(path.join(ordner, name)).mtimeMs }))
+      .sort((a, b) => b.zeit - a.zeit);
+    for (const alt of dateien.slice(10)) fs.rmSync(path.join(ordner, alt.name), { force: true });
+  } catch {}
+}
+
+function designSymbolSetzen(daten) {
+  const ordner = designSymbolOrdner();
+  fs.mkdirSync(ordner, { recursive: true });
+  const praefix = "data:image/png;base64,";
+  if (typeof daten === "string" && daten.startsWith(praefix) && daten.length < 4000000) {
+    const png = Buffer.from(daten.slice(praefix.length), "base64");
+    const bild = nativeImage.createFromBuffer(png);
+    if (bild.isEmpty()) return { ok: false, error: "Das Symbol ist leer." };
+    const name = "jon-" + crypto.createHash("sha1").update(png).digest("hex").slice(0, 12);
+    const basis = path.join(ordner, name);
+    if (!fs.existsSync(basis + ".png")) fs.writeFileSync(basis + ".png", png);
+    if (!fs.existsSync(basis + ".ico")) fs.writeFileSync(basis + ".ico", alsIco(bild));
+    fs.writeFileSync(path.join(ordner, "aktuell.txt"), name);
+    designSymbolAufraeumen(ordner, name);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setIcon(bild);
+    verknuepfungenSymbol(basis + ".ico");
+    return { ok: true };
+  }
+  const hatteEigenes = !!designSymbolAktuell();
+  fs.writeFileSync(path.join(ordner, "aktuell.txt"), "");
+  if (hatteEigenes && mainWindow && !mainWindow.isDestroyed()) mainWindow.setIcon(path.join(__dirname, "icon.png"));
+  if (hatteEigenes) verknuepfungenSymbol("");
+  return { ok: true };
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -573,7 +696,7 @@ function createWindow() {
     show: false,
     frame: false,
     titleBarStyle: "hidden",
-    icon: path.join(__dirname, "icon.png"),
+    icon: fensterSymbol(),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       additionalArguments: tokenArgs(),
@@ -696,6 +819,13 @@ ipcMain.handle("window:moveBy", (_event, dx, dy) => {
 });
 
 ipcMain.handle("auth:token", async () => refreshToken());
+ipcMain.handle("design:icon", (_event, daten) => {
+  try {
+    return designSymbolSetzen(daten);
+  } catch (fehler) {
+    return { ok: false, error: String(fehler && fehler.message ? fehler.message : fehler) };
+  }
+});
 ipcMain.handle("private:open", () => openPrivateBrowser());
 ipcMain.handle("private:open-in-app", () => openPrivateInApp());
 ipcMain.handle("private:minimize", () => privateWindow && privateWindow.minimize());
@@ -1066,6 +1196,10 @@ app.whenReady().then(() => {
   createWindow();
   void startBackend();
   setTimeout(() => void verknuepfungAnbieten(), 4000);
+  setTimeout(() => {
+    const basis = designSymbolAktuell();
+    if (basis) verknuepfungenSymbol(basis + ".ico");
+  }, 9000);
   void tokenAbgleich();
   void privatSchleife();
   tray = new Tray(path.join(__dirname, "tray.png"));
