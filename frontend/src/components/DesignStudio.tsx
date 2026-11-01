@@ -299,7 +299,7 @@ function Vorschau() {
     <div className="ds-vorschau" style={{ "--weiss-rgb": rgbText(d.text) } as CSSProperties} aria-label="Vorschau">
       <div className="ds-vorschau-grund" style={grund}>
         {d.hintergrundArt === "bild" && url && <img src={url} alt="" style={medien} />}
-        {d.hintergrundArt === "video" && url && <video src={url} style={medien} autoPlay loop muted playsInline />}
+        {d.hintergrundArt === "video" && url && <video key={url} src={`${url}#t=0.5`} style={medien} muted playsInline preload="metadata" />}
         {d.hintergrundArt !== "farbe" && d.abdunkeln > 0 && <div className="absolute inset-0" style={{ background: d.hintergrund, opacity: d.abdunkeln / 100 }} />}
       </div>
       <div className="flex h-full">
@@ -823,7 +823,17 @@ function HintergrundReiter() {
       </Gruppe>
 
       {d.hintergrundArt !== "farbe" && (
-        <Gruppe titel="Wirkung" felder={["anpassung", "bildHelligkeit", "bildUnschaerfe", "abdunkeln", "tempo"]}>
+        <Gruppe titel="Wirkung" felder={["anpassung", "bildHelligkeit", "bildUnschaerfe", "abdunkeln", "tempo", "fluessig"]}>
+          {d.hintergrundArt === "video" && (
+            <div className="ds-zeile">
+              <div className="ds-titel">
+                <b>Flüssig-Modus</b>
+                <small>Fenster werden über dem Video abgedunkelt statt weichgezeichnet. Das spart am meisten Rechenleistung und verhindert Ruckeln.</small>
+              </div>
+              <Schalter an={d.fluessig} onClick={() => designAendern({ fluessig: !d.fluessig })} titel="Flüssig-Modus" />
+              <ZurueckKnopf aktiv={d.fluessig !== STANDARD.fluessig} onClick={() => zuruecksetzen(["fluessig"])} />
+            </div>
+          )}
           {datei && (
             <div className="py-1.5 flex items-center gap-2">
               <div className="flex-1">

@@ -184,6 +184,34 @@ html.light.cozy {
   overflow: hidden;
   pointer-events: none;
   background: rgb(var(--hg-basis-rgb));
+  contain: strict;
+}
+
+.jd-hintergrund.jd-video {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.jd-medien > video.jd-quelle {
+  opacity: 0;
+}
+
+.jd-medien > .jd-dunkel {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+html.jd-sparen *,
+html.jd-sparen *::before,
+html.jd-sparen *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html.jd-sparen .glass,
+html.jd-sparen .glass-strong {
+  background-image: linear-gradient(rgb(var(--hg-basis-rgb) / 0.5), rgb(var(--hg-basis-rgb) / 0.5));
 }
 
 .jd-hintergrund > .jd-medien {

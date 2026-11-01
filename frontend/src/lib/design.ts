@@ -46,6 +46,7 @@ export interface Design {
   abdunkeln: number;
   tempo: number;
   herzen: boolean;
+  fluessig: boolean;
   widmung: boolean;
   widmungText: string;
 }
@@ -91,6 +92,7 @@ export const STANDARD: Design = {
   abdunkeln: 35,
   tempo: 100,
   herzen: false,
+  fluessig: true,
   widmung: false,
   widmungText: "",
 };
@@ -282,6 +284,7 @@ export function anwenden(d: Design): void {
   wurzel.classList.toggle("jd-filter", filter.length > 0);
   wurzel.classList.toggle("jd-wallpaper", d.hintergrundArt !== "farbe");
   wurzel.classList.toggle("jd-herzen", d.herzen);
+  wurzel.classList.toggle("jd-sparen", d.hintergrundArt === "video" && d.fluessig);
   if (zoomMoeglich()) zoomBruecke?.setZoom?.(d.groesse / 100);
 }
 
@@ -398,7 +401,7 @@ export function designStarten(): void {
 }
 
 export const HINTERGRUND_FELDER: DesignFeld[] = [
-  "hintergrundArt", "quelle", "live", "anpassung", "bildHelligkeit", "bildUnschaerfe", "abdunkeln", "tempo",
+  "hintergrundArt", "quelle", "live", "anpassung", "bildHelligkeit", "bildUnschaerfe", "abdunkeln", "tempo", "fluessig",
 ];
 
 export interface Vorlage {
