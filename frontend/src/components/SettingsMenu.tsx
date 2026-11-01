@@ -1,4 +1,5 @@
 import Symbol from "./Symbol";
+import { Palette } from "lucide-react";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
@@ -39,6 +40,7 @@ import VerbundModal from "./VerbundModal";
 import UninstallModal from "./UninstallModal";
 import OllamaModal from "./OllamaModal";
 import AufgabenModelleModal from "./AufgabenModelleModal";
+import DesignStudio from "./DesignStudio";
 
 interface Choice {
   value: string;
@@ -174,6 +176,7 @@ export default function SettingsMenu({
   const [offline, setOffline] = useState(false);
   const [unzensiert, setUnzensiert] = useState(false);
   const [aufgabenOpen, setAufgabenOpen] = useState(false);
+  const [designOpen, setDesignOpen] = useState(false);
   const [startup, setStartup] = useState(false);
   const [city, setCity] = useState("");
   const [clipboard, setClipboard] = useState(true);
@@ -626,7 +629,7 @@ export default function SettingsMenu({
         title="Einstellungen"
         className={`flex items-center justify-center w-7 h-7 rounded-full border transition-colors ${
           open
-            ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
+            ? "border-gold/40 bg-gold/10 text-gold-light"
             : "border-white/10 bg-white/5 text-white/40 hover:text-white/70"
         }`}
       >
@@ -688,6 +691,20 @@ export default function SettingsMenu({
               items={themes}
               onPick={(v) => changeTheme(v as Theme)}
             />
+            <button
+              onClick={() => {
+                setOpen(false);
+                setDesignOpen(true);
+              }}
+              title="Farben, Senden-Knopf, Chat-Blasen, Helligkeit, Schrift und Hintergrund mit Bild, Video oder Live-Wallpaper anpassen."
+              className="w-full flex items-center justify-between gap-2 px-2 py-1.5 mt-1 rounded-lg border border-gold/30 bg-gold/10 hover:bg-gold/20 transition-colors"
+            >
+              <span className="flex items-center gap-1.5 text-[11px] text-gold/90">
+                <Palette size={12} />
+                Design-Studio …
+              </span>
+              <span className="text-gold/70 text-[12px]">›</span>
+            </button>
             <div className="space-y-1 mt-1">
               <Toggle
                 label="Weiche Schreibmarke"
@@ -1387,6 +1404,13 @@ export default function SettingsMenu({
       )}
       {handyOpen && <HandyModal onClose={() => setHandyOpen(false)} />}
       {verbundOpen && <VerbundModal onClose={() => setVerbundOpen(false)} />}
+      {designOpen && (
+        <DesignStudio
+          theme={theme}
+          onTheme={changeTheme}
+          onClose={() => setDesignOpen(false)}
+        />
+      )}
       {aufgabenOpen && (
         <AufgabenModelleModal
           onClose={() => {

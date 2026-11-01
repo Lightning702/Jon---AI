@@ -22,6 +22,7 @@ from app.api.live_routes import router as live_router
 from app.api.verbund_routes import router as verbund_router
 from app.api.oekosystem_routes import router as oekosystem_router
 from app.api.mediathek_routes import router as mediathek_router
+from app.api.design_routes import router as design_router
 from app.api.zeit_routes import router as zeit_router
 from app.api.p2p_routes import create_chat_app
 from app.api.p2p_routes import router as p2p_router
@@ -900,6 +901,7 @@ def create_app() -> FastAPI:
     app.include_router(handy_router)
     app.include_router(zeit_router)
     app.include_router(mediathek_router)
+    app.include_router(design_router)
     app.include_router(anmeldung_router)
     app.include_router(live_router)
     app.include_router(verbund_router)

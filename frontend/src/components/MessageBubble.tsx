@@ -115,7 +115,7 @@ export default function MessageBubble({
         className="flex flex-col items-end gap-2"
       >
         {(!!nutzerTeile?.text || !nutzerTeile?.bloecke.length || !!entry.attachments?.length) && (
-        <div className="max-w-[92%] md:max-w-[76%] min-w-0 px-4 py-3 rounded-2xl rounded-br-md leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] bg-gradient-to-br from-gold-light/90 to-gold-dark/90 text-black shadow-[0_10px_30px_rgba(154,123,31,0.18)]">
+        <div className="max-w-[92%] md:max-w-[76%] min-w-0 px-4 py-3 rounded-2xl rounded-br-md leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] jon-nutzerblase">
           {entry.attachments && entry.attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
               {entry.attachments.map((a, i) => (
@@ -291,7 +291,7 @@ export default function MessageBubble({
           </Suspense>
         )}
         {zeigtBlase && (
-          <div className="max-w-full min-w-0 px-4 py-3 rounded-2xl rounded-bl-md leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] glass text-white/90">
+          <div className="max-w-full min-w-0 px-4 py-3 rounded-2xl rounded-bl-md leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] glass jon-jonblase">
             {entry.streaming && !entry.content ? (
               <JonDenkt text={laufend ? "Jon arbeitet …" : "Jon denkt nach …"} />
             ) : (

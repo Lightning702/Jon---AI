@@ -160,6 +160,8 @@ DEFAULTS = {
     "budget_euro_monat": 0.0,
     "budget_warnung": 0.8,
     "semantik_modell": "",
+    "design": {},
+    "design_liste": [],
 }
 
 
