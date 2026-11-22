@@ -12,7 +12,7 @@ from pathlib import Path
 
 from . import NAME, VERSION, aktualisieren, netz, oberflaeche as ui, prompt
 from .agent import Abbruch, Agent, Sitzung
-from .anbieter import KATALOG, Jon, Verbindung, letzte_wahl_speichern, protokoll
+from .anbieter import JON_ADRESSE, KATALOG, Jon, Verbindung, letzte_wahl_speichern, protokoll
 from .nebenbei import Nebenbei, frage_aus
 from .oberflaeche import BLAU, FETT, GOLD, GRAU, GRUEN, MATT, ROT, TUERKIS, WEISS, f, sag
 from .speicher import Einstellungen, ordner, schreiben
@@ -59,10 +59,23 @@ class Terminal:
         anbieter, modell = self._startwahl()
         modus = "alles" if argumente.alles else ("auto" if argumente.auto else self.einstellungen.get("modus", "vorsichtig"))
         self.agent = Agent(self.verbindung, self.kasten, self.sitzung, anbieter, modell, modus)
-        self.agent.unzensiert = bool(self.einstellungen.get("unzensiert", False))
+        if self.jon.verbunden and "unzensiert" in self.jon.info:
+            self.agent.unzensiert = bool(self.jon.info.get("unzensiert"))
+        else:
+            self.agent.unzensiert = bool(self.einstellungen.get("unzensiert", False))
         self.nebenbei = Nebenbei(lambda frage: self.agent.zwischenfrage(frage))
         self.agent.pause = self.nebenbei.pause
         self._strg_c = 0.0
+
+    def _unzensiert_an_jon(self, an: bool) -> bool:
+        if not self.jon.verbunden:
+            return False
+        try:
+            netz.anfrage("PUT", f"{JON_ADRESSE}/api/settings", {"unzensiert_modus": an}, kopf=self.jon.kopf(), zeit=5)
+        except Exception:
+            return False
+        self.jon.info["unzensiert"] = an
+        return True
 
     def _startwahl(self) -> tuple[str, str]:
         if not self.argumente.ohne_jon:
@@ -330,6 +343,9 @@ class Terminal:
         if wort in ("/unzensiert", "/uncensored"):
             self.agent.unzensiert = not self.agent.unzensiert
             self.einstellungen.setzen(unzensiert=self.agent.unzensiert)
+            app_weit = self._unzensiert_an_jon(self.agent.unzensiert)
+            if app_weit:
+                sag(f("  Der Schalter gilt jetzt für ganz Jon – App, Harness und Terminal.", GRAU))
             if not self.agent.unzensiert:
                 sag(f("  Unzensiert-Modus aus.", GRAU))
             elif prompt.lokal(self.agent.anbieter, self.agent.modell):

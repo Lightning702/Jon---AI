@@ -35,6 +35,21 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "bearbeiten": False,
         "basis": "",
     },
+    "aihorde": {
+        "label": "AI Horde (Stable Horde)",
+        "auth": "frei",
+        "docs": "https://aihorde.net",
+        "hinweis": (
+            "Kostenlos und ohne Anmeldung - Freiwillige rechnen die Bilder auf ihren "
+            "Grafikkarten. Dauert je nach Warteschlange etwas länger."
+        ),
+        "bild_modelle": ["Deliberate", "stable_diffusion", "AlbedoBase XL (SDXL)", "Flux.1-Schnell fp8 (Compact)"],
+        "video_modelle": [],
+        "standard_bild": "Deliberate",
+        "standard_video": "",
+        "bearbeiten": False,
+        "basis": "",
+    },
     "together": {
         "label": "Together AI (FLUX)",
         "auth": "api_key",
@@ -144,6 +159,86 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "bearbeiten": True,
         "basis": "",
     },
+    "huggingface": {
+        "label": "Hugging Face",
+        "auth": "api_key",
+        "docs": "https://huggingface.co/settings/tokens",
+        "hinweis": "Kostenloses Kontingent mit deinem Hugging-Face-Token (Leserechte reichen).",
+        "bild_modelle": [
+            "black-forest-labs/FLUX.1-schnell",
+            "black-forest-labs/FLUX.1-dev",
+            "stabilityai/stable-diffusion-xl-base-1.0",
+        ],
+        "video_modelle": [],
+        "standard_bild": "black-forest-labs/FLUX.1-schnell",
+        "standard_video": "",
+        "bearbeiten": False,
+        "basis": "",
+    },
+    "bfl": {
+        "label": "Black Forest Labs (FLUX)",
+        "auth": "api_key",
+        "docs": "https://dashboard.bfl.ai",
+        "hinweis": "Die FLUX-Macher direkt: FLUX.2, FLUX 1.1 Pro, Ultra und Kontext zum Bearbeiten.",
+        "bild_modelle": ["flux-pro-1.1", "flux-2-pro", "flux-pro-1.1-ultra", "flux-kontext-pro", "flux-dev"],
+        "video_modelle": [],
+        "standard_bild": "flux-pro-1.1",
+        "standard_video": "",
+        "bearbeiten": True,
+        "basis": "",
+    },
+    "xai": {
+        "label": "xAI Grok Imagine",
+        "auth": "api_key",
+        "docs": "https://console.x.ai",
+        "hinweis": "Bilder von Grok. Nimmt automatisch deinen xAI-Schlüssel aus Jon.",
+        "bild_modelle": ["grok-2-image-1212", "grok-imagine-image"],
+        "video_modelle": [],
+        "standard_bild": "grok-2-image-1212",
+        "standard_video": "",
+        "bearbeiten": False,
+        "basis": "",
+    },
+    "ideogram": {
+        "label": "Ideogram",
+        "auth": "api_key",
+        "docs": "https://ideogram.ai/manage-api",
+        "hinweis": "Stark bei Schrift im Bild - Logos, Poster und Plakate.",
+        "bild_modelle": ["v3-turbo", "v3-default", "v3-quality"],
+        "video_modelle": [],
+        "standard_bild": "v3-turbo",
+        "standard_video": "",
+        "bearbeiten": False,
+        "basis": "",
+    },
+    "recraft": {
+        "label": "Recraft",
+        "auth": "api_key",
+        "docs": "https://www.recraft.ai/profile/api",
+        "hinweis": "Illustrationen, Icons und Grafiken im einheitlichen Stil.",
+        "bild_modelle": ["recraftv3", "recraftv2"],
+        "video_modelle": [],
+        "standard_bild": "recraftv3",
+        "standard_video": "",
+        "bearbeiten": False,
+        "basis": "",
+    },
+    "deepinfra": {
+        "label": "DeepInfra",
+        "auth": "api_key",
+        "docs": "https://deepinfra.com/dash/api_keys",
+        "hinweis": "Günstige FLUX- und SDXL-Bilder, abgerechnet pro Bild.",
+        "bild_modelle": [
+            "black-forest-labs/FLUX-1-schnell",
+            "black-forest-labs/FLUX-1-dev",
+            "stabilityai/sdxl-turbo",
+        ],
+        "video_modelle": [],
+        "standard_bild": "black-forest-labs/FLUX-1-schnell",
+        "standard_video": "",
+        "bearbeiten": False,
+        "basis": "",
+    },
     "lokal": {
         "label": "Lokal auf deinem PC",
         "auth": "lokal",
@@ -160,6 +255,21 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "standard_video": "",
         "bearbeiten": True,
         "basis": "http://127.0.0.1:7860",
+    },
+    "comfyui": {
+        "label": "ComfyUI (lokal)",
+        "auth": "lokal",
+        "docs": "https://github.com/comfyanonymous/ComfyUI",
+        "hinweis": (
+            "ComfyUI auf deinem eigenen Rechner (Standard-Port 8188). Jon nimmt das "
+            "Checkpoint-Modell, das du hier einträgst, sonst das erste, das ComfyUI kennt."
+        ),
+        "bild_modelle": [],
+        "video_modelle": [],
+        "standard_bild": "",
+        "standard_video": "",
+        "bearbeiten": False,
+        "basis": "http://127.0.0.1:8188",
     },
     "lokalserver": {
         "label": "Lokaler Server (OpenAI-kompatibel)",
@@ -181,11 +291,23 @@ PROVIDERS: dict[str, dict[str, Any]] = {
 
 SIZES = ["1024x1024", "1024x1536", "1536x1024", "1280x720", "768x768", "512x512"]
 
-INHERITED = {"nvidia": "nvidia", "openai": "openai", "gemini": "gemini", "together": "together"}
+INHERITED = {"nvidia": "nvidia", "openai": "openai", "gemini": "gemini", "together": "together", "xai": "xai"}
 
 FREE_PROVIDER = "pollinations"
 
-AUSWEICHEN = ("nvidia", "openai", "gemini", "fal", "together", "replicate", "stability", "lokalserver", "lokal", "pollinations")
+AUSWEICHEN = (
+    "nvidia", "openai", "gemini", "fal", "together", "replicate", "stability", "bfl", "xai", "ideogram",
+    "recraft", "deepinfra", "huggingface", "lokalserver", "lokal", "comfyui", "pollinations",
+)
+
+RECRAFT_GROESSEN = (
+    (1024, 1024), (1365, 1024), (1024, 1365), (1536, 1024), (1024, 1536), (1820, 1024),
+    (1024, 1820), (1434, 1024), (1024, 1434), (1280, 1024), (1024, 1280), (1707, 1024), (1024, 1707),
+)
+
+IDEOGRAM_TEMPO = {"v3-turbo": "TURBO", "v3-default": "DEFAULT", "v3-quality": "QUALITY"}
+
+HORDE_URL = "https://aihorde.net/api/v2"
 
 PNG_MAGIC = bytes([0x89, 0x50, 0x4E, 0x47])
 
@@ -236,6 +358,20 @@ def _extension(mime: str, url: str = "") -> str:
     if len(tail) == 2 and 2 <= len(tail[1]) <= 4:
         return tail[1].lower()
     return "mp4" if clean.startswith("video") else "png"
+
+
+def _raster(wert: int, schritt: int = 64) -> int:
+    return max(schritt * 4, int(round(wert / schritt)) * schritt)
+
+
+def _bildart(blob: bytes) -> str:
+    if blob[:4] == PNG_MAGIC:
+        return "image/png"
+    if blob[:2] == b"\xff\xd8":
+        return "image/jpeg"
+    if blob[:4] == b"RIFF" and blob[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/png"
 
 
 class StudioService:
@@ -340,8 +476,10 @@ class StudioService:
         from app.services.offline import LOKALE_STUDIO, aktiv as offline
 
         if offline():
-            for name in ("lokalserver", "lokal"):
-                if name in LOKALE_STUDIO and self.ready(name):
+            basen = self._config.get("basis") if isinstance(self._config.get("basis"), dict) else {}
+            for name in ("lokalserver", "comfyui", "lokal"):
+                eingerichtet = name == "lokalserver" or basen.get(name) or self.active() == name
+                if name in LOKALE_STUDIO and eingerichtet and self.ready(name):
                     return name
             return "lokal"
         aktiv = self.active()
@@ -1160,6 +1298,295 @@ class StudioService:
             raw = str(images[0]).split(",")[-1]
             return base64.b64decode(raw), "image/png", ""
 
+
+    async def _oai_bild(
+        self, url: str, key: str, payload: dict[str, Any], label: str, timeout: float = 240.0
+    ) -> tuple[bytes, str, str]:
+        async with self._client(timeout) as client:
+            response = await client.post(url, headers={"Authorization": f"Bearer {key}"}, json=payload)
+            if response.status_code >= 400:
+                self._fail(response, label)
+            item = (response.json().get("data") or [{}])[0]
+            if item.get("b64_json"):
+                blob = base64.b64decode(item["b64_json"])
+                return blob, _bildart(blob), ""
+            if item.get("url"):
+                return await self._fetch(client, str(item["url"]))
+        raise StudioError(f"{label} hat kein Bild geliefert.")
+
+    async def _xai(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        text = prompt if not negative else f"{prompt}\n\nAvoid: {negative}"
+        payload = {"model": model or "grok-2-image-1212", "prompt": text, "n": 1, "response_format": "b64_json"}
+        return await self._oai_bild("https://api.x.ai/v1/images/generations", key, payload, "xAI")
+
+    async def _deepinfra(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        payload = {
+            "model": model,
+            "prompt": prompt if not negative else f"{prompt}. Avoid: {negative}",
+            "n": 1,
+            "size": f"{_raster(width)}x{_raster(height)}",
+            "response_format": "b64_json",
+        }
+        return await self._oai_bild("https://api.deepinfra.com/v1/openai/images/generations", key, payload, "DeepInfra")
+
+    async def _recraft(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        verhaeltnis = width / max(1, height)
+        breite, hoehe = min(RECRAFT_GROESSEN, key=lambda g: abs(g[0] / g[1] - verhaeltnis))
+        payload: dict[str, Any] = {
+            "model": model or "recraftv3",
+            "prompt": prompt[:1000],
+            "size": f"{breite}x{hoehe}",
+            "n": 1,
+            "response_format": "b64_json",
+        }
+        if negative:
+            payload["negative_prompt"] = negative
+        return await self._oai_bild("https://external.api.recraft.ai/v1/images/generations", key, payload, "Recraft")
+
+    async def _huggingface(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        slug = model.strip().strip("/") or "black-forest-labs/FLUX.1-schnell"
+        parameter: dict[str, Any] = {"width": _raster(width), "height": _raster(height)}
+        if negative:
+            parameter["negative_prompt"] = negative
+        async with self._client(300.0) as client:
+            for versuch in range(4):
+                response = await client.post(
+                    f"https://router.huggingface.co/hf-inference/models/{slug}",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json={"inputs": prompt, "parameters": parameter},
+                )
+                if response.status_code != 503 or versuch == 3:
+                    break
+                await asyncio.sleep(8.0)
+            if response.status_code >= 400:
+                self._fail(response, "Hugging Face")
+            mime = response.headers.get("content-type", "image/png")
+            if not mime.startswith("image/"):
+                raise StudioError("Hugging Face hat kein Bild geliefert.")
+            return response.content, mime, ""
+
+    async def _bfl(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        slug = (model or "flux-pro-1.1").strip().strip("/")
+        if vorlage and "kontext" not in slug and "flux-2" not in slug:
+            slug = "flux-kontext-pro"
+        payload: dict[str, Any] = {"prompt": prompt if not negative else f"{prompt}. Avoid: {negative}"}
+        if vorlage:
+            data, _mime = vorlage
+            payload["input_image"] = base64.b64encode(data).decode()
+        elif "ultra" in slug or "kontext" in slug:
+            payload["aspect_ratio"] = self._aspect(width, height)
+        else:
+            payload["width"] = min(1440, _raster(width, 32))
+            payload["height"] = min(1440, _raster(height, 32))
+        kopf = {"x-key": key, "accept": "application/json", "Content-Type": "application/json"}
+        async with self._client(420.0) as client:
+            response = await client.post(f"https://api.bfl.ai/v1/{slug}", headers=kopf, json=payload)
+            if response.status_code >= 400:
+                self._fail(response, "Black Forest Labs")
+            daten = response.json()
+            abfrage = str(daten.get("polling_url") or "")
+            if not abfrage and daten.get("id"):
+                abfrage = f"https://api.bfl.ai/v1/get_result?id={daten['id']}"
+            if not abfrage:
+                raise StudioError("Black Forest Labs hat keinen Auftrag angelegt.")
+            for _ in range(240):
+                await asyncio.sleep(1.5)
+                antwort = await client.get(abfrage, headers={"x-key": key, "accept": "application/json"})
+                if antwort.status_code >= 400:
+                    self._fail(antwort, "Black Forest Labs")
+                stand = antwort.json()
+                status = str(stand.get("status") or "")
+                if status == "Ready":
+                    adresse = str((stand.get("result") or {}).get("sample") or "")
+                    if not adresse:
+                        break
+                    return await self._fetch(client, adresse)
+                if "Moderated" in status:
+                    raise StudioError("Black Forest Labs hat den Auftrag mit seinem Inhaltsfilter abgelehnt.")
+                if status in ("Error", "Failed", "Task not found"):
+                    raise StudioError(f"Black Forest Labs meldet: {status}")
+        raise StudioError("Black Forest Labs war zu langsam oder hat nichts geliefert.")
+
+    async def _ideogram(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        felder = {
+            "prompt": prompt,
+            "rendering_speed": IDEOGRAM_TEMPO.get(model, "TURBO"),
+            "aspect_ratio": self._aspect(width, height).replace(":", "x"),
+            "num_images": "1",
+        }
+        if negative:
+            felder["negative_prompt"] = negative
+        async with self._client(240.0) as client:
+            response = await client.post(
+                "https://api.ideogram.ai/v1/ideogram-v3/generate",
+                headers={"Api-Key": key},
+                files={name: (None, wert) for name, wert in felder.items()},
+            )
+            if response.status_code >= 400:
+                self._fail(response, "Ideogram")
+            for item in response.json().get("data") or []:
+                if isinstance(item, dict) and item.get("url"):
+                    return await self._fetch(client, str(item["url"]))
+        raise StudioError("Ideogram hat kein Bild geliefert.")
+
+    @staticmethod
+    def _horde_masse(width: int, height: int, anonym: bool = True) -> tuple[int, int]:
+        budget = 576 * 576 if anonym else 1024 * 1024
+        faktor = min(1.0, (budget / max(1, width * height)) ** 0.5)
+        return max(256, int(width * faktor) // 64 * 64), max(256, int(height * faktor) // 64 * 64)
+
+    async def _aihorde(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        from app.core.config import get_settings
+
+        breite, hoehe = self._horde_masse(width, height, not key)
+        flux = "flux" in model.lower()
+        parameter: dict[str, Any] = {
+            "width": breite,
+            "height": hoehe,
+            "steps": 4 if flux else 25,
+            "cfg_scale": 1.0 if flux else 6.5,
+            "sampler_name": "k_euler" if flux else "k_euler_a",
+            "n": 1,
+        }
+        payload: dict[str, Any] = {
+            "prompt": f"{prompt} ### {negative}" if negative else prompt,
+            "params": parameter,
+            "nsfw": False,
+            "censor_nsfw": True,
+            "r2": True,
+            "shared": False,
+        }
+        if model:
+            payload["models"] = [model]
+        kopf = {"apikey": key or "0000000000", "Client-Agent": f"Jon:{get_settings().app_version}:getjon.info"}
+        async with self._client(60.0) as client:
+            response = await client.post(f"{HORDE_URL}/generate/async", headers=kopf, json=payload)
+            if response.status_code >= 400:
+                self._fail(response, "AI Horde")
+            auftrag = str(response.json().get("id") or "")
+            if not auftrag:
+                raise StudioError("AI Horde hat keinen Auftrag angelegt.")
+            ende = time.monotonic() + 600
+            while time.monotonic() < ende:
+                await asyncio.sleep(4.0)
+                pruefung = await client.get(f"{HORDE_URL}/generate/check/{auftrag}", headers=kopf)
+                if pruefung.status_code >= 400:
+                    self._fail(pruefung, "AI Horde")
+                stand = pruefung.json()
+                if stand.get("faulted"):
+                    raise StudioError("AI Horde: Der Auftrag ist unterwegs fehlgeschlagen.")
+                if stand.get("is_possible") is False:
+                    await client.delete(f"{HORDE_URL}/generate/status/{auftrag}", headers=kopf)
+                    raise StudioError(f"AI Horde: Gerade rechnet niemand das Modell {model or 'dafür'}.")
+                if not stand.get("done"):
+                    continue
+                fertig = await client.get(f"{HORDE_URL}/generate/status/{auftrag}", headers=kopf)
+                if fertig.status_code >= 400:
+                    self._fail(fertig, "AI Horde")
+                for bild in fertig.json().get("generations") or []:
+                    inhalt = str(bild.get("img") or "")
+                    if inhalt.startswith("http"):
+                        return await self._fetch(client, inhalt)
+                    if inhalt:
+                        blob = base64.b64decode(inhalt)
+                        return blob, _bildart(blob), ""
+                break
+            else:
+                await client.delete(f"{HORDE_URL}/generate/status/{auftrag}", headers=kopf)
+                raise StudioError("AI Horde war zu langsam - über 10 Minuten in der Warteschlange.")
+        raise StudioError("AI Horde hat kein Bild geliefert.")
+
+    async def comfy_checkpoints(self) -> list[str]:
+        async with self._client(8.0) as client:
+            antwort = await client.get(f"{self.base('comfyui')}/object_info/CheckpointLoaderSimple")
+        if antwort.status_code >= 400:
+            return []
+        try:
+            feld = antwort.json()["CheckpointLoaderSimple"]["input"]["required"]["ckpt_name"]
+        except (KeyError, TypeError, ValueError):
+            return []
+        if feld and isinstance(feld[0], list):
+            return [str(name) for name in feld[0]]
+        if len(feld) > 1 and isinstance(feld[1], dict):
+            return [str(name) for name in feld[1].get("options") or []]
+        return []
+
+    async def _comfyui(
+        self, prompt, kind, model, width, height, negative, key, vorlage
+    ) -> tuple[bytes, str, str]:
+        basis = self.base("comfyui")
+        try:
+            checkpoint = model or next(iter(await self.comfy_checkpoints()), "")
+        except httpx.HTTPError as exc:
+            raise StudioError(f"Kein ComfyUI unter {basis} erreichbar: {exc}") from exc
+        if not checkpoint:
+            raise StudioError("ComfyUI kennt noch kein Checkpoint-Modell. Leg eins in ComfyUI/models/checkpoints ab.")
+        klein = checkpoint.lower()
+        flux = "flux" in klein
+        schnell = any(wort in klein for wort in ("schnell", "turbo", "lightning", "lcm", "hyper"))
+        schritte = 4 if schnell else 25
+        workflow = {
+            "3": {"class_type": "KSampler", "inputs": {
+                "seed": int(time.time() * 1000) % 2147483647, "steps": schritte,
+                "cfg": 1.0 if flux else (2.0 if schnell else 6.5), "sampler_name": "euler",
+                "scheduler": "simple" if flux else "normal", "denoise": 1.0, "model": ["4", 0],
+                "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0],
+            }},
+            "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": checkpoint}},
+            "5": {"class_type": "EmptyLatentImage", "inputs": {"width": _raster(width), "height": _raster(height), "batch_size": 1}},
+            "6": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["4", 1]}},
+            "7": {"class_type": "CLIPTextEncode", "inputs": {"text": negative, "clip": ["4", 1]}},
+            "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
+            "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "Jon", "images": ["8", 0]}},
+        }
+        async with self._client(60.0) as client:
+            try:
+                response = await client.post(f"{basis}/prompt", json={"prompt": workflow, "client_id": uuid.uuid4().hex})
+            except httpx.HTTPError as exc:
+                raise StudioError(f"Kein ComfyUI unter {basis} erreichbar: {exc}") from exc
+            if response.status_code >= 400:
+                self._fail(response, "ComfyUI")
+            auftrag = str(response.json().get("prompt_id") or "")
+            if not auftrag:
+                raise StudioError("ComfyUI hat den Auftrag nicht angenommen.")
+            ende = time.monotonic() + 900
+            while time.monotonic() < ende:
+                await asyncio.sleep(1.0)
+                verlauf = await client.get(f"{basis}/history/{auftrag}")
+                if verlauf.status_code >= 400:
+                    continue
+                eintrag = verlauf.json().get(auftrag)
+                if not isinstance(eintrag, dict):
+                    continue
+                status = eintrag.get("status") or {}
+                if status.get("status_str") == "error":
+                    raise StudioError("ComfyUI meldet einen Fehler beim Rechnen. Schau in die ComfyUI-Konsole.")
+                for knoten in (eintrag.get("outputs") or {}).values():
+                    for bild in knoten.get("images") or []:
+                        antwort = await client.get(
+                            f"{basis}/view",
+                            params={"filename": bild.get("filename", ""), "subfolder": bild.get("subfolder", ""), "type": bild.get("type", "output")},
+                        )
+                        if antwort.status_code >= 400:
+                            self._fail(antwort, "ComfyUI")
+                        return antwort.content, antwort.headers.get("content-type", "image/png"), ""
+                if status.get("completed"):
+                    break
+        raise StudioError("ComfyUI hat kein Bild geliefert.")
 
     async def lokale_bildmodelle(self) -> list[str]:
         basis = self.base("lokalserver")

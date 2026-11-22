@@ -330,6 +330,23 @@ export default function App() {
     window.addEventListener("jon-identitaet", neu);
     return () => window.removeEventListener("jon-identitaet", neu);
   }, []);
+  useEffect(() => {
+    const neuLaden = () => void getProviders().then(setProviders).catch(() => undefined);
+    const waehlen = (e: Event) => {
+      const wahl = (e as CustomEvent<{ provider?: string; model?: string }>).detail;
+      if (!wahl?.provider || !wahl.model) return;
+      setProvider(wahl.provider);
+      setModel(wahl.model);
+      void saveUserSettings({ provider: wahl.provider, model: wahl.model });
+      neuLaden();
+    };
+    window.addEventListener("jon-anbieter-neu", neuLaden);
+    window.addEventListener("jon-modell-waehlen", waehlen);
+    return () => {
+      window.removeEventListener("jon-anbieter-neu", neuLaden);
+      window.removeEventListener("jon-modell-waehlen", waehlen);
+    };
+  }, []);
   const [profileOpen, setProfileOpen] = useState(false);
   const [firstRun, setFirstRun] = useState(false);
   const [zugangFehlt, setZugangFehlt] = useState(false);

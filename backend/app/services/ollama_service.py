@@ -457,7 +457,7 @@ class OllamaService:
         self._models = models
         self._mark_success()
         base["last_success"] = self.last_success()
-        if config["model"] and config["model"] not in models:
+        if config["model"] and config["model"] not in models and not config["model"].startswith(("usb:", "share:")):
             base["error"] = (
                 f"Das gewählte Modell {config['model']} ist auf dem Server nicht "
                 f"installiert. Dort einmal: ollama pull {config['model']}"
