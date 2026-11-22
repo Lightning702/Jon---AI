@@ -40,6 +40,7 @@ from app.api.testumgebung_routes import router as testumgebung_router, vorschau_
 from app.api.denken_routes import router as denken_router
 from app.api.routes import accounts, providers, router
 from app.api.studio_routes import router as studio_router
+from app.api.usb_routes import router as usb_router
 from app.api.mobile_routes import router as mobile_router
 from app.api.fitness_routes import router as fitness_router
 from app.api.geraet_app_routes import router as geraet_app_router
@@ -843,6 +844,10 @@ async def lifespan(app: FastAPI):
     from app.services.media_service import get_media_service
 
     await get_media_service().close()
+    with suppress(Exception):
+        from app.services.ollama_usb import get_usb_ollama
+
+        await asyncio.to_thread(get_usb_ollama().beenden)
     _stop_all()
     with suppress(Exception):
         from app.services.phone_service import get_phone_service
@@ -908,6 +913,7 @@ def create_app() -> FastAPI:
     app.include_router(oekosystem_router)
     app.include_router(research_router)
     app.include_router(studio_router)
+    app.include_router(usb_router)
     app.include_router(mobile_router)
     app.include_router(fitness_router)
     app.include_router(geraet_app_router)

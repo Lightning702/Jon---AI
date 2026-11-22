@@ -82,7 +82,9 @@ async def hallo() -> dict:
         wer = nutzername()
     except Exception:
         wer = ""
-    return {"jon": True, "version": get_settings().app_version, "anbieter": anbieter, "modell": modell, "bereit": sorted(_durchreichbar()), "name": wer}
+    from app.services.unzensiert import eingeschaltet
+
+    return {"jon": True, "version": get_settings().app_version, "anbieter": anbieter, "modell": modell, "bereit": sorted(_durchreichbar()), "name": wer, "unzensiert": eingeschaltet()}
 
 
 @router.get("/api/llm/v1/models")
@@ -109,11 +111,20 @@ async def vervollstaendigen(request: Request):
     if not isinstance(koerper, dict) or not isinstance(koerper.get("messages"), list):
         raise HTTPException(400, "Ungültige Anfrage.")
     name, modell, anbieter = _ziel(str(koerper.get("model") or ""))
+    usb_basis = ""
+    if name == "ollama" and modell.startswith("usb:"):
+        from app.services.ollama_usb import UsbFehler, get_usb_ollama
+
+        try:
+            usb_basis = await asyncio.to_thread(get_usb_ollama().sicherstellen)
+        except UsbFehler as fehler:
+            raise HTTPException(503, str(fehler))
+        modell = modell[4:]
     koerper["model"] = modell
     wunsch = koerper.pop("jon_denken", None)
     if "chat_template_kwargs" not in koerper:
         koerper.update(denk_extra(modell, wunsch if isinstance(wunsch, bool) else None))
-    basis = _basis(name, anbieter)
+    basis = usb_basis + "/v1" if usb_basis else _basis(name, anbieter)
     if not basis:
         raise HTTPException(503, f"{name} ist gerade nicht erreichbar.")
     schluessel = ""

@@ -13,6 +13,7 @@ import {
   testOllama,
 } from "../lib/api";
 import OllamaSharePanel from "./OllamaSharePanel";
+import OllamaUsb from "./OllamaUsb";
 
 interface Props {
   onClose: () => void;
@@ -498,6 +499,8 @@ export default function OllamaModal({ onClose }: Props) {
                   <code>ollama pull llama3.2</code>. Danach hier auf „Neu laden“.
                 </p>
               </section>
+
+              <OllamaUsb onModelsChanged={() => void refresh(true)} />
 
               <section className="space-y-2">
                 <div className={section}>Antwortverhalten</div>

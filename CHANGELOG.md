@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Jon.
 
+## [4.66.8] — 2026-11-22
+
+### Ollama vom USB-Stick, neue Bild-KIs, ein Unzensiert-Schalter für alles
+
+- **Modelle vom USB-Stick:** Unter Einstellungen → Ollama gibt es den neuen Bereich „USB-Stick & Laufwerke“. Laufwerk antippen, zum Beispiel D:\, oder einen Ordner wählen, und Jon zeigt alle Ollama-Modelle darauf mit Größe, Familie und Quantisierung. Ein Klick auf „Verbinden“, und die Modelle stehen oben in der Modellwahl, mit USB-Symbol und „Vom USB-Stick“. Dafür startet Jon im Hintergrund ein zweites Ollama (Port 11435), das die Modelle direkt vom Stick liest: Nichts wird auf den PC kopiert und auf dem Stick wird nichts aufgeräumt oder gelöscht. Dein normales Ollama läuft unverändert weiter.
+- **Einfach den Ordner kopieren:** Jon erkennt den Modellordner von Ollama (`%USERPROFILE%\.ollama\models`) im alten und im neuen Format, auch tief im Stick, und warnt bei unvollständig kopierten Modellen. Liegt Ollama nicht auf dem PC, nimmt Jon die portable `ollama.exe` vom Stick.
+- **Einzelne .gguf-Dateien:** Liegen auf dem Stick nur Modelldateien (etwa von Hugging Face oder LM Studio), bindet Jon sie mit einem Klick in einen Ollama-Ordner auf demselben Stick ein.
+- **Überall nutzbar:** Stick-Modelle funktionieren im Chat, im Harness, im Fachteam, über das Terminal (`jonh`) und gelten als lokale Modelle für Offline- und Unzensiert-Modus. Wird der Stick abgezogen, verschwinden die Modelle aus der Liste, steckt er wieder, startet Jon das Stick-Ollama beim nächsten Gebrauch von selbst.
+- **Neue Bild-KIs im Studio:** ComfyUI auf dem eigenen PC (nimmt automatisch dein Checkpoint-Modell), AI Horde (kostenlos ohne Anmeldung, Freiwillige rechnen die Bilder), Hugging Face (kostenloses Kontingent mit Token), Black Forest Labs mit FLUX 1.1 Pro, FLUX.2, Ultra und Kontext zum Bearbeiten, xAI Grok (nimmt deinen xAI-Schlüssel aus Jon), Ideogram für Schrift im Bild, Recraft für Illustrationen und DeepInfra. Damit kennt das Studio 18 Anbieter.
+- **Ein Unzensiert-Schalter für die ganze App:** Der Schalter in den Einstellungen gilt jetzt auch für `jonh` im Terminal: `/unzensiert` dort schaltet ihn für ganz Jon um, und `jonh` übernimmt beim Start den Stand der App. Er wirkt weiter nur mit lokalen Modellen und nie im Kindermodus. Die Inhaltsfilter der Bildanbieter bleiben an.
+
 ## [4.66.7] — 2026-11-01
 
 ### Design-Studio: Jon sieht aus, wie du willst

@@ -6,7 +6,7 @@
 
 **An assistant that doesn't just talk — it actually operates your PC.**
 
-**New in 4.66.7:** The Design Studio under Settings → Design: colors for everything, the send button, chat bubbles, brightness, font and your own background as an image, video or live wallpaper. Your designs are saved with a preview, every setting can be reset to default, and the app icon follows your design.
+**New in 4.66.8:** Ollama models straight from a USB stick: pick the drive under Settings → Ollama, for example D:\, and Jon lists every model on it – without copying them to the PC, single .gguf files included. Plus new image AIs in the Studio (ComfyUI, AI Horde, Hugging Face, Black Forest Labs, xAI Grok, Ideogram, Recraft, DeepInfra) and one uncensored switch for the whole app including the terminal.
 
 **New in 4.66.4:** Telegram no longer hangs: if a model doesn't answer at all, Jon switches to another one after at most 30 seconds instead of waiting up to five minutes. “What time is it in Tokyo?” is answered instantly, and a hanging vision model in the settings no longer slows down looking at images.
 
@@ -18,7 +18,7 @@
 
 **New in 4.65.9:** The terminal harness `jonh` now always works without a key: if FelWorks is unreachable, it switches to a free fallback on its own. Word documents get real tables, page breaks and bold text, and Jon no longer invents details in job applications but uses placeholders. Also: Telegram answers right away, "click Start" works in 2 s, and presentations get checked photos.
 
-[![Version](https://img.shields.io/badge/Version-4.66.7-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-4.66.8-d4af37?style=for-the-badge&labelColor=0b0b0f)](CHANGELOG.md)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&labelColor=0b0b0f&logo=windows&logoColor=white)](https://getjon.info)
 [![License](https://img.shields.io/badge/License-MIT-8fd05a?style=for-the-badge&labelColor=0b0b0f)](LICENSE)
 [![Publisher](https://img.shields.io/badge/Publisher-FelWorks-f5d67b?style=for-the-badge&labelColor=0b0b0f)](https://getjon.info)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Brain, ChevronDown, Code2, Image as BildIcon, Loader2, Search, Timer, Video as VideoIcon } from "lucide-react";
+import { Brain, ChevronDown, Code2, Image as BildIcon, Loader2, Search, Timer, Usb, Video as VideoIcon } from "lucide-react";
 import { getModellInfo, modellTestStand, modelleTesten, type ModellInfo, type ModellTestLauf } from "../lib/api";
 
 interface Props {
@@ -46,6 +46,7 @@ function milliarden(wert: number | null | undefined): string {
 
 function kurzname(id: string): string {
   if (id.startsWith("share:")) return id.slice(id.indexOf("/") + 1);
+  if (id.startsWith("usb:")) return id.slice(4);
   return id.includes("/") ? id.slice(id.lastIndexOf("/") + 1) : id;
 }
 
@@ -289,6 +290,7 @@ export default function ModellWahl({ provider, providerLabel, models, model, onC
         className="glass rounded-lg px-2 md:px-3 py-1.5 text-sm text-white/90 outline-none cursor-pointer min-w-0 max-w-[38vw] md:max-w-[240px] flex items-center gap-1.5"
       >
         {aktuell && <span className={`shrink-0 inline-block w-1.5 h-1.5 rounded-full ${ZUSTAND[aktuell.zustand].farbe}`} />}
+        {model.startsWith("usb:") && <Usb size={13} className="shrink-0 text-gold/80" aria-label="Vom USB-Stick" />}
         <span className="truncate">{kurzname(model) || models[0] || "Modell wählen"}</span>
         <ChevronDown size={14} className="shrink-0 text-white/50" />
       </button>
@@ -344,8 +346,11 @@ export default function ModellWahl({ provider, providerLabel, models, model, onC
                   >
                     <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${zustand.farbe}`} />
                     <span className="flex-1 min-w-0">
-                      <span className="block truncate">{kurzname(m)}</span>
-                      <span className="block truncate text-[11px] text-white/40">{info?.hersteller || m.split("/")[0]}</span>
+                      <span className="flex items-center gap-1 truncate">
+                        {m.startsWith("usb:") && <Usb size={12} className="shrink-0 text-gold/80" />}
+                        <span className="truncate">{kurzname(m)}</span>
+                      </span>
+                      <span className="block truncate text-[11px] text-white/40">{m.startsWith("usb:") ? "Vom USB-Stick" : info?.hersteller || m.split("/")[0]}</span>
                     </span>
                     <span className="shrink-0 flex items-center gap-1 text-white/45">
                       {info?.faehigkeiten.includes("bild_zu_text") && <BildIcon size={13} aria-label="Bild zu Text" />}

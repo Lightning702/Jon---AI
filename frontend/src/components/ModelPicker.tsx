@@ -20,7 +20,8 @@ export default function ModelPicker({
   const active = providers.find((p) => p.provider === provider);
   const models = active?.models ?? [];
   const locked = active?.locked === true;
-  const own = models.filter((m) => !m.startsWith("share:"));
+  const own = models.filter((m) => !m.startsWith("share:") && !m.startsWith("usb:"));
+  const usb = models.filter((m) => m.startsWith("usb:"));
   const shared = models.filter((m) => m.startsWith("share:"));
 
   return (
@@ -57,7 +58,7 @@ export default function ModelPicker({
         <ModellWahl
           provider={provider}
           providerLabel={active?.label || NAMEN[provider] || provider}
-          models={[...own, ...shared]}
+          models={[...own, ...usb, ...shared]}
           model={model}
           onChange={(m) => onChange(provider, m)}
         />

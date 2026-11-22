@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 LOKALE_ANBIETER = {"ollama", "lmstudio", "lokalserver"}
-LOKALE_STUDIO = {"lokal", "lokalserver"}
+LOKALE_STUDIO = {"lokal", "lokalserver", "comfyui"}
 GESPERRT = {
     "web_search", "http_get", "download_file", "get_weather", "youtube_transkript", "deep_learning", "maps",
     "open_url", "bild_suche", "spotify_play", "spotify_search", "spotify_now_playing", "send_friend_message",

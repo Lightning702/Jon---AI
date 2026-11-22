@@ -12,6 +12,7 @@ from openai import AsyncOpenAI
 
 from app.providers.base import ChatRequest, ProviderError, StreamChunk, ToolExecutor
 from app.services.ollama_share_service import REMOTE_PREFIX
+from app.services.ollama_usb import PRAEFIX as USB_PRAEFIX
 from app.providers.openai_compatible import (
     LEAD_GATE,
     tool_runden,
@@ -53,8 +54,14 @@ class OllamaProvider(OpenAICompatibleProvider):
 
         return get_share_service()
 
+    @property
+    def _usb(self):
+        from app.services.ollama_usb import get_usb_ollama
+
+        return get_usb_ollama()
+
     def available(self) -> bool:
-        return self._service.enabled() or bool(self._shares.remote_models())
+        return self._service.enabled() or bool(self._shares.remote_models()) or self._usb.aktiv()
 
     def _client(self, slot: str = "jon") -> AsyncOpenAI:
         url = self._service.openai_base_url()
@@ -69,9 +76,18 @@ class OllamaProvider(OpenAICompatibleProvider):
             self._clients[url] = client
         return client
 
+    async def _usb_modelle(self) -> list[str]:
+        if not self._usb.aktiv():
+            return []
+        try:
+            return await asyncio.to_thread(self._usb.modelle)
+        except Exception as _fehler:
+            leise(_fehler, "providers/ollama_provider")
+            return []
+
     async def list_models(self) -> list[str]:
         service = self._service
-        shared = self._shares.remote_models()
+        shared = await self._usb_modelle() + self._shares.remote_models()
         if not service.enabled():
             return shared
         now = time.monotonic()
@@ -128,9 +144,13 @@ class OllamaProvider(OpenAICompatibleProvider):
     def _label(remote: dict | None) -> str:
         if remote is None:
             return "Ollama"
+        if remote.get("usb"):
+            return "Ollama vom USB-Stick"
         return "Ollama-Freigabe " + str(remote.get("name") or remote.get("code", ""))
 
     def _error(self, exc: Exception, remote: dict | None = None) -> ProviderError:
+        if remote is not None and remote.get("usb"):
+            return ProviderError(f"Ollama vom USB-Stick antwortet nicht ({exc}). Steckt der Stick noch?")
         if remote is not None:
             return ProviderError(
                 f"{self._label(remote)}: Der freigegebene Server unter "
@@ -155,6 +175,8 @@ class OllamaProvider(OpenAICompatibleProvider):
                 f"{label}: Der Zugriff wurde widerrufen. Bitte den Besitzer um einen "
                 "neuen Freigabecode."
             )
+        if remote is not None and remote.get("usb") and (status == 404 or "not found" in lowered):
+            return ProviderError(f"{label}: Das Modell {model} liegt nicht auf dem verbundenen USB-Stick.")
         if status == 404 or "not found" in lowered:
             where = "auf dem freigegebenen Server" if remote else "auf dem Server"
             return ProviderError(
@@ -241,7 +263,17 @@ class OllamaProvider(OpenAICompatibleProvider):
         wanted = request.model or str(config["model"])
         remote, model = self._shares.split_model(wanted)
         headers: dict[str, str] = {}
-        if wanted.startswith(REMOTE_PREFIX):
+        if wanted.startswith(USB_PRAEFIX):
+            from app.services.ollama_usb import UsbFehler
+
+            try:
+                basis = await asyncio.to_thread(self._usb.sicherstellen)
+            except UsbFehler as exc:
+                raise ProviderError(str(exc)) from exc
+            model = wanted[len(USB_PRAEFIX):]
+            remote = {"usb": True, "name": "USB-Stick", "base": basis}
+            url = basis + "/api/chat"
+        elif wanted.startswith(REMOTE_PREFIX):
             if remote is None:
                 raise ProviderError(
                     "Dieser freigegebene Server ist nicht mehr verbunden. Verbinde "

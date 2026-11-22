@@ -736,7 +736,7 @@ export default function SettingsMenu({
               />
               <Toggle
                 label="Unzensiert-Modus"
-                hint="Nur mit lokalen Modellen (Ollama, LM Studio, eigener Server): Jon antwortet ohne Belehrungen und Ablehnungen, im Chat, beim Coden, im Fachteam, im Harness und beim Ansehen von Bildern und Videos. Cloud-Modelle und Kindermodus bleiben unberührt, Freigaben für Aktionen am PC bleiben aktiv."
+                hint="Nur mit lokalen Modellen (Ollama, auch vom USB-Stick, LM Studio, eigener Server): Jon antwortet ohne Belehrungen und Ablehnungen, im Chat, beim Coden, im Fachteam, im Harness, im Terminal (jonh) und beim Ansehen von Bildern und Videos. Ein Schalter für die ganze App. Cloud-Modelle und Kindermodus bleiben unberührt, Freigaben für Aktionen am PC und die Inhaltsfilter der Bildanbieter bleiben aktiv."
                 on={unzensiert}
                 onClick={toggleUnzensiert}
               />
